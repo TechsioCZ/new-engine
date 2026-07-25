@@ -33,6 +33,7 @@ import {
   arrayMove,
   horizontalListSortingStrategy,
   SortableContext,
+  sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
@@ -436,6 +437,9 @@ export type DataTableTranslations = {
   emptyDescription?: string
   pageSizeLabel?: string
   actionsLabel?: string
+  filtersLabel?: string
+  loadingLabel?: string
+  editingLabel?: string
   rangeLabel?: (info: { start: number; end: number; total: number }) => string
 }
 
@@ -446,6 +450,9 @@ const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
   emptyDescription: "There is no data to display.",
   pageSizeLabel: "Rows per page",
   actionsLabel: "Actions",
+  filtersLabel: "Column filters",
+  loadingLabel: "Loading data",
+  editingLabel: "Editing a row — other table controls are locked",
   rangeLabel: ({ start, end, total }) => `${start}–${end} of ${total}`,
 }
 
@@ -716,15 +723,17 @@ function HeaderDragHandle({
   setActivatorNodeRef,
   listeners,
   attributes,
+  label,
 }: {
   styles: DataTableStyles
+  label: string
   setActivatorNodeRef: (node: HTMLElement | null) => void
   listeners: Record<string, unknown> | undefined
   attributes?: Record<string, unknown>
 }) {
   return (
     <button
-      aria-label="Drag to reorder column"
+      aria-label={`Drag to reorder ${label}`}
       className={styles.dragHandle()}
       ref={setActivatorNodeRef as unknown as Ref<HTMLButtonElement>}
       type="button"
@@ -805,9 +814,11 @@ function renderCellContent<T>({
   editorError,
   editorErrorId,
   isDragCol,
+  rowLabel,
 }: {
   cell: Cell<T, unknown>
   column: Column<T, unknown>
+  rowLabel: string
   styles: DataTableStyles
   enableRowReorder: boolean
   dnd?: { dragHandleProps: Record<string, unknown> }
@@ -819,8 +830,9 @@ function renderCellContent<T>({
   if (isDragCol && enableRowReorder && dnd) {
     return (
       <button
-        aria-label="Drag to reorder row"
+        aria-label={`Drag to reorder ${rowLabel}`}
         className={styles.dragHandle()}
+        onClick={(e) => e.stopPropagation()}
         type="button"
         {...dnd.dragHandleProps}
       >
@@ -830,7 +842,7 @@ function renderCellContent<T>({
   }
   if (editor) {
     return (
-      <div className={styles.editorControl()}>
+      <div className={styles.editorControl()} data-editor-control="">
         {editor}
         {editorError ? (
           <span
@@ -859,6 +871,7 @@ function DataTableBodyCell<T>({
   editorError,
   editorErrorId,
   indentColumnId,
+  rowLabel,
 }: {
   cell: Cell<T, unknown>
   span: { colSpan?: number; rowSpan?: number } | undefined
@@ -871,6 +884,7 @@ function DataTableBodyCell<T>({
   editorError?: string
   editorErrorId?: string
   indentColumnId?: string
+  rowLabel: string
 }) {
   const column = cell.column
   const pinned = column.getIsPinned()
@@ -904,6 +918,7 @@ function DataTableBodyCell<T>({
         editorError,
         editorErrorId,
         isDragCol,
+        rowLabel,
       })}
     </Table.Cell>
   )
@@ -945,6 +960,7 @@ function rowDragClass(
 ) {
   return [
     "group/row",
+    "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-primary",
     striped
       ? "odd:bg-table-row-striped-primary even:bg-table-row-striped-secondary"
       : "",
@@ -1173,7 +1189,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
 
   /* Inject built-in leading columns (drag handle, selection, expander). */
-  const editTriggerRef = useRef<HTMLElement | null>(null)
+  const editTriggerIdRef = useRef<string | null>(null)
   const editRowRef = useRef<HTMLTableRowElement | null>(null)
   const [editingRowIdState, setEditingRowIdState] = useState<string | null>(
     null
@@ -1238,6 +1254,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     locked,
     size,
     getRowLabel,
+    instanceId,
     showSelectAll: selectionMode === "multiple" && maxSelectedRows == null,
     onBlockedSelect: () => blocked("select"),
   })
@@ -1310,14 +1327,24 @@ export function DataTable<T>(props: DataTableProps<T>) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: focus follows the edited row, not the callbacks
   useEffect(() => {
     if (editingRowId) {
-      const first = editRowRef.current?.querySelector<HTMLElement>(
-        "input, select, textarea, [contenteditable=true]"
+      // Scope to the editor wrappers so the (disabled) selection checkbox and
+      // other row controls are never picked, and include button-based editors.
+      const candidates = editRowRef.current?.querySelectorAll<HTMLElement>(
+        "[data-editor-control] input, [data-editor-control] select, [data-editor-control] textarea, [data-editor-control] button"
+      )
+      const first = Array.from(candidates ?? []).find(
+        (node) => !(node as HTMLButtonElement).disabled
       )
       first?.focus()
-    } else {
-      editTriggerRef.current?.focus()
-      editTriggerRef.current = null
+      return
     }
+    // The pencil that opened the edit is unmounted while editing, so restore
+    // focus by id rather than by holding a (now detached) node.
+    const trigger = editTriggerIdRef.current
+      ? document.getElementById(editTriggerIdRef.current)
+      : null
+    trigger?.focus()
+    editTriggerIdRef.current = null
   }, [editingRowId])
 
   useEffect(() => {
@@ -1337,10 +1364,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     if (isEditing || (canEditRow && !canEditRow(row))) {
       return
     }
-    editTriggerRef.current =
-      typeof document === "undefined"
-        ? null
-        : (document.activeElement as HTMLElement | null)
+    editTriggerIdRef.current = `${instanceId}-edit-${row.id}`
     const initial: Record<string, unknown> = {}
     for (const column of table.getAllLeafColumns()) {
       if (column.columnDef.meta?.editable) {
@@ -1428,7 +1452,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
   /* dnd sensors */
   const sensors = useSensors(
     useSensor(PointerSensor),
-    useSensor(KeyboardSensor)
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
   )
 
   // Without `maxHeight` the table does not scroll itself, so infinite scroll has
@@ -1581,9 +1607,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
   ) => {
     const column = header.column
     const ariaSort = sortState(column, enableSorting)
-    const dropClass = dnd?.dropSide
-      ? `border-${dnd.dropSide === "start" ? "s" : "e"}-2 border-primary`
-      : ""
+    let dropClass = ""
+    if (dnd?.dropSide === "start") {
+      dropClass = "border-primary border-s-2"
+    } else if (dnd?.dropSide === "end") {
+      dropClass = "border-primary border-e-2"
+    }
     return (
       <Table.ColumnHeader
         aria-sort={ariaSort}
@@ -1603,6 +1632,11 @@ export function DataTable<T>(props: DataTableProps<T>) {
           {dnd && (
             <HeaderDragHandle
               attributes={dnd.attributes}
+              label={
+                typeof column.columnDef.header === "string"
+                  ? column.columnDef.header
+                  : column.id
+              }
               listeners={dnd.listeners}
               setActivatorNodeRef={dnd.setActivatorNodeRef}
               styles={styles}
@@ -1622,7 +1656,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
   /* ── Header ─────────────────────────────────────────────────────────── */
   const headerContent = (
-    <Table.Header {...slotProps?.header}>
+    <Table.Header
+      {...slotProps?.header}
+      className={hideHeader ? "sr-only" : undefined}
+    >
       {table.getHeaderGroups().map((headerGroup, groupIndex) => (
         <Table.Row
           key={headerGroup.id}
@@ -1665,9 +1702,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
       ))}
 
       {enableColumnFilters && (
-        <tr className={styles.filterRow()}>
+        <tr
+          aria-label={translations.filtersLabel}
+          className={styles.filterRow()}
+        >
           {leafColumns.map((column) => (
-            <th
+            <td
               className={styles.filterCell()}
               key={column.id}
               style={
@@ -1679,10 +1719,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
               <div className={styles.filterControl()}>
                 {column.getCanFilter() ? renderColumnFilter(column) : null}
               </div>
-            </th>
+            </td>
           ))}
           {hasActionsColumn && (
-            <th
+            <td
               className={
                 stickyActions
                   ? `${styles.filterCell()} sticky end-0 bg-table-header-bg`
@@ -1774,6 +1814,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
         aria-label={`Edit ${getRowLabel?.(row) ?? `row ${row.id}`}`}
         disabled={isEditing || (canEditRow ? !canEditRow(row) : false)}
         icon="icon-[mdi--pencil-outline]"
+        id={`${instanceId}-edit-${row.id}`}
         onClick={(e) => {
           e.stopPropagation()
           startEdit(row)
@@ -1858,6 +1899,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
           indentColumnId={indentColumnId}
           key={cell.id}
           row={row}
+          rowLabel={getRowLabel?.(row) ?? `row ${row.id}`}
           span={span}
           styles={styles}
         />
@@ -1894,6 +1936,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     const mainRow = (
       <Table.Row
         {...restRowProps}
+        aria-rowindex={rowIndex + 1}
         className={rowDragClass(dnd, restRowProps.className, striped)}
         data-depth={row.depth || undefined}
         data-dragging={dnd?.isDragging || undefined}
@@ -1978,6 +2021,15 @@ export function DataTable<T>(props: DataTableProps<T>) {
     </div>
   )
 
+  let statusMessage = ""
+  if (loading) {
+    statusMessage = translations.loadingLabel
+  } else if (rows.length === 0) {
+    statusMessage = translations.emptyTitle
+  } else if (isEditing) {
+    statusMessage = translations.editingLabel
+  }
+
   const emptyRow = (
     <tr>
       <td colSpan={columnCount + (hasActionsColumn ? 1 : 0)}>{emptyState}</td>
@@ -2034,6 +2086,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                   )}
             </Table.Cell>
           ))}
+          {hasActionsColumn && <Table.Cell numeric />}
         </Table.Row>
       ))}
     </Table.Footer>
@@ -2042,6 +2095,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const tableEl = (
     <Table
       aria-busy={loading || loadingMore || undefined}
+      aria-rowcount={table.getRowCount()}
       interactive={(interactive || !!onRowClick) && !locked}
       showColumnBorder={showColumnBorder}
       size={size}
@@ -2050,7 +2104,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
       {...slotProps?.root}
     >
       {caption && <Table.Caption>{caption}</Table.Caption>}
-      {hideHeader ? null : headerContent}
+      {headerContent}
       {bodyContent}
       {footerContent}
     </Table>
@@ -2108,6 +2162,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
       value={ctxValue as DataTableContextValue<unknown>}
     >
       <div className={styles.wrapper({ className })} id={instanceId} ref={ref}>
+        <output aria-live="polite" className="sr-only">
+          {statusMessage}
+        </output>
         {(enableGlobalFilter || enableColumnVisibility || renderToolbar) &&
           (renderToolbar ? (
             renderToolbar(table)
@@ -2141,6 +2198,7 @@ function buildColumns<T>({
   locked,
   size,
   getRowLabel,
+  instanceId,
   showSelectAll,
   onBlockedSelect,
 }: {
@@ -2151,6 +2209,7 @@ function buildColumns<T>({
   locked: boolean
   size: DataTableControlSize
   getRowLabel?: (row: Row<T>) => string
+  instanceId: string
   showSelectAll: boolean
   onBlockedSelect: () => void
 }): ColumnDef<T, unknown>[] {
@@ -2209,6 +2268,7 @@ function buildColumns<T>({
       cell: ({ row }) =>
         row.getCanExpand() ? (
           <ActionIcon
+            aria-controls={`${instanceId}-detail-${row.id}`}
             aria-expanded={row.getIsExpanded()}
             aria-label={row.getIsExpanded() ? "Collapse row" : "Expand row"}
             icon={

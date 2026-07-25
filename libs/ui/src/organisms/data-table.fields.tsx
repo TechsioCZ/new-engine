@@ -132,6 +132,12 @@ const VALUE_WIDTH: CSSProperties = { flex: "1 1 6rem", minWidth: "6rem" }
 const toSelectItems = (options: DataTableOption[]): SelectItem[] =>
   options.map((o) => ({ label: o.label, value: o.value }))
 
+/** Human-readable column name for generated aria-labels. */
+function columnLabel<T>(column: Column<T, unknown>) {
+  const header = column.columnDef.header
+  return typeof header === "string" && header ? header : column.id
+}
+
 /** Single-value Select used for operators / enums / booleans. */
 function FieldSelect({
   items,
@@ -140,6 +146,7 @@ function FieldSelect({
   placeholder,
   disabled,
   size,
+  invalid,
   onChange,
 }: {
   items: SelectItem[]
@@ -148,6 +155,7 @@ function FieldSelect({
   placeholder?: string
   disabled?: boolean
   size: DataTableControlSize
+  invalid?: boolean
   onChange: (value: string) => void
 }) {
   return (
@@ -157,6 +165,7 @@ function FieldSelect({
       items={items}
       onValueChange={(d) => onChange(d.value[0] ?? "")}
       size={size}
+      validateStatus={invalid ? "error" : "default"}
       value={[value]}
     >
       <Select.Control>
@@ -192,7 +201,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
       <>
         <div style={OPERATOR_WIDTH}>
           <FieldSelect
-            ariaLabel={`Filter operator for ${column.id}`}
+            ariaLabel={`Filter operator for ${columnLabel(column)}`}
             disabled={disabled}
             items={toSelectItems(TEXT_OPS)}
             onChange={(op) => setValue({ ...v, operator: op })}
@@ -203,7 +212,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
         {needsValue && (
           <div style={VALUE_WIDTH}>
             <Input
-              aria-label={`Filter value for ${column.id}`}
+              aria-label={`Filter value for ${columnLabel(column)}`}
               disabled={disabled}
               onChange={(e) =>
                 setValue({ ...v, operator, value: e.target.value })
@@ -227,7 +236,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
       <>
         <div style={OPERATOR_WIDTH}>
           <FieldSelect
-            ariaLabel={`Filter operator for ${column.id}`}
+            ariaLabel={`Filter operator for ${columnLabel(column)}`}
             disabled={disabled}
             items={toSelectItems(NUMBER_OPS)}
             onChange={(op) => setValue({ ...v, operator: op })}
@@ -237,7 +246,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
         </div>
         <div style={VALUE_WIDTH}>
           <Input
-            aria-label={`Filter value for ${column.id}`}
+            aria-label={`Filter value for ${columnLabel(column)}`}
             disabled={disabled}
             onChange={(e) =>
               setValue({ ...v, operator, value: e.target.value })
@@ -251,7 +260,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
         {operator === "between" && (
           <div style={VALUE_WIDTH}>
             <Input
-              aria-label={`Filter upper bound for ${column.id}`}
+              aria-label={`Filter upper bound for ${columnLabel(column)}`}
               disabled={disabled}
               onChange={(e) => setValue({ ...v, operator, to: e.target.value })}
               placeholder="To"
@@ -270,7 +279,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
     const current = v.value === undefined ? "" : String(v.value)
     return (
       <FieldSelect
-        ariaLabel={`Filter ${column.id}`}
+        ariaLabel={`Filter ${columnLabel(column)}`}
         disabled={disabled}
         items={BOOLEAN_FILTER_ITEMS}
         onChange={(next) =>
@@ -288,7 +297,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
     const current = v.values?.[0] ?? ""
     return (
       <FieldSelect
-        ariaLabel={`Filter ${column.id}`}
+        ariaLabel={`Filter ${columnLabel(column)}`}
         disabled={disabled}
         items={[{ label: "All", value: "" }, ...toSelectItems(options)]}
         onChange={(next) => setValue(next ? { values: [next] } : undefined)}
@@ -310,7 +319,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
           const arr = Array.isArray(next) ? next : [next].filter(Boolean)
           setValue(arr.length ? { values: arr as string[] } : undefined)
         }}
-        placeholder={`Filter ${column.id}`}
+        placeholder={`Filter ${columnLabel(column)}`}
         size={size}
         value={v.values ?? []}
       />
@@ -321,7 +330,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
     const v = (value ?? {}) as DateRangeFilterValue
     return (
       <Input
-        aria-label={`Filter ${column.id}`}
+        aria-label={`Filter ${columnLabel(column)}`}
         disabled={disabled}
         onChange={(e) =>
           setValue(
@@ -341,7 +350,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
     const v = (value ?? {}) as DateRangeFilterValue
     return (
       <Input
-        aria-label={`Filter ${column.id}`}
+        aria-label={`Filter ${columnLabel(column)}`}
         disabled={disabled}
         onChange={(e) =>
           setValue(e.target.value ? { from: e.target.value } : undefined)
@@ -362,7 +371,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
     return (
       <>
         <Input
-          aria-label={`Filter ${column.id} from`}
+          aria-label={`Filter ${columnLabel(column)} from`}
           disabled={disabled}
           onChange={(e) => patch({ ...v, from: e.target.value })}
           size={size}
@@ -370,7 +379,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
           value={v.from ?? ""}
         />
         <Input
-          aria-label={`Filter ${column.id} to`}
+          aria-label={`Filter ${columnLabel(column)} to`}
           disabled={disabled}
           onChange={(e) => patch({ ...v, to: e.target.value })}
           size={size}
@@ -388,7 +397,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
     return (
       <>
         <Input
-          aria-label={`Filter ${column.id} from`}
+          aria-label={`Filter ${columnLabel(column)} from`}
           disabled={disabled}
           onChange={(e) => patch({ ...v, from: e.target.value })}
           size={size}
@@ -396,7 +405,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
           value={v.from ?? ""}
         />
         <Input
-          aria-label={`Filter ${column.id} to`}
+          aria-label={`Filter ${columnLabel(column)} to`}
           disabled={disabled}
           // Guard the classic from > to mistake at the control level.
           min={v.from || undefined}
@@ -446,7 +455,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     <Input
       aria-describedby={error ? errorId : undefined}
       aria-invalid={error ? true : undefined}
-      aria-label={`Edit ${column.id}`}
+      aria-label={`Edit ${columnLabel(column)}`}
       disabled={disabled}
       onChange={(e) => setValue(e.target.value)}
       size={size}
@@ -457,9 +466,21 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
 
   int: (ctx) => DEFAULT_EDITOR_RENDERERS.number(ctx),
 
-  number: ({ column, value, setValue, disabled, commit, cancel, size }) => (
+  number: ({
+    column,
+    value,
+    setValue,
+    disabled,
+    commit,
+    cancel,
+    size,
+    error,
+    errorId,
+  }) => (
     <NumericInput
-      aria-label={`Edit ${column.id}`}
+      aria-describedby={error ? errorId : undefined}
+      aria-invalid={error ? true : undefined}
+      aria-label={`Edit ${columnLabel(column)}`}
       disabled={disabled}
       onChange={setValue}
       size={size}
@@ -468,52 +489,38 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     />
   ),
 
-  boolean: ({ column, value, setValue, disabled, error }) => (
+  boolean: ({ column, value, setValue, disabled, error, errorId }) => (
     <Switch
+      aria-describedby={error ? errorId : undefined}
+      aria-invalid={error ? true : undefined}
       checked={Boolean(value)}
       disabled={disabled}
       onCheckedChange={setValue}
       validateStatus={error ? "error" : "default"}
     >
-      <span className="sr-only">{`Edit ${column.id}`}</span>
+      <span className="sr-only">{`Edit ${columnLabel(column)}`}</span>
     </Switch>
   ),
 
-  enum: ({
-    column,
-    value,
-    setValue,
-    disabled,
-    options,
-    error,
-    size,
-  }) => (
+  enum: ({ column, value, setValue, disabled, options, error, size }) => (
     <FieldSelect
-      ariaLabel={`Edit ${column.id}`}
+      ariaLabel={`Edit ${columnLabel(column)}`}
       disabled={disabled}
+      invalid={!!error}
       items={toSelectItems(options)}
       onChange={setValue}
-      placeholder={error ? "Required" : undefined}
       size={size}
       value={(value as string) ?? ""}
     />
   ),
 
-  multiEnum: ({
-    column,
-    value,
-    setValue,
-    disabled,
-    options,
-    error,
-    size,
-  }) => (
+  multiEnum: ({ column, value, setValue, disabled, options, error, size }) => (
     <Combobox
       disabled={disabled}
       items={options.map((o) => ({ label: o.label, value: o.value }))}
       multiple
       onChange={(next) => setValue(Array.isArray(next) ? next : [next])}
-      placeholder={`Edit ${column.id}`}
+      placeholder={`Edit ${columnLabel(column)}`}
       size={size}
       validateStatus={error ? "error" : "default"}
       value={(value as string[]) ?? []}
@@ -534,7 +541,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     <Input
       aria-describedby={error ? errorId : undefined}
       aria-invalid={error ? true : undefined}
-      aria-label={`Edit ${column.id}`}
+      aria-label={`Edit ${columnLabel(column)}`}
       disabled={disabled}
       onChange={(e) => setValue(e.target.value)}
       size={size}
@@ -558,7 +565,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     <Input
       aria-describedby={error ? errorId : undefined}
       aria-invalid={error ? true : undefined}
-      aria-label={`Edit ${column.id}`}
+      aria-label={`Edit ${columnLabel(column)}`}
       disabled={disabled}
       onChange={(e) => setValue(e.target.value)}
       size={size}
@@ -582,7 +589,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     <Input
       aria-describedby={error ? errorId : undefined}
       aria-invalid={error ? true : undefined}
-      aria-label={`Edit ${column.id}`}
+      aria-label={`Edit ${columnLabel(column)}`}
       disabled={disabled}
       onChange={(e) => setValue(e.target.value)}
       size={size}
@@ -597,7 +604,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     return (
       <>
         <Input
-          aria-label={`Edit ${column.id} from`}
+          aria-label={`Edit ${columnLabel(column)} from`}
           disabled={disabled}
           onChange={(e) => setValue({ ...v, from: e.target.value })}
           size={size}
@@ -606,7 +613,7 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
           {...editorKeyHandlers(commit, cancel)}
         />
         <Input
-          aria-label={`Edit ${column.id} to`}
+          aria-label={`Edit ${columnLabel(column)} to`}
           disabled={disabled}
           min={v.from || undefined}
           onChange={(e) => setValue({ ...v, to: e.target.value })}
