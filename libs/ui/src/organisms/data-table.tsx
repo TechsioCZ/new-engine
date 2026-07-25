@@ -102,7 +102,6 @@ import {
   conditionalFilterFn,
   DATA_TABLE_Z,
   type DataTableGetCellSpan,
-  getAlignClass,
   getColumnSizeStyles,
   getPinningStyles,
   isFirstRightPinned,
@@ -940,7 +939,6 @@ function DataTableBodyCell<T>({
 }) {
   const column = cell.column
   const pinned = column.getIsPinned()
-  const numeric = column.columnDef.meta?.align === "end"
   const isDragCol = column.id === DRAG_COLUMN_ID
   const indent =
     row.depth > 0 && column.id === indentColumnId
@@ -949,13 +947,10 @@ function DataTableBodyCell<T>({
 
   return (
     <Table.Cell
-      className={[pinClass(column, "body"), getAlignClass(column)]
-        .filter(Boolean)
-        .join(" ")}
+      className={pinClass(column, "body")}
       colSpan={span?.colSpan}
       data-align={column.columnDef.meta?.align || undefined}
       data-pinned={pinned || undefined}
-      numeric={numeric}
       rowSpan={span?.rowSpan}
       style={{
         ...getPinningStyles(column),
@@ -1756,12 +1751,11 @@ export function DataTable<T>(props: DataTableProps<T>) {
     return (
       <Table.ColumnHeader
         aria-sort={ariaSort}
-        className={`group/header relative ${pinClass(column, "header") ?? ""} ${dropClass} ${getAlignClass(column) ?? ""}`}
+        className={`group/header relative ${pinClass(column, "header") ?? ""} ${dropClass}`}
         colSpan={header.colSpan}
         data-align={column.columnDef.meta?.align || undefined}
         data-dragging={dnd?.isDragging || undefined}
         data-pinned={column.getIsPinned() || undefined}
-        numeric={column.columnDef.meta?.align === "end"}
         ref={dnd?.setNodeRef as unknown as RefObject<HTMLTableCellElement>}
         style={{
           ...OPAQUE_HEADER_BG,

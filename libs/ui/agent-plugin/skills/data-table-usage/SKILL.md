@@ -114,15 +114,25 @@ into every column def, so `size` cannot express "no width declared". `size`
 still drives `enableColumnResizing`, and while resizing is on the live dragged
 width wins over `meta.width`.
 
-`meta.align` (`start | center | end`, default `start`) sets the header and cell
-alignment and is mirrored onto `data-align`. Nothing is inferred from the column
-type — center an icon/boolean column or right-align a number only if you say so.
+`meta.align` (`start | center | end`, default `start`) is forwarded to the
+`Table` cell as `data-align`, which is where the alignment is actually styled —
+so a hand-written `Table` gets the same three options. Nothing is inferred from
+the column type: center an icon/boolean column or right-align a number only if
+you say so. `Table`'s older `numeric` prop still right-aligns, but it means
+"this value is a number"; set one or the other, not both.
 
 ## Inline editing and interaction locking
 
-`enableInlineEdit` turns the right-hand actions cell into edit/save/cancel and
-swaps the edited row's editable cells (`meta.editable`) to type-driven editors.
-One row is editable at a time; Enter commits, Escape cancels. Validation runs on
+The table renders read-only until the user opts in: the right-hand actions cell
+holds an edit icon, and clicking it swaps that row's editable cells
+(`meta.editable`) to type-driven editors with save and cancel beside them.
+`enableInlineEdit` is what wires this up. One row is editable at a time; Enter
+commits, Escape cancels. Apply the committed `draft` to your own state in
+`onEditCommit` — DataTable does not mutate `data`.
+
+For a column that should always be an editor instead, skip `enableInlineEdit`
+and render your own control in `columnDef.cell`, pushing values through
+`table.options.meta.updateData` (see "Inline edit" below). Validation runs on
 commit from `meta.required` and `meta.validate(value, draft)`; failures block the
 commit and surface through `onEditValidationError`.
 

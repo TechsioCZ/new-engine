@@ -2,7 +2,7 @@
  * Table — @techsio/ui-kit organism.
  *
  * @component Table
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -30,11 +30,18 @@ const tableVariants = tv({
       "data-[selected=true]:bg-table-row-bg-selected",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
+    /* `numeric` states that a value *is* a number; `data-align` is a pure
+     * presentation choice. Set one or the other — combining `numeric` with a
+     * conflicting `data-align` leaves the winner up to stylesheet order. */
     columnHeader: [
       "text-start data-[numeric=true]:text-end",
+      "data-[align=center]:text-center data-[align=start]:text-start data-[align=end]:text-end",
       "font-table-header",
     ],
-    cell: ["text-start data-[numeric=true]:text-end"],
+    cell: [
+      "text-start data-[numeric=true]:text-end",
+      "data-[align=center]:text-center data-[align=start]:text-start data-[align=end]:text-end",
+    ],
   },
   variants: {
     variant: {

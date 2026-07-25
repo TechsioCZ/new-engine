@@ -72,6 +72,30 @@ represent the same thing to a user — a pickable row — and should share a sca
 5. **Add a size matrix story.** One Storybook page rendering every control at
    `sm`/`md`/`lg` in a row, so drift like this is visible in review instead of
    being discovered inside a feature.
+6. **Introduce a width scale.** See issue 4 below — there is currently no token
+   scale a consumer can reach for when sizing a table column, a sidebar or any
+   other fixed-width block.
+
+## Issue 4 — no usable width scale
+
+`DataTable` needs per-column widths (`meta.width`), and there is no token scale
+that fits:
+
+| Scale | Range | Why it does not work |
+|---|---|---|
+| `--dimension-*` | breaks down past ~124 | The name stops tracking the value: `--dimension-100` is 100px but `--dimension-700` is 4.38rem (70px), and the scale is sparse — no 150, 180, 250. |
+| `--container-*` | `16rem`–`72rem` | Page-container widths, an order of magnitude too large for a column. |
+| `--spacing-*` | padding-sized | Meant for gaps and insets, not block widths. |
+
+So `meta.width` accepts a raw number (px) or any CSS length, and a consumer who
+wants a token has to inline `"var(--dimension-120)"` themselves. That works, but
+it means column widths are the one part of the grid not expressed in tokens and
+therefore not themeable or exportable to Figma.
+
+Proposed: a `--width-*` scale (e.g. `--width-3xs` … `--width-3xl` mirroring the
+t-shirt naming already used by `--container-*`) authored in Figma, aliased in
+the semantic layer, and then `--width-table-column-*` component tokens on top.
+Until that exists, `meta.width` numbers in app code are expected, not a smell.
 
 Once 1–4 land, `DataTable` can drop its `size="sm"` pin on the condition menu
 and simply follow the table's size like every other nested control.

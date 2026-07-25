@@ -137,6 +137,9 @@ const CHANGELOG = `
 ### Switch v1.0.0
 - Opted into per-component versioning; paired 1:1 with the switch-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### Table v1.1.0
+- Cells and column headers style horizontal alignment from \`data-align\` (\`start | center | end\`). Unlike \`numeric\`, which asserts the value *is* a number, \`data-align\` is a pure presentation choice, so icon/boolean columns can be centred. Set one or the other, not both.
+
 ### Table v1.0.0
 - Opted into per-component versioning; paired 1:1 with the table-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 

@@ -236,21 +236,6 @@ export const conditionalFilterFn: FilterFn<unknown> = (
   return evaluateCondition(row.getValue(columnId), filterValue)
 }
 
-/**
- * Tailwind class for a column's declared `meta.align`. Returns `undefined` for
- * the default so the `Table` cell keeps its own `text-start` base class.
- */
-export function getAlignClass<T>(column: Column<T>): string | undefined {
-  switch (column.columnDef.meta?.align) {
-    case "center":
-      return "text-center"
-    case "end":
-      return "text-end"
-    default:
-      return
-  }
-}
-
 /* ── Column widths ────────────────────────────────────────────────────────
  * TanStack tracks a numeric `size` used by the resizing feature. Columns that
  * are only ever declaratively sized need `%`, `ch` and token values too, hence

@@ -565,6 +565,11 @@ export const ExpandedRowDetail: Story = {
 
 /* ── 21. Inline row edit ─────────────────────────────────────────────────── */
 
+/**
+ * Escape hatch: a column can render its own always-live editor from
+ * `columnDef.cell` and push values through `table.options.meta.updateData`
+ * instead of using the edit/save/cancel row flow.
+ */
 function EditableRoleCell({ getValue, row, column, table }: CellContext<Person, unknown>) {
   const [value, setValue] = useState(String(getValue() ?? ""))
   return (
@@ -578,7 +583,116 @@ function EditableRoleCell({ getValue, row, column, table }: CellContext<Person, 
   )
 }
 
+const inlineEditColumns: ColumnDef<Person>[] = [
+  {
+    accessorKey: "firstName",
+    header: "First name",
+    meta: { type: "string", editable: true, required: true },
+  },
+  {
+    accessorKey: "lastName",
+    header: "Last name",
+    meta: { type: "string", editable: true, required: true },
+  },
+  {
+    accessorKey: "role",
+    header: "Role",
+    meta: { type: "enum", editable: true, options: ROLE_OPTIONS },
+  },
+  {
+    accessorKey: "age",
+    header: "Age",
+    meta: { type: "int", editable: true, align: "end", width: 100 },
+  },
+  {
+    accessorKey: "email",
+    header: "Email",
+    meta: { type: "string" },
+  },
+]
+
 export const InlineEdit: Story = {
+  args: {
+    columns: inlineEditColumns,
+    data: people,
+    enableInlineEdit: true,
+    getRowLabel: (row) => row.original.firstName,
+    onEditStart: fn(),
+    onEditCommit: fn(),
+    onEditCancel: fn(),
+  },
+  render: (args) => {
+    const [rows, setRows] = useState(people)
+    return (
+      <DataTable
+        {...args}
+        data={rows}
+        onEditCommit={(details) => {
+          setRows((current) =>
+            current.map((person) =>
+              person.id === details.row.id
+                ? ({ ...person, ...details.draft } as Person)
+                : person
+            )
+          )
+          args.onEditCommit?.(details)
+        }}
+      />
+    )
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+
+    // The table starts in its normal, read-only state — no editors rendered.
+    await expect(canvas.queryByLabelText("Edit First name")).toBeNull()
+
+    await userEvent.click(canvas.getByLabelText("Edit Ada"))
+    await expect(args.onEditStart).toHaveBeenCalled()
+
+    // Every editable cell of that row swaps to a type-driven editor.
+    const firstName = canvas.getByLabelText("Edit First name")
+    await expect(canvas.getByLabelText("Edit Age")).toBeInTheDocument()
+    // The non-editable column keeps rendering its value.
+    await expect(canvas.getByText("ada@calc.io")).toBeInTheDocument()
+
+    await userEvent.clear(firstName)
+    await userEvent.type(firstName, "Augusta")
+    await userEvent.click(canvas.getByLabelText("Save row"))
+
+    await expect(args.onEditCommit).toHaveBeenCalled()
+    await expect(canvas.getByText("Augusta")).toBeInTheDocument()
+    await expect(canvas.queryByLabelText("Edit First name")).toBeNull()
+  },
+}
+
+/* Cancelling restores the original values and leaves edit mode. */
+export const InlineEditCancel: Story = {
+  args: {
+    columns: inlineEditColumns,
+    data: people,
+    enableInlineEdit: true,
+    getRowLabel: (row) => row.original.firstName,
+    onEditCancel: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByLabelText("Edit Ada"))
+
+    const firstName = canvas.getByLabelText("Edit First name")
+    await userEvent.clear(firstName)
+    await userEvent.type(firstName, "Discarded")
+    await userEvent.click(canvas.getByLabelText("Cancel edit"))
+
+    await expect(args.onEditCancel).toHaveBeenCalledWith(
+      expect.objectContaining({ dirty: true })
+    )
+    await expect(canvas.getByText("Ada")).toBeInTheDocument()
+    await expect(canvas.queryByText("Discarded")).toBeNull()
+  },
+}
+
+/* Always-live cell editor via `meta.updateData`, without the row edit flow. */
+export const InlineEditCustomCell: Story = {
   args: {
     columns: [
       { accessorKey: "firstName", header: "First name" },
