@@ -871,9 +871,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
     },
   })
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: fire only when the (stable) table instance changes, not on every render or onReady identity change
   useEffect(() => {
     onReady?.(table)
-  })
+  }, [table])
 
   const rows = table.getRowModel().rows
   const leafColumns = table.getVisibleLeafColumns()
@@ -947,9 +948,16 @@ export function DataTable<T>(props: DataTableProps<T>) {
     if (!over || active.id === over.id) {
       return
     }
-    const ids = rows.map((r) => r.id)
-    const from = ids.indexOf(active.id as string)
-    const to = ids.indexOf(over.id as string)
+    // Map the dragged/target display rows back to their positions in the
+    // original `data` array — display order may be sorted/filtered/paginated,
+    // so row-model indices must not be applied to `data` directly.
+    const activeRow = rows.find((r) => r.id === active.id)
+    const overRow = rows.find((r) => r.id === over.id)
+    if (!(activeRow && overRow)) {
+      return
+    }
+    const from = data.indexOf(activeRow.original)
+    const to = data.indexOf(overRow.original)
     if (from === -1 || to === -1) {
       return
     }
@@ -1060,14 +1068,25 @@ export function DataTable<T>(props: DataTableProps<T>) {
   ) => {
     const cells = row.getVisibleCells()
     const actionsColumn = renderRowActions || renderQuickActions ? 1 : 0
+    // Spread the passthrough first, then internal props, so DataTable's own
+    // click handler, sortable ref and transform compose with (not get replaced
+    // by) slotProps.row.
+    const {
+      onClick: rowOnClick,
+      style: rowStyle,
+      ...restRowProps
+    } = slotProps?.row ?? {}
     const mainRow = (
       <Table.Row
+        {...restRowProps}
         data-depth={row.depth || undefined}
-        onClick={(event) => onRowClick?.(row, event)}
+        onClick={(event) => {
+          rowOnClick?.(event)
+          onRowClick?.(row, event)
+        }}
         ref={dnd?.setNodeRef as unknown as RefObject<HTMLTableRowElement>}
         selected={enableRowSelection ? row.getIsSelected() : undefined}
-        style={dnd?.style}
-        {...slotProps?.row}
+        style={{ ...rowStyle, ...dnd?.style }}
       >
         {cells.map((cell) => {
           const span = getCellSpan?.(cell as Cell<T, unknown>, {
@@ -1112,15 +1131,18 @@ export function DataTable<T>(props: DataTableProps<T>) {
     return <Fragment key={row.id}>{mainRow}</Fragment>
   }
 
-  const bodyRows = renderRows.map((row, index) =>
-    enableRowReorder ? (
+  const bodyRows = renderRows.map((row, i) => {
+    // Under virtualization `renderRows` is a window; map back to the true index
+    // in `rows` so getCellSpan inspects the correct neighbouring records.
+    const rowIndex = enableVirtualization ? (virtualItems[i]?.index ?? i) : i
+    return enableRowReorder ? (
       <SortableRow enabled={enableRowReorder} key={row.id} row={row}>
-        {(dnd) => renderBodyRow(row, index, dnd)}
+        {(dnd) => renderBodyRow(row, rowIndex, dnd)}
       </SortableRow>
     ) : (
-      renderBodyRow(row, index)
+      renderBodyRow(row, rowIndex)
     )
-  )
+  })
 
   const emptyState = renderEmpty ? (
     renderEmpty()
