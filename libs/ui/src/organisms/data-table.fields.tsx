@@ -63,6 +63,8 @@ export type DataTableFilterValue =
 
 export type DataTableFilterContext<T = unknown> = {
   column: Column<T, unknown>
+  /** Localised operator labels, keyed by operator. */
+  operatorLabels?: Partial<Record<string, string>>
   type: DataTableColumnType
   value: DataTableFilterValue | undefined
   setValue: (value: DataTableFilterValue | undefined) => void
@@ -191,6 +193,7 @@ function FieldSelect({
  */
 function FilterConditionMenu({
   operators,
+  operatorLabels,
   value,
   onChange,
   disabled,
@@ -198,13 +201,18 @@ function FilterConditionMenu({
   columnName,
 }: {
   operators: DataTableOption[]
+  operatorLabels?: Partial<Record<string, string>>
   value: string
   onChange: (value: string) => void
   disabled?: boolean
   size: DataTableControlSize
   columnName: string
 }) {
-  const active = operators.find((o) => o.value === value)
+  const labelled = operators.map((o) => ({
+    ...o,
+    label: operatorLabels?.[o.value] ?? o.label,
+  }))
+  const active = labelled.find((o) => o.value === value)
   return (
     <Menu
       aria-label={`Filter condition for ${columnName}`}
@@ -217,7 +225,7 @@ function FilterConditionMenu({
           tone="neutral"
         />
       }
-      items={operators.map((o) => ({
+      items={labelled.map((o) => ({
         type: "radio" as const,
         value: o.value,
         label: o.label,
@@ -225,7 +233,7 @@ function FilterConditionMenu({
         checked: o.value === value,
       }))}
       onSelect={(d) => onChange(d.value)}
-      size={size}
+      size="sm"
     />
   )
 }
@@ -236,10 +244,12 @@ export const DEFAULT_FILTER_RENDERERS: Record<
   DataTableColumnType,
   DataTableFilterRenderer
 > = {
-  string: ({ column, value, setValue, disabled, size }) => {
+  string: ({ column, value, setValue, disabled, size, operatorLabels }) => {
     const v = (value ?? {}) as TextFilterValue
     const operator = v.operator ?? "contains"
-    const activeLabel = TEXT_OPS.find((o) => o.value === operator)?.label
+    const activeLabel =
+      operatorLabels?.[operator] ??
+      TEXT_OPS.find((o) => o.value === operator)?.label
     const needsValue = operator !== "empty" && operator !== "notEmpty"
     return (
       <>
@@ -256,6 +266,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
           columnName={columnLabel(column)}
           disabled={disabled}
           onChange={(op) => setValue({ ...v, operator: op })}
+          operatorLabels={operatorLabels}
           operators={TEXT_OPS}
           size={size}
           value={operator}
@@ -266,7 +277,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
 
   int: (ctx) => DEFAULT_FILTER_RENDERERS.number(ctx),
 
-  number: ({ column, value, setValue, disabled, size }) => {
+  number: ({ column, value, setValue, disabled, size, operatorLabels }) => {
     const v = (value ?? {}) as NumberFilterValue
     const operator = v.operator ?? "equals"
     return (
@@ -297,6 +308,7 @@ export const DEFAULT_FILTER_RENDERERS: Record<
           columnName={columnLabel(column)}
           disabled={disabled}
           onChange={(op) => setValue({ ...v, operator: op })}
+          operatorLabels={operatorLabels}
           operators={NUMBER_OPS}
           size={size}
           value={operator}

@@ -457,6 +457,8 @@ export type DataTableTranslations = {
   filtersLabel?: string
   selectAllLabel?: string
   loadingLabel?: string
+  /** Override the filter condition labels, keyed by operator. */
+  operatorLabels?: Partial<Record<string, string>>
   editingLabel?: string
   rangeLabel?: (info: { start: number; end: number; total: number }) => string
 }
@@ -471,6 +473,7 @@ const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
   filtersLabel: "Column filters",
   selectAllLabel: "Select all rows",
   loadingLabel: "Loading data",
+  operatorLabels: {},
   editingLabel: "Editing a row — other table controls are locked",
   rangeLabel: ({ start, end, total }) => `${start}–${end} of ${total}`,
 }
@@ -1685,6 +1688,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
       },
       disabled: locked,
       size,
+      operatorLabels: translations.operatorLabels,
       options: meta?.options ?? meta?.filterOptions ?? [],
     }
     if (meta?.renderFilter) {
