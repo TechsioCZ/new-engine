@@ -13,10 +13,12 @@
  * touches this file.
  */
 import type { Column, Row } from "@tanstack/react-table"
-import type { CSSProperties, ReactNode } from "react"
+import type { ReactNode } from "react"
+import { ActionIcon } from "../atoms/action-icon"
 import { Input } from "../atoms/input"
 import { NumericInput } from "../atoms/numeric-input"
 import { Combobox } from "../molecules/combobox"
+import { Menu } from "../molecules/menu"
 import { Select, type SelectItem } from "../molecules/select"
 import { Switch } from "../molecules/switch"
 
@@ -125,10 +127,6 @@ const BOOLEAN_FILTER_ITEMS: SelectItem[] = [
 
 const HHMM_RE = /^(\d{1,2}):(\d{2})/
 
-/** Filter row layout: a fixed operator control and a flexible value control. */
-const OPERATOR_WIDTH: CSSProperties = { flex: "1 1 7rem", minWidth: "7rem" }
-const VALUE_WIDTH: CSSProperties = { flex: "1 1 6rem", minWidth: "6rem" }
-
 const toSelectItems = (options: DataTableOption[]): SelectItem[] =>
   options.map((o) => ({ label: o.label, value: o.value }))
 
@@ -187,6 +185,51 @@ function FieldSelect({
   )
 }
 
+/**
+ * Operator picker for the filter row. An icon button rather than a full Select,
+ * so the value control gets the width and the header stays compact.
+ */
+function FilterConditionMenu({
+  operators,
+  value,
+  onChange,
+  disabled,
+  size,
+  columnName,
+}: {
+  operators: DataTableOption[]
+  value: string
+  onChange: (value: string) => void
+  disabled?: boolean
+  size: DataTableControlSize
+  columnName: string
+}) {
+  const active = operators.find((o) => o.value === value)
+  return (
+    <Menu
+      aria-label={`Filter condition for ${columnName}`}
+      customTrigger={
+        <ActionIcon
+          aria-label={`Filter condition for ${columnName}: ${active?.label ?? value}`}
+          disabled={disabled}
+          icon="icon-[mdi--filter-variant]"
+          size={size}
+          tone="neutral"
+        />
+      }
+      items={operators.map((o) => ({
+        type: "radio" as const,
+        value: o.value,
+        label: o.label,
+        name: `filter-operator-${columnName}`,
+        checked: o.value === value,
+      }))}
+      onSelect={(d) => onChange(d.value)}
+      size={size}
+    />
+  )
+}
+
 /* ── Default FILTER renderers, keyed by column type ──────────────────────── */
 
 export const DEFAULT_FILTER_RENDERERS: Record<
@@ -196,33 +239,27 @@ export const DEFAULT_FILTER_RENDERERS: Record<
   string: ({ column, value, setValue, disabled, size }) => {
     const v = (value ?? {}) as TextFilterValue
     const operator = v.operator ?? "contains"
+    const activeLabel = TEXT_OPS.find((o) => o.value === operator)?.label
     const needsValue = operator !== "empty" && operator !== "notEmpty"
     return (
       <>
-        <div style={OPERATOR_WIDTH}>
-          <FieldSelect
-            ariaLabel={`Filter operator for ${columnLabel(column)}`}
-            disabled={disabled}
-            items={toSelectItems(TEXT_OPS)}
-            onChange={(op) => setValue({ ...v, operator: op })}
-            size={size}
-            value={operator}
-          />
-        </div>
-        {needsValue && (
-          <div style={VALUE_WIDTH}>
-            <Input
-              aria-label={`Filter value for ${columnLabel(column)}`}
-              disabled={disabled}
-              onChange={(e) =>
-                setValue({ ...v, operator, value: e.target.value })
-              }
-              placeholder="Value"
-              size={size}
-              value={v.value ?? ""}
-            />
-          </div>
-        )}
+        <Input
+          aria-label={`Filter value for ${columnLabel(column)}`}
+          className="flex-1"
+          disabled={disabled || !needsValue}
+          onChange={(e) => setValue({ ...v, operator, value: e.target.value })}
+          placeholder={needsValue ? "Value" : activeLabel}
+          size={size}
+          value={needsValue ? (v.value ?? "") : ""}
+        />
+        <FilterConditionMenu
+          columnName={columnLabel(column)}
+          disabled={disabled}
+          onChange={(op) => setValue({ ...v, operator: op })}
+          operators={TEXT_OPS}
+          size={size}
+          value={operator}
+        />
       </>
     )
   },
@@ -234,42 +271,36 @@ export const DEFAULT_FILTER_RENDERERS: Record<
     const operator = v.operator ?? "equals"
     return (
       <>
-        <div style={OPERATOR_WIDTH}>
-          <FieldSelect
-            ariaLabel={`Filter operator for ${columnLabel(column)}`}
-            disabled={disabled}
-            items={toSelectItems(NUMBER_OPS)}
-            onChange={(op) => setValue({ ...v, operator: op })}
-            size={size}
-            value={operator}
-          />
-        </div>
-        <div style={VALUE_WIDTH}>
+        <Input
+          aria-label={`Filter value for ${columnLabel(column)}`}
+          className="flex-1"
+          disabled={disabled}
+          onChange={(e) => setValue({ ...v, operator, value: e.target.value })}
+          placeholder={operator === "between" ? "From" : "Value"}
+          size={size}
+          type="number"
+          value={v.value ?? ""}
+        />
+        {operator === "between" && (
           <Input
-            aria-label={`Filter value for ${columnLabel(column)}`}
+            aria-label={`Filter upper bound for ${columnLabel(column)}`}
+            className="flex-1"
             disabled={disabled}
-            onChange={(e) =>
-              setValue({ ...v, operator, value: e.target.value })
-            }
-            placeholder={operator === "between" ? "From" : "Value"}
+            onChange={(e) => setValue({ ...v, operator, to: e.target.value })}
+            placeholder="To"
             size={size}
             type="number"
-            value={v.value ?? ""}
+            value={v.to ?? ""}
           />
-        </div>
-        {operator === "between" && (
-          <div style={VALUE_WIDTH}>
-            <Input
-              aria-label={`Filter upper bound for ${columnLabel(column)}`}
-              disabled={disabled}
-              onChange={(e) => setValue({ ...v, operator, to: e.target.value })}
-              placeholder="To"
-              size={size}
-              type="number"
-              value={v.to ?? ""}
-            />
-          </div>
         )}
+        <FilterConditionMenu
+          columnName={columnLabel(column)}
+          disabled={disabled}
+          onChange={(op) => setValue({ ...v, operator: op })}
+          operators={NUMBER_OPS}
+          size={size}
+          value={operator}
+        />
       </>
     )
   },

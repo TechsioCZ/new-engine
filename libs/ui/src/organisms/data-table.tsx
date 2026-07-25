@@ -78,6 +78,7 @@ import {
   useState,
 } from "react"
 import { ActionIcon } from "../atoms/action-icon"
+import { Button } from "../atoms/button"
 import { Checkbox } from "../atoms/checkbox"
 import { Icon, type IconType } from "../atoms/icon"
 import { Input } from "../atoms/input"
@@ -693,7 +694,6 @@ export type DataTableProps<T> = {
       disabled: boolean
     }
   ) => ReactNode
-  renderQuickActions?: (row: Row<T>) => ReactNode
   renderHeaderFilter?: (column: Column<T, unknown>) => ReactNode
   renderExpandedRow?: (row: Row<T>) => ReactNode
 
@@ -1127,7 +1127,6 @@ export function DataTable<T>(props: DataTableProps<T>) {
     renderToolbar,
     renderEmpty,
     renderRowActions,
-    renderQuickActions,
     renderHeaderFilter,
     renderExpandedRow,
     slotProps,
@@ -1656,10 +1655,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     .map((c) => c.id)
 
   const hasActionsColumn =
-    !!renderRowActions ||
-    !!renderQuickActions ||
-    !!rowActions?.length ||
-    enableInlineEdit
+    !!renderRowActions || !!rowActions?.length || enableInlineEdit
 
   /**
    * Resolve a column's header filter: per-column `meta.renderFilter`, then the
@@ -1910,25 +1906,27 @@ export function DataTable<T>(props: DataTableProps<T>) {
     if (editingRowId === row.id) {
       return (
         <>
-          <ActionIcon
+          <Button
             aria-label="Save row"
             icon="token-icon-check"
             onClick={(e) => {
               e.stopPropagation()
               commitEdit()
             }}
-            size={size}
-            tone="neutral"
+            size="sm"
+            theme="borderless"
+            variant="primary"
           />
-          <ActionIcon
+          <Button
             aria-label="Cancel edit"
             icon="token-icon-close"
             onClick={(e) => {
               e.stopPropagation()
               cancelEdit()
             }}
-            size={size}
-            tone="neutral"
+            size="sm"
+            theme="borderless"
+            variant="secondary"
           />
         </>
       )
@@ -1956,10 +1954,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
       numeric
     >
       <div className={styles.actionsCell()}>
-        {renderQuickActions?.(row)}
         {rowActions?.map((action) =>
           action.hidden?.(row) ? null : (
-            <ActionIcon
+            <Button
               aria-label={action.label}
               disabled={action.disabled?.(row) || isEditing}
               icon={action.icon}
@@ -1968,8 +1965,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
                 e.stopPropagation()
                 action.onAction(row)
               }}
-              size={size}
-              tone={action.tone ?? "neutral"}
+              size="sm"
+              theme="borderless"
+              variant={action.tone === "danger" ? "danger" : "secondary"}
             />
           )
         )}

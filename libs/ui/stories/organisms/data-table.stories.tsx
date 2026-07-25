@@ -254,26 +254,6 @@ export const RowActions: Story = {
   },
 }
 
-/* ── 8. Quick actions (hover affordance) ─────────────────────────────────── */
-
-export const QuickActions: Story = {
-  args: {
-    ...base,
-    renderQuickActions: (row) => (
-      <ActionIcon
-        aria-label={`Email ${row.original.firstName}`}
-        icon="icon-[mdi--email-outline]"
-        size="sm"
-        tone="neutral"
-      />
-    ),
-  },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    await expect(canvas.getByLabelText("Email Ada")).toBeInTheDocument()
-  },
-}
-
 /* ── 9. Frozen columns (left + right) ────────────────────────────────────── */
 
 export const FrozenColumns: Story = {
@@ -388,7 +368,7 @@ export const ColumnReorder: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(
-      canvas.getAllByLabelText("Drag to reorder column").length
+      canvas.getAllByLabelText(/^Drag to reorder /).length
     ).toBeGreaterThan(0)
   },
 }
@@ -396,11 +376,27 @@ export const ColumnReorder: Story = {
 /* ── 17. Row reorder ─────────────────────────────────────────────────────── */
 
 export const RowReorder: Story = {
+  render: (args) => {
+    // DataTable does not own `data`; the consumer applies the reordered array.
+    const [rows, setRows] = useState(people)
+    return (
+      <DataTable
+        {...args}
+        columns={columns}
+        data={rows}
+        enableRowReorder
+        onRowReorder={(details) => {
+          setRows(details.data)
+          args.onRowReorder?.(details)
+        }}
+      />
+    )
+  },
   args: { ...base, enableRowReorder: true, onRowReorder: fn() },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(
-      canvas.getAllByLabelText("Drag to reorder row").length
+      canvas.getAllByLabelText(/^Drag to reorder /).length
     ).toBeGreaterThan(0)
   },
 }
@@ -923,13 +919,13 @@ export const DragAffordances: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    // Both handles are discoverable and labelled.
+    // Handles name what they move, so 50 rows aren't 50 identical buttons.
     await expect(
-      canvas.getAllByLabelText("Drag to reorder column").length
-    ).toBeGreaterThan(0)
+      canvas.getByLabelText("Drag to reorder First name")
+    ).toBeInTheDocument()
     await expect(
-      canvas.getAllByLabelText("Drag to reorder row").length
-    ).toBeGreaterThan(0)
+      canvas.getByLabelText("Drag to reorder row 0")
+    ).toBeInTheDocument()
   },
 }
 

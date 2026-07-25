@@ -65,8 +65,8 @@ header filter row and the inline row editor, at the table's `size`:
 
 | `meta.type` | filter control | editor control |
 |---|---|---|
-| `string` | operator Select + Input | Input |
-| `int` / `number` | operator Select + Input (`between` adds a second) | NumericInput |
+| `string` | Input + condition menu (icon) | Input |
+| `int` / `number` | Input + condition menu (`between` adds a second Input) | NumericInput |
 | `boolean` | tri-state Select (All/Yes/No) | Switch |
 | `enum` | Select (+ "All") | Select |
 | `multiEnum` | Combobox `multiple` | Combobox `multiple` |
@@ -80,6 +80,15 @@ Give `enum`/`multiEnum` their choices via `meta.options`. Register
 (`time` compares minutes-since-midnight; a `dateRange` cell compares interval
 overlap). There is no date-picker component yet, so date/time fields use the
 native `Input` types.
+
+The filter row puts the value control first and the operator behind a compact
+icon button (a Menu of conditions), so the input gets the width and the header
+stays on one line. The active condition is in the button's `aria-label`, and for
+`Is empty` / `Is not empty` the input is disabled and shows the condition as its
+placeholder.
+
+Row actions use the `Button` atom icon-only at `size="sm"`, `theme="borderless"`,
+with `variant` carrying the semantics (`danger` for destructive actions).
 
 Escape hatches, in precedence order: `meta.renderFilter` / `meta.renderEditor`
 per column → the table-wide `renderHeaderFilter` slot → `filterRenderers` /
@@ -182,7 +191,7 @@ exposes a plain callback: `onRowClick`, `onSortingChange`, `onColumnFiltersChang
 ## Slots (open DOM paths)
 
 `renderToolbar(table)`, `renderEmpty()`, `renderRowActions(row)`,
-`renderQuickActions(row)`, `renderHeaderFilter(column)`, `renderExpandedRow(row)`,
+`renderHeaderFilter(column)`, `renderExpandedRow(row)`,
 and `slotProps.{root,header,body,row}` for className/data-attr/ref passthrough.
 Compose the toolbar/pagination yourself with `DataTable.Toolbar`,
 `DataTable.GlobalSearch`, `DataTable.ColumnVisibility`, `DataTable.Pagination`.
