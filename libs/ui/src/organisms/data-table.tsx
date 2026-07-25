@@ -88,6 +88,7 @@ import { Pagination, type PaginationProps } from "../molecules/pagination"
 import { Select, type SelectItem } from "../molecules/select"
 import { tv } from "../utils"
 import {
+  columnLabel,
   type DataTableColumnType,
   type DataTableControlSize,
   type DataTableEditorContext,
@@ -215,6 +216,19 @@ const dataTableVariants = tv({
 
 /* ── Controllable state ──────────────────────────────────────────────────── */
 
+/**
+ * Controlled/uncontrolled state pair with a change callback.
+ *
+ * The updater is resolved synchronously against a ref mirroring the latest
+ * value rather than inside a `setState` updater, for two reasons: React may
+ * invoke a `setState` updater more than once (Strict Mode does in development),
+ * which would fire `callback` twice per interaction; and the ref is written
+ * before `setInternal`, so several updates batched in one tick still compose
+ * instead of the last one overwriting the rest.
+ *
+ * Callers may therefore assume the updater they pass runs exactly once, and
+ * synchronously.
+ */
 function useControllable<S>(
   controlled: S | undefined,
   initial: S,
@@ -223,21 +237,19 @@ function useControllable<S>(
   const [internal, setInternal] = useState<S>(initial)
   const isControlled = controlled !== undefined
   const value = isControlled ? (controlled as S) : internal
+  const latest = useRef(value)
+  latest.current = value
+
   const onChange: OnChangeFn<S> = (updater) => {
-    const resolve = (old: S) =>
-      typeof updater === "function" ? (updater as (o: S) => S)(old) : updater
-    if (isControlled) {
-      // The parent owns the value; resolve against it for the callback only.
-      callback?.(resolve(value))
-      return
+    const next =
+      typeof updater === "function"
+        ? (updater as (o: S) => S)(latest.current)
+        : updater
+    latest.current = next
+    if (!isControlled) {
+      setInternal(next)
     }
-    // Hand the updater to React so batched updates against the same slice
-    // compose instead of the later one overwriting the earlier.
-    setInternal((old) => {
-      const next = resolve(old)
-      queueMicrotask(() => callback?.(next))
-      return next
-    })
+    callback?.(next)
   }
   return [value, onChange]
 }
@@ -1037,11 +1049,6 @@ const OPAQUE_HEADER_BG: CSSProperties = {
 }
 
 /** Human-readable column name for generated labels. */
-function columnDisplayName<T>(column: Column<T, unknown>) {
-  const header = column.columnDef.header
-  return typeof header === "string" && header ? header : column.id
-}
-
 /** `aria-sort` for a header cell, or undefined when the column is not sortable. */
 function sortState<T>(column: Column<T, unknown>, enableSorting: boolean) {
   if (!(enableSorting && column.getCanSort())) {
@@ -1233,6 +1240,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
    * count growing and the cap would be bypassed.
    */
   const setRowSelection: OnChangeFn<RowSelectionState> = (updater) => {
+    let limitReached: { limit: number; selectedCount: number } | undefined
     setRowSelectionState((old) => {
       const next =
         typeof updater === "function"
@@ -1250,12 +1258,14 @@ export function DataTable<T>(props: DataTableProps<T>) {
         ...selectedIds.filter((id) => old[id]),
         ...selectedIds.filter((id) => !old[id]),
       ].slice(0, maxSelectedRows)
-      onSelectionLimitReached?.({
-        limit: maxSelectedRows,
-        selectedCount: kept.length,
-      })
+      limitReached = { limit: maxSelectedRows, selectedCount: kept.length }
       return Object.fromEntries(kept.map((id) => [id, true]))
     })
+    // `useControllable` runs the updater exactly once and synchronously, so the
+    // notification lands after the state settles without firing twice.
+    if (limitReached) {
+      onSelectionLimitReached?.(limitReached)
+    }
   }
 
   const [columnVisibility, setColumnVisibility] =
@@ -1788,7 +1798,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
         </div>
         {enableColumnResizing && column.getCanResize() ? (
           <button
-            aria-label={`Resize ${columnDisplayName(column)}`}
+            aria-label={`Resize ${columnLabel(column)}`}
             className={styles.resizeHandle()}
             onDoubleClick={() => column.resetSize()}
             onMouseDown={header.getResizeHandler()}
@@ -2084,6 +2094,17 @@ export function DataTable<T>(props: DataTableProps<T>) {
       )
     })
 
+  /**
+   * `aria-rowindex` is 1-based across the whole table including header rows,
+   * and must stay absolute when the body is paginated or virtualised — so body
+   * rows are offset by the rendered header rows plus the current page start.
+   */
+  const headerRowCount =
+    table.getHeaderGroups().length + (enableColumnFilters ? 1 : 0)
+  const pageRowOffset = enablePagination
+    ? pagination.pageIndex * pagination.pageSize
+    : 0
+
   /* ── Body row renderer ──────────────────────────────────────────────── */
   const renderBodyRow = (
     row: Row<T>,
@@ -2114,7 +2135,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     const mainRow = (
       <Table.Row
         {...restRowProps}
-        aria-rowindex={rowIndex + 1}
+        aria-rowindex={headerRowCount + pageRowOffset + rowIndex + 1}
         className={rowDragClass(dnd, restRowProps.className, striped)}
         data-depth={row.depth || undefined}
         data-dragging={dnd?.isDragging || undefined}
@@ -2141,7 +2162,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
       renderExpandedRow && row.getIsExpanded() ? (
         <tr>
           <td colSpan={columnCount + actionsColumn}>
-            {renderExpandedRow(row)}
+            <div
+              className={styles.detailBox()}
+              id={`${instanceId}-detail-${row.id}`}
+            >
+              {renderExpandedRow(row)}
+            </div>
           </td>
         </tr>
       ) : null
@@ -2281,7 +2307,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const tableEl = (
     <Table
       aria-busy={loading || loadingMore || undefined}
-      aria-rowcount={table.getRowCount()}
+      aria-rowcount={headerRowCount + table.getRowCount()}
       interactive={(interactive || !!onRowClick) && !locked}
       showColumnBorder={showColumnBorder}
       size={size}

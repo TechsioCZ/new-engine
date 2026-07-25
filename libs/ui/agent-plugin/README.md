@@ -171,7 +171,7 @@ techsio-ui-kit-ai/
 ├── AGENTS.md                    # routing table
 ├── .mcp.json                    # context7, figma, chrome-devtools
 ├── agents/*.toml                # 6 Codex subagents
-├── skills/                      # 8 authored workflow skills + 58 bundled deep skills
+├── skills/                      # 8 authored workflow skills + 60 bundled deep skills
 ├── hooks/
 │   ├── hooks.json               # SessionStart installer + --no-verify guard
 │   └── pre-push                 # the real gate (git hands it the exact refs/SHAs)

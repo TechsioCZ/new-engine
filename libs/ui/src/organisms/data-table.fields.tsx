@@ -132,8 +132,8 @@ const HHMM_RE = /^(\d{1,2}):(\d{2})/
 const toSelectItems = (options: DataTableOption[]): SelectItem[] =>
   options.map((o) => ({ label: o.label, value: o.value }))
 
-/** Human-readable column name for generated aria-labels. */
-function columnLabel<T>(column: Column<T, unknown>) {
+/** Human-readable column name for generated aria-labels: string header, else id. */
+export function columnLabel<T>(column: Column<T, unknown>) {
   const header = column.columnDef.header
   return typeof header === "string" && header ? header : column.id
 }
