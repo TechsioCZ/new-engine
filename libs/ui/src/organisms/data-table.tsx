@@ -1398,7 +1398,6 @@ export function DataTable<T>(props: DataTableProps<T>) {
     <Table.Cell
       className={stickyActions ? "sticky end-0 bg-table-bg" : undefined}
       numeric
-      style={stickyActions ? { position: "sticky", right: 0 } : undefined}
     >
       <div className={styles.actionsCell()}>
         {renderQuickActions?.(row)}
@@ -1424,7 +1423,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     }
   ) => {
     const cells = row.getVisibleCells()
-    const actionsColumn = renderRowActions || renderQuickActions ? 1 : 0
+    const actionsColumn = hasActionsColumn ? 1 : 0
     // Spread the passthrough first, then internal props, so DataTable's own
     // click handler, sortable ref and transform compose with (not get replaced
     // by) slotProps.row.
@@ -1524,11 +1523,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     <Table.Body {...slotProps?.body}>
       {rows.length === 0 ? (
         <tr>
-          <td
-            colSpan={
-              columnCount + (renderRowActions || renderQuickActions ? 1 : 0)
-            }
-          >
+          <td colSpan={columnCount + (hasActionsColumn ? 1 : 0)}>
             {emptyState}
           </td>
         </tr>
@@ -1536,13 +1531,19 @@ export function DataTable<T>(props: DataTableProps<T>) {
         <>
           {paddingTop > 0 && (
             <tr>
-              <td colSpan={columnCount} style={{ height: paddingTop }} />
+              <td
+                colSpan={columnCount + (hasActionsColumn ? 1 : 0)}
+                style={{ height: paddingTop }}
+              />
             </tr>
           )}
           {bodyRows}
           {paddingBottom > 0 && (
             <tr>
-              <td colSpan={columnCount} style={{ height: paddingBottom }} />
+              <td
+                colSpan={columnCount + (hasActionsColumn ? 1 : 0)}
+                style={{ height: paddingBottom }}
+              />
             </tr>
           )}
         </>

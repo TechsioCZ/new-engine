@@ -627,6 +627,9 @@ function matchNumber(cell: unknown, f: NumberFilterValue) {
     return true
   }
   const target = Number(f.value)
+  if (Number.isNaN(target)) {
+    return true
+  }
   switch (operator) {
     case "notEquals":
       return n !== target
