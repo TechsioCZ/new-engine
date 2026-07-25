@@ -453,6 +453,7 @@ export type DataTableTranslations = {
   pageSizeLabel?: string
   actionsLabel?: string
   filtersLabel?: string
+  selectAllLabel?: string
   loadingLabel?: string
   editingLabel?: string
   rangeLabel?: (info: { start: number; end: number; total: number }) => string
@@ -466,6 +467,7 @@ const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
   pageSizeLabel: "Rows per page",
   actionsLabel: "Actions",
   filtersLabel: "Column filters",
+  selectAllLabel: "Select all rows",
   loadingLabel: "Loading data",
   editingLabel: "Editing a row — other table controls are locked",
   rangeLabel: ({ start, end, total }) => `${start}–${end} of ${total}`,
@@ -475,6 +477,8 @@ export type DataTableProps<T> = {
   data: T[]
   columns: ColumnDef<T, unknown>[]
   getRowId?: (row: T, index: number) => string
+  /** Stable id for the wrapper element; falls back to a generated one. */
+  id?: string
   className?: string
   ref?: Ref<HTMLDivElement>
 
@@ -1052,6 +1056,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     data,
     columns: userColumns,
     getRowId,
+    id: idProp,
     className,
     ref,
     variant = "line",
@@ -1145,7 +1150,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
   const translations = { ...DEFAULT_TRANSLATIONS, ...translationsProp }
   const styles = dataTableVariants()
-  const instanceId = useId()
+  const generatedId = useId()
+  const instanceId = idProp ?? generatedId
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const reachedEndRef = useRef(false)
   const headerRowRef = useRef<HTMLTableRowElement | null>(null)
@@ -1301,6 +1307,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     size,
     getRowLabel,
     instanceId,
+    selectAllLabel: translations.selectAllLabel,
     showSelectAll: selectionMode === "multiple" && maxSelectedRows == null,
     onBlockedSelect: () => blocked("select"),
   })
@@ -1804,13 +1811,18 @@ export function DataTable<T>(props: DataTableProps<T>) {
         >
           {leafColumns.map((column) => (
             <td
-              className={styles.filterCell()}
+              className={`${styles.filterCell()} ${pinClass(column, "header") ?? ""}`}
+              data-pinned={column.getIsPinned() || undefined}
               key={column.id}
-              style={
-                stickyHeader
-                  ? { position: "sticky", top: headerHeight, zIndex: 10 }
-                  : undefined
-              }
+              style={{
+                ...getPinningStyles(column, "header"),
+                ...(stickyHeader
+                  ? { position: "sticky", top: headerHeight }
+                  : undefined),
+                ...(column.getIsPinned() && stickyHeader
+                  ? { zIndex: DATA_TABLE_Z.pinnedHeaderCell }
+                  : undefined),
+              }}
             >
               <div className={styles.filterControl()}>
                 {column.getCanFilter() ? renderColumnFilter(column) : null}
@@ -2037,10 +2049,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
         data-depth={row.depth || undefined}
         data-dragging={dnd?.isDragging || undefined}
         onClick={(event) => {
-          rowOnClick?.(event)
           if (blocked("rowClick")) {
             return
           }
+          rowOnClick?.(event)
           onRowClick?.(row, event)
         }}
         onKeyDown={rowKeyDown}
@@ -2303,6 +2315,7 @@ function buildColumns<T>({
   size,
   getRowLabel,
   instanceId,
+  selectAllLabel,
   showSelectAll,
   onBlockedSelect,
 }: {
@@ -2314,6 +2327,7 @@ function buildColumns<T>({
   size: DataTableControlSize
   getRowLabel?: (row: Row<T>) => string
   instanceId: string
+  selectAllLabel: string
   showSelectAll: boolean
   onBlockedSelect: () => void
 }): ColumnDef<T, unknown>[] {
@@ -2337,7 +2351,7 @@ function buildColumns<T>({
       header: ({ table }) =>
         showSelectAll ? (
           <Checkbox
-            aria-label="Select all rows"
+            aria-label={selectAllLabel}
             checked={table.getIsAllRowsSelected()}
             disabled={locked}
             indeterminate={table.getIsSomeRowsSelected()}
