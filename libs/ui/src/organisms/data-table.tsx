@@ -160,9 +160,10 @@ const dataTableVariants = tv({
     filterRow: ["bg-table-header-bg"],
     filterCell: [
       "px-200 py-100",
+      "min-w-fit",
       "border-b-(length:--border-table-width) border-table-border",
     ],
-    filterControl: ["flex items-center gap-100"],
+    filterControl: ["flex flex-wrap items-center gap-100"],
     editorControl: ["flex items-center gap-100"],
     actionsCell: ["flex items-center justify-end gap-100"],
     empty: [
@@ -175,7 +176,7 @@ const dataTableVariants = tv({
       "px-300 py-200",
       "border-t-(length:--border-table-width) border-table-border",
     ],
-    paginationInfo: ["text-table-sm"],
+    paginationInfo: ["whitespace-nowrap text-table-sm"],
     paginationControls: ["flex items-center gap-300"],
   },
 })
@@ -762,6 +763,7 @@ function DataTableBodyCell<T>({
   enableRowReorder,
   dnd,
   editor,
+  indentColumnId,
 }: {
   cell: Cell<T, unknown>
   span: { colSpan?: number; rowSpan?: number } | undefined
@@ -771,14 +773,15 @@ function DataTableBodyCell<T>({
   enableRowReorder: boolean
   dnd?: { dragHandleProps: Record<string, unknown> }
   editor?: ReactNode
+  indentColumnId?: string
 }) {
   const column = cell.column
   const pinned = column.getIsPinned()
   const numeric = column.columnDef.meta?.align === "end"
   const isDragCol = column.id === DRAG_COLUMN_ID
   const indent =
-    column.id === EXPANDER_COLUMN_ID
-      ? { paddingInlineStart: `${row.depth * 1.25}rem` }
+    row.depth > 0 && column.id === indentColumnId
+      ? { paddingInlineStart: `${row.depth * 1.5}rem` }
       : undefined
 
   return (
@@ -1325,6 +1328,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     SELECTION_COLUMN_ID,
     EXPANDER_COLUMN_ID,
   ])
+  const indentColumnId = leafColumns.find((c) => !builtinIds.has(c.id))?.id
   const reorderableLeafIds = leafColumns
     .filter((c) => !builtinIds.has(c.id))
     .map((c) => c.id)
@@ -1664,6 +1668,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
               editor={renderCellEditor(row, cell.column as Column<T, unknown>)}
               enableColumnResizing={enableColumnResizing}
               enableRowReorder={enableRowReorder}
+              indentColumnId={indentColumnId}
               key={cell.id}
               row={row}
               span={span}

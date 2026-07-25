@@ -13,7 +13,7 @@
  * touches this file.
  */
 import type { Column, Row } from "@tanstack/react-table"
-import type { ReactNode } from "react"
+import type { CSSProperties, ReactNode } from "react"
 import { Input } from "../atoms/input"
 import { NumericInput } from "../atoms/numeric-input"
 import { Combobox } from "../molecules/combobox"
@@ -123,6 +123,10 @@ const BOOLEAN_FILTER_ITEMS: SelectItem[] = [
 
 const HHMM_RE = /^(\d{1,2}):(\d{2})/
 
+/** Filter row layout: a fixed operator control and a flexible value control. */
+const OPERATOR_WIDTH: CSSProperties = { flex: "1 1 7rem", minWidth: "7rem" }
+const VALUE_WIDTH: CSSProperties = { flex: "1 1 6rem", minWidth: "6rem" }
+
 const toSelectItems = (options: DataTableOption[]): SelectItem[] =>
   options.map((o) => ({ label: o.label, value: o.value }))
 
@@ -184,25 +188,29 @@ export const DEFAULT_FILTER_RENDERERS: Record<
     const needsValue = operator !== "empty" && operator !== "notEmpty"
     return (
       <>
-        <FieldSelect
-          ariaLabel={`Filter operator for ${column.id}`}
-          disabled={disabled}
-          items={toSelectItems(TEXT_OPS)}
-          onChange={(op) => setValue({ ...v, operator: op })}
-          size={size}
-          value={operator}
-        />
-        {needsValue && (
-          <Input
-            aria-label={`Filter value for ${column.id}`}
+        <div style={OPERATOR_WIDTH}>
+          <FieldSelect
+            ariaLabel={`Filter operator for ${column.id}`}
             disabled={disabled}
-            onChange={(e) =>
-              setValue({ ...v, operator, value: e.target.value })
-            }
-            placeholder="Value"
+            items={toSelectItems(TEXT_OPS)}
+            onChange={(op) => setValue({ ...v, operator: op })}
             size={size}
-            value={v.value ?? ""}
+            value={operator}
           />
+        </div>
+        {needsValue && (
+          <div style={VALUE_WIDTH}>
+            <Input
+              aria-label={`Filter value for ${column.id}`}
+              disabled={disabled}
+              onChange={(e) =>
+                setValue({ ...v, operator, value: e.target.value })
+              }
+              placeholder="Value"
+              size={size}
+              value={v.value ?? ""}
+            />
+          </div>
         )}
       </>
     )
@@ -215,33 +223,41 @@ export const DEFAULT_FILTER_RENDERERS: Record<
     const operator = v.operator ?? "equals"
     return (
       <>
-        <FieldSelect
-          ariaLabel={`Filter operator for ${column.id}`}
-          disabled={disabled}
-          items={toSelectItems(NUMBER_OPS)}
-          onChange={(op) => setValue({ ...v, operator: op })}
-          size={size}
-          value={operator}
-        />
-        <Input
-          aria-label={`Filter value for ${column.id}`}
-          disabled={disabled}
-          onChange={(e) => setValue({ ...v, operator, value: e.target.value })}
-          placeholder={operator === "between" ? "From" : "Value"}
-          size={size}
-          type="number"
-          value={v.value ?? ""}
-        />
-        {operator === "between" && (
-          <Input
-            aria-label={`Filter upper bound for ${column.id}`}
+        <div style={OPERATOR_WIDTH}>
+          <FieldSelect
+            ariaLabel={`Filter operator for ${column.id}`}
             disabled={disabled}
-            onChange={(e) => setValue({ ...v, operator, to: e.target.value })}
-            placeholder="To"
+            items={toSelectItems(NUMBER_OPS)}
+            onChange={(op) => setValue({ ...v, operator: op })}
+            size={size}
+            value={operator}
+          />
+        </div>
+        <div style={VALUE_WIDTH}>
+          <Input
+            aria-label={`Filter value for ${column.id}`}
+            disabled={disabled}
+            onChange={(e) =>
+              setValue({ ...v, operator, value: e.target.value })
+            }
+            placeholder={operator === "between" ? "From" : "Value"}
             size={size}
             type="number"
-            value={v.to ?? ""}
+            value={v.value ?? ""}
           />
+        </div>
+        {operator === "between" && (
+          <div style={VALUE_WIDTH}>
+            <Input
+              aria-label={`Filter upper bound for ${column.id}`}
+              disabled={disabled}
+              onChange={(e) => setValue({ ...v, operator, to: e.target.value })}
+              placeholder="To"
+              size={size}
+              type="number"
+              value={v.to ?? ""}
+            />
+          </div>
         )}
       </>
     )
