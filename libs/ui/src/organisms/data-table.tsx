@@ -930,9 +930,11 @@ export function DataTable<T>(props: DataTableProps<T>) {
     if (!over || active.id === over.id) {
       return
     }
+    // Seed from ALL leaf columns (not just visible ones) so a reorder while
+    // some columns are hidden doesn't drop the hidden ids from columnOrder.
     const current = table.getState().columnOrder.length
       ? table.getState().columnOrder
-      : leafColumns.map((c) => c.id)
+      : table.getAllLeafColumns().map((c) => c.id)
     const from = current.indexOf(active.id as string)
     const to = current.indexOf(over.id as string)
     if (from === -1 || to === -1) {
@@ -1135,7 +1137,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
     // Under virtualization `renderRows` is a window; map back to the true index
     // in `rows` so getCellSpan inspects the correct neighbouring records.
     const rowIndex = enableVirtualization ? (virtualItems[i]?.index ?? i) : i
-    return enableRowReorder ? (
+    // Only top-level rows are reorderable — sub-rows aren't in the top-level
+    // `data` array, so dragging them could not be applied to it.
+    return enableRowReorder && row.depth === 0 ? (
       <SortableRow enabled={enableRowReorder} key={row.id} row={row}>
         {(dnd) => renderBodyRow(row, rowIndex, dnd)}
       </SortableRow>
@@ -1249,7 +1253,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
         sensors={sensors}
       >
         <SortableContext
-          items={rows.map((r) => r.id)}
+          items={rows.filter((r) => r.depth === 0).map((r) => r.id)}
           strategy={verticalListSortingStrategy}
         >
           {scrollBody}

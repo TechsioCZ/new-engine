@@ -220,6 +220,8 @@ export const EmptyState: Story = {
 
 /* ── 7. Row actions ──────────────────────────────────────────────────────── */
 
+const onDeleteClick = fn()
+
 export const RowActions: Story = {
   args: {
     ...base,
@@ -227,7 +229,7 @@ export const RowActions: Story = {
       <ActionIcon
         aria-label={`Delete ${row.original.firstName}`}
         icon="token-icon-trash"
-        onClick={() => fn()}
+        onClick={() => onDeleteClick(row.original.id)}
         size="sm"
         tone="danger"
       />
@@ -235,7 +237,8 @@ export const RowActions: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await expect(canvas.getByLabelText("Delete Ada")).toBeInTheDocument()
+    await userEvent.click(canvas.getByLabelText("Delete Ada"))
+    await expect(onDeleteClick).toHaveBeenCalledWith("1")
   },
 }
 
@@ -521,11 +524,9 @@ export const Pagination: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByText(/of\s+500/i)).toBeInTheDocument()
-    // Jump to the next page via the pager's page-2 control.
-    const page2 = canvas.queryByRole("link", { name: "2" })
-    if (page2) {
-      await userEvent.click(page2)
-      await expect(args.onPaginationChange).toHaveBeenCalled()
-    }
+    // With 500 rows and a page size of 5, page 2 always exists — hard-assert it
+    // so a broken pager fails the story instead of silently skipping.
+    await userEvent.click(canvas.getByRole("link", { name: "2" }))
+    await expect(args.onPaginationChange).toHaveBeenCalled()
   },
 }
