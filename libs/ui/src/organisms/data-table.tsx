@@ -185,11 +185,12 @@ const dataTableVariants = tv({
       "p-700 text-center text-fg-secondary",
     ],
     paginationBar: [
-      "flex flex-wrap items-center justify-between gap-300",
-      "bg-table-bg text-fg-secondary",
+      "flex flex-wrap items-center justify-end gap-300",
+      "text-table-header-fg",
       "px-300 py-200",
       "border-t-(length:--border-table-width) border-table-border",
     ],
+    detailBox: ["w-full p-300"],
     paginationInfo: ["whitespace-nowrap text-table-sm"],
     paginationControls: ["flex items-center gap-300"],
   },
@@ -541,6 +542,11 @@ export type DataTableProps<T> = {
 
   /* Tree / sub-rows */
   getSubRows?: (row: T) => T[] | undefined
+  /**
+   * Whether a row can expand. Defaults to "any row" when `renderExpandedRow` is
+   * given (master-detail), otherwise to "only rows that have sub-rows".
+   */
+  getRowCanExpand?: (row: Row<T>) => boolean
 
   /* colSpan / rowSpan */
   getCellSpan?: DataTableGetCellSpan<T>
@@ -1093,6 +1099,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     enablePagination = false,
     enableVirtualization = false,
     getSubRows,
+    getRowCanExpand,
     getCellSpan,
     sorting: sortingProp,
     onSortingChange,
@@ -1314,11 +1321,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
     userColumns,
     enableRowReorder,
     enableRowSelection,
-    enableExpanding,
     locked,
-    size,
     getRowLabel,
-    instanceId,
     selectAllLabel: translations.selectAllLabel,
     showSelectAll: selectionMode === "multiple" && maxSelectedRows == null,
     onBlockedSelect: () => blocked("select"),
@@ -1353,6 +1357,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
     rowCount,
     pageCount,
     getSubRows,
+    getRowCanExpand:
+      getRowCanExpand ?? (renderExpandedRow ? () => true : undefined),
     getExpandedRowModel: enableExpanding ? getExpandedRowModel() : undefined,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -1655,7 +1661,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
     .map((c) => c.id)
 
   const hasActionsColumn =
-    !!renderRowActions || !!rowActions?.length || enableInlineEdit
+    !!renderRowActions ||
+    !!rowActions?.length ||
+    enableInlineEdit ||
+    (enableExpanding && !!renderExpandedRow)
 
   /**
    * Resolve a column's header filter: per-column `meta.renderFilter`, then the
@@ -1954,6 +1963,25 @@ export function DataTable<T>(props: DataTableProps<T>) {
       numeric
     >
       <div className={styles.actionsCell()}>
+        {enableExpanding && row.getCanExpand() ? (
+          <Button
+            aria-controls={`${instanceId}-detail-${row.id}`}
+            aria-expanded={row.getIsExpanded()}
+            aria-label={row.getIsExpanded() ? "Collapse row" : "Expand row"}
+            icon={
+              row.getIsExpanded()
+                ? "token-icon-chevron-down"
+                : "token-icon-chevron-right"
+            }
+            onClick={(e) => {
+              e.stopPropagation()
+              row.getToggleExpandedHandler()()
+            }}
+            size="sm"
+            theme="borderless"
+            variant="secondary"
+          />
+        ) : null}
         {rowActions?.map((action) =>
           action.hidden?.(row) ? null : (
             <Button
@@ -2324,11 +2352,8 @@ function buildColumns<T>({
   userColumns,
   enableRowReorder,
   enableRowSelection,
-  enableExpanding,
   locked,
-  size,
   getRowLabel,
-  instanceId,
   selectAllLabel,
   showSelectAll,
   onBlockedSelect,
@@ -2336,11 +2361,8 @@ function buildColumns<T>({
   userColumns: ColumnDef<T, unknown>[]
   enableRowReorder: boolean
   enableRowSelection: boolean
-  enableExpanding: boolean
   locked: boolean
-  size: DataTableControlSize
   getRowLabel?: (row: Row<T>) => string
-  instanceId: string
   selectAllLabel: string
   showSelectAll: boolean
   onBlockedSelect: () => void
@@ -2390,35 +2412,6 @@ function buildColumns<T>({
       enableSorting: false,
       enableColumnFilter: false,
       size: 44,
-    })
-  }
-
-  if (enableExpanding) {
-    leading.push({
-      id: EXPANDER_COLUMN_ID,
-      header: () => null,
-      cell: ({ row }) =>
-        row.getCanExpand() ? (
-          <ActionIcon
-            aria-controls={`${instanceId}-detail-${row.id}`}
-            aria-expanded={row.getIsExpanded()}
-            aria-label={row.getIsExpanded() ? "Collapse row" : "Expand row"}
-            icon={
-              row.getIsExpanded()
-                ? "token-icon-chevron-down"
-                : "token-icon-chevron-right"
-            }
-            onClick={(e) => {
-              e.stopPropagation()
-              row.getToggleExpandedHandler()()
-            }}
-            size={size}
-            tone="neutral"
-          />
-        ) : null,
-      enableSorting: false,
-      enableColumnFilter: false,
-      size: 48,
     })
   }
 
@@ -2524,11 +2517,8 @@ DataTable.Pagination = function DataTablePagination() {
   }))
 
   return (
-    <div className={styles.paginationBar()}>
+    <div className={styles.paginationBar()} style={OPAQUE_HEADER_BG}>
       <div className={styles.paginationControls()}>
-        <span className={styles.paginationInfo()}>
-          {translations.rangeLabel({ start, end, total })}
-        </span>
         <span className={styles.paginationInfo()}>
           {translations.pageSizeLabel}
         </span>
@@ -2545,19 +2535,24 @@ DataTable.Pagination = function DataTablePagination() {
           value={String(state.pageSize)}
         />
       </div>
-      <Pagination
-        getPageUrl={() => "#"}
-        size={size}
-        {...paginationProps}
-        count={total}
-        onPageChange={(page) => {
-          if (!blocked("paginate")) {
-            table.setPageIndex(page - 1)
-          }
-        }}
-        page={state.pageIndex + 1}
-        pageSize={state.pageSize}
-      />
+      <div className={styles.paginationControls()}>
+        <Pagination
+          getPageUrl={() => "#"}
+          size={size}
+          {...paginationProps}
+          count={total}
+          onPageChange={(page) => {
+            if (!blocked("paginate")) {
+              table.setPageIndex(page - 1)
+            }
+          }}
+          page={state.pageIndex + 1}
+          pageSize={state.pageSize}
+        />
+        <span className={styles.paginationInfo()}>
+          {translations.rangeLabel({ start, end, total })}
+        </span>
+      </div>
     </div>
   )
 }

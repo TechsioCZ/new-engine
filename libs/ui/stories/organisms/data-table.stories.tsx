@@ -485,6 +485,37 @@ export const TreeStructure: Story = {
   },
 }
 
+/* ── 20b. Master-detail: the expanded row is one free-form box ───────────── */
+
+export const ExpandedRowDetail: Story = {
+  args: {
+    columns: columns as ColumnDef<Person>[],
+    data: tree,
+    enableExpanding: true,
+    getSubRows: () => undefined,
+    // One full-width cell; the content is whatever layout the consumer wants.
+    renderExpandedRow: (row) => (
+      <div className="grid grid-cols-2 gap-300">
+        <div>
+          <p className="font-table-header">Contact</p>
+          <p className="text-fg-secondary text-table-sm">{row.original.email}</p>
+        </div>
+        <div>
+          <p className="font-table-header">Activity</p>
+          <p className="text-fg-secondary text-table-sm">
+            {row.original.visits} visits · {row.original.status}
+          </p>
+        </div>
+      </div>
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getAllByLabelText("Expand row")[0] as HTMLElement)
+    await expect(canvas.getByText("Contact")).toBeInTheDocument()
+  },
+}
+
 /* ── 21. Inline row edit ─────────────────────────────────────────────────── */
 
 function EditableRoleCell({ getValue, row, column, table }: CellContext<Person, unknown>) {

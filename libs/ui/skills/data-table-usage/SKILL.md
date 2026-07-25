@@ -150,7 +150,9 @@ control that opened it on commit or cancel.
 nested control — filter inputs, inline editors, page-size select, pagination,
 action icons and the column menu — so the whole table scales as one.
 `paginationProps` exposes the full `Pagination` molecule API (variant, compact,
-siblingCount, translations, …) except the table-owned count/page/pageSize.
+siblingCount, translations, …) except the table-owned count/page/pageSize. The
+footer aligns right — page size, then the pager, then the record range — and
+shares the header's background so the two frame the table consistently.
 
 ## Feature flags (all opt-in unless noted)
 
@@ -168,7 +170,7 @@ siblingCount, translations, …) except the table-owned count/page/pageSize.
 - `enableColumnPinning` + controlled `columnPinning` — freeze columns left/right (sticky, with an edge shadow).
 - `enableColumnReorder` — drag column headers (dnd-kit); fires `onColumnReorder`.
 - `enableRowReorder` — injects a drag handle column; fires `onRowReorder`.
-- `enableExpanding` + `getSubRows` — tree rows; injects an expander column. Use `renderExpandedRow` for master-detail content.
+- `enableExpanding` — the expand toggle lives in the trailing actions cell, so it never collides with the selection checkbox. Pair with `getSubRows` for tree rows, or with `renderExpandedRow` alone for master-detail (every row becomes expandable; narrow it with `getRowCanExpand`). The detail renders as one full-width cell spanning every column, containing a plain `div` — put any layout inside, no nested table cells.
 - `enablePagination` — renders `DataTable.Pagination` ("start–end of total" + page-size select + pager). Configure `pageSizeOptions`.
 - `enableVirtualization` + `maxHeight` — windowed rendering for large datasets (keeps native column alignment). Set `estimateRowHeight`.
 - `enableColumnResizing` — draggable column widths (`columnResizeMode: "onChange"`); widths are applied inline per cell.
