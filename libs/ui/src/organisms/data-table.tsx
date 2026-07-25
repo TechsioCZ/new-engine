@@ -992,6 +992,19 @@ function rowDragClass(
     .join(" ")
 }
 
+/**
+ * Opaque header surface. `--color-table-header-bg` resolves to a ~5% tint
+ * (`--color-fill-base`), which is fine for a static header but lets scrolled
+ * content show through sticky or frozen header cells — two labels end up
+ * legible at once. Compositing the tint over the table surface keeps the exact
+ * same colour while being fully opaque.
+ */
+const OPAQUE_HEADER_BG: CSSProperties = {
+  backgroundColor: "var(--color-table-bg)",
+  backgroundImage:
+    "linear-gradient(var(--color-table-header-bg), var(--color-table-header-bg))",
+}
+
 /** Human-readable column name for generated labels. */
 function columnDisplayName<T>(column: Column<T, unknown>) {
   const header = column.columnDef.header
@@ -1712,6 +1725,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
         numeric={column.columnDef.meta?.align === "end"}
         ref={dnd?.setNodeRef as unknown as RefObject<HTMLTableCellElement>}
         style={{
+          ...OPAQUE_HEADER_BG,
           ...getPinningStyles(column, "header"),
           ...dnd?.style,
           width: enableColumnResizing ? column.getSize() : undefined,
@@ -1786,17 +1800,17 @@ export function DataTable<T>(props: DataTableProps<T>) {
               renderHeaderCell(header)
             )
           })}
-          {hasActionsColumn && (
+          {hasActionsColumn && groupIndex === 0 && (
             <Table.ColumnHeader
-              className={
-                stickyActions ? "sticky end-0 bg-table-header-bg" : undefined
-              }
+              className={stickyActions ? "sticky end-0" : undefined}
               numeric
-              style={
-                stickyActions
+              rowSpan={table.getHeaderGroups().length}
+              style={{
+                ...OPAQUE_HEADER_BG,
+                ...(stickyActions
                   ? { zIndex: DATA_TABLE_Z.pinnedHeaderCell }
-                  : undefined
-              }
+                  : undefined),
+              }}
             >
               {translations.actionsLabel}
             </Table.ColumnHeader>
@@ -1815,6 +1829,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
               data-pinned={column.getIsPinned() || undefined}
               key={column.id}
               style={{
+                ...OPAQUE_HEADER_BG,
                 ...getPinningStyles(column, "header"),
                 ...(stickyHeader
                   ? { position: "sticky", top: headerHeight }
@@ -1836,15 +1851,16 @@ export function DataTable<T>(props: DataTableProps<T>) {
                   ? `${styles.filterCell()} sticky end-0 bg-table-header-bg`
                   : styles.filterCell()
               }
-              style={
-                stickyHeader
+              style={{
+                ...OPAQUE_HEADER_BG,
+                ...(stickyHeader
                   ? {
                       position: "sticky",
                       top: headerHeight,
                       zIndex: DATA_TABLE_Z.pinnedHeaderCell,
                     }
-                  : undefined
-              }
+                  : undefined),
+              }}
             />
           )}
         </tr>
