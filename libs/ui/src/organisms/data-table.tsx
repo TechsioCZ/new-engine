@@ -455,6 +455,11 @@ export type DataTableProps<T> = {
 
   /* Presentation (passed through to the Table organism) */
   variant?: "line" | "outline" | "striped"
+  /**
+   * Zebra-stripe body rows. Independent of `variant`, so striping composes with
+   * `variant="outline"` (the `variant="striped"` value cannot).
+   */
+  striped?: boolean
   size?: "sm" | "md" | "lg"
   stickyHeader?: boolean
   interactive?: boolean
@@ -901,10 +906,14 @@ function validateDraft<T>(
 /** Row classes conveying drag state: lifted while dragging, edge while hovered. */
 function rowDragClass(
   dnd: { isDragging?: boolean; dropSide?: "top" | "bottom" } | undefined,
-  className?: string
+  className?: string,
+  striped?: boolean
 ) {
   return [
     "group/row",
+    striped
+      ? "odd:bg-table-row-striped-primary even:bg-table-row-striped-secondary"
+      : "",
     dnd?.isDragging ? "shadow-table-outline" : "",
     dnd?.dropSide === "top" ? "border-primary border-t-2" : "",
     dnd?.dropSide === "bottom" ? "border-primary border-b-2" : "",
@@ -1002,6 +1011,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     paginationProps,
     canEditRow,
     rowActions,
+    striped = false,
     loading = false,
     loadingRowCount = 5,
     loadingMore = false,
@@ -1725,7 +1735,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     const mainRow = (
       <Table.Row
         {...restRowProps}
-        className={rowDragClass(dnd, restRowProps.className)}
+        className={rowDragClass(dnd, restRowProps.className, striped)}
         data-depth={row.depth || undefined}
         data-dragging={dnd?.isDragging || undefined}
         onClick={(event) => {
@@ -1892,7 +1902,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
   const tableEl = (
     <Table
-      interactive={interactive || !!onRowClick}
+      interactive={(interactive || !!onRowClick) && !locked}
       showColumnBorder={showColumnBorder}
       size={size}
       stickyHeader={stickyHeader}

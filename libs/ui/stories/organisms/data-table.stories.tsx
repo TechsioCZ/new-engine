@@ -125,6 +125,7 @@ const meta = {
     variant: { control: "select", options: ["line", "outline", "striped"] },
     size: { control: "select", options: ["sm", "md", "lg"] },
     stickyHeader: { control: "boolean" },
+    striped: { control: "boolean" },
     hideHeader: { control: "boolean" },
   },
 } satisfies Meta<DataTableProps<Person>>
@@ -305,7 +306,13 @@ export const HiddenHeader: Story = {
 /* ── 11. Striped rows ────────────────────────────────────────────────────── */
 
 export const StripedRows: Story = {
-  args: { ...base, variant: "striped" },
+  args: { ...base, striped: true },
+}
+
+/* ── 11b. Striped + outline (boolean composes with any variant) ──────────── */
+
+export const StripedOutlined: Story = {
+  args: { ...base, striped: true, variant: "outline" },
 }
 
 /* ── 12. Infinite scroll / virtualization ────────────────────────────────── */

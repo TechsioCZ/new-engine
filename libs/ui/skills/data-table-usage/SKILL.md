@@ -189,8 +189,15 @@ forwards it to `onCellEditCommit`.
 
 `variant` (`line | outline | striped`), `size` (`sm | md | lg`), `stickyHeader`,
 `showColumnBorder`, `hideHeader`, `caption` — all forwarded to the underlying
-`Table`. Use `variant="striped"` for zebra rows, `stickyHeader` with `maxHeight`
-for a scrolling body, and `hideHeader` for headerless layouts.
+`Table`. Use `stickyHeader` with `maxHeight` for a scrolling body and
+`hideHeader` for headerless layouts.
+
+`striped` is a standalone boolean, so zebra rows compose with any variant —
+prefer it over `variant="striped"`, which cannot be combined with `outline`.
+
+Setting `onRowClick` automatically makes rows interactive (pointer cursor +
+hover background); the affordance is dropped while an inline edit locks row
+clicks, so rows never look clickable when they are not.
 
 ## Don'ts
 
