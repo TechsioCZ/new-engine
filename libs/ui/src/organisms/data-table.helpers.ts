@@ -12,7 +12,14 @@ import type {
   RowData,
   Table as TanstackTable,
 } from "@tanstack/react-table"
-import type { CSSProperties } from "react"
+import type { CSSProperties, ReactNode } from "react"
+import type {
+  DataTableColumnType,
+  DataTableEditorContext,
+  DataTableFilterContext,
+  DataTableOption,
+} from "./data-table.fields"
+import { typedFilterMatch } from "./data-table.fields"
 
 /* ── Column meta augmentation ─────────────────────────────────────────────
  * Lets a column declare how it filters, aligns and edits without leaking
@@ -23,16 +30,32 @@ declare module "@tanstack/react-table" {
   interface ColumnMeta<TData, TValue> {
     /** Right-align header + cells (numeric columns). */
     align?: "start" | "end"
-    /** Which filter control the default header filter renders. */
-    filterVariant?: "text" | "number" | "range" | "select"
-    /** Options for `filterVariant: "select"`. */
-    filterOptions?: { label: string; value: string }[]
+    /**
+     * Declared data type. Drives which ui-kit control DataTable renders in the
+     * header filter row and in the inline row editor. Use `"custom"` (or omit)
+     * together with `renderFilter`/`renderEditor` for non-standard columns.
+     */
+    type?: DataTableColumnType
+    /** Choices for `enum` / `multiEnum` columns (filter + editor). */
+    options?: DataTableOption[]
     /** Enable inline editing for this column's cells. */
     editable?: boolean
-    /** Which editor the inline edit renders. */
-    editVariant?: "text" | "number" | "select"
-    /** Options for `editVariant: "select"`. */
-    editOptions?: { label: string; value: string }[]
+    /** Reject an empty value on commit. */
+    required?: boolean
+    /** Per-field validation run on commit; return a message to block it. */
+    validate?: (
+      value: unknown,
+      draft: Record<string, unknown>
+    ) => string | undefined
+    /** Escape hatch: render this column's header filter yourself. */
+    renderFilter?: (ctx: DataTableFilterContext<TData>) => ReactNode
+    /** Escape hatch: render this column's inline editor yourself. */
+    renderEditor?: (ctx: DataTableEditorContext<TData>) => ReactNode
+
+    /** @deprecated use `type` — kept so existing columns keep working. */
+    filterVariant?: "text" | "number" | "range" | "select"
+    /** @deprecated use `options`. */
+    filterOptions?: DataTableOption[]
   }
 
   // biome-ignore lint/style/useConsistentTypeDefinitions: module augmentation requires interface
@@ -46,7 +69,25 @@ declare module "@tanstack/react-table" {
   interface FilterFns {
     /** Operator-based ("with conditions") column filter registered by DataTable. */
     conditional: FilterFn<unknown>
+    /** Column-type aware filter (see `meta.type`) registered by DataTable. */
+    typed: FilterFn<unknown>
   }
+}
+
+/**
+ * Filter function that dispatches on the column's declared `meta.type`, so a
+ * `boolean`/`enum`/`date` column filters correctly without the consumer wiring
+ * a comparator. Registered by DataTable as `filterFn: "typed"`.
+ */
+export const typedFilterFn: FilterFn<unknown> = (
+  row,
+  columnId,
+  filterValue
+) => {
+  const type =
+    row.getAllCells().find((c) => c.column.id === columnId)?.column.columnDef
+      .meta?.type ?? "string"
+  return typedFilterMatch(type, row.getValue(columnId), filterValue)
 }
 
 /* ── Conditional (operator-based) filtering ──────────────────────────────── */

@@ -81,19 +81,27 @@ import { Checkbox } from "../atoms/checkbox"
 import { Icon, type IconType } from "../atoms/icon"
 import { Input } from "../atoms/input"
 import { Menu, type MenuItem } from "../molecules/menu"
-import { Pagination } from "../molecules/pagination"
+import { Pagination, type PaginationProps } from "../molecules/pagination"
 import { Select, type SelectItem } from "../molecules/select"
 import { tv } from "../utils"
 import {
+  type DataTableColumnType,
+  type DataTableControlSize,
+  type DataTableEditorContext,
+  type DataTableEditorRenderer,
+  type DataTableFilterContext,
+  type DataTableFilterRenderer,
+  type DataTableFilterValue,
+  DEFAULT_EDITOR_RENDERERS,
+  DEFAULT_FILTER_RENDERERS,
+} from "./data-table.fields"
+import {
   conditionalFilterFn,
-  type DataTableConditionalFilterValue,
-  type DataTableFilterOperator,
   type DataTableGetCellSpan,
   getPinningStyles,
   isFirstRightPinned,
   isLastLeftPinned,
-  NUMBER_FILTER_OPERATORS,
-  TEXT_FILTER_OPERATORS,
+  typedFilterFn,
 } from "./data-table.helpers"
 import { Table } from "./table"
 
@@ -154,6 +162,8 @@ const dataTableVariants = tv({
       "border-b-(length:--border-table-width) border-table-border",
     ],
     filterControl: ["flex items-center gap-100"],
+    editorControl: ["flex items-center gap-100"],
+    actionsCell: ["flex items-center justify-end gap-100"],
     empty: [
       "flex flex-col items-center justify-center gap-200",
       "p-700 text-center text-fg-secondary",
@@ -196,6 +206,7 @@ type DataTableSelectProps = {
   value?: string
   placeholder?: string
   size?: "xs" | "sm" | "md" | "lg"
+  disabled?: boolean
   "aria-label"?: string
   onValueChange?: (value: string) => void
 }
@@ -205,12 +216,14 @@ function DataTableSelect({
   value,
   placeholder,
   size = "sm",
+  disabled,
   "aria-label": ariaLabel,
   onValueChange,
 }: DataTableSelectProps) {
   return (
     <Select
       aria-label={ariaLabel}
+      disabled={disabled}
       items={items}
       onValueChange={(details) => onValueChange?.(details.value[0] ?? "")}
       size={size}
@@ -232,79 +245,6 @@ function DataTableSelect({
         </Select.Content>
       </Select.Positioner>
     </Select>
-  )
-}
-
-/* ── Default header filter (operator + value), overridable via renderHeaderFilter ── */
-
-function DefaultHeaderFilter<T>({ column }: { column: Column<T, unknown> }) {
-  const { filterControl } = dataTableVariants()
-  const variant = column.columnDef.meta?.filterVariant ?? "text"
-  const raw = column.getFilterValue() as
-    | DataTableConditionalFilterValue
-    | undefined
-  const operator: DataTableFilterOperator = raw?.operator ?? "contains"
-
-  const setValue = (patch: Partial<DataTableConditionalFilterValue>) =>
-    column.setFilterValue(
-      (old: DataTableConditionalFilterValue | undefined) => ({
-        operator: old?.operator ?? operator,
-        value: old?.value,
-        to: old?.to,
-        ...patch,
-      })
-    )
-
-  if (variant === "select") {
-    const options = column.columnDef.meta?.filterOptions ?? []
-    return (
-      <div className={filterControl()}>
-        <DataTableSelect
-          aria-label={`Filter ${column.id}`}
-          items={[{ label: "All", value: "" }, ...options]}
-          onValueChange={(v) => setValue({ operator: "equals", value: v })}
-          placeholder="All"
-          value={(raw?.value as string) ?? ""}
-        />
-      </div>
-    )
-  }
-
-  const isNumber = variant === "number" || variant === "range"
-  const operators = isNumber ? NUMBER_FILTER_OPERATORS : TEXT_FILTER_OPERATORS
-  const needsValue = operator !== "empty" && operator !== "notEmpty"
-
-  return (
-    <div className={filterControl()}>
-      <DataTableSelect
-        aria-label={`Filter operator for ${column.id}`}
-        items={operators.map((o) => ({ label: o.label, value: o.value }))}
-        onValueChange={(v) =>
-          setValue({ operator: v as DataTableFilterOperator })
-        }
-        value={operator}
-      />
-      {needsValue && (
-        <Input
-          aria-label={`Filter value for ${column.id}`}
-          onChange={(e) => setValue({ value: e.target.value })}
-          placeholder="Value"
-          size="sm"
-          type={isNumber ? "number" : "text"}
-          value={(raw?.value as string) ?? ""}
-        />
-      )}
-      {operator === "between" && (
-        <Input
-          aria-label={`Filter upper bound for ${column.id}`}
-          onChange={(e) => setValue({ to: e.target.value })}
-          placeholder="To"
-          size="sm"
-          type="number"
-          value={(raw?.to as string) ?? ""}
-        />
-      )}
-    </div>
   )
 }
 
@@ -373,12 +313,31 @@ function SortableRow<T>({
   )
 }
 
+/** Interactions DataTable locks while a row is being edited inline. */
+export type DataTableBlockedAction =
+  | "sort"
+  | "filter"
+  | "globalFilter"
+  | "paginate"
+  | "select"
+  | "rowReorder"
+  | "columnReorder"
+  | "columnVisibility"
+  | "rowClick"
+
 /* ── Context for composable sub-components ────────────────────────────────── */
 
 type DataTableContextValue<T> = {
   table: TanstackTable<T>
   pageSizeOptions: number[]
   translations: Required<DataTableTranslations>
+  /** True while an inline edit locks table-level controls. */
+  locked: boolean
+  /** Reports a blocked interaction; returns true when it must not proceed. */
+  blocked: (action: DataTableBlockedAction) => boolean
+  /** Control size shared by every nested form control. */
+  size: DataTableControlSize
+  paginationProps?: DataTableProps<T>["paginationProps"]
 }
 
 const DataTableContext = createContext<DataTableContextValue<unknown> | null>(
@@ -506,10 +465,79 @@ export type DataTableProps<T> = {
   }) => void
   onReady?: (table: TanstackTable<T>) => void
 
+  /* ── Inline row editing ────────────────────────────────────────────────
+   * Editing a row puts the table into a modal-ish state: the row's editable
+   * cells swap to type-driven editors and, unless opted out, every interaction
+   * that could move the row out from under the user (sort, filter, paginate,
+   * reorder, selection) is locked until commit/cancel. */
+  enableInlineEdit?: boolean
+  /** Controlled id of the row being edited (`null` = not editing). */
+  editingRowId?: string | null
+  onEditingRowIdChange?: (rowId: string | null) => void
+  onEditStart?: (details: { rowId: string; row: T }) => void
+  onEditChange?: (details: {
+    rowId: string
+    columnId: string
+    value: unknown
+    draft: Record<string, unknown>
+  }) => void
+  onEditCommit?: (details: {
+    rowId: string
+    draft: Record<string, unknown>
+    row: T
+  }) => void
+  onEditCancel?: (details: { rowId: string; dirty: boolean }) => void
+  onEditValidationError?: (details: {
+    rowId: string
+    errors: Record<string, string>
+  }) => void
+  /**
+   * Lock sorting/filtering/pagination/selection/reorder while a row is being
+   * edited (default `true`). Turning this off is possible but means the edited
+   * row can be re-sorted or filtered away mid-edit.
+   */
+  lockInteractionsWhileEditing?: boolean
+  /** Fired when a locked interaction is attempted during an edit. */
+  onInteractionBlocked?: (details: {
+    action: DataTableBlockedAction
+    reason: "editing"
+    rowId: string
+  }) => void
+
+  /* Type-driven field renderers (per-table override; per-column via meta) */
+  filterRenderers?: Partial<
+    Record<DataTableColumnType, DataTableFilterRenderer<T>>
+  >
+  editorRenderers?: Partial<
+    Record<DataTableColumnType, DataTableEditorRenderer<T>>
+  >
+
+  /** Pin the row-actions column to the right edge (sticky). Default `true`. */
+  stickyActions?: boolean
+
+  /**
+   * Everything configurable on the `Pagination` molecule, surfaced at table
+   * level. `count`/`page`/`pageSize` stay owned by the table's pagination state.
+   */
+  paginationProps?: Omit<
+    PaginationProps,
+    "count" | "page" | "pageSize" | "onPageChange" | "onChange"
+  >
+
   /* Slots */
   renderToolbar?: (table: TanstackTable<T>) => ReactNode
   renderEmpty?: () => ReactNode
-  renderRowActions?: (row: Row<T>) => ReactNode
+  /** Row actions; receives edit-mode state so you can swap in save/cancel. */
+  renderRowActions?: (
+    row: Row<T>,
+    state: {
+      isEditing: boolean
+      startEdit: () => void
+      commitEdit: () => void
+      cancelEdit: () => void
+      disabled: boolean
+    }
+  ) => ReactNode
   renderQuickActions?: (row: Row<T>) => ReactNode
   renderHeaderFilter?: (column: Column<T, unknown>) => ReactNode
   renderExpandedRow?: (row: Row<T>) => ReactNode
@@ -581,10 +609,14 @@ function HeaderSortLabel<T>({
   header,
   styles,
   enableSorting,
+  locked,
+  onBlocked,
 }: {
   header: Header<T, unknown>
   styles: DataTableStyles
   enableSorting: boolean
+  locked?: boolean
+  onBlocked?: () => void
 }) {
   const column = header.column
   const canSort = enableSorting && column.getCanSort()
@@ -607,7 +639,15 @@ function HeaderSortLabel<T>({
   return (
     <button
       className={styles.sortButton()}
-      onClick={column.getToggleSortingHandler()}
+      data-disabled={locked || undefined}
+      disabled={locked}
+      onClick={(event) => {
+        if (locked) {
+          onBlocked?.()
+          return
+        }
+        column.getToggleSortingHandler()?.(event)
+      }}
       type="button"
     >
       {label}
@@ -622,6 +662,42 @@ function HeaderSortLabel<T>({
 }
 
 /** One body cell: pin styling, colSpan/rowSpan, tree indent, drag handle. */
+/** Cell body: drag handle, active inline editor, or the column's cell template. */
+function renderCellContent<T>({
+  cell,
+  column,
+  styles,
+  enableRowReorder,
+  dnd,
+  editor,
+  isDragCol,
+}: {
+  cell: Cell<T, unknown>
+  column: Column<T, unknown>
+  styles: DataTableStyles
+  enableRowReorder: boolean
+  dnd?: { dragHandleProps: Record<string, unknown> }
+  editor?: ReactNode
+  isDragCol: boolean
+}) {
+  if (isDragCol && enableRowReorder && dnd) {
+    return (
+      <button
+        aria-label="Drag to reorder row"
+        className={styles.dragHandle()}
+        type="button"
+        {...dnd.dragHandleProps}
+      >
+        <Icon icon="icon-[mdi--drag-horizontal]" size="current" />
+      </button>
+    )
+  }
+  if (editor) {
+    return <div className={styles.editorControl()}>{editor}</div>
+  }
+  return flexRender(column.columnDef.cell, cell.getContext())
+}
+
 function DataTableBodyCell<T>({
   cell,
   span,
@@ -630,6 +706,7 @@ function DataTableBodyCell<T>({
   enableColumnResizing,
   enableRowReorder,
   dnd,
+  editor,
 }: {
   cell: Cell<T, unknown>
   span: { colSpan?: number; rowSpan?: number } | undefined
@@ -638,6 +715,7 @@ function DataTableBodyCell<T>({
   enableColumnResizing: boolean
   enableRowReorder: boolean
   dnd?: { dragHandleProps: Record<string, unknown> }
+  editor?: ReactNode
 }) {
   const column = cell.column
   const pinned = column.getIsPinned()
@@ -661,20 +739,45 @@ function DataTableBodyCell<T>({
         ...indent,
       }}
     >
-      {isDragCol && enableRowReorder && dnd ? (
-        <button
-          aria-label="Drag to reorder row"
-          className={styles.dragHandle()}
-          type="button"
-          {...dnd.dragHandleProps}
-        >
-          <Icon icon="icon-[mdi--drag-horizontal]" size="current" />
-        </button>
-      ) : (
-        flexRender(column.columnDef.cell, cell.getContext())
-      )}
+      {renderCellContent({
+        cell,
+        column,
+        styles,
+        enableRowReorder,
+        dnd,
+        editor,
+        isDragCol,
+      })}
     </Table.Cell>
   )
+}
+
+/** Run `required` + `meta.validate` over a row draft, returning field errors. */
+function validateDraft<T>(
+  columns: Column<T, unknown>[],
+  draft: Record<string, unknown>
+): Record<string, string> {
+  const errors: Record<string, string> = {}
+  for (const column of columns) {
+    const meta = column.columnDef.meta
+    if (!meta?.editable) {
+      continue
+    }
+    const value = draft[column.id]
+    const empty =
+      value == null ||
+      value === "" ||
+      (Array.isArray(value) && value.length === 0)
+    if (meta.required && empty) {
+      errors[column.id] = "Required"
+      continue
+    }
+    const message = meta.validate?.(value, draft)
+    if (message) {
+      errors[column.id] = message
+    }
+  }
+  return errors
 }
 
 /* ── Component ───────────────────────────────────────────────────────────── */
@@ -749,6 +852,20 @@ export function DataTable<T>(props: DataTableProps<T>) {
     translations: translationsProp,
     estimateRowHeight = 44,
     reachEndThreshold = 240,
+    enableInlineEdit = false,
+    editingRowId: editingRowIdProp,
+    onEditingRowIdChange,
+    onEditStart,
+    onEditChange,
+    onEditCommit,
+    onEditCancel,
+    onEditValidationError,
+    lockInteractionsWhileEditing = true,
+    onInteractionBlocked,
+    filterRenderers,
+    editorRenderers,
+    stickyActions = true,
+    paginationProps,
   } = props
 
   const translations = { ...DEFAULT_TRANSLATIONS, ...translationsProp }
@@ -807,11 +924,49 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
 
   /* Inject built-in leading columns (drag handle, selection, expander). */
+  const [editingRowIdState, setEditingRowIdState] = useState<string | null>(
+    null
+  )
+  const editingRowId =
+    editingRowIdProp === undefined ? editingRowIdState : editingRowIdProp
+  const [draft, setDraft] = useState<Record<string, unknown>>({})
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({})
+  const [dirty, setDirty] = useState(false)
+
+  const isEditing = editingRowId != null
+  const locked = isEditing && lockInteractionsWhileEditing
+
+  const setEditingRowId = (next: string | null) => {
+    setEditingRowIdState(next)
+    onEditingRowIdChange?.(next)
+  }
+
+  /**
+   * Guard for interactions that are locked during an inline edit. Reports the
+   * attempt through `onInteractionBlocked` and returns true when blocked.
+   */
+  const blocked = (
+    action: Parameters<NonNullable<typeof onInteractionBlocked>>[0]["action"]
+  ) => {
+    if (!locked) {
+      return false
+    }
+    onInteractionBlocked?.({
+      action,
+      reason: "editing",
+      rowId: editingRowId as string,
+    })
+    return true
+  }
+
   const columns = buildColumns<T>({
     userColumns,
     enableRowReorder,
     enableRowSelection,
     enableExpanding,
+    locked,
+    size,
+    onBlockedSelect: () => blocked("select"),
   })
 
   const table = useReactTable<T>({
@@ -864,7 +1019,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
         ? getPaginationRowModel()
         : undefined,
     globalFilterFn: "includesString",
-    filterFns: { conditional: conditionalFilterFn },
+    filterFns: { conditional: conditionalFilterFn, typed: typedFilterFn },
     meta: {
       updateData: (rowId: string, columnId: string, value: unknown) => {
         const row = table.getRow(rowId)
@@ -877,6 +1032,67 @@ export function DataTable<T>(props: DataTableProps<T>) {
   useEffect(() => {
     onReady?.(table)
   }, [table])
+
+  const startEdit = (row: Row<T>) => {
+    if (isEditing) {
+      return
+    }
+    const initial: Record<string, unknown> = {}
+    for (const column of table.getAllLeafColumns()) {
+      if (column.columnDef.meta?.editable) {
+        initial[column.id] = row.getValue(column.id)
+      }
+    }
+    setDraft(initial)
+    setEditErrors({})
+    setDirty(false)
+    setEditingRowId(row.id)
+    onEditStart?.({ rowId: row.id, row: row.original })
+  }
+
+  const setDraftValue = (rowId: string, columnId: string, value: unknown) => {
+    setDraft((old) => {
+      const next = { ...old, [columnId]: value }
+      onEditChange?.({ rowId, columnId, value, draft: next })
+      return next
+    })
+    setDirty(true)
+    // Clear this field's stale error as soon as the user edits it again.
+    setEditErrors((old) => (old[columnId] ? { ...old, [columnId]: "" } : old))
+  }
+
+  const cancelEdit = () => {
+    if (!isEditing) {
+      return
+    }
+    const rowId = editingRowId as string
+    setEditingRowId(null)
+    setDraft({})
+    setEditErrors({})
+    onEditCancel?.({ rowId, dirty })
+    setDirty(false)
+  }
+
+  const commitEdit = () => {
+    if (!isEditing) {
+      return
+    }
+    const rowId = editingRowId as string
+    const row = table.getRow(rowId)
+    const errors = validateDraft(table.getAllLeafColumns(), draft)
+
+    if (Object.keys(errors).length > 0) {
+      setEditErrors(errors)
+      onEditValidationError?.({ rowId, errors })
+      return
+    }
+
+    onEditCommit?.({ rowId, draft, row: row.original })
+    setEditingRowId(null)
+    setDraft({})
+    setEditErrors({})
+    setDirty(false)
+  }
 
   const rows = table.getRowModel().rows
   const leafColumns = table.getVisibleLeafColumns()
@@ -982,6 +1198,40 @@ export function DataTable<T>(props: DataTableProps<T>) {
     .filter((c) => !builtinIds.has(c.id))
     .map((c) => c.id)
 
+  /**
+   * Resolve a column's header filter: per-column `meta.renderFilter`, then the
+   * table-wide `renderHeaderFilter` slot, then the type-driven default.
+   */
+  const renderColumnFilter = (column: Column<T, unknown>) => {
+    const meta = column.columnDef.meta
+    const type: DataTableColumnType = meta?.type ?? "string"
+    const ctx: DataTableFilterContext<T> = {
+      column,
+      type,
+      value: column.getFilterValue() as DataTableFilterValue | undefined,
+      setValue: (next) => {
+        if (blocked("filter")) {
+          return
+        }
+        column.setFilterValue(next)
+      },
+      disabled: locked,
+      size,
+      options: meta?.options ?? meta?.filterOptions ?? [],
+    }
+    if (meta?.renderFilter) {
+      return meta.renderFilter(ctx)
+    }
+    const slot = renderHeaderFilter?.(column)
+    if (slot != null) {
+      return slot
+    }
+    const renderer =
+      filterRenderers?.[type] ??
+      (DEFAULT_FILTER_RENDERERS[type] as DataTableFilterRenderer<T>)
+    return renderer?.(ctx) ?? null
+  }
+
   const renderHeaderCell = (
     header: Header<T, unknown>,
     dnd?: {
@@ -1016,6 +1266,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
           <HeaderSortLabel
             enableSorting={enableSorting}
             header={header}
+            locked={locked}
+            onBlocked={() => blocked("sort")}
             styles={styles}
           />
         </div>
@@ -1031,6 +1283,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
           {headerGroup.headers.map((header) => {
             const reorderable =
               enableColumnReorder &&
+              !locked &&
               !header.column.getIsPinned() &&
               !builtinIds.has(header.column.id)
             return reorderable ? (
@@ -1048,16 +1301,116 @@ export function DataTable<T>(props: DataTableProps<T>) {
         <tr className={styles.filterRow()}>
           {leafColumns.map((column) => (
             <th className={styles.filterCell()} key={column.id}>
-              {column.getCanFilter()
-                ? (renderHeaderFilter?.(column) ?? (
-                    <DefaultHeaderFilter column={column} />
-                  ))
-                : null}
+              <div className={styles.filterControl()}>
+                {column.getCanFilter() ? renderColumnFilter(column) : null}
+              </div>
             </th>
           ))}
         </tr>
       )}
     </Table.Header>
+  )
+
+  const hasActionsColumn =
+    !!renderRowActions || !!renderQuickActions || enableInlineEdit
+
+  /**
+   * Resolve the inline editor for a cell, or `undefined` when the cell is not
+   * currently editable. Per-column `meta.renderEditor` wins over the
+   * table-wide `editorRenderers` override, which wins over the type default.
+   */
+  const renderCellEditor = (row: Row<T>, column: Column<T, unknown>) => {
+    const meta = column.columnDef.meta
+    if (!(enableInlineEdit && meta?.editable) || editingRowId !== row.id) {
+      return
+    }
+    const type: DataTableColumnType = meta.type ?? "string"
+    const ctx: DataTableEditorContext<T> = {
+      row,
+      column,
+      type,
+      value: draft[column.id],
+      setValue: (next) => setDraftValue(row.id, column.id, next),
+      disabled: false,
+      size,
+      options: meta.options ?? [],
+      error: editErrors[column.id] || undefined,
+      commit: commitEdit,
+      cancel: cancelEdit,
+    }
+    if (meta.renderEditor) {
+      return meta.renderEditor(ctx)
+    }
+    const renderer =
+      editorRenderers?.[type] ??
+      (DEFAULT_EDITOR_RENDERERS[type] as DataTableEditorRenderer<T>)
+    return renderer?.(ctx) ?? undefined
+  }
+
+  /** Edit/delete affordances used when no `renderRowActions` slot is given. */
+  const defaultRowActions = (row: Row<T>) => {
+    if (!enableInlineEdit) {
+      return null
+    }
+    if (editingRowId === row.id) {
+      return (
+        <>
+          <ActionIcon
+            aria-label="Save row"
+            icon="token-icon-check"
+            onClick={(e) => {
+              e.stopPropagation()
+              commitEdit()
+            }}
+            size={size}
+            tone="neutral"
+          />
+          <ActionIcon
+            aria-label="Cancel edit"
+            icon="token-icon-close"
+            onClick={(e) => {
+              e.stopPropagation()
+              cancelEdit()
+            }}
+            size={size}
+            tone="neutral"
+          />
+        </>
+      )
+    }
+    return (
+      <ActionIcon
+        aria-label={`Edit row ${row.id}`}
+        disabled={isEditing}
+        icon="icon-[mdi--pencil-outline]"
+        onClick={(e) => {
+          e.stopPropagation()
+          startEdit(row)
+        }}
+        size={size}
+        tone="neutral"
+      />
+    )
+  }
+
+  /** Row-level actions cell, optionally pinned to the right edge. */
+  const renderActionsCell = (row: Row<T>) => (
+    <Table.Cell
+      className={stickyActions ? "sticky end-0 bg-table-bg" : undefined}
+      numeric
+      style={stickyActions ? { position: "sticky", right: 0 } : undefined}
+    >
+      <div className={styles.actionsCell()}>
+        {renderQuickActions?.(row)}
+        {renderRowActions?.(row, {
+          isEditing: editingRowId === row.id,
+          startEdit: () => startEdit(row),
+          commitEdit,
+          cancelEdit,
+          disabled: isEditing && editingRowId !== row.id,
+        }) ?? defaultRowActions(row)}
+      </div>
+    </Table.Cell>
   )
 
   /* ── Body row renderer ──────────────────────────────────────────────── */
@@ -1087,6 +1440,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
         data-depth={row.depth || undefined}
         onClick={(event) => {
           rowOnClick?.(event)
+          if (blocked("rowClick")) {
+            return
+          }
           onRowClick?.(row, event)
         }}
         // Sortable ref wins while reordering; otherwise keep the consumer's ref.
@@ -1108,6 +1464,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
             <DataTableBodyCell
               cell={cell as Cell<T, unknown>}
               dnd={dnd}
+              editor={renderCellEditor(row, cell.column as Column<T, unknown>)}
               enableColumnResizing={enableColumnResizing}
               enableRowReorder={enableRowReorder}
               key={cell.id}
@@ -1117,12 +1474,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
             />
           )
         })}
-        {(renderRowActions || renderQuickActions) && (
-          <Table.Cell numeric>
-            {renderQuickActions?.(row)}
-            {renderRowActions?.(row)}
-          </Table.Cell>
-        )}
+        {hasActionsColumn && renderActionsCell(row)}
       </Table.Row>
     )
 
@@ -1147,7 +1499,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     const rowIndex = enableVirtualization ? (virtualItems[i]?.index ?? i) : i
     // Only top-level rows are reorderable — sub-rows aren't in the top-level
     // `data` array, so dragging them could not be applied to it.
-    return enableRowReorder && row.depth === 0 ? (
+    return enableRowReorder && row.depth === 0 && !locked ? (
       <SortableRow enabled={enableRowReorder} key={row.id} row={row}>
         {(dnd) => renderBodyRow(row, rowIndex, dnd)}
       </SortableRow>
@@ -1274,6 +1626,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
     table,
     pageSizeOptions,
     translations,
+    locked,
+    blocked,
+    size,
+    paginationProps,
   }
 
   return (
@@ -1311,11 +1667,17 @@ function buildColumns<T>({
   enableRowReorder,
   enableRowSelection,
   enableExpanding,
+  locked,
+  size,
+  onBlockedSelect,
 }: {
   userColumns: ColumnDef<T, unknown>[]
   enableRowReorder: boolean
   enableRowSelection: boolean
   enableExpanding: boolean
+  locked: boolean
+  size: DataTableControlSize
+  onBlockedSelect: () => void
 }): ColumnDef<T, unknown>[] {
   const leading: ColumnDef<T, unknown>[] = []
 
@@ -1338,6 +1700,7 @@ function buildColumns<T>({
         <Checkbox
           aria-label="Select all rows"
           checked={table.getIsAllRowsSelected()}
+          disabled={locked}
           indeterminate={table.getIsSomeRowsSelected()}
           onChange={table.getToggleAllRowsSelectedHandler()}
         />
@@ -1346,10 +1709,15 @@ function buildColumns<T>({
         <Checkbox
           aria-label={`Select row ${row.id}`}
           checked={row.getIsSelected()}
-          disabled={!row.getCanSelect()}
+          disabled={locked || !row.getCanSelect()}
           indeterminate={row.getIsSomeSelected()}
           onChange={row.getToggleSelectedHandler()}
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (locked) {
+              onBlockedSelect()
+            }
+          }}
         />
       ),
       enableSorting: false,
@@ -1375,7 +1743,7 @@ function buildColumns<T>({
               e.stopPropagation()
               row.getToggleExpandedHandler()()
             }}
-            size="sm"
+            size={size}
             tone="neutral"
           />
         ) : null,
@@ -1408,14 +1776,20 @@ DataTable.GlobalSearch = function DataTableGlobalSearch({
 }: {
   className?: string
 }) {
-  const { table, translations } = useDataTableContext()
+  const { table, translations, locked, blocked, size } = useDataTableContext()
   return (
     <Input
       aria-label="Search"
       className={className}
-      onChange={(e) => table.setGlobalFilter(e.target.value)}
+      disabled={locked}
+      onChange={(e) => {
+        if (blocked("globalFilter")) {
+          return
+        }
+        table.setGlobalFilter(e.target.value)
+      }}
       placeholder={translations.searchPlaceholder}
-      size="sm"
+      size={size}
       type="search"
       value={(table.getState().globalFilter as string) ?? ""}
     />
@@ -1423,7 +1797,7 @@ DataTable.GlobalSearch = function DataTableGlobalSearch({
 }
 
 DataTable.ColumnVisibility = function DataTableColumnVisibility() {
-  const { table, translations } = useDataTableContext()
+  const { table, translations, blocked, size } = useDataTableContext()
   const hideableColumns = table
     .getAllLeafColumns()
     .filter(
@@ -1448,10 +1822,11 @@ DataTable.ColumnVisibility = function DataTableColumnVisibility() {
     <Menu
       items={items}
       onCheckedChange={(item) => {
-        if (item.type === "checkbox") {
+        if (item.type === "checkbox" && !blocked("columnVisibility")) {
           table.getColumn(item.value)?.toggleVisibility()
         }
       }}
+      size={size}
       triggerIcon="icon-[mdi--view-column]"
       triggerText={translations.columnsLabel}
     />
@@ -1459,7 +1834,15 @@ DataTable.ColumnVisibility = function DataTableColumnVisibility() {
 }
 
 DataTable.Pagination = function DataTablePagination() {
-  const { table, pageSizeOptions, translations } = useDataTableContext()
+  const {
+    table,
+    pageSizeOptions,
+    translations,
+    locked,
+    blocked,
+    size,
+    paginationProps,
+  } = useDataTableContext()
   const state = table.getState().pagination
   const total = table.getRowCount()
   const start = total === 0 ? 0 : state.pageIndex * state.pageSize + 1
@@ -1482,15 +1865,27 @@ DataTable.Pagination = function DataTablePagination() {
         </span>
         <DataTableSelect
           aria-label={translations.pageSizeLabel}
+          disabled={locked}
           items={pageSizeItems}
-          onValueChange={(v) => table.setPageSize(Number(v))}
+          onValueChange={(v) => {
+            if (!blocked("paginate")) {
+              table.setPageSize(Number(v))
+            }
+          }}
+          size={size}
           value={String(state.pageSize)}
         />
       </div>
       <Pagination
-        count={total}
         getPageUrl={() => "#"}
-        onPageChange={(page) => table.setPageIndex(page - 1)}
+        size={size}
+        {...paginationProps}
+        count={total}
+        onPageChange={(page) => {
+          if (!blocked("paginate")) {
+            table.setPageIndex(page - 1)
+          }
+        }}
         page={state.pageIndex + 1}
         pageSize={state.pageSize}
       />
