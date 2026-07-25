@@ -1076,6 +1076,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     const {
       onClick: rowOnClick,
       style: rowStyle,
+      ref: rowRef,
       ...restRowProps
     } = slotProps?.row ?? {}
     const mainRow = (
@@ -1086,7 +1087,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
           rowOnClick?.(event)
           onRowClick?.(row, event)
         }}
-        ref={dnd?.setNodeRef as unknown as RefObject<HTMLTableRowElement>}
+        // Sortable ref wins while reordering; otherwise keep the consumer's ref.
+        ref={
+          (dnd
+            ? dnd.setNodeRef
+            : rowRef) as unknown as RefObject<HTMLTableRowElement>
+        }
         selected={enableRowSelection ? row.getIsSelected() : undefined}
         style={{ ...rowStyle, ...dnd?.style }}
       >
