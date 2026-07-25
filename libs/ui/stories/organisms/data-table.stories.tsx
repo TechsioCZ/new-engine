@@ -832,3 +832,50 @@ export const ConditionalRowSelection: Story = {
     await expect(canvas.getByLabelText("Select row 2")).toBeDisabled()
   },
 }
+
+/* ── 31. Per-row action permissions ──────────────────────────────────────── */
+
+const onArchive = fn()
+const onDelete = fn()
+
+export const PerRowActionPermissions: Story = {
+  args: {
+    ...base,
+    enableInlineEdit: true,
+    // Suspended records are read-only for the current user.
+    canEditRow: (row) => row.original.status !== "suspended",
+    rowActions: [
+      {
+        id: "archive",
+        label: "Archive",
+        icon: "icon-[mdi--archive]",
+        // Already-suspended rows cannot be archived again.
+        disabled: (row) => row.original.status === "suspended",
+        onAction: (row) => onArchive(row.original.id),
+      },
+      {
+        id: "delete",
+        label: "Delete",
+        icon: "token-icon-trash",
+        tone: "danger",
+        // Admins may not be deleted at all — hide rather than disable.
+        hidden: (row) => row.original.role === "Admin",
+        onAction: (row) => onDelete(row.original.id),
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const rows = canvas.getAllByRole("row")
+    // Row 1 (Ada, Admin, active): editable, archivable, no delete action.
+    const adaRow = within(rows[1] as HTMLElement)
+    await expect(adaRow.getByLabelText("Edit row 0")).not.toBeDisabled()
+    await expect(adaRow.getByLabelText("Archive")).not.toBeDisabled()
+    await expect(adaRow.queryByLabelText("Delete")).not.toBeInTheDocument()
+    // Row 5 (Margaret, Viewer, suspended): edit and archive both blocked.
+    const suspendedRow = within(rows[5] as HTMLElement)
+    await expect(suspendedRow.getByLabelText("Edit row 4")).toBeDisabled()
+    await expect(suspendedRow.getByLabelText("Archive")).toBeDisabled()
+    await expect(suspendedRow.getByLabelText("Delete")).toBeInTheDocument()
+  },
+}

@@ -228,7 +228,20 @@ export const conditionalFilterFn: FilterFn<unknown> = (
  * because the offsets are data-driven (`getStart`/`getAfter`). The visual
  * treatment (shadow at the frozen edge) is done via `data-pinned` + tokens.
  */
-export function getPinningStyles<T>(column: Column<T>): CSSProperties {
+/**
+ * Stacking order for sticky cells. A pinned header cell must beat both the
+ * sticky header row (z-10 from the Table organism) and pinned body cells,
+ * otherwise a frozen column's header is painted over while scrolling.
+ */
+export const DATA_TABLE_Z = {
+  pinnedCell: 1,
+  pinnedHeaderCell: 20,
+} as const
+
+export function getPinningStyles<T>(
+  column: Column<T>,
+  kind: "header" | "body" = "body"
+): CSSProperties {
   const pinned = column.getIsPinned()
   if (!pinned) {
     return {}
@@ -237,7 +250,10 @@ export function getPinningStyles<T>(column: Column<T>): CSSProperties {
     position: "sticky",
     left: pinned === "left" ? `${column.getStart("left")}px` : undefined,
     right: pinned === "right" ? `${column.getAfter("right")}px` : undefined,
-    zIndex: 1,
+    zIndex:
+      kind === "header"
+        ? DATA_TABLE_Z.pinnedHeaderCell
+        : DATA_TABLE_Z.pinnedCell,
   }
 }
 

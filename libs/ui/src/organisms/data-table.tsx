@@ -97,6 +97,7 @@ import {
 } from "./data-table.fields"
 import {
   conditionalFilterFn,
+  DATA_TABLE_Z,
   type DataTableGetCellSpan,
   getPinningStyles,
   isFirstRightPinned,
@@ -313,6 +314,23 @@ function SortableRow<T>({
   )
 }
 
+/**
+ * Declarative row action. `hidden` and `disabled` are evaluated per row, so
+ * availability can follow the row's id, ownership or the current user's
+ * permissions.
+ */
+export type DataTableRowAction<T> = {
+  id: string
+  label: string
+  icon: IconType
+  tone?: "neutral" | "danger"
+  /** Omit the action entirely for this row. */
+  hidden?: (row: Row<T>) => boolean
+  /** Render the action but block it for this row. */
+  disabled?: (row: Row<T>) => boolean
+  onAction: (row: Row<T>) => void
+}
+
 /** Interactions DataTable locks while a row is being edited inline. */
 export type DataTableBlockedAction =
   | "sort"
@@ -360,6 +378,7 @@ export type DataTableTranslations = {
   emptyTitle?: string
   emptyDescription?: string
   pageSizeLabel?: string
+  actionsLabel?: string
   rangeLabel?: (info: { start: number; end: number; total: number }) => string
 }
 
@@ -369,6 +388,7 @@ const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
   emptyTitle: "No records",
   emptyDescription: "There is no data to display.",
   pageSizeLabel: "Rows per page",
+  actionsLabel: "Actions",
   rangeLabel: ({ start, end, total }) => `${start}–${end} of ${total}`,
 }
 
@@ -496,6 +516,16 @@ export type DataTableProps<T> = {
    * that could move the row out from under the user (sort, filter, paginate,
    * reorder, selection) is locked until commit/cancel. */
   enableInlineEdit?: boolean
+  /**
+   * Per-row gate for the built-in edit action. Returning false disables the
+   * edit affordance and refuses `startEdit` for that row.
+   */
+  canEditRow?: (row: Row<T>) => boolean
+  /**
+   * Declarative actions rendered in the actions cell, each able to hide or
+   * disable itself per row.
+   */
+  rowActions?: DataTableRowAction<T>[]
   /** Controlled id of the row being edited (`null` = not editing). */
   editingRowId?: string | null
   onEditingRowIdChange?: (rowId: string | null) => void
@@ -891,6 +921,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
     editorRenderers,
     stickyActions = true,
     paginationProps,
+    canEditRow,
+    rowActions,
     selectionMode = "multiple",
     maxSelectedRows,
     canSelectRow,
@@ -902,6 +934,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const instanceId = useId()
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const reachedEndRef = useRef(false)
+  const headerRowRef = useRef<HTMLTableRowElement | null>(null)
+  const [headerHeight, setHeaderHeight] = useState(0)
 
   /* Controlled/uncontrolled state slices */
   const [sorting, setSorting] = useControllable<SortingState>(
@@ -1093,8 +1127,21 @@ export function DataTable<T>(props: DataTableProps<T>) {
     onReady?.(table)
   }, [table])
 
+  useEffect(() => {
+    const node = headerRowRef.current
+    if (!(node && stickyHeader)) {
+      return
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      setHeaderHeight(entry?.contentRect.height ?? 0)
+    })
+    observer.observe(node)
+    setHeaderHeight(node.getBoundingClientRect().height)
+    return () => observer.disconnect()
+  }, [stickyHeader])
+
   const startEdit = (row: Row<T>) => {
-    if (isEditing) {
+    if (isEditing || (canEditRow && !canEditRow(row))) {
       return
     }
     const initial: Record<string, unknown> = {}
@@ -1187,6 +1234,30 @@ export function DataTable<T>(props: DataTableProps<T>) {
     useSensor(KeyboardSensor)
   )
 
+  // Without `maxHeight` the table does not scroll itself, so infinite scroll has
+  // to observe the page instead of the container.
+  useEffect(() => {
+    if (!onReachEnd || maxHeight) {
+      return
+    }
+    const onWindowScroll = () => {
+      const distance =
+        document.documentElement.scrollHeight -
+        window.scrollY -
+        window.innerHeight
+      if (distance <= reachEndThreshold) {
+        if (!reachedEndRef.current) {
+          reachedEndRef.current = true
+          onReachEnd()
+        }
+      } else {
+        reachedEndRef.current = false
+      }
+    }
+    window.addEventListener("scroll", onWindowScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onWindowScroll)
+  }, [onReachEnd, maxHeight, reachEndThreshold])
+
   const handleScroll = (event: UIEvent<HTMLDivElement>) => {
     if (!onReachEnd) {
       return
@@ -1258,6 +1329,12 @@ export function DataTable<T>(props: DataTableProps<T>) {
     .filter((c) => !builtinIds.has(c.id))
     .map((c) => c.id)
 
+  const hasActionsColumn =
+    !!renderRowActions ||
+    !!renderQuickActions ||
+    !!rowActions?.length ||
+    enableInlineEdit
+
   /**
    * Resolve a column's header filter: per-column `meta.renderFilter`, then the
    * table-wide `renderHeaderFilter` slot, then the type-driven default.
@@ -1310,7 +1387,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
         numeric={column.columnDef.meta?.align === "end"}
         ref={dnd?.setNodeRef as unknown as RefObject<HTMLTableCellElement>}
         style={{
-          ...getPinningStyles(column),
+          ...getPinningStyles(column, "header"),
           ...dnd?.style,
           width: enableColumnResizing ? column.getSize() : undefined,
         }}
@@ -1338,8 +1415,15 @@ export function DataTable<T>(props: DataTableProps<T>) {
   /* ── Header ─────────────────────────────────────────────────────────── */
   const headerContent = (
     <Table.Header {...slotProps?.header}>
-      {table.getHeaderGroups().map((headerGroup) => (
-        <Table.Row key={headerGroup.id}>
+      {table.getHeaderGroups().map((headerGroup, groupIndex) => (
+        <Table.Row
+          key={headerGroup.id}
+          ref={
+            groupIndex === 0
+              ? (headerRowRef as RefObject<HTMLTableRowElement>)
+              : undefined
+          }
+        >
           {headerGroup.headers.map((header) => {
             const reorderable =
               enableColumnReorder &&
@@ -1354,25 +1438,63 @@ export function DataTable<T>(props: DataTableProps<T>) {
               renderHeaderCell(header)
             )
           })}
+          {hasActionsColumn && (
+            <Table.ColumnHeader
+              className={
+                stickyActions ? "sticky end-0 bg-table-header-bg" : undefined
+              }
+              numeric
+              style={
+                stickyActions
+                  ? { zIndex: DATA_TABLE_Z.pinnedHeaderCell }
+                  : undefined
+              }
+            >
+              {translations.actionsLabel}
+            </Table.ColumnHeader>
+          )}
         </Table.Row>
       ))}
 
       {enableColumnFilters && (
         <tr className={styles.filterRow()}>
           {leafColumns.map((column) => (
-            <th className={styles.filterCell()} key={column.id}>
+            <th
+              className={styles.filterCell()}
+              key={column.id}
+              style={
+                stickyHeader
+                  ? { position: "sticky", top: headerHeight, zIndex: 10 }
+                  : undefined
+              }
+            >
               <div className={styles.filterControl()}>
                 {column.getCanFilter() ? renderColumnFilter(column) : null}
               </div>
             </th>
           ))}
+          {hasActionsColumn && (
+            <th
+              className={
+                stickyActions
+                  ? `${styles.filterCell()} sticky end-0 bg-table-header-bg`
+                  : styles.filterCell()
+              }
+              style={
+                stickyHeader
+                  ? {
+                      position: "sticky",
+                      top: headerHeight,
+                      zIndex: DATA_TABLE_Z.pinnedHeaderCell,
+                    }
+                  : undefined
+              }
+            />
+          )}
         </tr>
       )}
     </Table.Header>
   )
-
-  const hasActionsColumn =
-    !!renderRowActions || !!renderQuickActions || enableInlineEdit
 
   /**
    * Resolve the inline editor for a cell, or `undefined` when the cell is not
@@ -1441,7 +1563,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     return (
       <ActionIcon
         aria-label={`Edit row ${row.id}`}
-        disabled={isEditing}
+        disabled={isEditing || (canEditRow ? !canEditRow(row) : false)}
         icon="icon-[mdi--pencil-outline]"
         onClick={(e) => {
           e.stopPropagation()
@@ -1461,6 +1583,22 @@ export function DataTable<T>(props: DataTableProps<T>) {
     >
       <div className={styles.actionsCell()}>
         {renderQuickActions?.(row)}
+        {rowActions?.map((action) =>
+          action.hidden?.(row) ? null : (
+            <ActionIcon
+              aria-label={action.label}
+              disabled={action.disabled?.(row) || isEditing}
+              icon={action.icon}
+              key={action.id}
+              onClick={(e) => {
+                e.stopPropagation()
+                action.onAction(row)
+              }}
+              size={size}
+              tone={action.tone ?? "neutral"}
+            />
+          )
+        )}
         {renderRowActions?.(row, {
           isEditing: editingRowId === row.id,
           startEdit: () => startEdit(row),
