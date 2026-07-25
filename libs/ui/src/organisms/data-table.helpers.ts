@@ -28,8 +28,23 @@ declare module "@tanstack/react-table" {
   // biome-ignore lint/style/useConsistentTypeDefinitions: module augmentation requires interface
   // biome-ignore lint/correctness/noUnusedVariables: augmentation signature must match upstream generics
   interface ColumnMeta<TData, TValue> {
-    /** Right-align header + cells (numeric columns). */
-    align?: "start" | "end"
+    /**
+     * Horizontal alignment of the column's header and cells. Purely a
+     * presentation choice — nothing is inferred from the column type, so a
+     * boolean/icon column is centered and a number right-aligned only if you
+     * say so. Defaults to `"start"`.
+     */
+    align?: "start" | "center" | "end"
+    /**
+     * Fixed column width. A number is treated as `px`; a string is used as-is,
+     * so design tokens (`"var(--dimension-120)"`), percentages and `ch` all
+     * work. Widths are only honoured exactly with `tableLayout="fixed"`.
+     */
+    width?: DataTableColumnWidth
+    /** Lower bound for the column width (same units as `width`). */
+    minWidth?: DataTableColumnWidth
+    /** Upper bound for the column width (same units as `width`). */
+    maxWidth?: DataTableColumnWidth
     /**
      * Declared data type. Drives which ui-kit control DataTable renders in the
      * header filter row and in the inline row editor. Use `"custom"` (or omit)
@@ -219,6 +234,55 @@ export const conditionalFilterFn: FilterFn<unknown> = (
     return true
   }
   return evaluateCondition(row.getValue(columnId), filterValue)
+}
+
+/**
+ * Tailwind class for a column's declared `meta.align`. Returns `undefined` for
+ * the default so the `Table` cell keeps its own `text-start` base class.
+ */
+export function getAlignClass<T>(column: Column<T>): string | undefined {
+  switch (column.columnDef.meta?.align) {
+    case "center":
+      return "text-center"
+    case "end":
+      return "text-end"
+    default:
+      return
+  }
+}
+
+/* ── Column widths ────────────────────────────────────────────────────────
+ * TanStack tracks a numeric `size` used by the resizing feature. Columns that
+ * are only ever declaratively sized need `%`, `ch` and token values too, hence
+ * the wider `meta.width` shape sitting alongside it. */
+
+/** A column width: a number (px) or any CSS length, including `var(--token)`. */
+export type DataTableColumnWidth = number | string
+
+const toCssLength = (value: DataTableColumnWidth | undefined) =>
+  typeof value === "number" ? `${value}px` : value
+
+/**
+ * Resolves the inline sizing styles for a column.
+ *
+ * `meta.width` is the declarative API. `columnDef.size` is deliberately *not*
+ * used as a fallback: TanStack merges `size: 150` into every column def, so it
+ * cannot distinguish a declared width from the default. While resizing is
+ * enabled the live `column.getSize()` wins instead, so dragging stays
+ * responsive.
+ */
+export function getColumnSizeStyles<T>(
+  column: Column<T>,
+  enableColumnResizing?: boolean
+): CSSProperties {
+  const meta = column.columnDef.meta
+  const width = enableColumnResizing ? column.getSize() : meta?.width
+
+  return {
+    width: toCssLength(width),
+    minWidth: toCssLength(meta?.minWidth),
+    maxWidth: toCssLength(meta?.maxWidth),
+  }
 }
 
 /* ── Column pinning (freeze) styling ─────────────────────────────────────── */

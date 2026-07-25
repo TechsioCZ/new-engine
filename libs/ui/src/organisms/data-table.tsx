@@ -102,6 +102,8 @@ import {
   conditionalFilterFn,
   DATA_TABLE_Z,
   type DataTableGetCellSpan,
+  getAlignClass,
+  getColumnSizeStyles,
   getPinningStyles,
   isFirstRightPinned,
   isLastLeftPinned,
@@ -117,6 +119,7 @@ export type {
   Table as TanstackTable,
 } from "@tanstack/react-table"
 export type {
+  DataTableColumnWidth,
   DataTableConditionalFilterValue,
   DataTableFilterOperator,
   DataTableGetCellSpan,
@@ -137,7 +140,7 @@ export {
  */
 const dataTableVariants = tv({
   slots: {
-    wrapper: ["flex w-full flex-col"],
+    wrapper: ["flex w-full flex-col overflow-hidden rounded-table"],
     toolbar: [
       "flex items-center justify-between gap-200",
       "bg-table-header-bg text-table-header-fg",
@@ -146,9 +149,9 @@ const dataTableVariants = tv({
     ],
     toolbarStart: ["flex items-center gap-200"],
     scroll: ["relative w-full overflow-auto"],
-    headerLabel: ["inline-flex items-center gap-100"],
+    headerLabel: ["inline-flex items-center gap-100 whitespace-nowrap"],
     sortButton: [
-      "inline-flex items-center gap-100",
+      "inline-flex items-center gap-100 whitespace-nowrap",
       "cursor-pointer select-none bg-transparent text-left",
       "data-[disabled=true]:cursor-default",
     ],
@@ -158,9 +161,11 @@ const dataTableVariants = tv({
     ],
     dragHandle: [
       "inline-flex cursor-grab items-center rounded-table text-fg-secondary",
-      "opacity-60 transition-opacity duration-200 motion-reduce:transition-none",
+      "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
       "hover:bg-table-row-bg-hover hover:opacity-100 focus-visible:opacity-100",
       "group-hover/header:opacity-100 group-hover/row:opacity-100",
+      "group-focus-within/header:opacity-100 group-focus-within/row:opacity-100",
+      "group-data-dragging/header:opacity-100 group-data-dragging/row:opacity-100",
       "active:cursor-grabbing",
     ],
     dropIndicator: ["bg-primary"],
@@ -193,6 +198,19 @@ const dataTableVariants = tv({
     detailBox: ["w-full p-300"],
     paginationInfo: ["whitespace-nowrap text-table-sm"],
     paginationControls: ["flex items-center gap-300"],
+  },
+  variants: {
+    /**
+     * `variant="outline"` draws its border on the wrapper rather than on the
+     * `<table>`, so the toolbar and pagination bar sit inside the same rounded
+     * card instead of the table alone being outlined.
+     */
+    outlined: {
+      true: {
+        wrapper:
+          "border-(length:--border-table-width) border-table-border shadow-table-outline",
+      },
+    },
   },
 })
 
@@ -538,6 +556,12 @@ export type DataTableProps<T> = {
   enableColumnPinning?: boolean
   enableColumnReorder?: boolean
   enableColumnResizing?: boolean
+  /**
+   * CSS `table-layout`. Under the default `"auto"` a column's `meta.width` is
+   * only a hint and long content can still stretch the column; `"fixed"` makes
+   * declared widths exact and lets the remaining columns share what is left.
+   */
+  tableLayout?: "auto" | "fixed"
   enableRowReorder?: boolean
   enableExpanding?: boolean
   enablePagination?: boolean
@@ -925,14 +949,17 @@ function DataTableBodyCell<T>({
 
   return (
     <Table.Cell
-      className={pinClass(column, "body")}
+      className={[pinClass(column, "body"), getAlignClass(column)]
+        .filter(Boolean)
+        .join(" ")}
       colSpan={span?.colSpan}
+      data-align={column.columnDef.meta?.align || undefined}
       data-pinned={pinned || undefined}
       numeric={numeric}
       rowSpan={span?.rowSpan}
       style={{
         ...getPinningStyles(column),
-        width: enableColumnResizing ? column.getSize() : undefined,
+        ...getColumnSizeStyles(column, enableColumnResizing),
         ...indent,
       }}
     >
@@ -1097,6 +1124,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     enableColumnPinning = false,
     enableColumnReorder = false,
     enableColumnResizing = false,
+    tableLayout = "auto",
     enableRowReorder = false,
     enableExpanding = false,
     enablePagination = false,
@@ -1171,7 +1199,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
   } = props
 
   const translations = { ...DEFAULT_TRANSLATIONS, ...translationsProp }
-  const styles = dataTableVariants()
+  const outlined = variant === "outline"
+  const styles = dataTableVariants({ outlined })
   const generatedId = useId()
   const instanceId = idProp ?? generatedId
   const scrollRef = useRef<HTMLDivElement | null>(null)
@@ -1727,8 +1756,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
     return (
       <Table.ColumnHeader
         aria-sort={ariaSort}
-        className={`group/header relative ${pinClass(column, "header") ?? ""} ${dropClass}`}
+        className={`group/header relative ${pinClass(column, "header") ?? ""} ${dropClass} ${getAlignClass(column) ?? ""}`}
         colSpan={header.colSpan}
+        data-align={column.columnDef.meta?.align || undefined}
         data-dragging={dnd?.isDragging || undefined}
         data-pinned={column.getIsPinned() || undefined}
         numeric={column.columnDef.meta?.align === "end"}
@@ -1737,7 +1767,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
           ...OPAQUE_HEADER_BG,
           ...getPinningStyles(column, "header"),
           ...dnd?.style,
-          width: enableColumnResizing ? column.getSize() : undefined,
+          ...getColumnSizeStyles(column, enableColumnResizing),
         }}
       >
         <div className={styles.headerLabel()}>
@@ -2262,8 +2292,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
       showColumnBorder={showColumnBorder}
       size={size}
       stickyHeader={stickyHeader}
-      variant={variant}
+      variant={outlined ? "line" : variant}
       {...slotProps?.root}
+      style={{ tableLayout, ...slotProps?.root?.style }}
     >
       {caption && <Table.Caption>{caption}</Table.Caption>}
       {headerContent}
@@ -2382,6 +2413,7 @@ function buildColumns<T>({
       enableSorting: false,
       enableColumnFilter: false,
       size: 40,
+      meta: { width: 40 },
     })
   }
 
@@ -2416,6 +2448,7 @@ function buildColumns<T>({
       enableSorting: false,
       enableColumnFilter: false,
       size: 44,
+      meta: { width: 44 },
     })
   }
 

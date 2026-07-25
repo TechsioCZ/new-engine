@@ -253,6 +253,54 @@ export const RowActions: Story = {
   },
 }
 
+/* ── 8b. Column widths + text alignment ──────────────────────────────────── */
+
+export const ColumnWidthsAndAlignment: Story = {
+  args: {
+    ...base,
+    tableLayout: "fixed",
+    columns: [
+      {
+        accessorKey: "firstName",
+        header: "First name",
+        meta: { width: 120 },
+      },
+      {
+        accessorKey: "email",
+        header: "Email",
+        meta: { width: "var(--dimension-200)", align: "start" },
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: (info) => (
+          <StatusBadge status={info.getValue<Person["status"]>()} />
+        ),
+        meta: { width: 140, align: "center" },
+      },
+      {
+        accessorKey: "age",
+        header: "Age",
+        meta: { width: 80, align: "end" },
+      },
+      {
+        accessorKey: "visits",
+        header: "Visits",
+        meta: { width: "15%", align: "end" },
+      },
+    ] as ColumnDef<Person>[],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const ageHeader = canvas.getByRole("columnheader", { name: /Age/ })
+    await expect(ageHeader).toHaveAttribute("data-align", "end")
+    await expect(ageHeader).toHaveStyle({ width: "80px" })
+
+    const statusHeader = canvas.getByRole("columnheader", { name: /Status/ })
+    await expect(statusHeader).toHaveAttribute("data-align", "center")
+  },
+}
+
 /* ── 9. Frozen columns (left + right) ────────────────────────────────────── */
 
 export const FrozenColumns: Story = {

@@ -96,6 +96,28 @@ per column → the table-wide `renderHeaderFilter` slot → `filterRenderers` /
 `{ column, type, value, setValue, disabled, size, options }` (editors also get
 `row`, `error`, `commit`, `cancel`).
 
+## Column widths and alignment
+
+```tsx
+{ accessorKey: "age", meta: { width: 80, align: "end" } }
+{ accessorKey: "email", meta: { width: "var(--dimension-200)", minWidth: 120 } }
+{ accessorKey: "active", meta: { width: "15%", align: "center" } }
+```
+
+`meta.width` / `meta.minWidth` / `meta.maxWidth` take a number (px) or any CSS
+length, so tokens, `%` and `ch` all work. Pair them with `tableLayout="fixed"`
+— under the default `"auto"` a width is only a hint and long content can still
+stretch the column.
+
+Use `meta.width`, not TanStack's `columnDef.size`: TanStack merges `size: 150`
+into every column def, so `size` cannot express "no width declared". `size`
+still drives `enableColumnResizing`, and while resizing is on the live dragged
+width wins over `meta.width`.
+
+`meta.align` (`start | center | end`, default `start`) sets the header and cell
+alignment and is mirrored onto `data-align`. Nothing is inferred from the column
+type — center an icon/boolean column or right-align a number only if you say so.
+
 ## Inline editing and interaction locking
 
 `enableInlineEdit` turns the right-hand actions cell into edit/save/cancel and
@@ -124,9 +146,11 @@ Edit callbacks: `onEditStart`, `onEditChange`, `onEditCommit`, `onEditCancel`
 
 ## Drag affordances
 
-Reorder handles are always rendered but sit at reduced opacity until the row or
-header is hovered/focused, so the table stays calm while still being
-discoverable. During a drag the source is dimmed and lifted (`data-dragging`),
+Reorder handles are always rendered but stay fully transparent until the row or
+header is hovered or receives focus, so the table stays calm while still being
+discoverable. They also reveal while their row/header is being dragged, so the
+handle does not vanish when the pointer leaves the source.
+During a drag the source is dimmed and lifted (`data-dragging`),
 and the drop target shows an insertion edge — a border on the leading or
 trailing side for columns, top or bottom for rows — so it is clear where the
 item will land.
@@ -215,6 +239,12 @@ forwards it to `onCellEditCommit`.
 `showColumnBorder`, `hideHeader`, `caption` — all forwarded to the underlying
 `Table`. Use `stickyHeader` with `maxHeight` for a scrolling body and
 `hideHeader` for headerless layouts.
+
+The whole grid is one rounded card: the wrapper carries `rounded-table` and
+clips its children, so the corners are correct with a toolbar, a pagination
+footer, both, or neither — including the empty state. `variant="outline"` draws
+its border on that wrapper rather than on the `<table>`, so the toolbar and
+footer sit inside the outline instead of beside it.
 
 `striped` is a standalone boolean, so zebra rows compose with any variant —
 prefer it over `variant="striped"`, which cannot be combined with `outline`.
