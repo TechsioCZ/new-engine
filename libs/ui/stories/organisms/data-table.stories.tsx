@@ -932,3 +932,34 @@ export const DragAffordances: Story = {
     ).toBeGreaterThan(0)
   },
 }
+
+/* ── 35. Accessibility semantics ─────────────────────────────────────────── */
+
+export const AccessibleSemantics: Story = {
+  args: {
+    ...base,
+    enableSorting: true,
+    enableRowSelection: true,
+    enableExpanding: true,
+    getSubRows: () => undefined,
+    getRowLabel: (row) => `${row.original.firstName} ${row.original.lastName}`,
+    onRowClick: fn(),
+    onSortingChange: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    // Sortable headers expose their sort state to assistive tech.
+    const ageHeader = canvas.getByRole("columnheader", { name: /Age/i })
+    await expect(ageHeader).toHaveAttribute("aria-sort", "none")
+    await userEvent.click(canvas.getByRole("button", { name: /Age/i }))
+    await expect(ageHeader).toHaveAttribute("aria-sort", "ascending")
+    // Selection checkboxes are labelled by row content, not the opaque row id.
+    await expect(canvas.getByLabelText("Select Ada Lovelace")).toBeInTheDocument()
+    // Clickable rows are reachable and activatable from the keyboard.
+    const row = canvas.getAllByRole("row")[1] as HTMLElement
+    await expect(row).toHaveAttribute("tabindex", "0")
+    row.focus()
+    await userEvent.keyboard("{Enter}")
+    await expect(args.onRowClick).toHaveBeenCalled()
+  },
+}

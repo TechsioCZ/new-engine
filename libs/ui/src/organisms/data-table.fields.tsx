@@ -72,6 +72,8 @@ export type DataTableFilterContext<T = unknown> = {
 
 export type DataTableEditorContext<T = unknown> = {
   row: Row<T>
+  /** Id of the element rendering `error`, for `aria-describedby`. */
+  errorId?: string
   column: Column<T, unknown>
   type: DataTableColumnType
   value: unknown
@@ -439,8 +441,10 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     commit,
     cancel,
     size,
+    errorId,
   }) => (
     <Input
+      aria-describedby={error ? errorId : undefined}
       aria-invalid={error ? true : undefined}
       aria-label={`Edit ${column.id}`}
       disabled={disabled}
@@ -475,7 +479,15 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     </Switch>
   ),
 
-  enum: ({ column, value, setValue, disabled, options, error, size }) => (
+  enum: ({
+    column,
+    value,
+    setValue,
+    disabled,
+    options,
+    error,
+    size,
+  }) => (
     <FieldSelect
       ariaLabel={`Edit ${column.id}`}
       disabled={disabled}
@@ -487,7 +499,15 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     />
   ),
 
-  multiEnum: ({ column, value, setValue, disabled, options, error, size }) => (
+  multiEnum: ({
+    column,
+    value,
+    setValue,
+    disabled,
+    options,
+    error,
+    size,
+  }) => (
     <Combobox
       disabled={disabled}
       items={options.map((o) => ({ label: o.label, value: o.value }))}
@@ -509,8 +529,10 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     commit,
     cancel,
     size,
+    errorId,
   }) => (
     <Input
+      aria-describedby={error ? errorId : undefined}
       aria-invalid={error ? true : undefined}
       aria-label={`Edit ${column.id}`}
       disabled={disabled}
@@ -531,8 +553,10 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     commit,
     cancel,
     size,
+    errorId,
   }) => (
     <Input
+      aria-describedby={error ? errorId : undefined}
       aria-invalid={error ? true : undefined}
       aria-label={`Edit ${column.id}`}
       disabled={disabled}
@@ -553,8 +577,10 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     commit,
     cancel,
     size,
+    errorId,
   }) => (
     <Input
+      aria-describedby={error ? errorId : undefined}
       aria-invalid={error ? true : undefined}
       aria-label={`Edit ${column.id}`}
       disabled={disabled}

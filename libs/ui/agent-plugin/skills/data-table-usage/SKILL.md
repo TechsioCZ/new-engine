@@ -122,6 +122,19 @@ and the drop target shows an insertion edge — a border on the leading or
 trailing side for columns, top or bottom for rows — so it is clear where the
 item will land.
 
+## Accessibility
+
+Sortable headers carry `aria-sort`; the expander carries `aria-expanded`; the
+table carries `aria-busy` while loading and skeleton rows are hidden from
+assistive tech. Rows with `onRowClick` are focusable and activate on Enter or
+Space (the handler ignores keys bubbling from controls inside the row). Both
+drag handles receive dnd-kit's keyboard attributes, so reordering works without
+a mouse. Pass `getRowLabel` so selection checkboxes and the edit action are
+labelled by row content instead of an opaque row id. Inline-edit validation
+messages render next to the field with `role="alert"` and are linked through
+`aria-describedby`; focus moves into the edited row on start and returns to the
+control that opened it on commit or cancel.
+
 ## Sizing
 
 `size` (`sm | md | lg`) is forwarded to the underlying `Table` **and** to every

@@ -169,7 +169,8 @@ const dataTableVariants = tv({
       "border-b-(length:--border-table-width) border-table-border",
     ],
     filterControl: ["flex flex-wrap items-center gap-100"],
-    editorControl: ["flex items-center gap-100"],
+    editorControl: ["flex flex-col gap-50"],
+    editorError: ["text-danger text-table-sm"],
     actionsCell: ["flex items-center justify-end gap-100"],
     empty: [
       "flex flex-col items-center justify-center gap-200",
@@ -285,6 +286,7 @@ function SortableHeaderContent({
     setNodeRef: (node: HTMLElement | null) => void
     isDragging: boolean
     dropSide?: "start" | "end"
+    attributes: Record<string, unknown>
   }) => ReactNode
 }) {
   const sortable = useSortable({ id: columnId })
@@ -311,6 +313,7 @@ function SortableHeaderContent({
         setNodeRef: sortable.setNodeRef,
         isDragging: sortable.isDragging,
         dropSide,
+        attributes: sortable.attributes as unknown as Record<string, unknown>,
       })}
     </>
   )
@@ -629,6 +632,11 @@ export type DataTableProps<T> = {
   /** Pin the row-actions column to the right edge (sticky). Default `true`. */
   stickyActions?: boolean
 
+  /**
+   * Human-readable label for a row, used by selection checkboxes and the edit
+   * action instead of the opaque row id.
+   */
+  getRowLabel?: (row: Row<T>) => string
   /** Replace the body with skeleton rows while the first page is being fetched. */
   loading?: boolean
   /** How many skeleton rows to render while `loading`. */
@@ -707,10 +715,12 @@ function HeaderDragHandle({
   styles,
   setActivatorNodeRef,
   listeners,
+  attributes,
 }: {
   styles: DataTableStyles
   setActivatorNodeRef: (node: HTMLElement | null) => void
   listeners: Record<string, unknown> | undefined
+  attributes?: Record<string, unknown>
 }) {
   return (
     <button
@@ -718,6 +728,7 @@ function HeaderDragHandle({
       className={styles.dragHandle()}
       ref={setActivatorNodeRef as unknown as Ref<HTMLButtonElement>}
       type="button"
+      {...attributes}
       {...listeners}
     >
       <Icon icon="icon-[mdi--drag-vertical]" size="current" />
@@ -791,6 +802,8 @@ function renderCellContent<T>({
   enableRowReorder,
   dnd,
   editor,
+  editorError,
+  editorErrorId,
   isDragCol,
 }: {
   cell: Cell<T, unknown>
@@ -799,6 +812,8 @@ function renderCellContent<T>({
   enableRowReorder: boolean
   dnd?: { dragHandleProps: Record<string, unknown> }
   editor?: ReactNode
+  editorError?: string
+  editorErrorId?: string
   isDragCol: boolean
 }) {
   if (isDragCol && enableRowReorder && dnd) {
@@ -814,7 +829,20 @@ function renderCellContent<T>({
     )
   }
   if (editor) {
-    return <div className={styles.editorControl()}>{editor}</div>
+    return (
+      <div className={styles.editorControl()}>
+        {editor}
+        {editorError ? (
+          <span
+            className={styles.editorError()}
+            id={editorErrorId}
+            role="alert"
+          >
+            {editorError}
+          </span>
+        ) : null}
+      </div>
+    )
   }
   return flexRender(column.columnDef.cell, cell.getContext())
 }
@@ -828,6 +856,8 @@ function DataTableBodyCell<T>({
   enableRowReorder,
   dnd,
   editor,
+  editorError,
+  editorErrorId,
   indentColumnId,
 }: {
   cell: Cell<T, unknown>
@@ -838,6 +868,8 @@ function DataTableBodyCell<T>({
   enableRowReorder: boolean
   dnd?: { dragHandleProps: Record<string, unknown> }
   editor?: ReactNode
+  editorError?: string
+  editorErrorId?: string
   indentColumnId?: string
 }) {
   const column = cell.column
@@ -869,6 +901,8 @@ function DataTableBodyCell<T>({
         enableRowReorder,
         dnd,
         editor,
+        editorError,
+        editorErrorId,
         isDragCol,
       })}
     </Table.Cell>
@@ -921,6 +955,56 @@ function rowDragClass(
   ]
     .filter(Boolean)
     .join(" ")
+}
+
+/** `aria-sort` for a header cell, or undefined when the column is not sortable. */
+function sortState<T>(column: Column<T, unknown>, enableSorting: boolean) {
+  if (!(enableSorting && column.getCanSort())) {
+    return
+  }
+  const sorted = column.getIsSorted()
+  if (sorted === "asc") {
+    return "ascending" as const
+  }
+  if (sorted === "desc") {
+    return "descending" as const
+  }
+  return "none" as const
+}
+
+/** Enter/Space activates a clickable row, ignoring keys bubbling from controls. */
+function activateRowByKeyboard(
+  event: React.KeyboardEvent<HTMLTableRowElement>,
+  activate: () => void
+) {
+  if (event.key !== "Enter" && event.key !== " ") {
+    return
+  }
+  if (event.target !== event.currentTarget) {
+    return
+  }
+  event.preventDefault()
+  activate()
+}
+
+/** Row ref: the sortable node ref, plus a handle on the row being edited. */
+function composeRowRef(
+  isEditedRow: boolean,
+  editRowRef: { current: HTMLTableRowElement | null },
+  dnd: { setNodeRef: (node: HTMLElement | null) => void } | undefined,
+  consumerRef: Ref<HTMLTableRowElement> | undefined
+) {
+  return ((node: HTMLTableRowElement | null) => {
+    if (isEditedRow) {
+      editRowRef.current = node
+    }
+    dnd?.setNodeRef(node)
+    if (typeof consumerRef === "function") {
+      consumerRef(node)
+    } else if (consumerRef) {
+      ;(consumerRef as { current: HTMLTableRowElement | null }).current = node
+    }
+  }) as unknown as RefObject<HTMLTableRowElement>
 }
 
 /* ── Component ───────────────────────────────────────────────────────────── */
@@ -1011,6 +1095,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     paginationProps,
     canEditRow,
     rowActions,
+    getRowLabel,
     striped = false,
     loading = false,
     loadingRowCount = 5,
@@ -1088,6 +1173,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({})
 
   /* Inject built-in leading columns (drag handle, selection, expander). */
+  const editTriggerRef = useRef<HTMLElement | null>(null)
+  const editRowRef = useRef<HTMLTableRowElement | null>(null)
   const [editingRowIdState, setEditingRowIdState] = useState<string | null>(
     null
   )
@@ -1150,6 +1237,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     enableExpanding,
     locked,
     size,
+    getRowLabel,
     showSelectAll: selectionMode === "multiple" && maxSelectedRows == null,
     onBlockedSelect: () => blocked("select"),
   })
@@ -1219,6 +1307,19 @@ export function DataTable<T>(props: DataTableProps<T>) {
     onReady?.(table)
   }, [table])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: focus follows the edited row, not the callbacks
+  useEffect(() => {
+    if (editingRowId) {
+      const first = editRowRef.current?.querySelector<HTMLElement>(
+        "input, select, textarea, [contenteditable=true]"
+      )
+      first?.focus()
+    } else {
+      editTriggerRef.current?.focus()
+      editTriggerRef.current = null
+    }
+  }, [editingRowId])
+
   useEffect(() => {
     const node = headerRowRef.current
     if (!(node && stickyHeader)) {
@@ -1236,6 +1337,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
     if (isEditing || (canEditRow && !canEditRow(row))) {
       return
     }
+    editTriggerRef.current =
+      typeof document === "undefined"
+        ? null
+        : (document.activeElement as HTMLElement | null)
     const initial: Record<string, unknown> = {}
     for (const column of table.getAllLeafColumns()) {
       if (column.columnDef.meta?.editable) {
@@ -1471,14 +1576,17 @@ export function DataTable<T>(props: DataTableProps<T>) {
       style: CSSProperties
       isDragging: boolean
       dropSide?: "start" | "end"
+      attributes: Record<string, unknown>
     }
   ) => {
     const column = header.column
+    const ariaSort = sortState(column, enableSorting)
     const dropClass = dnd?.dropSide
       ? `border-${dnd.dropSide === "start" ? "s" : "e"}-2 border-primary`
       : ""
     return (
       <Table.ColumnHeader
+        aria-sort={ariaSort}
         className={`group/header ${pinClass(column, "header") ?? ""} ${dropClass}`}
         colSpan={header.colSpan}
         data-dragging={dnd?.isDragging || undefined}
@@ -1494,6 +1602,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
         <div className={styles.headerLabel()}>
           {dnd && (
             <HeaderDragHandle
+              attributes={dnd.attributes}
               listeners={dnd.listeners}
               setActivatorNodeRef={dnd.setActivatorNodeRef}
               styles={styles}
@@ -1616,6 +1725,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
       size,
       options: meta.options ?? [],
       error: editErrors[column.id] || undefined,
+      errorId: `${instanceId}-err-${row.id}-${column.id}`,
       commit: commitEdit,
       cancel: cancelEdit,
     }
@@ -1661,7 +1771,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     }
     return (
       <ActionIcon
-        aria-label={`Edit row ${row.id}`}
+        aria-label={`Edit ${getRowLabel?.(row) ?? `row ${row.id}`}`}
         disabled={isEditing || (canEditRow ? !canEditRow(row) : false)}
         icon="icon-[mdi--pencil-outline]"
         onClick={(e) => {
@@ -1709,6 +1819,51 @@ export function DataTable<T>(props: DataTableProps<T>) {
     </Table.Cell>
   )
 
+  // Spread the passthrough first, then internal props, so DataTable's own click
+  // handler, sortable ref and transform compose with (not get replaced by)
+  // slotProps.row.
+  const {
+    onClick: rowOnClick,
+    style: rowStyle,
+    ref: rowRef,
+    ...restRowProps
+  } = slotProps?.row ?? {}
+
+  /** One row's data cells, honouring cell spans and any active inline editor. */
+  const renderRowCells = (
+    row: Row<T>,
+    cells: Cell<T, unknown>[],
+    rowIndex: number,
+    dnd?: { dragHandleProps: Record<string, unknown> }
+  ) =>
+    cells.map((cell) => {
+      const span = getCellSpan?.(cell, { row, rows, rowIndex })
+      if (span?.hidden) {
+        return null
+      }
+      const column = cell.column as Column<T, unknown>
+      return (
+        <DataTableBodyCell
+          cell={cell}
+          dnd={dnd}
+          editor={renderCellEditor(row, column)}
+          editorError={
+            editingRowId === row.id
+              ? editErrors[column.id] || undefined
+              : undefined
+          }
+          editorErrorId={`${instanceId}-err-${row.id}-${column.id}`}
+          enableColumnResizing={enableColumnResizing}
+          enableRowReorder={enableRowReorder}
+          indentColumnId={indentColumnId}
+          key={cell.id}
+          row={row}
+          span={span}
+          styles={styles}
+        />
+      )
+    })
+
   /* ── Body row renderer ──────────────────────────────────────────────── */
   const renderBodyRow = (
     row: Row<T>,
@@ -1722,16 +1877,20 @@ export function DataTable<T>(props: DataTableProps<T>) {
     }
   ) => {
     const cells = row.getVisibleCells()
+    const rowIsClickable = !!onRowClick && !locked
     const actionsColumn = hasActionsColumn ? 1 : 0
-    // Spread the passthrough first, then internal props, so DataTable's own
-    // click handler, sortable ref and transform compose with (not get replaced
-    // by) slotProps.row.
-    const {
-      onClick: rowOnClick,
-      style: rowStyle,
-      ref: rowRef,
-      ...restRowProps
-    } = slotProps?.row ?? {}
+    const rowKeyDown = rowIsClickable
+      ? (event: React.KeyboardEvent<HTMLTableRowElement>) =>
+          activateRowByKeyboard(event, () => {
+            if (!blocked("rowClick")) {
+              onRowClick?.(
+                row,
+                event as unknown as React.MouseEvent<HTMLTableRowElement>
+              )
+            }
+          })
+      : undefined
+
     const mainRow = (
       <Table.Row
         {...restRowProps}
@@ -1745,53 +1904,33 @@ export function DataTable<T>(props: DataTableProps<T>) {
           }
           onRowClick?.(row, event)
         }}
+        onKeyDown={rowKeyDown}
+        ref={composeRowRef(editingRowId === row.id, editRowRef, dnd, rowRef)}
         // Sortable ref wins while reordering; otherwise keep the consumer's ref.
-        ref={
-          (dnd
-            ? dnd.setNodeRef
-            : rowRef) as unknown as RefObject<HTMLTableRowElement>
-        }
         selected={enableRowSelection ? row.getIsSelected() : undefined}
         style={{ ...rowStyle, ...dnd?.style }}
+        tabIndex={rowIsClickable ? 0 : undefined}
       >
-        {cells.map((cell) => {
-          const span = getCellSpan?.(cell as Cell<T, unknown>, {
-            row,
-            rows,
-            rowIndex,
-          })
-          return span?.hidden ? null : (
-            <DataTableBodyCell
-              cell={cell as Cell<T, unknown>}
-              dnd={dnd}
-              editor={renderCellEditor(row, cell.column as Column<T, unknown>)}
-              enableColumnResizing={enableColumnResizing}
-              enableRowReorder={enableRowReorder}
-              indentColumnId={indentColumnId}
-              key={cell.id}
-              row={row}
-              span={span}
-              styles={styles}
-            />
-          )
-        })}
+        {renderRowCells(row, cells, rowIndex, dnd)}
         {hasActionsColumn && renderActionsCell(row)}
       </Table.Row>
     )
 
-    if (renderExpandedRow && row.getIsExpanded()) {
-      return (
-        <Fragment key={row.id}>
-          {mainRow}
-          <tr>
-            <td colSpan={columnCount + actionsColumn}>
-              {renderExpandedRow(row)}
-            </td>
-          </tr>
-        </Fragment>
-      )
-    }
-    return <Fragment key={row.id}>{mainRow}</Fragment>
+    const expandedRow =
+      renderExpandedRow && row.getIsExpanded() ? (
+        <tr>
+          <td colSpan={columnCount + actionsColumn}>
+            {renderExpandedRow(row)}
+          </td>
+        </tr>
+      ) : null
+
+    return (
+      <Fragment key={row.id}>
+        {mainRow}
+        {expandedRow}
+      </Fragment>
+    )
   }
 
   const bodyRows = renderRows.map((row, i) => {
@@ -1812,7 +1951,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const skeletonRows = (count: number, keyPrefix: string) =>
     Array.from({ length: count }, (_, i) => `${keyPrefix}-${i}`).map(
       (rowKey) => (
-        <Table.Row key={rowKey}>
+        <Table.Row aria-hidden="true" key={rowKey}>
           {leafColumns.map((column) => (
             <Table.Cell key={`${rowKey}-${column.id}`}>
               <Skeleton.Text noOfLines={1} size={size} />
@@ -1902,6 +2041,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
   const tableEl = (
     <Table
+      aria-busy={loading || loadingMore || undefined}
       interactive={(interactive || !!onRowClick) && !locked}
       showColumnBorder={showColumnBorder}
       size={size}
@@ -2000,6 +2140,7 @@ function buildColumns<T>({
   enableExpanding,
   locked,
   size,
+  getRowLabel,
   showSelectAll,
   onBlockedSelect,
 }: {
@@ -2009,6 +2150,7 @@ function buildColumns<T>({
   enableExpanding: boolean
   locked: boolean
   size: DataTableControlSize
+  getRowLabel?: (row: Row<T>) => string
   showSelectAll: boolean
   onBlockedSelect: () => void
 }): ColumnDef<T, unknown>[] {
@@ -2041,7 +2183,7 @@ function buildColumns<T>({
         ) : null,
       cell: ({ row }) => (
         <Checkbox
-          aria-label={`Select row ${row.id}`}
+          aria-label={`Select ${getRowLabel?.(row) ?? `row ${row.id}`}`}
           checked={row.getIsSelected()}
           disabled={locked || !row.getCanSelect()}
           indeterminate={row.getIsSomeSelected()}
@@ -2067,6 +2209,7 @@ function buildColumns<T>({
       cell: ({ row }) =>
         row.getCanExpand() ? (
           <ActionIcon
+            aria-expanded={row.getIsExpanded()}
             aria-label={row.getIsExpanded() ? "Collapse row" : "Expand row"}
             icon={
               row.getIsExpanded()
