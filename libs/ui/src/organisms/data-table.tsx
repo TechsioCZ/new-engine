@@ -519,7 +519,9 @@ export type DataTableProps<T> = {
     root?: React.HTMLAttributes<HTMLTableElement>
     header?: React.HTMLAttributes<HTMLTableSectionElement>
     body?: React.HTMLAttributes<HTMLTableSectionElement>
-    row?: React.HTMLAttributes<HTMLTableRowElement>
+    row?: React.HTMLAttributes<HTMLTableRowElement> & {
+      ref?: Ref<HTMLTableRowElement>
+    }
   }
 
   translations?: DataTableTranslations
