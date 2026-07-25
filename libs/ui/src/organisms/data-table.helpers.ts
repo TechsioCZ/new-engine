@@ -7,6 +7,7 @@
 import type {
   Cell,
   Column,
+  ColumnDef,
   FilterFn,
   Row,
   RowData,
@@ -248,23 +249,64 @@ const toCssLength = (value: DataTableColumnWidth | undefined) =>
   typeof value === "number" ? `${value}px` : value
 
 /**
+ * Mirrors numeric `meta.width` / `meta.minWidth` / `meta.maxWidth` into
+ * TanStack's own `size` / `minSize` / `maxSize`.
+ *
+ * Without this the two disagree: sticky offsets for pinned columns come from
+ * `column.getStart()`, which sums `getSize()`, so a frozen column rendered at
+ * `meta.width: 80` would push its neighbour by TanStack's default 150 and the
+ * frozen block would be misaligned. Resizing would drift the same way.
+ *
+ * CSS-string widths (`"15%"`, `"var(--dimension-120)"`) cannot be resolved to
+ * pixels here, so they stay CSS-only — see `getColumnSizeStyles`.
+ */
+export function applyDeclaredColumnSizes<T>(
+  columns: ColumnDef<T, unknown>[]
+): ColumnDef<T, unknown>[] {
+  return columns.map((column) => {
+    const group = column as { columns?: ColumnDef<T, unknown>[] }
+    const next: ColumnDef<T, unknown> = group.columns
+      ? ({
+          ...column,
+          columns: applyDeclaredColumnSizes(group.columns),
+        } as ColumnDef<T, unknown>)
+      : { ...column }
+
+    const meta = next.meta
+    if (typeof meta?.width === "number" && next.size === undefined) {
+      next.size = meta.width
+    }
+    if (typeof meta?.minWidth === "number" && next.minSize === undefined) {
+      next.minSize = meta.minWidth
+    }
+    if (typeof meta?.maxWidth === "number" && next.maxSize === undefined) {
+      next.maxSize = meta.maxWidth
+    }
+    return next
+  })
+}
+
+/**
  * Resolves the inline sizing styles for a column.
  *
  * `meta.width` is the declarative API. `columnDef.size` is deliberately *not*
- * used as a fallback: TanStack merges `size: 150` into every column def, so it
- * cannot distinguish a declared width from the default. While resizing is
- * enabled the live `column.getSize()` wins instead, so dragging stays
- * responsive.
+ * read as a fallback: TanStack merges `size: 150` into every column def, so it
+ * cannot distinguish a declared width from the default. Numeric widths are
+ * mirrored into `size` by `applyDeclaredColumnSizes`, so `getSize()` is the
+ * authority for them and the rendered width always matches the sticky offsets.
+ * String widths stay CSS-only, and while resizing is on the live dragged size
+ * wins so dragging stays responsive.
  */
 export function getColumnSizeStyles<T>(
   column: Column<T>,
   enableColumnResizing?: boolean
 ): CSSProperties {
   const meta = column.columnDef.meta
-  const width = enableColumnResizing ? column.getSize() : meta?.width
+  const declared = meta?.width
+  const fromTanstack = enableColumnResizing || typeof declared === "number"
 
   return {
-    width: toCssLength(width),
+    width: toCssLength(fromTanstack ? column.getSize() : declared),
     minWidth: toCssLength(meta?.minWidth),
     maxWidth: toCssLength(meta?.maxWidth),
   }

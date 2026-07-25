@@ -110,9 +110,14 @@ length, so tokens, `%` and `ch` all work. Pair them with `tableLayout="fixed"`
 stretch the column.
 
 Use `meta.width`, not TanStack's `columnDef.size`: TanStack merges `size: 150`
-into every column def, so `size` cannot express "no width declared". `size`
-still drives `enableColumnResizing`, and while resizing is on the live dragged
-width wins over `meta.width`.
+into every column def, so `size` cannot express "no width declared". Numeric
+widths are mirrored into `size`/`minSize`/`maxSize` internally, which keeps the
+rendered width and the sticky offsets of pinned columns in agreement. While
+resizing is on the live dragged width wins.
+
+Give **pinned (frozen) columns a numeric width**. Sticky offsets are summed from
+the numeric sizes, so a `%` or token width on a frozen column cannot be resolved
+to pixels and the frozen block can misalign. Unpinned columns take any unit.
 
 `meta.align` (`start | center | end`, default `start`) is forwarded to the
 `Table` cell as `data-align`, which is where the alignment is actually styled —

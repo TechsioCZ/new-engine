@@ -301,6 +301,33 @@ export const ColumnWidthsAndAlignment: Story = {
   },
 }
 
+/**
+ * A numeric `meta.width` must also reach TanStack's size model, otherwise the
+ * sticky offset of the next pinned column is computed from the default 150 and
+ * the frozen block drifts out of alignment.
+ */
+export const FrozenColumnWidths: Story = {
+  args: {
+    ...base,
+    tableLayout: "fixed",
+    enableColumnPinning: true,
+    columnPinning: { left: ["firstName", "lastName"], right: [] },
+    columns: [
+      { accessorKey: "firstName", header: "First name", meta: { width: 90 } },
+      { accessorKey: "lastName", header: "Last name", meta: { width: 110 } },
+      { accessorKey: "email", header: "Email", meta: { width: 220 } },
+      { accessorKey: "role", header: "Role", meta: { width: 120 } },
+      { accessorKey: "age", header: "Age", meta: { width: 80, align: "end" } },
+    ] as ColumnDef<Person>[],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const lastName = canvas.getByRole("columnheader", { name: /Last name/ })
+    // Second pinned column starts exactly where the first one ends.
+    await expect(lastName).toHaveStyle({ left: "90px", width: "110px" })
+  },
+}
+
 /* ── 9. Frozen columns (left + right) ────────────────────────────────────── */
 
 export const FrozenColumns: Story = {

@@ -100,6 +100,7 @@ import {
   DEFAULT_FILTER_RENDERERS,
 } from "./data-table.fields"
 import {
+  applyDeclaredColumnSizes,
   conditionalFilterFn,
   DATA_TABLE_Z,
   type DataTableGetCellSpan,
@@ -1355,7 +1356,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
   }
 
   const columns = buildColumns<T>({
-    userColumns,
+    userColumns: applyDeclaredColumnSizes(userColumns),
     enableRowReorder,
     enableRowSelection,
     locked,
