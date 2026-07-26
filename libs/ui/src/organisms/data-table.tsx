@@ -1251,7 +1251,20 @@ export function DataTable<T>(props: DataTableProps<T>) {
         return next
       }
       const selectedIds = Object.keys(next).filter((id) => next[id])
+      const previousCount = Object.keys(old).filter((id) => old[id]).length
       if (selectedIds.length <= maxSelectedRows) {
+        // Reaching the cap is itself the signal worth reporting: once it is hit
+        // the remaining checkboxes disable, so the "exceeded" branch below is
+        // unreachable through normal row clicks and only bulk toggles hit it.
+        if (
+          selectedIds.length === maxSelectedRows &&
+          selectedIds.length > previousCount
+        ) {
+          limitReached = {
+            limit: maxSelectedRows,
+            selectedCount: selectedIds.length,
+          }
+        }
         return next
       }
       // Keep rows that were already selected, then fill up to the cap.
@@ -1698,11 +1711,18 @@ export function DataTable<T>(props: DataTableProps<T>) {
     .filter((c) => !builtinIds.has(c.id))
     .map((c) => c.id)
 
+  /**
+   * The expand toggle lives in the trailing actions cell (so it cannot collide
+   * with the selection checkbox), which means expanding needs that cell to
+   * exist. Tree rows expand through `getSubRows`/`getRowCanExpand` and never set
+   * `renderExpandedRow`, so gating on the latter alone left them with no toggle.
+   */
   const hasActionsColumn =
     !!renderRowActions ||
     !!rowActions?.length ||
     enableInlineEdit ||
-    (enableExpanding && !!renderExpandedRow)
+    (enableExpanding &&
+      (!!renderExpandedRow || !!getSubRows || !!getRowCanExpand))
 
   /**
    * Resolve a column's header filter: per-column `meta.renderFilter`, then the

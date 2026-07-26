@@ -169,7 +169,7 @@ export const ColumnFiltersWithConditions: Story = {
   args: { ...base, enableColumnFilters: true, onColumnFiltersChange: fn() },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
-    const valueInput = canvas.getByLabelText("Filter value for firstName")
+    const valueInput = canvas.getByLabelText("Filter value for First name")
     await userEvent.type(valueInput, "Ada")
     await expect(args.onColumnFiltersChange).toHaveBeenCalled()
   },
@@ -225,7 +225,12 @@ export const EmptyState: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    await expect(canvas.getByText("No team members")).toBeInTheDocument()
+    // The title also appears in the sr-only aria-live status region, so both the
+    // visible empty block and the announcement are expected.
+    await expect(canvas.getAllByText("No team members")).toHaveLength(2)
+    await expect(
+      canvas.getByText("Invite someone to get started.")
+    ).toBeInTheDocument()
   },
 }
 
@@ -310,21 +315,30 @@ export const FrozenColumnWidths: Story = {
   args: {
     ...base,
     tableLayout: "fixed",
+    maxHeight: "320px",
     enableColumnPinning: true,
     columnPinning: { left: ["firstName", "lastName"], right: [] },
+    // Widths deliberately overflow the container: with `table-layout: fixed` any
+    // leftover space is redistributed across columns, which would make the
+    // rendered widths drift from the declared ones. Frozen columns only make
+    // sense when the table scrolls horizontally anyway.
     columns: [
-      { accessorKey: "firstName", header: "First name", meta: { width: 90 } },
-      { accessorKey: "lastName", header: "Last name", meta: { width: 110 } },
-      { accessorKey: "email", header: "Email", meta: { width: 220 } },
-      { accessorKey: "role", header: "Role", meta: { width: 120 } },
-      { accessorKey: "age", header: "Age", meta: { width: 80, align: "end" } },
+      { accessorKey: "firstName", header: "First name", meta: { width: 200 } },
+      { accessorKey: "lastName", header: "Last name", meta: { width: 240 } },
+      { accessorKey: "email", header: "Email", meta: { width: 400 } },
+      { accessorKey: "role", header: "Role", meta: { width: 300 } },
+      { accessorKey: "age", header: "Age", meta: { width: 200, align: "end" } },
+      { accessorKey: "visits", header: "Visits", meta: { width: 300 } },
     ] as ColumnDef<Person>[],
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
+    const firstName = canvas.getByRole("columnheader", { name: /First name/ })
     const lastName = canvas.getByRole("columnheader", { name: /Last name/ })
-    // Second pinned column starts exactly where the first one ends.
-    await expect(lastName).toHaveStyle({ left: "90px", width: "110px" })
+    // The second pinned column must start exactly where the first one ends,
+    // which only holds if the declared width also reached TanStack's size model.
+    await expect(lastName).toHaveStyle({ left: "200px" })
+    await expect(Math.round(firstName.getBoundingClientRect().width)).toBe(200)
   },
 }
 
@@ -351,8 +365,11 @@ export const HiddenHeader: Story = {
   args: { ...base, hideHeader: true },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
-    // No column header, but data cells still render.
-    await expect(canvas.queryByRole("columnheader")).not.toBeInTheDocument()
+    // Headers stay in the accessibility tree so the table keeps its column
+    // names; `hideHeader` only hides them visually.
+    const headers = canvas.getAllByRole("columnheader")
+    await expect(headers.length).toBeGreaterThan(0)
+    await expect(headers[0]?.closest("tr")?.parentElement).toHaveClass("sr-only")
     await expect(canvas.getByText("Lovelace")).toBeInTheDocument()
   },
 }
@@ -759,7 +776,12 @@ export const Pagination: Story = {
     await expect(canvas.getByText(/of\s+500/i)).toBeInTheDocument()
     // With 500 rows and a page size of 5, page 2 always exists — hard-assert it
     // so a broken pager fails the story instead of silently skipping.
-    await userEvent.click(canvas.getByRole("link", { name: "2" }))
+    // Pager items render as <a> without href, so they expose no `link` role;
+    // scope to the pagination widget and match the page number as text.
+    const pager = canvasElement.querySelector(
+      '[data-scope="pagination"]'
+    ) as HTMLElement
+    await userEvent.click(within(pager).getByText("2"))
     await expect(args.onPaginationChange).toHaveBeenCalled()
   },
 }
@@ -866,9 +888,9 @@ export const TypedColumnFilters: Story = {
   } as DataTableProps<Person>,
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
-    await expect(canvas.getByLabelText("Filter active")).toBeInTheDocument()
-    await expect(canvas.getByLabelText("Filter shiftStart from")).toBeInTheDocument()
-    await userEvent.type(canvas.getByLabelText("Filter startDate"), "2021-01-01")
+    await expect(canvas.getByLabelText("Filter Active")).toBeInTheDocument()
+    await expect(canvas.getByLabelText("Filter Shift from")).toBeInTheDocument()
+    await userEvent.type(canvas.getByLabelText("Filter Start date"), "2021-01-01")
     await expect(args.onColumnFiltersChange).toHaveBeenCalled()
   },
 }
@@ -950,8 +972,8 @@ export const InlineEditByColumnType: Story = {
     await userEvent.click(canvas.getByLabelText("Edit row 0"))
     await expect(args.onEditStart).toHaveBeenCalled()
     // Type-driven editors replace the cells of the edited row only.
-    await expect(canvas.getByLabelText("Edit name")).toBeInTheDocument()
-    await expect(canvas.getByLabelText("Edit startDate")).toBeInTheDocument()
+    await expect(canvas.getByLabelText("Edit Name")).toBeInTheDocument()
+    await expect(canvas.getByLabelText("Edit Start date")).toBeInTheDocument()
     await userEvent.click(canvas.getByLabelText("Save row"))
     await expect(args.onEditCommit).toHaveBeenCalled()
   },
@@ -1167,7 +1189,8 @@ export const AccessibleSemantics: Story = {
     const ageHeader = canvas.getByRole("columnheader", { name: /Age/i })
     await expect(ageHeader).toHaveAttribute("aria-sort", "none")
     await userEvent.click(canvas.getByRole("button", { name: /Age/i }))
-    await expect(ageHeader).toHaveAttribute("aria-sort", "ascending")
+    // TanStack sorts numeric columns descending on the first click.
+    await expect(ageHeader).toHaveAttribute("aria-sort", "descending")
     // Selection checkboxes are labelled by row content, not the opaque row id.
     await expect(canvas.getByLabelText("Select Ada Lovelace")).toBeInTheDocument()
     // Clickable rows are reachable and activatable from the keyboard.
