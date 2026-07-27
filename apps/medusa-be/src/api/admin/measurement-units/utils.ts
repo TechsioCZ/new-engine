@@ -7,6 +7,7 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import {
   getMeasurementUnitActiveProductCounts,
   getMeasurementUnitService,
@@ -47,6 +48,28 @@ const ASSIGNED_PRODUCT_ORDER_FIELDS = new Set([
 ])
 const LIKE_WILDCARD_REGEX = /[\\%_]/g
 const LEADING_DASH_REGEX = /^-/
+const assignedProductIndexRowsSchema = z.array(
+  z.object({
+    handle: z.string().nullable().optional(),
+    id: z.string(),
+    status: z.string().nullable().optional(),
+    title: z.string().nullable().optional(),
+    updated_at: z.union([z.date(), z.string()]).optional(),
+  })
+)
+
+const parseAssignedProductIndexRows = (value: unknown) => {
+  const result = assignedProductIndexRowsSchema.safeParse(value)
+
+  if (!result.success) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Assigned product index query returned invalid data."
+    )
+  }
+
+  return result.data
+}
 
 export const escapeLikePattern = (value: string) =>
   value.replace(LIKE_WILDCARD_REGEX, (match) => `\\${match}`)
@@ -238,13 +261,7 @@ const listActiveMeasurementUnitAssignedProducts = async ({
       take: limit,
     },
   })
-  const products = data as Array<{
-    handle?: null | string
-    id: string
-    status?: null | string
-    title?: null | string
-    updated_at?: Date | string
-  }>
+  const products = parseAssignedProductIndexRows(data)
 
   return {
     count: metadata?.estimate_count ?? products.length,

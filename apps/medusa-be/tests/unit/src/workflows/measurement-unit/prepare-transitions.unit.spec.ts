@@ -245,6 +245,77 @@ describe("measurement transition preparation", () => {
     })
   })
 
+  it("creates the target link and dismisses another active link", async () => {
+    container.resolve.mockReturnValue({
+      graph: vi.fn().mockResolvedValue({
+        data: [
+          {
+            deleted_at: null,
+            product_id: "prod_1",
+            product_measurement_id: "pm_old",
+          },
+        ],
+      }),
+    })
+    const { prepareProductMeasurementLinkPlanStep } = await import(
+      "../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions"
+    )
+    const result = await (prepareProductMeasurementLinkPlanStep as MockStep)(
+      {
+        product_id: "prod_1",
+        product_measurement_id: "pm_target",
+      },
+      { container }
+    )
+
+    expect(result.payload.links_to_create).toEqual([
+      {
+        product_id: "prod_1",
+        product_measurement_id: "pm_target",
+      },
+    ])
+    expect(result.payload.links_to_dismiss).toEqual([
+      {
+        product_id: "prod_1",
+        product_measurement_id: "pm_old",
+      },
+    ])
+    expect(result.payload.links_to_restore).toEqual([])
+  })
+
+  it("restores a soft-deleted target link", async () => {
+    container.resolve.mockReturnValue({
+      graph: vi.fn().mockResolvedValue({
+        data: [
+          {
+            deleted_at: new Date("2026-01-01"),
+            product_id: "prod_1",
+            product_measurement_id: "pm_target",
+          },
+        ],
+      }),
+    })
+    const { prepareProductMeasurementLinkPlanStep } = await import(
+      "../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions"
+    )
+    const result = await (prepareProductMeasurementLinkPlanStep as MockStep)(
+      {
+        product_id: "prod_1",
+        product_measurement_id: "pm_target",
+      },
+      { container }
+    )
+
+    expect(result.payload.links_to_create).toEqual([])
+    expect(result.payload.links_to_dismiss).toEqual([])
+    expect(result.payload.links_to_restore).toEqual([
+      {
+        product_id: "prod_1",
+        product_measurement_id: "pm_target",
+      },
+    ])
+  })
+
   it("rejects malformed custom-link query results", async () => {
     container.resolve.mockReturnValue({
       graph: vi.fn().mockResolvedValue({

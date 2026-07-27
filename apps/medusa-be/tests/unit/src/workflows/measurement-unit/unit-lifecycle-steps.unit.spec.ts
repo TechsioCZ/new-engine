@@ -36,11 +36,19 @@ vi.mock("../../../../../src/utils/measurement-units", () => ({
   getMeasurementUnitService: vi.fn(() => service),
 }))
 
-vi.mock("../../../../../src/workflows/measurement-unit/steps/helpers", () => ({
-  ensureUnitCodeAvailable: helpers.ensureUnitCodeAvailable,
-  normalizeUnitCode: (code: string) =>
-    code.trim().toLowerCase().replace(/\s+/g, "_"),
-}))
+vi.mock(
+  "../../../../../src/workflows/measurement-unit/steps/helpers",
+  async () => {
+    const actual = await vi.importActual<
+      typeof import("../../../../../src/workflows/measurement-unit/steps/helpers")
+    >("../../../../../src/workflows/measurement-unit/steps/helpers")
+
+    return {
+      ...actual,
+      ensureUnitCodeAvailable: helpers.ensureUnitCodeAvailable,
+    }
+  }
+)
 
 type MockStep = {
   (
@@ -60,7 +68,12 @@ const context = { container: {} }
 
 describe("measurement unit lifecycle steps", () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    helpers.ensureUnitCodeAvailable.mockReset()
+    service.createMeasurementUnits.mockReset()
+    service.listMeasurementUnits.mockReset()
+    service.restoreMeasurementUnits.mockReset()
+    service.softDeleteMeasurementUnits.mockReset()
+    service.updateMeasurementUnits.mockReset()
   })
 
   it("validates all create codes in one module query", async () => {
@@ -240,5 +253,40 @@ describe("measurement unit lifecycle steps", () => {
       type: MedusaError.Types.NOT_ALLOWED,
     })
     expect(service.updateMeasurementUnits).not.toHaveBeenCalled()
+  })
+
+  it("normalizes a blank description to null on update", async () => {
+    service.listMeasurementUnits.mockResolvedValue([
+      {
+        base_quantity: 1,
+        code: "kg",
+        deleted_at: null,
+        description: "Old description",
+        id: "unit_1",
+        name: "Kilogram",
+        symbol: "kg",
+      },
+    ])
+    service.updateMeasurementUnits.mockResolvedValue({
+      id: "unit_1",
+    })
+    const { updateMeasurementUnitStep } = await import(
+      "../../../../../src/workflows/measurement-unit/steps/update-measurement-unit"
+    )
+
+    await (updateMeasurementUnitStep as MockStep)(
+      {
+        id: "unit_1",
+        update: { description: "   " },
+      },
+      context
+    )
+
+    expect(service.updateMeasurementUnits).toHaveBeenCalledWith(
+      expect.objectContaining({
+        description: null,
+        id: "unit_1",
+      })
+    )
   })
 })

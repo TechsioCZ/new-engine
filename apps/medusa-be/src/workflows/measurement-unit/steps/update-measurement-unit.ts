@@ -2,7 +2,11 @@ import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { getMeasurementUnitService } from "../../../utils/measurement-units"
 import type { UpdateMeasurementUnitWorkflowInput } from "../types"
-import { ensureUnitCodeAvailable, normalizeUnitCode } from "./helpers"
+import {
+  ensureUnitCodeAvailable,
+  normalizeDescription,
+  normalizeUnitCode,
+} from "./helpers"
 
 export const updateMeasurementUnitStep = createStep(
   "update-measurement-unit",
@@ -70,7 +74,7 @@ export const updateMeasurementUnitStep = createStep(
       description:
         update.description === undefined
           ? undefined
-          : update.description?.trim() || null,
+          : normalizeDescription(update.description),
       name: update.name?.trim(),
       symbol: update.symbol?.trim(),
     })

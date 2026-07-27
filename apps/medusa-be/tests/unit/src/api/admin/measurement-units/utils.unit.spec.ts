@@ -1,3 +1,4 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const { measurementService } = vi.hoisted(() => ({
@@ -109,5 +110,31 @@ describe("measurement unit assigned-product queries", () => {
         "prod_1"
       )
     ).toBe(active)
+  })
+
+  it("rejects malformed assigned-product index rows", async () => {
+    const scope = {
+      resolve: vi.fn(() => ({
+        index: vi.fn().mockResolvedValue({
+          data: [{ title: "Missing product id" }],
+          metadata: { estimate_count: 1 },
+        }),
+      })),
+    }
+    const { listMeasurementUnitAssignedProducts } = await import(
+      "../../../../../../src/api/admin/measurement-units/utils"
+    )
+
+    await expect(
+      listMeasurementUnitAssignedProducts({
+        limit: 10,
+        offset: 0,
+        scope: scope as never,
+        status: "active",
+        unitId: "unit_1",
+      })
+    ).rejects.toMatchObject({
+      type: MedusaError.Types.UNEXPECTED_STATE,
+    })
   })
 })

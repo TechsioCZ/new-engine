@@ -50,6 +50,7 @@ export type MeasurementUnitAdminI18nNamespace = {
     | "deleteFailed"
     | "loadDetailFailed"
     | "loadFailed"
+    | "loadProductsFailed"
     | "removeAssignmentFailed"
     | "restoreFailed"
     | "saveFailed",
@@ -172,6 +173,7 @@ export const measurementUnitAdminI18n = {
       deleteFailed: "Měrnou jednotku se nepodařilo smazat",
       loadDetailFailed: "Detail měrné jednotky se nepodařilo načíst",
       loadFailed: "Měrné jednotky se nepodařilo načíst",
+      loadProductsFailed: "Přiřazené produkty se nepodařilo načíst",
       removeAssignmentFailed: "Přiřazení produktu se nepodařilo odebrat",
       restoreFailed: "Měrnou jednotku se nepodařilo obnovit",
       saveFailed: "Měrnou jednotku se nepodařilo uložit",
@@ -309,6 +311,7 @@ export const measurementUnitAdminI18n = {
       deleteFailed: "Failed to delete measurement unit",
       loadDetailFailed: "Failed to load measurement unit detail",
       loadFailed: "Failed to load measurement units",
+      loadProductsFailed: "Failed to load assigned products",
       removeAssignmentFailed: "Failed to remove product assignment",
       restoreFailed: "Failed to restore measurement unit",
       saveFailed: "Failed to save measurement unit",

@@ -60,6 +60,9 @@ export const pickCanonicalRecord = <TRecord extends TimestampedRecord>(
 export const normalizeUnitCode = (code: string) =>
   code.trim().toLowerCase().replace(/\s+/g, "_")
 
+export const normalizeDescription = (description?: null | string) =>
+  description?.trim() || null
+
 export const productMeasurementLink = (
   productId: string,
   productMeasurementId: string

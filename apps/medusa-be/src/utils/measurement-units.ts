@@ -91,6 +91,7 @@ const PRICE_PER_UNIT_QUERY_FIELDS = [
   "variants.calculated_price.is_original_price_tax_inclusive",
 ]
 const LEADING_PLUS_PATTERN = /^\+/
+const PRODUCT_MEASUREMENT_QUERY_CHUNK_SIZE = 500
 
 const normalizeRequestedField = (field: string) =>
   field.trim().replace(LEADING_PLUS_PATTERN, "")
@@ -254,15 +255,28 @@ export const listProductMeasurementsByProductIds = async (
     return []
   }
 
-  return await getMeasurementUnitService(scope).listProductMeasurements(
-    {
-      product_id: { $in: ids },
-    },
-    {
-      relations: ["measurement_unit", "variant_measurements"],
-      take: ids.length,
-    }
-  )
+  const service = getMeasurementUnitService(scope)
+  const measurements: ProductMeasurementRecord[] = []
+
+  for (
+    let index = 0;
+    index < ids.length;
+    index += PRODUCT_MEASUREMENT_QUERY_CHUNK_SIZE
+  ) {
+    const chunk = ids.slice(index, index + PRODUCT_MEASUREMENT_QUERY_CHUNK_SIZE)
+    const chunkMeasurements = await service.listProductMeasurements(
+      {
+        product_id: { $in: chunk },
+      },
+      {
+        relations: ["measurement_unit", "variant_measurements"],
+        take: chunk.length,
+      }
+    )
+    measurements.push(...chunkMeasurements)
+  }
+
+  return measurements
 }
 
 export const getMeasurementUnitActiveProductCounts = async (
