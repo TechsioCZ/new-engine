@@ -14,8 +14,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
   await retrieveProductOrThrow(req.scope, productId)
 
-  const measurement = await retrieveProductMeasurement(req.scope, productId)
-  const variants = await retrieveProductVariants(req.scope, productId)
+  const [measurement, variants] = await Promise.all([
+    retrieveProductMeasurement(req.scope, productId),
+    retrieveProductVariants(req.scope, productId),
+  ])
 
   res
     .status(200)
@@ -35,8 +37,10 @@ export async function POST(
     },
   })
 
-  const measurement = await retrieveProductMeasurement(req.scope, productId)
-  const variants = await retrieveProductVariants(req.scope, productId)
+  const [measurement, variants] = await Promise.all([
+    retrieveProductMeasurement(req.scope, productId),
+    retrieveProductVariants(req.scope, productId),
+  ])
 
   res
     .status(200)

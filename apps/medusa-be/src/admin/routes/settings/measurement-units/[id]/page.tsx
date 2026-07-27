@@ -18,8 +18,10 @@ import { useTranslation } from "react-i18next"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import {
   deleteProductMeasurement,
+  isMeasurementUnitStatus,
   listMeasurementUnitAssignedProducts,
   type MeasurementUnitAssignedProduct,
+  type MeasurementUnitStatus,
   measurementUnitQueryKeys,
   restoreMeasurementUnit,
   retrieveMeasurementUnit,
@@ -33,12 +35,14 @@ import { useDebouncedValue } from "../../../../lib/use-debounced-value"
 const PAGE_SIZE = 20
 
 const AssignedProductRows = ({
+  error,
   isLoading,
   onOpen,
   onRemove,
   products,
   removeProductId,
 }: {
+  error: unknown
   isLoading: boolean
   onOpen: (productId: string) => void
   onRemove: (product: MeasurementUnitAssignedProduct) => void
@@ -51,6 +55,19 @@ const AssignedProductRows = ({
     return (
       <Table.Row>
         <Table.Cell>{t("status.loading")}</Table.Cell>
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+      </Table.Row>
+    )
+  }
+
+  if (error) {
+    return (
+      <Table.Row>
+        <Table.Cell className="text-ui-fg-error">
+          {t("errors.loadProductsFailed")}
+        </Table.Cell>
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
@@ -128,7 +145,7 @@ const MeasurementUnitDetailPage = () => {
   const queryClient = useQueryClient()
   const [pageIndex, setPageIndex] = useState(0)
   const [q, setQ] = useState("")
-  const [status, setStatus] = useState<"active" | "all" | "deleted">("active")
+  const [status, setStatus] = useState<MeasurementUnitStatus>("active")
   const debouncedQ = useDebouncedValue(q)
 
   const params = useMemo(
@@ -240,7 +257,7 @@ const MeasurementUnitDetailPage = () => {
     }
   }
 
-  if (unitError || productsError) {
+  if (unitError) {
     return (
       <Container>
         <Text className="text-ui-fg-error">{t("errors.loadDetailFailed")}</Text>
@@ -337,8 +354,10 @@ const MeasurementUnitDetailPage = () => {
             />
             <Select
               onValueChange={(value) => {
-                setPageIndex(0)
-                setStatus(value as "active" | "all" | "deleted")
+                if (isMeasurementUnitStatus(value)) {
+                  setPageIndex(0)
+                  setStatus(value)
+                }
               }}
               value={status}
             >
@@ -372,6 +391,7 @@ const MeasurementUnitDetailPage = () => {
           </Table.Header>
           <Table.Body>
             <AssignedProductRows
+              error={productsError}
               isLoading={productsAreLoading}
               onOpen={(productId) => navigate(`/products/${productId}`)}
               onRemove={handleRemove}

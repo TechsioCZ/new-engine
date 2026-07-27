@@ -254,14 +254,15 @@ export const listProductMeasurementsByProductIds = async (
     return []
   }
 
-  return (await getMeasurementUnitService(scope).listProductMeasurements(
+  return await getMeasurementUnitService(scope).listProductMeasurements(
     {
       product_id: { $in: ids },
     },
     {
       relations: ["measurement_unit", "variant_measurements"],
+      take: ids.length,
     }
-  )) as ProductMeasurementRecord[]
+  )
 }
 
 export const getMeasurementUnitActiveProductCounts = async (

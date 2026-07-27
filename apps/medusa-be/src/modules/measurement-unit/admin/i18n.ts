@@ -27,7 +27,12 @@ export type MeasurementUnitAdminI18nNamespace = {
     string
   >
   createMissing: Record<
-    "deletedDescription" | "deletedTitle" | "description" | "title",
+    | "activeDescription"
+    | "activeTitle"
+    | "deletedDescription"
+    | "deletedTitle"
+    | "description"
+    | "title",
     string
   >
   detail: Record<
@@ -41,6 +46,7 @@ export type MeasurementUnitAdminI18nNamespace = {
   deletePrompt: Record<"assignedDescription" | "description", string>
   errors: Record<
     | "createFailed"
+    | "clearFailed"
     | "deleteFailed"
     | "loadDetailFailed"
     | "loadFailed"
@@ -55,7 +61,17 @@ export type MeasurementUnitAdminI18nNamespace = {
   >
   filters: Record<"activeOnly" | "allStatuses" | "deletedOnly", string>
   menuItem: string
-  pagination: Record<"next" | "of" | "pages" | "previous" | "results", string>
+  pagination: Record<
+    | "next"
+    | "of"
+    | "pages"
+    | "previous"
+    | "results"
+    | "results_few"
+    | "results_one"
+    | "results_other",
+    string
+  >
   placeholders: Record<
     | "baseQuantity"
     | "code"
@@ -127,6 +143,9 @@ export const measurementUnitAdminI18n = {
       usedBy: "Přiřazené produkty",
     },
     createMissing: {
+      activeDescription:
+        "Aktivní měrná jednotka s kódem {{code}} už existuje. Otevírám její detail.",
+      activeTitle: "Měrná jednotka už existuje",
       deletedDescription:
         "Měrná jednotka s kódem {{code}} už existuje ve smazaném stavu. Před přiřazením ji obnovte v detailu měrné jednotky.",
       deletedTitle: "Měrná jednotka už existuje",
@@ -148,6 +167,7 @@ export const measurementUnitAdminI18n = {
       description: "Měrná jednotka bude označena jako smazaná.",
     },
     errors: {
+      clearFailed: "Množství varianty se nepodařilo vymazat",
       createFailed: "Měrnou jednotku se nepodařilo vytvořit",
       deleteFailed: "Měrnou jednotku se nepodařilo smazat",
       loadDetailFailed: "Detail měrné jednotky se nepodařilo načíst",
@@ -176,6 +196,9 @@ export const measurementUnitAdminI18n = {
       pages: "stránek",
       previous: "Předchozí",
       results: "výsledků",
+      results_few: "{{count}} výsledky",
+      results_one: "{{count}} výsledek",
+      results_other: "{{count}} výsledků",
     },
     placeholders: {
       baseQuantity: "1 nebo 100",
@@ -256,6 +279,9 @@ export const measurementUnitAdminI18n = {
       usedBy: "Assigned products",
     },
     createMissing: {
+      activeDescription:
+        "An active measurement unit with code {{code}} already exists. Opening its details.",
+      activeTitle: "Measurement unit already exists",
       deletedDescription:
         "A measurement unit with code {{code}} already exists in deleted state. Restore it from the measurement unit detail before assigning it.",
       deletedTitle: "Measurement unit already exists",
@@ -278,6 +304,7 @@ export const measurementUnitAdminI18n = {
       description: "This measurement unit will be marked as deleted.",
     },
     errors: {
+      clearFailed: "Failed to clear variant quantity",
       createFailed: "Failed to create measurement unit",
       deleteFailed: "Failed to delete measurement unit",
       loadDetailFailed: "Failed to load measurement unit detail",
@@ -306,6 +333,9 @@ export const measurementUnitAdminI18n = {
       pages: "pages",
       previous: "Previous",
       results: "results",
+      results_few: "{{count}} results",
+      results_one: "{{count}} result",
+      results_other: "{{count}} results",
     },
     placeholders: {
       baseQuantity: "1 or 100",

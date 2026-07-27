@@ -247,17 +247,18 @@ const ProductMeasurementDrawer = ({
   const [missingUnitForm, setMissingUnitForm] = useState<MissingUnitForm>(() =>
     createEmptyMissingUnitForm()
   )
+  const currentMeasurementUnitId = currentMeasurement?.unit.id
 
   useEffect(() => {
     if (open) {
       setPageIndex(0)
       setQ("")
-      setSelectedId(currentMeasurement?.unit.id)
+      setSelectedId(currentMeasurementUnitId)
       setCreatedUnit(undefined)
       setCreateMissingOpen(false)
       setMissingUnitForm(createEmptyMissingUnitForm())
     }
-  }, [currentMeasurement, open])
+  }, [currentMeasurementUnitId, open])
 
   const params = useMemo(
     () => ({
@@ -368,9 +369,23 @@ const ProductMeasurementDrawer = ({
       order_by: "name",
       status: "all",
     })
+    const activeUnit = existing.measurement_units.find(
+      (unit) => unit.code === normalizedCode && !unit.deleted_at
+    )
     const deletedUnit = existing.measurement_units.find(
       (unit) => unit.code === normalizedCode && unit.deleted_at
     )
+
+    if (activeUnit) {
+      toast.info(t("createMissing.activeTitle"), {
+        description: t("createMissing.activeDescription", {
+          code: normalizedCode,
+        }),
+      })
+      onOpenChange(false)
+      navigate(`/settings/measurement-units/${activeUnit.id}`)
+      return
+    }
 
     if (deletedUnit) {
       const viewDeletedUnit = await prompt({

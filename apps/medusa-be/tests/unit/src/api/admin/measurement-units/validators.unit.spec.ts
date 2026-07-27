@@ -51,6 +51,31 @@ describe("measurement unit request validation", () => {
     ).toBe(false)
   })
 
+  it.each([
+    Number.POSITIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+    Number("1e999"),
+  ])("rejects non-finite quantities such as %s", (quantity) => {
+    expect(
+      AdminCreateMeasurementUnitSchema.safeParse({
+        base_quantity: quantity,
+        code: "kg",
+        name: "Kilogram",
+        symbol: "kg",
+      }).success
+    ).toBe(false)
+    expect(
+      AdminUpdateMeasurementUnitSchema.safeParse({
+        base_quantity: quantity,
+      }).success
+    ).toBe(false)
+    expect(
+      AdminSetProductVariantMeasurementSchema.safeParse({
+        product_unit_quantity: quantity,
+      }).success
+    ).toBe(false)
+  })
+
   it("rejects an empty update", () => {
     expect(AdminUpdateMeasurementUnitSchema.safeParse({}).success).toBe(false)
   })

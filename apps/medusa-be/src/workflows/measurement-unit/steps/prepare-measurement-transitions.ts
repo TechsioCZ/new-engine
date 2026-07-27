@@ -41,6 +41,70 @@ type ProductVariantMeasurementLinkRecord = ProductVariantMeasurementLinkIds & {
   deleted_at?: Date | string | null
 }
 
+const hasValidDeletedAt = (record: Record<string, unknown>) =>
+  record.deleted_at === undefined ||
+  record.deleted_at === null ||
+  typeof record.deleted_at === "string" ||
+  record.deleted_at instanceof Date
+
+const isProductMeasurementLinkRecord = (
+  value: unknown
+): value is ProductMeasurementLinkRecord => {
+  if (!(value && typeof value === "object")) {
+    return false
+  }
+
+  const record = value as Record<string, unknown>
+
+  return (
+    typeof record.product_id === "string" &&
+    typeof record.product_measurement_id === "string" &&
+    hasValidDeletedAt(record)
+  )
+}
+
+const isProductVariantMeasurementLinkRecord = (
+  value: unknown
+): value is ProductVariantMeasurementLinkRecord => {
+  if (!(value && typeof value === "object")) {
+    return false
+  }
+
+  const record = value as Record<string, unknown>
+
+  return (
+    typeof record.product_variant_id === "string" &&
+    typeof record.product_variant_measurement_id === "string" &&
+    hasValidDeletedAt(record)
+  )
+}
+
+const parseProductMeasurementLinks = (value: unknown) => {
+  if (!(Array.isArray(value) && value.every(isProductMeasurementLinkRecord))) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Product measurement link query returned invalid data."
+    )
+  }
+
+  return value
+}
+
+const parseProductVariantMeasurementLinks = (value: unknown) => {
+  if (
+    !(
+      Array.isArray(value) && value.every(isProductVariantMeasurementLinkRecord)
+    )
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Product variant measurement link query returned invalid data."
+    )
+  }
+
+  return value
+}
+
 export type ProductMeasurementTransitionPlan = {
   existing_target?: ProductMeasurementRecord
   previous?: ProductMeasurementRecord
@@ -285,7 +349,7 @@ export const prepareProductMeasurementLinkPlanStep = createStep(
       },
       withDeleted: true,
     })
-    const links = data as ProductMeasurementLinkRecord[]
+    const links = parseProductMeasurementLinks(data)
     const target = links.find(
       (link) =>
         link.product_measurement_id === input.product_measurement_id &&
@@ -351,7 +415,7 @@ export const prepareProductVariantMeasurementLinkPlanStep = createStep(
       },
       withDeleted: true,
     })
-    const links = data as ProductVariantMeasurementLinkRecord[]
+    const links = parseProductVariantMeasurementLinks(data)
     const targetLinkByRecordId = new Map(
       links
         .filter((link) =>
@@ -420,7 +484,7 @@ export const prepareSetProductVariantMeasurementStep = createStep(
 
     if (!productMeasurement?.id) {
       throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
+        MedusaError.Types.INVALID_DATA,
         "Product must have a measurement unit before variant quantity can be set."
       )
     }
@@ -522,7 +586,7 @@ export const findActiveProductMeasurementLinksStep = createStep(
     })
 
     return new StepResponse(
-      (data as ProductMeasurementLinkRecord[]).map((link) => ({
+      parseProductMeasurementLinks(data).map((link) => ({
         product_id: link.product_id,
         product_measurement_id: link.product_measurement_id,
       }))
@@ -548,7 +612,7 @@ export const findActiveProductVariantMeasurementLinksStep = createStep(
     })
 
     return new StepResponse(
-      (data as ProductVariantMeasurementLinkRecord[]).map((link) => ({
+      parseProductVariantMeasurementLinks(data).map((link) => ({
         product_variant_id: link.product_variant_id,
         product_variant_measurement_id: link.product_variant_measurement_id,
       }))

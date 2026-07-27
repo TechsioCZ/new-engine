@@ -1,11 +1,14 @@
 import type { Query } from "@medusajs/framework"
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { MedusaResponse } from "@medusajs/framework/http"
 import {
   ContainerRegistrationKeys,
-  MedusaError,
   ProductStatus,
   QueryContext,
 } from "@medusajs/framework/utils"
+import {
+  type RequestWithContext,
+  wrapProductsWithTaxPrices,
+} from "@medusajs/medusa/api/store/products/helpers"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
 import { isMeilisearchEnabled } from "../../../../modules/meilisearch/env"
 import {
@@ -54,11 +57,6 @@ type BrandRecord = {
 type CategoryRecord = {
   handle?: string
   name?: string
-}
-
-type RegionPricingRecord = {
-  id?: string
-  currency_code?: string
 }
 
 const FACETS_TO_FETCH = [
@@ -309,50 +307,8 @@ const mapDynamicFacets = (
     }))
   )
 
-const resolveProductQueryPricing = async (
-  queryService: Query,
-  validatedQuery: StoreCatalogProductsSchemaType
-) => {
-  if (!validatedQuery.region_id) {
-    return {
-      productFields: STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
-      pricingContext: undefined,
-    }
-  }
-
-  const { data: regions } = await queryService.graph({
-    entity: "region",
-    fields: ["id", "currency_code"],
-    filters: {
-      id: validatedQuery.region_id,
-    },
-  })
-
-  const region = ((regions as RegionPricingRecord[])[0] ??
-    null) as RegionPricingRecord | null
-
-  if (!(region?.id && region.currency_code)) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      `Region with id ${validatedQuery.region_id} not found when populating pricing context`
-    )
-  }
-
-  return {
-    productFields: [
-      ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
-      ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
-    ],
-    pricingContext: QueryContext({
-      region_id: region.id,
-      currency_code: region.currency_code,
-      country_code: validatedQuery.country_code,
-    }),
-  }
-}
-
 export async function GET(
-  req: MedusaRequest<unknown, StoreCatalogProductsSchemaType>,
+  req: RequestWithContext<unknown, StoreCatalogProductsSchemaType>,
   res: MedusaResponse
 ) {
   if (!isMeilisearchEnabled()) {
@@ -419,10 +375,15 @@ export async function GET(
         .map((hit) => getProductIdFromHit(hit))
         .filter((id): id is string => Boolean(id))
     : []
-  const { pricingContext, productFields } = await resolveProductQueryPricing(
-    queryService,
-    validatedQuery
-  )
+  const pricingContext = req.pricingContext
+    ? QueryContext(req.pricingContext)
+    : undefined
+  const productFields = pricingContext
+    ? [
+        ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
+        ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
+      ]
+    : STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS
 
   const { data: products } =
     productIds.length === 0
@@ -493,6 +454,10 @@ export async function GET(
       ? searchResult.estimatedTotalHits
       : orderedProducts.length
   const totalPages = count > 0 ? Math.ceil(count / limit) : 0
+  await wrapProductsWithTaxPrices(
+    req,
+    orderedProducts as Parameters<typeof wrapProductsWithTaxPrices>[1]
+  )
   await decorateProductsWithMeasurements(
     req.scope,
     orderedProducts as Parameters<typeof decorateProductsWithMeasurements>[1],

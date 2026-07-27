@@ -5,21 +5,7 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { MEASUREMENT_UNIT_MODULE } from "../../../modules/measurement-unit"
-import type {
-  MeasurementUnitRecord,
-  ProductMeasurementRecord,
-  ProductVariantMeasurementRecord,
-} from "../../../utils/measurement-units"
 import { getMeasurementUnitService } from "../../../utils/measurement-units"
-
-type ProductRecord = {
-  id: string
-}
-
-type ProductVariantRecord = {
-  id: string
-  product_id?: null | string
-}
 
 type TimestampedRecord = {
   created_at?: Date | string
@@ -110,7 +96,7 @@ export const ensureProductExists = async (
       id: productId,
     },
   })
-  const product = (data as ProductRecord[])[0]
+  const product = data[0]
 
   if (!product?.id) {
     throw new MedusaError(
@@ -135,7 +121,7 @@ export const ensureProductVariantBelongsToProduct = async (
       id: productVariantId,
     },
   })
-  const variant = (data as ProductVariantRecord[])[0]
+  const variant = data[0]
 
   if (!variant?.id) {
     throw new MedusaError(
@@ -158,7 +144,7 @@ export const retrieveActiveUnitOrThrow = async (
   container: MedusaContainer,
   unitId: string
 ) => {
-  const [unit] = (await getMeasurementUnitService(
+  const [unit] = await getMeasurementUnitService(
     container
   ).listMeasurementUnits(
     {
@@ -167,7 +153,7 @@ export const retrieveActiveUnitOrThrow = async (
     {
       take: 1,
     }
-  )) as MeasurementUnitRecord[]
+  )
 
   if (!unit) {
     throw new MedusaError(
@@ -189,7 +175,7 @@ export const ensureUnitCodeAvailable = async ({
   excludeId?: string
 }) => {
   const normalizedCode = normalizeUnitCode(code)
-  const [existing] = (await getMeasurementUnitService(
+  const [existing] = await getMeasurementUnitService(
     container
   ).listMeasurementUnits(
     {
@@ -199,7 +185,7 @@ export const ensureUnitCodeAvailable = async ({
       take: 1,
       withDeleted: true,
     }
-  )) as MeasurementUnitRecord[]
+  )
 
   if (existing && existing.id !== excludeId) {
     throw new MedusaError(
@@ -216,7 +202,7 @@ export const getCurrentProductMeasurement = async (
   productId: string,
   options: { withDeleted?: boolean } = {}
 ) => {
-  const [measurement] = (await getMeasurementUnitService(
+  const [measurement] = await getMeasurementUnitService(
     container
   ).listProductMeasurements(
     {
@@ -227,7 +213,7 @@ export const getCurrentProductMeasurement = async (
       take: 1,
       withDeleted: options.withDeleted,
     }
-  )) as ProductMeasurementRecord[]
+  )
 
   return measurement
 }
@@ -237,7 +223,7 @@ export const listProductMeasurementsForProduct = async (
   productId: string,
   options: { withDeleted?: boolean } = {}
 ) =>
-  (await getMeasurementUnitService(container).listProductMeasurements(
+  await getMeasurementUnitService(container).listProductMeasurements(
     {
       product_id: productId,
     },
@@ -245,7 +231,7 @@ export const listProductMeasurementsForProduct = async (
       relations: ["measurement_unit", "variant_measurements"],
       withDeleted: options.withDeleted,
     }
-  )) as ProductMeasurementRecord[]
+  )
 
 export const getCanonicalProductMeasurement = async ({
   container,
@@ -285,7 +271,7 @@ export const getCanonicalProductVariantMeasurement = async ({
   productVariantId: string
   withDeleted?: boolean
 }) => {
-  const measurements = (await getMeasurementUnitService(
+  const measurements = await getMeasurementUnitService(
     container
   ).listProductVariantMeasurements(
     {
@@ -295,7 +281,7 @@ export const getCanonicalProductVariantMeasurement = async ({
     {
       withDeleted,
     }
-  )) as ProductVariantMeasurementRecord[]
+  )
 
   return pickCanonicalRecord(measurements)
 }

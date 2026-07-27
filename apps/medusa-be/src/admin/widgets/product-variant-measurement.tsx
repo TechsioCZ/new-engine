@@ -139,7 +139,7 @@ const ProductVariantMeasurementDrawer = ({
       }),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveFailed")
+        error instanceof Error ? error.message : t("errors.clearFailed")
       )
     },
     onSuccess: async () => {

@@ -3,10 +3,7 @@ import ProductModule from "@medusajs/medusa/product"
 import MeasurementUnitModule from "../modules/measurement-unit"
 
 export const ProductMeasurementLink = defineLink(
-  {
-    linkable: ProductModule.linkable.product,
-    isList: true,
-  },
+  ProductModule.linkable.product,
   {
     linkable: MeasurementUnitModule.linkable.productMeasurement,
     deleteCascade: true,

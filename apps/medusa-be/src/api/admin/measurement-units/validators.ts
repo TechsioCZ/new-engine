@@ -48,7 +48,7 @@ export const AdminGetMeasurementUnitProductsSchema = z
 
 export const AdminCreateMeasurementUnitSchema = z
   .object({
-    base_quantity: z.number().positive(),
+    base_quantity: z.number().finite().positive(),
     code: z.string().trim().min(1),
     description: optionalText.nullable(),
     name: z.string().trim().min(1),
@@ -58,7 +58,7 @@ export const AdminCreateMeasurementUnitSchema = z
 
 export const AdminUpdateMeasurementUnitSchema = z
   .object({
-    base_quantity: z.number().positive().optional(),
+    base_quantity: z.number().finite().positive().optional(),
     code: optionalText,
     description: optionalText.nullable(),
     name: optionalText,
@@ -78,7 +78,7 @@ export const AdminSetProductMeasurementSchema = z
 
 export const AdminSetProductVariantMeasurementSchema = z
   .object({
-    product_unit_quantity: z.number().positive(),
+    product_unit_quantity: z.number().finite().positive(),
   })
   .strict()
 

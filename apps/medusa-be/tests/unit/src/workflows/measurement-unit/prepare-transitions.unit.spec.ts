@@ -224,4 +224,47 @@ describe("measurement transition preparation", () => {
     })
     expect(helpers.ensureProductVariantBelongsToProduct).not.toHaveBeenCalled()
   })
+
+  it("returns a validation error when the product has no measurement unit", async () => {
+    helpers.getCanonicalProductMeasurement.mockResolvedValue(undefined)
+    const { prepareSetProductVariantMeasurementStep } = await import(
+      "../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions"
+    )
+
+    await expect(
+      (prepareSetProductVariantMeasurementStep as MockStep)(
+        {
+          product_id: "prod_1",
+          product_unit_quantity: 2,
+          product_variant_id: "variant_1",
+        },
+        { container }
+      )
+    ).rejects.toMatchObject({
+      type: MedusaError.Types.INVALID_DATA,
+    })
+  })
+
+  it("rejects malformed custom-link query results", async () => {
+    container.resolve.mockReturnValue({
+      graph: vi.fn().mockResolvedValue({
+        data: [{ product_id: "prod_1" }],
+      }),
+    })
+    const { prepareProductMeasurementLinkPlanStep } = await import(
+      "../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions"
+    )
+
+    await expect(
+      (prepareProductMeasurementLinkPlanStep as MockStep)(
+        {
+          product_id: "prod_1",
+          product_measurement_id: "pm_1",
+        },
+        { container }
+      )
+    ).rejects.toMatchObject({
+      type: MedusaError.Types.UNEXPECTED_STATE,
+    })
+  })
 })

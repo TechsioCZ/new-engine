@@ -23,6 +23,8 @@ export const STORE_CATALOG_PRODUCTS_PRICING_FIELDS = [
   "variants.calculated_price.calculated_amount",
   "variants.calculated_price.original_amount",
   "variants.calculated_price.currency_code",
+  "variants.calculated_price.is_calculated_price_tax_inclusive",
+  "variants.calculated_price.is_original_price_tax_inclusive",
 ]
 
 const additionalAllowedFields = [

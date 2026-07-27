@@ -25,9 +25,11 @@ import { Link } from "react-router-dom"
 import {
   createMeasurementUnit,
   deleteMeasurementUnit,
+  isMeasurementUnitStatus,
   listMeasurementUnits,
   type MeasurementUnit,
   type MeasurementUnitInput,
+  type MeasurementUnitStatus,
   measurementUnitQueryKeys,
   restoreMeasurementUnit,
   updateMeasurementUnit,
@@ -37,7 +39,11 @@ import { useDebouncedValue } from "../../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
 
-const toFormState = (unit?: MeasurementUnit): MeasurementUnitInput => ({
+type MeasurementUnitFormState = Omit<MeasurementUnitInput, "base_quantity"> & {
+  base_quantity: number | string
+}
+
+const toFormState = (unit?: MeasurementUnit): MeasurementUnitFormState => ({
   base_quantity: unit?.base_quantity ?? 1,
   code: unit?.code ?? "",
   description: unit?.description ?? "",
@@ -45,7 +51,9 @@ const toFormState = (unit?: MeasurementUnit): MeasurementUnitInput => ({
   symbol: unit?.symbol ?? "",
 })
 
-const normalizeInput = (input: MeasurementUnitInput): MeasurementUnitInput => ({
+const normalizeInput = (
+  input: MeasurementUnitFormState
+): MeasurementUnitInput => ({
   base_quantity: Number(input.base_quantity),
   code: input.code.trim(),
   description: input.description?.trim() || null,
@@ -53,7 +61,7 @@ const normalizeInput = (input: MeasurementUnitInput): MeasurementUnitInput => ({
   symbol: input.symbol.trim(),
 })
 
-const getFormIsValid = (form: MeasurementUnitInput) => {
+const getFormIsValid = (form: MeasurementUnitFormState) => {
   const baseQuantity = Number(form.base_quantity)
 
   return (
@@ -69,8 +77,8 @@ const MeasurementUnitFormFields = ({
   form,
   setForm,
 }: {
-  form: MeasurementUnitInput
-  setForm: Dispatch<SetStateAction<MeasurementUnitInput>>
+  form: MeasurementUnitFormState
+  setForm: Dispatch<SetStateAction<MeasurementUnitFormState>>
 }) => {
   const { t } = useTranslation("measurementUnits")
 
@@ -132,7 +140,7 @@ const MeasurementUnitFormFields = ({
           onChange={(event) =>
             setForm((current) => ({
               ...current,
-              base_quantity: Number(event.target.value),
+              base_quantity: event.target.value,
             }))
           }
           placeholder={t("placeholders.baseQuantity")}
@@ -171,7 +179,9 @@ const MeasurementUnitCreateModal = ({
 }) => {
   const { t } = useTranslation("measurementUnits")
   const queryClient = useQueryClient()
-  const [form, setForm] = useState<MeasurementUnitInput>(() => toFormState())
+  const [form, setForm] = useState<MeasurementUnitFormState>(() =>
+    toFormState()
+  )
   const formIsValid = getFormIsValid(form)
 
   const mutation = useMutation({
@@ -250,7 +260,7 @@ const MeasurementUnitFormDrawer = ({
 }) => {
   const { t } = useTranslation("measurementUnits")
   const queryClient = useQueryClient()
-  const [form, setForm] = useState<MeasurementUnitInput>(() =>
+  const [form, setForm] = useState<MeasurementUnitFormState>(() =>
     toFormState(unit)
   )
   const formIsValid = getFormIsValid(form)
@@ -324,7 +334,7 @@ const MeasurementUnitsSettingsPage = () => {
   const [editingUnit, setEditingUnit] = useState<MeasurementUnit | undefined>()
   const [pageIndex, setPageIndex] = useState(0)
   const [q, setQ] = useState("")
-  const [status, setStatus] = useState("active")
+  const [status, setStatus] = useState<MeasurementUnitStatus>("active")
   const debouncedQ = useDebouncedValue(q)
 
   const params = useMemo(
@@ -333,7 +343,7 @@ const MeasurementUnitsSettingsPage = () => {
       offset: pageIndex * PAGE_SIZE,
       order_by: "name",
       q: debouncedQ,
-      status: status as "active" | "all" | "deleted",
+      status,
     }),
     [debouncedQ, pageIndex, status]
   )
@@ -517,7 +527,7 @@ const MeasurementUnitsSettingsPage = () => {
           <div>
             <Heading>{t("title")}</Heading>
             <Text className="text-ui-fg-subtle" size="small">
-              {count} {t("pagination.results")}
+              {t("pagination.results", { count })}
             </Text>
           </div>
           <Button onClick={() => setCreateOpen(true)} type="button">
@@ -535,8 +545,10 @@ const MeasurementUnitsSettingsPage = () => {
           />
           <Select
             onValueChange={(value) => {
-              setPageIndex(0)
-              setStatus(value)
+              if (isMeasurementUnitStatus(value)) {
+                setPageIndex(0)
+                setStatus(value)
+              }
             }}
             value={status}
           >

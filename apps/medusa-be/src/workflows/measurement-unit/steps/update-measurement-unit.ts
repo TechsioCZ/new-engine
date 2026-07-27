@@ -1,9 +1,6 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import {
-  getMeasurementUnitService,
-  type MeasurementUnitRecord,
-} from "../../../utils/measurement-units"
+import { getMeasurementUnitService } from "../../../utils/measurement-units"
 import type { UpdateMeasurementUnitWorkflowInput } from "../types"
 import { ensureUnitCodeAvailable, normalizeUnitCode } from "./helpers"
 
@@ -11,7 +8,7 @@ export const updateMeasurementUnitStep = createStep(
   "update-measurement-unit",
   async (input: UpdateMeasurementUnitWorkflowInput, { container }) => {
     const service = getMeasurementUnitService(container)
-    const [previous] = (await service.listMeasurementUnits(
+    const [previous] = await service.listMeasurementUnits(
       {
         id: input.id,
       },
@@ -19,7 +16,7 @@ export const updateMeasurementUnitStep = createStep(
         take: 1,
         withDeleted: true,
       }
-    )) as MeasurementUnitRecord[]
+    )
     const update = { ...input.update }
 
     if (!previous) {

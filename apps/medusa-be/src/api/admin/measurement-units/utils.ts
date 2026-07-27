@@ -12,7 +12,6 @@ import {
   getMeasurementUnitService,
   type MeasurementUnitRecord,
   type ProductMeasurementRecord,
-  type ProductVariantMeasurementRecord,
   toMeasurementUnitResponse,
   toProductMeasurementResponse,
   toProductVariantMeasurementResponse,
@@ -76,7 +75,7 @@ export const retrieveMeasurementUnitOrThrow = async (
     )
   }
 
-  return unit as MeasurementUnitRecord
+  return unit
 }
 
 export const retrieveProductMeasurement = async (
@@ -97,7 +96,7 @@ export const retrieveProductMeasurement = async (
     }
   )
 
-  return (measurement as ProductMeasurementRecord | undefined) ?? null
+  return measurement ?? null
 }
 
 export const retrieveProductOrThrow = async (
@@ -136,7 +135,7 @@ export const retrieveProductVariants = async (
     },
   })
 
-  return (data as ProductMeasurementVariantResponse[]).map((variant) => ({
+  return data.map((variant) => ({
     id: variant.id,
     sku: variant.sku ?? null,
     title: variant.title ?? null,
@@ -360,9 +359,7 @@ export const listMeasurementUnitAssignedProducts = async ({
       withDeleted: true,
     }
   )
-  const measurementByProductId = getCanonicalAssignmentByProductId(
-    measurements as ProductMeasurementRecord[]
-  )
+  const measurementByProductId = getCanonicalAssignmentByProductId(measurements)
   const assignedProducts = products.flatMap((product) => {
     const measurement = measurementByProductId.get(product.id)
 
@@ -409,7 +406,7 @@ export const toProductVariantMeasurementDetailResponse = ({
 }) => {
   const variantMeasurement = measurement?.variant_measurements?.find(
     (current) => current.product_variant_id === productVariantId
-  ) as ProductVariantMeasurementRecord | undefined
+  )
 
   return {
     measurement: measurement ? toProductMeasurementResponse(measurement) : null,

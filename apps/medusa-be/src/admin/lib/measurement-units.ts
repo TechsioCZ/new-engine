@@ -21,6 +21,13 @@ export type MeasurementUnitInput = {
   symbol: string
 }
 
+export type MeasurementUnitStatus = "active" | "all" | "deleted"
+
+export const isMeasurementUnitStatus = (
+  value: string
+): value is MeasurementUnitStatus =>
+  value === "active" || value === "all" || value === "deleted"
+
 export type ProductMeasurement = {
   created_at?: string
   id: string
@@ -123,7 +130,7 @@ export const listMeasurementUnits = (params: {
   offset: number
   order_by?: string
   q?: string
-  status?: "active" | "all" | "deleted"
+  status?: MeasurementUnitStatus
 }) =>
   sdk.client.fetch<MeasurementUnitsResponse>(
     `/admin/measurement-units?${toSearch(params)}`
@@ -139,7 +146,7 @@ export const listMeasurementUnitAssignedProducts = (
     offset: number
     order_by?: string
     q?: string
-    status?: "active" | "all" | "deleted"
+    status?: MeasurementUnitStatus
   }
 ) =>
   sdk.client.fetch<MeasurementUnitAssignedProductsResponse>(
