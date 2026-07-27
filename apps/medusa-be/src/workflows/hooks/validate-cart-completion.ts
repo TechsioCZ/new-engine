@@ -1,5 +1,8 @@
 import type { Query } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { StepResponse } from "@medusajs/framework/workflows-sdk"
 import { completeCartWorkflow } from "@medusajs/medusa/core-flows"
 import { checkSpendingLimit } from "../../utils/check-spending-limit"
@@ -19,14 +22,20 @@ completeCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
   })
 
   if (!queryCart) {
-    throw new Error(`Cart "${cart.id}" was not found`)
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Cart "${cart.id}" was not found`
+    )
   }
 
   // Check if cart is pending approval
   const { isPendingApproval } = getCartApprovalStatus(queryCart)
 
   if (isPendingApproval) {
-    throw new Error("Cart is pending approval")
+    throw new MedusaError(
+      MedusaError.Types.NOT_ALLOWED,
+      "Cart is pending approval"
+    )
   }
 
   // Check if spending limit will be exceeded
@@ -42,14 +51,20 @@ completeCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
     })
 
     if (!customer) {
-      throw new Error(`Customer "${queryCart.customer_id}" was not found`)
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Customer "${queryCart.customer_id}" was not found`
+      )
     }
 
     if (customer.employee?.spending_limit) {
       const spendLimitExceeded = checkSpendingLimit(queryCart, customer)
 
       if (spendLimitExceeded) {
-        throw new Error("Cart total exceeds spending limit")
+        throw new MedusaError(
+          MedusaError.Types.NOT_ALLOWED,
+          "Cart total exceeds spending limit"
+        )
       }
     }
   }

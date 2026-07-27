@@ -1,10 +1,10 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import type { IOrderModuleService, Query } from "@medusajs/framework/types"
+import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
-  Modules,
 } from "@medusajs/framework/utils"
+import { updateOrderBusinessStatusWorkflow } from "../../../../../workflows/order-business-status/update-order-business-status"
 import {
   buildOrderBusinessStatusMetadata,
   fetchOrderBusinessStatusOrder,
@@ -31,9 +31,9 @@ export async function POST(
   }
 
   const metadata = buildOrderBusinessStatusMetadata(order.metadata, status)
-  const orderService = req.scope.resolve<IOrderModuleService>(Modules.ORDER)
-
-  await orderService.updateOrders(id, { metadata })
+  await updateOrderBusinessStatusWorkflow(req.scope).run({
+    input: { id, metadata },
+  })
 
   const updatedOrder = await fetchOrderBusinessStatusOrder(query, id)
 

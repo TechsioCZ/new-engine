@@ -1,4 +1,5 @@
 import crypto from "node:crypto"
+import { MedusaError } from "@medusajs/framework/utils"
 
 const ALGORITHM = "aes-256-gcm"
 const IV_LENGTH = 12
@@ -12,12 +13,14 @@ const HEX_KEY_REGEX = /^[0-9a-fA-F]{64}$/
 function getEncryptionKey(): Buffer {
   const keyHex = process.env.SETTINGS_ENCRYPTION_KEY
   if (!keyHex) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       "SETTINGS_ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32"
     )
   }
   if (!HEX_KEY_REGEX.test(keyHex)) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `SETTINGS_ENCRYPTION_KEY must be a 64-character hex string (got length: ${keyHex.length}). Generate with: openssl rand -hex 32`
     )
   }

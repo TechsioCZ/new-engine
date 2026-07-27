@@ -6,7 +6,7 @@ import { updateReviewStep } from "../steps/update-review"
 import type { UpdateReviewWorkflowInput } from "../types"
 
 export const updateReviewWorkflow = createWorkflow(
-  "update-product-review-workflow",
+  "update-review",
   (input: UpdateReviewWorkflowInput) => {
     const review = updateReviewStep(input)
 

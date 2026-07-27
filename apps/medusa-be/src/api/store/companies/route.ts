@@ -2,7 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
-import { ContainerRegistrationKeys } from "@medusajs/utils"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createCompaniesWorkflow } from "../../../workflows/company/workflows/create-companies"
 import type { StoreCreateCompanyType } from "./validators"
 
@@ -14,11 +14,22 @@ export const POST = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
-  const { result: createdCompanies } = await createCompaniesWorkflow.run({
+  const { result: createdCompanies } = await createCompaniesWorkflow(
+    req.scope
+  ).run({
     input: Array.isArray(req.validatedBody)
-      ? req.validatedBody.map((company) => ({ ...company }))
-      : [{ ...req.validatedBody }],
-    container: req.scope,
+      ? req.validatedBody.map((company) => ({
+          ...company,
+          spending_limit_reset_frequency:
+            company.spending_limit_reset_frequency ?? undefined,
+        }))
+      : [
+          {
+            ...req.validatedBody,
+            spending_limit_reset_frequency:
+              req.validatedBody.spending_limit_reset_frequency ?? undefined,
+          },
+        ],
   })
 
   const { data: companies } = await query.graph(

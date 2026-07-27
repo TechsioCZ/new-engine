@@ -6,6 +6,7 @@ import {
   validateAndTransformBody,
   validateAndTransformQuery,
 } from "@medusajs/framework"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type { MiddlewareRoute } from "@medusajs/medusa"
 import {
   listQuotesTransformQueryConfig,
@@ -32,7 +33,7 @@ export const ensureQuoteCustomer = async (
     return
   }
 
-  const query = req.scope.resolve("query")
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const {
     data: [quote],

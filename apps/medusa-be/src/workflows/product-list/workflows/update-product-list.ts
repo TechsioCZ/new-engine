@@ -9,7 +9,7 @@ import { updateProductListStep } from "../steps/update-product-list"
 import type { UpdateProductListWorkflowInput } from "../types"
 
 export const updateProductListWorkflow = createWorkflow(
-  "update-product-list-workflow",
+  "update-product-list",
   (input: UpdateProductListWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) => [
       `product-list:${workflowInput.list_id}`,

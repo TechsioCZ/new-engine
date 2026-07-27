@@ -9,7 +9,7 @@ import { getProductListCartItemsStep } from "../steps/get-product-list-cart-item
 import type { CreateCartFromProductListWorkflowInput } from "../types"
 
 export const createCartFromProductListWorkflow = createWorkflow(
-  "create-cart-from-product-list-workflow",
+  "create-cart-from-product-list",
   (input: CreateCartFromProductListWorkflowInput) => {
     const ownershipInput = transform({ input }, ({ input: workflowInput }) => ({
       customer_id: workflowInput.customer_id,

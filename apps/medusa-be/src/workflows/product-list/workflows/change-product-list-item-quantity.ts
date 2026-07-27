@@ -10,7 +10,7 @@ import { retrieveProductListItemStep } from "../steps/retrieve-product-list-item
 import type { ChangeProductListItemQuantityWorkflowInput } from "../types"
 
 export const changeProductListItemQuantityWorkflow = createWorkflow(
-  "change-product-list-item-quantity-workflow",
+  "change-product-list-item-quantity",
   (input: ChangeProductListItemQuantityWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) => [
       `product-list-item:${workflowInput.item_id}`,

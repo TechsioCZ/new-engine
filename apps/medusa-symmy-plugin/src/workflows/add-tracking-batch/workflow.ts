@@ -2,13 +2,15 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { processTrackingBatchStep } from "./steps/process-batch"
+import { symmyProcessTrackingBatchStep } from "./steps/process-batch"
 import type { AddTrackingBatchInput, AddTrackingBatchOutput } from "./types"
 
-export const addTrackingBatchWorkflow = createWorkflow(
+const symmyAddTrackingBatchWorkflow = createWorkflow(
   "symmy-add-tracking-batch",
   (input: AddTrackingBatchInput) => {
-    const result = processTrackingBatchStep(input)
+    const result = symmyProcessTrackingBatchStep(input)
     return new WorkflowResponse<AddTrackingBatchOutput>(result)
   }
 )
+
+export { symmyAddTrackingBatchWorkflow as addTrackingBatchWorkflow }

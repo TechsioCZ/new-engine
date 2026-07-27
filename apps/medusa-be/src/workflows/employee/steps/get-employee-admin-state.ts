@@ -1,5 +1,8 @@
 import type { Query } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 type EmployeeAdminState = {
@@ -31,7 +34,10 @@ export const getEmployeeAdminStateStep = createStep(
     )
 
     if (!employee) {
-      throw new Error(`Employee "${input.id}" was not found`)
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Employee "${input.id}" was not found`
+      )
     }
 
     return new StepResponse(employee)

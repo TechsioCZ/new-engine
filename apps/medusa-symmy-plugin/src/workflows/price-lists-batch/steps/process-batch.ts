@@ -120,7 +120,7 @@ const processPriceListForBatch = async ({
   }
 }
 
-export const updatePriceListPricesBatchStep = createStep(
+export const symmyUpdatePriceListPricesBatchStep = createStep(
   "symmy-update-price-list-prices-batch",
   async (input: UpdatePriceListPricesBatchInput, { container }) => {
     const client = new PriceListsClient(container)
@@ -149,7 +149,7 @@ export const updatePriceListPricesBatchStep = createStep(
   }
 )
 
-export const upsertPriceListsBatchStep = createStep(
+export const symmyUpsertPriceListsBatchStep = createStep(
   "symmy-upsert-price-lists-batch",
   async (input: UpsertPriceListsBatchInput, { container }) => {
     const client = new PriceListsClient(container)
@@ -185,7 +185,7 @@ export const upsertPriceListsBatchStep = createStep(
   }
 )
 
-export const listPriceListsStep = createStep(
+export const symmyListPriceListsStep = createStep(
   "symmy-list-price-lists",
   async (input: ListPriceListsInput, { container }) => {
     const client = new PriceListsClient(container)

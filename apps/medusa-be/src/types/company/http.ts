@@ -1,4 +1,4 @@
-import type { FindParams, PaginatedResponse } from "@medusajs/types"
+import type { FindParams, PaginatedResponse } from "@medusajs/framework/types"
 import type { ModuleCompanySpendingLimitResetFrequency } from "./module"
 import type { QueryCompany, QueryEmployee } from "./query"
 import type { ModuleCompanyFilters, ModuleEmployeeFilters } from "./service"

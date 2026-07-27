@@ -141,11 +141,11 @@ function convertToMedusaProducts(
           sku: `SKU-${safeHandle}`, // Use sanitized handle for SKU as well
           prices: [
             {
-              amount: product.product_price * 100, // Medusa expects prices in cents
+              amount: product.product_price,
               currency_code: "eur",
             },
             {
-              amount: product.product_price * 100 * 1.1, // Simple USD conversion
+              amount: product.product_price * 1.1, // Simple USD conversion
               currency_code: "usd",
             },
           ],

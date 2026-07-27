@@ -25,7 +25,7 @@ import {
 import type { SetProductVariantMeasurementWorkflowInput } from "../types"
 
 export const setProductVariantMeasurementWorkflow = createWorkflow(
-  "set-product-variant-measurement-workflow",
+  "set-product-variant-measurement",
   (input: SetProductVariantMeasurementWorkflowInput) => {
     const lockInput = transform({ input }, ({ input: current }) => ({
       key: `measurement-product:${current.product_id}`,

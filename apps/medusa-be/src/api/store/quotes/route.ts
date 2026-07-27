@@ -3,7 +3,10 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import type { RemoteQueryFunction } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { createRequestForQuoteWorkflow } from "../../../workflows/quote/workflows/create-request-for-quote"
 import type { CreateQuoteType, GetQuoteParamsType } from "./validators"
 
@@ -55,7 +58,10 @@ export const POST = async (
   })
 
   if (!createdQuote) {
-    throw new Error("Failed to create quote")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Failed to create quote"
+    )
   }
 
   const {

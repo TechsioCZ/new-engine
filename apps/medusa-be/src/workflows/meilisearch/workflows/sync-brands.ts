@@ -11,7 +11,7 @@ export type SyncMeilisearchBrandsWorkflowInput = {
 }
 
 export const syncMeilisearchBrandsWorkflow = createWorkflow(
-  "sync-meilisearch-brands-workflow",
+  "sync-meilisearch-brands",
   (input: SyncMeilisearchBrandsWorkflowInput) => {
     acquireLockStep({
       key: BRAND_SEARCH_PROJECTION_LOCK_KEY,

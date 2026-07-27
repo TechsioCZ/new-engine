@@ -181,7 +181,7 @@ const processBatchRequests = async ({
   }
 }
 
-export const processProductsBatchStep = createStep(
+export const symmyProcessProductsBatchStep = createStep(
   "symmy-process-products-batch",
   async (input: UpsertProductsBatchInput, { container }) => {
     const client = new ProductBatchClient(container)

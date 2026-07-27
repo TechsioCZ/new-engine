@@ -1,5 +1,8 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import {
   createCustomerGroupsWorkflow,
   updateCustomerGroupsWorkflow,
@@ -106,7 +109,10 @@ export class CustomerGroupsBatchClient {
     })
     const created = result?.[0] as unknown as ExistingCustomerGroup | undefined
     if (!created) {
-      throw new Error("createCustomerGroupsWorkflow returned empty result")
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "createCustomerGroupsWorkflow returned empty result"
+      )
     }
     await this.customerGroupCodeService.upsertCode({
       code: group.code,

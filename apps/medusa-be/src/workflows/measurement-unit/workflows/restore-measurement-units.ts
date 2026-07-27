@@ -8,7 +8,7 @@ import { restoreMeasurementUnitsStep } from "../steps/restore-measurement-units"
 import type { RestoreMeasurementUnitsWorkflowInput } from "../types"
 
 export const restoreMeasurementUnitsWorkflow = createWorkflow(
-  "restore-measurement-units-workflow",
+  "restore-measurement-units",
   (input: RestoreMeasurementUnitsWorkflowInput) => {
     const lockInput = transform(input, (current) => ({
       key: [...new Set(current.ids)]

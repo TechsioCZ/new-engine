@@ -118,7 +118,7 @@ const sendOrderReceiptStep = createStep(
     { container }
   ): Promise<StepResponse<OrderReceiptWorkflowResult>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-    const logger = container.resolve<Logger>("logger")
+    const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const notificationModuleService: INotificationModuleService =
       container.resolve(Modules.NOTIFICATION)
     const orderReceiptModuleService =

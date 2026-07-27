@@ -2,25 +2,25 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
-import { ApprovalStatusType } from "../../../../../types/approval"
+import { requirePathParam } from "../../../../../utils/path-params"
 import { createApprovalsWorkflow } from "../../../../../workflows/approval/workflows"
 
 export const POST = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) => {
-  const { id: cartId } = req.params
+  const cartId = requirePathParam(req.params.id, "Cart id")
   const { customer_id } = req.auth_context.app_metadata as {
     customer_id: string
   }
 
-  const { result: approvals, errors } = await createApprovalsWorkflow.run({
+  const { result: approvals, errors } = await createApprovalsWorkflow(
+    req.scope
+  ).run({
     input: {
       created_by: customer_id,
       cart_id: cartId,
-      status: ApprovalStatusType.PENDING,
     },
-    container: req.scope,
     throwOnError: false,
   })
 

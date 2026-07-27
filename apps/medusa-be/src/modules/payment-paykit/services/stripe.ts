@@ -89,7 +89,8 @@ const requireStripeCheckoutSessionRetriever = (
   const checkoutSessions = getStripeCheckoutSessionRetriever(provider)
 
   if (!checkoutSessions) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       "PayKit Stripe Checkout Session compatibility mapping could not access provider._native.checkout.sessions. This mapping is required until PayKit preserves Checkout Session metadata when retrieving cs_ payment ids."
     )
   }

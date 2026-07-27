@@ -1194,7 +1194,9 @@ const OrderDashboardPage = () => {
         </div>
       ) : (
         <DataTable instance={table}>
-          <DataTable.FilterBar alwaysShow columnsTooltip={t("columns.order")} />
+          <DataTable.FilterBar alwaysShow>
+            <DataTable.ColumnVisibilityMenu tooltip={t("columns.order")} />
+          </DataTable.FilterBar>
           <DataTable.Table
             emptyState={{
               empty: {

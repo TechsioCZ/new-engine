@@ -105,7 +105,10 @@ export const createBrandsStep = createStep(
           const createdBrand = createdBrandsByHandle.get(brand.handle)
 
           if (!createdBrand) {
-            throw new Error(`Created brand "${brand.handle}" was not found`)
+            throw new MedusaError(
+              MedusaError.Types.UNEXPECTED_STATE,
+              `Created brand "${brand.handle}" was not found`
+            )
           }
 
           await setBrandAttributes(

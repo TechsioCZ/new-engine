@@ -2,6 +2,7 @@ import type { MedusaRequest } from "@medusajs/framework/http"
 import type { Logger, PaymentModuleOptions } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
+  MedusaError,
   Modules,
   PaymentWebhookEvents,
 } from "@medusajs/framework/utils"
@@ -20,7 +21,10 @@ const getPaymentModuleOptions = (
   paymentModule: unknown
 ): PaymentModuleOptions => {
   if (!isRecord(paymentModule)) {
-    throw new Error("Payment module could not be resolved for PayKit webhook")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Payment module could not be resolved for PayKit webhook"
+    )
   }
 
   return isRecord(paymentModule.options)

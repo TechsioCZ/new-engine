@@ -2,24 +2,22 @@ import { ContainerRegistrationKeys } from "@medusajs/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const workflowMocks = vi.hoisted(() => ({
+  ensureApprovalSettingsWorkflow: vi.fn(),
   ensureApprovalSettingsRun: vi.fn(),
+  updateApprovalSettingsWorkflow: vi.fn(),
   updateApprovalSettingsRun: vi.fn(),
 }))
 
 vi.mock("../../../../../../src/workflows/approval/workflows", () => ({
-  ensureApprovalSettingsWorkflow: {
-    run: workflowMocks.ensureApprovalSettingsRun,
-  },
-  updateApprovalSettingsWorkflow: {
-    run: workflowMocks.updateApprovalSettingsRun,
-  },
+  ensureApprovalSettingsWorkflow: workflowMocks.ensureApprovalSettingsWorkflow,
+  updateApprovalSettingsWorkflow: workflowMocks.updateApprovalSettingsWorkflow,
 }))
 
 const createMockRequest = ({
   filterableFields = {},
   graph,
   params = { id: "comp_1" },
-  remoteQueryConfig = { pagination: { skip: 0, take: 20 } },
+  queryConfig = { pagination: { skip: 0, take: 20 } },
   validatedBody = {
     id: "apprset_from_body",
     requires_admin_approval: true,
@@ -29,13 +27,13 @@ const createMockRequest = ({
   filterableFields?: Record<string, unknown>
   graph: ReturnType<typeof vi.fn>
   params?: Record<string, string>
-  remoteQueryConfig?: { pagination: Record<string, unknown> }
+  queryConfig?: { pagination: Record<string, unknown> }
   validatedBody?: Record<string, unknown>
 }) =>
   ({
     filterableFields,
     params,
-    remoteQueryConfig,
+    queryConfig,
     scope: {
       resolve: vi.fn((key: string) => {
         if (key === ContainerRegistrationKeys.QUERY) {
@@ -55,8 +53,16 @@ const createMockResponse = () =>
 
 describe("GET /admin/companies/:id/approval-settings", () => {
   beforeEach(() => {
+    workflowMocks.ensureApprovalSettingsWorkflow.mockReset()
     workflowMocks.ensureApprovalSettingsRun.mockReset()
+    workflowMocks.ensureApprovalSettingsWorkflow.mockReturnValue({
+      run: workflowMocks.ensureApprovalSettingsRun,
+    })
+    workflowMocks.updateApprovalSettingsWorkflow.mockReset()
     workflowMocks.updateApprovalSettingsRun.mockReset()
+    workflowMocks.updateApprovalSettingsWorkflow.mockReturnValue({
+      run: workflowMocks.updateApprovalSettingsRun,
+    })
   })
 
   it("lists approval settings scoped to the route company id", async () => {
@@ -117,8 +123,16 @@ describe("GET /admin/companies/:id/approval-settings", () => {
 
 describe("POST /admin/companies/:id/approval-settings", () => {
   beforeEach(() => {
+    workflowMocks.ensureApprovalSettingsWorkflow.mockReset()
     workflowMocks.ensureApprovalSettingsRun.mockReset()
+    workflowMocks.ensureApprovalSettingsWorkflow.mockReturnValue({
+      run: workflowMocks.ensureApprovalSettingsRun,
+    })
+    workflowMocks.updateApprovalSettingsWorkflow.mockReset()
     workflowMocks.updateApprovalSettingsRun.mockReset()
+    workflowMocks.updateApprovalSettingsWorkflow.mockReturnValue({
+      run: workflowMocks.updateApprovalSettingsRun,
+    })
   })
 
   it("updates approval settings resolved by route company id", async () => {
@@ -153,9 +167,11 @@ describe("POST /admin/companies/:id/approval-settings", () => {
       fields: ["id"],
       filters: { company_id: "comp_1" },
     })
+    expect(workflowMocks.updateApprovalSettingsWorkflow).toHaveBeenCalledWith(
+      req.scope
+    )
     expect(workflowMocks.ensureApprovalSettingsRun).not.toHaveBeenCalled()
     expect(workflowMocks.updateApprovalSettingsRun).toHaveBeenCalledWith({
-      container: req.scope,
       input: {
         company_id: "comp_1",
         id: "apprset_from_company",
@@ -209,11 +225,15 @@ describe("POST /admin/companies/:id/approval-settings", () => {
     await POST(req, res)
 
     expect(workflowMocks.ensureApprovalSettingsRun).toHaveBeenCalledWith({
-      container: req.scope,
       input: ["comp_1"],
     })
+    expect(workflowMocks.ensureApprovalSettingsWorkflow).toHaveBeenCalledWith(
+      req.scope
+    )
+    expect(workflowMocks.updateApprovalSettingsWorkflow).toHaveBeenCalledWith(
+      req.scope
+    )
     expect(workflowMocks.updateApprovalSettingsRun).toHaveBeenCalledWith({
-      container: req.scope,
       input: {
         company_id: "comp_1",
         id: "apprset_created",

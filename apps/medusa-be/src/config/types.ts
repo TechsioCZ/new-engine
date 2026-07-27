@@ -1,7 +1,7 @@
 import type {
   InputConfigModules,
   InputConfigWithArrayModules,
-} from "@medusajs/types"
+} from "@medusajs/framework/types"
 
 export type MedusaAdminConfig = NonNullable<
   InputConfigWithArrayModules["admin"]

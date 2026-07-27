@@ -31,7 +31,7 @@ type RegionPaymentProviderLinkRecord = Partial<
 >
 
 const seedQrPaymentRegionsWorkflow = createWorkflow(
-  "seed-qr-payment-regions-workflow",
+  "seed-qr-payment-regions",
   (input: SetRegionsPaymentProvidersStepInput) => {
     const result = setRegionsPaymentProvidersStep(input)
 

@@ -17,7 +17,7 @@ import { getBrandLifecycleLockKeys, restoreBrandsStep } from "../steps"
 import type { RestoreBrandsWorkflowInput } from "../types"
 
 export const restoreBrandsWorkflow = createWorkflow(
-  "restore-brands-workflow",
+  "restore-brands",
   (input: RestoreBrandsWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) =>
       getBrandLifecycleLockKeys(workflowInput.ids)
