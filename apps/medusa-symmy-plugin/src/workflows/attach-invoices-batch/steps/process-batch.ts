@@ -67,7 +67,7 @@ const processInvoiceForBatch = async ({
   }
 }
 
-export const processInvoicesBatchStep = createStep(
+export const symmyProcessInvoicesBatchStep = createStep(
   "symmy-process-invoices-batch",
   async (input: AttachInvoicesBatchInput, { container }) => {
     const client = new InvoicesBatchClient(container)

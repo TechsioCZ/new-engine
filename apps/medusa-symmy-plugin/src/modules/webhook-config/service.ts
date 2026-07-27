@@ -1,5 +1,5 @@
 import type { Logger } from "@medusajs/framework/types"
-import { MedusaService } from "@medusajs/framework/utils"
+import { MedusaError, MedusaService } from "@medusajs/framework/utils"
 import packageJson from "../../../package.json"
 import SymmyWebhookConfig, {
   type SymmyWebhookEndpoint,
@@ -99,7 +99,10 @@ export class SymmyWebhookConfigModuleService extends MedusaService({
 
   private toDTO(raw: unknown): SymmyWebhookConfigDTO {
     if (!isRawSymmyWebhookConfigDTO(raw)) {
-      throw new Error("[symmy-plugin] Invalid webhook config data")
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "[symmy-plugin] Invalid webhook config data"
+      )
     }
 
     return {

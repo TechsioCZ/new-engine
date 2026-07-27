@@ -2,13 +2,15 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { processStockBatchStep } from "./steps/process-batch"
+import { symmyProcessStockBatchStep } from "./steps/process-batch"
 import type { UpdateStockBatchInput, UpdateStockBatchOutput } from "./types"
 
-export const updateStockBatchWorkflow = createWorkflow(
+const symmyUpdateStockBatchWorkflow = createWorkflow(
   "symmy-update-stock-batch",
   (input: UpdateStockBatchInput) => {
-    const result = processStockBatchStep(input)
+    const result = symmyProcessStockBatchStep(input)
     return new WorkflowResponse<UpdateStockBatchOutput>(result)
   }
 )
+
+export { symmyUpdateStockBatchWorkflow as updateStockBatchWorkflow }

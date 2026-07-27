@@ -1,3 +1,4 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import type {
   ExistingOrder,
   OrderLineItem,
@@ -90,12 +91,14 @@ export class TrackingBatchClientMapperHelper {
     return requestedItems.map((requested) => {
       const matches = itemsBySku.get(requested.sku) ?? []
       if (matches.length === 0) {
-        throw new Error(
+        throw new MedusaError(
+          MedusaError.Types.NOT_FOUND,
           `SKU '${requested.sku}' was not found in order '${order.id}'`
         )
       }
       if (matches.length > 1) {
-        throw new Error(
+        throw new MedusaError(
+          MedusaError.Types.CONFLICT,
           `SKU '${requested.sku}' matches multiple order items in order '${order.id}'`
         )
       }

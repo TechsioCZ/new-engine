@@ -4,6 +4,7 @@ import {
   type SymmyWebhookConfigDTO,
   type SymmyWebhookConfigModuleService,
 } from "../../../modules/webhook-config"
+import { symmyUpdateWebhookConfigWorkflow } from "../../../workflows/update-webhook-config/workflow"
 import type { PostAdminSymmyWebhookConfigSchemaType } from "./validators"
 
 const toConfigResponse = (config: SymmyWebhookConfigDTO) => ({
@@ -79,10 +80,10 @@ export async function POST(
   req: MedusaRequest<PostAdminSymmyWebhookConfigSchemaType>,
   res: MedusaResponse
 ) {
-  const webhookService = req.scope.resolve<SymmyWebhookConfigModuleService>(
-    SYMMY_WEBHOOK_CONFIG_MODULE
-  )
-
-  const config = await webhookService.updateConfig(req.validatedBody)
+  const { result: config } = await symmyUpdateWebhookConfigWorkflow(
+    req.scope
+  ).run({
+    input: req.validatedBody,
+  })
   res.json({ config: toConfigResponse(config) })
 }

@@ -1,5 +1,8 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import {
   batchPriceListPricesWorkflow,
   createPriceListsWorkflow,
@@ -206,7 +209,10 @@ export class PriceListsClient {
     })
     const created = result?.[0] as unknown as ExistingPriceList | undefined
     if (!created) {
-      throw new Error("createPriceListsWorkflow returned empty result")
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "createPriceListsWorkflow returned empty result"
+      )
     }
     await this.priceListCodeService.upsertCode({
       erpCode: input.code,

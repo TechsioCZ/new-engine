@@ -1,3 +1,4 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import type {
   ExistingPrice,
   ExistingPriceList,
@@ -272,7 +273,8 @@ export class PriceListsClientMapperHelper {
     }
     const group = groupIndex.byCode.get(input.customer_group_code)
     if (!group) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
         `Customer group code '${input.customer_group_code}' was not found`
       )
     }

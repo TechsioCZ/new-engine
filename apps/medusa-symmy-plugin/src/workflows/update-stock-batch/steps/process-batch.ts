@@ -9,7 +9,7 @@ import type {
   UpdateStockBatchResult,
 } from "../types"
 
-export const processStockBatchStep = createStep(
+export const symmyProcessStockBatchStep = createStep(
   "symmy-process-stock-batch",
   async (input: UpdateStockBatchInput, { container }) => {
     const client = new StockBatchClient(container)

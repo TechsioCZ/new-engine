@@ -3,9 +3,9 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import {
-  listPriceListsStep,
-  updatePriceListPricesBatchStep,
-  upsertPriceListsBatchStep,
+  symmyListPriceListsStep,
+  symmyUpdatePriceListPricesBatchStep,
+  symmyUpsertPriceListsBatchStep,
 } from "./steps/process-batch"
 import type {
   ListPriceListsInput,
@@ -16,26 +16,32 @@ import type {
   UpsertPriceListsBatchOutput,
 } from "./types"
 
-export const upsertPriceListsBatchWorkflow = createWorkflow(
-  "symmy-upsert-price-lists-batch-workflow",
+const symmyUpsertPriceListsBatchWorkflow = createWorkflow(
+  "symmy-upsert-price-lists-batch",
   (input: UpsertPriceListsBatchInput) => {
-    const result = upsertPriceListsBatchStep(input)
+    const result = symmyUpsertPriceListsBatchStep(input)
     return new WorkflowResponse<UpsertPriceListsBatchOutput>(result)
   }
 )
 
-export const updatePriceListPricesBatchWorkflow = createWorkflow(
-  "symmy-update-price-list-prices-batch-workflow",
+const symmyUpdatePriceListPricesBatchWorkflow = createWorkflow(
+  "symmy-update-price-list-prices-batch",
   (input: UpdatePriceListPricesBatchInput) => {
-    const result = updatePriceListPricesBatchStep(input)
+    const result = symmyUpdatePriceListPricesBatchStep(input)
     return new WorkflowResponse<UpdatePriceListPricesBatchOutput>(result)
   }
 )
 
-export const listPriceListsWorkflow = createWorkflow(
-  "symmy-list-price-lists-workflow",
+const symmyListPriceListsWorkflow = createWorkflow(
+  "symmy-list-price-lists",
   (input: ListPriceListsInput) => {
-    const result = listPriceListsStep(input)
+    const result = symmyListPriceListsStep(input)
     return new WorkflowResponse<ListPriceListsOutput>(result)
   }
 )
+
+export {
+  symmyListPriceListsWorkflow as listPriceListsWorkflow,
+  symmyUpdatePriceListPricesBatchWorkflow as updatePriceListPricesBatchWorkflow,
+  symmyUpsertPriceListsBatchWorkflow as upsertPriceListsBatchWorkflow,
+}
