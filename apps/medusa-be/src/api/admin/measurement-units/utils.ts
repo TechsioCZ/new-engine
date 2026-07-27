@@ -7,7 +7,6 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
-import { z } from "@medusajs/framework/zod"
 import {
   getMeasurementUnitActiveProductCounts,
   getMeasurementUnitService,
@@ -48,28 +47,7 @@ const ASSIGNED_PRODUCT_ORDER_FIELDS = new Set([
 ])
 const LIKE_WILDCARD_REGEX = /[\\%_]/g
 const LEADING_DASH_REGEX = /^-/
-const assignedProductIndexRowsSchema = z.array(
-  z.object({
-    handle: z.string().nullable().optional(),
-    id: z.string(),
-    status: z.string().nullable().optional(),
-    title: z.string().nullable().optional(),
-    updated_at: z.union([z.date(), z.string()]).optional(),
-  })
-)
-
-const parseAssignedProductIndexRows = (value: unknown) => {
-  const result = assignedProductIndexRowsSchema.safeParse(value)
-
-  if (!result.success) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "Assigned product index query returned invalid data."
-    )
-  }
-
-  return result.data
-}
+const ASSIGNMENT_QUERY_CHUNK_SIZE = 500
 
 export const escapeLikePattern = (value: string) =>
   value.replace(LIKE_WILDCARD_REGEX, (match) => `\\${match}`)
@@ -220,60 +198,44 @@ const getAssignedProductOrder = (orderBy: string) => {
   }
 }
 
-const listActiveMeasurementUnitAssignedProducts = async ({
-  limit,
-  offset,
-  orderBy,
-  q,
+const listMeasurementUnitAssignments = async ({
   scope,
+  status,
   unitId,
 }: {
-  limit: number
-  offset: number
-  orderBy: string
-  q?: string
   scope: MedusaContainer
+  status: MeasurementUnitProductListStatus
   unitId: string
 }) => {
-  const escapedQuery = q ? escapeLikePattern(q) : undefined
-  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
-  // Custom links aren't represented in Medusa's static IndexServiceEntryPoints.
-  const entity: string = "product"
-  const { data, metadata } = await query.index({
-    entity,
-    fields: ["id", "title", "handle", "status", "updated_at"],
-    filters: {
-      product_measurement: {
-        measurement_unit_id: unitId,
-      },
-      ...(escapedQuery
-        ? {
-            $or: [
-              { title: { $ilike: `%${escapedQuery}%` } },
-              { handle: { $ilike: `%${escapedQuery}%` } },
-            ],
-          }
-        : {}),
-    },
-    pagination: {
-      order: getAssignedProductOrder(orderBy),
-      skip: offset,
-      take: limit,
-    },
-  })
-  const products = parseAssignedProductIndexRows(data)
+  const filters: Record<string, unknown> = {
+    measurement_unit_id: unitId,
+  }
 
-  return {
-    count: metadata?.estimate_count ?? products.length,
-    products: products.map((product) => ({
-      deleted_at: null,
-      handle: product.handle,
-      id: product.id,
-      product_id: product.id,
-      status: product.status,
-      title: product.title,
-      updated_at: product.updated_at,
-    })),
+  if (status === "active") {
+    filters.deleted_at = null
+  } else if (status === "deleted") {
+    filters.deleted_at = { $ne: null }
+  }
+
+  const service = getMeasurementUnitService(scope)
+  const measurements: ProductMeasurementRecord[] = []
+  let skip = 0
+
+  while (true) {
+    const chunk = await service.listProductMeasurements(filters, {
+      order: { id: "ASC" },
+      select: ["id", "product_id", "deleted_at", "updated_at"],
+      skip,
+      take: ASSIGNMENT_QUERY_CHUNK_SIZE,
+      withDeleted: true,
+    })
+    measurements.push(...chunk)
+
+    if (chunk.length < ASSIGNMENT_QUERY_CHUNK_SIZE) {
+      return measurements
+    }
+
+    skip += ASSIGNMENT_QUERY_CHUNK_SIZE
   }
 }
 
@@ -316,32 +278,10 @@ export const listMeasurementUnitAssignedProducts = async ({
   status: MeasurementUnitProductListStatus
   unitId: string
 }) => {
-  if (status === "active") {
-    return await listActiveMeasurementUnitAssignedProducts({
-      limit,
-      offset,
-      orderBy,
-      q,
-      scope,
-      unitId,
-    })
-  }
-
-  const filters: Record<string, unknown> = {
-    measurement_unit_id: unitId,
-  }
-
-  if (status === "deleted") {
-    filters.deleted_at = { $ne: null }
-  }
-
-  // The Index Module removes soft-deleted entities, so history intentionally
-  // stays on the owning module instead of issuing a cross-module SQL join.
-  const measurements = await getMeasurementUnitService(
-    scope
-  ).listProductMeasurements(filters, {
-    select: ["product_id", "deleted_at", "updated_at"],
-    withDeleted: true,
+  const measurements = await listMeasurementUnitAssignments({
+    scope,
+    status,
+    unitId,
   })
   const productIds = uniqueIds(
     measurements.map((measurement) => measurement.product_id)

@@ -1,9 +1,11 @@
-import { MedusaError } from "@medusajs/framework/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { measurementService } = vi.hoisted(() => ({
+const { measurementService, productService } = vi.hoisted(() => ({
   measurementService: {
     listProductMeasurements: vi.fn(),
+  },
+  productService: {
+    listAndCountProducts: vi.fn(),
   },
 }))
 
@@ -20,9 +22,23 @@ describe("measurement unit assigned-product queries", () => {
     vi.clearAllMocks()
   })
 
-  it("pushes active filtering, ordering, count, and pagination into the Index Module", async () => {
-    const index = vi.fn().mockResolvedValue({
-      data: [
+  it("lists active assignments from the owning module with an exact product count", async () => {
+    measurementService.listProductMeasurements.mockResolvedValue([
+      {
+        deleted_at: null,
+        id: "pm_1",
+        product_id: "prod_1",
+        updated_at: "2026-07-27T00:00:00.000Z",
+      },
+      {
+        deleted_at: null,
+        id: "pm_2",
+        product_id: "prod_2",
+        updated_at: "2026-07-27T00:00:00.000Z",
+      },
+    ])
+    productService.listAndCountProducts.mockResolvedValue([
+      [
         {
           handle: "alpha",
           id: "prod_1",
@@ -30,15 +46,18 @@ describe("measurement unit assigned-product queries", () => {
           title: "Alpha",
           updated_at: "2026-07-27T00:00:00.000Z",
         },
+        {
+          handle: "beta",
+          id: "prod_2",
+          status: "draft",
+          title: "Beta",
+          updated_at: "2026-07-27T00:00:00.000Z",
+        },
       ],
-      metadata: {
-        estimate_count: 42,
-        skip: 20,
-        take: 10,
-      },
-    })
+      2,
+    ])
     const scope = {
-      resolve: vi.fn(() => ({ index })),
+      resolve: vi.fn(() => productService),
     }
     const { listMeasurementUnitAssignedProducts } = await import(
       "../../../../../../src/api/admin/measurement-units/utils"
@@ -53,27 +72,37 @@ describe("measurement unit assigned-product queries", () => {
       unitId: "unit_1",
     })
 
-    expect(index).toHaveBeenCalledWith({
-      entity: "product",
-      fields: ["id", "title", "handle", "status", "updated_at"],
-      filters: {
-        product_measurement: {
-          measurement_unit_id: "unit_1",
-        },
+    expect(measurementService.listProductMeasurements).toHaveBeenCalledWith(
+      {
+        deleted_at: null,
+        measurement_unit_id: "unit_1",
+      },
+      {
+        order: { id: "ASC" },
+        select: ["id", "product_id", "deleted_at", "updated_at"],
+        skip: 0,
+        take: 500,
+        withDeleted: true,
+      }
+    )
+    expect(productService.listAndCountProducts).toHaveBeenCalledWith(
+      {
+        id: { $in: ["prod_1", "prod_2"] },
         $or: [
           { title: { $ilike: "%50\\%\\_off%" } },
           { handle: { $ilike: "%50\\%\\_off%" } },
         ],
       },
-      pagination: {
+      {
         order: { updated_at: "DESC" },
+        select: ["id", "title", "handle", "status", "updated_at"],
         skip: 20,
         take: 10,
-      },
-    })
-    expect(measurementService.listProductMeasurements).not.toHaveBeenCalled()
+        withDeleted: true,
+      }
+    )
     expect(result).toEqual({
-      count: 42,
+      count: 2,
       products: [
         {
           deleted_at: null,
@@ -82,6 +111,15 @@ describe("measurement unit assigned-product queries", () => {
           product_id: "prod_1",
           status: "published",
           title: "Alpha",
+          updated_at: "2026-07-27T00:00:00.000Z",
+        },
+        {
+          deleted_at: null,
+          handle: "beta",
+          id: "prod_2",
+          product_id: "prod_2",
+          status: "draft",
+          title: "Beta",
           updated_at: "2026-07-27T00:00:00.000Z",
         },
       ],
@@ -110,31 +148,5 @@ describe("measurement unit assigned-product queries", () => {
         "prod_1"
       )
     ).toBe(active)
-  })
-
-  it("rejects malformed assigned-product index rows", async () => {
-    const scope = {
-      resolve: vi.fn(() => ({
-        index: vi.fn().mockResolvedValue({
-          data: [{ title: "Missing product id" }],
-          metadata: { estimate_count: 1 },
-        }),
-      })),
-    }
-    const { listMeasurementUnitAssignedProducts } = await import(
-      "../../../../../../src/api/admin/measurement-units/utils"
-    )
-
-    await expect(
-      listMeasurementUnitAssignedProducts({
-        limit: 10,
-        offset: 0,
-        scope: scope as never,
-        status: "active",
-        unitId: "unit_1",
-      })
-    ).rejects.toMatchObject({
-      type: MedusaError.Types.UNEXPECTED_STATE,
-    })
   })
 })

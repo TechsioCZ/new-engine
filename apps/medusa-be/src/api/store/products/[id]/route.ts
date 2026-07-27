@@ -25,9 +25,29 @@ type InventoryDecoratableVariant = HttpTypes.StoreProductVariant & {
   manage_inventory?: boolean
 }
 
+const INCLUDED_FIELD_PREFIX_PATTERN = /^[+*]/
+
 const isInventoryDecoratableVariant = (
   variant: HttpTypes.StoreProductVariant
 ): variant is InventoryDecoratableVariant => variant.manage_inventory !== null
+
+const normalizeIncludedField = (field: string) =>
+  field.replace(INCLUDED_FIELD_PREFIX_PATTERN, "")
+
+const includesCategoryField = (fields: string[]) =>
+  fields.some((field) => {
+    const normalizedField = normalizeIncludedField(field)
+
+    return (
+      normalizedField === "categories" ||
+      normalizedField.startsWith("categories.")
+    )
+  })
+
+const includesCategoryVisibilityField = (fields: string[]) =>
+  fields.some(
+    (field) => normalizeIncludedField(field) === "categories.is_internal"
+  )
 
 const toStoreProduct = (
   product: RemoteQueryEntryPoints["product"]
@@ -41,18 +61,17 @@ export const GET = async (
   req: RequestWithContext<HttpTypes.StoreProductParams>,
   res: MedusaResponse<HttpTypes.StoreProductResponse>
 ) => {
-  const measurementDecorationOptions = getMeasurementDecorationOptions(
-    req.queryConfig.fields
-  )
-  const withInventoryQuantity = req.queryConfig.fields.some((field) =>
+  const requestedFields = req.queryConfig.fields
+  const measurementDecorationOptions =
+    getMeasurementDecorationOptions(requestedFields)
+  const withInventoryQuantity = requestedFields.some((field) =>
     field.includes("variants.inventory_quantity")
   )
-
-  if (withInventoryQuantity) {
-    req.queryConfig.fields = req.queryConfig.fields.filter(
-      (field) => !field.includes("variants.inventory_quantity")
-    )
-  }
+  const productFieldsBeforeDecoration = withInventoryQuantity
+    ? requestedFields.filter(
+        (field) => !field.includes("variants.inventory_quantity")
+      )
+    : requestedFields
 
   const filters: object = {
     id: req.params.id,
@@ -66,16 +85,17 @@ export const GET = async (
     context.variants.calculated_price ??= QueryContext(req.pricingContext)
   }
 
-  const includesCategoriesField = req.queryConfig.fields.some((field) =>
-    field.startsWith("categories")
+  const includesCategoriesField = includesCategoryField(
+    productFieldsBeforeDecoration
   )
-
-  if (!req.queryConfig.fields.includes("categories.is_internal")) {
-    req.queryConfig.fields.push("categories.is_internal")
-  }
+  const productFieldsWithCategoryVisibility =
+    includesCategoriesField &&
+    !includesCategoryVisibilityField(productFieldsBeforeDecoration)
+      ? [...productFieldsBeforeDecoration, "categories.is_internal"]
+      : productFieldsBeforeDecoration
 
   const productFields = getMeasurementDecorationQueryFields(
-    req.queryConfig.fields,
+    productFieldsWithCategoryVisibility,
     measurementDecorationOptions
   )
 

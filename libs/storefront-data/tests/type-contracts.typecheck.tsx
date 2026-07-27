@@ -5,8 +5,20 @@ import type { CreateMedusaStorefrontPresetConfig } from "../src/medusa/preset"
 import type { ProductListHooks } from "../src/product-lists/hooks"
 import type { ProductListCartLike } from "../src/product-lists/types"
 import type { ProductHooks } from "../src/products/hooks"
+import type { StoreProductWithPricePerUnit } from "../src/products/types"
 
 declare const sdk: Medusa
+declare const productWithPricePerUnit: StoreProductWithPricePerUnit
+
+const pricePerUnit =
+  productWithPricePerUnit.variants?.[0]?.calculated_price?.price_per_unit
+
+export const validPricePerUnitAmount: number | undefined =
+  pricePerUnit?.calculated_amount_with_tax
+export const validPricePerUnitSymbol: string | undefined =
+  pricePerUnit?.unit_symbol
+// @ts-expect-error the shared contract must reject fields not returned by the API
+export const invalidPricePerUnitField = pricePerUnit?.amount
 
 type ExtendedCatalogFacets = CatalogFacets & {
   dosage: CatalogFacets["brand"]
