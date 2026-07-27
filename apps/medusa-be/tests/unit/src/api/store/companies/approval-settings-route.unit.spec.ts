@@ -2,17 +2,15 @@ import { ContainerRegistrationKeys } from "@medusajs/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const workflowMocks = vi.hoisted(() => ({
+  ensureApprovalSettingsWorkflow: vi.fn(),
+  updateApprovalSettingsWorkflow: vi.fn(),
   ensureApprovalSettingsRun: vi.fn(),
   updateApprovalSettingsRun: vi.fn(),
 }))
 
 vi.mock("../../../../../../src/workflows/approval/workflows", () => ({
-  ensureApprovalSettingsWorkflow: {
-    run: workflowMocks.ensureApprovalSettingsRun,
-  },
-  updateApprovalSettingsWorkflow: {
-    run: workflowMocks.updateApprovalSettingsRun,
-  },
+  ensureApprovalSettingsWorkflow: workflowMocks.ensureApprovalSettingsWorkflow,
+  updateApprovalSettingsWorkflow: workflowMocks.updateApprovalSettingsWorkflow,
 }))
 
 const createMockRequest = ({
@@ -44,8 +42,16 @@ const createMockResponse = () =>
 
 describe("POST /store/companies/:id/approval-settings", () => {
   beforeEach(() => {
+    workflowMocks.ensureApprovalSettingsWorkflow.mockReset()
+    workflowMocks.updateApprovalSettingsWorkflow.mockReset()
     workflowMocks.ensureApprovalSettingsRun.mockReset()
     workflowMocks.updateApprovalSettingsRun.mockReset()
+    workflowMocks.ensureApprovalSettingsWorkflow.mockReturnValue({
+      run: workflowMocks.ensureApprovalSettingsRun,
+    })
+    workflowMocks.updateApprovalSettingsWorkflow.mockReturnValue({
+      run: workflowMocks.updateApprovalSettingsRun,
+    })
   })
 
   it("creates missing approval settings before applying the update", async () => {
@@ -61,12 +67,16 @@ describe("POST /store/companies/:id/approval-settings", () => {
 
     await POST(req, res)
 
+    expect(workflowMocks.ensureApprovalSettingsWorkflow).toHaveBeenCalledWith(
+      req.scope
+    )
     expect(workflowMocks.ensureApprovalSettingsRun).toHaveBeenCalledWith({
-      container: req.scope,
       input: ["comp_1"],
     })
+    expect(workflowMocks.updateApprovalSettingsWorkflow).toHaveBeenCalledWith(
+      req.scope
+    )
     expect(workflowMocks.updateApprovalSettingsRun).toHaveBeenCalledWith({
-      container: req.scope,
       input: {
         company_id: "comp_1",
         id: "apprset_created",
@@ -90,8 +100,10 @@ describe("POST /store/companies/:id/approval-settings", () => {
     await POST(req, res)
 
     expect(workflowMocks.ensureApprovalSettingsRun).not.toHaveBeenCalled()
+    expect(workflowMocks.updateApprovalSettingsWorkflow).toHaveBeenCalledWith(
+      req.scope
+    )
     expect(workflowMocks.updateApprovalSettingsRun).toHaveBeenCalledWith({
-      container: req.scope,
       input: {
         company_id: "comp_1",
         id: "apprset_1",
