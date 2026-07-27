@@ -37,7 +37,7 @@
     "lint": "pnpm lint:biome && pnpm lint:medusa",
     "lint:biome": "pnpm -w exec biome check apps/medusa-order-dashboard-plugin",
     "lint:fix": "pnpm -w exec biome check --write apps/medusa-order-dashboard-plugin && pnpm lint:medusa",
-    "lint:medusa": "medusa lint --quiet",
+    "lint:medusa": "medusa lint",
     "prepare": "pnpm build",
     "publish:local": "medusa plugin:publish",
     "typecheck": "tsc --noEmit"

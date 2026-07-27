@@ -24,7 +24,7 @@
     "lint": "pnpm lint:biome && pnpm lint:medusa",
     "lint:biome": "pnpm -w exec biome check apps/medusa-be",
     "lint:fix": "pnpm -w exec biome check --write apps/medusa-be && pnpm lint:medusa",
-    "lint:medusa": "medusa lint --quiet",
+    "lint:medusa": "medusa lint",
     "test:integration:http": "cross-env TEST_TYPE=integration:http node ./scripts/run-vitest.mjs run --config vitest.config.ts",
     "test:integration:modules": "node ./scripts/run-module-tests.mjs",
     "test:e2e:http": "cross-env TEST_TYPE=e2e:http node ./scripts/run-vitest.mjs run --config vitest.config.ts",

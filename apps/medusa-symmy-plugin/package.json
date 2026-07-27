@@ -43,7 +43,7 @@
     "lint": "pnpm lint:biome && pnpm lint:medusa",
     "lint:biome": "pnpm -w exec biome check apps/medusa-symmy-plugin",
     "lint:fix": "pnpm -w exec biome check --write apps/medusa-symmy-plugin && pnpm lint:medusa",
-    "lint:medusa": "medusa lint --quiet",
+    "lint:medusa": "medusa lint",
     "prepare": "pnpm build",
     "publish:local": "medusa plugin:publish",
     "test": "vitest run",
