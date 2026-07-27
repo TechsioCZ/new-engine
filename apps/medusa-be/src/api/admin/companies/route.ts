@@ -106,11 +106,12 @@ export const POST = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
-  const { result: createdCompanies } = await createCompaniesWorkflow.run({
+  const { result: createdCompanies } = await createCompaniesWorkflow(
+    req.scope
+  ).run({
     input: Array.isArray(req.validatedBody)
       ? req.validatedBody.map((company) => ({ ...company }))
       : [{ ...req.validatedBody }],
-    container: req.scope,
   })
 
   const { data: companies } = await query.graph(

@@ -20,7 +20,7 @@ import {
 import type { DeleteProductMeasurementWorkflowInput } from "../types"
 
 export const deleteProductMeasurementWorkflow = createWorkflow(
-  "delete-product-measurement-workflow",
+  "delete-product-measurement",
   (input: DeleteProductMeasurementWorkflowInput) => {
     const lockInput = transform({ input }, ({ input: current }) => ({
       key: `measurement-product:${current.product_id}`,

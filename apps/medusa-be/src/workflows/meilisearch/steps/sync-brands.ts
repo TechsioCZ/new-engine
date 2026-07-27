@@ -10,7 +10,7 @@ export type SyncMeilisearchBrandsStepInput = {
 }
 
 export const syncMeilisearchBrandsStep = createStep(
-  "sync-meilisearch-brands-step",
+  "sync-meilisearch-brands",
   async ({ filters }: SyncMeilisearchBrandsStepInput, { container }) => {
     if (!isMeilisearchEnabled()) {
       return new StepResponse({

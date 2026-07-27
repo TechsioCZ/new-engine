@@ -17,7 +17,7 @@ import { deleteBrandsStep, getBrandLifecycleLockKeys } from "../steps"
 import type { DeleteBrandsWorkflowInput } from "../types"
 
 export const deleteBrandsWorkflow = createWorkflow(
-  "delete-brands-workflow",
+  "delete-brands",
   (input: DeleteBrandsWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) =>
       getBrandLifecycleLockKeys(workflowInput.ids)

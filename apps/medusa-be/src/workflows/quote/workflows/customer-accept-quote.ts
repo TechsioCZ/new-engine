@@ -15,7 +15,7 @@ import { updateQuotesWorkflow } from "./update-quote"
   The draft order is then converted to an actual order ready for processing.
 */
 export const customerAcceptQuoteWorkflow = createWorkflow(
-  "customer-accept-quote-workflow",
+  "customer-accept-quote",
   (input: { quote_id: string; customer_id: string }) => {
     const quote = useRemoteQueryStep({
       entry_point: "quote",

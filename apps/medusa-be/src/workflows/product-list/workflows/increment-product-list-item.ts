@@ -10,7 +10,7 @@ import { retrieveProductListItemStep } from "../steps/retrieve-product-list-item
 import type { IncrementProductListItemWorkflowInput } from "../types"
 
 export const incrementProductListItemWorkflow = createWorkflow(
-  "increment-product-list-item-workflow",
+  "increment-product-list-item",
   (input: IncrementProductListItemWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) => [
       `product-list-item:${workflowInput.item_id}`,

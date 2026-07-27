@@ -1,5 +1,8 @@
 import type { Query } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { StepResponse } from "@medusajs/framework/workflows-sdk"
 import { updateCartWorkflow } from "@medusajs/medusa/core-flows"
 import { getCartApprovalStatus } from "../../utils/get-cart-approval-status"
@@ -18,13 +21,19 @@ updateCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
   })
 
   if (!queryCart) {
-    throw new Error(`Cart "${cart.id}" was not found`)
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Cart "${cart.id}" was not found`
+    )
   }
 
   const { isPendingApproval } = getCartApprovalStatus(queryCart)
 
   if (isPendingApproval) {
-    throw new Error("Cart is pending approval")
+    throw new MedusaError(
+      MedusaError.Types.NOT_ALLOWED,
+      "Cart is pending approval"
+    )
   }
 
   return new StepResponse(undefined, null)

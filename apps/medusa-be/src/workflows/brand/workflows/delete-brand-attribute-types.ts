@@ -11,7 +11,7 @@ import {
 import type { DeleteBrandAttributeTypesWorkflowInput } from "../types"
 
 export const deleteBrandAttributeTypesWorkflow = createWorkflow(
-  "delete-brand-attribute-types-workflow",
+  "delete-brand-attribute-types",
   (input: DeleteBrandAttributeTypesWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) =>
       getBrandAttributeTypeLockKeys(workflowInput.ids)

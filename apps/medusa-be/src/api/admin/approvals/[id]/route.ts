@@ -3,6 +3,7 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import type { AdminUpdateApproval } from "../../../../types/approval/http"
+import { requirePathParam } from "../../../../utils/path-params"
 import { updateApprovalsWorkflow } from "../../../../workflows/approval/workflows"
 
 export const POST = async (
@@ -13,16 +14,17 @@ export const POST = async (
     user_id: string
   }
 
-  const { id: approvalId } = req.params
+  const approvalId = requirePathParam(req.params.id, "Approval id")
   const { status } = req.validatedBody
 
-  const { result: approval, errors } = await updateApprovalsWorkflow.run({
+  const { result: approval, errors } = await updateApprovalsWorkflow(
+    req.scope
+  ).run({
     input: {
       status,
       handled_by: user_id,
       id: approvalId,
     },
-    container: req.scope,
   })
 
   if (errors.length > 0) {

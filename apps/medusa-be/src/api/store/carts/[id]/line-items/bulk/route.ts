@@ -1,6 +1,9 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { addToCartWorkflow } from "@medusajs/medusa/core-flows"
-import { ContainerRegistrationKeys, MedusaError } from "@medusajs/utils"
 import type { StoreAddLineItemsBulkType } from "../../../validators"
 
 export async function POST(

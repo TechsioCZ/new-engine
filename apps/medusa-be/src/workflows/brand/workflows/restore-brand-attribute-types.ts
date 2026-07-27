@@ -11,7 +11,7 @@ import {
 import type { RestoreBrandAttributeTypesWorkflowInput } from "../types"
 
 export const restoreBrandAttributeTypesWorkflow = createWorkflow(
-  "restore-brand-attribute-types-workflow",
+  "restore-brand-attribute-types",
   (input: RestoreBrandAttributeTypesWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) =>
       getBrandAttributeTypeLockKeys(workflowInput.ids)

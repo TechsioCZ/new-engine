@@ -3,6 +3,7 @@ import type { Context } from "@medusajs/framework/types"
 import {
   InjectManager,
   MedusaContext,
+  MedusaError,
   MedusaService,
 } from "@medusajs/framework/utils"
 import MeasurementUnit from "./models/measurement-unit"
@@ -33,7 +34,8 @@ class MeasurementUnitModuleService extends MedusaService({
     const manager = sharedContext.manager
 
     if (!manager) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
         "Measurement Unit Module manager is unavailable while counting product assignments."
       )
     }

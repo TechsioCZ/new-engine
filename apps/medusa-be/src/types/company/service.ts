@@ -4,7 +4,7 @@ import type {
   FindConfig,
   IModuleService,
   RestoreReturn,
-} from "@medusajs/types"
+} from "@medusajs/framework/types"
 import type {
   ModuleCompany,
   ModuleCreateCompany,

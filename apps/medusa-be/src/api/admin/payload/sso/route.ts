@@ -3,6 +3,7 @@ import type {
   MedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+import { MedusaError } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
 import escapeHtml from "escape-html"
 import { importPKCS8, SignJWT } from "jose"
@@ -40,7 +41,10 @@ const sanitizeReturnTo = (value: string | undefined) => {
   if (value.startsWith("/") && !value.startsWith("//")) {
     return value
   }
-  throw new Error("returnTo must be a same-origin relative path.")
+  throw new MedusaError(
+    MedusaError.Types.INVALID_DATA,
+    "returnTo must be a same-origin relative path."
+  )
 }
 
 const resolveSafeReturnTo = (value: string | undefined) => {
@@ -93,7 +97,10 @@ const resolvePayloadSsoUrl = (
 ) => {
   const url = new URL(payloadIframeUrl)
   if (!(url.protocol === "http:" || url.protocol === "https:")) {
-    throw new Error("PAYLOAD_IFRAME_URL must use http or https.")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "PAYLOAD_IFRAME_URL must use http or https."
+    )
   }
 
   const forwardedHost = getRequestHeader(req, "x-forwarded-host")

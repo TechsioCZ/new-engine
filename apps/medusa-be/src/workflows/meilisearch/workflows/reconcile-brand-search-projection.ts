@@ -8,7 +8,7 @@ import { reconcileBrandSearchProjectionStep } from "../steps/reconcile-brand-sea
 import { resolveBrandSearchProjectionTargetsStep } from "../steps/resolve-brand-search-projection-targets"
 
 export const reconcileBrandSearchProjectionWorkflow = createWorkflow(
-  "reconcile-brand-search-projection-workflow",
+  "reconcile-brand-search-projection",
   (input: BrandSearchProjectionChangedEventData) => {
     const targets = resolveBrandSearchProjectionTargetsStep(input)
 

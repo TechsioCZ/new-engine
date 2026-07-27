@@ -31,14 +31,14 @@ export const createEmployeesWorkflow = createWorkflow(
 
     const employee = createOrRestoreEmployeeStep(input.employeeData)
 
-    when(input.employeeData, (employeeData) => employeeData.is_admin).then(
-      () => {
-        setAdminRoleStep({
-          employeeId: employee.id,
-          customerId: input.customerId,
-        })
-      }
-    )
+    when(input.employeeData, (employeeData) =>
+      Boolean(employeeData.is_admin)
+    ).then(() => {
+      setAdminRoleStep({
+        employeeId: employee.id,
+        customerId: input.customerId,
+      })
+    })
 
     addEmployeeToCustomerGroupStep({
       customer_id: input.customerId,

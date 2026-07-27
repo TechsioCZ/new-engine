@@ -9,7 +9,7 @@ import { normalizeUnitCode } from "../steps/helpers"
 import type { CreateMeasurementUnitsWorkflowInput } from "../types"
 
 export const createMeasurementUnitsWorkflow = createWorkflow(
-  "create-measurement-units-workflow",
+  "create-measurement-units",
   (input: CreateMeasurementUnitsWorkflowInput) => {
     const lockInput = transform(input, (current) => ({
       key: [

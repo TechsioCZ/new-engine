@@ -2,7 +2,7 @@ import type {
   ApplicationMethodTargetTypeValues,
   ApplicationMethodTypeValues,
   PromotionTypeValues,
-} from "@medusajs/types"
+} from "@medusajs/framework/types"
 
 export type RuleType = "rules" | "target-rules" | "buy-rules"
 

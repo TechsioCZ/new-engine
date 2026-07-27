@@ -8,7 +8,7 @@ import { deleteMeasurementUnitsStep } from "../steps/delete-measurement-units"
 import type { DeleteMeasurementUnitsWorkflowInput } from "../types"
 
 export const deleteMeasurementUnitsWorkflow = createWorkflow(
-  "delete-measurement-units-workflow",
+  "delete-measurement-units",
   (input: DeleteMeasurementUnitsWorkflowInput) => {
     const lockInput = transform(input, (current) => ({
       key: [...new Set(current.ids)]

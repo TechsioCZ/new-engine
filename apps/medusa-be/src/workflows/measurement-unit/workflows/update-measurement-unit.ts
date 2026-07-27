@@ -9,7 +9,7 @@ import { updateMeasurementUnitStep } from "../steps/update-measurement-unit"
 import type { UpdateMeasurementUnitWorkflowInput } from "../types"
 
 export const updateMeasurementUnitWorkflow = createWorkflow(
-  "update-measurement-unit-workflow",
+  "update-measurement-unit",
   (input: UpdateMeasurementUnitWorkflowInput) => {
     const lockInput = transform(input, (current) => ({
       key: [

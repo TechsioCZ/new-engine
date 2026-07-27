@@ -3,7 +3,7 @@ import type {
   Context,
   FindConfig,
   IModuleService,
-} from "@medusajs/types"
+} from "@medusajs/framework/types"
 import type {
   ModuleCreateQuote,
   ModuleCreateQuoteMessage,

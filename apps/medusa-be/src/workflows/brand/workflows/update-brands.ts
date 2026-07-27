@@ -21,7 +21,7 @@ import {
 import type { UpdateBrandsWorkflowInput } from "../types"
 
 export const updateBrandsWorkflow = createWorkflow(
-  "update-brands-workflow",
+  "update-brands",
   (input: UpdateBrandsWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) => {
       const attributeNames = (workflowInput.update.attributes ?? []).map(

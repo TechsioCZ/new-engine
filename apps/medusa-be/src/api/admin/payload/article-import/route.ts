@@ -1,6 +1,6 @@
 import { Transform } from "node:stream"
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { MedusaError } from "@medusajs/utils"
+import { MedusaError } from "@medusajs/framework/utils"
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"])
 const TRAILING_SLASH_PATTERN = /\/$/

@@ -1,5 +1,8 @@
 import type { Query } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import { ApprovalStatusType, type IApprovalModuleService } from "../../../types"
@@ -31,7 +34,10 @@ export const createApprovalStatusStep = createStep(
         ])
 
       if (!updatedApprovalStatus) {
-        throw new Error("Failed to update approval status")
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          "Failed to update approval status"
+        )
       }
 
       return new StepResponse(updatedApprovalStatus, [updatedApprovalStatus.id])
@@ -48,7 +54,10 @@ export const createApprovalStatusStep = createStep(
       )
 
     if (!createdApprovalStatus) {
-      throw new Error("Failed to create approval status")
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Failed to create approval status"
+      )
     }
 
     return new StepResponse(createdApprovalStatus, [createdApprovalStatus.id])

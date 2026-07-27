@@ -2,7 +2,8 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
-import { ContainerRegistrationKeys } from "@medusajs/utils"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { requirePathParam } from "../../../../../utils/path-params"
 import { createEmployeesWorkflow } from "../../../../../workflows/employee/workflows"
 import type {
   StoreCreateEmployeeType,
@@ -13,7 +14,7 @@ export const GET = async (
   req: AuthenticatedMedusaRequest<StoreGetEmployeeParamsType>,
   res: MedusaResponse
 ) => {
-  const { id } = req.params
+  const id = requirePathParam(req.params.id, "Company id")
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const {
@@ -44,18 +45,21 @@ export const POST = async (
   req: AuthenticatedMedusaRequest<StoreCreateEmployeeType>,
   res: MedusaResponse
 ) => {
-  const { id } = req.params
+  const id = requirePathParam(req.params.id, "Company id")
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
-  const { result: createdEmployee } = await createEmployeesWorkflow.run({
+  const { result: createdEmployee } = await createEmployeesWorkflow(
+    req.scope
+  ).run({
     input: {
       employeeData: {
         ...req.validatedBody,
+        spending_limit: req.validatedBody.spending_limit ?? undefined,
+        is_admin: req.validatedBody.is_admin ?? undefined,
         company_id: id,
       },
       customerId: req.validatedBody.customer_id,
     },
-    container: req.scope,
   })
 
   const {

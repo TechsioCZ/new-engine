@@ -10,7 +10,7 @@ import { updateQuotesWorkflow } from "./update-quote"
   it over to the customer.
 */
 export const merchantSendQuoteWorkflow = createWorkflow(
-  "merchant-send-quote-workflow",
+  "merchant-send-quote",
   (input: { quote_id: string }) => {
     useRemoteQueryStep({
       entry_point: "quote",

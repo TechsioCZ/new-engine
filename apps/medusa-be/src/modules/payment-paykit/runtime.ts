@@ -1,4 +1,5 @@
 import type { ProviderWebhookPayload } from "@medusajs/framework/types"
+import { MedusaError } from "@medusajs/framework/utils"
 import type { PayKit, PayKitProvider } from "@paykit-sdk/core"
 import type {
   PaykitAdapterOptions,
@@ -85,15 +86,19 @@ const loadExport = async <T>(
   try {
     mod = await dynamicImport(packageName)
   } catch (error) {
-    throw new Error(getPaykitPackageLoadErrorMessage(packageName, error), {
-      cause: error,
-    })
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      getPaykitPackageLoadErrorMessage(packageName, error),
+      undefined,
+      { cause: error }
+    )
   }
 
   const loaded = mod[exportName]
 
   if (!loaded) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `PayKit package "${packageName}" does not export "${exportName}".`
     )
   }
@@ -133,7 +138,8 @@ export const createPaykitClientWithProvider = async (
   const provider = createProvider(providerOptions)
 
   if (!isPaykitProviderRuntime(provider)) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `PayKit provider "${providerPackage}" does not implement handleWebhook`
     )
   }

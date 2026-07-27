@@ -10,7 +10,7 @@ import { updateQuotesWorkflow } from "./update-quote"
   Once the merchant rejects the quote, we update the status of the quote to a rejection by merchant.
 */
 export const merchantRejectQuoteWorkflow = createWorkflow(
-  "merchant-reject-quote-workflow",
+  "merchant-reject-quote",
   (input: { quote_id: string }) => {
     const quote: QueryQuote = useRemoteQueryStep({
       entry_point: "quote",

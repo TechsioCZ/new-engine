@@ -1,5 +1,5 @@
+import type { InputConfigWithArrayModules } from "@medusajs/framework/types"
 import { defineConfig, loadEnv } from "@medusajs/framework/utils"
-import type { InputConfigWithArrayModules } from "@medusajs/types"
 import { readMedusaConfigEnv } from "./src/config/env"
 import { buildModules } from "./src/config/modules"
 import { buildPlugins } from "./src/config/plugins"

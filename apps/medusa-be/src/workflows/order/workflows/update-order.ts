@@ -13,7 +13,7 @@ import {
   to an active order.
 */
 export const updateOrderWorkflow = createWorkflow(
-  "b2b-update-order-workflow",
+  "update-order",
   (input: UpdateOrderStepInput) => {
     useRemoteQueryStep({
       entry_point: "order",

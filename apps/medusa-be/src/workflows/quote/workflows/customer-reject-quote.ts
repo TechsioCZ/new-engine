@@ -9,7 +9,7 @@ import { updateQuotesWorkflow } from "./update-quote"
   any further adjustments, or let it remain in a rejected state.
 */
 export const customerRejectQuoteWorkflow = createWorkflow(
-  "customer-reject-quote-workflow",
+  "customer-reject-quote",
   (input: { quote_id: string; customer_id: string }) => {
     useRemoteQueryStep({
       entry_point: "quote",
