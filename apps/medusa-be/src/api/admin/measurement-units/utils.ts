@@ -36,6 +36,11 @@ export type MeasurementUnitAssignedProductResponse = {
   updated_at?: Date | string
 }
 
+type MeasurementUnitAssignedProductProjection = Omit<
+  MeasurementUnitAssignedProductResponse,
+  "product_id"
+>
+
 const LIKE_WILDCARD_REGEX = /[\\%_]/g
 const LEADING_DASH_REGEX = /^-/
 
@@ -251,10 +256,17 @@ export const listMeasurementUnitAssignedProducts = async ({
     },
     withDeleted: true,
   })
-  const productById = new Map(
-    (data as MeasurementUnitAssignedProductResponse[]).map((product) => [
+  const productById = new Map<string, MeasurementUnitAssignedProductProjection>(
+    data.map((product) => [
       product.id,
-      product,
+      {
+        deleted_at: product.deleted_at,
+        handle: product.handle,
+        id: product.id,
+        status: product.status,
+        title: product.title,
+        updated_at: product.updated_at,
+      },
     ])
   )
   const products = measurements.flatMap((measurement) => {

@@ -1,4 +1,4 @@
-import type { MedusaContainer } from "@medusajs/framework/types"
+import type { HttpTypes, MedusaContainer } from "@medusajs/framework/types"
 import { MEASUREMENT_UNIT_MODULE } from "../modules/measurement-unit"
 import type MeasurementUnitModuleService from "../modules/measurement-unit/service"
 
@@ -66,14 +66,20 @@ export type ProductVariantMeasurementResponse = {
   updated_at?: Date | string
 }
 
+type CalculatedPriceLike = NonNullable<
+  HttpTypes.StoreProductVariant["calculated_price"]
+> & {
+  price_per_unit?: Record<string, unknown>
+}
+
 type ProductLike = {
   id?: unknown
   measurement?: ProductMeasurementResponse | null
   variants?: Array<{
-    calculated_price?: Record<string, unknown> | null
+    calculated_price?: CalculatedPriceLike | null
     id?: unknown
     measurement?: ProductVariantMeasurementResponse | null
-  }>
+  }> | null
 }
 
 export type MeasurementDecorationOptions = {
@@ -151,7 +157,7 @@ const PRICE_AMOUNT_FIELDS = [
   "original_amount",
   "original_amount_with_tax",
   "original_amount_without_tax",
-]
+] as const
 
 const PRODUCT_MEASUREMENT_FIELDS = ["measurement"]
 const VARIANT_MEASUREMENT_FIELDS = ["variants.measurement"]
@@ -367,7 +373,7 @@ export const getMeasurementUnitActiveProductCounts = async (
 }
 
 const addPricePerUnit = (
-  calculatedPrice: Record<string, unknown>,
+  calculatedPrice: CalculatedPriceLike,
   measurement: ProductMeasurementResponse,
   variantMeasurement: ProductVariantMeasurementResponse
 ) => {

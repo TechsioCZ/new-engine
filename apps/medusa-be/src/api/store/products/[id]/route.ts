@@ -1,5 +1,9 @@
 import type { MedusaResponse } from "@medusajs/framework/http"
-import type { HttpTypes, QueryContextType } from "@medusajs/framework/types"
+import type {
+  HttpTypes,
+  QueryContextType,
+  RemoteQueryEntryPoints,
+} from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -16,6 +20,22 @@ import {
   getMeasurementDecorationOptions,
   getMeasurementDecorationQueryFields,
 } from "../../../../utils/measurement-units"
+
+type InventoryDecoratableVariant = HttpTypes.StoreProductVariant & {
+  manage_inventory?: boolean
+}
+
+const isInventoryDecoratableVariant = (
+  variant: HttpTypes.StoreProductVariant
+): variant is InventoryDecoratableVariant => variant.manage_inventory !== null
+
+const toStoreProduct = (
+  product: RemoteQueryEntryPoints["product"]
+): HttpTypes.StoreProduct => {
+  // query.graph uses the generated module entity type even when the selected
+  // fields form a Store API response. Bridge that Medusa type boundary once.
+  return product as HttpTypes.StoreProduct
+}
 
 export const GET = async (
   req: RequestWithContext<HttpTypes.StoreProductParams>,
@@ -72,20 +92,23 @@ export const GET = async (
       locale: req.locale,
     }
   )
-  const product = products[0]
+  const queriedProduct = products[0]
 
-  if (!product) {
+  if (!queriedProduct) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Product with id: ${req.params.id} was not found`
     )
   }
 
+  const product = toStoreProduct(queriedProduct)
+
   if (withInventoryQuantity) {
-    await wrapVariantsWithInventoryQuantityForSalesChannel(
-      req,
-      product.variants || []
+    const variants = (product.variants ?? []).filter(
+      isInventoryDecoratableVariant
     )
+
+    await wrapVariantsWithInventoryQuantityForSalesChannel(req, variants)
   }
 
   if (includesCategoriesField) {
