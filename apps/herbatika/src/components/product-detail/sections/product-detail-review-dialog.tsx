@@ -18,6 +18,10 @@ import {
   ProductReviewForm,
   type ProductReviewFormSubmitValues,
 } from "@/components/reviews/product-review-form"
+import {
+  getProductReviewTurnstileToken,
+  PRODUCT_REVIEW_TURNSTILE_ERROR_MESSAGE,
+} from "@/components/reviews/product-review-turnstile"
 import { useAuth } from "@/lib/storefront/auth"
 import { useCreateProductReview } from "@/lib/storefront/reviews"
 
@@ -41,6 +45,7 @@ export function ProductReviewCreateDialog({
   const [formResetKey, setFormResetKey] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isVerifyingReview, setIsVerifyingReview] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const loginHref = buildAuthRouteHref(
     "/auth/login",
@@ -58,7 +63,7 @@ export function ProductReviewCreateDialog({
       setSubmitError(null)
     },
   })
-  const isBusy = createReviewMutation.isPending
+  const isBusy = createReviewMutation.isPending || isVerifyingReview
   const isAuthenticated = authQuery.isAuthenticated
 
   const handleOpenChange = ({ open }: { open: boolean }) => {
@@ -71,19 +76,29 @@ export function ProductReviewCreateDialog({
     }
   }
 
-  const handleSubmit = ({
+  const handleSubmit = async ({
     content,
     rating,
     title,
   }: ProductReviewFormSubmitValues) => {
     setSubmitError(null)
+    setIsVerifyingReview(true)
 
-    createReviewMutation.mutate({
-      content,
-      product_id: productId,
-      rating,
-      title,
-    })
+    try {
+      const turnstileToken = await getProductReviewTurnstileToken()
+
+      createReviewMutation.mutate({
+        content,
+        product_id: productId,
+        rating,
+        title,
+        ...(turnstileToken ? { turnstileToken } : {}),
+      })
+    } catch {
+      setSubmitError(PRODUCT_REVIEW_TURNSTILE_ERROR_MESSAGE)
+    } finally {
+      setIsVerifyingReview(false)
+    }
   }
 
   const renderContent = () => {

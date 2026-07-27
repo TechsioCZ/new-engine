@@ -15,6 +15,10 @@ import {
   type ProductReviewFormSubmitValues,
 } from "@/components/reviews/product-review-form"
 import {
+  getProductReviewTurnstileToken,
+  PRODUCT_REVIEW_TURNSTILE_ERROR_MESSAGE,
+} from "@/components/reviews/product-review-turnstile"
+import {
   type ProductReviewTokenProductStatus,
   resolveProductStatusMessage,
 } from "@/components/reviews/product-review-token-status"
@@ -37,6 +41,7 @@ export function ProductReviewTokenPage({
   const normalizedProductId = productId?.trim() ?? ""
   const [formResetKey, setFormResetKey] = useState(0)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isVerifyingReview, setIsVerifyingReview] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const productQuery = useProducts({
     page: 1,
@@ -64,7 +69,7 @@ export function ProductReviewTokenPage({
       setSubmitError(null)
     },
   })
-  const isBusy = createReviewMutation.isPending
+  const isBusy = createReviewMutation.isPending || isVerifyingReview
   const productStatus: ProductReviewTokenProductStatus = (() => {
     if (!normalizedProductId) {
       return "missing-product-id"
@@ -90,7 +95,7 @@ export function ProductReviewTokenPage({
     notFound: tCatalog("reviews.token.product_not_found"),
   })
 
-  const handleSubmit = ({
+  const handleSubmit = async ({
     content,
     rating,
     title,
@@ -101,14 +106,24 @@ export function ProductReviewTokenPage({
     }
 
     setSubmitError(null)
+    setIsVerifyingReview(true)
 
-    createReviewMutation.mutate({
-      content,
-      product_id: normalizedProductId,
-      rating,
-      review_token: token,
-      title,
-    })
+    try {
+      const turnstileToken = await getProductReviewTurnstileToken()
+
+      createReviewMutation.mutate({
+        content,
+        product_id: normalizedProductId,
+        rating,
+        review_token: token,
+        title,
+        ...(turnstileToken ? { turnstileToken } : {}),
+      })
+    } catch {
+      setSubmitError(PRODUCT_REVIEW_TURNSTILE_ERROR_MESSAGE)
+    } finally {
+      setIsVerifyingReview(false)
+    }
   }
 
   return (
