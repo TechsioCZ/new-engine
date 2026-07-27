@@ -75,6 +75,12 @@ overrides:
 peerDependencyRules:
   allowedVersions:
     'fdir@6.1.1>picomatch': 4.0.5
+    # 0.2.5 is the latest content-plugin release and pins its Medusa host
+    # peers to 2.17.2. Its compiled API usage remains compatible with 2.18.0;
+    # the backend/Admin builds verify these exact exceptions.
+    'medusa-plugin-content@0.2.5>@medusajs/framework': 2.18.0
+    'medusa-plugin-content@0.2.5>@medusajs/js-sdk': 2.18.0
+    'medusa-plugin-content@0.2.5>@medusajs/medusa': 2.18.0
 
 supportedArchitectures:
   # `current` still covers Windows when it is the active host. Darwin + Linux
@@ -94,26 +100,26 @@ supportedArchitectures:
 
 # Manual dependency metadata extensions for packages with incomplete published metadata.
 packageExtensions:
-  '@medusajs/caching@2.17.2':
+  '@medusajs/caching@2.18.0':
     dependencies:
       graphql: 16.14.0
-  '@medusajs/core-flows@2.17.2':
+  '@medusajs/core-flows@2.18.0':
     dependencies:
-      '@medusajs/utils': 2.17.2
-      '@medusajs/workflows-sdk': 2.17.2
-  '@medusajs/types@2.17.2':
+      '@medusajs/utils': 2.18.0
+      '@medusajs/workflows-sdk': 2.18.0
+  '@medusajs/types@2.18.0':
     dependencies:
       # Its published declarations import this package, but the release lists
       # it only as a dev dependency. Supply the missing type/runtime edge so
       # every MedusaContainer resolves the same Awilix contract.
-      '@medusajs/deps': 2.17.2
+      '@medusajs/deps': 2.18.0
   '@rokmohar/medusa-plugin-meilisearch@1.4.3':
     dependencies:
       # The published bundle externalizes these runtime imports but omits them
       # from its manifest. Keep the extension scoped to the audited release.
-      '@medusajs/js-sdk': 2.17.2
-      '@medusajs/utils': 2.17.2
-      '@medusajs/workflows-sdk': 2.17.2
+      '@medusajs/js-sdk': 2.18.0
+      '@medusajs/utils': 2.18.0
+      '@medusajs/workflows-sdk': 2.18.0
       zod: ^4.2.0
   'medusa-plugin-content@0.2.5':
     dependencies:
