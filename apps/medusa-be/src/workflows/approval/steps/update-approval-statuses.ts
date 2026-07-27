@@ -24,7 +24,7 @@ export const updateApprovalStatusStep = createStep(
       data: [approvalStatus],
     } = await query.graph({
       entity: "approval_status",
-      fields: ["*", "status"],
+      fields: ["*"],
       filters: {
         cart_id: input.cart_id,
       },

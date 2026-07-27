@@ -1,5 +1,5 @@
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
-import { Modules } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 type ProductCategoryRecord = {
   handle: string
@@ -102,7 +102,7 @@ export default async function linkProductsToCategories({
   container,
 }: ExecArgs) {
   const productService = container.resolve<ProductService>(Modules.PRODUCT)
-  const logger = container.resolve<Logger>("logger")
+  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
   logger.info("Starting to link products to categories...")
 

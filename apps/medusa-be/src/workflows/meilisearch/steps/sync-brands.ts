@@ -1,4 +1,5 @@
 import type { Query } from "@medusajs/framework"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
 import { isMeilisearchEnabled } from "../../../modules/meilisearch/env"
@@ -17,7 +18,9 @@ export const syncMeilisearchBrandsStep = createStep(
       })
     }
 
-    const queryService = container.resolve<Query>("query")
+    const queryService = container.resolve<Query>(
+      ContainerRegistrationKeys.QUERY
+    )
     const meilisearchService: MeiliSearchService =
       container.resolve(MEILISEARCH)
 

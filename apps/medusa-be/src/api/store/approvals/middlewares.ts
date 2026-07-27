@@ -6,6 +6,7 @@ import {
   validateAndTransformBody,
   validateAndTransformQuery,
 } from "@medusajs/framework"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type { MiddlewareRoute } from "@medusajs/medusa"
 import { ApprovalType } from "../../../types"
 import { ensureRole } from "../../middlewares/ensure-role"
@@ -27,7 +28,7 @@ const ensureApprovalType = async (
     return
   }
 
-  const query = req.scope.resolve("query")
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const {
     data: [approval],

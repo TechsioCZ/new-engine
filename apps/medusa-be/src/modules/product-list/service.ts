@@ -1,6 +1,8 @@
 import type { Context, InferTypeOf } from "@medusajs/framework/types"
 import {
+  InjectManager,
   kebabCase,
+  MedusaContext,
   MedusaError,
   MedusaService,
 } from "@medusajs/framework/utils"
@@ -67,9 +69,10 @@ class ProductListModuleService extends MedusaService({
   ProductList,
   ProductListItem,
 }) {
+  @InjectManager()
   async createFavoriteProductList(
     input: CreateFavoriteProductListDTO = {},
-    sharedContext?: Context
+    @MedusaContext() sharedContext?: Context
   ) {
     return await this.createProductLists(
       {
@@ -86,9 +89,10 @@ class ProductListModuleService extends MedusaService({
     )
   }
 
+  @InjectManager()
   async createCustomProductList(
     input: CreateCustomProductListDTO,
-    sharedContext?: Context
+    @MedusaContext() sharedContext?: Context
   ) {
     const title = input.title.trim()
 
@@ -117,10 +121,11 @@ class ProductListModuleService extends MedusaService({
     )
   }
 
+  @InjectManager()
   async updateCustomProductList(
     listId: string,
     input: UpdateCustomProductListDTO,
-    sharedContext?: Context
+    @MedusaContext() sharedContext?: Context
   ) {
     const productList = await this.retrieveProductList(
       listId,
@@ -174,9 +179,10 @@ class ProductListModuleService extends MedusaService({
     return await this.updateProductLists(data, sharedContext)
   }
 
+  @InjectManager()
   async createProductListItemForList(
     input: CreateProductListItemDTO,
-    sharedContext?: Context
+    @MedusaContext() sharedContext?: Context
   ) {
     normalizeProductListType(input.list_type)
     const quantity = normalizePositiveInteger("quantity", input.quantity)
@@ -193,10 +199,11 @@ class ProductListModuleService extends MedusaService({
     )
   }
 
+  @InjectManager()
   async incrementProductListItemQuantity(
     itemId: string,
     quantityToAdd = 1,
-    sharedContext?: Context
+    @MedusaContext() sharedContext?: Context
   ) {
     const incrementBy = normalizePositiveInteger("quantityToAdd", quantityToAdd)
     const item: ProductListItemRecord = await this.retrieveProductListItem(
@@ -214,10 +221,11 @@ class ProductListModuleService extends MedusaService({
     )
   }
 
+  @InjectManager()
   async decrementProductListItemQuantity(
     itemId: string,
     quantityToSubtract = 1,
-    sharedContext?: Context
+    @MedusaContext() sharedContext?: Context
   ) {
     const decrementBy = normalizePositiveInteger(
       "quantityToSubtract",
@@ -246,10 +254,11 @@ class ProductListModuleService extends MedusaService({
     )
   }
 
+  @InjectManager()
   async updateProductListItemForList(
     itemId: string,
     input: UpdateProductListItemDTO,
-    sharedContext?: Context
+    @MedusaContext() sharedContext?: Context
   ) {
     const data: UpdateProductListItemDTO & { id: string } = { id: itemId }
 

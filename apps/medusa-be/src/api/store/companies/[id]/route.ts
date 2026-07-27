@@ -3,6 +3,7 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/utils"
+import { requirePathParam } from "../../../../utils/path-params"
 import {
   deleteCompaniesWorkflow,
   updateCompaniesWorkflow,
@@ -64,11 +65,10 @@ export const DELETE = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) => {
-  const { id } = req.params
+  const id = requirePathParam(req.params.id, "Company id")
 
-  await deleteCompaniesWorkflow.run({
+  await deleteCompaniesWorkflow(req.scope).run({
     input: { id },
-    container: req.scope,
     throwOnError: true,
   })
 

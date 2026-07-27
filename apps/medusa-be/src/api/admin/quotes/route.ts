@@ -8,7 +8,7 @@ export const GET = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
-  const { fields, pagination } = req.remoteQueryConfig
+  const { fields, pagination } = req.queryConfig
   const skip = pagination.skip ?? 0
   const { data: quotes, metadata } = await query.graph({
     entity: "quote",
