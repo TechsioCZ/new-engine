@@ -1,4 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+const { wrapProductsWithTaxPrices } = vi.hoisted(() => ({
+  wrapProductsWithTaxPrices: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock("@medusajs/medusa/api/store/products/helpers", () => ({
+  wrapProductsWithTaxPrices,
+}))
+
 import { GET } from "../../../src/api/store/catalog/products/route"
 
 type TestProduct = {
@@ -300,6 +309,9 @@ const createCatalogHarness = ({
       sales_channel_id: [salesChannelId],
       status: "published",
     },
+    queryConfig: {
+      fields: [],
+    },
     scope: {
       resolve: vi.fn((key: string) => {
         if (key === "meilisearch") {
@@ -327,6 +339,7 @@ describe("GET /store/catalog/products", () => {
   const originalMeilisearchEnabled = process.env.MEILISEARCH_ENABLED
 
   beforeEach(() => {
+    vi.clearAllMocks()
     process.env.MEILISEARCH_ENABLED = "1"
   })
 
@@ -420,6 +433,10 @@ describe("GET /store/catalog/products", () => {
       }),
     ])
     expect(getJsonPayload(res).count).toBe(1)
+    expect(wrapProductsWithTaxPrices).toHaveBeenCalledWith(
+      req,
+      getJsonPayload(res).products
+    )
   })
 
   it("passes price filters to Meilisearch before applying visibility", async () => {
