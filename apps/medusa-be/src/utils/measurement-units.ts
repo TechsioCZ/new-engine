@@ -1,40 +1,22 @@
-import type { HttpTypes, MedusaContainer } from "@medusajs/framework/types"
+import type {
+  HttpTypes,
+  InferEntityType,
+  MedusaContainer,
+} from "@medusajs/framework/types"
+import { MedusaError } from "@medusajs/framework/utils"
 import { MEASUREMENT_UNIT_MODULE } from "../modules/measurement-unit"
+import type MeasurementUnit from "../modules/measurement-unit/models/measurement-unit"
+import type ProductMeasurement from "../modules/measurement-unit/models/product-measurement"
+import type ProductVariantMeasurement from "../modules/measurement-unit/models/product-variant-measurement"
 import type MeasurementUnitModuleService from "../modules/measurement-unit/service"
 
-export type MeasurementUnitRecord = {
-  base_quantity: number | string
-  code: string
-  created_at?: Date | string
-  deleted_at?: Date | string | null
-  description?: null | string
-  id: string
-  name: string
-  symbol: string
-  updated_at?: Date | string
-}
-
-export type ProductMeasurementRecord = {
-  created_at?: Date | string
-  deleted_at?: Date | string | null
-  id: string
-  measurement_unit?: MeasurementUnitRecord
-  measurement_unit_id?: string
-  product_id: string
-  updated_at?: Date | string
-  variant_measurements?: ProductVariantMeasurementRecord[]
-}
-
-export type ProductVariantMeasurementRecord = {
-  created_at?: Date | string
-  deleted_at?: Date | string | null
-  id: string
-  product_measurement_id?: string
-  product_measurement?: ProductMeasurementRecord
-  product_unit_quantity: number | string
-  product_variant_id: string
-  updated_at?: Date | string
-}
+export type MeasurementUnitRecord = InferEntityType<typeof MeasurementUnit>
+export type ProductMeasurementRecord = InferEntityType<
+  typeof ProductMeasurement
+>
+export type ProductVariantMeasurementRecord = InferEntityType<
+  typeof ProductVariantMeasurement
+>
 
 export type MeasurementUnitResponse = {
   active_product_count?: number
@@ -86,68 +68,6 @@ export type MeasurementDecorationOptions = {
   includePricePerUnit: boolean
   includeProductMeasurement: boolean
   includeVariantMeasurement: boolean
-}
-
-type MeasurementUnitService = MeasurementUnitModuleService & {
-  createMeasurementUnits: (
-    data: Partial<MeasurementUnitRecord> | Partial<MeasurementUnitRecord>[]
-  ) => Promise<MeasurementUnitRecord[]>
-  createProductMeasurements: (
-    data:
-      | Partial<ProductMeasurementRecord>
-      | Partial<ProductMeasurementRecord>[]
-  ) => Promise<ProductMeasurementRecord[] | ProductMeasurementRecord>
-  createProductVariantMeasurements: (
-    data:
-      | Partial<ProductVariantMeasurementRecord>
-      | Partial<ProductVariantMeasurementRecord>[]
-  ) => Promise<
-    ProductVariantMeasurementRecord[] | ProductVariantMeasurementRecord
-  >
-  deleteMeasurementUnits: (ids: string[]) => Promise<void>
-  listAndCountMeasurementUnits: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
-  ) => Promise<[MeasurementUnitRecord[], number]>
-  listMeasurementUnits: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
-  ) => Promise<MeasurementUnitRecord[]>
-  listProductMeasurements: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
-  ) => Promise<ProductMeasurementRecord[]>
-  listProductVariantMeasurements: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
-  ) => Promise<ProductVariantMeasurementRecord[]>
-  restoreMeasurementUnits: (ids: string[]) => Promise<void>
-  restoreProductMeasurements: (ids: string[]) => Promise<void>
-  restoreProductVariantMeasurements: (ids: string[]) => Promise<void>
-  retrieveMeasurementUnit: (
-    id: string,
-    config?: Record<string, unknown>
-  ) => Promise<MeasurementUnitRecord>
-  softDeleteMeasurementUnits: (ids: string[]) => Promise<void>
-  softDeleteProductMeasurements: (ids: string[]) => Promise<void>
-  softDeleteProductVariantMeasurements: (ids: string[]) => Promise<void>
-  updateMeasurementUnits: (
-    data:
-      | (Partial<MeasurementUnitRecord> & { id: string })
-      | Array<Partial<MeasurementUnitRecord> & { id: string }>
-  ) => Promise<MeasurementUnitRecord[] | MeasurementUnitRecord>
-  updateProductMeasurements: (
-    data:
-      | (Partial<ProductMeasurementRecord> & { id: string })
-      | Array<Partial<ProductMeasurementRecord> & { id: string }>
-  ) => Promise<ProductMeasurementRecord[] | ProductMeasurementRecord>
-  updateProductVariantMeasurements: (
-    data:
-      | (Partial<ProductVariantMeasurementRecord> & { id: string })
-      | Array<Partial<ProductVariantMeasurementRecord> & { id: string }>
-  ) => Promise<
-    ProductVariantMeasurementRecord[] | ProductVariantMeasurementRecord
-  >
 }
 
 const PRICE_AMOUNT_FIELDS = [
@@ -224,7 +144,7 @@ export const getMeasurementDecorationQueryFields = (
 }
 
 export const getMeasurementUnitService = (scope: MedusaContainer) =>
-  scope.resolve<MeasurementUnitService>(MEASUREMENT_UNIT_MODULE)
+  scope.resolve<MeasurementUnitModuleService>(MEASUREMENT_UNIT_MODULE)
 
 export const toNumber = (value: number | string | unknown) => {
   if (typeof value === "number") {
@@ -254,10 +174,16 @@ export const toMeasurementUnitResponse = (
 ): MeasurementUnitResponse => {
   const baseQuantity = toNumber(unit.base_quantity)
 
+  if (!(Number.isFinite(baseQuantity) && baseQuantity > 0)) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Measurement unit "${unit.id}" has an invalid base quantity.`
+    )
+  }
+
   return {
     active_product_count: activeProductCount,
-    base_quantity:
-      Number.isFinite(baseQuantity) && baseQuantity > 0 ? baseQuantity : 1,
+    base_quantity: baseQuantity,
     code: unit.code,
     created_at: unit.created_at,
     deleted_at: unit.deleted_at ?? null,
@@ -279,7 +205,10 @@ export const toProductVariantMeasurementResponse = (
   const quantity = toNumber(measurement.product_unit_quantity)
 
   if (!Number.isFinite(quantity) || quantity <= 0) {
-    return null
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Product variant measurement "${measurement.id}" has an invalid quantity.`
+    )
   }
 
   return {
@@ -345,30 +274,11 @@ export const getMeasurementUnitActiveProductCounts = async (
     return new Map<string, number>()
   }
 
-  const measurements = (await getMeasurementUnitService(
-    scope
-  ).listProductMeasurements({
-    measurement_unit_id: { $in: ids },
-  })) as ProductMeasurementRecord[]
-  const counts = new Map<string, Set<string>>()
-
-  for (const measurement of measurements) {
-    const unitId = measurement.measurement_unit_id
-
-    if (!unitId) {
-      continue
-    }
-
-    const productIdsForUnit = counts.get(unitId) ?? new Set<string>()
-    productIdsForUnit.add(measurement.product_id)
-    counts.set(unitId, productIdsForUnit)
-  }
+  const counts =
+    await getMeasurementUnitService(scope).getActiveProductCounts(ids)
 
   return new Map(
-    [...counts.entries()].map(([unitId, productIdSet]) => [
-      unitId,
-      productIdSet.size,
-    ])
+    counts.map((row) => [row.measurement_unit_id, Number(row.count)])
   )
 }
 

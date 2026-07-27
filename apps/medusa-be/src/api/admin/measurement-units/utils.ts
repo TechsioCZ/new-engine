@@ -198,6 +198,91 @@ const getAssignedProductOrder = (orderBy: string) => {
   }
 }
 
+const listActiveMeasurementUnitAssignedProducts = async ({
+  limit,
+  offset,
+  orderBy,
+  q,
+  scope,
+  unitId,
+}: {
+  limit: number
+  offset: number
+  orderBy: string
+  q?: string
+  scope: MedusaContainer
+  unitId: string
+}) => {
+  const escapedQuery = q ? escapeLikePattern(q) : undefined
+  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+  // Custom links aren't represented in Medusa's static IndexServiceEntryPoints.
+  const entity: string = "product"
+  const { data, metadata } = await query.index({
+    entity,
+    fields: ["id", "title", "handle", "status", "updated_at"],
+    filters: {
+      product_measurement: {
+        measurement_unit_id: unitId,
+      },
+      ...(escapedQuery
+        ? {
+            $or: [
+              { title: { $ilike: `%${escapedQuery}%` } },
+              { handle: { $ilike: `%${escapedQuery}%` } },
+            ],
+          }
+        : {}),
+    },
+    pagination: {
+      order: getAssignedProductOrder(orderBy),
+      skip: offset,
+      take: limit,
+    },
+  })
+  const products = data as Array<{
+    handle?: null | string
+    id: string
+    status?: null | string
+    title?: null | string
+    updated_at?: Date | string
+  }>
+
+  return {
+    count: metadata?.estimate_count ?? products.length,
+    products: products.map((product) => ({
+      deleted_at: null,
+      handle: product.handle,
+      id: product.id,
+      product_id: product.id,
+      status: product.status,
+      title: product.title,
+      updated_at: product.updated_at,
+    })),
+  }
+}
+
+export const getCanonicalAssignmentByProductId = (
+  measurements: ProductMeasurementRecord[]
+) => {
+  const byProductId = new Map<string, ProductMeasurementRecord>()
+
+  for (const measurement of measurements) {
+    const existing = byProductId.get(measurement.product_id)
+
+    if (
+      !existing ||
+      (existing.deleted_at && !measurement.deleted_at) ||
+      (!!existing.deleted_at === !!measurement.deleted_at &&
+        new Date(measurement.updated_at).getTime() >
+          new Date(existing.updated_at).getTime())
+    ) {
+      byProductId.set(measurement.product_id, measurement)
+    }
+  }
+
+  return byProductId
+}
+
 export const listMeasurementUnitAssignedProducts = async ({
   limit,
   offset,
@@ -215,6 +300,17 @@ export const listMeasurementUnitAssignedProducts = async ({
   status: MeasurementUnitProductListStatus
   unitId: string
 }) => {
+  if (status === "active") {
+    return await listActiveMeasurementUnitAssignedProducts({
+      limit,
+      offset,
+      orderBy,
+      q,
+      scope,
+      unitId,
+    })
+  }
+
   const filters: Record<string, unknown> = {
     measurement_unit_id: unitId,
   }
@@ -223,11 +319,13 @@ export const listMeasurementUnitAssignedProducts = async ({
     filters.deleted_at = { $ne: null }
   }
 
+  // The Index Module removes soft-deleted entities, so history intentionally
+  // stays on the owning module instead of issuing a cross-module SQL join.
   const measurements = await getMeasurementUnitService(
     scope
   ).listProductMeasurements(filters, {
-    select: ["product_id", "deleted_at"],
-    withDeleted: status !== "active",
+    select: ["product_id", "deleted_at", "updated_at"],
+    withDeleted: true,
   })
   const productIds = uniqueIds(
     measurements.map((measurement) => measurement.product_id)
@@ -262,8 +360,8 @@ export const listMeasurementUnitAssignedProducts = async ({
       withDeleted: true,
     }
   )
-  const measurementByProductId = new Map(
-    measurements.map((measurement) => [measurement.product_id, measurement])
+  const measurementByProductId = getCanonicalAssignmentByProductId(
+    measurements as ProductMeasurementRecord[]
   )
   const assignedProducts = products.flatMap((product) => {
     const measurement = measurementByProductId.get(product.id)

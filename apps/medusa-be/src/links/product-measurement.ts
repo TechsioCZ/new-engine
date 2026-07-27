@@ -10,5 +10,6 @@ export const ProductMeasurementLink = defineLink(
   {
     linkable: MeasurementUnitModule.linkable.productMeasurement,
     deleteCascade: true,
+    filterable: ["id", "measurement_unit_id"],
   }
 )

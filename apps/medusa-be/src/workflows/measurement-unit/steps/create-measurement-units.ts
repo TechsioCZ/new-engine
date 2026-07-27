@@ -2,13 +2,17 @@ import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { getMeasurementUnitService } from "../../../utils/measurement-units"
 import type { CreateMeasurementUnitsWorkflowInput } from "../types"
-import { ensureUnitCodeAvailable, normalizeUnitCode } from "./helpers"
+import { normalizeUnitCode } from "./helpers"
 
 export const createMeasurementUnitsStep = createStep(
   "create-measurement-units",
   async (input: CreateMeasurementUnitsWorkflowInput, { container }) => {
     const normalizedCodes = input.units.map((unit) =>
       normalizeUnitCode(unit.code)
+    )
+    const invalidTextUnit = input.units.find(
+      (unit, index) =>
+        !(normalizedCodes[index] && unit.name.trim() && unit.symbol.trim())
     )
     const invalidBaseQuantityUnit = input.units.find(
       (unit) => !(Number.isFinite(unit.base_quantity) && unit.base_quantity > 0)
@@ -24,6 +28,13 @@ export const createMeasurementUnitsStep = createStep(
       )
     }
 
+    if (invalidTextUnit) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Measurement unit code, name, and symbol must not be empty."
+      )
+    }
+
     if (duplicateCodes.length) {
       throw new MedusaError(
         MedusaError.Types.DUPLICATE_ERROR,
@@ -31,19 +42,33 @@ export const createMeasurementUnitsStep = createStep(
       )
     }
 
-    for (const unit of input.units) {
-      await ensureUnitCodeAvailable({
-        code: unit.code,
-        container,
-      })
+    const service = getMeasurementUnitService(container)
+    const existingUnits = normalizedCodes.length
+      ? await service.listMeasurementUnits(
+          {
+            code: { $in: normalizedCodes },
+          },
+          {
+            select: ["code"],
+            withDeleted: true,
+          }
+        )
+      : []
+
+    if (existingUnits.length) {
+      throw new MedusaError(
+        MedusaError.Types.DUPLICATE_ERROR,
+        `Measurement unit codes already exist: ${[
+          ...new Set(existingUnits.map((unit) => unit.code)),
+        ].join(", ")}`
+      )
     }
 
-    const service = getMeasurementUnitService(container)
     const units = await service.createMeasurementUnits(
       input.units.map((unit) => ({
         base_quantity: unit.base_quantity,
         code: normalizeUnitCode(unit.code),
-        description: unit.description ?? null,
+        description: unit.description?.trim() || null,
         name: unit.name.trim(),
         symbol: unit.symbol.trim(),
       }))

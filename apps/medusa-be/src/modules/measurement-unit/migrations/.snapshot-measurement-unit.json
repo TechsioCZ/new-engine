@@ -348,6 +348,15 @@
           "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_product_measurement_product_unit_deleted_unique\" ON \"product_measurement\" (\"product_id\", \"measurement_unit_id\") WHERE deleted_at IS NOT NULL"
         },
         {
+          "keyName": "IDX_product_measurement_unit_id_deleted",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_product_measurement_unit_id_deleted\" ON \"product_measurement\" (\"measurement_unit_id\") WHERE deleted_at IS NOT NULL"
+        },
+        {
           "keyName": "product_measurement_pkey",
           "columnNames": [
             "id"
@@ -544,6 +553,15 @@
           "primary": false,
           "unique": false,
           "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_product_variant_measurement_variant_product_deleted_unique\" ON \"product_variant_measurement\" (\"product_variant_id\", \"product_measurement_id\") WHERE deleted_at IS NOT NULL"
+        },
+        {
+          "keyName": "IDX_product_variant_measurement_product_id_deleted",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_product_variant_measurement_product_id_deleted\" ON \"product_variant_measurement\" (\"product_measurement_id\") WHERE deleted_at IS NOT NULL"
         },
         {
           "keyName": "product_variant_measurement_pkey",

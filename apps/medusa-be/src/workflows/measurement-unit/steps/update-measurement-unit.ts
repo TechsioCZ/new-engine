@@ -29,6 +29,24 @@ export const updateMeasurementUnitStep = createStep(
       )
     }
 
+    if (previous.deleted_at) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_ALLOWED,
+        `Deleted measurement unit "${input.id}" must be restored before it can be updated.`
+      )
+    }
+
+    if (
+      (update.code !== undefined && !normalizeUnitCode(update.code)) ||
+      (update.name !== undefined && !update.name.trim()) ||
+      (update.symbol !== undefined && !update.symbol.trim())
+    ) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Measurement unit code, name, and symbol must not be empty."
+      )
+    }
+
     if (update.code) {
       update.code = await ensureUnitCodeAvailable({
         code: update.code,
@@ -53,7 +71,9 @@ export const updateMeasurementUnitStep = createStep(
       base_quantity: update.base_quantity,
       code: update.code ? normalizeUnitCode(update.code) : undefined,
       description:
-        update.description === undefined ? undefined : update.description,
+        update.description === undefined
+          ? undefined
+          : update.description?.trim() || null,
       name: update.name?.trim(),
       symbol: update.symbol?.trim(),
     })

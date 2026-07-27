@@ -118,7 +118,7 @@ export async function POST(
     req.scope
   ).retrieveMeasurementUnit(created.id)
 
-  res.status(200).json({
+  res.status(201).json({
     measurement_unit: toMeasurementUnitResponse(unit),
   })
 }
