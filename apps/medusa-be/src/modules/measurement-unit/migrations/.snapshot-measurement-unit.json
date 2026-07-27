@@ -339,13 +339,13 @@
           "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_product_measurement_product_id_unique\" ON \"product_measurement\" (\"product_id\") WHERE deleted_at IS NULL"
         },
         {
-          "keyName": "IDX_product_measurement_product_id_unit_id_unique",
+          "keyName": "IDX_product_measurement_product_unit_deleted_unique",
           "columnNames": [],
           "composite": false,
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_product_measurement_product_id_unit_id_unique\" ON \"product_measurement\" (\"product_id\", \"measurement_unit_id\") WHERE deleted_at IS NULL"
+          "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_product_measurement_product_unit_deleted_unique\" ON \"product_measurement\" (\"product_id\", \"measurement_unit_id\") WHERE deleted_at IS NOT NULL"
         },
         {
           "keyName": "product_measurement_pkey",
@@ -537,13 +537,13 @@
           "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_product_variant_measurement_variant_id_unique\" ON \"product_variant_measurement\" (\"product_variant_id\") WHERE deleted_at IS NULL"
         },
         {
-          "keyName": "IDX_product_variant_measurement_variant_id_product_measurement_id_unique",
+          "keyName": "IDX_product_variant_measurement_variant_product_deleted_unique",
           "columnNames": [],
           "composite": false,
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_product_variant_measurement_variant_id_product_measurement_id_unique\" ON \"product_variant_measurement\" (\"product_variant_id\", \"product_measurement_id\") WHERE deleted_at IS NULL"
+          "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_product_variant_measurement_variant_product_deleted_unique\" ON \"product_variant_measurement\" (\"product_variant_id\", \"product_measurement_id\") WHERE deleted_at IS NOT NULL"
         },
         {
           "keyName": "product_variant_measurement_pkey",

@@ -18,9 +18,10 @@ const ProductVariantMeasurement = model
       where: "deleted_at IS NULL",
     },
     {
-      name: "IDX_product_variant_measurement_variant_id_product_measurement_id_unique",
+      name: "IDX_product_variant_measurement_variant_product_deleted_unique",
       on: ["product_variant_id", "product_measurement_id"],
       unique: true,
+      where: "deleted_at IS NOT NULL",
     },
   ])
   .checks([

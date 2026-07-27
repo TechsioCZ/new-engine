@@ -1,7 +1,11 @@
-import type { MedusaContainer } from "@medusajs/framework/types"
+import type {
+  IProductModuleService,
+  MedusaContainer,
+} from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
+  Modules,
 } from "@medusajs/framework/utils"
 import {
   getMeasurementUnitActiveProductCounts,
@@ -36,11 +40,12 @@ export type MeasurementUnitAssignedProductResponse = {
   updated_at?: Date | string
 }
 
-type MeasurementUnitAssignedProductProjection = Omit<
-  MeasurementUnitAssignedProductResponse,
-  "product_id"
->
-
+const ASSIGNED_PRODUCT_ORDER_FIELDS = new Set([
+  "handle",
+  "status",
+  "title",
+  "updated_at",
+])
 const LIKE_WILDCARD_REGEX = /[\\%_]/g
 const LEADING_DASH_REGEX = /^-/
 
@@ -181,19 +186,15 @@ export const toMeasurementUnitDetailResponse = async (
   return toMeasurementUnitResponse(unit, counts.get(unit.id) ?? 0)
 }
 
-const getAssignedProductOrderValue = (
-  product: MeasurementUnitAssignedProductResponse,
-  orderBy: string
-) => {
-  switch (orderBy.replace(LEADING_DASH_REGEX, "")) {
-    case "handle":
-      return product.handle ?? ""
-    case "status":
-      return product.status ?? ""
-    case "updated_at":
-      return String(product.updated_at ?? "")
-    default:
-      return product.title ?? ""
+const getAssignedProductOrder = (orderBy: string) => {
+  const requestedField = orderBy.replace(LEADING_DASH_REGEX, "")
+  const field = ASSIGNED_PRODUCT_ORDER_FIELDS.has(requestedField)
+    ? requestedField
+    : "title"
+  const direction: "ASC" | "DESC" = orderBy.startsWith("-") ? "DESC" : "ASC"
+
+  return {
+    [field]: direction,
   }
 }
 
@@ -222,11 +223,12 @@ export const listMeasurementUnitAssignedProducts = async ({
     filters.deleted_at = { $ne: null }
   }
 
-  const measurements = (await getMeasurementUnitService(
+  const measurements = await getMeasurementUnitService(
     scope
   ).listProductMeasurements(filters, {
+    select: ["product_id", "deleted_at"],
     withDeleted: status !== "active",
-  })) as ProductMeasurementRecord[]
+  })
   const productIds = uniqueIds(
     measurements.map((measurement) => measurement.product_id)
   )
@@ -239,11 +241,9 @@ export const listMeasurementUnitAssignedProducts = async ({
   }
 
   const escapedQuery = q ? escapeLikePattern(q) : undefined
-  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
-  const { data } = await query.graph({
-    entity: "product",
-    fields: ["id", "title", "handle", "status", "updated_at", "deleted_at"],
-    filters: {
+  const productService = scope.resolve<IProductModuleService>(Modules.PRODUCT)
+  const [products, count] = await productService.listAndCountProducts(
+    {
       id: { $in: productIds },
       ...(escapedQuery
         ? {
@@ -254,47 +254,40 @@ export const listMeasurementUnitAssignedProducts = async ({
           }
         : {}),
     },
-    withDeleted: true,
-  })
-  const productById = new Map<string, MeasurementUnitAssignedProductProjection>(
-    data.map((product) => [
-      product.id,
-      {
-        deleted_at: product.deleted_at,
-        handle: product.handle,
-        id: product.id,
-        status: product.status,
-        title: product.title,
-        updated_at: product.updated_at,
-      },
-    ])
+    {
+      order: getAssignedProductOrder(orderBy),
+      select: ["id", "title", "handle", "status", "updated_at"],
+      skip: offset,
+      take: limit,
+      withDeleted: true,
+    }
   )
-  const products = measurements.flatMap((measurement) => {
-    const product = productById.get(measurement.product_id)
+  const measurementByProductId = new Map(
+    measurements.map((measurement) => [measurement.product_id, measurement])
+  )
+  const assignedProducts = products.flatMap((product) => {
+    const measurement = measurementByProductId.get(product.id)
 
-    if (!product) {
+    if (!measurement) {
       return []
     }
 
     return [
       {
-        ...product,
         deleted_at: measurement.deleted_at ?? null,
+        handle: product.handle,
+        id: product.id,
         product_id: measurement.product_id,
+        status: product.status,
+        title: product.title,
+        updated_at: product.updated_at,
       },
     ]
   })
-  const direction = orderBy.startsWith("-") ? -1 : 1
-  const sortedProducts = products.sort(
-    (left, right) =>
-      String(getAssignedProductOrderValue(left, orderBy)).localeCompare(
-        String(getAssignedProductOrderValue(right, orderBy))
-      ) * direction
-  )
 
   return {
-    count: sortedProducts.length,
-    products: sortedProducts.slice(offset, offset + limit),
+    count,
+    products: assignedProducts,
   }
 }
 

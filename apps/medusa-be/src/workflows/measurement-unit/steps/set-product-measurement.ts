@@ -197,7 +197,10 @@ export const setProductMeasurementStep = createStep(
       container,
       input.product_id
     )
-    const previousVariantMeasurements = previous?.variant_measurements ?? []
+    const previousVariantMeasurements =
+      previous?.variant_measurements?.filter(
+        (measurement) => !measurement.deleted_at
+      ) ?? []
 
     if (
       previous?.id &&

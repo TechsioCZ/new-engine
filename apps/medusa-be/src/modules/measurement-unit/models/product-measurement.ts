@@ -21,9 +21,10 @@ const ProductMeasurement = model
       where: "deleted_at IS NULL",
     },
     {
-      name: "IDX_product_measurement_product_id_unit_id_unique",
+      name: "IDX_product_measurement_product_unit_deleted_unique",
       on: ["product_id", "measurement_unit_id"],
       unique: true,
+      where: "deleted_at IS NOT NULL",
     },
   ])
 
