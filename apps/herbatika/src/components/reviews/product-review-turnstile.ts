@@ -27,15 +27,19 @@ type TurnstileApi = {
   ) => TurnstileWidgetId
 }
 
-declare global {
-  interface Window {
-    turnstile?: TurnstileApi
-  }
+type TurnstileWindow = Window & {
+  turnstile?: TurnstileApi
+}
+
+function getTurnstileApi(): TurnstileApi | undefined {
+  return (window as TurnstileWindow).turnstile
 }
 
 function loadTurnstileScript(): Promise<TurnstileApi> {
-  if (window.turnstile) {
-    return Promise.resolve(window.turnstile)
+  const turnstile = getTurnstileApi()
+
+  if (turnstile) {
+    return Promise.resolve(turnstile)
   }
 
   return new Promise((resolve, reject) => {
@@ -45,8 +49,10 @@ function loadTurnstileScript(): Promise<TurnstileApi> {
       existingScript.addEventListener(
         "load",
         () => {
-          if (window.turnstile) {
-            resolve(window.turnstile)
+          const loadedTurnstile = getTurnstileApi()
+
+          if (loadedTurnstile) {
+            resolve(loadedTurnstile)
             return
           }
 
@@ -70,8 +76,10 @@ function loadTurnstileScript(): Promise<TurnstileApi> {
     script.addEventListener(
       "load",
       () => {
-        if (window.turnstile) {
-          resolve(window.turnstile)
+        const loadedTurnstile = getTurnstileApi()
+
+        if (loadedTurnstile) {
+          resolve(loadedTurnstile)
           return
         }
 
@@ -131,8 +139,8 @@ export async function getProductReviewTurnstileToken(): Promise<
   string | undefined
 > {
   if (!TURNSTILE_SITE_KEY || typeof window === "undefined") {
-    return undefined
+    return
   }
 
-  return executeTurnstileChallenge()
+  return await executeTurnstileChallenge()
 }

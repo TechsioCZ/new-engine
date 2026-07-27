@@ -11,13 +11,13 @@ import {
   type ProductReviewFormSubmitValues,
 } from "@/components/reviews/product-review-form"
 import {
-  getProductReviewTurnstileToken,
-  PRODUCT_REVIEW_TURNSTILE_ERROR_MESSAGE,
-} from "@/components/reviews/product-review-turnstile"
-import {
   type ProductReviewTokenProductStatus,
   resolveProductStatusMessage,
 } from "@/components/reviews/product-review-token-status"
+import {
+  getProductReviewTurnstileToken,
+  PRODUCT_REVIEW_TURNSTILE_ERROR_MESSAGE,
+} from "@/components/reviews/product-review-turnstile"
 import { useProducts } from "@/lib/storefront/products"
 import { useCreateProductReview } from "@/lib/storefront/reviews"
 
