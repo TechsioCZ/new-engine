@@ -11,6 +11,7 @@ import {
 } from "./cloudflare-turnstile-helpers"
 import {
   DEFAULT_TURNSTILE_TOKEN_FIELDS,
+  normalizeTurnstileEnabled,
   normalizeTurnstileSecret,
   normalizeTurnstileToken,
 } from "./cloudflare-turnstile-normalizers"
@@ -49,6 +50,12 @@ export function verifyCloudflareTurnstile(
     try {
       const token = normalizeTurnstileToken(req.body, tokenFields)
       removeTurnstileTokenFields(req.body, tokenFields)
+
+      if (
+        !normalizeTurnstileEnabled(process.env.CLOUDFLARE_TURNSTILE_ENABLED)
+      ) {
+        return next()
+      }
 
       if (!token) {
         throw new CaptchaError({

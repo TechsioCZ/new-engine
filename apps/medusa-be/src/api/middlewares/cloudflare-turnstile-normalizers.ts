@@ -31,6 +31,12 @@ export function normalizeTurnstileSecret(value: string | undefined) {
   return normalized || undefined
 }
 
+export function normalizeTurnstileEnabled(value: string | undefined): boolean {
+  const normalized = value?.trim().toLowerCase()
+
+  return normalized === "1" || normalized === "true"
+}
+
 export function normalizeTurnstileAllowedHostnames(
   value: string | undefined
 ): string[] {
