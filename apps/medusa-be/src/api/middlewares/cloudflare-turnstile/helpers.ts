@@ -1,9 +1,12 @@
 import type { MedusaRequest } from "@medusajs/framework"
+import type { ApiStoreModuleService } from "../../../modules/api-store"
+import { API_STORE_MODULE } from "../../../modules/api-store"
 import {
   normalizeForwardedIpHeader,
   normalizeTurnstileAllowedHostnames,
 } from "./normalizers"
 
+export const TURNSTILE_SECRET_API_STORE_NAME = "Cloudflare Turnstile"
 export const TURNSTILE_SITEVERIFY_URL =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
@@ -39,6 +42,18 @@ export function getAllowedTurnstileHostnames(): string[] {
   return normalizeTurnstileAllowedHostnames(
     process.env.CLOUDFLARE_TURNSTILE_ALLOWED_HOSTNAMES
   )
+}
+
+export async function retrieveTurnstileSecretKey(
+  req: MedusaRequest,
+  apiStoreName = TURNSTILE_SECRET_API_STORE_NAME
+): Promise<string | undefined> {
+  const apiStoreService =
+    req.scope.resolve<ApiStoreModuleService>(API_STORE_MODULE)
+  const apiStore =
+    await apiStoreService.retrieveApiStoreSecretsByName(apiStoreName)
+
+  return apiStore?.api_key ?? undefined
 }
 
 export function isTurnstileHostnameAllowed(
