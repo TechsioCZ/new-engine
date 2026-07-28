@@ -51,13 +51,8 @@ export function verifyCloudflareTurnstile(
       const token = normalizeTurnstileToken(req.body, tokenFields)
       removeTurnstileTokenFields(req.body, tokenFields)
 
-      const secretKey = normalizeTurnstileSecret(process.env[secretKeyEnv])
-
       if (
-        !(
-          normalizeTurnstileEnabled(process.env.CLOUDFLARE_TURNSTILE_ENABLED) &&
-          secretKey
-        )
+        !normalizeTurnstileEnabled(process.env.CLOUDFLARE_TURNSTILE_ENABLED)
       ) {
         return next()
       }
@@ -66,6 +61,15 @@ export function verifyCloudflareTurnstile(
         throw new CaptchaError({
           message: "Captcha token is required",
           status: 400,
+        })
+      }
+
+      const secretKey = normalizeTurnstileSecret(process.env[secretKeyEnv])
+
+      if (!secretKey) {
+        throw new CaptchaError({
+          message: "Captcha verification is not configured",
+          status: 500,
         })
       }
 
