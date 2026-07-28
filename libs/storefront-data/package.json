@@ -258,6 +258,26 @@
       "types": "./dist/src/product-lists/utils.d.ts",
       "import": "./dist/product-lists/utils.js"
     },
+    "./product-attributes/hooks": {
+      "types": "./dist/src/product-attributes/hooks.d.ts",
+      "import": "./dist/product-attributes/hooks.js"
+    },
+    "./product-attributes/medusa-service": {
+      "types": "./dist/src/product-attributes/medusa-service.d.ts",
+      "import": "./dist/product-attributes/medusa-service.js"
+    },
+    "./product-attributes/query-keys": {
+      "types": "./dist/src/product-attributes/query-keys.d.ts",
+      "import": "./dist/product-attributes/query-keys.js"
+    },
+    "./product-attributes/query-options": {
+      "types": "./dist/src/product-attributes/query-options.d.ts",
+      "import": "./dist/product-attributes/query-options.js"
+    },
+    "./product-attributes/types": {
+      "types": "./dist/src/product-attributes/types.d.ts",
+      "import": "./dist/product-attributes/types.js"
+    },
     "./product-location-availability/hooks": {
       "types": "./dist/src/product-location-availability/hooks.d.ts",
       "import": "./dist/product-location-availability/hooks.js"
