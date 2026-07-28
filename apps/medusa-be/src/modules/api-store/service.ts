@@ -1,16 +1,25 @@
-import type { Context, InferTypeOf } from "@medusajs/framework/types"
+import type { Context } from "@medusajs/framework/types"
 import { MedusaError, MedusaService } from "@medusajs/framework/utils"
-import { decryptFields, encryptFields } from "../../utils/encryption"
+import { encryptFields } from "../../utils/encryption"
+import {
+  assertApiStoreHasSecret,
+  toApiStoreAdminDTO,
+  toApiStoreSecretDTO,
+} from "./helpers"
 import ApiStore from "./models/api-store"
+import {
+  normalizeAccessTokenExpiresAt,
+  normalizeApiUrl,
+  normalizeName,
+  SENSITIVE_FIELDS,
+  serializeCredentials,
+} from "./normalizers"
 import type {
   ApiStoreAdminDTO,
   ApiStoreCreateInput,
-  ApiStoreCredentials,
   ApiStoreSecretDTO,
   ApiStoreUpdateInput,
 } from "./types"
-
-type ApiStoreRecord = InferTypeOf<typeof ApiStore>
 
 type ApiStoreWriteData = {
   id?: string
@@ -20,54 +29,6 @@ type ApiStoreWriteData = {
   credentials?: string | null
   is_internal?: boolean
   access_token_expires_at?: Date | null
-}
-
-const SENSITIVE_FIELDS = ["api_key", "credentials"] as const
-
-const normalizeName = (name: string): string => name.trim()
-
-const normalizeAccessTokenExpiresAt = (
-  value?: Date | string | null
-): Date | null | undefined => {
-  if (value === undefined) {
-    return
-  }
-
-  if (value === null || value instanceof Date) {
-    return value
-  }
-
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date
-}
-
-const normalizeApiUrl = (apiUrl?: string | null): string | null | undefined => {
-  if (apiUrl === undefined) {
-    return
-  }
-
-  const trimmed = apiUrl?.trim()
-  return trimmed ? trimmed : null
-}
-
-const serializeCredentials = (
-  credentials: ApiStoreCredentials | null | undefined
-): string | null | undefined => {
-  if (credentials === undefined) {
-    return
-  }
-
-  return credentials === null ? null : JSON.stringify(credentials)
-}
-
-const parseCredentials = (
-  credentials: string | null
-): ApiStoreCredentials | null => {
-  if (!credentials) {
-    return null
-  }
-
-  return JSON.parse(credentials) as ApiStoreCredentials
 }
 
 class ApiStoreModuleService extends MedusaService({
@@ -88,7 +49,7 @@ class ApiStoreModuleService extends MedusaService({
       sharedContext
     )
 
-    return [records.map((record) => this.toAdminDTO(record)), count]
+    return [records.map((record) => toApiStoreAdminDTO(record)), count]
   }
 
   async retrieveApiStoreConfig(
@@ -96,7 +57,7 @@ class ApiStoreModuleService extends MedusaService({
     sharedContext?: Context
   ): Promise<ApiStoreAdminDTO> {
     const record = await this.retrieveApiStore(id, {}, sharedContext)
-    return this.toAdminDTO(record)
+    return toApiStoreAdminDTO(record)
   }
 
   async retrieveApiStoreSecretsByName(
@@ -114,7 +75,7 @@ class ApiStoreModuleService extends MedusaService({
       return null
     }
 
-    return this.toSecretDTO(record)
+    return toApiStoreSecretDTO(record)
   }
 
   async createApiStoreConfig(
@@ -138,12 +99,12 @@ class ApiStoreModuleService extends MedusaService({
         normalizeAccessTokenExpiresAt(input.access_token_expires_at) ?? null,
     }
 
-    this.assertHasSecret(data, data.is_internal)
+    assertApiStoreHasSecret(data, data.is_internal)
 
     const encrypted = encryptFields(data, [...SENSITIVE_FIELDS])
     const created = await this.createApiStores(encrypted, sharedContext)
 
-    return this.toAdminDTO(created)
+    return toApiStoreAdminDTO(created)
   }
 
   async updateApiStoreConfig(
@@ -190,7 +151,7 @@ class ApiStoreModuleService extends MedusaService({
       data.credentials = credentials
     }
 
-    this.assertHasSecret(
+    assertApiStoreHasSecret(
       {
         api_key: data.api_key === undefined ? existing.api_key : data.api_key,
         credentials:
@@ -204,7 +165,7 @@ class ApiStoreModuleService extends MedusaService({
     const encrypted = encryptFields(data, [...SENSITIVE_FIELDS])
     const updated = await this.updateApiStores(encrypted, sharedContext)
 
-    return this.toAdminDTO(updated)
+    return toApiStoreAdminDTO(updated)
   }
 
   async deleteApiStoreConfig(
@@ -251,55 +212,6 @@ class ApiStoreModuleService extends MedusaService({
         MedusaError.Types.DUPLICATE_ERROR,
         `API store config with name "${name}" already exists`
       )
-    }
-  }
-
-  private assertHasSecret(
-    data: {
-      api_key?: string | null
-      credentials?: string | null
-    },
-    isInternal = false
-  ): void {
-    if (isInternal) {
-      return
-    }
-
-    if (!(data.api_key || data.credentials)) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Either api_key or credentials must be provided"
-      )
-    }
-  }
-
-  private toAdminDTO(record: ApiStoreRecord): ApiStoreAdminDTO {
-    return {
-      id: record.id,
-      name: record.name,
-      api_url: record.api_url ?? null,
-      has_api_key: !!record.api_key,
-      has_credentials: !!record.credentials,
-      is_internal: record.is_internal ?? false,
-      access_token_expires_at: record.access_token_expires_at ?? null,
-      created_at: record.created_at,
-      updated_at: record.updated_at,
-    }
-  }
-
-  private toSecretDTO(record: ApiStoreRecord): ApiStoreSecretDTO {
-    const decrypted = decryptFields(
-      {
-        api_key: record.api_key ?? null,
-        credentials: record.credentials ?? null,
-      },
-      [...SENSITIVE_FIELDS]
-    )
-
-    return {
-      ...this.toAdminDTO(record),
-      api_key: decrypted.api_key,
-      credentials: parseCredentials(decrypted.credentials),
     }
   }
 }
