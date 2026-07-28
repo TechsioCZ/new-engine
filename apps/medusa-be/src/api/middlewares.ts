@@ -19,6 +19,7 @@ import { adminPacketaConfigRoutesMiddlewares } from "./admin/packeta-config/midd
 import { adminPacketaLabelsRoutesMiddlewares } from "./admin/packeta-labels/middlewares"
 import { adminPayloadSsoRoutesMiddlewares } from "./admin/payload/sso/middlewares"
 import { adminPplConfigRoutesMiddlewares } from "./admin/ppl-config/middlewares"
+import { adminProductAttributeRoutesMiddlewares } from "./admin/product-attributes/middlewares"
 import { adminPromotionsExtensionMiddlewares } from "./admin/promotions/middlewares"
 import { adminPublishableKeyRoutesMiddlewares } from "./admin/provisioning/publishable-key/middlewares"
 import { adminQrPaymentConfigRoutesMiddlewares } from "./admin/qr-payment-config/middlewares"
@@ -30,6 +31,7 @@ import { storeCmsRoutesMiddlewares } from "./store/cms/middlewares"
 import { storeMiddlewares } from "./store/middlewares"
 import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middlewares"
 import { storeProductLocationAvailabilityRoutesMiddlewares } from "./store/products/[id]/location-availability/middlewares"
+import { storeProductAttributesRoutesMiddlewares } from "./store/products/[id]/product-attributes/middlewares"
 import { storeReviewRoutesMiddlewares } from "./store/reviews/middlewares"
 
 const originalErrorHandler = errorHandler()
@@ -71,6 +73,7 @@ export default defineMiddlewares({
     ...adminBrandRoutesMiddlewares,
     ...adminPromotionsExtensionMiddlewares,
     ...adminPublishableKeyRoutesMiddlewares,
+    ...adminProductAttributeRoutesMiddlewares,
     ...adminQrPaymentConfigRoutesMiddlewares,
     ...adminReviewRoutesMiddlewares,
     ...storeMiddlewares,
@@ -78,6 +81,7 @@ export default defineMiddlewares({
     ...storeCmsRoutesMiddlewares,
     ...storeProductListsRoutesMiddlewares,
     ...storeProductLocationAvailabilityRoutesMiddlewares,
+    ...storeProductAttributesRoutesMiddlewares,
     ...storeBrandsRoutesMiddlewares,
     ...storeReviewRoutesMiddlewares,
   ],

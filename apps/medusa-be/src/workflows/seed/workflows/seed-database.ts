@@ -27,6 +27,7 @@ export type SeedDatabaseWorkflowInput = {
   publishableKey: Steps.CreatePublishableKeyStepInput
   productCategories: Steps.CreateProductCategoriesStepInput
   products: Steps.CreateProductsStepInput
+  legacyBrandAttributeNames?: string[]
   priceLists?: Steps.SyncPriceListsStepInput["priceLists"]
   priceListSync?: Steps.SyncPriceListsStepInput["config"]
 }
@@ -188,11 +189,13 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     transform(
       {
         createPublishableKeyResult,
+        input,
         salesChannelsResult,
       },
       (data) => ({
         salesChannels: data.salesChannelsResult.result,
         publishableApiKey: data.createPublishableKeyResult.publishableApiKey,
+        salesChannelNames: data.input.publishableKey.salesChannelNames,
       })
     )
 
@@ -214,6 +217,30 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
   )
 
   const createProductsResult = Steps.createProductsStep(createProductsStepInput)
+  const reconcileProductAttributesInput: Steps.CreateProductsStepInput =
+    transform(
+      {
+        createProductsResult,
+        createProductsStepInput,
+      },
+      (data) => data.createProductsStepInput
+    )
+  const reconcileProductAttributesResult = Steps.reconcileProductAttributesStep(
+    reconcileProductAttributesInput
+  )
+  const cleanupProductBrandAttributesInput: Steps.CleanupProductBrandAttributesStepInput =
+    transform(
+      {
+        createProductsResult,
+        input,
+      },
+      (data) => ({
+        attributeNames: data.input.legacyBrandAttributeNames,
+        productIds: data.createProductsResult.result,
+      })
+    )
+  const cleanupProductBrandAttributesResult =
+    Steps.cleanupProductBrandAttributesStep(cleanupProductBrandAttributesInput)
 
   const syncPriceListsInput: Steps.SyncPriceListsStepInput = transform(
     {
@@ -284,6 +311,8 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     linkSalesChannelsApiKeyStepInputResult,
     createProductCategoriesResult,
     createProductsResult,
+    reconcileProductAttributesResult,
+    cleanupProductBrandAttributesResult,
     syncPriceListsResult,
     createTaxRatesResult,
     createInventoryLevelsResult,

@@ -1004,10 +1004,6 @@ function buildProductContentSections(
     )
   }
 
-  const warrantyHtml = buildLabeledHtmlFragment("Zaruka", item.warranty)
-  if (warrantyHtml) {
-    grouped.other.push(warrantyHtml)
-  }
   const appendixHtml = buildLabeledHtmlFragment("Appendix", item.appendix)
   if (appendixHtml) {
     grouped.other.push(appendixHtml)
@@ -2319,19 +2315,9 @@ function buildBrand(
     item.manufacturer
   )
 
-  const attributes = dedupeParameters(
-    [
-      item.supplier ? { name: "supplier", value: item.supplier } : undefined,
-      item.manufacturer
-        ? { name: "manufacturer", value: item.manufacturer }
-        : undefined,
-      item.itemType ? { name: "item_type", value: item.itemType } : undefined,
-    ].filter((entry): entry is ParsedParameter => entry !== undefined)
-  )
-
   return {
     title,
-    attributes,
+    attributes: [],
     gpsr_contact_email: manufacturerRow?.gpsr_contact_email ?? undefined,
     gpsr_european_reseller_contact_email:
       manufacturerRow?.gpsr_european_reseller_contact_email ?? undefined,
@@ -2369,11 +2355,70 @@ function applyPromoOverrides(
   })
 }
 
-function isProductPublished(item: ParsedShopItem): boolean {
-  return (
-    (item.visibility?.toLowerCase() ?? "visible") !== "hidden" &&
-    (item.topOffer.visible ?? true)
-  )
+const HERBATICA_STOREFRONT_SALES_CHANNEL = "Default Sales Channel"
+const HERBATICA_POS_SALES_CHANNEL = "Default Sales Channel POS"
+
+export function resolveHerbaticaProductVisibility(item: {
+  topOffer: { visible?: boolean }
+  visibility?: string
+}): {
+  salesChannelNames: string[]
+  status: ProductStatus
+  storefrontAccessible: boolean
+} {
+  if (item.topOffer.visible === false) {
+    return {
+      salesChannelNames: [],
+      status: ProductStatus.DRAFT,
+      storefrontAccessible: false,
+    }
+  }
+
+  switch ((item.visibility ?? "visible").trim().toLowerCase()) {
+    case "cashdeskonly":
+      return {
+        salesChannelNames: [HERBATICA_POS_SALES_CHANNEL],
+        status: ProductStatus.PUBLISHED,
+        storefrontAccessible: false,
+      }
+    case "hidden":
+      return {
+        salesChannelNames: [],
+        status: ProductStatus.DRAFT,
+        storefrontAccessible: false,
+      }
+    case "visible":
+      return {
+        salesChannelNames: [HERBATICA_STOREFRONT_SALES_CHANNEL],
+        status: ProductStatus.PUBLISHED,
+        storefrontAccessible: true,
+      }
+    default:
+      throw new Error(
+        `Unsupported Herbatica product visibility "${item.visibility}"`
+      )
+  }
+}
+
+function buildHerbaticaProductAttributes(
+  item: ParsedShopItem
+): NonNullable<ProductSeedInput["productAttributes"]> {
+  return [
+    {
+      input_type: "select",
+      is_public: false,
+      key: "supplier",
+      label: "Supplier",
+      option: item.supplier ? { label: item.supplier } : null,
+    },
+    {
+      input_type: "select",
+      is_public: true,
+      key: "warranty",
+      label: "Warranty",
+      option: item.warranty ? { label: item.warranty } : null,
+    },
+  ]
 }
 
 function resolveProductReference(
@@ -2576,7 +2621,6 @@ function buildProductMetadata({
     xml_feed_name: item.xmlFeedName,
     item_type: item.itemType,
     adult: item.adult,
-    visibility: item.visibility,
     seo_title: item.seoTitle,
     meta_description: item.metaDescription,
     internal_note: item.internalNote,
@@ -2589,7 +2633,6 @@ function buildProductMetadata({
       glami: item.glamiCategoryId,
     },
     short_description: item.shortDescription,
-    warranty: item.warranty,
     appendix: item.appendix,
     content_sections: completeContentSections,
     content_sections_map: contentSectionsMap,
@@ -2873,7 +2916,7 @@ function buildProducts(params: {
     }
 
     productHandleBySourceId.set(item.id, handle)
-    if (isProductPublished(item)) {
+    if (resolveHerbaticaProductVisibility(item).storefrontAccessible) {
       publishedSourceIds.add(item.id)
     }
   }
@@ -2902,7 +2945,7 @@ function buildProducts(params: {
       primaryWeightKg !== undefined
         ? Math.max(1, Math.round(primaryWeightKg * 1000))
         : 1
-    const isVisible = isProductPublished(item)
+    const visibility = resolveHerbaticaProductVisibility(item)
     const resolvedProductReferences = buildResolvedProductReferences(
       item,
       productHandleBySourceId,
@@ -2925,7 +2968,7 @@ function buildProducts(params: {
       description: item.description ?? item.shortDescription ?? "",
       handle,
       weight,
-      status: isVisible ? ProductStatus.PUBLISHED : ProductStatus.DRAFT,
+      status: visibility.status,
       metadata: buildProductMetadata({
         item,
         topOffer: item.topOffer,
@@ -2939,8 +2982,9 @@ function buildProducts(params: {
       images: imageUrls.map((url) => ({ url })),
       options,
       brand: buildBrand(item, manufacturersLookup),
+      productAttributes: buildHerbaticaProductAttributes(item),
       variants,
-      salesChannelNames: ["Default Sales Channel"],
+      salesChannelNames: visibility.salesChannelNames,
     }
   })
 }
@@ -3473,6 +3517,7 @@ export function buildHerbaticaSeedWorkflowInput(
     publishableKey: HERBATICA_PUBLISHABLE_KEY,
     productCategories: parsed.categories,
     products: parsed.products,
+    legacyBrandAttributeNames: ["supplier", "manufacturer", "item_type"],
     priceLists: parsed.priceLists,
     priceListSync: HERBATICA_PRICE_LIST_SYNC_CONFIG,
   }

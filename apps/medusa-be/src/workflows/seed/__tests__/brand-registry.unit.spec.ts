@@ -123,4 +123,41 @@ describe("buildBrandRegistry", () => {
       ])
     ).toThrow(ATTRIBUTE_CONFLICT_ERROR)
   })
+
+  it("allows product-scoped Supplier values to vary for one Brand", () => {
+    const registry = buildBrandRegistry([
+      {
+        handle: "product-1",
+        brand: { title: "Herbatica", attributes: [] },
+        productAttributes: [
+          {
+            input_type: "select",
+            is_public: false,
+            key: "supplier",
+            label: "Supplier",
+            option: { label: "Supplier A" },
+          },
+        ],
+      },
+      {
+        handle: "product-2",
+        brand: { title: "Herbatica", attributes: [] },
+        productAttributes: [
+          {
+            input_type: "select",
+            is_public: false,
+            key: "supplier",
+            label: "Supplier",
+            option: { label: "Supplier B" },
+          },
+        ],
+      },
+    ])
+
+    expect(registry.get("herbatica")?.products).toEqual([
+      "product-1",
+      "product-2",
+    ])
+    expect(registry.get("herbatica")?.attributes.size).toBe(0)
+  })
 })

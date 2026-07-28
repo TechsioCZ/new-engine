@@ -198,6 +198,9 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
       resolve: "./src/modules/measurement-unit",
     },
     {
+      resolve: "./src/modules/product-attribute",
+    },
+    {
       resolve: "./src/modules/product-list",
     },
     {

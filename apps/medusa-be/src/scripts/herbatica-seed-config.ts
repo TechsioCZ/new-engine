@@ -128,6 +128,10 @@ export const HERBATICA_SALES_CHANNELS = [
     name: "Default Sales Channel",
     default: true,
   },
+  {
+    name: "Default Sales Channel POS",
+    default: false,
+  },
 ] satisfies SeedDatabaseWorkflowInput["salesChannels"]
 
 export const HERBATICA_DEFAULT_REGIONS = [
@@ -231,5 +235,6 @@ export const HERBATICA_SHIPPING_OPTIONS = [
 ] satisfies SeedDatabaseWorkflowInput["shippingOptions"]
 
 export const HERBATICA_PUBLISHABLE_KEY = {
+  salesChannelNames: ["Default Sales Channel"],
   title: "Webshop",
 } satisfies SeedDatabaseWorkflowInput["publishableKey"]

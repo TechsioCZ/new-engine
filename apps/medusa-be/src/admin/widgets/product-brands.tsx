@@ -30,20 +30,15 @@ import {
   retrieveProductBrands,
   setProductBrands,
 } from "../lib/brands"
+import {
+  productAttributeQueryKeys,
+  retrieveProductAttributes,
+} from "../lib/product-attributes"
 import { useDebouncedValue } from "../lib/use-debounced-value"
 
 type ProductBrandsWidgetProps = Partial<DetailWidgetProps<AdminProduct>>
 
 const PAGE_SIZE = 20
-const SUPPLIER_ATTRIBUTE_NAME = "supplier"
-
-const getBrandAttributeValue = (
-  brand: Brand | undefined,
-  attributeName: string
-) =>
-  brand?.attributes.find(
-    (attribute) => attribute.name.toLowerCase() === attributeName
-  )?.value
 
 const brandColumnHelper = createDataTableColumnHelper<Brand>()
 
@@ -284,7 +279,6 @@ const BrandAssignmentDrawer = ({
     queryFn: () => listBrands(params),
     queryKey: brandQueryKeys.list(params),
   })
-
   const mutation = useMutation({
     mutationFn: (submittedBrandId: string | undefined) =>
       setProductBrands(productId, submittedBrandId),
@@ -518,6 +512,11 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
     },
     queryKey: brandQueryKeys.productLinks(product?.id),
   })
+  const supplierQuery = useQuery({
+    enabled: !!product?.id,
+    queryFn: () => retrieveProductAttributes(product?.id ?? ""),
+    queryKey: productAttributeQueryKeys.product(product?.id),
+  })
 
   if (!product?.id) {
     return null
@@ -528,20 +527,13 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
   )
   const activeBrand = brands.find((brand) => !brand.deleted_at)
   const hasInactiveBrand = brands.some((brand) => brand.deleted_at)
-  const activeBrandSupplier = getBrandAttributeValue(
-    activeBrand,
-    SUPPLIER_ATTRIBUTE_NAME
+  const supplier = supplierQuery.data?.product_attributes.find(
+    (item) => item.definition.key === "supplier"
   )
-  const supplier =
-    activeBrandSupplier && activeBrandSupplier.trim().length > 0
-      ? activeBrandSupplier.trim()
-      : brands
-          .filter((brand) => brand.id !== activeBrand?.id)
-          .map((brand) =>
-            getBrandAttributeValue(brand, SUPPLIER_ATTRIBUTE_NAME)
-          )
-          .map((value) => value?.trim())
-          .find((value): value is string => !!value)
+  const supplierValue =
+    supplier?.options.find(
+      (option) => option.id === supplier.assignment?.option_id
+    )?.label ?? supplier?.assignment?.text_value
   let statusText = t("products.notLinked")
 
   if (hasInactiveBrand) {
@@ -577,14 +569,16 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
             error={error}
             isLoading={isLoading}
           />
-        </div>
-        <div className="flex items-center justify-between gap-3 px-6 py-4">
-          <Text size="small" weight="plus">
-            {t("fields.supplier")}
-          </Text>
-          <Text className="text-ui-fg-subtle" size="small">
-            {supplier ?? "-"}
-          </Text>
+          <div className="flex items-center justify-between gap-3 pt-2">
+            <Text size="small" weight="plus">
+              {t("fields.supplier")}
+            </Text>
+            <Text className="text-ui-fg-subtle" size="small">
+              {supplierQuery.isLoading
+                ? t("status.loading")
+                : (supplierValue ?? "-")}
+            </Text>
+          </div>
         </div>
       </Container>
       <BrandAssignmentDrawer

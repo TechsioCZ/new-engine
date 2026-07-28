@@ -31,7 +31,19 @@ import {
   validateBrandGpsrState,
 } from "../../brand"
 
-type ProductInput = {
+export type SeedProductAttributeInput = {
+  input_type: "select" | "text"
+  is_public: boolean
+  key: string
+  label: string
+  option?: {
+    key?: string
+    label: string
+  } | null
+  text_value?: string | null
+}
+
+export type ProductInput = {
   title: string
   categories: {
     name?: string
@@ -99,6 +111,7 @@ type ProductInput = {
     }[]
   }[]
   salesChannelNames: string[]
+  productAttributes?: SeedProductAttributeInput[]
 }
 
 type ProductVariantImagesInput = {
