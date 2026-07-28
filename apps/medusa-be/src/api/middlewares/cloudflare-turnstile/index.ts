@@ -7,6 +7,7 @@ import {
   getAllowedTurnstileHostnames,
   isTurnstileHostnameAllowed,
   removeTurnstileTokenFields,
+  retrieveTurnstileSecretKey,
   verifyTurnstileToken,
 } from "./helpers"
 import {
@@ -17,7 +18,7 @@ import {
 } from "./normalizers"
 
 type CloudflareTurnstileOptions = {
-  secretKeyEnv?: string
+  secretApiStoreName?: string
   tokenFields?: readonly string[]
 }
 
@@ -39,7 +40,7 @@ class CaptchaError extends Error {
 export function verifyCloudflareTurnstile(
   options: CloudflareTurnstileOptions = {}
 ) {
-  const secretKeyEnv = options.secretKeyEnv ?? "CLOUDFLARE_TURNSTILE_SECRET_KEY"
+  const secretApiStoreName = options.secretApiStoreName
   const tokenFields = options.tokenFields ?? DEFAULT_TURNSTILE_TOKEN_FIELDS
 
   return async function cloudflareTurnstileMiddleware(
@@ -64,7 +65,9 @@ export function verifyCloudflareTurnstile(
         })
       }
 
-      const secretKey = normalizeTurnstileSecret(process.env[secretKeyEnv])
+      const secretKey = normalizeTurnstileSecret(
+        await retrieveTurnstileSecretKey(req, secretApiStoreName)
+      )
 
       if (!secretKey) {
         throw new CaptchaError({
