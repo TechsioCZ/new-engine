@@ -1,5 +1,11 @@
 const TURNSTILE_SITE_KEY =
   process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY?.trim() ?? ""
+const TURNSTILE_ENABLED_ENV =
+  process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED?.trim().toLowerCase()
+const TURNSTILE_ENABLED =
+  Boolean(TURNSTILE_SITE_KEY) ||
+  TURNSTILE_ENABLED_ENV === "1" ||
+  TURNSTILE_ENABLED_ENV === "true"
 const TURNSTILE_SCRIPT_ID = "cloudflare-turnstile-script"
 const TURNSTILE_SCRIPT_SRC =
   "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
@@ -138,8 +144,12 @@ async function executeTurnstileChallenge(): Promise<string> {
 export async function getProductReviewTurnstileToken(): Promise<
   string | undefined
 > {
-  if (!TURNSTILE_SITE_KEY || typeof window === "undefined") {
+  if (!TURNSTILE_ENABLED || typeof window === "undefined") {
     return
+  }
+
+  if (!TURNSTILE_SITE_KEY) {
+    throw new Error(PRODUCT_REVIEW_TURNSTILE_ERROR_MESSAGE)
   }
 
   return await executeTurnstileChallenge()
