@@ -1,22 +1,7 @@
 import type { MedusaRequest } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { filterProductRecords, type ProductRecord } from "./review-normalizers"
-
-const PRODUCT_QUERY_CHUNK_SIZE = 100
-
-const chunkProductIds = (productIds: string[]) => {
-  const chunks: string[][] = []
-
-  for (
-    let index = 0;
-    index < productIds.length;
-    index += PRODUCT_QUERY_CHUNK_SIZE
-  ) {
-    chunks.push(productIds.slice(index, index + PRODUCT_QUERY_CHUNK_SIZE))
-  }
-
-  return chunks
-}
+import { chunkProductIds } from "./review-products-helpers"
 
 export const getProductsById = async (
   req: MedusaRequest,

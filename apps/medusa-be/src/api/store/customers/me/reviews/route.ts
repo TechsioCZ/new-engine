@@ -36,16 +36,14 @@ export async function GET(
       customer_id: req.auth_context.actor_id,
     },
     pagination: {
-      take: offset + limit,
+      order: {
+        created_at: "DESC",
+      },
+      skip: offset,
+      take: limit,
     },
   })
   const reviews = filterReviewRecords(reviewResults)
-    .sort(
-      (left, right) =>
-        new Date(right.created_at ?? 0).getTime() -
-        new Date(left.created_at ?? 0).getTime()
-    )
-    .slice(offset, offset + limit)
   const productsById = await getProductsById(
     req,
     getUniqueReviewProductIds(reviews)
