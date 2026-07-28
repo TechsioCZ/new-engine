@@ -56,6 +56,16 @@ const withBearerToken = (headers: TestValue, token: string) => ({
   },
 })
 
+const expectRequestRejected = async (request: Promise<TestValue>) => {
+  try {
+    await request
+  } catch (error) {
+    return error as { response: { status: number } }
+  }
+
+  throw new Error("Expected the request to be rejected")
+}
+
 medusaIntegrationTestRunner({
   inApp: true,
   env: {
@@ -187,13 +197,13 @@ medusaIntegrationTestRunner({
           title: "Other review",
         })
 
-        const { response } = await api
-          .patch(
+        const { response } = await expectRequestRejected(
+          api.patch(
             `/store/customers/me/reviews/${review.id}`,
             { content: "Illicit update", rating: 1, title: "Nope" },
             customerHeaders
           )
-          .catch((error: TestValue) => error)
+        )
 
         const unchangedReview = await reviewService.retrieveReview(review.id)
 
@@ -220,13 +230,13 @@ medusaIntegrationTestRunner({
           title: "Protected title",
         })
 
-        const { response } = await api
-          .patch(
+        const { response } = await expectRequestRejected(
+          api.patch(
             `/store/customers/me/reviews/${review.id}`,
             { content: "Anonymous update", rating: 1, title: "Anonymous" },
             storeHeaders
           )
-          .catch((error: TestValue) => error)
+        )
 
         const unchangedReview = await reviewService.retrieveReview(review.id)
 
@@ -253,13 +263,13 @@ medusaIntegrationTestRunner({
           title: "Author-only title",
         })
 
-        const { response } = await api
-          .patch(
+        const { response } = await expectRequestRejected(
+          api.patch(
             `/store/customers/me/reviews/${review.id}`,
             { content: "Other customer update", rating: 1, title: "Hacked" },
             otherCustomerHeaders
           )
-          .catch((error: TestValue) => error)
+        )
 
         const unchangedReview = await reviewService.retrieveReview(review.id)
 
@@ -372,6 +382,44 @@ medusaIntegrationTestRunner({
             rating: 5,
             status: "approved",
             title: "Admin edited other",
+          })
+        )
+      })
+    })
+
+    describe("POST /store/reviews", () => {
+      it("lets guests submit anonymous reviews with a valid review token", async () => {
+        const reviewToken = await reviewService.createReviewTokens({
+          customer_id: null,
+          email: "guest-reviewer@example.com",
+          expires_at: new Date(Date.now() + 60 * 60 * 1000),
+          order_id: "guest-order-1",
+          product_id: product.id,
+          token: "guest-review-token-1",
+        })
+
+        const response = await api.post(
+          "/store/reviews",
+          {
+            content: "Guest token review content",
+            product_id: product.id,
+            rating: 5,
+            review_token: reviewToken.token,
+            title: "Guest token review",
+          },
+          storeHeaders
+        )
+
+        expect(response.status).toEqual(200)
+        expect(response.data.review).toEqual(
+          expect.objectContaining({
+            content: "Guest token review content",
+            customer_id: `review-token:${reviewToken.id}`,
+            first_name: "Anonym",
+            last_name: null,
+            product_id: product.id,
+            rating: 5,
+            title: "Guest token review",
           })
         )
       })
