@@ -8,13 +8,13 @@ import {
   isTurnstileHostnameAllowed,
   removeTurnstileTokenFields,
   verifyTurnstileToken,
-} from "./cloudflare-turnstile-helpers"
+} from "./helpers"
 import {
   DEFAULT_TURNSTILE_TOKEN_FIELDS,
   normalizeTurnstileEnabled,
   normalizeTurnstileSecret,
   normalizeTurnstileToken,
-} from "./cloudflare-turnstile-normalizers"
+} from "./normalizers"
 
 type CloudflareTurnstileOptions = {
   secretKeyEnv?: string

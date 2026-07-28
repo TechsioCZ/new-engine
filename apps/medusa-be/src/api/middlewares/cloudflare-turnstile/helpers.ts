@@ -2,7 +2,7 @@ import type { MedusaRequest } from "@medusajs/framework"
 import {
   normalizeForwardedIpHeader,
   normalizeTurnstileAllowedHostnames,
-} from "./cloudflare-turnstile-normalizers"
+} from "./normalizers"
 
 export const TURNSTILE_SITEVERIFY_URL =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify"
