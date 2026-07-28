@@ -1,6 +1,22 @@
 import type { MedusaRequest } from "@medusajs/framework/http"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { filterProductRecords, type ProductRecord } from "./review-normalizers"
+
+const PRODUCT_QUERY_CHUNK_SIZE = 100
+
+const chunkProductIds = (productIds: string[]) => {
+  const chunks: string[][] = []
+
+  for (
+    let index = 0;
+    index < productIds.length;
+    index += PRODUCT_QUERY_CHUNK_SIZE
+  ) {
+    chunks.push(productIds.slice(index, index + PRODUCT_QUERY_CHUNK_SIZE))
+  }
+
+  return chunks
+}
 
 export const getProductsById = async (
   req: MedusaRequest,
@@ -11,15 +27,21 @@ export const getProductsById = async (
   }
 
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const { data } = await query.graph({
-    entity: "product",
-    fields: ["id", "title", "handle", "thumbnail"],
-    filters: {
-      id: { $in: productIds },
-    },
-  })
+  const productsById = new Map<string, ProductRecord>()
 
-  return new Map(
-    filterProductRecords(data).map((product) => [product.id, product])
-  )
+  for (const productIdChunk of chunkProductIds(productIds)) {
+    const { data } = await query.graph({
+      entity: Modules.PRODUCT,
+      fields: ["id", "title", "handle", "thumbnail"],
+      filters: {
+        id: { $in: productIdChunk },
+      },
+    })
+
+    for (const product of filterProductRecords(data)) {
+      productsById.set(product.id, product)
+    }
+  }
+
+  return productsById
 }

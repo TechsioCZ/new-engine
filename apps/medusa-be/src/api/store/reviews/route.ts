@@ -1,10 +1,10 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { MedusaError } from "@medusajs/framework/utils"
 import { createReviewWorkflow } from "../../../workflows/product-review/workflows/create-review"
 import {
   ensureProductExists,
   ensureReviewDoesNotExist,
   getAuthenticatedCustomerId,
-  getGuestReviewCustomerId,
   getReviewAuthorName,
   getReviewTokenCustomerId,
   retrieveCustomer,
@@ -23,10 +23,25 @@ export async function POST(
   const authenticatedCustomerId = tokenRecord
     ? undefined
     : getAuthenticatedCustomerId(req)
+  if (!(tokenRecord || authenticatedCustomerId)) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_ALLOWED,
+      "Review token is required for guest reviews."
+    )
+  }
+
   const customerId = tokenRecord
     ? getReviewTokenCustomerId(tokenRecord)
-    : (authenticatedCustomerId ?? getGuestReviewCustomerId())
-  const isGuestReview = !(tokenRecord || authenticatedCustomerId)
+    : authenticatedCustomerId
+
+  if (!customerId) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_ALLOWED,
+      "Review customer could not be resolved."
+    )
+  }
+
+  const isGuestReview = Boolean(tokenRecord && !tokenRecord.customer_id)
 
   await ensureProductExists(req, product_id)
 

@@ -138,7 +138,7 @@ medusaIntegrationTestRunner({
       otherCustomerHeaders = withBearerToken(storeHeaders, secondUser.token)
     })
 
-    describe("PATCH /admin/reviews/:id", () => {
+    describe("PATCH review endpoints", () => {
       it("lets the customer author update their own review and remoderates it", async () => {
         const review = await reviewService.createReviews({
           content: "Original review content",
@@ -152,11 +152,10 @@ medusaIntegrationTestRunner({
         })
 
         const response = await api.patch(
-          `/admin/reviews/${review.id}`,
+          `/store/customers/me/reviews/${review.id}`,
           {
             content: "Updated by the author",
             rating: 5,
-            status: "approved",
             title: "Updated title",
           },
           customerHeaders
@@ -190,7 +189,7 @@ medusaIntegrationTestRunner({
 
         const { response } = await api
           .patch(
-            `/admin/reviews/${review.id}`,
+            `/store/customers/me/reviews/${review.id}`,
             { content: "Illicit update", rating: 1, title: "Nope" },
             customerHeaders
           )
@@ -223,7 +222,7 @@ medusaIntegrationTestRunner({
 
         const { response } = await api
           .patch(
-            `/admin/reviews/${review.id}`,
+            `/store/customers/me/reviews/${review.id}`,
             { content: "Anonymous update", rating: 1, title: "Anonymous" },
             storeHeaders
           )
@@ -256,7 +255,7 @@ medusaIntegrationTestRunner({
 
         const { response } = await api
           .patch(
-            `/admin/reviews/${review.id}`,
+            `/store/customers/me/reviews/${review.id}`,
             { content: "Other customer update", rating: 1, title: "Hacked" },
             otherCustomerHeaders
           )

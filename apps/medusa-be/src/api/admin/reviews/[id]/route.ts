@@ -14,26 +14,15 @@ import {
 import { getProductsById } from "../helpers"
 import type { AdminUpdateReviewSchemaType } from "../validators"
 
-export const AUTHENTICATE = false
-
-const CUSTOMER_EDITABLE_REVIEW_FIELDS = ["content", "rating", "title"] as const
-
 const getReviewRouteId = (req: MedusaRequest) =>
   typeof req.params.id === "string" ? req.params.id : undefined
 
-async function getNormalizedReview(
-  req: MedusaRequest,
-  id: string,
-  customerId?: string
-) {
+async function getNormalizedReview(req: MedusaRequest, id: string) {
   const review = await req.scope
     .resolve<ProductReviewModuleService>(PRODUCT_REVIEW_MODULE)
     .retrieveReview(id)
 
-  if (
-    !isReviewRecord(review) ||
-    (customerId && review.customer_id !== customerId)
-  ) {
+  if (!isReviewRecord(review)) {
     throw new MedusaError(MedusaError.Types.NOT_FOUND, "Review was not found")
   }
 
@@ -55,12 +44,7 @@ export async function GET(
     )
   }
 
-  const customerId =
-    req.auth_context.actor_type === "customer"
-      ? req.auth_context.actor_id
-      : undefined
-
-  res.json({ review: await getNormalizedReview(req, id, customerId) })
+  res.json({ review: await getNormalizedReview(req, id) })
 }
 
 export async function PATCH(
@@ -76,35 +60,10 @@ export async function PATCH(
     )
   }
 
-  const isCustomerAuthorEdit = req.auth_context.actor_type === "customer"
-  let reviewInput = req.validatedBody
-
-  if (isCustomerAuthorEdit) {
-    const existingReview = await req.scope
-      .resolve<ProductReviewModuleService>(PRODUCT_REVIEW_MODULE)
-      .retrieveReview(id)
-
-    if (
-      !isReviewRecord(existingReview) ||
-      existingReview.customer_id !== req.auth_context.actor_id
-    ) {
-      throw new MedusaError(MedusaError.Types.NOT_FOUND, "Review was not found")
-    }
-
-    reviewInput = {
-      ...Object.fromEntries(
-        CUSTOMER_EDITABLE_REVIEW_FIELDS.flatMap((field) =>
-          field in req.validatedBody ? [[field, req.validatedBody[field]]] : []
-        )
-      ),
-      status: "pending",
-    }
-  }
-
   const { result: review } = await updateReviewWorkflow(req.scope).run({
     input: {
       id,
-      review: reviewInput,
+      review: req.validatedBody,
     },
   })
   const productsById = await getProductsById(req, [review.product_id])

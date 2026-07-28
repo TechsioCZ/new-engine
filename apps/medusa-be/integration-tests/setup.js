@@ -33,6 +33,7 @@ const patchMigrator = (requireFromPackage) => {
   Migrator.prototype[PATCHED_MIGRATOR] = true
 }
 
+// The framework migrator can resolve through the app or test-utils package scope; patch both to avoid schema/table setup failures.
 patchMigrator(require)
 patchMigrator(createRequire(require.resolve("@medusajs/test-utils")))
 

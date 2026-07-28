@@ -4,5 +4,8 @@ import { runUnderHashSafeContext } from "./hash-safe-workdir.mjs"
 
 runUnderHashSafeContext(
   "vitest",
-  process.argv.slice(2).filter((arg) => arg !== "--")
+  // Package-manager forwarding separators are not Vitest arguments.
+  process.argv
+    .slice(2)
+    .filter((arg) => arg !== "--")
 )

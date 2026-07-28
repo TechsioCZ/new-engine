@@ -29,7 +29,7 @@ export const adminReviewRoutesMiddlewares: MiddlewareRoute[] = [
     methods: ["PATCH"],
     matcher: "/admin/reviews/:id",
     middlewares: [
-      authenticate(["user", "customer"], ["session", "bearer", "api-key"]),
+      authenticate("user", ["session", "bearer", "api-key"]),
       validateAndTransformBody(AdminUpdateReviewSchema),
     ],
   },

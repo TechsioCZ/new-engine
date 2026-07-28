@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto"
 import type { MedusaRequest } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import {
@@ -7,11 +6,6 @@ import {
 } from "@medusajs/framework/utils"
 import { PRODUCT_REVIEW_MODULE } from "../../../modules/product-review"
 import type ProductReviewModuleService from "../../../modules/product-review/service"
-
-type AuthContext = {
-  actor_id?: string
-  actor_type?: string
-}
 
 type CustomerRecord = {
   first_name?: null | string
@@ -81,17 +75,17 @@ type ProductReviewModuleServiceWithTokens = ProductReviewModuleService & {
 }
 
 export const getAuthenticatedCustomerId = (req: MedusaRequest) => {
-  const authContext =
-    "auth_context" in req
-      ? (req.auth_context as AuthContext | undefined)
-      : undefined
+  const authContext = "auth_context" in req ? req.auth_context : undefined
 
-  return authContext?.actor_type === "customer"
+  if (!isRecord(authContext)) {
+    return
+  }
+
+  return authContext.actor_type === "customer" &&
+    typeof authContext.actor_id === "string"
     ? authContext.actor_id
     : undefined
 }
-
-export const getGuestReviewCustomerId = () => `guest-review:${randomUUID()}`
 
 export const getReviewTokenCustomerId = (reviewToken: ReviewTokenDTO) =>
   reviewToken.customer_id ?? `review-token:${reviewToken.id}`
