@@ -29,6 +29,8 @@ import type {
   MedusaProductListListKeyInput,
 } from "@techsio/storefront-data/product-lists/medusa-service"
 import { createProductListQueryKeys } from "@techsio/storefront-data/product-lists/query-keys"
+import type { MedusaProductAttributesInput } from "@techsio/storefront-data/product-attributes/medusa-service"
+import { createProductAttributeQueryKeys } from "@techsio/storefront-data/product-attributes/query-keys"
 import type {
   MedusaProductDetailInput,
   MedusaProductListInput,
@@ -184,6 +186,10 @@ export const storefrontQueryKeys = {
     MedusaProductListListKeyInput,
     MedusaProductListDetailKeyInput
   >(STOREFRONT_QUERY_KEY_NAMESPACE),
+  productAttributes:
+    createProductAttributeQueryKeys<MedusaProductAttributesInput>(
+      STOREFRONT_QUERY_KEY_NAMESPACE
+    ),
   reviews: createProductReviewQueryKeys<MedusaProductReviewListInput>(
     STOREFRONT_QUERY_KEY_NAMESPACE
   ),

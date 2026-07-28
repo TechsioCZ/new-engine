@@ -14,6 +14,7 @@ import { resolveRegionByIdOrDefault, toRegionInfo } from "../region-selection"
 import {
   fetchServerProduct,
   fetchServerRegions,
+  prefetchServerProductAttributes,
   prefetchServerProductReviews,
   prefetchServerProducts,
 } from "../storefront-server"
@@ -75,4 +76,11 @@ export const prefetchProductReviews = async (
   listParams: ProductReviewListParams
 ) => {
   await prefetchServerProductReviews(queryClient, listParams)
+}
+
+export const prefetchProductAttributes = async (
+  queryClient: QueryClient,
+  productId: string
+) => {
+  await prefetchServerProductAttributes(queryClient, { productId })
 }

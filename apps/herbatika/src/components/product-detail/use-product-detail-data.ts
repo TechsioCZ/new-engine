@@ -31,6 +31,10 @@ import {
 } from "@/components/product-detail/utils/metadata-parsers"
 import { resolvePriceState } from "@/components/product-detail/utils/pricing-utils"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
+import {
+  mergeWarrantyIntoProductContentSections,
+  resolveProductWarranty,
+} from "@/lib/storefront/product-attributes"
 import { resolveProductLocationAvailabilityState } from "@/lib/storefront/product-location-availability"
 import { PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products"
 import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products"
@@ -66,6 +70,10 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
         productId: product?.id ?? null,
       }
     )
+  const productAttributesQuery =
+    storefront.hooks.productAttributes.useProductAttributes({
+      productId: product?.id ?? null,
+    })
   const locationAvailabilityState = resolveProductLocationAvailabilityState(
     productLocationAvailabilityQuery,
     selectedVariant?.id ?? null,
@@ -95,7 +103,10 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     productSummaryText,
     productCategories
   )
-  const productContentSections = resolveProductContentSections(product)
+  const productContentSections = mergeWarrantyIntoProductContentSections(
+    resolveProductContentSections(product),
+    resolveProductWarranty(productAttributesQuery.productAttributes)
+  )
   const mediaFacts = resolveProductMediaFacts(product, productContentSections)
   const {
     currentAmount,

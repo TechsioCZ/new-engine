@@ -11,6 +11,7 @@ import { PRODUCT_REVIEWS_PAGE_SIZE } from "../review-query-config"
 import { PDP_RELATED_PRODUCTS_LIMIT } from "./constants"
 import {
   getRegionServerContext,
+  prefetchProductAttributes,
   prefetchProductDetail,
   prefetchProductList,
   prefetchProductReviews,
@@ -34,11 +35,14 @@ export const prefetchProductDetailPageStorefrontData = async (
     const relatedCategoryIds = resolveRelatedCategoryIds(product)
 
     if (product?.id) {
-      await prefetchProductReviews(queryClient, {
-        productId: product.id,
-        limit: PRODUCT_REVIEWS_PAGE_SIZE,
-        offset: 0,
-      })
+      await Promise.all([
+        prefetchProductAttributes(queryClient, product.id),
+        prefetchProductReviews(queryClient, {
+          productId: product.id,
+          limit: PRODUCT_REVIEWS_PAGE_SIZE,
+          offset: 0,
+        }),
+      ])
     }
 
     if (relatedCategoryIds.length > 0 && product?.id) {
