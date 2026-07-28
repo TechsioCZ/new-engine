@@ -2,7 +2,7 @@
  * Table — @techsio/ui-kit organism.
  *
  * @component Table
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,21 +10,37 @@
  * the table-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import {
+  Children,
   type ComponentPropsWithoutRef,
   createContext,
+  isValidElement,
+  type ReactNode,
   type RefObject,
   useContext,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { Button, type ButtonProps } from "../atoms/button"
+import { SearchForm } from "../molecules/search-form"
 import { tv } from "../utils"
 
 const tableVariants = tv({
   slots: {
     root: ["w-full border-collapse", "bg-table-bg text-table-fg"],
+    // A <table> cannot contain a toolbar, so when one is composed the root
+    // renders inside this wrapper and the toolbar docks above the header.
+    container: "w-full",
+    // Header, toolbar and footer are the table's chrome — one shared surface
+    // color (--color-table-section) so they read as a single unit.
+    toolbar: [
+      "flex flex-wrap items-center justify-between gap-table-toolbar",
+      "bg-table-section-bg",
+    ],
+    toolbarSearch: "min-w-0 flex-1",
+    toolbarActions: "flex shrink-0 items-center gap-table-toolbar",
     caption: ["text-table-caption-fg", "text-start font-table-caption"],
-    header: ["bg-table-header-bg", "font-table-header text-table-header-fg"],
+    header: ["bg-table-section-bg", "font-table-header text-table-header-fg"],
     body: "",
-    footer: ["bg-table-footer-bg", "font-table-footer text-table-footer-fg"],
+    footer: ["bg-table-section-bg", "font-table-footer text-table-footer-fg"],
     row: [
       "border-b-(length:--border-table-width) border-table-border",
       "data-[selected=true]:bg-table-row-bg-selected",
@@ -59,28 +75,31 @@ const tableVariants = tv({
         cell: "p-table-cell-sm text-table-sm",
         columnHeader: "p-table-cell-sm text-table-sm",
         caption: "p-table-caption-sm text-table-caption-sm",
+        toolbar: "p-table-cell-sm",
       },
       md: {
         cell: "p-table-cell-md text-table-md",
         columnHeader: "p-table-cell-md text-table-md",
         caption: "p-table-caption-md text-table-caption-md",
+        toolbar: "p-table-cell-md",
       },
       lg: {
         cell: "p-table-cell-lg text-table-lg",
         columnHeader: "p-table-cell-lg text-table-lg",
         caption: "p-table-caption-lg text-table-caption-lg",
+        toolbar: "p-table-cell-lg",
       },
     },
     stickyHeader: {
       true: {
-        columnHeader: "sticky top-0 z-10 bg-table-header-bg",
+        columnHeader: "sticky top-0 z-10 bg-table-section-bg",
       },
     },
     stickyFirstColumn: {
       true: {
         columnHeader: [
           "first:sticky first:start-0 first:z-20",
-          "bg-table-header-bg",
+          "bg-table-section-bg",
         ],
         cell: ["first:sticky first:start-0 first:z-10", "bg-table-bg"],
       },
@@ -100,7 +119,25 @@ const tableVariants = tv({
         caption: "caption-bottom",
       },
     },
+    // Set internally when a Table.Toolbar is composed — not a public prop.
+    withToolbar: {
+      true: {},
+    },
   },
+  compoundVariants: [
+    {
+      // With a toolbar the outline chrome moves to the wrapper so one border
+      // wraps toolbar and table together instead of cutting between them.
+      variant: "outline",
+      withToolbar: true,
+      className: {
+        container:
+          "border-(length:--border-table-width) rounded-table border-table-border shadow-table-outline",
+        root: "rounded-none border-0 shadow-none",
+        toolbar: "rounded-t-table",
+      },
+    },
+  ],
   defaultVariants: {
     variant: "line",
     size: "md",
@@ -109,11 +146,12 @@ const tableVariants = tv({
     stickyFirstColumn: false,
     showColumnBorder: false,
     captionPlacement: "top",
+    withToolbar: false,
   },
 })
 
 // Context for sharing state between sub-components
-interface TableContextValue {
+type TableContextValue = {
   variant?: "line" | "outline" | "striped"
   size?: "sm" | "md" | "lg"
   interactive?: boolean
@@ -136,10 +174,16 @@ function useTableContext() {
 
 // Root component
 interface TableProps
-  extends VariantProps<typeof tableVariants>,
+  extends Omit<VariantProps<typeof tableVariants>, "withToolbar">,
     ComponentPropsWithoutRef<"table"> {
   ref?: RefObject<HTMLTableElement>
 }
+
+// A <table> element cannot contain a toolbar, so Table.Toolbar children are
+// lifted out and docked above the <table> inside a shared wrapper. Direct
+// children only — a toolbar nested in a fragment or component stays put.
+const isToolbarChild = (child: ReactNode) =>
+  isValidElement(child) && child.type === Table.Toolbar
 
 export function Table({
   variant,
@@ -154,6 +198,11 @@ export function Table({
   className,
   ...props
 }: TableProps) {
+  const childArray = Children.toArray(children)
+  const toolbar = childArray.filter(isToolbarChild)
+  const tableChildren = childArray.filter((child) => !isToolbarChild(child))
+  const withToolbar = toolbar.length > 0
+
   const styles = tableVariants({
     variant,
     size,
@@ -162,7 +211,14 @@ export function Table({
     stickyFirstColumn,
     showColumnBorder,
     captionPlacement,
+    withToolbar,
   })
+
+  const table = (
+    <table className={styles.root({ className })} ref={ref} {...props}>
+      {tableChildren}
+    </table>
+  )
 
   return (
     <TableContext.Provider
@@ -177,10 +233,83 @@ export function Table({
         styles,
       }}
     >
-      <table className={styles.root({ className })} ref={ref} {...props}>
-        {children}
-      </table>
+      {withToolbar ? (
+        <div className={styles.container()}>
+          {toolbar}
+          {table}
+        </div>
+      ) : (
+        table
+      )}
     </TableContext.Provider>
+  )
+}
+
+// Toolbar component — the table's header bar. Full-text search on the left,
+// custom actions (an array of Button configs, any Button props) on the right.
+// Shares the section surface color with Table.Header/Table.Footer so it reads
+// as part of the data table.
+export type TableToolbarAction = ButtonProps
+
+interface TableToolbarProps
+  extends Omit<ComponentPropsWithoutRef<"div">, "onChange"> {
+  ref?: RefObject<HTMLDivElement>
+  /** Action buttons rendered on the right, in order. Any Button props work. */
+  actions?: TableToolbarAction[]
+  /** Hide the search field when the toolbar only carries actions. */
+  search?: boolean
+  searchPlaceholder?: string
+  /** Accessible label of the search input. */
+  searchLabel?: string
+  /** Controlled search value. */
+  searchValue?: string
+  defaultSearchValue?: string
+  /** Fires on every keystroke — wire the full-text row filtering here. */
+  onSearchChange?: (value: string) => void
+}
+
+Table.Toolbar = function TableToolbar({
+  actions,
+  search = true,
+  searchPlaceholder,
+  searchLabel = "Search table",
+  searchValue,
+  defaultSearchValue,
+  onSearchChange,
+  children,
+  ref,
+  className,
+  ...props
+}: TableToolbarProps) {
+  const { styles, size } = useTableContext()
+
+  return (
+    <div className={styles.toolbar({ className })} ref={ref} {...props}>
+      {search && (
+        <SearchForm
+          className={styles.toolbarSearch()}
+          defaultValue={defaultSearchValue}
+          gapped
+          onValueChange={onSearchChange}
+          size={size}
+          value={searchValue}
+        >
+          <SearchForm.Input
+            aria-label={searchLabel}
+            placeholder={searchPlaceholder}
+          />
+          <SearchForm.ClearButton />
+        </SearchForm>
+      )}
+      {children}
+      {actions && actions.length > 0 && (
+        <div className={styles.toolbarActions()}>
+          {actions.map((action, index) => (
+            <Button key={action.id ?? index} size={size} {...action} />
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 

@@ -550,6 +550,88 @@ export const WithStickyColumn: Story = {
   ),
 }
 
+// === TOOLBAR ===
+
+export const WithToolbar: Story = {
+  args: {
+    variant: 'outline',
+    size: 'md',
+  },
+  render: (args) => {
+    const [query, setQuery] = useState('')
+
+    const filtered = sampleProducts.filter((product) =>
+      `${product.name} ${product.category}`
+        .toLowerCase()
+        .includes(query.toLowerCase())
+    )
+
+    return (
+      <Table {...args}>
+        <Table.Toolbar
+          actions={[
+            {
+              children: 'Delete',
+              variant: 'danger',
+              theme: 'light',
+              icon: 'token-icon-trash',
+              disabled: true,
+            },
+            {
+              children: 'Export',
+              variant: 'secondary',
+              theme: 'outlined',
+              onClick: () => alert('Exporting…'),
+            },
+            {
+              children: 'Add product',
+              variant: 'primary',
+              icon: 'token-icon-plus',
+              iconPosition: 'left',
+              onClick: () => alert('Adding…'),
+            },
+          ]}
+          onSearchChange={setQuery}
+          searchPlaceholder="Search products..."
+        />
+        <Table.Header>
+          <Table.Row>
+            <Table.ColumnHeader>Product</Table.ColumnHeader>
+            <Table.ColumnHeader>Category</Table.ColumnHeader>
+            <Table.ColumnHeader numeric>Price</Table.ColumnHeader>
+            <Table.ColumnHeader numeric>Stock</Table.ColumnHeader>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {filtered.map((product) => (
+            <Table.Row key={product.id}>
+              <Table.Cell>{product.name}</Table.Cell>
+              <Table.Cell>{product.category}</Table.Cell>
+              <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+              <Table.Cell numeric>{product.stock}</Table.Cell>
+            </Table.Row>
+          ))}
+          {filtered.length === 0 && (
+            <Table.Row>
+              <Table.Cell colSpan={4}>No products match "{query}"</Table.Cell>
+            </Table.Row>
+          )}
+        </Table.Body>
+        <Table.Footer>
+          <Table.Row>
+            <Table.Cell colSpan={3}>
+              <strong>Products</strong>
+            </Table.Cell>
+            <Table.Cell numeric>
+              <strong>{filtered.length}</strong>
+            </Table.Cell>
+          </Table.Row>
+        </Table.Footer>
+      </Table>
+    )
+  },
+}
+
 // === SELECTION EXAMPLES ===
 
 export const WithSelection: Story = {

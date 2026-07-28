@@ -5,6 +5,11 @@
  * Kept: `--padding-table-cell-{sm,md,lg}` composites. Figma exports the cell
  * padding split into `-x`/`-y`; the `p-table-cell-*` shorthand utilities are
  * rebuilt here (padding: y x) from those Figma halves.
+ *
+ * Section chrome: the header, toolbar and footer share ONE surface color.
+ * `--color-table-section` is the single reference every chrome section derives
+ * from — retheme it (or the Figma header token it aliases) and all three move
+ * together.
  */
 
 @theme static {
@@ -14,4 +19,13 @@
     var(--padding-table-cell-md-x);
   --padding-table-cell-lg: var(--padding-table-cell-lg-y)
     var(--padding-table-cell-lg-x);
+
+  /* Reference layer */
+  --color-table-section: var(--color-table-header-bg);
+
+  /* Derived layer */
+  --color-table-section-bg: var(--color-table-section);
+
+  /* Toolbar layout: gap between search, custom content and action buttons. */
+  --gap-table-toolbar: var(--spacing-200);
 }

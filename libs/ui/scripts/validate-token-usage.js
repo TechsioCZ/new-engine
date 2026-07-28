@@ -288,7 +288,13 @@ function mapClassToPossibleTokens(className) {
     return []
   }
 
-  const value = normalized.slice(prefix.length + 1)
+  let value = normalized.slice(prefix.length + 1)
+  // Tailwind v4 directional radius utilities (rounded-t-*, rounded-ss-*, …)
+  // all read the same --radius-<key> token; the direction is utility-level,
+  // not part of the token name.
+  if (prefix === "rounded") {
+    value = value.replace(/^(ss|se|ee|es|tl|tr|br|bl|s|e|t|r|b|l)-/, "")
+  }
   const possibleTokens = []
   const namespaces = PREFIX_TO_NAMESPACES.get(prefix) || []
   for (const namespace of namespaces) {

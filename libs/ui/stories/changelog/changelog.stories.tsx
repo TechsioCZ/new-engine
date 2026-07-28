@@ -131,6 +131,10 @@ const CHANGELOG = `
 ### Switch v1.0.0
 - Opted into per-component versioning; paired 1:1 with the switch-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
+### Table v1.1.0
+- Added \`Table.Toolbar\`: a header bar docked above the table with full-text search on the left and custom actions on the right — an array of Button configs supporting every Button prop. Search wiring is consumer-owned via \`onSearchChange\`.
+- United the table chrome under one surface color: header, toolbar and footer all derive from the new \`--color-table-section\` token (footer no longer reads its own background token).
+
 ### Table v1.0.0
 - Opted into per-component versioning; paired 1:1 with the table-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 

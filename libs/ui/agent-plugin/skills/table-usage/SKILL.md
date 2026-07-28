@@ -1,11 +1,12 @@
 ---
-component_version: "1.0.0"
+component_version: "1.1.0"
 name: table-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Table for
   semantic tabular data with caption, header, body, footer, rows, column
   headers, numeric cells, selected rows, variants, interactive rows, sticky
-  header/first column, column borders, and size props.
+  header/first column, column borders, size props, and a toolbar with
+  full-text search and custom action buttons.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -46,8 +47,38 @@ interactive, stickyHeader, stickyFirstColumn, showColumnBorder
 captionPlacement: top | bottom
 Row selected
 ColumnHeader/Cell numeric
-parts: Caption, Header, Body, Footer, Row, ColumnHeader, Cell
+parts: Caption, Header, Body, Footer, Row, ColumnHeader, Cell, Toolbar
+Toolbar: actions (ButtonProps[]), search, searchPlaceholder, searchLabel,
+  searchValue, defaultSearchValue, onSearchChange
 ```
+
+### Toolbar (full-text search + custom actions)
+
+Compose `Table.Toolbar` as a direct child of `Table` (not inside a fragment).
+It docks above the header, shares one section surface color with
+`Table.Header`/`Table.Footer`, and inherits the table `size`. Search sits on
+the left; `actions` is an array of Button configs rendered on the right — any
+Button props work (`variant`, `theme`, `icon`, `isLoading`, `disabled`, …).
+
+```tsx
+<Table variant="outline">
+  <Table.Toolbar
+    onSearchChange={setQuery}
+    searchPlaceholder="Search products..."
+    actions={[
+      { children: 'Export', variant: 'secondary', theme: 'outlined', onClick: onExport },
+      { children: 'Add', variant: 'primary', icon: 'token-icon-plus', onClick: onAdd },
+    ]}
+  />
+  <Table.Header>…</Table.Header>
+  <Table.Body>{/* filter rows by the query yourself */}</Table.Body>
+</Table>
+```
+
+`onSearchChange` fires per keystroke — the consumer owns the row filtering
+(client-side filter or server query). Header, toolbar and footer derive their
+background from `--color-table-section`; override that single token to retheme
+the whole table chrome.
 
 ## Core Patterns
 
