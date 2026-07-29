@@ -14,7 +14,7 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import { BrandDataTable } from "../components/brands/brand-data-table"
@@ -529,6 +529,17 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
     queryFn: () => retrieveProductAttributes(product?.id ?? ""),
     queryKey: productAttributeQueryKeys.product(product?.id),
   })
+  const editableAttributeItems = useMemo(
+    () =>
+      (attributeQuery.data?.product_attributes ?? [])
+        .filter((item) => !item.definition.deleted_at)
+        .map((item) =>
+          item.selected_option?.deleted_at
+            ? { ...item, assignment: null, selected_option: null }
+            : item
+        ),
+    [attributeQuery.data]
+  )
 
   if (!product?.id) {
     return null
@@ -538,13 +549,6 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
     (first, second) => Number(!!first.deleted_at) - Number(!!second.deleted_at)
   )
   const attributeItems = attributeQuery.data?.product_attributes ?? []
-  const editableAttributeItems = attributeItems
-    .filter((item) => !item.definition.deleted_at)
-    .map((item) =>
-      item.selected_option?.deleted_at
-        ? { ...item, assignment: null, selected_option: null }
-        : item
-    )
   const activeBrand = brands.find((brand) => !brand.deleted_at)
   const hasInactiveBrand = brands.some((brand) => brand.deleted_at)
   let statusText = t("products.notLinked")

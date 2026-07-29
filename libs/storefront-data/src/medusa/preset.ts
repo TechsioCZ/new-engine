@@ -918,6 +918,7 @@ export function createMedusaStorefrontPreset<
     productAttributes: {
       service: config.productAttributes?.service,
       serviceConfig: config.productAttributes?.serviceConfig,
+      hooks: config.productAttributes?.hooks,
       queryKeys: queryKeys.productAttributes,
     },
     productLocationAvailability: {

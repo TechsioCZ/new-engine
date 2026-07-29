@@ -43,6 +43,13 @@ describe("Product Attribute Admin ordering", () => {
 describe("Product Attribute Admin detail option loading", () => {
   it("loads only options selected by this Product", async () => {
     const service = {
+      getActiveDefinitionUsageCounts: vi.fn().mockResolvedValue([
+        { count: 4, id: "patdef_supplier" },
+        { count: 2, id: "patdef_warranty" },
+      ]),
+      getActiveOptionUsageCounts: vi
+        .fn()
+        .mockResolvedValue([{ count: 3, id: "patopt_selected" }]),
       listAndCountProductAttributeDefinitions: vi.fn().mockResolvedValue([
         [
           {
@@ -97,13 +104,21 @@ describe("Product Attribute Admin detail option loading", () => {
       }
     )
     expect(detail[0]?.selected_option).toEqual(
-      expect.objectContaining({ id: "patopt_selected" })
+      expect.objectContaining({ id: "patopt_selected", usage_count: 3 })
     )
+    expect(detail[0]?.definition.usage_count).toBe(4)
+    expect(detail[1]?.definition.usage_count).toBe(2)
     expect(detail[1]?.selected_option).toBeNull()
   })
 
   it("preserves assigned deleted definitions and options for Product detail", async () => {
     const service = {
+      getActiveDefinitionUsageCounts: vi
+        .fn()
+        .mockResolvedValue([{ count: 1, id: "patdef_deleted_assigned" }]),
+      getActiveOptionUsageCounts: vi
+        .fn()
+        .mockResolvedValue([{ count: 1, id: "patopt_deleted" }]),
       listAndCountProductAttributeDefinitions: vi.fn().mockResolvedValue([
         [
           {

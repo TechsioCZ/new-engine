@@ -62,7 +62,7 @@ describe("Product Attribute Warranty", () => {
       {
         key: "other",
         title: "Ostatné informácie",
-        html: "<p>Existing content</p>\n<p><strong>Zaruka:</strong> 24 mesiacov</p>",
+        html: "<p>Existing content</p>\n<p><strong>Záruka:</strong> 24 mesiacov</p>",
       },
     ])
   })
@@ -74,7 +74,7 @@ describe("Product Attribute Warranty", () => {
       {
         key: "other",
         title: "Ostatné informácie",
-        html: "<p><strong>Zaruka:</strong> 12 &lt; 24 &amp; &quot;valid&quot;</p>",
+        html: "<p><strong>Záruka:</strong> 12 &lt; 24 &amp; &quot;valid&quot;</p>",
       },
     ])
   })

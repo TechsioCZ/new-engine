@@ -32,6 +32,7 @@ import {
   HERBATICA_DEFAULT_STOCK_LOCATION,
   HERBATICA_FALLBACK_SHOPTET_WAREHOUSE,
   HERBATICA_MANUFACTURERS_CSV_ENV,
+  HERBATICA_POS_SALES_CHANNEL_NAME,
   HERBATICA_PRICE_LIST_SYNC_CONFIG,
   HERBATICA_PRODUCTS_XML_ENV,
   HERBATICA_PRODUCTS_XML_PATHS,
@@ -41,6 +42,7 @@ import {
   HERBATICA_SALE_PRICE_LIST_TITLE_TEMPLATE,
   HERBATICA_SALES_CHANNELS,
   HERBATICA_SHIPPING_OPTIONS,
+  HERBATICA_STOREFRONT_SALES_CHANNEL_NAME,
   HERBATICA_TAX_RATE_CONFIG,
   HERBATICA_TAX_RATE_COUNTRIES,
   HERBATICA_WORKFLOW_DEFAULTS,
@@ -2362,9 +2364,6 @@ function applyPromoOverrides(
   })
 }
 
-const HERBATICA_STOREFRONT_SALES_CHANNEL = "Default Sales Channel"
-const HERBATICA_POS_SALES_CHANNEL = "Default Sales Channel POS"
-
 export function resolveHerbaticaProductVisibility(item: {
   topOffer: { visible?: boolean }
   visibility?: string
@@ -2384,7 +2383,7 @@ export function resolveHerbaticaProductVisibility(item: {
   switch ((item.visibility ?? "visible").trim().toLowerCase()) {
     case "cashdeskonly":
       return {
-        salesChannelNames: [HERBATICA_POS_SALES_CHANNEL],
+        salesChannelNames: [HERBATICA_POS_SALES_CHANNEL_NAME],
         status: ProductStatus.PUBLISHED,
         storefrontAccessible: false,
       }
@@ -2396,7 +2395,7 @@ export function resolveHerbaticaProductVisibility(item: {
       }
     case "visible":
       return {
-        salesChannelNames: [HERBATICA_STOREFRONT_SALES_CHANNEL],
+        salesChannelNames: [HERBATICA_STOREFRONT_SALES_CHANNEL_NAME],
         status: ProductStatus.PUBLISHED,
         storefrontAccessible: true,
       }

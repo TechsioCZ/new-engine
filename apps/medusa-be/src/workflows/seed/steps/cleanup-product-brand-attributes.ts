@@ -26,7 +26,7 @@ export type CleanupProductBrandAttributesCompensation = {
 }
 
 const normalizeLegacyName = (value: string) => value.trim().toLowerCase()
-const LEGACY_ATTRIBUTE_TYPE_BATCH_SIZE = 100
+const LEGACY_ATTRIBUTE_BATCH_SIZE = 100
 
 const listAllBrandAttributeTypes = async (service: BrandModuleService) => {
   const records: BrandAttributeTypeRecord[] = []
@@ -38,10 +38,42 @@ const listAllBrandAttributeTypes = async (service: BrandModuleService) => {
       {
         order: { id: "ASC" },
         skip: records.length,
-        take: LEGACY_ATTRIBUTE_TYPE_BATCH_SIZE,
+        take: LEGACY_ATTRIBUTE_BATCH_SIZE,
         withDeleted: true,
       }
     )) as [BrandAttributeTypeRecord[], number]
+    records.push(...page)
+    count = total
+
+    if (page.length === 0) {
+      break
+    }
+  }
+
+  return records
+}
+
+const listScopedBrandAttributes = async (
+  service: BrandModuleService,
+  brandIds: string[],
+  attributeTypeIds: string[]
+) => {
+  const records: BrandAttributeRecord[] = []
+  let count = Number.POSITIVE_INFINITY
+
+  while (records.length < count) {
+    const [page, total] = (await service.listAndCountBrandAttributes(
+      {
+        attribute_type_id: { $in: attributeTypeIds },
+        brand_id: { $in: brandIds },
+      },
+      {
+        order: { id: "ASC" },
+        relations: ["attributeType"],
+        skip: records.length,
+        take: LEGACY_ATTRIBUTE_BATCH_SIZE,
+      }
+    )) as [BrandAttributeRecord[], number]
     records.push(...page)
     count = total
 
@@ -153,16 +185,11 @@ export const cleanupProductBrandAttributesStep = createStep(
       )
     }
 
-    const scopedAttributes = (await service.listBrandAttributes(
-      {
-        attribute_type_id: { $in: [...attributeTypeIds] },
-        brand_id: { $in: [...brandIds] },
-      },
-      {
-        relations: ["attributeType"],
-        take: Math.max(attributeTypeIds.size * brandIds.size, 1),
-      }
-    )) as BrandAttributeRecord[]
+    const scopedAttributes = await listScopedBrandAttributes(
+      service,
+      [...brandIds],
+      [...attributeTypeIds]
+    )
     const attributeIds = selectScopedLegacyBrandAttributeIds({
       attributes: scopedAttributes,
       attributeTypeIds,

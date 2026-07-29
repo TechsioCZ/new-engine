@@ -144,12 +144,16 @@ export const planProductAttributeAssignmentMutations = ({
   existingAssignments: ProductAttributeAssignmentRecord[]
   operations: PreparedSetOperation[]
 }): ProductAttributeAssignmentMutation[] => {
-  const existingByDefinitionId = new Map(
-    existingAssignments.map((assignment) => [
-      assignment.definition_id,
-      assignment,
-    ])
-  )
+  const existingByDefinitionId = new Map<
+    string,
+    ProductAttributeAssignmentRecord
+  >()
+  for (const assignment of existingAssignments) {
+    const current = existingByDefinitionId.get(assignment.definition_id)
+    if (!current || (current.deleted_at && !assignment.deleted_at)) {
+      existingByDefinitionId.set(assignment.definition_id, assignment)
+    }
+  }
 
   return operations.map((operation) => {
     const existing = existingByDefinitionId.get(operation.definition_id)
@@ -296,7 +300,8 @@ export const setProductAttributesStep = createStep(
               product_id: input.product_id,
             },
             {
-              take: Math.max(definitionIds.length, 1),
+              order: { id: "ASC" },
+              take: undefined,
               withDeleted: true,
             },
             context

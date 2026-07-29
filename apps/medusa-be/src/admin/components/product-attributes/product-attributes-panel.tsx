@@ -14,7 +14,7 @@ import {
   useDataTable,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useEffectEvent, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   listProductAttributeOptions,
@@ -74,7 +74,7 @@ const AttributeOptionSelector = ({
     q: debouncedQ,
     status: "active" as const,
   }
-  const { data, isLoading } = useQuery({
+  const { data, error, isLoading } = useQuery({
     queryFn: () => listProductAttributeOptions(definitionId, params),
     queryKey: productAttributeQueryKeys.options(definitionId, params),
   })
@@ -126,6 +126,11 @@ const AttributeOptionSelector = ({
 
   return (
     <div className="min-h-[22rem]">
+      {error ? (
+        <Text className="text-ui-fg-error" size="small">
+          {t("errors.loadFailed")}
+        </Text>
+      ) : null}
       <DataTable instance={table}>
         <DataTable.Toolbar>
           <div className="w-full">
@@ -263,14 +268,17 @@ export const ProductAttributesDrawer = ({
   const [openDefinitionIds, setOpenDefinitionIds] = useState<Set<string>>(
     () => new Set()
   )
+  const resetEditor = useEffectEvent(() => {
+    setValues(getInitialValues(items))
+    setOptionLabels(getInitialOptionLabels(items))
+    setOpenDefinitionIds(new Set())
+  })
 
   useEffect(() => {
     if (open) {
-      setValues(getInitialValues(items))
-      setOptionLabels(getInitialOptionLabels(items))
-      setOpenDefinitionIds(new Set())
+      resetEditor()
     }
-  }, [items, open])
+  }, [open])
 
   const mutation = useMutation({
     mutationFn: (operations: SetProductAttributeOperation[]) =>
@@ -341,7 +349,7 @@ export const ProductAttributesDrawer = ({
         <Drawer.Header>
           <Drawer.Title>{t("widget.manageTitle")}</Drawer.Title>
         </Drawer.Header>
-        <Drawer.Body className="min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+        <Drawer.Body className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
           {items.length ? null : (
             <Text className="text-ui-fg-subtle" size="small">
               {t("widget.empty")}

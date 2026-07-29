@@ -23,7 +23,7 @@ const ProductAttributeOption = model
     {
       name: "IDX_product_attribute_option_definition_id",
       on: ["definition_id"],
-      where: "deleted_at IS NULL",
+      where: { deleted_at: null },
     },
   ])
 

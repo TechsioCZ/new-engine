@@ -61,5 +61,5 @@ export async function DELETE(
       input: { ids: [req.params.id ?? ""] },
     }
   )
-  res.json({ option: result[0] })
+  res.json({ option: result[0] ?? null })
 }

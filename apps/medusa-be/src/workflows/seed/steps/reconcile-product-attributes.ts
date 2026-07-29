@@ -535,8 +535,7 @@ export const reconcileProductAttributesStep = createStep(
     }
 
     for (const batch of chunk(input)) {
-      const lockKeys = batch
-        .map(({ handle }) => productByHandle.get(handle)?.id as string)
+      const lockKeys = resolveBatchProductIds(batch, productByHandle)
         .map(getProductAttributeProductLockKey)
         .sort()
       await lockingModule.execute(

@@ -34,7 +34,7 @@ export const mergeWarrantyIntoProductContentSections = (
     return sections
   }
 
-  const warrantyHtml = `<p><strong>Zaruka:</strong> ${escapeHtml(warranty)}</p>`
+  const warrantyHtml = `<p><strong>Záruka:</strong> ${escapeHtml(warranty)}</p>`
   const otherSectionIndex = sections.findIndex(
     (section) => section.key === OTHER_SECTION_KEY
   )

@@ -222,10 +222,11 @@ async function ensureWarrantyDefinition(
 ) {
   const definitions = (await service.listProductAttributeDefinitions(
     { key: WARRANTY_DEFINITION_KEY },
-    { take: 1, withDeleted: true },
+    { order: { id: "ASC" }, withDeleted: true },
     context
   )) as ProductAttributeDefinitionRecord[]
-  const definition = definitions[0]
+  const definition =
+    definitions.find((candidate) => !candidate.deleted_at) ?? definitions[0]
   if (definition && definition.input_type !== "select") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
@@ -292,10 +293,16 @@ async function ensureWarrantyOptions(
       definition_id: definition.id,
       key: { $in: keys },
     },
-    { take: Math.max(keys.length, 1), withDeleted: true },
+    { order: { id: "ASC" }, withDeleted: true },
     context
   )) as ProductAttributeOptionRecord[]
-  const optionByKey = new Map(existing.map((option) => [option.key, option]))
+  const optionByKey = new Map<string, ProductAttributeOptionRecord>()
+  for (const option of existing) {
+    const current = optionByKey.get(option.key)
+    if (!current || (current.deleted_at && !option.deleted_at)) {
+      optionByKey.set(option.key, option)
+    }
+  }
 
   for (const [key, label] of labelsByKey) {
     const option = optionByKey.get(key)

@@ -164,4 +164,40 @@ describe("Product Attribute set/remove reconciliation", () => {
       previous: [],
     })
   })
+
+  it.each([
+    ["active first", false],
+    ["deleted first", true],
+  ])("prefers the active assignment when history is returned %s", (_label, deletedFirst) => {
+    const active: ProductAttributeAssignmentRecord = {
+      definition_id: textDefinition.id,
+      deleted_at: null,
+      id: "pat_active",
+      product_id: "prod_1",
+      text_value: "current",
+    }
+    const deleted: ProductAttributeAssignmentRecord = {
+      definition_id: textDefinition.id,
+      deleted_at: new Date("2026-01-01"),
+      id: "pat_deleted",
+      product_id: "prod_1",
+      text_value: "old",
+    }
+    const operations = validateProductAttributeOperations({
+      definitions: [textDefinition],
+      operations: [
+        {
+          action: "remove",
+          definition_id: textDefinition.id,
+        },
+      ],
+      options: [],
+    })
+    const mutations = planProductAttributeAssignmentMutations({
+      existingAssignments: deletedFirst ? [deleted, active] : [active, deleted],
+      operations,
+    })
+
+    expect(mutations[0]?.existing).toBe(active)
+  })
 })

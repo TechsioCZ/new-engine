@@ -287,9 +287,10 @@ async function listLegacySupplierAttributes(
 async function findSupplierDefinition(service: ProductAttributeService) {
   const definitions = (await service.listProductAttributeDefinitions(
     { key: SUPPLIER_DEFINITION_KEY },
-    { take: 1, withDeleted: true }
+    { order: { id: "ASC" }, withDeleted: true }
   )) as ProductAttributeDefinitionRecord[]
-  const definition = definitions[0]
+  const definition =
+    definitions.find((candidate) => !candidate.deleted_at) ?? definitions[0]
 
   if (definition && definition.input_type !== "select") {
     throw new MedusaError(
@@ -315,19 +316,29 @@ async function listValidActiveSupplierAssignmentProductIds({
 
   const assignments: ProductAttributeAssignmentRecord[] = []
   for (const productIdBatch of chunk(productIds)) {
-    assignments.push(
-      ...((await service.listProductAttributes(
+    let offset = 0
+    let count = Number.POSITIVE_INFINITY
+
+    while (offset < count) {
+      const [page, pageCount] = (await service.listAndCountProductAttributes(
         {
           definition_id: definition.id,
           product_id: { $in: productIdBatch },
         },
         {
           order: { id: "ASC" },
-          take: productIdBatch.length,
+          skip: offset,
+          take: BATCH_SIZE,
           withDeleted: true,
         }
-      )) as ProductAttributeAssignmentRecord[])
-    )
+      )) as [ProductAttributeAssignmentRecord[], number]
+      assignments.push(...page)
+      count = pageCount
+      if (!page.length) {
+        break
+      }
+      offset += page.length
+    }
   }
 
   const optionIds = [
@@ -362,7 +373,7 @@ async function listValidActiveSupplierAssignmentProductIds({
   )
 }
 
-function collectSupplierLabelsByKey(suppliers: string[]) {
+export function collectSupplierLabelsByKey(suppliers: string[]) {
   const labelsByKey = new Map<string, string>()
 
   for (const label of suppliers) {
@@ -431,11 +442,17 @@ async function ensureSupplierOptions(
           definition_id: definition.id,
           key: { $in: keys },
         },
-        { take: keys.length, withDeleted: true },
+        { order: { id: "ASC" }, withDeleted: true },
         context
       )) as ProductAttributeOptionRecord[])
     : []
-  const optionByKey = new Map(existing.map((option) => [option.key, option]))
+  const optionByKey = new Map<string, ProductAttributeOptionRecord>()
+  for (const option of existing) {
+    const current = optionByKey.get(option.key)
+    if (!current || (current.deleted_at && !option.deleted_at)) {
+      optionByKey.set(option.key, option)
+    }
+  }
 
   for (const [key, label] of labelsByKey) {
     const option = optionByKey.get(key)

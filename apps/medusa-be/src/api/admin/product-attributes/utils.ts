@@ -252,6 +252,26 @@ export const toProductAttributeOptionResponse = (
   usage_count: usageCount,
 })
 
+const toProductAttributeAssignmentResponse = (
+  definition: ProductAttributeDefinitionRecord,
+  assignment: ProductAttributeAssignmentRecord | undefined,
+  selectedOption: ProductAttributeOptionRecord | null
+) => {
+  if (
+    !assignment ||
+    (definition.input_type === "select" && selectedOption === null)
+  ) {
+    return null
+  }
+
+  return {
+    id: assignment.id,
+    option_id: selectedOption?.id ?? null,
+    text_value:
+      definition.input_type === "text" ? (assignment.text_value ?? null) : null,
+  }
+}
+
 export const getProductAttributeDetail = async (
   scope: MedusaContainer,
   productId: string
@@ -295,6 +315,13 @@ export const getProductAttributeDetail = async (
         }
       )) as ProductAttributeOptionRecord[])
     : []
+  const [definitionUsageCounts, optionUsageCounts] = await Promise.all([
+    getDefinitionUsageCountMap(
+      scope,
+      definitions.map((definition) => definition.id)
+    ),
+    getOptionUsageCountMap(scope, selectedOptionIds),
+  ])
   const assignmentByDefinitionId = new Map(
     assignments.map((assignment) => [assignment.definition_id, assignment])
   )
@@ -307,27 +334,25 @@ export const getProductAttributeDetail = async (
     )
     .map((definition) => {
       const assignment = assignmentByDefinitionId.get(definition.id)
-      const selectedOption =
-        assignment?.option_id && optionById.has(assignment.option_id)
-          ? (optionById.get(assignment.option_id) ?? null)
-          : null
+      const selectedOption = assignment?.option_id
+        ? (optionById.get(assignment.option_id) ?? null)
+        : null
 
       return {
-        assignment:
-          assignment &&
-          (definition.input_type === "text" || selectedOption !== null)
-            ? {
-                id: assignment.id,
-                option_id: selectedOption?.id ?? null,
-                text_value:
-                  definition.input_type === "text"
-                    ? (assignment.text_value ?? null)
-                    : null,
-              }
-            : null,
-        definition: toProductAttributeDefinitionResponse(definition, 0),
+        assignment: toProductAttributeAssignmentResponse(
+          definition,
+          assignment,
+          selectedOption
+        ),
+        definition: toProductAttributeDefinitionResponse(
+          definition,
+          definitionUsageCounts.get(definition.id) ?? 0
+        ),
         selected_option: selectedOption
-          ? toProductAttributeOptionResponse(selectedOption, 0)
+          ? toProductAttributeOptionResponse(
+              selectedOption,
+              optionUsageCounts.get(selectedOption.id) ?? 0
+            )
           : null,
       }
     })

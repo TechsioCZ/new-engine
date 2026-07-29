@@ -63,13 +63,14 @@ export const createSalesChannelsStep = createStep(
         channel,
       ])
     )
-    const defaultName = input.find(({ default: isDefault }) => isDefault)?.name
-    const result = input.map(({ name, default: isDefault }) => {
+    const defaultIndex = input.findIndex(({ default: isDefault }) => isDefault)
+    const defaultName = salesChannels[defaultIndex]
+    const result = salesChannels.map((name, index) => {
       const channel = channelsByName.get(name)
       if (!channel) {
         throw new Error(`Could not find configured sales channel "${name}"`)
       }
-      return { ...channel, isDefault }
+      return { ...channel, isDefault: input[index]?.default ?? false }
     })
     const defaultSalesChannel = result.find(
       (channel) => channel.name === defaultName

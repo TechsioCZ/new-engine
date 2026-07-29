@@ -55,6 +55,7 @@ import {
   type MedusaProductAttributesInput,
 } from "../product-attributes/medusa-service"
 import {
+  type CreateProductAttributeQueryOptionsFactoryConfig,
   createProductAttributeQueryOptionsFactory,
   type ProductAttributeQueryOptionsFactory,
 } from "../product-attributes/query-options"
@@ -206,6 +207,17 @@ type MedusaProductReviewServerReadHooksConfig = Pick<
   "buildListParams" | "defaultPageSize"
 >
 
+type MedusaProductAttributeServerReadHooksConfig = Pick<
+  OmitFactoryConfig<
+    CreateProductAttributeQueryOptionsFactoryConfig<
+      ProductAttribute,
+      MedusaProductAttributesInput,
+      MedusaProductAttributesInput
+    >
+  >,
+  "buildDetailParams"
+>
+
 type MedusaRegionServerReadHooksConfig = Pick<
   OmitFactoryConfig<
     CreateRegionHooksConfig<
@@ -352,6 +364,7 @@ export type CreateMedusaStorefrontServerReadPresetConfig<
   productAttributes?: {
     service?: MedusaProductAttributeReadService
     serviceConfig?: MedusaProductAttributeServiceConfig
+    hooks?: MedusaProductAttributeServerReadHooksConfig
     queryKeys?: ProductAttributeQueryKeys<MedusaProductAttributesInput>
   }
   productLocationAvailability?: {
@@ -663,6 +676,7 @@ export function createMedusaStorefrontServerReadPreset<
       queryKeys: queryKeys.productAttributes,
       queryKeyNamespace: namespace,
       cacheConfig,
+      ...(config.productAttributes?.hooks ?? {}),
     }),
     productLocationAvailability:
       createProductLocationAvailabilityQueryOptionsFactory({

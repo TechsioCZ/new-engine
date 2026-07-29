@@ -65,5 +65,5 @@ export async function DELETE(
   ).run({
     input: { ids: [req.params.id ?? ""] },
   })
-  res.json({ definition: result[0] })
+  res.json({ definition: result[0] ?? null })
 }

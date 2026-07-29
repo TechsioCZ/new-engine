@@ -16,6 +16,8 @@ export type ProductAttributeUsageCount = {
   id: string
 }
 
+const USAGE_COUNT_CHUNK_SIZE = 500
+
 class ProductAttributeModuleService extends MedusaService({
   ProductAttribute,
   ProductAttributeDefinition,
@@ -81,16 +83,35 @@ class ProductAttributeModuleService extends MedusaService({
       )
     }
 
-    const placeholders = uniqueIds.map(() => "?").join(", ")
+    const countsById = new Map<string, number>()
 
-    return await manager.getConnection().execute<ProductAttributeUsageCount[]>(
-      `select "${column}" as "id", count(*)::int as "count"
-       from "product_attribute"
-       where "deleted_at" is null
-         and "${column}" in (${placeholders})
-       group by "${column}"`,
-      uniqueIds
-    )
+    for (
+      let index = 0;
+      index < uniqueIds.length;
+      index += USAGE_COUNT_CHUNK_SIZE
+    ) {
+      const chunk = uniqueIds.slice(index, index + USAGE_COUNT_CHUNK_SIZE)
+      const placeholders = chunk.map(() => "?").join(", ")
+      const rows = await manager
+        .getConnection()
+        .execute<ProductAttributeUsageCount[]>(
+          `select "${column}" as "id", count(*)::int as "count"
+           from "product_attribute"
+           where "deleted_at" is null
+             and "${column}" in (${placeholders})
+           group by "${column}"`,
+          chunk
+        )
+
+      for (const row of rows) {
+        countsById.set(
+          row.id,
+          (countsById.get(row.id) ?? 0) + Number(row.count)
+        )
+      }
+    }
+
+    return [...countsById].map(([id, count]) => ({ count, id }))
   }
 }
 

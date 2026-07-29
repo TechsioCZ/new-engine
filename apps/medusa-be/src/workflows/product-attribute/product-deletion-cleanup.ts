@@ -11,6 +11,8 @@ export type ProductAttributeDeletionCompensation = {
   product_ids: string[]
 }
 
+const ASSIGNMENT_BATCH_SIZE = 100
+
 const getProductLockKeys = (productIds: string[]) =>
   [...new Set(productIds)]
     .sort()
@@ -33,17 +35,51 @@ export const cleanupDeletedProductAttributes = async ({
   const assignmentIds = await lockingModule.execute(
     lockKeys,
     async () => {
-      const assignments = (await service.listProductAttributes(
-        { product_id: { $in: productIds } },
-        { take: undefined }
-      )) as ProductAttributeAssignmentRecord[]
-      const { active_ids: activeIds } =
-        partitionProductAttributeRecordIds(assignments)
+      const deletedIds: string[] = []
+      let offset = 0
 
-      if (activeIds.length) {
-        await service.softDeleteProductAttributes(activeIds)
+      try {
+        while (true) {
+          const assignments = (await service.listProductAttributes(
+            { product_id: { $in: productIds } },
+            {
+              order: { id: "ASC" },
+              skip: offset,
+              take: ASSIGNMENT_BATCH_SIZE,
+              withDeleted: true,
+            }
+          )) as ProductAttributeAssignmentRecord[]
+          if (!assignments.length) {
+            break
+          }
+
+          const { active_ids: activeIds } =
+            partitionProductAttributeRecordIds(assignments)
+          for (
+            let index = 0;
+            index < activeIds.length;
+            index += ASSIGNMENT_BATCH_SIZE
+          ) {
+            const batch = activeIds.slice(index, index + ASSIGNMENT_BATCH_SIZE)
+            await service.softDeleteProductAttributes(batch)
+            deletedIds.push(...batch)
+          }
+          offset += assignments.length
+        }
+      } catch (error) {
+        for (
+          let index = 0;
+          index < deletedIds.length;
+          index += ASSIGNMENT_BATCH_SIZE
+        ) {
+          await service.restoreProductAttributes(
+            deletedIds.slice(index, index + ASSIGNMENT_BATCH_SIZE)
+          )
+        }
+        throw error
       }
-      return activeIds
+
+      return deletedIds
     },
     { timeout: 5 }
   )
@@ -67,7 +103,18 @@ export const restoreDeletedProductAttributes = async ({
   await lockingModule.execute(
     getProductLockKeys(compensation.product_ids),
     async () => {
-      await service.restoreProductAttributes(compensation.assignment_ids)
+      for (
+        let index = 0;
+        index < compensation.assignment_ids.length;
+        index += ASSIGNMENT_BATCH_SIZE
+      ) {
+        await service.restoreProductAttributes(
+          compensation.assignment_ids.slice(
+            index,
+            index + ASSIGNMENT_BATCH_SIZE
+          )
+        )
+      }
     },
     { timeout: 5 }
   )

@@ -251,6 +251,7 @@ const OptionEditDrawer = ({
               </Text>
             </div>
             <Input
+              aria-label={t("placeholders.productSearch")}
               onChange={(event) => {
                 setProductPage(0)
                 setProductQ(event.target.value)
@@ -533,11 +534,13 @@ const DefinitionEditDrawer = ({
                 </Text>
                 <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
                   <Input
+                    aria-label={t("fields.label")}
                     onChange={(event) => setOptionLabel(event.target.value)}
                     placeholder={t("fields.label")}
                     value={optionLabel}
                   />
                   <Input
+                    aria-label={t("fields.key")}
                     onChange={(event) => setOptionKey(event.target.value)}
                     placeholder={t("fields.key")}
                     value={optionKey}
@@ -554,6 +557,7 @@ const DefinitionEditDrawer = ({
                 </div>
                 <div className="grid grid-cols-[1fr_160px] gap-2">
                   <Input
+                    aria-label={t("placeholders.searchOptions")}
                     onChange={(event) => {
                       setOptionPage(0)
                       setOptionQ(event.target.value)
@@ -594,72 +598,85 @@ const DefinitionEditDrawer = ({
                     </Table.Row>
                   </Table.Header>
                   <Table.Body>
-                    {options.length ? (
-                      options.map((option) => (
-                        <Table.Row key={option.id}>
-                          <Table.Cell>{option.label}</Table.Cell>
-                          <Table.Cell className="text-ui-fg-subtle">
-                            {option.key}
-                          </Table.Cell>
-                          <Table.Cell>{option.usage_count}</Table.Cell>
-                          <Table.Cell>
-                            <div className="flex justify-end gap-1">
-                              {option.deleted_at ? (
-                                <>
-                                  <Button
-                                    disabled={
-                                      permanentlyDeleteOptionMutation.isPending
-                                    }
-                                    isLoading={restoreOptionMutation.isPending}
-                                    onClick={() =>
-                                      restoreOptionMutation.mutate(option.id)
-                                    }
-                                    size="small"
-                                    type="button"
-                                    variant="secondary"
-                                  >
-                                    {t("actions.restore")}
-                                  </Button>
-                                  <IconButton
-                                    aria-label={t("actions.deletePermanently")}
-                                    disabled={
-                                      restoreOptionMutation.isPending ||
-                                      permanentlyDeleteOptionMutation.isPending
-                                    }
-                                    onClick={() =>
-                                      handlePermanentDeleteOption(option)
-                                    }
-                                    size="small"
-                                    variant="transparent"
-                                  >
-                                    <Trash />
-                                  </IconButton>
-                                </>
-                              ) : (
-                                <>
-                                  <IconButton
-                                    aria-label={t("actions.edit")}
-                                    onClick={() => setEditingOption(option)}
-                                    size="small"
-                                    variant="transparent"
-                                  >
-                                    <PencilSquare />
-                                  </IconButton>
-                                  <IconButton
-                                    aria-label={t("actions.delete")}
-                                    onClick={() => handleDeleteOption(option)}
-                                    size="small"
-                                    variant="transparent"
-                                  >
-                                    <Trash />
-                                  </IconButton>
-                                </>
-                              )}
-                            </div>
-                          </Table.Cell>
-                        </Table.Row>
-                      ))
-                    ) : (
+                    {optionsQuery.isLoading ? (
+                      <Table.Row>
+                        <Table.Cell>{t("status.loading")}</Table.Cell>
+                        <Table.Cell />
+                        <Table.Cell />
+                        <Table.Cell />
+                      </Table.Row>
+                    ) : null}
+                    {optionsQuery.isLoading
+                      ? null
+                      : options.map((option) => (
+                          <Table.Row key={option.id}>
+                            <Table.Cell>{option.label}</Table.Cell>
+                            <Table.Cell className="text-ui-fg-subtle">
+                              {option.key}
+                            </Table.Cell>
+                            <Table.Cell>{option.usage_count}</Table.Cell>
+                            <Table.Cell>
+                              <div className="flex justify-end gap-1">
+                                {option.deleted_at ? (
+                                  <>
+                                    <Button
+                                      disabled={
+                                        permanentlyDeleteOptionMutation.isPending
+                                      }
+                                      isLoading={
+                                        restoreOptionMutation.isPending
+                                      }
+                                      onClick={() =>
+                                        restoreOptionMutation.mutate(option.id)
+                                      }
+                                      size="small"
+                                      type="button"
+                                      variant="secondary"
+                                    >
+                                      {t("actions.restore")}
+                                    </Button>
+                                    <IconButton
+                                      aria-label={t(
+                                        "actions.deletePermanently"
+                                      )}
+                                      disabled={
+                                        restoreOptionMutation.isPending ||
+                                        permanentlyDeleteOptionMutation.isPending
+                                      }
+                                      onClick={() =>
+                                        handlePermanentDeleteOption(option)
+                                      }
+                                      size="small"
+                                      variant="transparent"
+                                    >
+                                      <Trash />
+                                    </IconButton>
+                                  </>
+                                ) : (
+                                  <>
+                                    <IconButton
+                                      aria-label={t("actions.edit")}
+                                      onClick={() => setEditingOption(option)}
+                                      size="small"
+                                      variant="transparent"
+                                    >
+                                      <PencilSquare />
+                                    </IconButton>
+                                    <IconButton
+                                      aria-label={t("actions.delete")}
+                                      onClick={() => handleDeleteOption(option)}
+                                      size="small"
+                                      variant="transparent"
+                                    >
+                                      <Trash />
+                                    </IconButton>
+                                  </>
+                                )}
+                              </div>
+                            </Table.Cell>
+                          </Table.Row>
+                        ))}
+                    {optionsQuery.isLoading || options.length ? null : (
                       <Table.Row>
                         <Table.Cell>{t("options.empty")}</Table.Cell>
                         <Table.Cell />
@@ -836,6 +853,7 @@ const ProductAttributesSettingsPage = () => {
         </div>
         <div className="grid grid-cols-[1fr_180px] gap-3 px-6 py-4">
           <Input
+            aria-label={t("placeholders.search")}
             onChange={(event) => {
               setPageIndex(0)
               setQ(event.target.value)

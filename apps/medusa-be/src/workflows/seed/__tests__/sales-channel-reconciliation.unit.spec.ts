@@ -21,6 +21,15 @@ describe("sales-channel seed reconciliation", () => {
     ).toThrow(EXACTLY_ONE_DEFAULT_PATTERN)
   })
 
+  it("returns the trimmed names used by channel reconciliation", () => {
+    expect(
+      validateSalesChannelSeedInput([
+        { name: " Default ", default: true },
+        { name: " POS ", default: false },
+      ])
+    ).toEqual(["Default", "POS"])
+  })
+
   it("plans exact publishable-key membership, including undesired removals", () => {
     expect(
       planSalesChannelApiKeyLinks({

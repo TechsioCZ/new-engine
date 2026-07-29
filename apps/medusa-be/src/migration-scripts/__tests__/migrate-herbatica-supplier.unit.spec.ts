@@ -5,6 +5,7 @@ vi.mock("../../links/product-brand", () => ({
 }))
 
 import {
+  collectSupplierLabelsByKey,
   planLegacySupplierAssignments,
   resolveLegacySupplierValuesByBrand,
   selectRemovableLegacySupplierBrandIds,
@@ -106,6 +107,60 @@ describe("tracked Herbatica Supplier migration", () => {
     })
 
     expect(result).toEqual({ assignments: [], unresolved: [] })
+  })
+
+  it("does not assign from a Brand with ambiguous Supplier records", () => {
+    const result = planLegacySupplierAssignments({
+      activeAssignmentProductIds: new Set(),
+      ambiguousBrandIds: new Set(["brand_1"]),
+      brandIdsByProductId: new Map([["product_1", ["brand_1"]]]),
+      productIds: ["product_1"],
+      productIdsByBrandId: new Map([["brand_1", ["product_1"]]]),
+      supplierByBrandId: new Map(),
+    })
+
+    expect(result.assignments).toEqual([])
+    expect(result.unresolved).toEqual([
+      {
+        product_id: "product_1",
+        reason: "the linked Brand has conflicting legacy Supplier records",
+        values: [],
+      },
+    ])
+  })
+
+  it("does not assign when a Product resolves to multiple Suppliers", () => {
+    const result = planLegacySupplierAssignments({
+      activeAssignmentProductIds: new Set(),
+      ambiguousBrandIds: new Set(),
+      brandIdsByProductId: new Map([["product_1", ["brand_1", "brand_2"]]]),
+      productIds: ["product_1"],
+      productIdsByBrandId: new Map([
+        ["brand_1", ["product_1"]],
+        ["brand_2", ["product_1"]],
+      ]),
+      supplierByBrandId: new Map([
+        ["brand_1", "Supplier A"],
+        ["brand_2", "Supplier B"],
+      ]),
+    })
+
+    expect(result.assignments).toEqual([])
+    expect(result.unresolved).toEqual([
+      {
+        product_id: "product_1",
+        reason: "the Product resolves to multiple legacy Supplier values",
+        values: ["Supplier A", "Supplier B"],
+      },
+    ])
+  })
+
+  it("fails when distinct Supplier labels normalize to the same option key", () => {
+    expect(() =>
+      collectSupplierLabelsByKey(["Bio Herba", "Bio-Herba"])
+    ).toThrow(
+      'Supplier option key collision from legacy labels "Bio Herba" and "Bio-Herba"'
+    )
   })
 
   it("never removes a legacy Supplier from a Brand shared with n1", () => {
