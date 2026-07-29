@@ -1,35 +1,22 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import type { ApiStoreModuleService } from "../api-store"
+import {
+  getCredentialValue,
+  normalizeSecret,
+  toValidDate,
+  type ZboziApiStoreTokenSource,
+} from "./zbozi-token-normalizers"
 
 export const REFRESH_TOKEN_API_STORE_NAME = "Zboží"
 export const ACCESS_TOKEN_API_STORE_NAME = "Zboží Access token"
 export const ZBOZI_TOKEN_URL = "https://api.sklik.cz/v1/user/token"
-export const ZBOZI_ACCESS_TOKEN_REFRESH_WINDOW_MS = 2 * 60 * 1000
-export const ZBOZI_ACCESS_TOKEN_RETRY_DELAY_MS = 5 * 60 * 1000
 
-export type ZboziApiStoreTokenSource = {
-  access_token_expires_at?: Date | string | null
-  api_key?: string | null
-  credentials?: Record<string, unknown> | null
-  name?: string
-}
-
-const normalizeSecret = (value: unknown): string | null =>
-  typeof value === "string" && value.trim() ? value.trim() : null
-
-const getCredentialValue = (
-  credentials: Record<string, unknown> | null | undefined,
-  key: string
-): string | null => normalizeSecret(credentials?.[key])
-
-const toValidDate = (value: Date | string | null | undefined): Date | null => {
-  if (!value) {
-    return null
-  }
-
-  const date = value instanceof Date ? value : new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date
-}
+export {
+  calculateNextRefreshDelayMs,
+  shouldRefreshZboziAccessToken,
+  ZBOZI_ACCESS_TOKEN_RETRY_DELAY_MS,
+} from "./zbozi-token-helpers"
+export type { ZboziApiStoreTokenSource } from "./zbozi-token-normalizers"
 
 export function extractZboziRefreshToken(
   apiStore: ZboziApiStoreTokenSource | null
@@ -88,24 +75,6 @@ export function parseZboziTokenResponse(
     accessToken,
     expiresAt: new Date(now.getTime() + expiresIn * 1000),
   }
-}
-
-export function shouldRefreshZboziAccessToken({
-  expiresAt,
-  now = new Date(),
-  refreshWindowMs = ZBOZI_ACCESS_TOKEN_REFRESH_WINDOW_MS,
-}: {
-  expiresAt?: Date | string | null
-  now?: Date
-  refreshWindowMs?: number
-}): boolean {
-  const expiry = toValidDate(expiresAt)
-
-  if (!expiry) {
-    return true
-  }
-
-  return expiry.getTime() <= now.getTime() + refreshWindowMs
 }
 
 export async function refreshZboziAccessTokenStore({
@@ -178,34 +147,4 @@ export async function refreshZboziAccessTokenStore({
   })
 
   return token
-}
-
-export function calculateNextRefreshDelayMs({
-  expiresAt,
-  now = new Date(),
-  refreshWindowMs = ZBOZI_ACCESS_TOKEN_REFRESH_WINDOW_MS,
-  warn,
-}: {
-  expiresAt: Date | string
-  now?: Date
-  refreshWindowMs?: number
-  warn?: (message: string) => void
-}): number {
-  const expiry = toValidDate(expiresAt)
-  if (!expiry) {
-    warn?.(
-      "Zboží access token expiry is invalid; scheduling immediate refresh."
-    )
-    return 0
-  }
-
-  const delay = expiry.getTime() - refreshWindowMs - now.getTime()
-  if (delay <= 0) {
-    warn?.(
-      "Zboží access token refresh time is already due or in the past; scheduling immediate refresh."
-    )
-    return 0
-  }
-
-  return delay
 }
