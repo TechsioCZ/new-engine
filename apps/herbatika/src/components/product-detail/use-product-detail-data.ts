@@ -30,11 +30,11 @@ import {
   resolveProductImages,
 } from "@/components/product-detail/utils/metadata-parsers"
 import { resolvePriceState } from "@/components/product-detail/utils/pricing-utils"
-import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
 import {
   mergeWarrantyIntoProductContentSections,
   resolveProductWarranty,
 } from "@/lib/storefront/product-attributes"
+import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
 import { resolveProductLocationAvailabilityState } from "@/lib/storefront/product-location-availability"
 import { PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products"
 import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products"

@@ -24,13 +24,13 @@ import type {
   MedusaOrderServiceConfig,
 } from "@techsio/storefront-data/orders/medusa-service"
 import { createOrderQueryKeys } from "@techsio/storefront-data/orders/query-keys"
+import type { MedusaProductAttributesInput } from "@techsio/storefront-data/product-attributes/medusa-service"
+import { createProductAttributeQueryKeys } from "@techsio/storefront-data/product-attributes/query-keys"
 import type {
   MedusaProductListDetailKeyInput,
   MedusaProductListListKeyInput,
 } from "@techsio/storefront-data/product-lists/medusa-service"
 import { createProductListQueryKeys } from "@techsio/storefront-data/product-lists/query-keys"
-import type { MedusaProductAttributesInput } from "@techsio/storefront-data/product-attributes/medusa-service"
-import { createProductAttributeQueryKeys } from "@techsio/storefront-data/product-attributes/query-keys"
 import type {
   MedusaProductDetailInput,
   MedusaProductListInput,

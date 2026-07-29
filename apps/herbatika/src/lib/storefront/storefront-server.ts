@@ -8,11 +8,11 @@ import type {
   MedusaCategoryListInput,
 } from "@techsio/storefront-data/categories/medusa-service"
 import { createMedusaStorefrontServerReadPreset } from "@techsio/storefront-data/medusa/server-read"
+import type { MedusaProductAttributesInput } from "@techsio/storefront-data/product-attributes/medusa-service"
 import type {
   MedusaProductDetailInput,
   MedusaProductListInput,
 } from "@techsio/storefront-data/products/medusa-service"
-import type { MedusaProductAttributesInput } from "@techsio/storefront-data/product-attributes/medusa-service"
 import type { MedusaProductReviewListInput } from "@techsio/storefront-data/reviews/medusa-service"
 import { storefrontSdk } from "./sdk"
 import type {
