@@ -195,6 +195,7 @@ async function listProductsWithLegacyWarranty(
     const [page, pageCount] = await productService.listAndCountProducts(
       {},
       {
+        order: { id: "ASC" },
         select: ["id", "metadata"],
         skip: offset,
         take: PRODUCT_PAGE_SIZE,

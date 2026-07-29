@@ -33,6 +33,7 @@ const listAllBrandAttributeTypes = async (service: BrandModuleService) => {
     const [page, total] = (await service.listAndCountBrandAttributeTypes(
       {},
       {
+        order: { id: "ASC" },
         skip: records.length,
         take: LEGACY_ATTRIBUTE_TYPE_BATCH_SIZE,
         withDeleted: true,

@@ -28,6 +28,9 @@ type SoftDeletableRecord = Pick<
 
 const PRODUCT_ATTRIBUTE_KEY_CONTENT_PATTERN = /[\p{L}\p{N}]/u
 
+export const getProductAttributeProductLockKey = (productId: string) =>
+  `product-attribute-product:${productId}`
+
 export const normalizeProductAttributeKey = (value: string) =>
   PRODUCT_ATTRIBUTE_KEY_CONTENT_PATTERN.test(value) ? toHandle(value) : ""
 

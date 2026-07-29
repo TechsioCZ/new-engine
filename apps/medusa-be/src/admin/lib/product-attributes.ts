@@ -1,5 +1,7 @@
 import { sdk } from "./sdk"
 
+const PRODUCT_ATTRIBUTE_OPTION_PAGE_SIZE = 100
+
 export type ProductAttributeInputType = "select" | "text"
 export type ProductAttributeStatus = "active" | "all" | "deleted"
 
@@ -33,7 +35,7 @@ export type ProductAttributeDetailItem = {
     text_value: string | null
   } | null
   definition: ProductAttributeDefinition
-  options: ProductAttributeOption[]
+  selected_option: ProductAttributeOption | null
 }
 
 export type ProductAttributeDefinitionsResponse = {
@@ -165,6 +167,27 @@ export const listProductAttributeOptions = (
       definition_id: definitionId,
     })}`
   )
+
+export const listAllProductAttributeOptions = async (definitionId: string) => {
+  const options: ProductAttributeOption[] = []
+  let count = Number.POSITIVE_INFINITY
+
+  while (options.length < count) {
+    const page = await listProductAttributeOptions(definitionId, {
+      limit: PRODUCT_ATTRIBUTE_OPTION_PAGE_SIZE,
+      offset: options.length,
+      order: "label",
+      status: "active",
+    })
+    options.push(...page.options)
+    count = page.count
+    if (!page.options.length) {
+      break
+    }
+  }
+
+  return options
+}
 
 export const createProductAttributeOption = (
   definitionId: string,

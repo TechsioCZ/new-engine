@@ -531,9 +531,7 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
     (item) => item.definition.key === "supplier"
   )
   const supplierValue =
-    supplier?.options.find(
-      (option) => option.id === supplier.assignment?.option_id
-    )?.label ?? supplier?.assignment?.text_value
+    supplier?.selected_option?.label ?? supplier?.assignment?.text_value
   let statusText = t("products.notLinked")
 
   if (hasInactiveBrand) {

@@ -120,6 +120,7 @@ export const listPublicStoreProductAttributes = async ({
         fields: PRODUCT_ATTRIBUTE_STORE_FIELDS,
         filters: { product_id: productId },
         pagination: {
+          order: { id: "ASC" },
           skip: sourceOffset,
           take: PRODUCT_ATTRIBUTE_READ_BATCH_SIZE,
         },

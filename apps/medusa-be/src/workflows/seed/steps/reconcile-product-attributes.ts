@@ -9,6 +9,7 @@ import type {
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import {
+  getProductAttributeProductLockKey,
   getProductAttributeService,
   normalizeRequiredProductAttributeKey,
   type ProductAttributeAssignmentRecord,
@@ -536,7 +537,7 @@ export const reconcileProductAttributesStep = createStep(
     for (const batch of chunk(input)) {
       const lockKeys = batch
         .map(({ handle }) => productByHandle.get(handle)?.id as string)
-        .map((id) => `product-attribute-product:${id}`)
+        .map(getProductAttributeProductLockKey)
         .sort()
       await lockingModule.execute(
         lockKeys,

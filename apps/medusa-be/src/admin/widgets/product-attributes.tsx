@@ -18,6 +18,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
+  listAllProductAttributeOptions,
   listProductAttributeOptions,
   type ProductAttributeDetailItem,
   type ProductAttributeOption,
@@ -127,6 +128,57 @@ const SupplierSelector = ({
       <DataTable.Table />
       <DataTable.Pagination translations={getPaginationTranslations(t)} />
     </DataTable>
+  )
+}
+
+const AttributeSelect = ({
+  definitionId,
+  disabled,
+  onValueChange,
+  value,
+}: {
+  definitionId: string
+  disabled: boolean
+  onValueChange: (value: string) => void
+  value: string
+}) => {
+  const { t } = useTranslation("productAttributes")
+  const query = useQuery({
+    queryFn: () => listAllProductAttributeOptions(definitionId),
+    queryKey: [
+      ...productAttributeQueryKeys.optionLists(definitionId),
+      "all-active",
+    ],
+  })
+
+  if (query.error) {
+    return (
+      <Text className="text-ui-fg-error" size="small">
+        {t("errors.loadFailed")}
+      </Text>
+    )
+  }
+
+  return (
+    <Select
+      disabled={disabled || query.isLoading}
+      onValueChange={(nextValue) =>
+        onValueChange(nextValue === "__none__" ? "" : nextValue)
+      }
+      value={value || "__none__"}
+    >
+      <Select.Trigger>
+        <Select.Value />
+      </Select.Trigger>
+      <Select.Content>
+        <Select.Item value="__none__">-</Select.Item>
+        {(query.data ?? []).map((option) => (
+          <Select.Item key={option.id} value={option.id}>
+            {option.label}
+          </Select.Item>
+        ))}
+      </Select.Content>
+    </Select>
   )
 }
 
@@ -245,28 +297,14 @@ const ProductAttributesDrawer = ({
                 ) : null}
                 {item.definition.input_type === "select" &&
                 item.definition.key !== SUPPLIER_KEY ? (
-                  <Select
+                  <AttributeSelect
+                    definitionId={item.definition.id}
                     disabled={mutation.isPending}
                     onValueChange={(nextValue) =>
-                      updateValue(
-                        item.definition.id,
-                        nextValue === "__none__" ? "" : nextValue
-                      )
+                      updateValue(item.definition.id, nextValue)
                     }
-                    value={value || "__none__"}
-                  >
-                    <Select.Trigger>
-                      <Select.Value />
-                    </Select.Trigger>
-                    <Select.Content>
-                      <Select.Item value="__none__">-</Select.Item>
-                      {item.options.map((option) => (
-                        <Select.Item key={option.id} value={option.id}>
-                          {option.label}
-                        </Select.Item>
-                      ))}
-                    </Select.Content>
-                  </Select>
+                    value={value}
+                  />
                 ) : null}
                 {item.definition.key === WARRANTY_KEY ? (
                   <Text className="text-ui-fg-subtle" size="small">
@@ -345,10 +383,8 @@ const ProductAttributesWidget = ({
             </Text>
           )}
           {displayItems.map((item) => {
-            const option = item.options.find(
-              (candidate) => candidate.id === item.assignment?.option_id
-            )
-            const displayValue = option?.label ?? item.assignment?.text_value
+            const displayValue =
+              item.selected_option?.label ?? item.assignment?.text_value
             return (
               <div
                 className="flex items-center justify-between gap-3"

@@ -45,7 +45,7 @@ export const parseProductAttributeOrder = (input?: string) => {
   const direction: "ASC" | "DESC" = value.startsWith("-") ? "DESC" : "ASC"
   const requestedField = value.replace(LEADING_DASH_REGEX, "")
   const field = ORDER_FIELDS.has(requestedField) ? requestedField : "label"
-  return { [field]: direction }
+  return { [field]: direction, id: "ASC" as const }
 }
 
 export const applyProductAttributeStatusFilter = (
@@ -154,13 +154,13 @@ export const getProductAttributeDetail = async (
   productId: string
 ) => {
   const service = getProductAttributeService(scope)
-  const [definitions, options, assignments] = await Promise.all([
+  const [definitions, assignments] = await Promise.all([
     listAllProductAttributeRecords(
       async (skip, take) =>
         (await service.listAndCountProductAttributeDefinitions(
           {},
           {
-            order: { label: "ASC" },
+            order: { label: "ASC", id: "ASC" },
             skip,
             take,
             withDeleted: true,
@@ -169,33 +169,32 @@ export const getProductAttributeDetail = async (
     ),
     listAllProductAttributeRecords(
       async (skip, take) =>
-        (await service.listAndCountProductAttributeOptions(
-          {},
-          { order: { label: "ASC" }, skip, take }
-        )) as [ProductAttributeOptionRecord[], number]
-    ),
-    listAllProductAttributeRecords(
-      async (skip, take) =>
         (await service.listAndCountProductAttributes(
           { product_id: productId },
-          { skip, take }
+          { order: { id: "ASC" }, skip, take }
         )) as [ProductAttributeAssignmentRecord[], number]
     ),
   ])
+  const selectedOptionIds = [
+    ...new Set(
+      assignments.flatMap((assignment) =>
+        assignment.option_id ? [assignment.option_id] : []
+      )
+    ),
+  ]
+  const options = selectedOptionIds.length
+    ? ((await service.listProductAttributeOptions(
+        { id: { $in: selectedOptionIds } },
+        {
+          order: { label: "ASC", id: "ASC" },
+          take: selectedOptionIds.length,
+        }
+      )) as ProductAttributeOptionRecord[])
+    : []
   const activeOptionIds = new Set(options.map((option) => option.id))
   const assignmentByDefinitionId = new Map(
     assignments.map((assignment) => [assignment.definition_id, assignment])
   )
-  const optionsByDefinitionId = new Map<
-    string,
-    ProductAttributeOptionRecord[]
-  >()
-
-  for (const option of options) {
-    const current = optionsByDefinitionId.get(option.definition_id) ?? []
-    current.push(option)
-    optionsByDefinitionId.set(option.definition_id, current)
-  }
 
   return definitions
     .filter(
@@ -225,9 +224,9 @@ export const getProductAttributeDetail = async (
               }
             : null,
         definition: toProductAttributeDefinitionResponse(definition, 0),
-        options: (optionsByDefinitionId.get(definition.id) ?? []).map(
-          (option) => toProductAttributeOptionResponse(option, 0)
-        ),
+        selected_option: selectedOption
+          ? toProductAttributeOptionResponse(selectedOption, 0)
+          : null,
       }
     })
 }

@@ -1,32 +1,36 @@
+import type { ILockingModule } from "@medusajs/framework/types"
+import { Modules } from "@medusajs/framework/utils"
 import { StepResponse } from "@medusajs/framework/workflows-sdk"
 import { deleteProductsWorkflow } from "@medusajs/medusa/core-flows"
+import { getProductAttributeService } from "../../utils/product-attributes"
 import {
-  getProductAttributeService,
-  type ProductAttributeAssignmentRecord,
-  partitionProductAttributeRecordIds,
-} from "../../utils/product-attributes"
+  cleanupDeletedProductAttributes,
+  type ProductAttributeDeletionCompensation,
+  restoreDeletedProductAttributes,
+} from "../product-attribute/product-deletion-cleanup"
 
 deleteProductsWorkflow.hooks.productsDeleted(
   async ({ ids }, { container }) => {
     const service = getProductAttributeService(container)
-    const assignments = (await service.listProductAttributes(
-      { product_id: { $in: ids } },
-      { take: undefined }
-    )) as ProductAttributeAssignmentRecord[]
-    const { active_ids: assignmentIds } =
-      partitionProductAttributeRecordIds(assignments)
+    const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
+    const compensation = await cleanupDeletedProductAttributes({
+      lockingModule,
+      productIds: ids,
+      service,
+    })
 
-    if (assignmentIds.length) {
-      await service.softDeleteProductAttributes(assignmentIds)
-    }
-
-    return new StepResponse(undefined, assignmentIds)
+    return new StepResponse(undefined, compensation)
   },
-  async (assignmentIds: string[] | undefined, { container }) => {
-    if (assignmentIds?.length) {
-      await getProductAttributeService(container).restoreProductAttributes(
-        assignmentIds
-      )
+  async (
+    compensation: ProductAttributeDeletionCompensation | undefined,
+    { container }
+  ) => {
+    if (compensation) {
+      await restoreDeletedProductAttributes({
+        compensation,
+        lockingModule: container.resolve<ILockingModule>(Modules.LOCKING),
+        service: getProductAttributeService(container),
+      })
     }
   }
 )
