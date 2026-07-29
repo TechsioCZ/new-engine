@@ -11,6 +11,7 @@ import {
   restoreProductAttributeDefinitionsStep,
   updateProductAttributeDefinitionStep,
 } from "../steps/definition-mutations"
+import { permanentlyDeleteProductAttributeDefinitionsStep } from "../steps/permanent-deletion"
 import type {
   CreateProductAttributeDefinitionInput,
   ProductAttributeDefinitionIdsInput,
@@ -68,3 +69,17 @@ export const restoreProductAttributeDefinitionsWorkflow = createWorkflow(
     return new WorkflowResponse(result)
   }
 )
+
+export const permanentlyDeleteProductAttributeDefinitionsWorkflow =
+  createWorkflow(
+    "permanently-delete-product-attribute-definitions",
+    (input: ProductAttributeDefinitionIdsInput) => {
+      const lockKey = transform({ input }, ({ input: current }) =>
+        current.ids.map((id) => `product-attribute-definition:${id}`).sort()
+      )
+      acquireLockStep({ key: lockKey, timeout: 5, ttl: 30 })
+      const result = permanentlyDeleteProductAttributeDefinitionsStep(input)
+      releaseLockStep({ key: lockKey })
+      return new WorkflowResponse(result)
+    }
+  )

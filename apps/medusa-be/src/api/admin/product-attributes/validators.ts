@@ -58,6 +58,15 @@ export const AdminGetProductAttributeOptionsSchema = z
   })
   .strict()
 
+export const AdminGetProductAttributeOptionProductsSchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    offset: z.coerce.number().int().min(0).default(0),
+    order: z.string().optional(),
+    q: z.string().trim().optional(),
+  })
+  .strict()
+
 export const AdminCreateProductAttributeOptionSchema = z
   .object({
     key: z.string().trim().min(1),
@@ -113,6 +122,9 @@ export type AdminUpdateProductAttributeDefinitionSchemaType = z.infer<
 >
 export type AdminGetProductAttributeOptionsSchemaType = z.infer<
   typeof AdminGetProductAttributeOptionsSchema
+>
+export type AdminGetProductAttributeOptionProductsSchemaType = z.infer<
+  typeof AdminGetProductAttributeOptionProductsSchema
 >
 export type AdminCreateProductAttributeOptionSchemaType = z.infer<
   typeof AdminCreateProductAttributeOptionSchema

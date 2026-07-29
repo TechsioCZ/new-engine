@@ -1,5 +1,8 @@
-import type { MedusaContainer } from "@medusajs/framework/types"
-import { MedusaError } from "@medusajs/framework/utils"
+import type {
+  IProductModuleService,
+  MedusaContainer,
+} from "@medusajs/framework/types"
+import { MedusaError, Modules } from "@medusajs/framework/utils"
 import {
   getProductAttributeService,
   type ProductAttributeAssignmentRecord,
@@ -13,6 +16,13 @@ export type ProductAttributeListStatus = "active" | "all" | "deleted"
 const LIKE_WILDCARD_REGEX = /[\\%_]/g
 const LEADING_DASH_REGEX = /^-/
 const ORDER_FIELDS = new Set(["key", "label", "created_at", "updated_at"])
+const ASSIGNED_PRODUCT_ORDER_FIELDS = new Set([
+  "handle",
+  "status",
+  "title",
+  "updated_at",
+])
+const ASSIGNMENT_QUERY_BATCH_SIZE = 100
 const PRODUCT_ATTRIBUTE_DETAIL_BATCH_SIZE = 100
 
 export const listAllProductAttributeRecords = async <T>(
@@ -120,6 +130,99 @@ export const getOptionUsageCountMap = async (
     await getProductAttributeService(scope).getActiveOptionUsageCounts(ids)
   )
 
+const getAssignedProductOrder = (input = "title") => {
+  const direction: "ASC" | "DESC" = input.startsWith("-") ? "DESC" : "ASC"
+  const requestedField = input.replace(LEADING_DASH_REGEX, "")
+  const field = ASSIGNED_PRODUCT_ORDER_FIELDS.has(requestedField)
+    ? requestedField
+    : "title"
+
+  return { [field]: direction, id: "ASC" as const }
+}
+
+const listOptionAssignmentProductIds = async (
+  scope: MedusaContainer,
+  optionId: string
+) => {
+  const service = getProductAttributeService(scope)
+  const productIds = new Set<string>()
+  let skip = 0
+
+  while (true) {
+    const assignments = (await service.listProductAttributes(
+      { option_id: optionId },
+      {
+        order: { id: "ASC" },
+        select: ["id", "product_id"],
+        skip,
+        take: ASSIGNMENT_QUERY_BATCH_SIZE,
+      }
+    )) as ProductAttributeAssignmentRecord[]
+
+    for (const assignment of assignments) {
+      productIds.add(assignment.product_id)
+    }
+    if (assignments.length < ASSIGNMENT_QUERY_BATCH_SIZE) {
+      return [...productIds]
+    }
+    skip += assignments.length
+  }
+}
+
+export const listProductAttributeOptionAssignedProducts = async ({
+  limit,
+  offset,
+  optionId,
+  order = "title",
+  q,
+  scope,
+}: {
+  limit: number
+  offset: number
+  optionId: string
+  order?: string
+  q?: string
+  scope: MedusaContainer
+}) => {
+  const productIds = await listOptionAssignmentProductIds(scope, optionId)
+  if (!productIds.length) {
+    return { count: 0, products: [] }
+  }
+
+  const escapedQuery = q ? escapeProductAttributeLikePattern(q) : undefined
+  const productService = scope.resolve<IProductModuleService>(Modules.PRODUCT)
+  const [products, count] = await productService.listAndCountProducts(
+    {
+      id: { $in: productIds },
+      ...(escapedQuery
+        ? {
+            $or: [
+              { title: { $ilike: `%${escapedQuery}%` } },
+              { handle: { $ilike: `%${escapedQuery}%` } },
+            ],
+          }
+        : {}),
+    },
+    {
+      order: getAssignedProductOrder(order),
+      select: ["id", "title", "handle", "status", "updated_at"],
+      skip: offset,
+      take: limit,
+    }
+  )
+
+  return {
+    count,
+    products: products.map((product) => ({
+      handle: product.handle,
+      id: product.id,
+      status: product.status,
+      title: product.title,
+      updated_at: product.updated_at,
+    })),
+  }
+}
+
 export const toProductAttributeDefinitionResponse = (
   definition: ProductAttributeDefinitionRecord,
   usageCount: number
@@ -188,13 +291,14 @@ export const getProductAttributeDetail = async (
         {
           order: { label: "ASC", id: "ASC" },
           take: selectedOptionIds.length,
+          withDeleted: true,
         }
       )) as ProductAttributeOptionRecord[])
     : []
-  const activeOptionIds = new Set(options.map((option) => option.id))
   const assignmentByDefinitionId = new Map(
     assignments.map((assignment) => [assignment.definition_id, assignment])
   )
+  const optionById = new Map(options.map((option) => [option.id, option]))
 
   return definitions
     .filter(
@@ -204,15 +308,13 @@ export const getProductAttributeDetail = async (
     .map((definition) => {
       const assignment = assignmentByDefinitionId.get(definition.id)
       const selectedOption =
-        assignment?.option_id && activeOptionIds.has(assignment.option_id)
-          ? (options.find((option) => option.id === assignment.option_id) ??
-            null)
+        assignment?.option_id && optionById.has(assignment.option_id)
+          ? (optionById.get(assignment.option_id) ?? null)
           : null
 
       return {
         assignment:
           assignment &&
-          !definition.deleted_at &&
           (definition.input_type === "text" || selectedOption !== null)
             ? {
                 id: assignment.id,

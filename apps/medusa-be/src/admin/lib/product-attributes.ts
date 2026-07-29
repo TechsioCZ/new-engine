@@ -1,7 +1,5 @@
 import { sdk } from "./sdk"
 
-const PRODUCT_ATTRIBUTE_OPTION_PAGE_SIZE = 100
-
 export type ProductAttributeInputType = "select" | "text"
 export type ProductAttributeStatus = "active" | "all" | "deleted"
 
@@ -26,6 +24,14 @@ export type ProductAttributeOption = {
   label: string
   updated_at?: string
   usage_count: number
+}
+
+export type ProductAttributeAssignedProduct = {
+  handle?: null | string
+  id: string
+  status?: null | string
+  title?: null | string
+  updated_at?: string
 }
 
 export type ProductAttributeDetailItem = {
@@ -58,6 +64,13 @@ export type ProductAttributeOptionsResponse = {
 
 export type ProductAttributeOptionResponse = {
   option: ProductAttributeOption
+}
+
+export type ProductAttributeAssignedProductsResponse = {
+  count: number
+  limit: number
+  offset: number
+  products: ProductAttributeAssignedProduct[]
 }
 
 export type ProductAttributesResponse = {
@@ -100,6 +113,9 @@ export const productAttributeQueryKeys = {
     ["product-attribute-options", definitionId] as const,
   options: (definitionId: string, params: Record<string, unknown>) =>
     ["product-attribute-options", definitionId, params] as const,
+  optionProducts: (optionId: string, params: Record<string, unknown>) =>
+    ["product-attribute-option-products", optionId, params] as const,
+  products: () => ["product-attributes"] as const,
   product: (productId?: string) => ["product-attributes", productId] as const,
 }
 
@@ -145,6 +161,11 @@ export const deleteProductAttributeDefinition = (id: string) =>
     method: "DELETE",
   })
 
+export const permanentlyDeleteProductAttributeDefinition = (id: string) =>
+  sdk.client.fetch(`/admin/product-attributes/definitions/${id}/permanent`, {
+    method: "DELETE",
+  })
+
 export const restoreProductAttributeDefinition = (id: string) =>
   sdk.client.fetch<ProductAttributeDefinitionResponse>(
     `/admin/product-attributes/definitions/${id}/restore`,
@@ -168,26 +189,18 @@ export const listProductAttributeOptions = (
     })}`
   )
 
-export const listAllProductAttributeOptions = async (definitionId: string) => {
-  const options: ProductAttributeOption[] = []
-  let count = Number.POSITIVE_INFINITY
-
-  while (options.length < count) {
-    const page = await listProductAttributeOptions(definitionId, {
-      limit: PRODUCT_ATTRIBUTE_OPTION_PAGE_SIZE,
-      offset: options.length,
-      order: "label",
-      status: "active",
-    })
-    options.push(...page.options)
-    count = page.count
-    if (!page.options.length) {
-      break
-    }
+export const listProductAttributeOptionAssignedProducts = (
+  optionId: string,
+  params: {
+    limit: number
+    offset: number
+    order?: string
+    q?: string
   }
-
-  return options
-}
+) =>
+  sdk.client.fetch<ProductAttributeAssignedProductsResponse>(
+    `/admin/product-attributes/options/${optionId}/products?${toSearch(params)}`
+  )
 
 export const createProductAttributeOption = (
   definitionId: string,
@@ -209,6 +222,11 @@ export const updateProductAttributeOption = (
 
 export const deleteProductAttributeOption = (id: string) =>
   sdk.client.fetch(`/admin/product-attributes/options/${id}`, {
+    method: "DELETE",
+  })
+
+export const permanentlyDeleteProductAttributeOption = (id: string) =>
+  sdk.client.fetch(`/admin/product-attributes/options/${id}/permanent`, {
     method: "DELETE",
   })
 

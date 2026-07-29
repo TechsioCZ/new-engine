@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   AdminGetProductAttributeDefinitionsSchema,
+  AdminGetProductAttributeOptionProductsSchema,
   AdminSetProductAttributesSchema,
 } from "../validators"
 
@@ -27,6 +28,17 @@ describe("Product Attribute Admin request validation", () => {
           },
         ],
       }).success
+    ).toBe(false)
+  })
+
+  it("bounds option Product usage pagination", () => {
+    expect(AdminGetProductAttributeOptionProductsSchema.parse({})).toEqual({
+      limit: 20,
+      offset: 0,
+    })
+    expect(
+      AdminGetProductAttributeOptionProductsSchema.safeParse({ limit: 101 })
+        .success
     ).toBe(false)
   })
 })

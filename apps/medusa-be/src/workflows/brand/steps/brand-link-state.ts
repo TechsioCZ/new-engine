@@ -1,8 +1,9 @@
 export const getProductBrandIdsToReplace = (
   currentIds: string[],
   activeBrandIds: Set<string>,
-  nextIds: string[]
+  nextIds: string[],
+  dismissInactive = false
 ) =>
-  nextIds.length
+  dismissInactive || nextIds.length
     ? currentIds
     : currentIds.filter((brandId) => activeBrandIds.has(brandId))

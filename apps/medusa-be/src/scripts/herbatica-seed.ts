@@ -46,6 +46,7 @@ import {
   HERBATICA_WORKFLOW_DEFAULTS,
 } from "./herbatica-seed-config"
 import {
+  decodeXml,
   extractElements,
   extractFirstElementContent,
   extractFirstText,
@@ -2305,32 +2306,38 @@ function buildBrand(
   item: ParsedShopItem,
   manufacturersLookup: ManufacturerCsvLookup
 ): BrandSeedInput | undefined {
-  const title = item.manufacturer
+  const title = normalizeHerbaticaManufacturerTitle(item.manufacturer)
   if (!title) {
     return
   }
 
-  const manufacturerRow = findManufacturerCsvRow(
-    manufacturersLookup,
-    item.manufacturer
-  )
+  const manufacturerRow = findManufacturerCsvRow(manufacturersLookup, title)
 
   return {
     title,
     attributes: [],
-    gpsr_contact_email: manufacturerRow?.gpsr_contact_email ?? undefined,
+    gpsr_contact_email: manufacturerRow?.gpsr_contact_email,
     gpsr_european_reseller_contact_email:
-      manufacturerRow?.gpsr_european_reseller_contact_email ?? undefined,
+      manufacturerRow?.gpsr_european_reseller_contact_email,
     gpsr_european_reseller_manufacturing_company_name:
-      manufacturerRow?.gpsr_european_reseller_manufacturing_company_name ??
-      undefined,
+      manufacturerRow?.gpsr_european_reseller_manufacturing_company_name,
     gpsr_european_reseller_postal_address:
-      manufacturerRow?.gpsr_european_reseller_postal_address ?? undefined,
+      manufacturerRow?.gpsr_european_reseller_postal_address,
     gpsr_manufactured_outside_eu: manufacturerRow?.gpsr_manufactured_outside_eu,
     gpsr_manufacturing_company_name:
-      manufacturerRow?.gpsr_manufacturing_company_name ?? undefined,
-    gpsr_postal_address: manufacturerRow?.gpsr_postal_address ?? undefined,
+      manufacturerRow?.gpsr_manufacturing_company_name,
+    gpsr_postal_address: manufacturerRow?.gpsr_postal_address,
   }
+}
+
+export function normalizeHerbaticaManufacturerTitle(
+  value?: string | null
+): string | undefined {
+  if (!value) {
+    return
+  }
+
+  return normalizeInlineText(decodeXml(value))
 }
 
 function applyPromoOverrides(

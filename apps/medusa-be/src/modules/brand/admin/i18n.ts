@@ -152,6 +152,8 @@ export type BrandAdminI18nNamespace = {
     | "loadFailed"
     | "manageTitle"
     | "none"
+    | "productDetailsDescription"
+    | "productDetailsTitle"
     | "selectedBrand"
     | "title",
     string
@@ -338,6 +340,9 @@ export const brandAdminI18n = {
       loadFailed: "Výrobce se nepodařilo načíst.",
       manageTitle: "Spravovat výrobce",
       none: "Žádný",
+      productDetailsDescription:
+        "Spravujte výrobce a doplňující informace produktu.",
+      productDetailsTitle: "Výrobce a doplňující informace",
       selectedBrand: "Vybraný výrobce",
       title: "Výrobce",
     },
@@ -524,6 +529,9 @@ export const brandAdminI18n = {
       loadFailed: "Failed to load brand.",
       manageTitle: "Manage Brand",
       none: "None",
+      productDetailsDescription:
+        "Manage the product brand and additional information.",
+      productDetailsTitle: "Brand and additional information",
       selectedBrand: "Selected brand",
       title: "Brand",
     },

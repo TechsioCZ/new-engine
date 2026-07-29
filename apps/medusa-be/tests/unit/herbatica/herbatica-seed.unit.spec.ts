@@ -9,6 +9,7 @@ import {
 import {
   buildHerbaticaSeedWorkflowInput,
   buildSeedInputFromXml,
+  normalizeHerbaticaManufacturerTitle,
 } from "../../../src/scripts/herbatica-seed"
 import {
   HERBATICA_PRICE_LIST_SYNC_CONFIG,
@@ -19,6 +20,15 @@ import {
 
 const DIRTY_FEED_MARKUP_PATTERN =
   /data-turn-id|data-message-author-role|data-testid|ChatGPT|markdown prose|webpage-citation-pill|_ngcontent-ng|markdown-main-panel/i
+
+describe("Herbatica manufacturer normalization", () => {
+  it("decodes the source's verified nested XML entity without changing ordinary names", () => {
+    expect(
+      normalizeHerbaticaManufacturerTitle("SHIR Beauty &amp; Science")
+    ).toBe("SHIR Beauty & Science")
+    expect(normalizeHerbaticaManufacturerTitle("ViolaHerb")).toBe("ViolaHerb")
+  })
+})
 
 describe("Herbatica seed category mapping", () => {
   it("prefers canonical category export data over malformed product paths", () => {

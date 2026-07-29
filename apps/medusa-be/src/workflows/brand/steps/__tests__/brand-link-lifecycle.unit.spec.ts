@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest"
-import {
-  buildDesiredProductBrandLinks,
-  filterSeedLinksToActiveBrands,
-} from "../../../seed/steps/create-products"
+import { buildDesiredProductBrandLinks } from "../../../seed/steps/create-products"
 import {
   diffIds,
   getProductBrandIdsToReplace,
@@ -57,45 +54,23 @@ describe("deleted brand link lifecycle", () => {
     })
   })
 
+  it("dismisses inactive links when an authoritative caller clears the assignment", () => {
+    expect(
+      getProductBrandIdsToReplace(
+        ["brand_deleted"],
+        new Set<string>(),
+        [],
+        true
+      )
+    ).toEqual(["brand_deleted"])
+  })
+
   it("still rejects reassignment from a different active brand", () => {
     expect(
       hasActiveBrandConflict(["brand_current"], new Set(["brand_current"]), [
         "brand_next",
       ])
     ).toBe(true)
-  })
-
-  it("treats only non-deleted seed links as active conflicts", () => {
-    const activeLinks = filterSeedLinksToActiveBrands({
-      linkedBrandsById: new Map([
-        [
-          "brand_active",
-          {
-            handle: "active",
-            id: "brand_active",
-            title: "Active",
-          },
-        ],
-        [
-          "brand_deleted",
-          {
-            deleted_at: new Date(),
-            handle: "deleted",
-            id: "brand_deleted",
-            title: "Deleted",
-          },
-        ],
-      ]),
-      productHandle: "product",
-      productLinks: [
-        { brand_id: "brand_active", product_id: "prod_1" },
-        { brand_id: "brand_deleted", product_id: "prod_1" },
-      ],
-    })
-
-    expect(activeLinks).toEqual([
-      { brand_id: "brand_active", product_id: "prod_1" },
-    ])
   })
 
   it("routes every desired seed assignment through reconciliation", () => {
@@ -105,7 +80,17 @@ describe("deleted brand link lifecycle", () => {
         desiredBrandHandleByProduct: new Map([["product", "brand"]]),
         products: [{ handle: "product", id: "prod_1" }] as never,
       })
-    ).toEqual([{ brandId: "brand_active", productId: "prod_1" }])
+    ).toEqual([{ brandIds: ["brand_active"], productId: "prod_1" }])
+  })
+
+  it("routes a missing source manufacturer through explicit removal", () => {
+    expect(
+      buildDesiredProductBrandLinks({
+        brandIdsByHandle: new Map(),
+        desiredBrandHandleByProduct: new Map(),
+        products: [{ handle: "product", id: "prod_1" }] as never,
+      })
+    ).toEqual([{ brandIds: [], productId: "prod_1" }])
   })
 })
 

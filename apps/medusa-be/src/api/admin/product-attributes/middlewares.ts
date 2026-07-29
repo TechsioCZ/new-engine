@@ -7,6 +7,7 @@ import {
   AdminCreateProductAttributeDefinitionSchema,
   AdminCreateProductAttributeOptionSchema,
   AdminGetProductAttributeDefinitionsSchema,
+  AdminGetProductAttributeOptionProductsSchema,
   AdminGetProductAttributeOptionsSchema,
   AdminSetProductAttributesSchema,
   AdminUpdateProductAttributeDefinitionSchema,
@@ -58,6 +59,15 @@ export const adminProductAttributeRoutesMiddlewares: MiddlewareRoute[] = [
     matcher: "/admin/product-attributes/options/:id",
     middlewares: [
       validateAndTransformBody(AdminUpdateProductAttributeOptionSchema),
+    ],
+  },
+  {
+    methods: ["GET"],
+    matcher: "/admin/product-attributes/options/:id/products",
+    middlewares: [
+      validateAndTransformQuery(AdminGetProductAttributeOptionProductsSchema, {
+        isList: true,
+      }),
     ],
   },
   {

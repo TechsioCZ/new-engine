@@ -8,8 +8,10 @@ import type {
 } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
+  kebabCase,
   Modules,
   ProductStatus,
+  toHandle,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import {
@@ -25,7 +27,7 @@ import {
   type BrandInput,
   type BrandScalarWriteInput,
   createBrandsWorkflow,
-  getCurrentProductBrandLinks,
+  restoreBrandsWorkflow,
   setProductBrandsWorkflow,
   updateBrandsWorkflow,
   validateBrandGpsrState,
@@ -135,13 +137,13 @@ type BrandRegistry = Map<
   string,
   {
     attributes: Map<string, string>
-    gpsr_contact_email?: string
-    gpsr_european_reseller_contact_email?: string
-    gpsr_european_reseller_manufacturing_company_name?: string
-    gpsr_european_reseller_postal_address?: string
+    gpsr_contact_email?: string | null
+    gpsr_european_reseller_contact_email?: string | null
+    gpsr_european_reseller_manufacturing_company_name?: string | null
+    gpsr_european_reseller_postal_address?: string | null
     gpsr_manufactured_outside_eu?: boolean
-    gpsr_manufacturing_company_name?: string
-    gpsr_postal_address?: string
+    gpsr_manufacturing_company_name?: string | null
+    gpsr_postal_address?: string | null
     handle: string
     products: string[]
     title: string
@@ -155,10 +157,6 @@ type SeedBrandScalarField = Exclude<
   keyof BrandRegistryEntry,
   "attributes" | "handle" | "products" | "title"
 >
-type ProductBrandLinkRecord = {
-  brand_id?: string
-  product_id?: string
-}
 type ExistingBrand = {
   attributes?: Array<{
     value: string
@@ -188,6 +186,7 @@ const SEED_BRAND_STRING_FIELDS = [
   "gpsr_postal_address",
 ] as const
 const SEED_QUERY_CHUNK_SIZE = 500
+const BRAND_HANDLE_CONTENT_PATTERN = /[\p{L}\p{N}]/u
 
 function chunkArray<T>(items: T[], size = SEED_QUERY_CHUNK_SIZE): T[][] {
   const chunks: T[][] = []
@@ -202,14 +201,44 @@ function normalizeSeedText(value?: string | null): string | undefined {
   return normalized ? normalized : undefined
 }
 
-function normalizeBrandRegistryKey(title: string): string {
-  return title
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
+function stripBrandHandleDiacritics(title: string) {
+  return title.normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+}
+
+export function normalizeBrandRegistryKey(title: string): string {
+  const separated = stripBrandHandleDiacritics(title).replace(
+    /[^\p{L}\p{N}]+/gu,
+    "-"
+  )
+  const kebab = kebabCase(separated).replace(/-+/g, "-").replace(/^-|-$/g, "")
+
+  if (!BRAND_HANDLE_CONTENT_PATTERN.test(kebab)) {
+    return ""
+  }
+
+  return toHandle(kebab)
+}
+
+function getLegacyBrandHandles(title: string): string[] {
+  const historicalKebabHandle = kebabCase(title.trim())
+  const previousAsciiHandle = stripBrandHandleDiacritics(title)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "")
+
+  return [...new Set([historicalKebabHandle, previousAsciiHandle])].filter(
+    Boolean
+  )
+}
+
+export function getBrandSeedHandleCandidates(
+  title: string,
+  canonicalHandle = normalizeBrandRegistryKey(title)
+): string[] {
+  return [
+    ...new Set([canonicalHandle, ...getLegacyBrandHandles(title)]),
+  ].filter(Boolean)
 }
 
 function mergeBrandScalar(
@@ -219,7 +248,7 @@ function mergeBrandScalar(
   productHandle: string
 ) {
   const normalizedValue =
-    typeof value === "string" ? normalizeSeedText(value) : (value ?? undefined)
+    typeof value === "string" ? normalizeSeedText(value) : value
   if (normalizedValue === undefined) {
     return
   }
@@ -825,157 +854,6 @@ function getDesiredBrandHandleByProduct(brands: BrandRegistry) {
   return desiredBrandHandleByProduct
 }
 
-async function listExistingBrandsById(
-  brandService: BrandModuleService,
-  brandIds: string[]
-) {
-  const brands: ExistingBrand[] = []
-
-  for (const brandIdChunk of chunkArray(brandIds)) {
-    const chunkBrands = await brandService.listBrands(
-      {
-        id: { $in: brandIdChunk },
-      },
-      {
-        select: ["id", "handle", "title", "deleted_at"],
-        take: brandIdChunk.length,
-        withDeleted: true,
-      }
-    )
-    brands.push(...(chunkBrands as ExistingBrand[]))
-  }
-
-  return new Map(brands.map((brand) => [brand.id, brand]))
-}
-
-function groupProductBrandLinks(links: ProductBrandLinkRecord[]) {
-  const linksByProductId = new Map<string, ProductBrandLinkRecord[]>()
-
-  for (const link of links) {
-    if (!(link.product_id && link.brand_id)) {
-      throw new Error(
-        "Product-brand link query returned a row without product_id or brand_id"
-      )
-    }
-    const productLinks = linksByProductId.get(link.product_id) ?? []
-    productLinks.push(link)
-    linksByProductId.set(link.product_id, productLinks)
-  }
-
-  return linksByProductId
-}
-
-export function filterSeedLinksToActiveBrands(params: {
-  linkedBrandsById: Map<string, ExistingBrand>
-  productHandle: string
-  productLinks: ProductBrandLinkRecord[]
-}) {
-  return params.productLinks.filter((link) => {
-    const linkedBrandId = link.brand_id
-    const linkedBrand = linkedBrandId
-      ? params.linkedBrandsById.get(linkedBrandId)
-      : undefined
-
-    if (!linkedBrand) {
-      throw new Error(
-        `Product "${params.productHandle}" links to missing brand "${linkedBrandId}"`
-      )
-    }
-
-    return !linkedBrand.deleted_at
-  })
-}
-
-function assertExistingProductBrandLinkMatchesSeed(params: {
-  desiredBrandHandleByProduct: Map<string, string>
-  linkedBrandsById: Map<string, ExistingBrand>
-  productHandleById: Map<string, string>
-  productId: string
-  productLinks: ProductBrandLinkRecord[]
-}) {
-  const productHandle = params.productHandleById.get(params.productId)
-  if (!productHandle) {
-    throw new Error(
-      `Linked product "${params.productId}" was not found in seed input`
-    )
-  }
-  const activeProductLinks = filterSeedLinksToActiveBrands({
-    linkedBrandsById: params.linkedBrandsById,
-    productHandle,
-    productLinks: params.productLinks,
-  })
-
-  if (!activeProductLinks.length) {
-    return
-  }
-
-  if (activeProductLinks.length > 1) {
-    throw new Error(
-      `Product "${productHandle}" already has ${activeProductLinks.length} active brand links`
-    )
-  }
-
-  const linkedBrandId = activeProductLinks[0]?.brand_id
-  const linkedBrand = linkedBrandId
-    ? params.linkedBrandsById.get(linkedBrandId)
-    : undefined
-  if (!linkedBrand) {
-    throw new Error(
-      `Product "${productHandle}" links to missing brand "${linkedBrandId}"`
-    )
-  }
-
-  const desiredHandle = params.desiredBrandHandleByProduct.get(productHandle)
-  if (linkedBrand.handle !== desiredHandle) {
-    throw new Error(
-      `Product "${productHandle}" is already linked to brand "${linkedBrand.title}" (${linkedBrand.handle}), not requested brand "${desiredHandle}"`
-    )
-  }
-}
-
-async function assertNoConflictingExistingProductBrandLinks(params: {
-  brandService: BrandModuleService
-  brands: BrandRegistry
-  container: WorkflowContainer
-  existingProducts: ProductDTO[]
-}) {
-  const desiredBrandHandleByProduct = getDesiredBrandHandleByProduct(
-    params.brands
-  )
-  const relevantProducts = params.existingProducts.filter((product) =>
-    desiredBrandHandleByProduct.has(product.handle)
-  )
-  const links = await getCurrentProductBrandLinks(
-    params.container,
-    relevantProducts.map((product) => product.id)
-  )
-  const linkedBrandIds = [
-    ...new Set(
-      links
-        .map((link) => link.brand_id)
-        .filter((brandId): brandId is string => !!brandId)
-    ),
-  ]
-  const linkedBrandsById = await listExistingBrandsById(
-    params.brandService,
-    linkedBrandIds
-  )
-  const productHandleById = new Map(
-    relevantProducts.map((product) => [product.id, product.handle])
-  )
-  const linksByProductId = groupProductBrandLinks(links)
-
-  for (const [productId, productLinks] of linksByProductId) {
-    assertExistingProductBrandLinkMatchesSeed({
-      desiredBrandHandleByProduct,
-      linkedBrandsById,
-      productHandleById,
-      productId,
-      productLinks,
-    })
-  }
-}
-
 function mergeExistingBrandAttributes(
   existing: ExistingBrand,
   incoming: BrandRegistryEntry
@@ -1004,13 +882,11 @@ function mergeExistingBrandAttributes(
   let changed = false
   for (const [name, value] of incoming.attributes) {
     const existingAttribute = attributes.get(name)
-    if (existingAttribute !== undefined && existingAttribute.value !== value) {
-      throw new Error(
-        `Seed attribute "${name}" conflicts with persisted brand "${existing.title}"`
-      )
-    }
-    if (existingAttribute === undefined) {
-      attributes.set(name, { name, value })
+    if (existingAttribute?.value !== value) {
+      attributes.set(name, {
+        name: existingAttribute?.name ?? name,
+        value,
+      })
       changed = true
     }
   }
@@ -1021,11 +897,18 @@ function mergeExistingBrandAttributes(
   }
 }
 
-function buildExistingBrandEnrichment(
+export function buildExistingBrandReconciliation(
   existing: ExistingBrand,
   incoming: BrandRegistryEntry
 ): Partial<BrandInput> {
   const update: Partial<BrandInput> = {}
+  if (existing.title !== incoming.title) {
+    update.title = incoming.title
+  }
+  if (existing.handle !== incoming.handle) {
+    update.handle = incoming.handle
+  }
+
   const mergedAttributes = mergeExistingBrandAttributes(existing, incoming)
   if (mergedAttributes.changed) {
     update.attributes = mergedAttributes.attributes
@@ -1037,22 +920,21 @@ function buildExistingBrandEnrichment(
       continue
     }
 
-    const existingValue = normalizeSeedText(existing[field])
-    if (existingValue !== undefined && existingValue !== incomingValue) {
-      throw new Error(
-        `Seed ${field} conflicts with persisted brand "${existing.title}"`
-      )
-    }
-    if (existingValue === undefined) {
+    const existingValue =
+      existing[field] === null
+        ? null
+        : (normalizeSeedText(existing[field]) ?? null)
+    if (existingValue !== incomingValue) {
       update[field] = incomingValue
     }
   }
 
   if (
-    incoming.gpsr_manufactured_outside_eu === true &&
-    existing.gpsr_manufactured_outside_eu !== true
+    incoming.gpsr_manufactured_outside_eu !== undefined &&
+    existing.gpsr_manufactured_outside_eu !==
+      incoming.gpsr_manufactured_outside_eu
   ) {
-    update.gpsr_manufactured_outside_eu = true
+    update.gpsr_manufactured_outside_eu = incoming.gpsr_manufactured_outside_eu
   }
 
   return update
@@ -1080,69 +962,71 @@ async function findExistingSeedBrand(
   brandService: BrandModuleService,
   brandData: BrandRegistryEntry
 ): Promise<ExistingBrand | undefined> {
+  const candidateHandles = getBrandSeedHandleCandidates(
+    brandData.title,
+    brandData.handle
+  )
   const existingBrands = (await brandService.listBrands(
     {
-      handle: brandData.handle,
+      handle: { $in: candidateHandles },
     },
     {
       relations: ["attributes", "attributes.attributeType"],
+      take: Math.max(candidateHandles.length * 2, 1),
       withDeleted: true,
     }
   )) as ExistingBrand[]
 
   if (existingBrands.length > 1) {
-    throw new Error(`Multiple brands use seed handle "${brandData.handle}"`)
+    throw new Error(
+      `Brand "${brandData.title}" resolves to multiple persisted records for handles ${candidateHandles.map((handle) => `"${handle}"`).join(", ")}: ${existingBrands.map((brand) => `"${brand.title}" (${brand.handle})`).join(", ")}`
+    )
   }
 
   return existingBrands[0]
 }
 
-function assertExistingSeedBrandIsUsable(
+function validateExistingSeedBrandReconciliation(
   existing: ExistingBrand,
   brandData: BrandRegistryEntry
 ) {
-  if (existing.deleted_at) {
-    throw new Error(
-      `Brand handle "${brandData.handle}" belongs to soft-deleted brand "${existing.title}"; restore it explicitly before seeding`
-    )
-  }
-
-  const enrichment = buildExistingBrandEnrichment(existing, brandData)
+  const update = buildExistingBrandReconciliation(existing, brandData)
   const effectiveState: BrandScalarWriteInput = {
-    gpsr_contact_email:
-      enrichment.gpsr_contact_email ?? existing.gpsr_contact_email,
+    gpsr_contact_email: existing.gpsr_contact_email,
     gpsr_european_reseller_contact_email:
-      enrichment.gpsr_european_reseller_contact_email ??
       existing.gpsr_european_reseller_contact_email,
     gpsr_european_reseller_manufacturing_company_name:
-      enrichment.gpsr_european_reseller_manufacturing_company_name ??
       existing.gpsr_european_reseller_manufacturing_company_name,
     gpsr_european_reseller_postal_address:
-      enrichment.gpsr_european_reseller_postal_address ??
       existing.gpsr_european_reseller_postal_address,
     gpsr_manufactured_outside_eu:
-      enrichment.gpsr_manufactured_outside_eu ??
-      existing.gpsr_manufactured_outside_eu ??
-      false,
-    gpsr_manufacturing_company_name:
-      enrichment.gpsr_manufacturing_company_name ??
-      existing.gpsr_manufacturing_company_name,
-    gpsr_postal_address:
-      enrichment.gpsr_postal_address ?? existing.gpsr_postal_address,
+      existing.gpsr_manufactured_outside_eu ?? false,
+    gpsr_manufacturing_company_name: existing.gpsr_manufacturing_company_name,
+    gpsr_postal_address: existing.gpsr_postal_address,
     handle: existing.handle,
     title: existing.title,
+    ...update,
   }
-  validateBrandGpsrState(effectiveState, existing.handle)
+  validateBrandGpsrState(effectiveState, brandData.handle)
 }
 
 async function assertSeedBrandsCompatibleWithPersistence(
   brandService: BrandModuleService,
   brands: BrandRegistry
 ) {
+  const desiredHandleByExistingBrandId = new Map<string, string>()
+
   for (const brandData of brands.values()) {
     const existing = await findExistingSeedBrand(brandService, brandData)
     if (existing) {
-      assertExistingSeedBrandIsUsable(existing, brandData)
+      const priorDesiredHandle = desiredHandleByExistingBrandId.get(existing.id)
+      if (priorDesiredHandle && priorDesiredHandle !== brandData.handle) {
+        throw new Error(
+          `Persisted brand "${existing.title}" (${existing.handle}) resolves to multiple seed handles: "${priorDesiredHandle}" and "${brandData.handle}"`
+        )
+      }
+      desiredHandleByExistingBrandId.set(existing.id, brandData.handle)
+      validateExistingSeedBrandReconciliation(existing, brandData)
     } else {
       validateBrandGpsrState(toCreateBrandInput(brandData), brandData.handle)
     }
@@ -1171,9 +1055,17 @@ async function upsertSeedBrand(params: {
     return created
   }
 
-  assertExistingSeedBrandIsUsable(existing, params.brandData)
+  validateExistingSeedBrandReconciliation(existing, params.brandData)
 
-  const update = buildExistingBrandEnrichment(existing, params.brandData)
+  if (existing.deleted_at) {
+    await restoreBrandsWorkflow(params.container).run({
+      input: {
+        ids: [existing.id],
+      },
+    })
+  }
+
+  const update = buildExistingBrandReconciliation(existing, params.brandData)
   if (Object.keys(update).length) {
     await updateBrandsWorkflow(params.container).run({
       input: {
@@ -1208,14 +1100,13 @@ async function upsertSeedBrandsByHandle(params: {
 }
 
 async function listSeedProductsByHandle(params: {
-  desiredBrandHandleByProduct: Map<string, string>
+  productHandles: string[]
   productService: IProductModuleService
 }) {
   const products: ProductDTO[] = []
+  const uniqueHandles = [...new Set(params.productHandles)]
 
-  for (const handleChunk of chunkArray([
-    ...params.desiredBrandHandleByProduct.keys(),
-  ])) {
+  for (const handleChunk of chunkArray(uniqueHandles)) {
     const chunkProducts = await params.productService.listProducts(
       { handle: { $in: handleChunk } },
       {
@@ -1226,11 +1117,11 @@ async function listSeedProductsByHandle(params: {
     products.push(...chunkProducts)
   }
 
-  if (products.length !== params.desiredBrandHandleByProduct.size) {
+  if (products.length !== uniqueHandles.length) {
     const foundHandles = new Set(products.map((product) => product.handle))
-    const missingHandles = [
-      ...params.desiredBrandHandleByProduct.keys(),
-    ].filter((handle) => !foundHandles.has(handle))
+    const missingHandles = uniqueHandles.filter(
+      (handle) => !foundHandles.has(handle)
+    )
     throw new Error(
       `Products were not found for brand linking: ${missingHandles.join(", ")}`
     )
@@ -1244,21 +1135,21 @@ export function buildDesiredProductBrandLinks(params: {
   desiredBrandHandleByProduct: Map<string, string>
   products: ProductDTO[]
 }) {
-  const desiredLinks: { brandId: string; productId: string }[] = []
+  const desiredLinks: { brandIds: string[]; productId: string }[] = []
 
   for (const product of params.products) {
     const desiredHandle = params.desiredBrandHandleByProduct.get(product.handle)
     const desiredBrandId = desiredHandle
       ? params.brandIdsByHandle.get(desiredHandle)
       : undefined
-    if (!desiredBrandId) {
+    if (desiredHandle && !desiredBrandId) {
       throw new Error(
         `Resolved brand was not found for product "${product.handle}"`
       )
     }
 
     desiredLinks.push({
-      brandId: desiredBrandId,
+      brandIds: desiredBrandId ? [desiredBrandId] : [],
       productId: product.id,
     })
   }
@@ -1268,13 +1159,14 @@ export function buildDesiredProductBrandLinks(params: {
 
 async function reconcileProductBrandLinks(
   container: WorkflowContainer,
-  links: { brandId: string; productId: string }[]
+  links: { brandIds: string[]; productId: string }[]
 ) {
   for (const link of links) {
     await setProductBrandsWorkflow(container).run({
       input: {
-        brand_ids: [link.brandId],
-        fail_on_conflict: true,
+        brand_ids: link.brandIds,
+        dismiss_inactive: true,
+        fail_on_conflict: false,
         product_id: link.productId,
       },
     })
@@ -1286,8 +1178,9 @@ async function linkBrands(params: {
   productService: IProductModuleService
   brandService: BrandModuleService
   brands: BrandRegistry
+  seedProducts: ProductInput[]
 }): Promise<void> {
-  if (!params.brands.size) {
+  if (!params.seedProducts.length) {
     return
   }
 
@@ -1296,7 +1189,7 @@ async function linkBrands(params: {
     params.brands
   )
   const products = await listSeedProductsByHandle({
-    desiredBrandHandleByProduct,
+    productHandles: params.seedProducts.map((product) => product.handle),
     productService: params.productService,
   })
   const desiredLinks = buildDesiredProductBrandLinks({
@@ -1354,12 +1247,6 @@ export const createProductsStep = createStep(
       }
     )
 
-    await assertNoConflictingExistingProductBrandLinks({
-      brandService,
-      brands,
-      container,
-      existingProducts,
-    })
     await assertSeedBrandsCompatibleWithPersistence(brandService, brands)
 
     ensureUniqueVariantSkus(input, existingProducts, logger)
@@ -1470,6 +1357,7 @@ export const createProductsStep = createStep(
       productService,
       brandService,
       brands,
+      seedProducts: input,
     })
 
     return new StepResponse({

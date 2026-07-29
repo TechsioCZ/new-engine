@@ -65,7 +65,8 @@ export const prepareSetProductBrandsStep = createStep(
     const replaceableCurrentIds = getProductBrandIdsToReplace(
       currentIds,
       activeCurrentIds,
-      input.brand_ids
+      input.brand_ids,
+      input.dismiss_inactive
     )
     const { add, remove } = diffIds(replaceableCurrentIds, input.brand_ids)
 
