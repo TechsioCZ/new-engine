@@ -23,6 +23,31 @@ export type CleanupProductBrandAttributesCompensation = {
 }
 
 const normalizeLegacyName = (value: string) => value.trim().toLowerCase()
+const LEGACY_ATTRIBUTE_TYPE_BATCH_SIZE = 100
+
+const listAllBrandAttributeTypes = async (service: BrandModuleService) => {
+  const records: BrandAttributeTypeRecord[] = []
+  let count = Number.POSITIVE_INFINITY
+
+  while (records.length < count) {
+    const [page, total] = (await service.listAndCountBrandAttributeTypes(
+      {},
+      {
+        skip: records.length,
+        take: LEGACY_ATTRIBUTE_TYPE_BATCH_SIZE,
+        withDeleted: true,
+      }
+    )) as [BrandAttributeTypeRecord[], number]
+    records.push(...page)
+    count = total
+
+    if (page.length === 0) {
+      break
+    }
+  }
+
+  return records
+}
 
 export function selectScopedLegacyBrandAttributeIds({
   attributes,
@@ -67,10 +92,7 @@ export const cleanupProductBrandAttributesStep = createStep(
       )
     }
 
-    const attributeTypes = (await service.listBrandAttributeTypes(
-      {},
-      { take: 10_000, withDeleted: true }
-    )) as BrandAttributeTypeRecord[]
+    const attributeTypes = await listAllBrandAttributeTypes(service)
     const matchingTypes = attributeTypes.filter(
       (attributeType) =>
         !attributeType.deleted_at &&

@@ -13,6 +13,29 @@ export type ProductAttributeListStatus = "active" | "all" | "deleted"
 const LIKE_WILDCARD_REGEX = /[\\%_]/g
 const LEADING_DASH_REGEX = /^-/
 const ORDER_FIELDS = new Set(["key", "label", "created_at", "updated_at"])
+const PRODUCT_ATTRIBUTE_DETAIL_BATCH_SIZE = 100
+
+export const listAllProductAttributeRecords = async <T>(
+  listPage: (skip: number, take: number) => Promise<[T[], number]>
+) => {
+  const records: T[] = []
+  let count = Number.POSITIVE_INFINITY
+
+  while (records.length < count) {
+    const [page, total] = await listPage(
+      records.length,
+      PRODUCT_ATTRIBUTE_DETAIL_BATCH_SIZE
+    )
+    records.push(...page)
+    count = total
+
+    if (page.length === 0) {
+      break
+    }
+  }
+
+  return records
+}
 
 export const escapeProductAttributeLikePattern = (value: string) =>
   value.replace(LIKE_WILDCARD_REGEX, (match) => `\\${match}`)
@@ -132,18 +155,32 @@ export const getProductAttributeDetail = async (
 ) => {
   const service = getProductAttributeService(scope)
   const [definitions, options, assignments] = await Promise.all([
-    service.listProductAttributeDefinitions(
-      {},
-      { order: { label: "ASC" }, take: 500, withDeleted: true }
-    ) as Promise<ProductAttributeDefinitionRecord[]>,
-    service.listProductAttributeOptions(
-      {},
-      { order: { label: "ASC" }, take: 1000 }
-    ) as Promise<ProductAttributeOptionRecord[]>,
-    service.listProductAttributes(
-      { product_id: productId },
-      { take: 500 }
-    ) as Promise<ProductAttributeAssignmentRecord[]>,
+    listAllProductAttributeRecords(
+      async (skip, take) =>
+        (await service.listAndCountProductAttributeDefinitions(
+          {},
+          {
+            order: { label: "ASC" },
+            skip,
+            take,
+            withDeleted: true,
+          }
+        )) as [ProductAttributeDefinitionRecord[], number]
+    ),
+    listAllProductAttributeRecords(
+      async (skip, take) =>
+        (await service.listAndCountProductAttributeOptions(
+          {},
+          { order: { label: "ASC" }, skip, take }
+        )) as [ProductAttributeOptionRecord[], number]
+    ),
+    listAllProductAttributeRecords(
+      async (skip, take) =>
+        (await service.listAndCountProductAttributes(
+          { product_id: productId },
+          { skip, take }
+        )) as [ProductAttributeAssignmentRecord[], number]
+    ),
   ])
   const activeOptionIds = new Set(options.map((option) => option.id))
   const assignmentByDefinitionId = new Map(

@@ -210,7 +210,7 @@ importers:
         version: 2.18.0
       '@medusajs/types':
         specifier: ^2.18.0
-        version: 2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@5.4.21(@types/node@24.12.4)(less@4.1.3)(lightningcss@1.33.0)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0))
+        version: 2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))
       '@tanstack/react-form':
         specifier: ^1.27.4
         version: 1.27.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -219,7 +219,7 @@ importers:
         version: 5.90.10(react@19.2.3)
       '@techsio/storefront-data':
         specifier: workspace:*
-        version: link:../../libs/storefront-data
+        version: file:libs/storefront-data(@medusajs/js-sdk@2.18.0)(@medusajs/types@2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0)))(@tanstack/react-query@5.90.10(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@techsio/ui-kit':
         specifier: workspace:*
         version: file:libs/ui(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(debug@4.4.3(supports-color@8.1.1))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)(tailwindcss@4.2.4)
@@ -275,6 +275,9 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+      vite:
+        specifier: catalog:vite8-testing
+        version: 8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0)
       vitest:
         specifier: catalog:vite8-testing
         version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.12.4)(@vitest/coverage-v8@4.1.5)(happy-dom@20.10.6)(jsdom@27.4.0(supports-color@8.1.1))(msw@2.12.10(@types/node@24.12.4)(typescript@5.9.3))(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))
@@ -2580,9 +2583,11 @@ packages:
 
   '@esbuild-kit/core-utils@3.3.2':
     resolution: {integrity: sha512-sPRAnw9CdSsRmEtnsl2WXWdyquogVpB3yZ3dgwJfe8zrOzTsV7cJvmwrKVa+0ma5BoiGJ+BoqkMvawbayKUsqQ==}
+    deprecated: 'Merged into tsx: https://tsx.hirok.io'
 
   '@esbuild-kit/esm-loader@2.6.5':
     resolution: {integrity: sha512-FxEMIkJKnodyA1OaCUoEvbYRkoZlLZ4d/eXFu9Fh8CbBBgP5EmZxrfTRyN0qpXZ4vOvqnE5YdRdcrmUUXuU+dA==}
+    deprecated: 'Merged into tsx: https://tsx.hirok.io'
 
   '@esbuild/aix-ppc64@0.21.5':
     resolution: {integrity: sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ==}
@@ -5375,32 +5380,39 @@ packages:
   '@oclif/command@1.8.36':
     resolution: {integrity: sha512-/zACSgaYGtAQRzc7HjzrlIs14FuEYAZrMOEwicRoUnZVyRunG4+t5iSEeQu0Xy2bgbCD0U1SP/EdeNZSTXRwjQ==}
     engines: {node: '>=12.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       '@oclif/config': ^1
 
   '@oclif/config@1.18.16':
     resolution: {integrity: sha512-VskIxVcN22qJzxRUq+raalq6Q3HUde7sokB7/xk5TqRZGEKRVbFeqdQBxDWwQeudiJEgcNiMvIFbMQ43dY37FA==}
     engines: {node: '>=8.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@oclif/config@1.18.17':
     resolution: {integrity: sha512-k77qyeUvjU8qAJ3XK3fr/QVAqsZO8QOBuESnfeM5HHtPNLSyfVcwiMM2zveSW5xRdLSG3MfV8QnLVkuyCL2ENg==}
     engines: {node: '>=8.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@oclif/config@1.18.2':
     resolution: {integrity: sha512-cE3qfHWv8hGRCP31j7fIS7BfCflm/BNZ2HNqHexH+fDrdF2f1D5S8VmXWLC77ffv3oDvWyvE9AZeR0RfmHCCaA==}
     engines: {node: '>=8.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@oclif/errors@1.3.5':
     resolution: {integrity: sha512-OivucXPH/eLLlOT7FkCMoZXiaVYf8I/w1eTAM1+gKzfhALwWTusxEx7wBmW0uzvkSg/9ovWLycPaBgJbM3LOCQ==}
     engines: {node: '>=8.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@oclif/errors@1.3.6':
     resolution: {integrity: sha512-fYaU4aDceETd89KXP+3cLyg9EHZsLD3RxF2IU9yxahhBpspWjkWi3Dy3bTgcwZ3V47BgxQaGapzJWDM33XIVDQ==}
     engines: {node: '>=8.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@oclif/help@1.0.15':
     resolution: {integrity: sha512-Yt8UHoetk/XqohYX76DfdrUYLsPKMc5pgkzsZVHDyBSkLiGRzujVaGZdjr32ckVZU9q3a47IjhWxhip7Dz5W/g==}
     engines: {node: '>=8.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@oclif/linewrap@1.0.0':
     resolution: {integrity: sha512-Ups2dShK52xXa8w6iBWLgcjPJWjais6KPJQq3gQ/88AY6BXoTX+MIGFPrWQO1KLMiQfoTpcLnUwloN4brrVUHw==}
@@ -5408,6 +5420,7 @@ packages:
   '@oclif/parser@3.8.17':
     resolution: {integrity: sha512-l04iSd0xoh/16TGVpXb81Gg3z7tlQGrEup16BrVLsZBK6SEYpYHRJZnM32BwZrHI97ZSFfuSwVlzoo6HdsaK8A==}
     engines: {node: '>=8.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@oclif/plugin-help@3.3.1':
     resolution: {integrity: sha512-QuSiseNRJygaqAdABYFWn/H1CwIZCp9zp/PLid6yXvy6VcQV7OenEFF5XuYaCvSARe2Tg9r8Jqls5+fw1A9CbQ==}
@@ -5416,6 +5429,7 @@ packages:
   '@oclif/screen@1.0.4':
     resolution: {integrity: sha512-60CHpq+eqnTxLZQ4PGHYNwUX572hgpMHGPtTWMjdTMsAvlm69lZV/4ly6O3sAYkomo4NggGcomrDpBe34rxUqw==}
     engines: {node: '>=8.0.0'}
+    deprecated: Deprecated in favor of @oclif/core
 
   '@octokit/auth-token@6.0.0':
     resolution: {integrity: sha512-P4YJBPdPSpWTQ1NU4XYdvHvXJJDxM6YwpS0FZHRgP7YFkdVxsWcpWGy/NVqlAA7PcPCnMacXlRm1y2PFZRWL/w==}
@@ -7566,95 +7580,111 @@ packages:
 
   '@react-email/body@0.0.11':
     resolution: {integrity: sha512-ZSD2SxVSgUjHGrB0Wi+4tu3MEpB4fYSbezsFNEJk2xCWDBkFiOeEsjTmR5dvi+CxTK691hQTQlHv0XWuP7ENTg==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/button@0.2.0':
     resolution: {integrity: sha512-8i+v6cMxr2emz4ihCrRiYJPp2/sdYsNNsBzXStlcA+/B9Umpm5Jj3WJKYpgTPM+aeyiqlG/MMI1AucnBm4f1oQ==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/code-block@0.1.0':
     resolution: {integrity: sha512-jSpHFsgqnQXxDIssE4gvmdtFncaFQz5D6e22BnVjcCPk/udK+0A9jRwGFEG8JD2si9ZXBmU4WsuqQEczuZn4ww==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/code-inline@0.0.5':
     resolution: {integrity: sha512-MmAsOzdJpzsnY2cZoPHFPk6uDO/Ncpb4Kh1hAt9UZc1xOW3fIzpe1Pi9y9p6wwUmpaeeDalJxAxH6/fnTquinA==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/column@0.0.13':
     resolution: {integrity: sha512-Lqq17l7ShzJG/d3b1w/+lVO+gp2FM05ZUo/nW0rjxB8xBICXOVv6PqjDnn3FXKssvhO5qAV20lHM6S+spRhEwQ==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/components@0.3.2':
     resolution: {integrity: sha512-nVbo0KtBdZbj19lvfFpe0ZhjKPh6LE229+NyQLuTDt6dfaLzNRpSu/rHP+jlvdWBAk93slsoGyWDRldbqklpaA==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/container@0.0.15':
     resolution: {integrity: sha512-Qo2IQo0ru2kZq47REmHW3iXjAQaKu4tpeq/M8m1zHIVwKduL2vYOBQWbC2oDnMtWPmkBjej6XxgtZByxM6cCFg==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/font@0.0.9':
     resolution: {integrity: sha512-4zjq23oT9APXkerqeslPH3OZWuh5X4crHK6nx82mVHV2SrLba8+8dPEnWbaACWTNjOCbcLIzaC9unk7Wq2MIXw==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/head@0.0.12':
     resolution: {integrity: sha512-X2Ii6dDFMF+D4niNwMAHbTkeCjlYYnMsd7edXOsi0JByxt9wNyZ9EnhFiBoQdqkE+SMDcu8TlNNttMrf5sJeMA==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/heading@0.0.15':
     resolution: {integrity: sha512-xF2GqsvBrp/HbRHWEfOgSfRFX+Q8I5KBEIG5+Lv3Vb2R/NYr0s8A5JhHHGf2pWBMJdbP4B2WHgj/VUrhy8dkIg==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/hr@0.0.11':
     resolution: {integrity: sha512-S1gZHVhwOsd1Iad5IFhpfICwNPMGPJidG/Uysy1AwmspyoAP5a4Iw3OWEpINFdgh9MHladbxcLKO2AJO+cA9Lw==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/html@0.0.11':
     resolution: {integrity: sha512-qJhbOQy5VW5qzU74AimjAR9FRFQfrMa7dn4gkEXKMB/S9xZN8e1yC1uA9C15jkXI/PzmJ0muDIWmFwatm5/+VA==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/img@0.0.11':
     resolution: {integrity: sha512-aGc8Y6U5C3igoMaqAJKsCpkbm1XjguQ09Acd+YcTKwjnC2+0w3yGUJkjWB2vTx4tN8dCqQCXO8FmdJpMfOA9EQ==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/link@0.0.12':
     resolution: {integrity: sha512-vF+xxQk2fGS1CN7UPQDbzvcBGfffr+GjTPNiWM38fhBfsLv6A/YUfaqxWlmL7zLzVmo0K2cvvV9wxlSyNba1aQ==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/markdown@0.0.15':
     resolution: {integrity: sha512-UQA9pVm5sbflgtg3EX3FquUP4aMBzmLReLbGJ6DZQZnAskBF36aI56cRykDq1o+1jT+CKIK1CducPYziaXliag==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/preview@0.0.13':
     resolution: {integrity: sha512-F7j9FJ0JN/A4d7yr+aw28p4uX7VLWs7hTHtLo7WRyw4G+Lit6Zucq4UWKRxJC8lpsUdzVmG7aBJnKOT+urqs/w==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
@@ -7675,24 +7705,28 @@ packages:
   '@react-email/row@0.0.12':
     resolution: {integrity: sha512-HkCdnEjvK3o+n0y0tZKXYhIXUNPDx+2vq1dJTmqappVHXS5tXS6W5JOPZr5j+eoZ8gY3PShI2LWj5rWF7ZEtIQ==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/section@0.0.16':
     resolution: {integrity: sha512-FjqF9xQ8FoeUZYKSdt8sMIKvoT9XF8BrzhT3xiFKdEMwYNbsDflcjfErJe3jb7Wj/es/lKTbV5QR1dnLzGpL3w==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/tailwind@1.2.2':
     resolution: {integrity: sha512-heO9Khaqxm6Ulm6p7HQ9h01oiiLRrZuuEQuYds/O7Iyp3c58sMVHZGIxiRXO/kSs857NZQycpjewEVKF3jhNTw==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
   '@react-email/text@0.1.5':
     resolution: {integrity: sha512-o5PNHFSE085VMXayxH+SJ1LSOtGsTv+RpNKnTiJDrJUwoBu77G3PlKOsZZQHCNyD28WsQpl9v2WcJLbQudqwPg==}
     engines: {node: '>=18.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
     peerDependencies:
       react: 19.2.3
 
@@ -7719,6 +7753,7 @@ packages:
 
   '@readme/json-schema-ref-parser@1.2.0':
     resolution: {integrity: sha512-Bt3QVovFSua4QmHa65EHUmh2xS0XJ3rgTEUPH998f4OW4VVJke3BuS16f+kM0ZLOGdvIrzrPRqwihuv5BAjtrA==}
+    deprecated: This package is no longer maintained. Please use `@apidevtools/json-schema-ref-parser` instead.
 
   '@readme/openapi-parser@2.7.0':
     resolution: {integrity: sha512-P8WSr8WTOxilnT89tcCRKWYsG/II4sAwt1a/DIWub8xTtkrG9cCBBy/IUcvc5X8oGWN82MwcTA3uEkDrXZd/7A==}
@@ -8755,6 +8790,15 @@ packages:
   '@tanstack/virtual-core@3.17.6':
     resolution: {integrity: sha512-h0/Ebo18CkOrChlQIhNtQkM5ySUnh/GumQ/D1st3hG2HWUPEF+ILUc2k29UtivCi/9G7w7G3/f7Xyd5cCFbKBw==}
 
+  '@techsio/storefront-data@file:libs/storefront-data':
+    resolution: {directory: libs/storefront-data, type: directory}
+    peerDependencies:
+      '@medusajs/js-sdk': '>=2.15.2'
+      '@medusajs/types': '>=2.15.2'
+      '@tanstack/react-query': '>=5.0.0'
+      react: 19.2.3
+      react-dom: 19.2.3
+
   '@techsio/storybook-a11y-reporter@0.1.3':
     resolution: {integrity: sha512-VhkEy60+6P+5TZ/xm3m8cuWJlEofxa+e5UnTGAxrP2Ql2eeLaw8Z+uZzI/F1HQfVIWGreh1dESfSEzhcamBeQg==}
     hasBin: true
@@ -9294,6 +9338,7 @@ packages:
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
+    deprecated: Potential CWE-502 - Update to 1.3.1 or higher
 
   '@unrs/resolver-binding-android-arm-eabi@1.11.1':
     resolution: {integrity: sha512-ppLRUgHVaGRWUx0R0Ut06Mjo9gBaBkg3v/8AxusGLhsIotbBLuRk51rAzqLC8gq6NyyAojEXglNjzf6R948DNw==}
@@ -10716,6 +10761,7 @@ packages:
   cli-ux@5.6.7:
     resolution: {integrity: sha512-dsKAurMNyFDnO6X1TiiRNiVbL90XReLKcvIq4H777NMqXGBxBws23ag8ubCJE97vVZEgWG2eSUhsyLf63Jv8+g==}
     engines: {node: '>=8.0.0'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   cli-width@3.0.0:
     resolution: {integrity: sha512-FxqpkPPwu1HjuN93Omfm4h8uIanXofW0RxVEW3k5RKx+mJJYSthzNhp32Kzxxy3YAEZ/Dc/EWN1vZRY0+kOhbw==}
@@ -12066,6 +12112,7 @@ packages:
 
   expect-playwright@0.8.0:
     resolution: {integrity: sha512-+kn8561vHAY+dt+0gMqqj1oY+g5xWrsuGMk4QGxotT2WS545nVqqjs37z6hrYfIuucwqthzwJfCJUEYqixyljg==}
+    deprecated: ⚠️ The 'expect-playwright' package is deprecated. The Playwright core assertions (via @playwright/test) now cover the same functionality. Please migrate to built-in expect. See https://playwright.dev/docs/test-assertions for migration.
 
   expect-type@1.3.0:
     resolution: {integrity: sha512-knvyeauYhqjOYvQ66MznSMs83wmHrCycNEN6Ao+2AeYEfxUIkuiVxdEa1qlGEPK+We3n0THiDciYSsCcgW/DoA==}
@@ -12428,6 +12475,7 @@ packages:
   fstream@1.0.12:
     resolution: {integrity: sha512-WvJ193OHa0GHPEL+AycEJgxvBEwyfRkN1vhjca23OaPVMCaLCXTd5qAu82AjTcgP1UJmytkOKb63Ypde7raDIg==}
     engines: {node: '>=0.6'}
+    deprecated: This package is no longer supported.
 
   function-bind@1.1.2:
     resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
@@ -12553,10 +12601,12 @@ packages:
   glob@11.0.3:
     resolution: {integrity: sha512-2Nim7dha1KVkaiF4q6Dj+ngPPMdfvLJEOpZk/jKiUAkqKebpGAWQXAq9z1xu9HKu5lWfqw/FASuccEjyznjPaA==}
     engines: {node: 20 || >=22}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   glob@11.1.0:
     resolution: {integrity: sha512-vuNwKSaKiqm7g0THUBu2x7ckSs3XJLXE+2ssL7/MfTGPLLcrJQ/4Uq1CjPTtO5cCIiRxqvN6Twy1qOwhL0Xjcw==}
     engines: {node: 20 || >=22}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   glob@12.0.0:
     resolution: {integrity: sha512-5Qcll1z7IKgHr5g485ePDdHcNQY0k2dtv/bjYy0iuyGxQw2qSOiiXUXJ+AYQpg3HNoUMHqAruX478Jeev7UULw==}
@@ -12568,6 +12618,7 @@ packages:
 
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   global-modules@0.2.3:
     resolution: {integrity: sha512-JeXuCbvYzYXcwE6acL9V2bAOeSIGl4dD+iwLY9iUx2VBJJ80R18HCn+JCwHM9Oegdfya3lEkGCdaRkSyc10hDA==}
@@ -12960,6 +13011,7 @@ packages:
 
   inflight@1.0.6:
     resolution: {integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==}
+    deprecated: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
 
   inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
@@ -12994,6 +13046,7 @@ packages:
 
   intersection-observer@0.10.0:
     resolution: {integrity: sha512-fn4bQ0Xq8FTej09YC/jqKZwtijpvARlRp6wxL5WTA6yPe2YWSJ5RJh7Nm79rK2qB0wr6iDQzH60XGq5V/7u8YQ==}
+    deprecated: The Intersection Observer polyfill is no longer needed and can safely be removed. Intersection Observer has been Baseline since 2019.
 
   into-stream@7.0.0:
     resolution: {integrity: sha512-2dYz766i9HprMBasCMvHMuazJ7u4WzhJwo5kb3iPSiW/iRYV6uPari3zHoqZlnuaR7V1bEiNMxikhp37rdBXbw==}
@@ -13448,6 +13501,7 @@ packages:
 
   jest-process-manager@0.4.0:
     resolution: {integrity: sha512-80Y6snDyb0p8GG83pDxGI/kQzwVTkCxc7ep5FPe/F6JYdvRDhwr6RzRmPSP7SEwuLhxo80lBS/NqOdUIbHIfhw==}
+    deprecated: ⚠️ The 'jest-process-manager' package is deprecated. Please migrate to Playwright's built-in test runner (@playwright/test) which now includes full Jest-style features and parallel testing. See https://playwright.dev/docs/intro for details.
 
   jest-regex-util@30.0.1:
     resolution: {integrity: sha512-jHEQgBXAgc+Gh4g0p3bCevgRCVRkB4VB70zhoAE48gxeSr1hfUOsM/C2WoJgVL7Eyg//hudYENbm3Ne+/dRVVA==}
@@ -14095,6 +14149,7 @@ packages:
 
   lodash.isequal@4.5.0:
     resolution: {integrity: sha512-pDo3lu8Jhfjqls6GkMgpahsF9kCyayhgykjyLMNFTKWrpVdAQtYyB4muAMWozBB4ig/dtWAmsMxLEI8wuz+DYQ==}
+    deprecated: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
 
   lodash.isfunction@3.0.9:
     resolution: {integrity: sha512-AirXNj15uRIMMPihnkInB4i3NHeb4iBtNg9WRWuK2o31S+ePwwNmDPaTL3o7dTJ+VXNZim7rFs4rxN4YU1oUJw==}
@@ -14776,6 +14831,7 @@ packages:
   multer@1.4.5-lts.1:
     resolution: {integrity: sha512-ywPWvcDMeH+z9gQq5qYHCCy+ethsk4goepZ45GLD63fOu0YcNecQxi64nDs3qluZB+murG3/D4dJ7+dGctcCQQ==}
     engines: {node: '>= 6.0.0'}
+    deprecated: Multer 1.x is impacted by a number of vulnerabilities, which have been patched in 2.x. You should upgrade to the latest 2.x version.
 
   multer@2.2.0:
     resolution: {integrity: sha512-6rdyFg2kLrMh9Jee7/BMPuV9lEAd7lLW2YUpF9/YxR7njyoUwwQ0ZPh3TaIY50Sw6vlyD2HW3wGOkTS4P79xrQ==}
@@ -16472,9 +16528,11 @@ packages:
 
   rimraf@2.7.1:
     resolution: {integrity: sha512-uWjbaKIK3T1OSVptzX7Nl6PvQ3qAGtKEtVRjRuazjfL3Bx5eI409VZSqgND+4UNnmzLVdPj9FqFJNPqBZFve4w==}
+    deprecated: Rimraf versions prior to v4 are no longer supported
 
   rimraf@3.0.2:
     resolution: {integrity: sha512-JZkJMZkAGFFPP2YqXZXPbMlMBgsxzE8ILs4lMIX/2o0L9UBw9O/Y3o6wFw/i9YLapcUJWwqbi3kdxIPdC62TIA==}
+    deprecated: Rimraf versions prior to v4 are no longer supported
 
   rolldown@1.1.5:
     resolution: {integrity: sha512-t9z29cJjXf/vxQ8dyhCSpt6H6aSwHTk8cT5I3iy6SMXuFpk5mB6PL6XfC8PCwrPTx93udwKUm9HRteAlTGBLiA==}
@@ -16636,6 +16694,7 @@ packages:
   semver-diff@5.0.0:
     resolution: {integrity: sha512-0HbGtOm+S7T6NGQ/pxJSJipJvc4DK3FcRVMRkhsIwJDJ4Jcz5DQC1cPPzB5GhzyHjwttW878HaWQq46CkL3cqg==}
     engines: {node: '>=12'}
+    deprecated: Deprecated as the semver package now supports this built-in.
 
   semver-regex@4.0.5:
     resolution: {integrity: sha512-hunMQrEy1T6Jr2uEVjrAIqjwWcQTgOAcIM52C8MY1EZSD3DDNft04XzvYKPqjED65bNVVko0YI38nYeEHCX3yw==}
@@ -17320,6 +17379,7 @@ packages:
   tar@6.2.1:
     resolution: {integrity: sha512-DZ4yORTwrbTj/7MZYq2w+/ZFdI6OZ/f9SFHR+71gIVUZhOQPHzVCLpvRnPgyaMpfWxxk/4ONva3GQSyNIKRv6A==}
     engines: {node: '>=10'}
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   tarn@3.1.2:
     resolution: {integrity: sha512-3RTvqKZcK/17jnJ8rMKFXbyNogywTs1z0gVPPwFsJGX46rkmUHOdIaSQ/aVO1rS7nH+soiXiWk7rvUXxndm8Dg==}
@@ -18009,9 +18069,11 @@ packages:
 
   uuid@8.3.2:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
 
   uuid@9.0.1:
     resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
 
   uvu@0.5.6:
     resolution: {integrity: sha512-+g8ENReyr8YsOc6fv/NVJs2vFdHBnBNdfE49rshrTzDWOlUx4Gq7KOS2GD8eqhy2j+Ejq29+SbKH8yjkAqXqoA==}
@@ -18289,6 +18351,7 @@ packages:
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
+    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-mimetype@3.0.0:
     resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}
@@ -23669,6 +23732,26 @@ snapshots:
       - supports-color
       - tedious
 
+  '@medusajs/types@2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))':
+    dependencies:
+      '@medusajs/deps': 2.18.0(@types/node@24.12.4)(mysql2@3.15.3)(supports-color@8.1.1)
+      bignumber.js: 9.3.1
+    optionalDependencies:
+      ioredis: 5.11.1(supports-color@8.1.1)
+      vite: 8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0)
+    transitivePeerDependencies:
+      - '@types/node'
+      - better-sqlite3
+      - libsql
+      - mariadb
+      - mysql
+      - mysql2
+      - pg-native
+      - pg-query-stream
+      - sqlite3
+      - supports-color
+      - tedious
+
   '@medusajs/ui@4.2.0(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)':
     dependencies:
       '@dnd-kit/core': 6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -27903,6 +27986,14 @@ snapshots:
 
   '@tanstack/virtual-core@3.17.6': {}
 
+  '@techsio/storefront-data@file:libs/storefront-data(@medusajs/js-sdk@2.18.0)(@medusajs/types@2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0)))(@tanstack/react-query@5.90.10(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      '@medusajs/js-sdk': 2.18.0
+      '@medusajs/types': 2.18.0(@types/node@24.12.4)(ioredis@5.11.1(supports-color@8.1.1))(mysql2@3.15.3)(supports-color@8.1.1)(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))
+      '@tanstack/react-query': 5.90.10(react@19.2.3)
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+
   '@techsio/storybook-a11y-reporter@0.1.3(@storybook/test-runner@0.24.4(@swc/helpers@0.5.23)(@types/node@24.12.4)(babel-plugin-macros@3.1.0)(debug@4.4.3(supports-color@8.1.1))(esbuild-register@3.6.0(esbuild@0.28.0)(supports-color@8.1.1))(storybook@10.4.5(@testing-library/dom@10.4.1)(@types/react@19.2.3)(prettier@3.5.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@24.12.4)(typescript@5.9.3)))':
     dependencies:
       '@storybook/test-runner': 0.24.4(@swc/helpers@0.5.23)(@types/node@24.12.4)(babel-plugin-macros@3.1.0)(debug@4.4.3(supports-color@8.1.1))(esbuild-register@3.6.0(esbuild@0.28.0)(supports-color@8.1.1))(storybook@10.4.5(@testing-library/dom@10.4.1)(@types/react@19.2.3)(prettier@3.5.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@24.12.4)(typescript@5.9.3))
@@ -28824,7 +28915,7 @@ snapshots:
       obug: 2.1.4
       std-env: 4.2.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.12.4)(@vitest/coverage-v8@4.1.5)(happy-dom@20.10.6)(jsdom@27.4.0(supports-color@8.1.1))(msw@2.12.10(@types/node@24.12.4)(typescript@5.9.3))
+      vitest: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.12.4)(@vitest/coverage-v8@4.1.5)(happy-dom@20.10.6)(jsdom@27.4.0(supports-color@8.1.1))(msw@2.12.10(@types/node@24.12.4)(typescript@5.9.3))(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))
 
   '@vitest/expect@3.2.4':
     dependencies:
@@ -39646,36 +39737,6 @@ snapshots:
       '@vitest/coverage-v8': 4.1.5(vitest@4.1.5)
       happy-dom: 20.10.6
       jsdom: 26.1.0(supports-color@8.1.1)
-    transitivePeerDependencies:
-      - msw
-
-  vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.12.4)(@vitest/coverage-v8@4.1.5)(happy-dom@20.10.6)(jsdom@27.4.0(supports-color@8.1.1))(msw@2.12.10(@types/node@24.12.4)(typescript@5.9.3)):
-    dependencies:
-      '@vitest/expect': 4.1.5
-      '@vitest/mocker': 4.1.5(msw@2.12.10(@types/node@24.12.4)(typescript@5.9.3))(vite@8.1.3(@types/node@24.12.4)(esbuild@0.28.0)(jiti@2.7.0)(less@4.1.3)(sass@1.84.0)(stylus@0.64.0(supports-color@8.1.1))(terser@5.49.0)(tsx@4.22.4)(yaml@2.9.0))
-      '@vitest/pretty-format': 4.1.5
-      '@vitest/runner': 4.1.5
-      '@vitest/snapshot': 4.1.5
-      '@vitest/spy': 4.1.5
-      '@vitest/utils': 4.1.5
-      es-module-lexer: 2.3.1
-      expect-type: 1.3.0
-      magic-string: 0.30.21
-      obug: 2.1.4
-      pathe: 2.0.3
-      picomatch: 4.0.5
-      std-env: 4.2.0
-      tinybench: 2.9.0
-      tinyexec: 1.1.2
-      tinyglobby: 0.2.17
-      tinyrainbow: 3.1.0
-      why-is-node-running: 2.3.0
-    optionalDependencies:
-      '@opentelemetry/api': 1.9.1
-      '@types/node': 24.12.4
-      '@vitest/coverage-v8': 4.1.5(vitest@4.1.5)
-      happy-dom: 20.10.6
-      jsdom: 27.4.0(supports-color@8.1.1)
     transitivePeerDependencies:
       - msw
 
