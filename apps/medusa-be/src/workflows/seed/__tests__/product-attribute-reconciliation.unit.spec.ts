@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 import { resolveHerbaticaProductVisibility } from "../../../scripts/herbatica-seed"
-import { selectScopedLegacyBrandAttributeIds } from "../steps/cleanup-product-brand-attributes"
+import {
+  selectExclusivelyScopedBrandIds,
+  selectScopedLegacyBrandAttributeIds,
+} from "../steps/cleanup-product-brand-attributes"
 import { collectCanonicalProductAttributeDefinitions } from "../steps/reconcile-product-attributes"
 
 const OPTION_COLLISION_PATTERN = /option key collision.*Bio Herba.*Bio-Herba/
@@ -122,6 +125,28 @@ describe("Herbatica Product Attribute reconciliation", () => {
         brandIds: new Set(["herbatica-brand"]),
       })
     ).toEqual(["herbatica-supplier"])
+  })
+
+  it("cleans only Brands linked exclusively to imported Products", () => {
+    expect(
+      selectExclusivelyScopedBrandIds({
+        links: [
+          {
+            brand_id: "herbatica-brand",
+            product_id: "herbatica-product",
+          },
+          {
+            brand_id: "shared-brand",
+            product_id: "herbatica-product",
+          },
+          {
+            brand_id: "shared-brand",
+            product_id: "n1-product",
+          },
+        ],
+        productIds: new Set(["herbatica-product"]),
+      })
+    ).toEqual(new Set(["herbatica-brand"]))
   })
 })
 

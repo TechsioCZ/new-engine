@@ -3,7 +3,10 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { BRAND_MODULE } from "../../../modules/brand"
 import type BrandModuleService from "../../../modules/brand/service"
-import { getCurrentProductBrandLinks } from "../../brand"
+import {
+  getCurrentBrandProductLinks,
+  getCurrentProductBrandLinks,
+} from "../../brand"
 
 type BrandAttributeRecord = Awaited<
   ReturnType<BrandModuleService["listBrandAttributes"]>
@@ -69,6 +72,32 @@ export function selectScopedLegacyBrandAttributeIds({
     .map(({ id }) => id)
 }
 
+export function selectExclusivelyScopedBrandIds({
+  links,
+  productIds,
+}: {
+  links: Array<{ brand_id: string; product_id: string }>
+  productIds: Set<string>
+}) {
+  const productIdsByBrandId = new Map<string, Set<string>>()
+
+  for (const link of links) {
+    const linkedProductIds =
+      productIdsByBrandId.get(link.brand_id) ?? new Set<string>()
+    linkedProductIds.add(link.product_id)
+    productIdsByBrandId.set(link.brand_id, linkedProductIds)
+  }
+
+  return new Set(
+    [...productIdsByBrandId].flatMap(([brandId, linkedProductIds]) =>
+      linkedProductIds.size &&
+      [...linkedProductIds].every((productId) => productIds.has(productId))
+        ? [brandId]
+        : []
+    )
+  )
+}
+
 export const cleanupProductBrandAttributesStep = createStep(
   "cleanup-product-brand-attributes",
   async (input: CleanupProductBrandAttributesStepInput, { container }) => {
@@ -85,8 +114,25 @@ export const cleanupProductBrandAttributesStep = createStep(
     const service = container.resolve<BrandModuleService>(BRAND_MODULE)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const links = await getCurrentProductBrandLinks(container, input.productIds)
-    const brandIds = new Set(links.map(({ brand_id }) => brand_id))
+    const candidateBrandIds = new Set(links.map(({ brand_id }) => brand_id))
+    if (candidateBrandIds.size === 0) {
+      return new StepResponse(
+        { assignments: 0, attributeTypes: 0 },
+        { attributeIds: [], attributeTypeIds: [] }
+      )
+    }
+    const linksByBrand = await getCurrentBrandProductLinks(container, [
+      ...candidateBrandIds,
+    ])
+    const brandIds = selectExclusivelyScopedBrandIds({
+      links: linksByBrand,
+      productIds: new Set(input.productIds),
+    })
+    const sharedBrandCount = candidateBrandIds.size - brandIds.size
     if (brandIds.size === 0) {
+      logger.info(
+        `Skipped legacy Brand attribute cleanup for ${sharedBrandCount} Brand(s) shared with Products outside the Herbatica seed`
+      )
       return new StepResponse(
         { assignments: 0, attributeTypes: 0 },
         { attributeIds: [], attributeTypeIds: [] }
@@ -147,7 +193,7 @@ export const cleanupProductBrandAttributesStep = createStep(
     })
 
     logger.info(
-      `Removed ${attributeIds.length} legacy Brand attributes from ${brandIds.size} Herbatica Brands; removed ${deletedTypeIds.length} unused global types`
+      `Removed ${attributeIds.length} legacy Brand attributes from ${brandIds.size} exclusively Herbatica Brands; skipped ${sharedBrandCount} shared Brands; removed ${deletedTypeIds.length} unused global types`
     )
     return new StepResponse(
       {
