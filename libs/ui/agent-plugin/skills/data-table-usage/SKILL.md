@@ -174,9 +174,12 @@ Each entry takes the full `Button` API (minus `size`, which follows the table);
 `console.warn`s, because a crowded toolbar usually means the extras belong in a
 menu. It is a recommendation, not an error.
 
-The search is the `SearchForm` molecule, so it brings its own clear button
-inside the field once there is a value. `translations.searchLabel`,
-`searchPlaceholder` and `clearSearchLabel` cover its text.
+The search is the `SearchForm` molecule: a clear button appears inside the field
+once there is a value, and a submit button is joined to its trailing edge with
+the touching corners squared off (`gapped={false}`). Filtering is live on every
+keystroke, so the submit button is a confirm affordance rather than the trigger.
+`translations.searchLabel`, `searchPlaceholder`, `clearSearchLabel` and
+`searchButtonLabel` cover its text.
 
 ## Loading states
 

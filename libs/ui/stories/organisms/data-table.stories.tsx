@@ -250,6 +250,9 @@ export const ToolbarActions: Story = {
     await expect(canvas.getByRole("button", { name: "Export" })).toBeVisible()
     await expect(canvas.getByRole("button", { name: "Refresh" })).toBeVisible()
 
+    // The search is joined to its submit button and stretches to fill the row.
+    await expect(canvas.getByLabelText("Submit search")).toBeVisible()
+
     // Typing reveals the SearchForm clear button, which empties the field.
     const input = canvas.getByLabelText("Search")
     await userEvent.type(input, "Hopper")

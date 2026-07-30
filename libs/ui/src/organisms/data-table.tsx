@@ -508,6 +508,8 @@ export type DataTableTranslations = {
   searchLabel?: string
   /** Accessible name of the search field's clear button. */
   clearSearchLabel?: string
+  /** Accessible name of the search submit button joined to the input. */
+  searchButtonLabel?: string
   columnsLabel?: string
   emptyTitle?: string
   emptyDescription?: string
@@ -526,6 +528,7 @@ const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
   searchPlaceholder: "Search…",
   searchLabel: "Search",
   clearSearchLabel: "Clear search",
+  searchButtonLabel: "Submit search",
   columnsLabel: "Columns",
   emptyTitle: "No records",
   emptyDescription: "There is no data to display.",
@@ -2556,27 +2559,39 @@ DataTable.GlobalSearch = function DataTableGlobalSearch({
   const { table, translations, locked, blocked, size } = useDataTableContext()
   const styles = dataTableVariants()
   return (
-    <SearchForm
-      className={styles.toolbarSearch({ className })}
-      onSubmit={(event) => event.preventDefault()}
-      onValueChange={(value) => {
-        if (blocked("globalFilter")) {
-          return
-        }
-        table.setGlobalFilter(value)
-      }}
-      size={size}
-      value={(table.getState().globalFilter as string) ?? ""}
-    >
-      <SearchForm.Control>
-        <SearchForm.Input
-          aria-label={translations.searchLabel}
-          disabled={locked}
-          placeholder={translations.searchPlaceholder}
-        />
-        <SearchForm.ClearButton aria-label={translations.clearSearchLabel} />
-      </SearchForm.Control>
-    </SearchForm>
+    /* SearchForm renders <search><form>, and its `className` lands on the inner
+     * form — so the flex sizing has to go on a wrapper the toolbar can actually
+     * stretch. */
+    <div className={styles.toolbarSearch({ className })}>
+      <SearchForm
+        className="w-full"
+        onSubmit={(event) => event.preventDefault()}
+        onValueChange={(value) => {
+          if (blocked("globalFilter")) {
+            return
+          }
+          table.setGlobalFilter(value)
+        }}
+        size={size}
+        value={(table.getState().globalFilter as string) ?? ""}
+      >
+        <SearchForm.Control>
+          <SearchForm.Input
+            aria-label={translations.searchLabel}
+            disabled={locked}
+            placeholder={translations.searchPlaceholder}
+          />
+          <SearchForm.ClearButton aria-label={translations.clearSearchLabel} />
+          {/* `gapped` defaults to false, so the button is joined to the input
+           * with the touching corners squared off. */}
+          <SearchForm.Button
+            aria-label={translations.searchButtonLabel}
+            disabled={locked}
+            showSearchIcon
+          />
+        </SearchForm.Control>
+      </SearchForm>
+    </div>
   )
 }
 
