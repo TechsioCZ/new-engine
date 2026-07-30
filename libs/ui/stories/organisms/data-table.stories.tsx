@@ -212,6 +212,52 @@ export const GlobalSearch: Story = {
   },
 }
 
+/* ── 5b. Toolbar: search fills the row, custom actions trail it ──────────── */
+
+export const ToolbarActions: Story = {
+  args: {
+    ...base,
+    enableGlobalFilter: true,
+    onGlobalFilterChange: fn(),
+    toolbarActions: [
+      {
+        id: "refresh",
+        "aria-label": "Refresh",
+        icon: "icon-[mdi--refresh]",
+        theme: "outlined",
+        variant: "secondary",
+        onClick: fn(),
+      },
+      {
+        id: "export",
+        label: "Export",
+        icon: "icon-[mdi--tray-arrow-down]",
+        variant: "warning",
+        onClick: fn(),
+      },
+      {
+        id: "filters",
+        label: "Filtry",
+        icon: "token-icon-chevron-down",
+        iconPosition: "right",
+        variant: "secondary",
+        onClick: fn(),
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByRole("button", { name: "Export" })).toBeVisible()
+    await expect(canvas.getByRole("button", { name: "Refresh" })).toBeVisible()
+
+    // Typing reveals the SearchForm clear button, which empties the field.
+    const input = canvas.getByLabelText("Search")
+    await userEvent.type(input, "Hopper")
+    await userEvent.click(canvas.getByLabelText("Clear search"))
+    await expect(input).toHaveValue("")
+  },
+}
+
 /* ── 6. Empty state ──────────────────────────────────────────────────────── */
 
 export const EmptyState: Story = {

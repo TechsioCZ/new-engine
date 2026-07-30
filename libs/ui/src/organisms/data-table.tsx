@@ -78,13 +78,13 @@ import {
   useState,
 } from "react"
 import { ActionIcon } from "../atoms/action-icon"
-import { Button } from "../atoms/button"
+import { Button, type ButtonProps } from "../atoms/button"
 import { Checkbox } from "../atoms/checkbox"
 import { Icon, type IconType } from "../atoms/icon"
-import { Input } from "../atoms/input"
 import { Skeleton } from "../atoms/skeleton"
 import { Menu, type MenuItem } from "../molecules/menu"
 import { Pagination, type PaginationProps } from "../molecules/pagination"
+import { SearchForm } from "../molecules/search-form"
 import { Select, type SelectItem } from "../molecules/select"
 import { tv } from "../utils"
 import {
@@ -141,14 +141,20 @@ export {
  */
 const dataTableVariants = tv({
   slots: {
-    wrapper: ["flex w-full flex-col overflow-hidden rounded-table"],
+    wrapper: [
+      "flex w-full flex-col overflow-hidden rounded-table",
+      "border-(length:--border-table-width) border-table-border",
+    ],
     toolbar: [
       "flex items-center justify-between gap-200",
       "bg-table-header-bg text-table-header-fg",
       "px-300 py-200",
       "border-b-(length:--border-table-width) border-table-border",
     ],
-    toolbarStart: ["flex items-center gap-200"],
+    /* The search takes the remaining width; actions keep their intrinsic size
+     * and stay pinned to the trailing edge. */
+    toolbarSearch: ["min-w-0 flex-1"],
+    toolbarActions: ["flex shrink-0 items-center gap-200"],
     scroll: ["relative w-full overflow-auto"],
     headerLabel: ["inline-flex items-center gap-100 whitespace-nowrap"],
     sortButton: [
@@ -209,13 +215,29 @@ const dataTableVariants = tv({
      * card instead of the table alone being outlined.
      */
     outlined: {
-      true: {
-        wrapper:
-          "border-(length:--border-table-width) border-table-border shadow-table-outline",
-      },
+      true: { wrapper: "shadow-table-outline" },
     },
   },
 })
+
+/**
+ * A custom toolbar action, rendered as a `Button` at the table's `size`.
+ * Accepts the full Button API, so icon-only, themed and loading actions all
+ * work; `label` is a convenience alias for `children`.
+ */
+export type DataTableToolbarAction = Omit<ButtonProps, "size"> & {
+  /** Stable React key; falls back to the array index. */
+  id?: string
+  /** Button text. Omit for icon-only actions, but keep an `aria-label`. */
+  label?: ReactNode
+}
+
+/**
+ * Recommended ceiling for `toolbarActions`. Exceeding it warns rather than
+ * throws — a fourth action still renders, it just crowds the toolbar and is
+ * usually a sign the extra actions belong in a menu.
+ */
+export const DATA_TABLE_MAX_TOOLBAR_ACTIONS = 3
 
 /* ── Controllable state ──────────────────────────────────────────────────── */
 
@@ -463,6 +485,7 @@ type DataTableContextValue<T> = {
   /** Control size shared by every nested form control. */
   size: DataTableControlSize
   paginationProps?: DataTableProps<T>["paginationProps"]
+  toolbarActions?: DataTableToolbarAction[]
 }
 
 const DataTableContext = createContext<DataTableContextValue<unknown> | null>(
@@ -481,6 +504,10 @@ function useDataTableContext<T>() {
 
 export type DataTableTranslations = {
   searchPlaceholder?: string
+  /** Accessible name of the global search input. */
+  searchLabel?: string
+  /** Accessible name of the search field's clear button. */
+  clearSearchLabel?: string
   columnsLabel?: string
   emptyTitle?: string
   emptyDescription?: string
@@ -497,6 +524,8 @@ export type DataTableTranslations = {
 
 const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
   searchPlaceholder: "Search…",
+  searchLabel: "Search",
+  clearSearchLabel: "Clear search",
   columnsLabel: "Columns",
   emptyTitle: "No records",
   emptyDescription: "There is no data to display.",
@@ -729,6 +758,11 @@ export type DataTableProps<T> = {
 
   /* Slots */
   renderToolbar?: (table: TanstackTable<T>) => ReactNode
+  /**
+   * Custom actions trailing the toolbar search. At most
+   * `DATA_TABLE_MAX_TOOLBAR_ACTIONS` is recommended; more still render but warn.
+   */
+  toolbarActions?: DataTableToolbarAction[]
   renderEmpty?: () => ReactNode
   /** Row actions; receives edit-mode state so you can swap in save/cancel. */
   renderRowActions?: (
@@ -1168,6 +1202,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     onCellEditCommit,
     onReady,
     renderToolbar,
+    toolbarActions,
     renderEmpty,
     renderRowActions,
     renderHeaderFilter,
@@ -2391,6 +2426,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     blocked,
     size,
     paginationProps,
+    toolbarActions,
   }
 
   return (
@@ -2407,7 +2443,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
           ) : (
             <DataTable.Toolbar>
               {enableGlobalFilter && <DataTable.GlobalSearch />}
-              {enableColumnVisibility && <DataTable.ColumnVisibility />}
+              <div className={styles.toolbarActions()}>
+                {enableColumnVisibility && <DataTable.ColumnVisibility />}
+                <DataTable.ToolbarActions />
+              </div>
             </DataTable.Toolbar>
           ))}
         <div
@@ -2506,11 +2545,7 @@ DataTable.Toolbar = function DataTableToolbar({
   children: ReactNode
 }) {
   const styles = dataTableVariants()
-  return (
-    <div className={styles.toolbar()}>
-      <div className={styles.toolbarStart()}>{children}</div>
-    </div>
-  )
+  return <div className={styles.toolbar()}>{children}</div>
 }
 
 DataTable.GlobalSearch = function DataTableGlobalSearch({
@@ -2519,22 +2554,68 @@ DataTable.GlobalSearch = function DataTableGlobalSearch({
   className?: string
 }) {
   const { table, translations, locked, blocked, size } = useDataTableContext()
+  const styles = dataTableVariants()
   return (
-    <Input
-      aria-label="Search"
-      className={className}
-      disabled={locked}
-      onChange={(e) => {
+    <SearchForm
+      className={styles.toolbarSearch({ className })}
+      onSubmit={(event) => event.preventDefault()}
+      onValueChange={(value) => {
         if (blocked("globalFilter")) {
           return
         }
-        table.setGlobalFilter(e.target.value)
+        table.setGlobalFilter(value)
       }}
-      placeholder={translations.searchPlaceholder}
       size={size}
-      type="search"
       value={(table.getState().globalFilter as string) ?? ""}
-    />
+    >
+      <SearchForm.Control>
+        <SearchForm.Input
+          aria-label={translations.searchLabel}
+          disabled={locked}
+          placeholder={translations.searchPlaceholder}
+        />
+        <SearchForm.ClearButton aria-label={translations.clearSearchLabel} />
+      </SearchForm.Control>
+    </SearchForm>
+  )
+}
+
+/**
+ * Consumer-supplied toolbar actions, trailing the search. Capped at
+ * `DATA_TABLE_MAX_TOOLBAR_ACTIONS` by convention only — see the warning below.
+ */
+DataTable.ToolbarActions = function DataTableToolbarActions() {
+  const { toolbarActions, size, locked } = useDataTableContext()
+  const styles = dataTableVariants()
+  const count = toolbarActions?.length ?? 0
+
+  useEffect(() => {
+    if (count > DATA_TABLE_MAX_TOOLBAR_ACTIONS) {
+      console.warn(
+        `[DataTable] toolbarActions has ${count} actions; at most ${DATA_TABLE_MAX_TOOLBAR_ACTIONS} is recommended. They still render, but the toolbar gets crowded — consider moving the extras into a menu.`
+      )
+    }
+  }, [count])
+
+  if (!count) {
+    return null
+  }
+
+  return (
+    <div className={styles.toolbarActions()}>
+      {toolbarActions?.map(
+        ({ id, label, children, disabled, ...action }, i) => (
+          <Button
+            disabled={disabled ?? locked}
+            key={id ?? `toolbar-action-${i}`}
+            size={size}
+            {...action}
+          >
+            {label ?? children}
+          </Button>
+        )
+      )}
+    </div>
   )
 }
 

@@ -152,6 +152,32 @@ Edit callbacks: `onEditStart`, `onEditChange`, `onEditCommit`, `onEditCancel`
 (with `dirty`), `onEditValidationError`, plus controlled `editingRowId` /
 `onEditingRowIdChange`.
 
+## Toolbar
+
+The toolbar is one row: the global search stretches to fill the free width, and
+custom actions sit at the trailing edge in a flex group.
+
+```tsx
+<DataTable
+  enableGlobalFilter
+  toolbarActions={[
+    { id: "refresh", "aria-label": "Refresh", icon: "icon-[mdi--refresh]", onClick: refetch },
+    { id: "export", label: "Export", icon: "icon-[mdi--tray-arrow-down]", variant: "warning", onClick: exportCsv },
+    { id: "filters", label: "Filters", icon: "token-icon-chevron-down", iconPosition: "right", onClick: openFilters },
+  ]}
+/>
+```
+
+Each entry takes the full `Button` API (minus `size`, which follows the table);
+`label` is a convenience alias for `children`. Keep to
+`DATA_TABLE_MAX_TOOLBAR_ACTIONS` (3) — more still render, but DataTable
+`console.warn`s, because a crowded toolbar usually means the extras belong in a
+menu. It is a recommendation, not an error.
+
+The search is the `SearchForm` molecule, so it brings its own clear button
+inside the field once there is a value. `translations.searchLabel`,
+`searchPlaceholder` and `clearSearchLabel` cover its text.
+
 ## Loading states
 
 - `loading` replaces the body with `loadingRowCount` skeleton rows (default 5)
@@ -263,6 +289,10 @@ clips its children, so the corners are correct with a toolbar, a pagination
 footer, both, or neither — including the empty state. `variant="outline"` draws
 its border on that wrapper rather than on the `<table>`, so the toolbar and
 footer sit inside the outline instead of beside it.
+
+The wrapper always draws a border in `--color-table-border`, the same colour as
+the row separators, so the grid reads as one bounded block. `variant="outline"`
+adds the outline shadow on top of it.
 
 `striped` is a standalone boolean, so zebra rows compose with any variant —
 prefer it over `variant="striped"`, which cannot be combined with `outline`.
