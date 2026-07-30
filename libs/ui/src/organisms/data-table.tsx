@@ -82,7 +82,6 @@ import { Button, type ButtonProps } from "../atoms/button"
 import { Checkbox } from "../atoms/checkbox"
 import { Icon, type IconType } from "../atoms/icon"
 import { Skeleton } from "../atoms/skeleton"
-import { Tooltip } from "../atoms/tooltip"
 import { Menu, type MenuItem } from "../molecules/menu"
 import { Pagination, type PaginationProps } from "../molecules/pagination"
 import { SearchForm } from "../molecules/search-form"
@@ -2662,15 +2661,17 @@ DataTable.ColumnVisibility = function DataTableColumnVisibility() {
       /* Toggling a column must not dismiss the list — hiding several columns
        * otherwise means reopening the menu for each one. */
       closeOnSelect={false}
+      /* Menu clones its trigger props onto this element, so it must be the
+       * button itself — a wrapper (e.g. Tooltip) swallows them and the click
+       * does nothing. `title` gives the hover hint without adding a wrapper. */
       customTrigger={
-        <Tooltip content={translations.columnsLabel}>
-          <ActionIcon
-            aria-label={translations.columnsLabel}
-            icon="icon-[mdi--cog-outline]"
-            size={size}
-            tone="neutral"
-          />
-        </Tooltip>
+        <Button
+          aria-label={translations.columnsLabel}
+          icon="icon-[mdi--cog-outline]"
+          size="sm"
+          title={translations.columnsLabel}
+          variant="primary"
+        />
       }
       items={items}
       onCheckedChange={(item) => {
