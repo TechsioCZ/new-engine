@@ -66,7 +66,6 @@
     "figma:connect:publish": "figma connect publish --config figma.config.json",
     "test-storybook": "test-storybook",
     "storybook:a11y": "bash scripts/storybook-a11y.sh",
-    "test:interactions": "bash scripts/storybook-interactions.sh",
     "test:components": "node scripts/run-component-tests.mjs",
     "test:components:update": "node scripts/run-component-tests.mjs --update-snapshots",
     "lint:tailwind": "eslint \"**/*.{js,jsx,ts,tsx}\" --config eslint.config.js",

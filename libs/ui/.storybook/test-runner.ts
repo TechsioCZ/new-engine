@@ -27,23 +27,12 @@ type TestRunnerConfigWithJest = TestRunnerConfig & {
   getJestConfig: (config: JestConfig) => JestConfig;
 };
 
-/**
- * The a11y reporter runs axe in a postVisit hook and throws on violations, which
- * masks play-function results: a broken interaction assertion and a colour
- * contrast warning both surface as "story failed". Set `A11Y_REPORT_ENABLED=0`
- * to skip axe, so the runner's exit status reflects play functions only — that
- * is what the interaction-test CI job gates on.
- */
-const a11yEnabled = readBoolEnv('A11Y_REPORT_ENABLED', true);
-
-const reporter = a11yEnabled
-  ? createA11yReporter({
-      outputDir: process.env.A11Y_REPORT_OUTPUT_DIR ?? 'a11y-report',
-      failOnViolations: readBoolEnv('A11Y_REPORT_FAIL_ON_VIOLATIONS', true),
-      writeJUnit: readBoolEnv('A11Y_REPORT_WRITE_JUNIT', true),
-      waitForResultsMs: readNumberEnv('A11Y_REPORT_WAIT_MS', 30000),
-    })
-  : {};
+const reporter = createA11yReporter({
+  outputDir: process.env.A11Y_REPORT_OUTPUT_DIR ?? 'a11y-report',
+  failOnViolations: readBoolEnv('A11Y_REPORT_FAIL_ON_VIOLATIONS', true),
+  writeJUnit: readBoolEnv('A11Y_REPORT_WRITE_JUNIT', true),
+  waitForResultsMs: readNumberEnv('A11Y_REPORT_WAIT_MS', 30000),
+});
 
 const testRunnerConfig: TestRunnerConfigWithJest = {
   ...reporter,
