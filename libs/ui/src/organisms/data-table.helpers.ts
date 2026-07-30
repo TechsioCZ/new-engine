@@ -182,6 +182,18 @@ function evaluateCondition(
   const num = Number(cellValue)
   const target = Number(value)
 
+  // A half-typed number ("-", "1e", ".") parses to NaN, and every comparison
+  // against NaN is false — which would empty the table mid-keystroke. Treat it
+  // as "no constraint yet", matching how `between` already guards its bounds.
+  const numericOperator =
+    operator === "gt" ||
+    operator === "gte" ||
+    operator === "lt" ||
+    operator === "lte"
+  if (numericOperator && Number.isNaN(target)) {
+    return true
+  }
+
   switch (operator) {
     case "contains":
       return text.includes(query)

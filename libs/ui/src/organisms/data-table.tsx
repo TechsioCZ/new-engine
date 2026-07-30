@@ -74,6 +74,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
 } from "react"
@@ -120,10 +121,12 @@ export type {
   Table as TanstackTable,
 } from "@tanstack/react-table"
 export type {
+  DataTableCellSpan,
   DataTableColumnWidth,
   DataTableConditionalFilterValue,
   DataTableFilterOperator,
   DataTableGetCellSpan,
+  DataTableInstance,
 } from "./data-table.helpers"
 // biome-ignore lint/performance/noBarrelFile: DataTable's public API intentionally re-exports the conditional-filter helpers it is designed to be used with
 export {
@@ -1408,16 +1411,39 @@ export function DataTable<T>(props: DataTableProps<T>) {
     return true
   }
 
-  const columns = buildColumns<T>({
-    userColumns: applyDeclaredColumnSizes(userColumns),
-    enableRowReorder,
-    enableRowSelection,
-    locked,
-    getRowLabel,
-    selectAllLabel: translations.selectAllLabel,
-    showSelectAll: selectionMode === "multiple" && maxSelectedRows == null,
-    onBlockedSelect: () => blocked("select"),
-  })
+  /**
+   * TanStack keys its column cache on this array's identity, so rebuilding it
+   * every render discards every derived column. `blocked` is intentionally left
+   * out of the deps: it closes over render-scoped state and would change on
+   * every render, defeating the memo — the leading columns read it through a
+   * ref instead.
+   */
+  const blockedRef = useRef(blocked)
+  blockedRef.current = blocked
+
+  const columns = useMemo(
+    () =>
+      buildColumns<T>({
+        userColumns: applyDeclaredColumnSizes(userColumns),
+        enableRowReorder,
+        enableRowSelection,
+        locked,
+        getRowLabel,
+        selectAllLabel: translations.selectAllLabel,
+        showSelectAll: selectionMode === "multiple" && maxSelectedRows == null,
+        onBlockedSelect: () => blockedRef.current("select"),
+      }),
+    [
+      userColumns,
+      enableRowReorder,
+      enableRowSelection,
+      locked,
+      getRowLabel,
+      translations.selectAllLabel,
+      selectionMode,
+      maxSelectedRows,
+    ]
+  )
 
   const table = useReactTable<T>({
     data,

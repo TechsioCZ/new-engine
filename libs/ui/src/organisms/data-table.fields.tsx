@@ -389,6 +389,9 @@ export const DEFAULT_FILTER_RENDERERS: Record<
     )
   },
 
+  // Sets only `from`, so a single picked instant filters "at or after" rather
+  // than an exact match — a datetime-local value has minute precision while the
+  // cell usually carries seconds, and an equality filter would match nothing.
   datetime: ({ column, value, setValue, disabled, size }) => {
     const v = (value ?? {}) as DateRangeFilterValue
     return (
