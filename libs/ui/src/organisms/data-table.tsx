@@ -190,9 +190,11 @@ const dataTableVariants = tv({
       "flex flex-col items-center justify-center gap-200",
       "p-700 text-center text-fg-secondary",
     ],
+    /* Same background as the toolbar so the header and footer frame the table
+     * as one pair; without it the bar falls through to --color-table-bg. */
     paginationBar: [
       "flex flex-wrap items-center justify-end gap-300",
-      "text-table-header-fg",
+      "bg-table-header-bg text-table-header-fg",
       "px-300 py-200",
       "border-t-(length:--border-table-width) border-table-border",
     ],
