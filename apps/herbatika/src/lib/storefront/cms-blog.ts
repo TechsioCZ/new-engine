@@ -38,6 +38,7 @@ type FetchCmsBlogListingInput = {
   category?: string
   page?: number
   pageSize?: number
+  signal?: AbortSignal
 }
 
 const isNonEmptyString = (value: unknown): value is string =>
@@ -94,21 +95,28 @@ export const mapCmsArticleToBlogPost = (
   }
 }
 
-export const fetchCmsArticleCategories = async () => {
+export const fetchCmsArticleCategories = async (signal?: AbortSignal) => {
   const response = await fetchCmsJsonOrThrow<CmsArticleCategoriesResponse>(
     "article-categories",
     {
-      categorySlug: HERBATIKA_BLOG_CATEGORY_SLUG,
+      params: {
+        categorySlug: HERBATIKA_BLOG_CATEGORY_SLUG,
+      },
+      signal,
     }
   )
 
   return response?.articleCategories ?? []
 }
 
-export const fetchCmsArticleBySlug = async (slug: string) => {
+export const fetchCmsArticleBySlug = async (
+  slug: string,
+  signal?: AbortSignal
+) => {
   try {
     const response = await fetchCmsJsonOrThrow<CmsArticleResponse>(
-      `articles/${encodeURIComponent(slug)}`
+      `articles/${encodeURIComponent(slug)}`,
+      { signal }
     )
 
     return response.article ?? null
@@ -123,9 +131,10 @@ export const fetchCmsArticleBySlug = async (slug: string) => {
 
 export const fetchCmsBlogPost = async (
   slug: string,
-  fallbackCategory?: BlogCategory
+  fallbackCategory?: BlogCategory,
+  signal?: AbortSignal
 ) => {
-  const article = await fetchCmsArticleBySlug(slug)
+  const article = await fetchCmsArticleBySlug(slug, signal)
 
   return article ? mapCmsArticleToBlogPost(article, fallbackCategory) : null
 }
@@ -138,11 +147,12 @@ export const fetchCmsBlogCategoryFilters = async () => {
 }
 
 const fetchIndexedBlogCards = async (
-  entries: ReturnType<typeof buildCmsArticleIndex>
+  entries: ReturnType<typeof buildCmsArticleIndex>,
+  signal?: AbortSignal
 ) => {
   const posts = await Promise.all(
     entries.map(({ category, summary }) =>
-      fetchCmsBlogPost(summary.slug?.trim() ?? "", category)
+      fetchCmsBlogPost(summary.slug?.trim() ?? "", category, signal)
     )
   )
 
@@ -155,8 +165,9 @@ export const fetchCmsBlogListing = async ({
   category,
   page,
   pageSize = BLOG_PAGE_SIZE,
+  signal,
 }: FetchCmsBlogListingInput = {}): Promise<BlogListing> => {
-  const categories = await fetchCmsArticleCategories()
+  const categories = await fetchCmsArticleCategories(signal)
   const { entries, ...listing } = buildCmsBlogPage({
     categories,
     category,
@@ -166,7 +177,7 @@ export const fetchCmsBlogListing = async ({
 
   return {
     ...listing,
-    posts: await fetchIndexedBlogCards(entries),
+    posts: await fetchIndexedBlogCards(entries, signal),
   }
 }
 

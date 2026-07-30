@@ -1,23 +1,11 @@
 import { connection } from "next/server"
 import { Suspense } from "react"
 import { BlogListingPage } from "@/components/blog/blog-listing-page"
+import { loadBlogQueryState } from "@/lib/storefront/blog-query-state.server"
 import { fetchCmsBlogListing } from "@/lib/storefront/cms"
 
 type BlogPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
-}
-
-const parsePage = (value: string | undefined) => {
-  if (!value) {
-    return 1
-  }
-
-  const parsed = Number.parseInt(value, 10)
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return 1
-  }
-
-  return parsed
 }
 
 function BlogPageFallback() {
@@ -26,12 +14,7 @@ function BlogPageFallback() {
 
 async function BlogPageContent({ searchParams }: BlogPageProps) {
   await connection()
-  const resolvedSearchParams = await searchParams
-  const rawCategory = resolvedSearchParams.category
-  const rawPage = resolvedSearchParams.page
-
-  const category = Array.isArray(rawCategory) ? rawCategory[0] : rawCategory
-  const page = parsePage(Array.isArray(rawPage) ? rawPage[0] : rawPage)
+  const { category, page } = await loadBlogQueryState(searchParams)
   const listing = await fetchCmsBlogListing({
     category,
     page,

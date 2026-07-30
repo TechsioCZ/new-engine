@@ -7,8 +7,10 @@ import {
 } from "./cms-blog-index"
 import {
   ALL_BLOG_CATEGORIES_KEY,
+  resolveBlogListingApiHref,
   resolveBlogListingHref,
 } from "./blog-routing"
+import { blogQueryParsers } from "./blog-query-state"
 
 const post: BlogPost = {
   id: "cms-1",
@@ -114,13 +116,39 @@ describe("resolveBlogListingHref", () => {
     )
   })
 
-  it("encodes category and page consistently", () => {
+  it("serializes category and page consistently", () => {
     assert.equal(
       resolveBlogListingHref({
         category: "zdravie & krása",
         page: 2,
       }),
-      "/blog?category=zdravie+%26+kr%C3%A1sa&page=2"
+      "/blog?category=zdravie+%26+krása&page=2"
     )
+  })
+
+  it("builds the equivalent API URL for loading another page", () => {
+    assert.equal(
+      resolveBlogListingApiHref({
+        category: "zdravie & krása",
+        page: 3,
+      }),
+      "/api/blog?category=zdravie+%26+krása&page=3"
+    )
+  })
+})
+
+describe("blogQueryParsers", () => {
+  it("normalizes category and accepts positive integer pages", () => {
+    assert.equal(blogQueryParsers.category.parseServerSide(" health "), "health")
+    assert.equal(blogQueryParsers.page.parseServerSide("4"), 4)
+  })
+
+  it("falls back to the default query state for invalid input", () => {
+    assert.equal(
+      blogQueryParsers.category.parseServerSide(" "),
+      ALL_BLOG_CATEGORIES_KEY
+    )
+    assert.equal(blogQueryParsers.page.parseServerSide("-2"), 1)
+    assert.equal(blogQueryParsers.page.parseServerSide("invalid"), 1)
   })
 })

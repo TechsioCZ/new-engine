@@ -39,9 +39,14 @@ export class CmsRequestError extends Error {
 export const isCmsNotFoundError = (error: unknown) =>
   error instanceof CmsRequestError && error.status === 404
 
+type CmsRequestOptions = {
+  params?: Record<string, string | number>
+  signal?: AbortSignal
+}
+
 export const fetchCmsJsonOrThrow = async <TResponse>(
   path: string,
-  params?: Record<string, string | number>
+  { params, signal }: CmsRequestOptions = {}
 ): Promise<TResponse> => {
   let response: Response
 
@@ -54,8 +59,13 @@ export const fetchCmsJsonOrThrow = async <TResponse>(
       next: {
         revalidate: CMS_REVALIDATE_SECONDS,
       },
+      signal,
     })
   } catch (cause) {
+    if (signal?.aborted) {
+      throw cause
+    }
+
     throw new CmsRequestError(`CMS request failed for "${path}"`, { cause })
   }
 
@@ -74,7 +84,7 @@ export const fetchCmsJson = async <TResponse>(
   params?: Record<string, string | number>
 ): Promise<TResponse | null> => {
   try {
-    return await fetchCmsJsonOrThrow<TResponse>(path, params)
+    return await fetchCmsJsonOrThrow<TResponse>(path, { params })
   } catch {
     return null
   }
