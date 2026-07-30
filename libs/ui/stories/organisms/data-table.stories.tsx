@@ -551,9 +551,16 @@ export const ColumnVisibility: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
+    // Icon-only cog trigger, named by its tooltip text.
+    const trigger = canvas.getByRole("button", { name: /Column settings/i })
+    await userEvent.click(trigger)
+
+    // Toggling a column keeps the list open, so several can be hidden in a row.
+    const items = await canvas.findAllByRole("menuitemcheckbox")
+    await userEvent.click(items[0] as HTMLElement)
     await expect(
-      canvas.getByRole("button", { name: /Columns/i })
-    ).toBeInTheDocument()
+      await canvas.findAllByRole("menuitemcheckbox")
+    ).not.toHaveLength(0)
   },
 }
 

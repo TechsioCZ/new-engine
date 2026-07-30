@@ -237,7 +237,7 @@ text; `translations.pageSizeLabel` is the page-size select's accessible name
   fires) and/or `canSelectRow(row, { selectedCount, isSelected })` for rules
   those two can't express. All three compose; the select-all header checkbox is
   hidden unless selection is unbounded multiple.
-- `enableColumnVisibility` — toolbar menu to show/hide columns.
+- `enableColumnVisibility` — an icon-only cog button (tooltipped with `translations.columnsLabel`) opening a checkbox list of hideable columns. The list stays open while toggling, so several columns can be hidden without reopening it.
 - `enableColumnPinning` + controlled `columnPinning` — freeze columns left/right (sticky, with an edge shadow).
 - `enableColumnReorder` — drag column headers (dnd-kit); fires `onColumnReorder`.
 - `enableRowReorder` — injects a drag handle column; fires `onRowReorder`.
