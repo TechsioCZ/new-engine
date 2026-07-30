@@ -193,7 +193,7 @@ const dataTableVariants = tv({
     /* Same background as the toolbar so the header and footer frame the table
      * as one pair; without it the bar falls through to --color-table-bg. */
     paginationBar: [
-      "flex flex-wrap items-center justify-end gap-300",
+      "flex flex-wrap items-center justify-between gap-300",
       "bg-table-header-bg text-table-header-fg",
       "px-300 py-200",
       "border-t-(length:--border-table-width) border-table-border",
@@ -2598,23 +2598,9 @@ DataTable.Pagination = function DataTablePagination() {
 
   return (
     <div className={styles.paginationBar()} style={OPAQUE_HEADER_BG}>
-      <div className={styles.paginationControls()}>
-        <span className={styles.paginationInfo()}>
-          {translations.pageSizeLabel}
-        </span>
-        <DataTableSelect
-          aria-label={translations.pageSizeLabel}
-          disabled={locked}
-          items={pageSizeItems}
-          onValueChange={(v) => {
-            if (!blocked("paginate")) {
-              table.setPageSize(Number(v))
-            }
-          }}
-          size={size}
-          value={String(state.pageSize)}
-        />
-      </div>
+      <span className={styles.paginationInfo()}>
+        {translations.rangeLabel({ start, end, total })}
+      </span>
       <div className={styles.paginationControls()}>
         <Pagination
           getPageUrl={() => "#"}
@@ -2629,9 +2615,20 @@ DataTable.Pagination = function DataTablePagination() {
           page={state.pageIndex + 1}
           pageSize={state.pageSize}
         />
-        <span className={styles.paginationInfo()}>
-          {translations.rangeLabel({ start, end, total })}
-        </span>
+        {/* The page-size control is labelled only for assistive tech; the
+            design shows the bare select next to the pager. */}
+        <DataTableSelect
+          aria-label={translations.pageSizeLabel}
+          disabled={locked}
+          items={pageSizeItems}
+          onValueChange={(v) => {
+            if (!blocked("paginate")) {
+              table.setPageSize(Number(v))
+            }
+          }}
+          size={size}
+          value={String(state.pageSize)}
+        />
       </div>
     </div>
   )

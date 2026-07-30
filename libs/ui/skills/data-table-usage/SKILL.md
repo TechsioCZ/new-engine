@@ -190,8 +190,11 @@ nested control — filter inputs, inline editors, page-size select, pagination,
 action icons and the column menu — so the whole table scales as one.
 `paginationProps` exposes the full `Pagination` molecule API (variant, compact,
 siblingCount, translations, …) except the table-owned count/page/pageSize. The
-footer aligns right — page size, then the pager, then the record range — and
-shares the header's background so the two frame the table consistently.
+footer splits: the record range sits on the left, the pager and page-size select
+on the right. It shares the header's background so the two frame the table
+consistently. `translations.rangeLabel({ start, end, total })` builds the range
+text; `translations.pageSizeLabel` is the page-size select's accessible name
+(the design shows no visible label beside it).
 
 ## Feature flags (all opt-in unless noted)
 
