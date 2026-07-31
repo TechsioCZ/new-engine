@@ -205,6 +205,28 @@ export function invalidateCartCaches(
   queryClient.invalidateQueries({ queryKey: queryKeys.detail(cartId) })
 }
 
+export async function cancelCartCaches(
+  queryClient: QueryClient,
+  queryKeys: CartQueryKeys,
+  cartId: string,
+  options?: CartCacheSyncOptions
+): Promise<void> {
+  const isActiveCartQueryKey = resolveActiveCartQueryMatcher(queryKeys, options)
+
+  await Promise.all([
+    queryClient.cancelQueries(
+      {
+        predicate: (query) => isActiveCartQueryKey(query.queryKey, cartId),
+      },
+      { silent: true }
+    ),
+    queryClient.cancelQueries(
+      { queryKey: queryKeys.detail(cartId) },
+      { silent: true }
+    ),
+  ])
+}
+
 export type PatchCartCachesParams<TCart extends CartLike> = {
   patch: CartUpdater<TCart>
   options?: CartCacheSyncOptions
