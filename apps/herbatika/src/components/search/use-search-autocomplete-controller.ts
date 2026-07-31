@@ -42,6 +42,7 @@ export function useSearchAutocompleteController({
   const autocomplete = useSearchAutocomplete({
     countryCode,
     currencyCode,
+    enabled: isFocused && !isDismissed,
     query: value,
     regionId,
   })
@@ -49,10 +50,13 @@ export function useSearchAutocompleteController({
   const sections = createSearchAutocompleteSections(autocomplete.data)
   const flatItems = sections.flatMap((section) => section.items)
   const activeItem = flatItems[activeIndex] ?? null
+  const hasSearchableQuery =
+    normalizedQuery.length === 0 ||
+    normalizedQuery.length >= SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH
   const shouldShowPanel =
     isFocused &&
     !isDismissed &&
-    normalizedQuery.length >= SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH &&
+    hasSearchableQuery &&
     autocomplete.status !== "idle"
   const activeItemId =
     shouldShowPanel && activeItem

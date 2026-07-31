@@ -204,6 +204,10 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
       resolve: "./src/modules/product-review",
     },
     {
+      resolve: "./src/modules/search-profile",
+      dependencies: [Modules.CACHING],
+    },
+    {
       resolve: "./src/modules/company",
     },
     {

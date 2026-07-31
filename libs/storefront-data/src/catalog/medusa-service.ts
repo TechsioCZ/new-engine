@@ -38,6 +38,7 @@ export type MedusaCatalogServiceConfig<
   listPath?: string
   defaultLimit?: number
   defaultSort?: string
+  queryDefaults?: MedusaCatalogListQuery
   normalizeListQuery?: (params: TListParams) => MedusaCatalogListQuery
   transformProduct?: (product: HttpTypes.StoreProduct) => TProduct
   transformListProduct?: (
@@ -268,6 +269,7 @@ export function createMedusaCatalogService<
     listPath = "/store/catalog/products",
     defaultLimit = 12,
     defaultSort = "recommended",
+    queryDefaults,
     normalizeListQuery,
     transformProduct,
     transformListProduct,
@@ -287,10 +289,16 @@ export function createMedusaCatalogService<
 
   const buildListQuery = (params: TListParams): MedusaCatalogListQuery => {
     if (normalizeListQuery) {
-      return stripNullishValues(normalizeListQuery(params))
+      return stripNullishValues({
+        ...queryDefaults,
+        ...normalizeListQuery(params),
+      })
     }
 
-    return buildDefaultListQuery(params, { defaultLimit, defaultSort })
+    return stripNullishValues({
+      ...queryDefaults,
+      ...buildDefaultListQuery(params, { defaultLimit, defaultSort }),
+    })
   }
 
   return {

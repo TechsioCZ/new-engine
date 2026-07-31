@@ -5,6 +5,7 @@ const SECTION_TITLES = {
   products: "Produkty",
   categories: "Kategórie",
   brands: "Značky",
+  content: "Obsah",
 } as const
 
 export const createSearchAutocompleteSections = (
@@ -13,6 +14,7 @@ export const createSearchAutocompleteSections = (
   { key: "product", title: SECTION_TITLES.products, items: data.products },
   { key: "category", title: SECTION_TITLES.categories, items: data.categories },
   { key: "brand", title: SECTION_TITLES.brands, items: data.brands },
+  { key: "content", title: SECTION_TITLES.content, items: data.content },
 ]
 
 export const clampSearchAutocompleteIndex = (

@@ -23,6 +23,7 @@ import { adminPromotionsExtensionMiddlewares } from "./admin/promotions/middlewa
 import { adminPublishableKeyRoutesMiddlewares } from "./admin/provisioning/publishable-key/middlewares"
 import { adminQrPaymentConfigRoutesMiddlewares } from "./admin/qr-payment-config/middlewares"
 import { adminReviewRoutesMiddlewares } from "./admin/reviews/middlewares"
+import { adminSearchProfileRoutesMiddlewares } from "./admin/search-profiles/middlewares"
 import { serveAdminAppStatic } from "./admin-app-static"
 import { storeBrandsRoutesMiddlewares } from "./store/brands/middlewares"
 import { storeCatalogProductsRoutesMiddlewares } from "./store/catalog/products/middlewares"
@@ -31,6 +32,7 @@ import { storeMiddlewares } from "./store/middlewares"
 import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middlewares"
 import { storeProductLocationAvailabilityRoutesMiddlewares } from "./store/products/[id]/location-availability/middlewares"
 import { storeReviewRoutesMiddlewares } from "./store/reviews/middlewares"
+import { storeSearchAutocompleteRoutesMiddlewares } from "./store/search/autocomplete/middlewares"
 
 const originalErrorHandler = errorHandler()
 
@@ -73,8 +75,10 @@ export default defineMiddlewares({
     ...adminPublishableKeyRoutesMiddlewares,
     ...adminQrPaymentConfigRoutesMiddlewares,
     ...adminReviewRoutesMiddlewares,
+    ...adminSearchProfileRoutesMiddlewares,
     ...storeMiddlewares,
     ...storeCatalogProductsRoutesMiddlewares,
+    ...storeSearchAutocompleteRoutesMiddlewares,
     ...storeCmsRoutesMiddlewares,
     ...storeProductListsRoutesMiddlewares,
     ...storeProductLocationAvailabilityRoutesMiddlewares,

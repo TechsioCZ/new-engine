@@ -129,6 +129,7 @@ packageExtensions:
 
 patchedDependencies:
   '@lexical/code@0.35.0': patches/@lexical__code@0.35.0.patch
+  '@rokmohar/medusa-plugin-meilisearch@1.4.3': patches/@rokmohar__medusa-plugin-meilisearch@1.4.3.patch
   object-inspect@1.13.4: patches/object-inspect@1.13.4.patch
 
 packages:
