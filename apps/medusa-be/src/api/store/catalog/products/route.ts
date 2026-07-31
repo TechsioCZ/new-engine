@@ -501,7 +501,7 @@ export async function GET(
           ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
         ]
       : STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS
-    const { data: fallbackProducts } = await queryService.graph({
+    const { data: fallbackProducts, metadata: fallbackMetadata } = await queryService.graph({
       entity: "product",
       fields: productFields,
       filters: await normalizeProductSalesChannelFilter(
@@ -539,10 +539,10 @@ export async function GET(
     )
     res.json({
       products: fallbackProducts,
-      count: fallbackProducts.length,
+      count: fallbackMetadata?.count ?? fallbackProducts.length,
       page,
       limit,
-      totalPages: fallbackProducts.length > 0 ? page : 0,
+      totalPages: Math.ceil((fallbackMetadata?.count ?? fallbackProducts.length) / limit),
       facets: {
         status: mapStatusFacets(new Map()),
         form: mapFormFacets(new Map()),

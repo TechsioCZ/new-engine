@@ -42,7 +42,7 @@ export const reconcileContentSearchChange = async (change: CmsSearchChange, logg
 	const locale = typeof change.doc?.locale === 'string' ? normalizeLocale(change.doc.locale) : undefined
 	const profiles = (await loadSearchProfiles(container)).filter((profile) => !locale || normalizeLocale(profile.locale) === locale)
 	const client = new MeilisearchAdminClient()
-	const documentId = type + ':' + String(rawId)
+	const documentId = type + '_' + String(rawId)
 
 	for (const profile of profiles) {
 		const index = profile.indexes.content
