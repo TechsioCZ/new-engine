@@ -538,9 +538,14 @@ export function createCartHooks<
     queryClient: ReturnType<typeof useQueryClient>,
     cart: TCart
   ) => {
-    await cancelCartCaches(queryClient, resolvedQueryKeys, cart.id)
+    const cancellation = cancelCartCaches(
+      queryClient,
+      resolvedQueryKeys,
+      cart.id
+    )
     syncCartCaches(queryClient, resolvedQueryKeys, cart)
     invalidateCart(queryClient, cart)
+    await cancellation
   }
 
   type LoadCartOptions = {

@@ -306,6 +306,77 @@ describe("createCartHooks reactive storage and cache sync", () => {
     expect(queryClient.getQueryData(detailKey)).toEqual(updatedCart)
   })
 
+  it("keeps the later cart mutation when an earlier cancellation settles last", async () => {
+    const olderCart: Cart = {
+      id: "cart_1",
+      region_id: "reg_1",
+      items: [{ quantity: 1 }],
+    }
+    const newerCart: Cart = {
+      id: "cart_1",
+      region_id: "reg_1",
+      items: [{ quantity: 2 }],
+    }
+    let resolveFirstCancellation: (() => void) | undefined
+    const firstCancellation = new Promise<void>((resolve) => {
+      resolveFirstCancellation = resolve
+    })
+    const queryKeys = createCartQueryKeys("test-cart-mutation-order")
+    const { useUpdateLineItem } = createCartHooks<
+      Cart,
+      { region_id?: string },
+      { region_id?: string }
+    >({
+      service: {
+        retrieveCart: async () => olderCart,
+        createCart: async () => olderCart,
+        updateLineItem: async (_cartId, _lineItemId, input) =>
+          input.quantity === 1 ? olderCart : newerCart,
+      },
+      queryKeys,
+      requireRegion: false,
+    })
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    const cancelQueries = vi
+      .spyOn(queryClient, "cancelQueries")
+      .mockImplementation(() =>
+        cancelQueries.mock.calls.length <= 2
+          ? firstCancellation
+          : Promise.resolve()
+      )
+    const wrapper = createWrapper(queryClient)
+    const { result } = renderHook(() => useUpdateLineItem(), { wrapper })
+    const detailKey = queryKeys.detail("cart_1")
+
+    const firstMutation = result.current.mutateAsync({
+      cartId: "cart_1",
+      lineItemId: "item_1",
+      quantity: 1,
+    })
+    await waitFor(() => {
+      expect(cancelQueries).toHaveBeenCalledTimes(2)
+    })
+
+    const secondMutation = result.current.mutateAsync({
+      cartId: "cart_1",
+      lineItemId: "item_1",
+      quantity: 2,
+    })
+    await waitFor(() => {
+      expect(queryClient.getQueryData(detailKey)).toEqual(newerCart)
+    })
+
+    resolveFirstCancellation?.()
+    await Promise.all([firstMutation, secondMutation])
+
+    expect(queryClient.getQueryData(detailKey)).toEqual(newerCart)
+  })
+
   it("does not let a restored inactive cart observer overwrite a newer mutation", async () => {
     const staleCart: Cart = {
       id: "cart_1",
