@@ -6,11 +6,10 @@ import path from "node:path"
 import { APIError, type Endpoint } from "payload"
 
 import {
-  type ArticleImportOptions,
   type ImportStatus,
-  runImportFromFile,
   STATUS_VALUES,
-} from "../../scripts/import-articles"
+} from "../../scripts/article-importer"
+import { runArticleImportPipeline } from "../../scripts/article-import-pipeline"
 import { buildJsonResponse } from "../utils/endpoint"
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
@@ -120,11 +119,6 @@ const resolveLocale = (
 }
 
 const isAuthorized = (req: ArticleImportRequest) => {
-  const roles = (req.user as { roles?: unknown } | null | undefined)?.roles
-  if (Array.isArray(roles) && roles.includes("admin")) {
-    return true
-  }
-
   const apiKey = process.env.PAYLOAD_API_KEY
   return Boolean(apiKey && req.headers.get("x-payload-api-key") === apiKey)
 }
@@ -132,6 +126,10 @@ const isAuthorized = (req: ArticleImportRequest) => {
 const isImportInputError = (error: Error) =>
   error.message === "XLSX file does not contain any sheets" ||
   error.message === "No rows found in XLSX file" ||
+  error.message === "No article content found in XLSX file" ||
+  error.message.startsWith("Malformed converted rich text cell:") ||
+  error.message.startsWith("Workbook mixes raw article HTML") ||
+  error.message.startsWith("Converted workbook requires media manifest:") ||
   error.message.startsWith("Sheet not found:") ||
   error.message.startsWith("Missing required columns:")
 
@@ -153,21 +151,22 @@ const resolveImportLocale = (req: ArticleImportRequest, value?: string) => {
   const localization = req.payload.config.localization
   const supportedLocales =
     localization === false ? undefined : localization?.localeCodes
-  const locale =
-    resolveLocale(supportedLocales, value) ??
-    (localization === false ? undefined : localization.defaultLocale)
+  const requestedLocale = resolveLocale(supportedLocales, value)
 
-  if (value && !locale) {
+  if (value && !requestedLocale) {
     throw new APIError(
       `Invalid locale ${value}. Supported values: ${supportedLocales?.join(", ")}`,
       400
     )
   }
 
-  return locale
+  return (
+    requestedLocale ??
+    (localization === false ? undefined : localization.defaultLocale)
+  )
 }
 
-/** Endpoint for uploading XLSX and importing articles through Payload admin. */
+/** Authenticated XLSX import endpoint used by the Medusa admin proxy. */
 export const articleImportEndpoint: Endpoint = {
   path: "/article-import",
   method: "post",
@@ -179,8 +178,7 @@ export const articleImportEndpoint: Endpoint = {
     const payload = await readImportFormData(req)
     const locale = resolveImportLocale(req, payload.locale)
     const status = parseImportStatus(payload.status)
-    const importOptions: ArticleImportOptions = {
-      filePath: "",
+    const importOptions = {
       sheetName: payload.sheetName,
       dryRun: payload.dryRun,
       locale,
@@ -195,18 +193,30 @@ export const articleImportEndpoint: Endpoint = {
     try {
       const uploaded = await writeUploadToTempFile(payload.file)
       tempDir = uploaded.dir
-      importOptions.filePath = uploaded.filePath
+      const result = await runArticleImportPipeline({
+        ...importOptions,
+        filePath: uploaded.filePath,
+      })
 
-      const result = await runImportFromFile(importOptions)
-
-      return buildJsonResponse(req, {
-        ok: true,
+      const response = {
+        ok: result.failed === 0,
+        ...(result.failed > 0
+          ? { message: `Import failed for ${result.failed} row(s)` }
+          : {}),
         result: {
           total: result.total,
           imported: result.imported,
+          failed: result.failed,
+          failures: result.failures,
+          mediaFallbacks: result.mediaFallbacks,
+          relatedArticleLinks: result.relatedArticleLinks,
+          unresolvedRelatedArticleSlugs:
+            result.unresolvedRelatedArticleSlugs,
           skipped: result.skipped,
         },
-      })
+      }
+
+      return buildJsonResponse(req, response, result.failed > 0 ? 422 : 200)
     } catch (error) {
       if (error instanceof APIError && error.status < 500) {
         throw error

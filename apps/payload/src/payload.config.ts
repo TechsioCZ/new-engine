@@ -18,6 +18,7 @@ import { autoTranslate } from "@pigment/auto-translate"
 import { buildConfig } from "payload"
 import sharp from "sharp"
 import { ArticleCategories } from "./collections/article-categories"
+import { ArticleAuthors } from "./collections/article-authors"
 import { Articles } from "./collections/articles"
 import { HeroCarousels } from "./collections/hero-carousels"
 import { Media } from "./collections/media"
@@ -26,7 +27,6 @@ import { Pages } from "./collections/pages"
 import { Users } from "./collections/users"
 import { articleCategoriesWithArticlesEndpoint } from "./lib/endpoints/article-categories-with-articles"
 import { articleImportEndpoint } from "./lib/endpoints/article-import"
-import { articleOptionsEndpoint } from "./lib/endpoints/article-options"
 import { healthEndpoint } from "./lib/endpoints/health"
 import { medusaProductsEndpoint } from "./lib/endpoints/medusa-products"
 import { medusaSsoPostEndpoint } from "./lib/endpoints/medusa-sso"
@@ -70,13 +70,6 @@ export default buildConfig({
     importMap: {
       baseDir: path.resolve(dirname),
     },
-    ...(isArticlesEnabled
-      ? {
-          components: {
-            beforeNavLinks: ["/components/admin/payload-import-nav"],
-          },
-        }
-      : {}),
   },
   endpoints: [
     healthEndpoint,
@@ -84,7 +77,6 @@ export default buildConfig({
     ...(isPagesEnabled ? [pageCategoriesWithPagesEndpoint] : []),
     ...(isArticlesEnabled ? [articleCategoriesWithArticlesEndpoint] : []),
     ...(isArticlesEnabled ? [articleImportEndpoint] : []),
-    ...(isArticlesEnabled ? [articleOptionsEndpoint] : []),
     ...(isArticlesEnabled ? [medusaProductsEndpoint] : []),
   ],
   routes: {
@@ -101,7 +93,7 @@ export default buildConfig({
   collections: [
     Users,
     Media,
-    ...(isArticlesEnabled ? [ArticleCategories, Articles] : []),
+    ...(isArticlesEnabled ? [ArticleAuthors, ArticleCategories, Articles] : []),
     ...(isPagesEnabled ? [PageCategories, Pages] : []),
     ...(isHeroCarouselsEnabled ? [HeroCarousels] : []),
   ],
@@ -139,6 +131,7 @@ export default buildConfig({
         "updatedAt",
         "status",
         "author",
+        "portrait",
         "featuredImage",
         "readingTime",
         "analytics",
@@ -146,6 +139,7 @@ export default buildConfig({
       ],
       collections: {
         articles: isArticlesEnabled,
+        "article-authors": isArticlesEnabled,
         pages: isPagesEnabled,
         "article-categories": isArticlesEnabled,
         "page-categories": isPagesEnabled,

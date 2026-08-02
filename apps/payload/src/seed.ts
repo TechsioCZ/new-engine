@@ -7,13 +7,14 @@ import {
   getPayload,
   type RequiredDataFromCollectionSlug,
 } from "payload"
+import { DEFAULT_ARTICLE_AUTHOR } from "./lib/constants/article-author"
 import { resolveEnvLocales } from "./lib/utils/env"
 import config from "./payload.config"
 import type { Article } from "./payload-types"
 import {
-  type ArticleImportOptions,
-  runImportFromFile,
-} from "./scripts/import-articles"
+  type ArticleImportPipelineOptions,
+  runArticleImportPipeline,
+} from "./scripts/article-import-pipeline"
 
 type SeedPayload = Awaited<ReturnType<typeof getPayload>>
 type PayloadId = number
@@ -418,6 +419,20 @@ const upsertArticleCategory = async (
   return category.id as PayloadId
 }
 
+const upsertSeedArticleAuthor = async (payload: SeedPayload) => {
+  const author = await upsertBySlug(
+    payload,
+    "article-authors",
+    DEFAULT_ARTICLE_AUTHOR.slug,
+    {
+      ...DEFAULT_ARTICLE_AUTHOR,
+      translationSync: false,
+    }
+  )
+
+  return author.id as PayloadId
+}
+
 const upsertPageCategory = async (
   payload: SeedPayload,
   title: string,
@@ -435,6 +450,7 @@ const upsertPageCategory = async (
 const createArticleSeed = async (
   payload: SeedPayload,
   userId: PayloadId,
+  articleAuthorId: PayloadId,
   mediaId: PayloadId
 ) => {
   if (!isEnabled(process.env.FEATURE_PAYLOAD_ARTICLES_ENABLED)) {
@@ -453,8 +469,11 @@ const createArticleSeed = async (
     ),
     featuredImage: mediaId,
     category: categoryId,
+    categories: [categoryId],
+    primaryCategory: categoryId,
     tags: ["seed"],
     author: userId,
+    articleAuthor: articleAuthorId,
     status: "published",
     publishedDate: SEED_PUBLISHED_DATE,
     translationSync: false,
@@ -663,14 +682,14 @@ const resolveBlogArticlesXlsxPath = () =>
 
 const parseImportStatus = (
   value: string | undefined
-): ArticleImportOptions["status"] => {
+): ArticleImportPipelineOptions["status"] => {
   const normalized = normalizeInlineText(value)?.toLowerCase()
   if (!normalized) {
     return
   }
 
   return ["draft", "published", "archived"].includes(normalized)
-    ? (normalized as ArticleImportOptions["status"])
+    ? (normalized as ArticleImportPipelineOptions["status"])
     : undefined
 }
 
@@ -699,7 +718,7 @@ const createBlogArticlesXlsxSeed = async (payload: SeedPayload) => {
   }
 
   payload.logger.info(`Seeding Payload blog articles from ${filePath}`)
-  const result = await runImportFromFile({
+  const result = await runArticleImportPipeline({
     filePath,
     sheetName: normalizeInlineText(
       process.env[PAYLOAD_SEED_ARTICLES_SHEET_ENV]
@@ -716,13 +735,17 @@ const createBlogArticlesXlsxSeed = async (payload: SeedPayload) => {
   })
 
   payload.logger.info(
-    `Payload blog article XLSX seed complete: imported ${result.imported}, skipped ${result.skipped} from ${result.total}`
+    `Payload blog article XLSX seed complete: imported ${result.imported}, failed ${result.failed}, skipped ${result.skipped} from ${result.total}`
   )
+  if (result.failed > 0) {
+    throw new Error(`Payload blog article import failed for ${result.failed} row(s)`)
+  }
 }
 
 const createHerbaticaProductArticleSeed = async (
   payload: SeedPayload,
   userId: PayloadId,
+  articleAuthorId: PayloadId,
   mediaId: PayloadId
 ) => {
   if (!isEnabled(process.env.FEATURE_PAYLOAD_ARTICLES_ENABLED)) {
@@ -770,8 +793,11 @@ const createHerbaticaProductArticleSeed = async (
       content: item.content,
       featuredImage: mediaId,
       category: categoryId,
+      categories: [categoryId],
+      primaryCategory: categoryId,
       tags: item.tags,
       author: userId,
+      articleAuthor: articleAuthorId,
       status: "published",
       publishedDate: item.publishedDate,
       translationSync: false,
@@ -790,11 +816,17 @@ const seed = async () => {
   try {
     const user = await createSeedUser(payload)
     const media = await createSeedMedia(payload)
+    const articleAuthorId = await upsertSeedArticleAuthor(payload)
 
-    await createArticleSeed(payload, user.id, media.id)
+    await createArticleSeed(payload, user.id, articleAuthorId, media.id)
     await createPageSeed(payload)
     await createHeroCarouselSeed(payload, media.id)
-    await createHerbaticaProductArticleSeed(payload, user.id, media.id)
+    await createHerbaticaProductArticleSeed(
+      payload,
+      user.id,
+      articleAuthorId,
+      media.id
+    )
     await createBlogArticlesXlsxSeed(payload)
 
     payload.logger.info("Payload seed completed")

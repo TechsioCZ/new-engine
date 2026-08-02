@@ -1,5 +1,8 @@
 import * as migration_20260125_215246_baseline from './20260125_215246_baseline';
 import * as migration_20260714_142450_add_hero_carousel_internal_title from './20260714_142450_add_hero_carousel_internal_title';
+import * as migration_20260730_195416_add_article_category_model from './20260730_195416_add_article_category_model';
+import * as migration_20260731_135408_add_article_related_articles from './20260731_135408_add_article_related_articles';
+import * as migration_20260731_175339_add_article_authors from './20260731_175339_add_article_authors';
 
 export const migrations = [
   {
@@ -10,6 +13,21 @@ export const migrations = [
   {
     up: migration_20260714_142450_add_hero_carousel_internal_title.up,
     down: migration_20260714_142450_add_hero_carousel_internal_title.down,
-    name: '20260714_142450_add_hero_carousel_internal_title'
+    name: '20260714_142450_add_hero_carousel_internal_title',
+  },
+  {
+    up: migration_20260730_195416_add_article_category_model.up,
+    down: migration_20260730_195416_add_article_category_model.down,
+    name: '20260730_195416_add_article_category_model',
+  },
+  {
+    up: migration_20260731_135408_add_article_related_articles.up,
+    down: migration_20260731_135408_add_article_related_articles.down,
+    name: '20260731_135408_add_article_related_articles',
+  },
+  {
+    up: migration_20260731_175339_add_article_authors.up,
+    down: migration_20260731_175339_add_article_authors.down,
+    name: '20260731_175339_add_article_authors'
   },
 ];

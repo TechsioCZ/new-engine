@@ -23,7 +23,6 @@ import {
   UnorderedListFeature,
   UploadFeature,
 } from "@payloadcms/richtext-lexical"
-import { ArticleCarouselBlock } from "../blocks/article-carousel"
 import { ProductCarouselBlock } from "../blocks/product-carousel"
 
 /** Create a shared Lexical editor configuration for CMS rich text fields. */
@@ -56,7 +55,7 @@ export const createLexicalEditor = () => {
 
       EXPERIMENTAL_TableFeature(),
       BlocksFeature({
-        blocks: [ProductCarouselBlock, ArticleCarouselBlock],
+        blocks: [ProductCarouselBlock],
       }),
 
       // Link and relationship features

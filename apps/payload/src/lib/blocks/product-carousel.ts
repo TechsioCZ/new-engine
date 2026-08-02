@@ -14,16 +14,42 @@ export const ProductCarouselBlock: Block = {
       type: "array",
       required: true,
       minRows: 1,
+      validate: (rows) => {
+        if (!Array.isArray(rows)) {
+          return "Select at least one product."
+        }
+
+        return rows.every(
+          (row) =>
+            row &&
+            typeof row === "object" &&
+            (("productExternalId" in row &&
+              typeof row.productExternalId === "string" &&
+              row.productExternalId.trim()) ||
+              ("productSlug" in row &&
+                typeof row.productSlug === "string" &&
+                row.productSlug.trim()))
+        )
+          ? true
+          : "Each item must reference a Medusa product."
+      },
       fields: [
         {
-          name: "productSlug",
+          name: "productExternalId",
           type: "text",
-          required: true,
+          label: "Product",
           admin: {
             components: {
               Field:
-                "/components/admin/medusa-product-slug-field#MedusaProductSlugField",
+                "/components/admin/medusa-product-reference-field#MedusaProductReferenceField",
             },
+          },
+        },
+        {
+          name: "productSlug",
+          type: "text",
+          admin: {
+            hidden: true,
           },
         },
       ],

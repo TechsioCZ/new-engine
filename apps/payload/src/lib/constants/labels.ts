@@ -19,6 +19,18 @@ export const adminGroups = {
 
 /** Localized collection labels for singular/plural display. */
 export const collectionLabels = {
+  articleAuthors: {
+    singular: {
+      en: "Article author",
+      cs: "Autor článku",
+      sk: "Autor článku",
+    },
+    plural: {
+      en: "Article authors",
+      cs: "Autoři článků",
+      sk: "Autori článkov",
+    },
+  },
   articles: {
     singular: {
       en: "Article",

@@ -21,27 +21,36 @@ describe("category endpoints", () => {
   it("groups articles by category and applies filters", async () => {
     const docs = [
       {
+        id: 1,
         title: "Article 1",
         slug: "article-1",
         excerpt: "Intro",
         featuredImage: { url: "/img-1.png" },
         category: { id: 1, title: "News", slug: "news" },
+        primaryCategory: { id: 1, title: "News", slug: "news" },
+        publishedDate: "2026-07-31T00:00:00.000Z",
+        readingTime: 4,
       },
       {
+        id: 2,
         title: "Article 2",
         slug: "article-2",
         excerpt: null,
         featuredImage: null,
         category: { id: 1, title: "News", slug: "news" },
+        primaryCategory: { id: 1, title: "News", slug: "news" },
       },
       {
+        id: 3,
         title: "Article 3",
         slug: "article-3",
         excerpt: "Other",
         featuredImage: { url: "/img-3.png" },
         category: { id: 2, title: "Updates", slug: "updates" },
+        primaryCategory: { id: 2, title: "Updates", slug: "updates" },
       },
       {
+        id: 4,
         title: "No Category",
         slug: "no-category",
         category: null,
@@ -61,10 +70,15 @@ describe("category endpoints", () => {
       expect.objectContaining({
         collection: "articles",
         locale: "en",
-        where: expect.objectContaining({
-          status: { equals: "published" },
-          "category.slug": { equals: "news" },
-        }),
+        fallbackLocale: false,
+        where: {
+          and: expect.arrayContaining([
+            { status: { equals: "published" } },
+            { slug: { exists: true } },
+            { title: { exists: true } },
+            { "categories.slug": { equals: "news" } },
+          ]),
+        },
         req,
       })
     )
@@ -76,16 +90,22 @@ describe("category endpoints", () => {
         slug: "news",
         articles: [
           {
+            id: 1,
             title: "Article 1",
             slug: "article-1",
             excerpt: "Intro",
             featuredImage: "/img-1.png",
+            primaryCategory: { id: 1, title: "News", slug: "news" },
+            publishedDate: "2026-07-31T00:00:00.000Z",
+            readingTime: 4,
           },
           {
+            id: 2,
             title: "Article 2",
             slug: "article-2",
             excerpt: null,
             featuredImage: null,
+            primaryCategory: { id: 1, title: "News", slug: "news" },
           },
         ],
       },
@@ -95,10 +115,12 @@ describe("category endpoints", () => {
         slug: "updates",
         articles: [
           {
+            id: 3,
             title: "Article 3",
             slug: "article-3",
             excerpt: "Other",
             featuredImage: "/img-3.png",
+            primaryCategory: { id: 2, title: "Updates", slug: "updates" },
           },
         ],
       },

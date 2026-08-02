@@ -7,6 +7,10 @@ import {
 } from "../utils/endpoint"
 
 type MedusaStoreProduct = {
+  external_id?: string | null
+  metadata?: {
+    source_shopitem_id?: unknown
+  } | null
   id?: string
   title?: string | null
   handle?: string | null
@@ -31,6 +35,17 @@ const resolvePublishableKey = () =>
   process.env.MEDUSA_PUBLISHABLE_KEY ||
   process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ||
   ""
+
+const resolveProductExternalId = (product: MedusaStoreProduct) => {
+  if (product.external_id?.trim()) {
+    return product.external_id.trim()
+  }
+
+  const sourceId = product.metadata?.source_shopitem_id
+  return typeof sourceId === "string" && sourceId.trim()
+    ? sourceId.trim()
+    : null
+}
 
 const isAbortSignal = (value: unknown): value is AbortSignal =>
   typeof AbortSignal !== "undefined" && value instanceof AbortSignal
@@ -61,10 +76,14 @@ const resolveFetchSignal = (signal: unknown) => {
 }
 
 const fetchProducts = async ({
+  externalId,
+  handle,
   search,
   limit,
   signal,
 }: {
+  externalId?: string
+  handle?: string
   search?: string
   limit: number
   signal?: AbortSignal
@@ -76,9 +95,18 @@ const fetchProducts = async ({
 
   const url = new URL("/store/products", resolveMedusaBackendUrl())
   url.searchParams.set("limit", String(limit))
-  url.searchParams.set("fields", "id,handle,title,thumbnail")
+  url.searchParams.set(
+    "fields",
+    "id,external_id,handle,title,thumbnail,+metadata.source_shopitem_id"
+  )
   if (search) {
     url.searchParams.set("q", search)
+  }
+  if (externalId) {
+    url.searchParams.set("external_id", externalId)
+  }
+  if (handle) {
+    url.searchParams.set("handle", handle)
   }
 
   const response = await fetch(url, {
@@ -97,13 +125,25 @@ const fetchProducts = async ({
 
   const data = (await response.json()) as MedusaStoreProductsResponse
   return (data.products || [])
-    .filter((product) => product.handle)
-    .map((product) => ({
-      id: product.id,
-      slug: product.handle || "",
-      title: product.title || product.handle || "Untitled product",
-      thumbnail: product.thumbnail || null,
-    }))
+    .flatMap((product) => {
+      const externalId = resolveProductExternalId(product)
+      if (!externalId) {
+        return []
+      }
+
+      return [
+        {
+          externalId,
+          handle: product.handle || undefined,
+          id: product.id,
+          title:
+            product.title ||
+            product.handle ||
+            `Product ${externalId}`,
+          thumbnail: product.thumbnail || null,
+        },
+      ]
+    })
 }
 
 /** Product lookup endpoint used by Payload admin custom fields. */
@@ -116,12 +156,23 @@ export const medusaProductsEndpoint: Endpoint = {
     }
 
     const search = getQueryParam(req, "search")?.trim()
+    const externalId = getQueryParam(req, "externalId")?.trim()
     const limit = parseLimit(getQueryParam(req, "limit"))
-    const products = await fetchProducts({
+    let products = await fetchProducts({
+      externalId,
       search,
       limit,
-      signal: resolveFetchSignal(req.signal),
+      signal: isAbortSignal(req.signal) ? req.signal : undefined,
     })
+    if (externalId && products.length === 0) {
+      products = (
+        await fetchProducts({
+          handle: `shopitem-${externalId}`,
+          limit: 1,
+          signal: isAbortSignal(req.signal) ? req.signal : undefined,
+        })
+      ).filter((product) => product.externalId === externalId)
+    }
 
     return buildJsonResponse(req, { products })
   },

@@ -1,10 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("payload", () => ({
+  APIError: class APIError extends Error {
+    status: number
+
+    constructor(message: string, status: number) {
+      super(message)
+      this.status = status
+    }
+  },
   headersWithCors: vi.fn(({ headers }: { headers: Headers }) => headers),
 }))
 
-import { headersWithCors } from "payload"
+import { APIError, headersWithCors } from "payload"
 import {
   buildJsonResponse,
   getLocaleFromRequest,
@@ -43,7 +51,9 @@ describe("endpoint utilities", () => {
     expect(getLocaleFromRequest(reqValid)).toBe("cs")
 
     const reqInvalid = { ...baseReq, url: "http://localhost?locale=de" } as any
-    expect(getLocaleFromRequest(reqInvalid)).toBeUndefined()
+    expect(() => getLocaleFromRequest(reqInvalid)).toThrowError(
+      new APIError("Unsupported locale: de", 400)
+    )
   })
 
   it("buildJsonResponse returns JSON with CORS headers", async () => {

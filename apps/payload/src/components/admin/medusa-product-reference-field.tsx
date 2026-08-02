@@ -1,21 +1,22 @@
 "use client"
 
-import { FieldError, FieldLabel, useField, useLocale } from "@payloadcms/ui"
+import { FieldError, FieldLabel, useField } from "@payloadcms/ui"
 import type React from "react"
 import { useEffect, useMemo, useState } from "react"
 
-type ArticleOption = {
-  id?: number | string
-  slug: string
+type ProductOption = {
+  externalId: string
+  handle?: string
+  id?: string
   title: string
-  thumbnail?: null | string
+  thumbnail?: string | null
 }
 
-type ArticleLookupResponse = {
-  articles?: ArticleOption[]
+type ProductLookupResponse = {
+  products?: ProductOption[]
 }
 
-type ArticleSlugFieldProps = {
+type MedusaProductReferenceFieldProps = {
   field?: {
     label?: string
     required?: boolean
@@ -24,62 +25,56 @@ type ArticleSlugFieldProps = {
   readOnly?: boolean
 }
 
-const baseClass = "article-slug-field"
+const baseClass = "medusa-product-reference-field"
 
 const normalizeSearch = (value: unknown) =>
   typeof value === "string" ? value.trim() : ""
 
-const loadArticleOptions = async ({
+const loadProductOptions = async ({
   currentValue,
   search,
-  locale,
   signal,
 }: {
   currentValue: string
-  locale?: string
   search: string
   signal: AbortSignal
 }) => {
   const params = new URLSearchParams({ limit: "20" })
-  const query = normalizeSearch(search || currentValue)
-  if (query) {
-    params.set("search", query)
-  }
-  if (locale) {
-    params.set("locale", locale)
+  const normalizedSearch = normalizeSearch(search)
+  if (normalizedSearch) {
+    params.set("search", normalizedSearch)
+  } else if (currentValue) {
+    params.set("externalId", currentValue)
   }
 
-  const response = await fetch(`/api/article-options?${params}`, {
+  const response = await fetch(`/api/medusa-products?${params}`, {
     credentials: "include",
     signal,
   })
 
   if (!response.ok) {
-    throw new Error(`Article lookup failed (${response.status})`)
+    throw new Error(`Product lookup failed (${response.status})`)
   }
 
-  const data = (await response.json()) as ArticleLookupResponse
-  return data.articles || []
+  const data = (await response.json()) as ProductLookupResponse
+  return data.products || []
 }
 
-export const ArticleSlugField: React.FC<ArticleSlugFieldProps> = ({
-  field,
-  path: pathFromProps,
-  readOnly,
-}) => {
+export const MedusaProductReferenceField: React.FC<
+  MedusaProductReferenceFieldProps
+> = ({ field, path: pathFromProps, readOnly }) => {
   const { disabled, path, setValue, showError, value } = useField<string>({
     potentiallyStalePath: pathFromProps,
   })
-  const locale = useLocale()
 
   const currentValue = typeof value === "string" ? value : ""
   const [search, setSearch] = useState("")
-  const [options, setOptions] = useState<ArticleOption[]>([])
+  const [options, setOptions] = useState<ProductOption[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<null | string>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const selectedOption = useMemo(
-    () => options.find((option) => option.slug === currentValue),
+    () => options.find((option) => option.externalId === currentValue),
     [currentValue, options]
   )
 
@@ -90,13 +85,12 @@ export const ArticleSlugField: React.FC<ArticleSlugFieldProps> = ({
       setError(null)
 
       try {
-        const articles = await loadArticleOptions({
+        const products = await loadProductOptions({
           currentValue,
-          locale: locale?.code,
           search,
           signal: controller.signal,
         })
-        setOptions(articles)
+        setOptions(products)
       } catch (caughtError) {
         if ((caughtError as Error).name !== "AbortError") {
           setError((caughtError as Error).message)
@@ -113,7 +107,7 @@ export const ArticleSlugField: React.FC<ArticleSlugFieldProps> = ({
       window.clearTimeout(timeout)
       controller.abort()
     }
-  }, [currentValue, locale?.code, search])
+  }, [currentValue, search])
 
   const isDisabled = Boolean(disabled || readOnly)
 
@@ -124,7 +118,7 @@ export const ArticleSlugField: React.FC<ArticleSlugFieldProps> = ({
         className={`${baseClass}__thumbnail`}
         style={{ backgroundImage: `url(${selectedOption.thumbnail})` }}
       />
-      <span>{selectedOption.slug}</span>
+      <span>{selectedOption.handle || selectedOption.externalId}</span>
     </div>
   ) : null
 
@@ -138,7 +132,7 @@ export const ArticleSlugField: React.FC<ArticleSlugFieldProps> = ({
       className={[baseClass, showError && "error"].filter(Boolean).join(" ")}
     >
       <FieldLabel
-        label={field?.label || "Article"}
+        label={field?.label || "Product"}
         path={path}
         required={field?.required}
       />
@@ -147,7 +141,7 @@ export const ArticleSlugField: React.FC<ArticleSlugFieldProps> = ({
         <input
           disabled={isDisabled}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search articles…"
+          placeholder="Search Medusa products…"
           type="search"
           value={search}
         />
@@ -159,18 +153,23 @@ export const ArticleSlugField: React.FC<ArticleSlugFieldProps> = ({
           value={currentValue}
         >
           <option value={currentValue}>
-            {selectedOption?.title || currentValue || "Select article…"}
+            {selectedOption?.title || currentValue || "Select product…"}
           </option>
-          {options.map((option) => (
-            <option key={option.id || option.slug} value={option.slug}>
-              {option.title} ({option.slug})
-            </option>
-          ))}
+          {options
+            .filter((option) => option.externalId !== currentValue)
+            .map((option) => (
+              <option
+                key={option.id || option.externalId}
+                value={option.externalId}
+              >
+                {option.title} ({option.handle || option.externalId})
+              </option>
+            ))}
         </select>
         {selectedPreview}
         {currentValuePreview}
         {isLoading ? (
-          <div className={`${baseClass}__hint`}>Loading articles…</div>
+          <div className={`${baseClass}__hint`}>Loading products…</div>
         ) : null}
         {error ? <div className={`${baseClass}__error`}>{error}</div> : null}
       </div>
@@ -217,4 +216,4 @@ export const ArticleSlugField: React.FC<ArticleSlugFieldProps> = ({
   )
 }
 
-export default ArticleSlugField
+export default MedusaProductReferenceField
