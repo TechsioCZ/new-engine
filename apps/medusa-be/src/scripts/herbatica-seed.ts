@@ -2884,6 +2884,7 @@ function buildProducts(
     const imageUrls = dedupeStrings([...item.images, thumbnail])
 
     return {
+      external_id: item.id || undefined,
       title: item.name || `Product ${item.id || index + 1}`,
       categories,
       description: item.description ?? item.shortDescription ?? "",

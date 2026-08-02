@@ -20,8 +20,15 @@ import {
 } from "@medusajs/medusa/core-flows"
 import { PRODUCER_MODULE } from "../../../modules/producer"
 import type ProducerModuleService from "../../../modules/producer/service"
+import {
+  createProductIdentityIndex,
+  matchSeedProduct,
+  normalizeProductIdentity,
+  type ProductIdentityIndex,
+} from "./product-identity"
 
 type ProductInput = {
+  external_id?: string
   title: string
   categories: {
     name?: string
@@ -108,6 +115,14 @@ type ProducerRegistry = Map<
 type VariantImagesRegistry = Map<string, Map<string, ProductVariantImagesInput>>
 type WorkflowContainer = Parameters<typeof createProductsWorkflow>[0]
 
+function mergeProductsById(...productGroups: ProductDTO[][]): ProductDTO[] {
+  return [
+    ...new Map(
+      productGroups.flat().map((product) => [product.id, product])
+    ).values(),
+  ]
+}
+
 function collectUsedVariantSkus(existingProducts: ProductDTO[]): Set<string> {
   const usedSkus = new Set<string>()
 
@@ -170,16 +185,17 @@ function renameVariantSku(
 function ensureUniqueVariantSkus(
   inputProducts: ProductInput[],
   existingProducts: ProductDTO[],
+  productIdentityIndex: ProductIdentityIndex<ProductDTO>,
   logger: Logger
 ) {
-  const existingProductsByHandle = new Map(
-    existingProducts.map((product) => [product.handle, product])
-  )
   const usedSkus = collectUsedVariantSkus(existingProducts)
   let renamedSkus = 0
 
   for (const inputProduct of inputProducts) {
-    const existingProduct = existingProductsByHandle.get(inputProduct.handle)
+    const existingProduct = matchSeedProduct(
+      inputProduct,
+      productIdentityIndex
+    )
     const existingSkusOnProduct = getExistingVariantSkus(existingProduct)
 
     for (const [index, variant] of (inputProduct.variants ?? []).entries()) {
@@ -487,6 +503,8 @@ function buildUpdateProductPayload(params: {
 
   return {
     id: existingProduct.id,
+    external_id: inputProduct.external_id,
+    handle: inputProduct.handle,
     title: inputProduct.title,
     categories: inputProduct.categories?.map((inputCat) =>
       resolveCategory(existingCategories, inputCat.handle)
@@ -543,6 +561,7 @@ function buildCreateProductPayload(params: {
   } = params
 
   return {
+    external_id: inputProduct.external_id,
     title: inputProduct.title,
     category_ids: inputProduct.categories?.map(
       (inputCat) => resolveCategory(existingCategories, inputCat.handle).id
@@ -568,19 +587,19 @@ function buildCreateProductPayload(params: {
 
 function buildUpdateProductPayloads(params: {
   input: CreateProductsStepInput
-  existingProducts: ProductDTO[]
+  productIdentityIndex: ProductIdentityIndex<ProductDTO>
   existingCategories: ExistingCategory[]
   existingShippingProfiles: ExistingShippingProfile[]
   existingSalesChannels: ExistingSalesChannel[]
   producers: ProducerRegistry
   productVariantImages: VariantImagesRegistry
 }) {
-  return params.existingProducts.flatMap((existingProduct) => {
-    const inputProduct = params.input.find(
-      (product) => product.handle === existingProduct.handle
+  return params.input.flatMap((inputProduct) => {
+    const existingProduct = matchSeedProduct(
+      inputProduct,
+      params.productIdentityIndex
     )
-
-    if (!inputProduct) {
+    if (!existingProduct) {
       return []
     }
 
@@ -725,32 +744,51 @@ export const createProductsStep = createStep(
         name: input.map((i) => i.shippingProfileName),
       })
 
-    const existingProducts = await productService.listProducts(
+    const productQuery = {
+      relations: ["variants", "variants.options"],
+      select: ["variants.*", "variants.options.*", "*"],
+    }
+    const externalIds = input
+      .map((product) => normalizeProductIdentity(product.external_id))
+      .filter((externalId): externalId is string => !!externalId)
+    const productsByExternalId =
+      externalIds.length > 0
+        ? await productService.listProducts(
+            { external_id: externalIds },
+            productQuery
+          )
+        : []
+    const productsByHandle = await productService.listProducts(
       {
         handle: input.map((i) => i.handle),
       },
-      {
-        relations: ["variants", "variants.options"],
-        select: ["variants.*", "variants.options.*", "*"],
-      }
+      productQuery
     )
+    const existingProducts = mergeProductsById(
+      productsByExternalId,
+      productsByHandle
+    )
+    const productIdentityIndex = createProductIdentityIndex(existingProducts)
 
-    ensureUniqueVariantSkus(input, existingProducts, logger)
+    ensureUniqueVariantSkus(
+      input,
+      existingProducts,
+      productIdentityIndex,
+      logger
+    )
 
     const missingProducts = input.filter(
-      (i) => !existingProducts.find((j) => j.handle === i.handle)
+      (product) => !matchSeedProduct(product, productIdentityIndex)
     )
-    const updateProducts = existingProducts.flatMap((existingProduct) =>
-      buildUpdateProductPayloads({
-        input,
-        existingProducts: [existingProduct],
-        existingCategories,
-        existingShippingProfiles,
-        existingSalesChannels,
-        producers,
-        productVariantImages,
-      })
-    )
+    const updateProducts = buildUpdateProductPayloads({
+      input,
+      productIdentityIndex,
+      existingCategories,
+      existingShippingProfiles,
+      existingSalesChannels,
+      producers,
+      productVariantImages,
+    })
 
     if (missingProducts.length !== 0) {
       logger.info("Creating missing products...")
