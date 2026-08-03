@@ -99,7 +99,7 @@ function listComponents(decls) {
       }
     }
   }
-  return [...components].sort()
+  return [...components].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
 }
 
 function header(mode, component) {
