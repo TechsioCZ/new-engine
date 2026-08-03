@@ -22,33 +22,59 @@ const getUpstreamTimeoutMs = () => {
 
 const createLimitedUploadStream = (req: MedusaRequest, maxBytes: number) => {
   let totalBytes = 0
+  let settled = false
 
   return new ReadableStream<Uint8Array>({
     cancel() {
       req.destroy()
     },
     start(controller) {
-      req.on("data", (chunk: unknown) => {
+      const onData = (chunk: unknown) => {
+        if (settled) {
+          return
+        }
+
         const bytes = Buffer.isBuffer(chunk)
           ? chunk
           : Buffer.from(String(chunk))
         totalBytes += bytes.byteLength
 
         if (totalBytes > maxBytes) {
+          settled = true
+          // Detach and drain rather than destroying the request: destroying it
+          // tears down the underlying socket, so the route could never write
+          // the size-limit error and the client saw a connection reset.
+          req.off("data", onData)
+          req.resume()
           controller.error(
             new MedusaError(
               MedusaError.Types.INVALID_DATA,
               `Upload exceeds ${maxBytes} bytes limit`
             )
           )
-          req.destroy()
           return
         }
 
         controller.enqueue(bytes)
+      }
+
+      req.on("data", onData)
+      req.once("end", () => {
+        if (settled) {
+          return
+        }
+
+        settled = true
+        controller.close()
       })
-      req.once("end", () => controller.close())
-      req.once("error", (error) => controller.error(error))
+      req.once("error", (error) => {
+        if (settled) {
+          return
+        }
+
+        settled = true
+        controller.error(error)
+      })
     },
   })
 }
