@@ -1,93 +1,94 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { VariantContainer } from '../../.storybook/decorator'
-import { Combobox, type ComboboxItem } from '../../src/molecules/combobox'
-import { Button } from '../../src/atoms/button'
-import { Icon } from '../../src/atoms/icon'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
+
+import { VariantContainer } from "../../.storybook/decorator"
+import { Button } from "../../src/atoms/button"
+import { Icon } from "../../src/atoms/icon"
+import { Combobox, type ComboboxItem } from "../../src/molecules/combobox"
 
 const countries: ComboboxItem[] = [
-  { id: '1', label: 'Czech Republic', value: 'cz' },
-  { id: '2', label: 'Slovakia', value: 'sk' },
-  { id: '3', label: 'Germany', value: 'de' },
-  { id: '4', label: 'Austria', value: 'at', disabled: true },
-  { id: '5', label: 'Poland', value: 'pl' },
-  { id: '6', label: 'France', value: 'fr', disabled: true },
-  { id: '7', label: 'Italy', value: 'it' },
-  { id: '8', label: 'Spain', value: 'es' },
-  { id: '9', label: 'Great Britain', value: 'gb' },
-  { id: '10', label: 'USA', value: 'us' },
+  { id: "1", label: "Czech Republic", value: "cz" },
+  { id: "2", label: "Slovakia", value: "sk" },
+  { id: "3", label: "Germany", value: "de" },
+  { id: "4", label: "Austria", value: "at", disabled: true },
+  { id: "5", label: "Poland", value: "pl" },
+  { id: "6", label: "France", value: "fr", disabled: true },
+  { id: "7", label: "Italy", value: "it" },
+  { id: "8", label: "Spain", value: "es" },
+  { id: "9", label: "Great Britain", value: "gb" },
+  { id: "10", label: "USA", value: "us" },
 ]
 
 const meta: Meta<typeof Combobox> = {
-  title: 'Molecules/Combobox',
+  title: "Molecules/Combobox",
   component: Combobox,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     // Text inputs
-    label: { control: 'text', description: 'Label text' },
-    placeholder: { control: 'text', description: 'Placeholder text' },
-    helpText: { control: 'text', description: 'Help text below combobox' },
+    label: { control: "text", description: "Label text" },
+    placeholder: { control: "text", description: "Placeholder text" },
+    helpText: { control: "text", description: "Help text below combobox" },
 
     // Size and appearance
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Size variant',
-      table: { defaultValue: { summary: 'md' } },
+      control: "select",
+      options: ["sm", "md", "lg"],
+      description: "Size variant",
+      table: { defaultValue: { summary: "md" } },
     },
     validateStatus: {
-      control: 'select',
-      options: ['default', 'error', 'success', 'warning'],
-      description: 'Validation status',
-      table: { defaultValue: { summary: 'default' } },
+      control: "select",
+      options: ["default", "error", "success", "warning"],
+      description: "Validation status",
+      table: { defaultValue: { summary: "default" } },
     },
     showHelpTextIcon: {
-      control: 'boolean',
-      description: 'Show icon with help text',
-      table: { defaultValue: { summary: 'true' } },
+      control: "boolean",
+      description: "Show icon with help text",
+      table: { defaultValue: { summary: "true" } },
     },
 
     // States
     disabled: {
-      control: 'boolean',
-      description: 'Disable the combobox',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Disable the combobox",
+      table: { defaultValue: { summary: "false" } },
     },
     readOnly: {
-      control: 'boolean',
-      description: 'Make combobox read-only',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Make combobox read-only",
+      table: { defaultValue: { summary: "false" } },
     },
     required: {
-      control: 'boolean',
-      description: 'Mark as required field',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Mark as required field",
+      table: { defaultValue: { summary: "false" } },
     },
 
     // Behavior
     multiple: {
-      control: 'boolean',
-      description: 'Allow multiple selection',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Allow multiple selection",
+      table: { defaultValue: { summary: "false" } },
     },
     clearable: {
-      control: 'boolean',
-      description: 'Show clear button',
-      table: { defaultValue: { summary: 'true' } },
+      control: "boolean",
+      description: "Show clear button",
+      table: { defaultValue: { summary: "true" } },
     },
     closeOnSelect: {
-      control: 'boolean',
-      description: 'Close dropdown on selection',
-      table: { defaultValue: { summary: 'true' } },
+      control: "boolean",
+      description: "Close dropdown on selection",
+      table: { defaultValue: { summary: "true" } },
     },
     selectionBehavior: {
-      control: 'select',
-      options: ['replace', 'clear', 'preserve'],
-      description: 'Selection behavior mode',
-      table: { defaultValue: { summary: 'replace' } },
+      control: "select",
+      options: ["replace", "clear", "preserve"],
+      description: "Selection behavior mode",
+      table: { defaultValue: { summary: "replace" } },
     },
   },
 }
@@ -97,12 +98,12 @@ type Story = StoryObj<typeof Combobox>
 
 export const Playground: Story = {
   args: {
-    label: 'Select Country',
-    placeholder: 'Choose a country...',
+    label: "Select Country",
+    placeholder: "Choose a country...",
     items: countries,
-    helpText: 'Select your country of residence',
-    size: 'md',
-    validateStatus: 'default',
+    helpText: "Select your country of residence",
+    size: "md",
+    validateStatus: "default",
     showHelpTextIcon: true,
     disabled: false,
     readOnly: false,
@@ -110,7 +111,7 @@ export const Playground: Story = {
     multiple: false,
     clearable: true,
     closeOnSelect: true,
-    selectionBehavior: 'replace',
+    selectionBehavior: "replace",
   },
 }
 
@@ -179,7 +180,7 @@ export const MultipleSelection: Story = {
                   className="bg-surface"
                   aria-label={`Remove ${country.label}`}
                 >
-                  <Icon icon="icon-[mdi--close]"/>
+                  <Icon icon="icon-[mdi--close]" />
                 </Button>
               </span>
             ))}
@@ -237,22 +238,22 @@ export const ComplexStory: Story = {
     >(null)
 
     const validateStatus =
-      selectedCountryValue === 'us'
-        ? 'error'
-        : selectedCountryValue === 'sk'
-          ? 'warning'
-          : selectedCountryValue === 'cz'
-            ? 'success'
-            : 'default'
+      selectedCountryValue === "us"
+        ? "error"
+        : selectedCountryValue === "sk"
+          ? "warning"
+          : selectedCountryValue === "cz"
+            ? "success"
+            : "default"
 
     const dynamicHelpText =
-      validateStatus === 'error'
-        ? 'USA is currently unavailable'
-        : validateStatus === 'warning'
-          ? 'Slovakia requires additional identity verification'
-          : validateStatus === 'success'
-            ? 'Country successfully selected'
-            : 'Select your country of residence'
+      validateStatus === "error"
+        ? "USA is currently unavailable"
+        : validateStatus === "warning"
+          ? "Slovakia requires additional identity verification"
+          : validateStatus === "success"
+            ? "Country successfully selected"
+            : "Select your country of residence"
 
     return (
       <div className="w-72 space-y-8">

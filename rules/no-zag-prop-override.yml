@@ -1,0 +1,14 @@
+id: no-zag-prop-override
+language: Tsx
+severity: error
+message: Zag machine props must be the final behavior props; do not overwrite them with a later props spread.
+note: Presentation props should be applied before api.get*Props(), and event handlers must be composed.
+files:
+  - "libs/ui/src/**/*.{tsx,jsx}"
+ignores:
+  - "**/*.figma.{ts,tsx}"
+rule:
+  pattern: <$TAG $$$BEFORE {...api.$GETTER($$$ARGS)} $$$MIDDLE {...props} $$$AFTER>$$$CHILDREN</$TAG>
+constraints:
+  GETTER:
+    regex: ^get[A-Z].*Props$

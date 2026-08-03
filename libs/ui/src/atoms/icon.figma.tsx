@@ -1,4 +1,5 @@
 import figma from "@figma/code-connect"
+
 import type { IconType } from "./icon"
 import { Icon } from "./icon"
 

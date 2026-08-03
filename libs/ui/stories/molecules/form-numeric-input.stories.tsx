@@ -1,120 +1,121 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { NumericInput } from '../../src/atoms/numeric-input'
-import { FormNumericInput } from '../../src/molecules/form-numeric-input'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
+
+import { NumericInput } from "../../src/atoms/numeric-input"
+import { FormNumericInput } from "../../src/molecules/form-numeric-input"
 
 const meta: Meta<typeof FormNumericInput> = {
-  title: 'Molecules/FormNumericInput',
+  title: "Molecules/FormNumericInput",
   component: FormNumericInput,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
     docs: {
       description: {
         component:
-          'Form wrapper for NumericInput. Provides Label, validation state, and help text while maintaining full compound pattern flexibility.',
+          "Form wrapper for NumericInput. Provides Label, validation state, and help text while maintaining full compound pattern flexibility.",
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     // Text inputs
     label: {
-      control: 'text',
-      description: 'Label for the numeric input',
+      control: "text",
+      description: "Label for the numeric input",
     },
     helpText: {
-      control: 'text',
-      description: 'Help text displayed below the input',
+      control: "text",
+      description: "Help text displayed below the input",
     },
 
     // Appearance
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Size of the numeric input',
-      table: { defaultValue: { summary: 'md' } },
+      control: "select",
+      options: ["sm", "md", "lg"],
+      description: "Size of the numeric input",
+      table: { defaultValue: { summary: "md" } },
     },
     validateStatus: {
-      control: 'select',
-      options: ['default', 'error', 'success', 'warning'],
-      description: 'Validation status of the numeric input',
-      table: { defaultValue: { summary: 'default' } },
+      control: "select",
+      options: ["default", "error", "success", "warning"],
+      description: "Validation status of the numeric input",
+      table: { defaultValue: { summary: "default" } },
     },
     showHelpTextIcon: {
-      control: 'boolean',
+      control: "boolean",
       description:
         'Whether to show an icon with the help text. Defaults to true when validateStatus is not "default".',
-      table: { defaultValue: { summary: 'auto (true when validated)' } },
+      table: { defaultValue: { summary: "auto (true when validated)" } },
     },
 
     // States
     disabled: {
-      control: 'boolean',
-      description: 'Disable the numeric input',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Disable the numeric input",
+      table: { defaultValue: { summary: "false" } },
     },
     required: {
-      control: 'boolean',
-      description: 'Mark as required field',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Mark as required field",
+      table: { defaultValue: { summary: "false" } },
     },
 
     // Numeric options
     min: {
-      control: 'number',
-      description: 'Minimum allowed value',
+      control: "number",
+      description: "Minimum allowed value",
     },
     max: {
-      control: 'number',
-      description: 'Maximum allowed value',
+      control: "number",
+      description: "Maximum allowed value",
     },
     step: {
-      control: 'number',
-      description: 'Step increment value',
-      table: { defaultValue: { summary: '1' } },
+      control: "number",
+      description: "Step increment value",
+      table: { defaultValue: { summary: "1" } },
     },
     precision: {
-      control: 'number',
-      description: 'Number of decimal places',
+      control: "number",
+      description: "Number of decimal places",
     },
 
     // Behavior
     allowMouseWheel: {
-      control: 'boolean',
-      description: 'Allow changing value with mouse wheel',
-      table: { defaultValue: { summary: 'true' } },
+      control: "boolean",
+      description: "Allow changing value with mouse wheel",
+      table: { defaultValue: { summary: "true" } },
     },
     allowOverflow: {
-      control: 'boolean',
-      description: 'Allow values outside min/max range',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Allow values outside min/max range",
+      table: { defaultValue: { summary: "false" } },
     },
     clampValueOnBlur: {
-      control: 'boolean',
-      description: 'Clamp value to min/max when input loses focus',
-      table: { defaultValue: { summary: 'true' } },
+      control: "boolean",
+      description: "Clamp value to min/max when input loses focus",
+      table: { defaultValue: { summary: "true" } },
     },
     spinOnPress: {
-      control: 'boolean',
-      description: 'Continue incrementing/decrementing while button is held',
-      table: { defaultValue: { summary: 'true' } },
+      control: "boolean",
+      description: "Continue incrementing/decrementing while button is held",
+      table: { defaultValue: { summary: "true" } },
     },
     readOnly: {
-      control: 'boolean',
-      description: 'Make input read-only',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Make input read-only",
+      table: { defaultValue: { summary: "false" } },
     },
     locale: {
-      control: 'text',
-      description: 'Locale for number formatting',
-      table: { defaultValue: { summary: 'cs-CZ' } },
+      control: "text",
+      description: "Locale for number formatting",
+      table: { defaultValue: { summary: "cs-CZ" } },
     },
   },
   args: {
-    label: 'Quantity',
-    helpText: 'Enter a value between 0 and 100',
-    size: 'md',
-    validateStatus: 'default',
+    label: "Quantity",
+    helpText: "Enter a value between 0 and 100",
+    size: "md",
+    validateStatus: "default",
     showHelpTextIcon: false,
     disabled: false,
     required: false,
@@ -126,7 +127,7 @@ const meta: Meta<typeof FormNumericInput> = {
     allowOverflow: false,
     clampValueOnBlur: true,
     spinOnPress: true,
-    locale: 'cs-CZ',
+    locale: "cs-CZ",
   },
 }
 
@@ -136,7 +137,7 @@ type Story = StoryObj<typeof FormNumericInput>
 // Playground - Interactive with Controls
 export const Playground: Story = {
   args: {
-    label: 'Playground NumericInput',
+    label: "Playground NumericInput",
   },
   render: (args) => {
     return (
@@ -170,8 +171,8 @@ export const WithError: Story = {
           onChange={setValue}
           min={0}
           max={100}
-          validateStatus={isInvalid ? 'error' : 'default'}
-          helpText={isInvalid ? 'Value must be between 0 and 100' : undefined}
+          validateStatus={isInvalid ? "error" : "default"}
+          helpText={isInvalid ? "Value must be between 0 and 100" : undefined}
           allowOverflow
         >
           <NumericInput.Control>
@@ -553,11 +554,11 @@ export const ComplexDemo: Story = {
             max={100}
             step={5}
             required
-            validateStatus={isInvalid ? 'error' : 'default'}
+            validateStatus={isInvalid ? "error" : "default"}
             helpText={
               isInvalid
-                ? 'Value must be between 0 and 100'
-                : 'Adjust quantity using buttons, arrow keys, or mouse wheel'
+                ? "Value must be between 0 and 100"
+                : "Adjust quantity using buttons, arrow keys, or mouse wheel"
             }
             allowMouseWheel
             clampValueOnBlur
@@ -572,16 +573,18 @@ export const ComplexDemo: Story = {
           </FormNumericInput>
         </div>
 
-        <div className="bg-surface-secondary rounded-md">
-          <h3 className="text-fg-primary font-semibold mb-100">Current State</h3>
-          <ul className="text-fg-muted text-sm space-y-050">
+        <div className="bg-overlay rounded-md">
+          <h3 className="text-fg-primary font-semibold mb-100">
+            Current State
+          </h3>
+          <ul className="text-fg-secondary text-sm space-y-50">
             <li>
               Value: <strong>{value}</strong>
             </li>
             <li>
-              Status:{' '}
-              <strong className={isInvalid ? 'text-danger' : 'text-success'}>
-                {isInvalid ? 'Invalid' : 'Valid'}
+              Status:{" "}
+              <strong className={isInvalid ? "text-danger" : "text-success"}>
+                {isInvalid ? "Invalid" : "Valid"}
               </strong>
             </li>
             <li>Step: 5</li>

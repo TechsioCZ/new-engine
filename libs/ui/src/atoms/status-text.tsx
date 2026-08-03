@@ -11,6 +11,7 @@
  */
 import type { HTMLAttributes, ReactNode, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 import { Icon, type IconType } from "./icon"
 
@@ -62,9 +63,9 @@ const ICON_MAP = {
 
 export type StatusTextProps = HTMLAttributes<HTMLDivElement> &
   VariantProps<typeof statusTextVariants> & {
-    ref?: Ref<HTMLDivElement>
-    icon?: IconType
-    showIcon?: boolean
+    ref?: Ref<HTMLDivElement> | undefined
+    icon?: IconType | undefined
+    showIcon?: boolean | undefined
     children: ReactNode
   }
 

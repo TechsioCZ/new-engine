@@ -15,8 +15,7 @@
 @theme static {
   /* stylelint-disable scss/operator-no-newline-after -- biome wraps long lines */
   --color-pagination-border-hover: --alpha(
-    var(--color-pagination-border-active) /
-    var(--opacity-pagination-hover)
+    var(--color-pagination-border-active) / var(--opacity-pagination-hover)
   );
   /* stylelint-enable scss/operator-no-newline-after */
 

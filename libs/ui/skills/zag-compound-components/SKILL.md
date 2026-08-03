@@ -1,10 +1,7 @@
 ---
 name: zag-compound-components
 description: >
-  Use when creating or refactoring @techsio/ui-kit interactive components with
-  Zag.js machine/connect APIs, normalizeProps, React context, compound
-  Component.Subcomponent assignments, slots, adapter props, and data attribute
-  state styling.
+  Use when creating or refactoring @techsio/ui-kit interactive components with Zag.js machine/connect APIs, normalizeProps, React context, compound Component.Subcomponent assignments, slots, adapter props, and data attribute state styling.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -23,8 +20,7 @@ sources:
   - "https://github.com/TechsioCZ/new-engine/issues/295"
 ---
 
-This skill builds on `component-authoring` and `tailwind-token-authoring`. Read
-them first for component slice and token rules.
+This skill builds on `component-authoring` and `tailwind-token-authoring`. Read them first for component slice and token rules.
 
 # @techsio/ui-kit Zag Compound Components
 
@@ -43,7 +39,8 @@ import { tv } from "../utils"
 const styles = tv({
   slots: {
     root: "rounded-accordion bg-accordion-bg",
-    trigger: "data-disabled:cursor-not-allowed data-[state=open]:bg-accordion-bg-open",
+    trigger:
+      "data-disabled:cursor-not-allowed data-[state=open]:bg-accordion-bg-open",
   },
 })
 
@@ -52,7 +49,8 @@ const AccordionContext = createContext<AccordionApi | null>(null)
 
 function useAccordionContext() {
   const api = useContext(AccordionContext)
-  if (!api) throw new Error("Accordion components must be used within Accordion.Root")
+  if (!api)
+    throw new Error("Accordion components must be used within Accordion.Root")
   return api
 }
 
@@ -88,17 +86,16 @@ export function Accordion({ children }: { children: ReactNode }) {
 </Accordion.Root>
 ```
 
-Before inventing subcomponent names, compare the proposed API with Chakra UI
-v3 compound patterns such as Accordion and Menu. Keep the local API aligned
-with `Root`, `Trigger`, `Content`, `Item`, `Indicator`, `Positioner`, and
-similarly scoped names when they match the component anatomy.
+Before inventing subcomponent names, compare the proposed API with Chakra UI v3 compound patterns such as Accordion and Menu. Keep the local API aligned with `Root`, `Trigger`, `Content`, `Item`, `Indicator`, `Positioner`, and similarly scoped names when they match the component anatomy.
 
 ### Spread Zag props on the matching part
 
 ```tsx
 Carousel.Next = function CarouselNext() {
   const { api } = useCarouselContext()
-  return <Button {...api.getNextTriggerProps()} icon="token-icon-carousel-next" />
+  return (
+    <Button {...api.getNextTriggerProps()} icon="token-icon-carousel-next" />
+  )
 }
 ```
 
@@ -137,13 +134,13 @@ Do not export an object of subcomponents as the main API.
 ```tsx
 const tabs = tv({
   slots: {
-    trigger: "data-selected:bg-tabs-trigger-bg-selected data-disabled:opacity-disabled",
+    trigger:
+      "data-selected:bg-tabs-trigger-bg-selected data-disabled:opacity-disabled",
   },
 })
 ```
 
-Use boolean shorthand such as `data-disabled:` and bracket syntax for
-enumerated values such as `data-[state=open]:`.
+Use boolean shorthand such as `data-disabled:` and bracket syntax for enumerated values such as `data-[state=open]:`.
 
 ## Common Mistakes
 
@@ -160,13 +157,10 @@ Wrong:
 Correct:
 
 ```tsx
-<button {...api.getTriggerProps({ value: item.value })}>
-  Toggle
-</button>
+<button {...api.getTriggerProps({ value: item.value })}>Toggle</button>
 ```
 
-Manual ARIA usually misses keyboard or focus behavior already encoded in the
-Zag machine.
+Manual ARIA usually misses keyboard or focus behavior already encoded in the Zag machine.
 
 Source: libs/ui/AGENTS.md
 
@@ -196,7 +190,12 @@ Wrong:
 
 ```tsx
 const [open, setOpen] = useState(false)
-return <button data-state={open ? "open" : "closed"} onClick={() => setOpen(!open)} />
+return (
+  <button
+    data-state={open ? "open" : "closed"}
+    onClick={() => setOpen(!open)}
+  />
+)
 ```
 
 Correct:
@@ -207,8 +206,7 @@ const api = accordion.connect(service, normalizeProps)
 return <button {...api.getItemTriggerProps({ value: "details" })} />
 ```
 
-Duplicating Zag state silently desynchronizes ARIA, keyboard behavior, and data
-attributes.
+Duplicating Zag state silently desynchronizes ARIA, keyboard behavior, and data attributes.
 
 Source: libs/ui/AGENTS.md
 
@@ -227,8 +225,7 @@ Prefer composable primitives and slots first. Add wrappers only after the
 component API cannot express the use case.
 ```
 
-Issue 295 records the taxonomy direction: primitive compounds should be
-composable, while opinionated form wrappers stay separate.
+Issue 295 records the taxonomy direction: primitive compounds should be composable, while opinionated form wrappers stay separate.
 
 Source: https://github.com/TechsioCZ/new-engine/issues/295
 
@@ -250,9 +247,7 @@ TreeView.Content = function TreeViewContent() {
 }
 ```
 
-Check Chakra Accordion/Menu anatomy before naming parts. Use familiar compound
-names when the role matches, and only diverge when the local component anatomy
-requires a clearer name.
+Check Chakra Accordion/Menu anatomy before naming parts. Use familiar compound names when the role matches, and only diverge when the local component anatomy requires a clearer name.
 
 Source: https://chakra-ui.com/docs/components/accordion
 

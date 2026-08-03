@@ -10,6 +10,7 @@
  * the carousel-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import type { ElementType } from "react"
+
 import type { IconType } from "../atoms/icon"
 import {
   Carousel,
@@ -17,14 +18,16 @@ import {
   type CarouselSlide,
 } from "../molecules/carousel"
 
-export interface CarouselTemplateProps<T extends ElementType>
-  extends Omit<CarouselRootProps<T>, "children" | "slideCount"> {
+export interface CarouselTemplateProps<T extends ElementType> extends Omit<
+  CarouselRootProps<T>,
+  "children" | "slideCount"
+> {
   slides: CarouselSlide[]
-  showControls?: boolean
-  showIndicators?: boolean
-  showAutoplay?: boolean
-  prevIcon?: IconType
-  nextIcon?: IconType
+  showControls?: boolean | undefined
+  showIndicators?: boolean | undefined
+  showAutoplay?: boolean | undefined
+  prevIcon?: IconType | undefined
+  nextIcon?: IconType | undefined
 }
 
 export function CarouselTemplate<T extends ElementType>({
@@ -73,10 +76,7 @@ export function CarouselTemplate<T extends ElementType>({
       width={width}
       {...carouselProps}
     >
-      <Carousel.Slides
-        imageAs={imageAs}
-        slides={slides}
-      />
+      <Carousel.Slides imageAs={imageAs} slides={slides} />
 
       {(showControls || showIndicators) && (
         <Carousel.Control>

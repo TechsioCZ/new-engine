@@ -2,9 +2,7 @@
 component_version: "1.0.0"
 name: color-select-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit ColorSelect
-  for choosing color swatches with supported layout, size, radius, disabled
-  state, selected state, labels, counts, and single/multiple roles.
+  Use after component-usage-ux when an app needs @techsio/ui-kit ColorSelect for choosing color swatches with supported layout, size, radius, disabled state, selected state, labels, counts, and single/multiple roles.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -19,15 +17,14 @@ sources:
 
 # @techsio/ui-kit ColorSelect Usage
 
-Use ColorSelect for product color filters or swatch choices. It is not a
-general Select replacement.
+Use ColorSelect for product color filters or swatch choices. It is not a general Select replacement.
 
 ## Setup
 
 ```tsx
 import { ColorSelect } from "@techsio/ui-kit/molecules/color-select"
 
-<ColorSelect
+;<ColorSelect
   colors={[{ color: "#0f172a", label: "Navy", selected: true }]}
   onColorClick={setColor}
 />
@@ -48,18 +45,15 @@ disabled, onColorClick
 
 ### Use only for swatches
 
-Use Select or RadioCard when choices are textual. Use ColorSelect when the
-visual color itself is the primary choice signal.
+Use Select or RadioCard when choices are textual. Use ColorSelect when the visual color itself is the primary choice signal.
 
 ### Keep selected state in data
 
-Update `colors[].selected` from app state. Do not style selected swatches with
-manual `className`.
+Update `colors[].selected` from app state. Do not style selected swatches with manual `className`.
 
 ### Allow runtime color values here
 
-Swatch fill uses inline `backgroundColor` because the data value is the product
-color, not a component theme token.
+Swatch fill uses inline `backgroundColor` because the data value is the product color, not a component theme token.
 
 ## Common Mistakes
 
@@ -116,4 +110,3 @@ rg -n "backgroundColor:.*color|rounded-full.*onClick|<ColorSelect[^>]*className"
 rg -n "<ColorSelect[^>]*colors=|selectionMode=|onColorClick=" apps
 rg -n "<ColorSelect[^>]*size=\"(xs|xl)\"|radius=\"(none|circle)\"" apps
 ```
-

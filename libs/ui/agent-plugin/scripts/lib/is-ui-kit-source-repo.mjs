@@ -12,27 +12,29 @@
  * on scope. Accepts any path inside the repo (worktree root or cwd) and resolves the worktree root
  * itself, so callers pass whatever they already hold.
  */
-import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { execFileSync } from "node:child_process"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 
-const UI_KIT_PACKAGE = "@techsio/ui-kit";
+const UI_KIT_PACKAGE = "@techsio/ui-kit"
 
 export function isUiKitSourceRepo(cwd) {
-  let topLevel;
+  let topLevel
   try {
     topLevel = execFileSync("git", ["rev-parse", "--show-toplevel"], {
       cwd,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
+    }).trim()
   } catch {
-    return false; // not a git worktree (or bare) — nothing to guard
+    return false // not a git worktree (or bare) — nothing to guard
   }
   try {
-    const pkg = JSON.parse(readFileSync(join(topLevel, "libs", "ui", "package.json"), "utf8"));
-    return pkg?.name === UI_KIT_PACKAGE;
+    const pkg = JSON.parse(
+      readFileSync(join(topLevel, "libs", "ui", "package.json"), "utf8")
+    )
+    return pkg?.name === UI_KIT_PACKAGE
   } catch {
-    return false; // no libs/ui/package.json, unreadable, or not the ui-kit package
+    return false // no libs/ui/package.json, unreadable, or not the ui-kit package
   }
 }

@@ -16,21 +16,25 @@
   --opacity-borderless: 60%;
 
   /* Validation focus — fall back to base (Figma exports no focus variant). */
-  --color-textarea-border-danger-focus: var(--color-textarea-border-danger-base);
-  --color-textarea-border-success-focus: var(--color-textarea-border-success-base);
-  --color-textarea-border-warning-focus: var(--color-textarea-border-warning-base);
+  --color-textarea-border-danger-focus: var(
+    --color-textarea-border-danger-base
+  );
+  --color-textarea-border-success-focus: var(
+    --color-textarea-border-success-base
+  );
+  --color-textarea-border-warning-focus: var(
+    --color-textarea-border-warning-base
+  );
 
   /* Placeholder-on-danger (not in Figma) */
   /* stylelint-disable scss/operator-no-newline-after -- biome wraps long lines */
   --color-textarea-placeholder-danger: --alpha(
-    var(--color-textarea-border-danger-base) /
-    var(--opacity-placeholder)
+    var(--color-textarea-border-danger-base) / var(--opacity-placeholder)
   );
 
   /* Borderless variant (not in Figma) */
   --color-textarea-bg-borderless: --alpha(
-    var(--color-textarea-bg) /
-    var(--opacity-borderless)
+    var(--color-textarea-bg) / var(--opacity-borderless)
   );
   /* stylelint-enable scss/operator-no-newline-after */
   --color-textarea-bg-borderless-hover: var(--color-textarea-bg);

@@ -55,7 +55,11 @@ const baselineRef = () => {
   const candidates = ["origin/master", "master", "origin/main", "main"]
   // Also honour the remote's actual default branch, so a repo whose default is neither master nor
   // main doesn't silently skip the bump check below (baselineRef() returning "" disables it).
-  const remoteHead = git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"])
+  const remoteHead = git([
+    "symbolic-ref",
+    "--short",
+    "refs/remotes/origin/HEAD",
+  ])
   if (remoteHead) candidates.push(remoteHead)
   for (const base of candidates) {
     const mb = git(["merge-base", "HEAD", base])

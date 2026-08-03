@@ -16,6 +16,7 @@ import {
   useContext,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 
 const tableVariants = tv({
@@ -114,13 +115,13 @@ const tableVariants = tv({
 
 // Context for sharing state between sub-components
 interface TableContextValue {
-  variant?: "line" | "outline" | "striped"
-  size?: "sm" | "md" | "lg"
-  interactive?: boolean
-  stickyHeader?: boolean
-  stickyFirstColumn?: boolean
-  showColumnBorder?: boolean
-  captionPlacement?: "top" | "bottom"
+  variant?: "line" | "outline" | "striped" | undefined
+  size?: "sm" | "md" | "lg" | undefined
+  interactive?: boolean | undefined
+  stickyHeader?: boolean | undefined
+  stickyFirstColumn?: boolean | undefined
+  showColumnBorder?: boolean | undefined
+  captionPlacement?: "top" | "bottom" | undefined
   styles: ReturnType<typeof tableVariants>
 }
 
@@ -136,9 +137,10 @@ function useTableContext() {
 
 // Root component
 interface TableProps
-  extends VariantProps<typeof tableVariants>,
+  extends
+    VariantProps<typeof tableVariants>,
     ComponentPropsWithoutRef<"table"> {
-  ref?: RefObject<HTMLTableElement>
+  ref?: RefObject<HTMLTableElement> | undefined
 }
 
 export function Table({
@@ -186,7 +188,7 @@ export function Table({
 
 // Caption component
 interface TableCaptionProps extends ComponentPropsWithoutRef<"caption"> {
-  ref?: RefObject<HTMLTableCaptionElement>
+  ref?: RefObject<HTMLTableCaptionElement> | undefined
 }
 
 Table.Caption = function TableCaption({
@@ -206,7 +208,7 @@ Table.Caption = function TableCaption({
 
 // Header component
 interface TableHeaderProps extends ComponentPropsWithoutRef<"thead"> {
-  ref?: RefObject<HTMLTableSectionElement>
+  ref?: RefObject<HTMLTableSectionElement> | undefined
 }
 
 Table.Header = function TableHeader({
@@ -226,7 +228,7 @@ Table.Header = function TableHeader({
 
 // Body component
 interface TableBodyProps extends ComponentPropsWithoutRef<"tbody"> {
-  ref?: RefObject<HTMLTableSectionElement>
+  ref?: RefObject<HTMLTableSectionElement> | undefined
 }
 
 Table.Body = function TableBody({
@@ -246,7 +248,7 @@ Table.Body = function TableBody({
 
 // Footer component
 interface TableFooterProps extends ComponentPropsWithoutRef<"tfoot"> {
-  ref?: RefObject<HTMLTableSectionElement>
+  ref?: RefObject<HTMLTableSectionElement> | undefined
 }
 
 Table.Footer = function TableFooter({
@@ -266,8 +268,8 @@ Table.Footer = function TableFooter({
 
 // Row component
 interface TableRowProps extends ComponentPropsWithoutRef<"tr"> {
-  ref?: RefObject<HTMLTableRowElement>
-  selected?: boolean
+  ref?: RefObject<HTMLTableRowElement> | undefined
+  selected?: boolean | undefined
 }
 
 Table.Row = function TableRow({
@@ -293,8 +295,8 @@ Table.Row = function TableRow({
 
 // ColumnHeader component
 interface TableColumnHeaderProps extends ComponentPropsWithoutRef<"th"> {
-  ref?: RefObject<HTMLTableCellElement>
-  numeric?: boolean
+  ref?: RefObject<HTMLTableCellElement> | undefined
+  numeric?: boolean | undefined
 }
 
 Table.ColumnHeader = function TableColumnHeader({
@@ -321,8 +323,8 @@ Table.ColumnHeader = function TableColumnHeader({
 
 // Cell component
 interface TableCellProps extends ComponentPropsWithoutRef<"td"> {
-  ref?: RefObject<HTMLTableCellElement>
-  numeric?: boolean
+  ref?: RefObject<HTMLTableCellElement> | undefined
+  numeric?: boolean | undefined
 }
 
 Table.Cell = function TableCell({

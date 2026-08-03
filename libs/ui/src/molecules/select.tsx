@@ -9,7 +9,7 @@
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the select-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import { normalizeProps, Portal, useMachine } from "@zag-js/react"
+import { mergeProps, normalizeProps, Portal, useMachine } from "@zag-js/react"
 import * as select from "@zag-js/select"
 import {
   type ComponentPropsWithoutRef,
@@ -20,6 +20,7 @@ import {
   useId,
 } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
+
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
 import { Icon, type IconProps } from "../atoms/icon"
@@ -40,8 +41,8 @@ const controlGlyphClass: Record<"sm" | "md" | "lg", string> = {
 export type SelectItem = {
   label: ReactNode
   value: string
-  disabled?: boolean
-  displayValue?: string
+  disabled?: boolean | undefined
+  displayValue?: string | undefined
   [key: string]: unknown
 }
 
@@ -186,14 +187,15 @@ function useSelectItemContext() {
 
 // === ROOT COMPONENT ===
 export interface SelectProps
-  extends VariantProps<typeof selectVariants>,
+  extends
+    VariantProps<typeof selectVariants>,
     Omit<select.Props, "collection" | "id" | "invalid"> {
   items: SelectItem[]
-  id?: string
-  className?: string
+  id?: string | undefined
+  className?: string | undefined
   children: ReactNode
-  ref?: Ref<HTMLDivElement>
-  validateStatus?: "default" | "error" | "success" | "warning"
+  ref?: Ref<HTMLDivElement> | undefined
+  validateStatus?: "default" | "error" | "success" | "warning" | undefined
 }
 
 export function Select({
@@ -278,21 +280,17 @@ export function Select({
 }
 
 interface SelectLabelProps extends ComponentPropsWithoutRef<"label"> {
-  ref?: Ref<HTMLLabelElement>
+  ref?: Ref<HTMLLabelElement> | undefined
 }
 
 Select.Label = function SelectLabel({ children, ...props }: SelectLabelProps) {
   const { api } = useSelectContext()
 
-  return (
-    <Label {...api.getLabelProps()} {...props}>
-      {children}
-    </Label>
-  )
+  return <Label {...mergeProps(api.getLabelProps(), props)}>{children}</Label>
 }
 
 interface SelectControlProps extends ComponentPropsWithoutRef<"div"> {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Select.Control = function SelectControl({
@@ -308,8 +306,7 @@ Select.Control = function SelectControl({
     <div
       className={styles.control({ className })}
       ref={ref}
-      {...api.getControlProps()}
-      {...props}
+      {...mergeProps(api.getControlProps(), props)}
     >
       {children}
     </div>
@@ -317,9 +314,9 @@ Select.Control = function SelectControl({
 }
 
 type SelectTriggerProps = ComponentPropsWithoutRef<"button"> & {
-  size?: SelectSize
-  iconSize?: IconProps["size"]
-  ref?: Ref<HTMLButtonElement>
+  size?: SelectSize | undefined
+  iconSize?: IconProps["size"] | undefined
+  ref?: Ref<HTMLButtonElement> | undefined
 }
 
 Select.Trigger = function SelectTrigger({
@@ -335,18 +332,18 @@ Select.Trigger = function SelectTrigger({
   const styles = selectVariants({ size: effectiveSize })
 
   // Map validateStatus to unified data-validation attribute
-  const validationDataAttrs =
-    validateStatus !== "default" ? { "data-validation": validateStatus } : {}
+  const triggerProps = mergeProps(api.getTriggerProps(), props)
 
   return (
     <Button
+      {...triggerProps}
       className={styles.trigger({ className })}
+      data-validation={
+        validateStatus !== "default" ? validateStatus : undefined
+      }
       ref={ref}
       size="current"
       theme="unstyled"
-      {...api.getTriggerProps()}
-      {...validationDataAttrs}
-      {...props}
     >
       {children}
       <Icon
@@ -360,12 +357,14 @@ Select.Trigger = function SelectTrigger({
   )
 }
 
-interface SelectValueTextProps
-  extends Omit<ComponentPropsWithoutRef<"span">, "children"> {
-  placeholder?: string
-  size?: SelectSize
-  ref?: Ref<HTMLSpanElement>
-  children?: ReactNode | ((items: SelectItem[]) => ReactNode)
+interface SelectValueTextProps extends Omit<
+  ComponentPropsWithoutRef<"span">,
+  "children"
+> {
+  placeholder?: string | undefined
+  size?: SelectSize | undefined
+  ref?: Ref<HTMLSpanElement> | undefined
+  children?: (ReactNode | ((items: SelectItem[]) => ReactNode)) | undefined
 }
 
 Select.ValueText = function SelectValueText({
@@ -410,7 +409,7 @@ Select.ValueText = function SelectValueText({
 }
 
 type SelectClearTriggerProps = ComponentPropsWithoutRef<"button"> & {
-  ref?: Ref<HTMLButtonElement>
+  ref?: Ref<HTMLButtonElement> | undefined
 }
 
 Select.ClearTrigger = function SelectClearTrigger({
@@ -436,7 +435,7 @@ Select.ClearTrigger = function SelectClearTrigger({
 }
 
 interface SelectPositionerProps extends ComponentPropsWithoutRef<"div"> {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Select.Positioner = function SelectPositioner({
@@ -453,8 +452,7 @@ Select.Positioner = function SelectPositioner({
       <div
         className={styles.positioner({ className })}
         ref={ref}
-        {...api.getPositionerProps()}
-        {...props}
+        {...mergeProps(api.getPositionerProps(), props)}
       >
         {children}
       </div>
@@ -463,7 +461,7 @@ Select.Positioner = function SelectPositioner({
 }
 
 interface SelectContentProps extends ComponentPropsWithoutRef<"ul"> {
-  ref?: Ref<HTMLUListElement>
+  ref?: Ref<HTMLUListElement> | undefined
 }
 
 Select.Content = function SelectContent({
@@ -479,8 +477,7 @@ Select.Content = function SelectContent({
     <ul
       className={styles.content({ className })}
       ref={ref}
-      {...api.getContentProps()}
-      {...props}
+      {...mergeProps(api.getContentProps(), props)}
     >
       {children}
     </ul>
@@ -489,7 +486,7 @@ Select.Content = function SelectContent({
 
 interface SelectItemGroupProps extends ComponentPropsWithoutRef<"div"> {
   id: string
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Select.ItemGroup = function SelectItemGroup({
@@ -506,8 +503,7 @@ Select.ItemGroup = function SelectItemGroup({
     <div
       className={styles.itemGroup({ className })}
       ref={ref}
-      {...api.getItemGroupProps({ id })}
-      {...props}
+      {...mergeProps(api.getItemGroupProps({ id }), props)}
     >
       {children}
     </div>
@@ -516,7 +512,7 @@ Select.ItemGroup = function SelectItemGroup({
 
 interface SelectItemGroupLabelProps extends ComponentPropsWithoutRef<"div"> {
   htmlFor: string
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Select.ItemGroupLabel = function SelectItemGroupLabel({
@@ -533,8 +529,7 @@ Select.ItemGroupLabel = function SelectItemGroupLabel({
     <div
       className={styles.itemGroupLabel({ className })}
       ref={ref}
-      {...api.getItemGroupLabelProps({ htmlFor })}
-      {...props}
+      {...mergeProps(api.getItemGroupLabelProps({ htmlFor }), props)}
     >
       {children}
     </div>
@@ -543,8 +538,8 @@ Select.ItemGroupLabel = function SelectItemGroupLabel({
 
 interface SelectItemProps extends ComponentPropsWithoutRef<"li"> {
   item: SelectItem
-  size?: SelectSize
-  ref?: Ref<HTMLLIElement>
+  size?: SelectSize | undefined
+  ref?: Ref<HTMLLIElement> | undefined
 }
 
 Select.Item = function SelectItem({
@@ -564,8 +559,7 @@ Select.Item = function SelectItem({
       <li
         className={styles.item({ className })}
         ref={ref}
-        {...api.getItemProps({ item })}
-        {...props}
+        {...mergeProps(api.getItemProps({ item }), props)}
       >
         {children}
       </li>
@@ -574,7 +568,7 @@ Select.Item = function SelectItem({
 }
 
 interface SelectItemTextProps extends ComponentPropsWithoutRef<"span"> {
-  ref?: Ref<HTMLSpanElement>
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
 Select.ItemText = function SelectItemText({
@@ -591,8 +585,7 @@ Select.ItemText = function SelectItemText({
     <span
       className={styles.itemText({ className })}
       ref={ref}
-      {...api.getItemTextProps({ item })}
-      {...props}
+      {...mergeProps(api.getItemTextProps({ item }), props)}
     >
       {children || item.label}
     </span>
@@ -600,8 +593,8 @@ Select.ItemText = function SelectItemText({
 }
 
 type SelectItemIndicatorProps = ComponentPropsWithoutRef<"span"> & {
-  iconSize?: IconProps["size"]
-  ref?: Ref<HTMLSpanElement>
+  iconSize?: IconProps["size"] | undefined
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
 Select.ItemIndicator = function SelectItemIndicator({
@@ -618,8 +611,7 @@ Select.ItemIndicator = function SelectItemIndicator({
     <span
       className={styles.itemIndicator({ className })}
       ref={ref}
-      {...api.getItemIndicatorProps({ item })}
-      {...props}
+      {...mergeProps(api.getItemIndicatorProps({ item }), props)}
     >
       <Icon icon="token-icon-select-check" size={iconSize} />
     </span>
@@ -627,10 +619,10 @@ Select.ItemIndicator = function SelectItemIndicator({
 }
 
 interface SelectStatusTextProps extends ComponentPropsWithoutRef<"div"> {
-  status?: "default" | "error" | "success" | "warning"
-  size?: SelectSize
-  showIcon?: boolean
-  ref?: Ref<HTMLDivElement>
+  status?: "default" | "error" | "success" | "warning" | undefined
+  size?: SelectSize | undefined
+  showIcon?: boolean | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Select.StatusText = function SelectStatusText({
