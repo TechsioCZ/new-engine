@@ -7,12 +7,76 @@ export const handle = {
   breadcrumb: () => "Payload import",
 }
 
+type ImportFailure = {
+  message: string
+  row: number
+  slug?: string
+}
+
 type ImportResult = {
-  ok: boolean
-  result: {
-    total: number
-    imported: number
-    skipped: number
+  total: number
+  imported: number
+  failed: number
+  failures: ImportFailure[]
+  mediaFallbacks: number
+  relatedArticleLinks: number
+  unresolvedRelatedArticleSlugs: string[]
+  skipped: number
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object"
+
+const numberOrZero = (value: unknown) =>
+  typeof value === "number" && Number.isFinite(value) ? value : 0
+
+const normalizeFailures = (value: unknown): ImportFailure[] =>
+  Array.isArray(value)
+    ? value.flatMap((failure) => {
+        if (!isRecord(failure) || typeof failure.message !== "string") {
+          return []
+        }
+
+        return [
+          {
+            message: failure.message,
+            row: numberOrZero(failure.row),
+            ...(typeof failure.slug === "string"
+              ? { slug: failure.slug }
+              : {}),
+          },
+        ]
+      })
+    : []
+
+const normalizeImportResult = (value: unknown): ImportResult | null => {
+  if (!isRecord(value) || !isRecord(value.result)) {
+    return null
+  }
+
+  const result = value.result
+  if (
+    typeof result.total !== "number" ||
+    typeof result.imported !== "number"
+  ) {
+    return null
+  }
+
+  return {
+    total: result.total,
+    imported: result.imported,
+    failed: numberOrZero(result.failed),
+    failures: normalizeFailures(result.failures),
+    mediaFallbacks: numberOrZero(result.mediaFallbacks),
+    relatedArticleLinks: numberOrZero(result.relatedArticleLinks),
+    unresolvedRelatedArticleSlugs: Array.isArray(
+      result.unresolvedRelatedArticleSlugs
+    )
+      ? result.unresolvedRelatedArticleSlugs.filter(
+          (slug): slug is string => typeof slug === "string"
+        )
+      : [],
+    skipped: numberOrZero(result.skipped),
   }
 }
 
@@ -27,8 +91,22 @@ const defaultLocale = locales.includes("sk") ? "sk" : locales[0]
 
 const parseErrorMessage = async (response: Response) => {
   const payload = await response.json().catch(() => null)
-  if (payload && typeof payload === "object" && "message" in payload) {
-    return String(payload.message)
+  if (payload && typeof payload === "object") {
+    const result = normalizeImportResult(payload)
+    if (result?.failures.length) {
+      const rows = result.failures
+        .slice(0, 5)
+        .map(({ message, row, slug }) =>
+          `řádek ${row}${slug ? ` (${slug})` : ""}: ${message}`
+        )
+        .join("; ")
+      const remaining = result.failures.length - 5
+      return `${result.failed} chyb. ${rows}${remaining > 0 ? `; a dalších ${remaining}` : ""}`
+    }
+
+    if ("message" in payload) {
+      return String(payload.message)
+    }
   }
 
   return "Import failed"
@@ -89,9 +167,12 @@ const PayloadImportPage = () => {
         return
       }
 
-      const data = (await response.json()) as ImportResult
+      const result = normalizeImportResult(await response.json())
+      if (!result) {
+        throw new Error("Payload vrátil neplatný výsledek importu.")
+      }
       setMessage(
-        `Import dokončený: ${data.result.imported} importovaných, ${data.result.skipped} přeskočených z ${data.result.total}.`
+        `Import dokončený: ${result.imported} importovaných, ${result.failed} chyb, ${result.skipped} přeskočených z ${result.total}, ${result.mediaFallbacks} obrázků nahrazených placeholderem, ${result.relatedArticleLinks} vazeb na související články, ${result.unresolvedRelatedArticleSlugs.length} nerozpoznaných vazeb.`
       )
     } catch (error_) {
       setError(getErrorMessage(error_))

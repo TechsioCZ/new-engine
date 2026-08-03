@@ -5,7 +5,7 @@ import { MedusaError } from "@medusajs/utils"
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"])
 const TRAILING_SLASH_PATTERN = /\/$/
 const DEFAULT_MAX_UPLOAD_BYTES = 10 * 1024 * 1024
-const DEFAULT_UPSTREAM_TIMEOUT_MS = 30_000
+const DEFAULT_UPSTREAM_TIMEOUT_MS = 15 * 60_000
 
 const getMaxUploadBytes = () => {
   const configured = Number(process.env.PAYLOAD_IMPORT_MAX_UPLOAD_BYTES)
