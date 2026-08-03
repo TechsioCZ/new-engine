@@ -1,3 +1,4 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import {
   flattenStorefrontTextCatalog,
   getFlatStorefrontTextCatalog,
@@ -387,7 +388,8 @@ const validateCatalogKeys = (
   )
 
   if (missingKeys.length || unknownKeys.length) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       [
         `${label} does not match the storefront text registry.`,
         missingKeys.length ? `Missing keys: ${missingKeys.join(", ")}.` : "",
@@ -429,7 +431,10 @@ export const parseStorefrontTextCatalogEnvelope = ({
   messages: Record<StorefrontTextKey, string>
 } => {
   if (!isRecord(catalog)) {
-    throw new Error("Storefront text catalog must be a JSON object")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Storefront text catalog must be a JSON object"
+    )
   }
 
   const envelopeKeys = new Set([
@@ -443,33 +448,43 @@ export const parseStorefrontTextCatalogEnvelope = ({
   )
 
   if (unknownEnvelopeKeys.length) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Unknown storefront text catalog fields: ${unknownEnvelopeKeys.join(", ")}`
     )
   }
 
   if (catalog.schema_version !== STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Unsupported storefront text catalog schema version "${String(catalog.schema_version)}"`
     )
   }
 
   if (!isStorefrontTextMarket(catalog.market)) {
-    throw new Error(`Unsupported storefront text market "${catalog.market}"`)
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Unsupported storefront text market "${catalog.market}"`
+    )
   }
 
   if (catalog.market !== targetMarket) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Catalog market "${catalog.market}" does not match target market "${targetMarket}"`
     )
   }
 
   if (!isStorefrontTextLocale(catalog.locale)) {
-    throw new Error(`Unsupported storefront text locale "${catalog.locale}"`)
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Unsupported storefront text locale "${catalog.locale}"`
+    )
   }
 
   if (!isStorefrontTextMarketLocalePair(catalog.market, catalog.locale)) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Locale "${catalog.locale}" does not belong to market "${catalog.market}"`
     )
   }

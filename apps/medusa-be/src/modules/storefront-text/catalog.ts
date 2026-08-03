@@ -1,3 +1,4 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import type {
   StorefrontTextLocale,
   StorefrontTextMarket,
@@ -44,12 +45,18 @@ const flattenCatalogGroup = (
   messages: Record<string, string>
 ) => {
   if (!isCatalogGroup(catalog)) {
-    throw new Error("Storefront text catalog must be a JSON object")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Storefront text catalog must be a JSON object"
+    )
   }
 
   for (const [key, value] of Object.entries(catalog)) {
     if (!isValidCatalogSegment(key)) {
-      throw new Error(`Invalid storefront text catalog key "${key}"`)
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Invalid storefront text catalog key "${key}"`
+      )
     }
 
     const messageKey = parentKey ? `${parentKey}.${key}` : key
@@ -60,7 +67,8 @@ const flattenCatalogGroup = (
     }
 
     if (!isCatalogGroup(value) || Object.keys(value).length === 0) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
         `Storefront text catalog value "${messageKey}" must be a string or non-empty object`
       )
     }
@@ -90,7 +98,10 @@ export const nestStorefrontTextMessages = (
       !(leaf && isValidCatalogSegment(leaf)) ||
       segments.some((segment) => !isValidCatalogSegment(segment))
     ) {
-      throw new Error(`Invalid storefront text message key "${messageKey}"`)
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Invalid storefront text message key "${messageKey}"`
+      )
     }
 
     let group = catalog
@@ -99,7 +110,8 @@ export const nestStorefrontTextMessages = (
       const existing = group[segment]
 
       if (typeof existing === "string") {
-        throw new Error(
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
           `Storefront text message key "${messageKey}" conflicts with "${segment}"`
         )
       }
@@ -115,7 +127,10 @@ export const nestStorefrontTextMessages = (
     }
 
     if (hasOwn(group, leaf)) {
-      throw new Error(`Duplicate storefront text message key "${messageKey}"`)
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Duplicate storefront text message key "${messageKey}"`
+      )
     }
 
     group[leaf] = value

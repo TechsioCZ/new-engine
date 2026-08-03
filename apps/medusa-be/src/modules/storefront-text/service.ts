@@ -1,8 +1,13 @@
 import type { Context } from "@medusajs/framework/types"
-import { MedusaService } from "@medusajs/framework/utils"
+import {
+  InjectManager,
+  MedusaContext,
+  MedusaService,
+} from "@medusajs/framework/utils"
 import StorefrontText from "./models/storefront-text"
 
 type TransactionRepository = {
+  getFreshManager: (context?: Context) => unknown
   transaction: <Result>(
     task: (transactionManager: unknown) => Promise<Result>,
     options?: {
@@ -29,9 +34,10 @@ class StorefrontTextModuleService extends MedusaService({
     this.transactionRepository_ = dependencies.baseRepository
   }
 
+  @InjectManager()
   async runInTransaction<Result>(
     taskWithContext: (context: Context) => Promise<Result>,
-    sharedContext: Context = {}
+    @MedusaContext() sharedContext: Context = {}
   ): Promise<Result> {
     if (sharedContext.transactionManager) {
       return await taskWithContext(sharedContext)
