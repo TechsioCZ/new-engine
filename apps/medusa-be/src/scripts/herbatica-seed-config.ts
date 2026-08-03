@@ -123,10 +123,17 @@ export const HERBATICA_CURRENCIES = [
   },
 ] satisfies SeedDatabaseWorkflowInput["currencies"]
 
+export const HERBATICA_STOREFRONT_SALES_CHANNEL_NAME = "Default Sales Channel"
+export const HERBATICA_POS_SALES_CHANNEL_NAME = "Default Sales Channel POS"
+
 export const HERBATICA_SALES_CHANNELS = [
   {
-    name: "Default Sales Channel",
+    name: HERBATICA_STOREFRONT_SALES_CHANNEL_NAME,
     default: true,
+  },
+  {
+    name: HERBATICA_POS_SALES_CHANNEL_NAME,
+    default: false,
   },
 ] satisfies SeedDatabaseWorkflowInput["salesChannels"]
 
@@ -231,5 +238,6 @@ export const HERBATICA_SHIPPING_OPTIONS = [
 ] satisfies SeedDatabaseWorkflowInput["shippingOptions"]
 
 export const HERBATICA_PUBLISHABLE_KEY = {
+  salesChannelNames: [HERBATICA_STOREFRONT_SALES_CHANNEL_NAME],
   title: "Webshop",
 } satisfies SeedDatabaseWorkflowInput["publishableKey"]

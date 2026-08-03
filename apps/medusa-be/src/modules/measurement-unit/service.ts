@@ -2,6 +2,7 @@ import type { SqlEntityManager } from "@medusajs/framework/mikro-orm/knex"
 import type { Context } from "@medusajs/framework/types"
 import {
   InjectManager,
+  InjectTransactionManager,
   MedusaContext,
   MedusaError,
   MedusaService,
@@ -20,6 +21,22 @@ class MeasurementUnitModuleService extends MedusaService({
   ProductMeasurement,
   ProductVariantMeasurement,
 }) {
+  @InjectManager()
+  async runInTransaction<T>(
+    task: (context: Context<SqlEntityManager>) => Promise<T>,
+    @MedusaContext() sharedContext: Context<SqlEntityManager> = {}
+  ) {
+    return await this.runInTransaction_(task, sharedContext)
+  }
+
+  @InjectTransactionManager()
+  protected async runInTransaction_<T>(
+    task: (context: Context<SqlEntityManager>) => Promise<T>,
+    @MedusaContext() sharedContext: Context<SqlEntityManager> = {}
+  ) {
+    return await task(sharedContext)
+  }
+
   @InjectManager()
   async getActiveProductCounts(
     unitIds: string[],

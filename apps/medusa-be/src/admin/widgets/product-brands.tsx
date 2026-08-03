@@ -14,7 +14,7 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import { BrandDataTable } from "../components/brands/brand-data-table"
@@ -23,6 +23,10 @@ import {
   shouldSubmitProductBrandSelection,
 } from "../components/brands/brand-table-state"
 import {
+  ProductAttributesContent,
+  ProductAttributesDrawer,
+} from "../components/product-attributes/product-attributes-panel"
+import {
   type Brand,
   brandQueryKeys,
   listBrands,
@@ -30,20 +34,15 @@ import {
   retrieveProductBrands,
   setProductBrands,
 } from "../lib/brands"
+import {
+  productAttributeQueryKeys,
+  retrieveProductAttributes,
+} from "../lib/product-attributes"
 import { useDebouncedValue } from "../lib/use-debounced-value"
 
 type ProductBrandsWidgetProps = Partial<DetailWidgetProps<AdminProduct>>
 
 const PAGE_SIZE = 20
-const SUPPLIER_ATTRIBUTE_NAME = "supplier"
-
-const getBrandAttributeValue = (
-  brand: Brand | undefined,
-  attributeName: string
-) =>
-  brand?.attributes.find(
-    (attribute) => attribute.name.toLowerCase() === attributeName
-  )?.value
 
 const brandColumnHelper = createDataTableColumnHelper<Brand>()
 
@@ -284,7 +283,6 @@ const BrandAssignmentDrawer = ({
     queryFn: () => listBrands(params),
     queryKey: brandQueryKeys.list(params),
   })
-
   const mutation = useMutation({
     mutationFn: (submittedBrandId: string | undefined) =>
       setProductBrands(productId, submittedBrandId),
@@ -406,7 +404,7 @@ const BrandAssignmentDrawer = ({
         <Drawer.Header>
           <Drawer.Title>{t("widget.manageTitle")}</Drawer.Title>
         </Drawer.Header>
-        <Drawer.Body className="flex flex-col gap-4 overflow-y-auto">
+        <div className="flex flex-col gap-3 border-ui-border-base border-b px-6 py-4">
           <Container className="flex items-center justify-between gap-3 px-4 py-3">
             <div>
               <Text size="small" weight="plus">
@@ -431,6 +429,8 @@ const BrandAssignmentDrawer = ({
               {t("widget.inactiveSelectionWarning")}
             </Alert>
           ) : null}
+        </div>
+        <Drawer.Body className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
           <SelectedBrandGpsrDetails brand={selectedBrand} />
           <Input
             disabled={mutation.isPending}
@@ -444,37 +444,41 @@ const BrandAssignmentDrawer = ({
           {error ? (
             <Alert variant="error">{t("errors.loadBrandsFailed")}</Alert>
           ) : (
-            <BrandDataTable
-              columns={columns}
-              count={count}
-              data={brands}
-              emptyState={{
-                empty: {
-                  description: t("brands.empty"),
-                  heading: t("widget.manageTitle"),
-                },
-                filtered: {
-                  description: t("brands.empty"),
-                  heading: t("widget.manageTitle"),
-                },
-              }}
-              getRowId={(brand) => brand.id}
-              isLoading={isLoading}
-              onPageIndexChange={(nextPageIndex) => {
-                if (!mutation.isPending) {
-                  setPageIndex(nextPageIndex)
-                }
-              }}
-              onRowClick={(_event, brand) => {
-                if (!isBrandSelectable(brand, selectedId, mutation.isPending)) {
-                  return
-                }
+            <div className="min-h-[22rem]">
+              <BrandDataTable
+                columns={columns}
+                count={count}
+                data={brands}
+                emptyState={{
+                  empty: {
+                    description: t("brands.empty"),
+                    heading: t("widget.manageTitle"),
+                  },
+                  filtered: {
+                    description: t("brands.empty"),
+                    heading: t("widget.manageTitle"),
+                  },
+                }}
+                getRowId={(brand) => brand.id}
+                isLoading={isLoading}
+                onPageIndexChange={(nextPageIndex) => {
+                  if (!mutation.isPending) {
+                    setPageIndex(nextPageIndex)
+                  }
+                }}
+                onRowClick={(_event, brand) => {
+                  if (
+                    !isBrandSelectable(brand, selectedId, mutation.isPending)
+                  ) {
+                    return
+                  }
 
-                selectBrand(brand)
-              }}
-              pageIndex={pageIndex}
-              pageSize={PAGE_SIZE}
-            />
+                  selectBrand(brand)
+                }}
+                pageIndex={pageIndex}
+                pageSize={PAGE_SIZE}
+              />
+            </div>
           )}
         </Drawer.Body>
         <Drawer.Footer>
@@ -506,9 +510,11 @@ const BrandAssignmentDrawer = ({
 
 const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
   const { t } = useTranslation("brands")
-  const [open, setOpen] = useState(false)
+  const { t: attributeT } = useTranslation("productAttributes")
+  const [brandDrawerOpen, setBrandDrawerOpen] = useState(false)
+  const [attributeDrawerOpen, setAttributeDrawerOpen] = useState(false)
 
-  const { data, error, isLoading } = useQuery({
+  const brandQuery = useQuery({
     enabled: !!product?.id,
     queryFn: () => {
       if (!product?.id) {
@@ -518,30 +524,33 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
     },
     queryKey: brandQueryKeys.productLinks(product?.id),
   })
+  const attributeQuery = useQuery({
+    enabled: !!product?.id,
+    queryFn: () => retrieveProductAttributes(product?.id ?? ""),
+    queryKey: productAttributeQueryKeys.product(product?.id),
+  })
+  const editableAttributeItems = useMemo(
+    () =>
+      (attributeQuery.data?.product_attributes ?? [])
+        .filter((item) => !item.definition.deleted_at)
+        .map((item) =>
+          item.selected_option?.deleted_at
+            ? { ...item, assignment: null, selected_option: null }
+            : item
+        ),
+    [attributeQuery.data]
+  )
 
   if (!product?.id) {
     return null
   }
 
-  const brands = [...(data?.brands ?? [])].sort(
+  const brands = [...(brandQuery.data?.brands ?? [])].sort(
     (first, second) => Number(!!first.deleted_at) - Number(!!second.deleted_at)
   )
+  const attributeItems = attributeQuery.data?.product_attributes ?? []
   const activeBrand = brands.find((brand) => !brand.deleted_at)
   const hasInactiveBrand = brands.some((brand) => brand.deleted_at)
-  const activeBrandSupplier = getBrandAttributeValue(
-    activeBrand,
-    SUPPLIER_ATTRIBUTE_NAME
-  )
-  const supplier =
-    activeBrandSupplier && activeBrandSupplier.trim().length > 0
-      ? activeBrandSupplier.trim()
-      : brands
-          .filter((brand) => brand.id !== activeBrand?.id)
-          .map((brand) =>
-            getBrandAttributeValue(brand, SUPPLIER_ATTRIBUTE_NAME)
-          )
-          .map((value) => value?.trim())
-          .find((value): value is string => !!value)
   let statusText = t("products.notLinked")
 
   if (hasInactiveBrand) {
@@ -555,44 +564,85 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
   return (
     <>
       <Container className="divide-y p-0">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div>
-            <Heading level="h2">{t("widget.title")}</Heading>
-            <Text className="text-ui-fg-subtle" size="small">
-              {statusText}
-            </Text>
-          </div>
-          <Button
-            onClick={() => setOpen(true)}
-            size="small"
-            type="button"
-            variant="secondary"
-          >
-            {t("actions.edit")}
-          </Button>
-        </div>
-        <div className="flex flex-col gap-2 px-6 py-4">
-          <BrandLinkContent
-            brands={brands}
-            error={error}
-            isLoading={isLoading}
-          />
-        </div>
-        <div className="flex items-center justify-between gap-3 px-6 py-4">
-          <Text size="small" weight="plus">
-            {t("fields.supplier")}
-          </Text>
+        <div className="px-6 py-4">
+          <Heading level="h2">{t("widget.productDetailsTitle")}</Heading>
           <Text className="text-ui-fg-subtle" size="small">
-            {supplier ?? "-"}
+            {t("widget.productDetailsDescription")}
           </Text>
+        </div>
+        <div>
+          <div className="flex items-center justify-between gap-3 px-6 py-4">
+            <div className="flex flex-col gap-1">
+              <Text leading="compact" size="small" weight="plus">
+                {t("widget.title")}
+              </Text>
+              <Text
+                className="text-ui-fg-subtle"
+                leading="compact"
+                size="small"
+              >
+                {statusText}
+              </Text>
+            </div>
+            <Button
+              onClick={() => setBrandDrawerOpen(true)}
+              size="small"
+              type="button"
+              variant="secondary"
+            >
+              {t("actions.edit")}
+            </Button>
+          </div>
+          <div className="px-6 pb-4">
+            <BrandLinkContent
+              brands={brands}
+              error={brandQuery.error}
+              isLoading={brandQuery.isLoading}
+            />
+          </div>
+        </div>
+        <div>
+          <div className="flex items-center justify-between gap-3 px-6 py-4">
+            <div className="flex flex-col gap-1">
+              <Text leading="compact" size="small" weight="plus">
+                {attributeT("widget.title")}
+              </Text>
+              <Text className="text-ui-fg-subtle" size="small">
+                {attributeT("widget.description")}
+              </Text>
+            </div>
+            <Button
+              onClick={() => setAttributeDrawerOpen(true)}
+              size="small"
+              type="button"
+              variant="secondary"
+            >
+              {attributeT("actions.edit")}
+            </Button>
+          </div>
+          <div className="px-6 pb-4">
+            <ProductAttributesContent
+              error={attributeQuery.error}
+              isLoading={attributeQuery.isLoading}
+              items={attributeItems}
+            />
+          </div>
         </div>
       </Container>
       <BrandAssignmentDrawer
         currentBrand={activeBrand ?? brands[0]}
-        onOpenChange={setOpen}
-        open={open}
+        onOpenChange={setBrandDrawerOpen}
+        open={brandDrawerOpen}
         productId={product.id}
       />
+      {attributeDrawerOpen ? (
+        <ProductAttributesDrawer
+          items={editableAttributeItems}
+          onOpenChange={setAttributeDrawerOpen}
+          open={attributeDrawerOpen}
+          productId={product.id}
+        />
+      ) : null}
     </>
   )
 }

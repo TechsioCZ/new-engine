@@ -369,6 +369,37 @@ export const getCurrentProductBrandLinks = async (
   )
 }
 
+export const getCurrentBrandProductLinks = async (
+  container: MedusaContainer,
+  brandIds: string[]
+) => {
+  const ids = [...new Set(brandIds)]
+
+  if (!ids.length) {
+    return []
+  }
+
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const data: ProductBrandLinkRecord[] = []
+
+  for (const idChunk of chunkArray(ids, CHUNK_SIZE)) {
+    const response = await query.graph({
+      entity: ProductBrandLink.entryPoint,
+      fields: ["product_id", "brand_id"],
+      filters: {
+        brand_id: { $in: idChunk },
+      },
+    })
+
+    data.push(...(response.data as ProductBrandLinkRecord[]))
+  }
+
+  return data.filter(
+    (link): link is Required<ProductBrandLinkRecord> =>
+      !!(link.product_id && link.brand_id)
+  )
+}
+
 export const getExistingProductIds = async (
   container: MedusaContainer,
   productIds: string[]

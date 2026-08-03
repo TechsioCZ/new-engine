@@ -15,6 +15,10 @@ import {
   measurementUnitAdminI18n,
 } from "../../modules/measurement-unit/admin/i18n"
 import {
+  type ProductAttributeAdminI18nNamespace,
+  productAttributeAdminI18n,
+} from "../../modules/product-attribute/admin/i18n"
+import {
   type QuoteAdminI18nNamespace,
   quoteAdminI18n,
 } from "../../modules/quote/admin/i18n"
@@ -136,6 +140,7 @@ type AdminI18nResources = Record<
     measurementUnits: MeasurementUnitAdminI18nNamespace
     orderBusinessStatuses: OrderBusinessStatusesNamespace
     productSalesRegions: ProductSalesRegionsNamespace
+    productAttributes: ProductAttributeAdminI18nNamespace
     brands: BrandAdminI18nNamespace
     quotes: QuoteAdminI18nNamespace
     translation: AdminDefaultTranslationNamespace
@@ -528,6 +533,7 @@ const resources = {
     measurementUnits: measurementUnitAdminI18n.cs,
     orderBusinessStatuses: orderBusinessStatuses.cs,
     productSalesRegions: productSalesRegions.cs,
+    productAttributes: productAttributeAdminI18n.cs,
     brands: brandAdminI18n.cs,
     quotes: quoteAdminI18n.cs,
     translation: defaultTranslation.cs,
@@ -538,6 +544,7 @@ const resources = {
     measurementUnits: measurementUnitAdminI18n.en,
     orderBusinessStatuses: orderBusinessStatuses.en,
     productSalesRegions: productSalesRegions.en,
+    productAttributes: productAttributeAdminI18n.en,
     brands: brandAdminI18n.en,
     quotes: quoteAdminI18n.en,
     translation: defaultTranslation.en,

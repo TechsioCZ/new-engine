@@ -1,6 +1,7 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
+import { describe, expect, it, vi } from "vitest"
 import { createMedusaStorefrontServerReadPreset } from "../src/medusa/server-read"
 import { createOrderQueryKeys } from "../src/orders/query-keys"
 import type {
@@ -12,44 +13,42 @@ import { createProductQueryKeys } from "../src/products/query-keys"
 import { createRegionQueryKeys } from "../src/regions/query-keys"
 
 const createSdkMock = () => {
-  const clientFetch = vi.fn(
-    async (path: string): Promise<Record<string, unknown>> => {
-      if (path === "/store/products") {
-        return {
-          products: [{ id: "prod_1", handle: "p-1", title: "Product 1" }],
-          count: 1,
-          limit: 2,
-          offset: 0,
-        }
+  const clientFetch = vi.fn((path: string): Record<string, unknown> => {
+    if (path === "/store/products") {
+      return {
+        products: [{ id: "prod_1", handle: "p-1", title: "Product 1" }],
+        count: 1,
+        limit: 2,
+        offset: 0,
       }
-
-      if (path === "/store/regions") {
-        return {
-          regions: [{ id: "reg_1", name: "CZ" }],
-          count: 1,
-          limit: 20,
-          offset: 0,
-        }
-      }
-
-      if (path === "/store/product-lists") {
-        return {
-          product_lists: [{ id: "list_1", title: "Favorite" }],
-          count: 1,
-          limit: 5,
-          offset: 5,
-        }
-      }
-
-      if (path === "/store/product-lists/list_1") {
-        return {
-          product_list: { id: "list_1", title: "Favorite" },
-        }
-      }
-
-      return {}
     }
-  )
+
+    if (path === "/store/regions") {
+      return {
+        regions: [{ id: "reg_1", name: "CZ" }],
+        count: 1,
+        limit: 20,
+        offset: 0,
+      }
+    }
+
+    if (path === "/store/product-lists") {
+      return {
+        product_lists: [{ id: "list_1", title: "Favorite" }],
+        count: 1,
+        limit: 5,
+        offset: 5,
+      }
+    }
+
+    if (path === "/store/product-lists/list_1") {
+      return {
+        product_list: { id: "list_1", title: "Favorite" },
+      }
+    }
+
+    return {}
+  })
 
   return {
     sdk: {
@@ -76,14 +75,14 @@ const createSdkMock = () => {
 describe("createMedusaStorefrontServerReadPreset", () => {
   it("builds namespaced reusable read query options for SSR prefetch", async () => {
     const { sdk, spies } = createSdkMock()
-    const productQueryKeys = createProductQueryKeys<{ limit: number }, { handle: string }>([
-      "tenant",
-      "demo",
-    ])
-    const regionQueryKeys = createRegionQueryKeys<Record<string, never>, { id: string }>([
-      "tenant",
-      "demo",
-    ])
+    const productQueryKeys = createProductQueryKeys<
+      { limit: number },
+      { handle: string }
+    >(["tenant", "demo"])
+    const regionQueryKeys = createRegionQueryKeys<
+      Record<string, never>,
+      { id: string }
+    >(["tenant", "demo"])
     const productListQueryKeys = createProductListQueryKeys<
       MedusaProductListListKeyInput,
       MedusaProductListDetailKeyInput
@@ -168,9 +167,10 @@ describe("createMedusaStorefrontServerReadPreset", () => {
 
   it("supports custom order services and list param builders without touching hooks", async () => {
     const { sdk } = createSdkMock()
-    const orderQueryKeys = createOrderQueryKeys<{ limit: number; offset: number }, { id: string }>(
-      "storefront-data"
-    )
+    const orderQueryKeys = createOrderQueryKeys<
+      { limit: number; offset: number },
+      { id: string }
+    >("storefront-data")
 
     const customOrderService = {
       getOrders: vi.fn(
@@ -217,6 +217,42 @@ describe("createMedusaStorefrontServerReadPreset", () => {
 
     expect(customOrderService.getOrders).toHaveBeenCalledWith(
       { limit: 5, offset: 10 },
+      expect.any(AbortSignal)
+    )
+  })
+
+  it("forwards Product Attribute detail parameter overrides to SSR queries", async () => {
+    const { sdk } = createSdkMock()
+    const productAttributeService = {
+      getProductAttributes: vi.fn(async () => []),
+    }
+    const preset = createMedusaStorefrontServerReadPreset({
+      sdk,
+      productAttributes: {
+        service: productAttributeService,
+        hooks: {
+          buildDetailParams: ({ productId }) => ({
+            productId: `resolved:${productId}`,
+          }),
+        },
+      },
+    })
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const query = preset.queries.productAttributes.getDetailQueryOptions({
+      productId: "prod_1",
+    })
+
+    expect(query.queryKey).toEqual([
+      "storefront-data",
+      "product-attributes",
+      "detail",
+      { productId: "resolved:prod_1" },
+    ])
+    await queryClient.prefetchQuery(query)
+    expect(productAttributeService.getProductAttributes).toHaveBeenCalledWith(
+      { productId: "resolved:prod_1" },
       expect.any(AbortSignal)
     )
   })
