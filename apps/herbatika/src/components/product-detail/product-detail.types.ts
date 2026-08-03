@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import type { StorePricePerUnit } from "@techsio/storefront-data/products/types"
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 
 export type Product = HttpTypes.StoreProduct
@@ -11,9 +12,9 @@ export type ProductPriceState = {
   currentLabel: string
   originalLabel: string | null
   currentAmount: number | null
-  currentAmountWithoutTax: number | null
   originalAmount: number | null
   currencyCode: string
+  pricePerUnit: StorePricePerUnit | null
 }
 
 export type ProductOfferState = {
@@ -23,8 +24,6 @@ export type ProductOfferState = {
   deliveryLabel: string
   stockAmount: number | null
   isInStock: boolean
-  offerSource: Record<string, unknown> | null
-  unitLabel: string | null
   currentAmount: number | null
   standardAmount: number | null
   actionAmount: number | null

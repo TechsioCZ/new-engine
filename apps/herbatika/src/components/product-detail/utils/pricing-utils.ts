@@ -1,6 +1,5 @@
 import type {
   Product,
-  ProductMediaFact,
   ProductPriceState,
   VolumeDiscountOption,
 } from "@/components/product-detail/product-detail.types"
@@ -10,11 +9,10 @@ import {
 } from "@/lib/storefront/currency"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import {
-  asStorefrontNumber,
-  resolveAmountWithoutTax,
   resolveProductTopOffer,
   resolveStorefrontPrice,
 } from "@/lib/storefront/product-pricing"
+import { resolveVariantPricePerUnit } from "@/lib/storefront/unit-price"
 
 export const resolvePriceState = (
   product: Product,
@@ -40,31 +38,14 @@ export const resolvePriceState = (
   const currencyCode =
     price?.currencyCode ??
     resolveSupportedCurrencyCode(expectedCurrencyCode, DEFAULT_CURRENCY_CODE)
-  const vatRate =
-    asStorefrontNumber(selectedVariant?.metadata?.vat) ??
-    asStorefrontNumber(topOffer?.vat)
-  const explicitCalculatedAmountWithoutTax =
-    price?.source === "calculated_price" &&
-    typeof calculatedPrice?.calculated_amount_without_tax === "number"
-      ? calculatedPrice.calculated_amount_without_tax
-      : null
-  const resolvedCalculatedAmountWithoutTax = resolveAmountWithoutTax({
-    amountWithTax:
-      typeof resolvedCalculatedAmount === "number"
-        ? resolvedCalculatedAmount
-        : null,
-    amountWithoutTax: explicitCalculatedAmountWithoutTax,
-    vatRate,
-  })
-
-  if (typeof resolvedCalculatedAmount !== "number") {
+  if (typeof resolvedCalculatedAmount !== "number" || !price) {
     return {
       currentLabel: "Cena na vyžiadanie",
       originalLabel: null,
       currentAmount: null,
-      currentAmountWithoutTax: null,
       originalAmount: null,
       currencyCode: currencyCode.toUpperCase(),
+      pricePerUnit: null,
     }
   }
 
@@ -78,12 +59,12 @@ export const resolvePriceState = (
         ? formatCurrencyAmount(normalizedOriginalAmount, currencyCode)
         : null,
     currentAmount: resolvedCalculatedAmount,
-    currentAmountWithoutTax:
-      typeof resolvedCalculatedAmountWithoutTax === "number"
-        ? resolvedCalculatedAmountWithoutTax
-        : null,
     originalAmount: normalizedOriginalAmount,
     currencyCode: currencyCode.toUpperCase(),
+    pricePerUnit: resolveVariantPricePerUnit(selectedVariant, {
+      currencyCode: price.currencyCode,
+      source: price.source,
+    }),
   }
 }
 
@@ -126,59 +107,6 @@ export const resolveVipCreditLabel = (
   }
 
   return formatCurrencyAmount(currentAmount * 0.02, currencyCode)
-}
-
-const resolveDoseCount = (mediaFacts: ProductMediaFact[]): number | null => {
-  const dosesFact = mediaFacts.find((fact) => fact.id === "doses")
-  if (!dosesFact) {
-    return null
-  }
-
-  const parsed = Number.parseInt(dosesFact.value, 10)
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
-}
-
-export const resolveUnitPriceLabel = (params: {
-  currentAmount: number | null
-  currentAmountWithoutTax: number | null
-  currencyCode: string
-  mediaFacts: ProductMediaFact[]
-  unitLabel: string | null
-  vatRate: number | null
-}): string | null => {
-  const {
-    currentAmount,
-    currentAmountWithoutTax,
-    currencyCode,
-    mediaFacts,
-    unitLabel,
-    vatRate,
-  } = params
-
-  if (typeof currentAmount !== "number") {
-    return null
-  }
-
-  const doseCount = resolveDoseCount(mediaFacts)
-  if (typeof doseCount === "number") {
-    return `${formatCurrencyAmount(currentAmount / doseCount, currencyCode)} / deň`
-  }
-
-  if (!unitLabel) {
-    return null
-  }
-
-  const resolvedAmountWithoutTax = resolveAmountWithoutTax({
-    amountWithTax: currentAmount,
-    amountWithoutTax: currentAmountWithoutTax,
-    vatRate,
-  })
-
-  if (typeof resolvedAmountWithoutTax === "number") {
-    return `bez DPH: ${formatCurrencyAmount(resolvedAmountWithoutTax, currencyCode)} / ${unitLabel}`
-  }
-
-  return `${formatCurrencyAmount(currentAmount, currencyCode)} / ${unitLabel}`
 }
 
 export const resolveVolumeDiscountOptions = (

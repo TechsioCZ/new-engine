@@ -180,7 +180,7 @@ export function ProductDetailPurchasePanel({
               ) : null}
             </div>
             {unitPriceLabel ? (
-              <p className="text-fg-primary text-sm leading-tight md:text-md">
+              <p className="text-fg-secondary text-sm leading-tight md:text-md">
                 {unitPriceLabel}
               </p>
             ) : null}
