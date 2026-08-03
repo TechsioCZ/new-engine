@@ -16,6 +16,13 @@ type BrandAttributeTypeRecord = Awaited<
   ReturnType<BrandModuleService["listBrandAttributeTypes"]>
 >[number]
 
+type ScopedBrandAttribute = {
+  attributeType?: { id: string } | null | undefined
+  brand_id: string
+  deleted_at?: Date | string | null | undefined
+  id: string
+}
+
 export type CleanupProductBrandAttributesStepInput = {
   attributeNames?: string[]
   productIds: string[]
@@ -91,7 +98,7 @@ export function selectScopedLegacyBrandAttributeIds({
   attributeTypeIds,
   brandIds,
 }: {
-  attributes: BrandAttributeRecord[]
+  attributes: ScopedBrandAttribute[]
   attributeTypeIds: Set<string>
   brandIds: Set<string>
 }) {

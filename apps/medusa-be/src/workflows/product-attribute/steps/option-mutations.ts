@@ -67,7 +67,7 @@ export const createProductAttributeOptionStep = createStep(
       { take: 1, withDeleted: true }
     )) as ProductAttributeOptionRecord[]
     assertProductAttributeKeyAvailable({
-      collision: matches[0],
+      ...(matches[0] === undefined ? {} : { collision: matches[0] }),
       definitionKey: definition.key,
       key,
       kind: "option",

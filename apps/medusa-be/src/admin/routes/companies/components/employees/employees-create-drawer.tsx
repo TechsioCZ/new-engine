@@ -1,4 +1,5 @@
 import { Button, Drawer, toast } from "@medusajs/ui"
+import { getErrorMessage } from "@techsio/std/object"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -12,9 +13,6 @@ import {
   type EmployeeCreateSubmitData,
   EmployeesCreateForm,
 } from "./employees-create-form"
-
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error)
 
 export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
   const { t } = useTranslation("companies")

@@ -12,6 +12,8 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+import { chunk } from "@techsio/std/array"
+import { isRecord } from "@techsio/std/object"
 
 import { ProductBrandLink } from "../links/product-brand"
 import { BRAND_MODULE } from "../modules/brand"
@@ -57,19 +59,11 @@ export type LegacySupplierAssignmentPlan = {
   unresolved: Array<{ product_id: string; reason: string; values: string[] }>
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value) && typeof value === "object" && !Array.isArray(value)
-
 const isHerbaticaProduct = (product: ProductDTO) =>
   isRecord(product.metadata) &&
-  product.metadata.source === HERBATICA_PRODUCT_SOURCE
+  product.metadata["source"] === HERBATICA_PRODUCT_SOURCE
 
 const normalizeLegacyName = (value: string) => value.trim().toLowerCase()
-
-const chunk = <T>(items: T[], size = BATCH_SIZE) =>
-  Array.from({ length: Math.ceil(items.length / size) }, (_, index) =>
-    items.slice(index * size, (index + 1) * size)
-  )
 
 export const resolveLegacySupplierValuesByBrand = (
   attributes: LegacyBrandSupplier[]
@@ -255,7 +249,7 @@ async function listLegacySupplierAttributes(
 ) {
   const attributes: BrandAttributeRecord[] = []
 
-  for (const brandIdBatch of chunk(brandIds)) {
+  for (const brandIdBatch of chunk(brandIds, BATCH_SIZE)) {
     let offset = 0
     let count = Number.POSITIVE_INFINITY
 
@@ -307,7 +301,7 @@ async function listValidActiveSupplierAssignmentProductIds({
   productIds,
   service,
 }: {
-  definition?: ProductAttributeDefinitionRecord
+  definition?: ProductAttributeDefinitionRecord | undefined
   productIds: string[]
   service: ProductAttributeService
 }) {
@@ -316,7 +310,7 @@ async function listValidActiveSupplierAssignmentProductIds({
   }
 
   const assignments: ProductAttributeAssignmentRecord[] = []
-  for (const productIdBatch of chunk(productIds)) {
+  for (const productIdBatch of chunk(productIds, BATCH_SIZE)) {
     let offset = 0
     let count = Number.POSITIVE_INFINITY
 
@@ -353,7 +347,7 @@ async function listValidActiveSupplierAssignmentProductIds({
   ]
   const activeOptionIds = new Set<string>()
 
-  for (const optionIdBatch of chunk(optionIds)) {
+  for (const optionIdBatch of chunk(optionIds, BATCH_SIZE)) {
     const options = (await service.listProductAttributeOptions(
       { id: { $in: optionIdBatch } },
       { select: ["id"], take: optionIdBatch.length }
@@ -485,7 +479,7 @@ async function ensureSupplierCatalog({
   labelsByKey,
   service,
 }: {
-  definition?: ProductAttributeDefinitionRecord
+  definition?: ProductAttributeDefinitionRecord | undefined
   labelsByKey: Map<string, string>
   service: ProductAttributeService
 }) {
@@ -511,7 +505,7 @@ async function listLinksByBrand(
 ): Promise<Required<ProductBrandLinkRecord>[]> {
   const links: Required<ProductBrandLinkRecord>[] = []
 
-  for (const brandIdBatch of chunk(brandIds)) {
+  for (const brandIdBatch of chunk(brandIds, BATCH_SIZE)) {
     const { data } = await query.graph({
       entity: ProductBrandLink.entryPoint,
       fields: ["product_id", "brand_id"],

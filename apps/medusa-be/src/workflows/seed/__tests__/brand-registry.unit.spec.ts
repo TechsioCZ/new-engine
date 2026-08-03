@@ -229,15 +229,20 @@ describe("buildBrandRegistry", () => {
       handle: "viola-herb",
       title: "ViolaHerb",
     })
+    const reconciledAttributes = update.attributes?.map((attribute) => ({
+      value: attribute.value,
+      attributeType: { name: attribute.name },
+    }))
     expect(
       buildExistingBrandReconciliation(
         {
           ...existing,
           ...update,
-          attributes: update.attributes?.map((attribute) => ({
-            value: attribute.value,
-            attributeType: { name: attribute.name },
-          })),
+          handle: update.handle ?? existing.handle,
+          title: update.title ?? existing.title,
+          ...(reconciledAttributes === undefined
+            ? {}
+            : { attributes: reconciledAttributes }),
         },
         incoming
       )

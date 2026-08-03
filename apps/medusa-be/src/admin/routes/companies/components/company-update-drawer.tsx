@@ -1,13 +1,11 @@
 import { Drawer, toast } from "@medusajs/ui"
+import { getErrorMessage } from "@techsio/std/object"
 import { useTranslation } from "react-i18next"
 
 import type { AdminUpdateCompany, QueryCompany } from "../../../../types"
 import { definedProperties } from "../../../../utils/defined-properties"
 import { useUpdateCompany } from "../../../hooks/api"
 import { CompanyForm } from "./company-form"
-
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error)
 
 export function CompanyUpdateDrawer({
   company,

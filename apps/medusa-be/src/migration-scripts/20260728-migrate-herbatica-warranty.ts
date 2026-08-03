@@ -12,6 +12,7 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { updateProductsWorkflow } from "@medusajs/medusa/core-flows"
+import { isRecord } from "@techsio/std/object"
 
 import {
   getProductAttributeService,
@@ -58,15 +59,12 @@ type UnsafeProduct = {
 type ProductAttributeService = ReturnType<typeof getProductAttributeService>
 type ProductAttributeContext = Context<SqlEntityManager>
 
-const isRecord = (value: unknown): value is ProductMetadata =>
-  Boolean(value) && typeof value === "object" && !Array.isArray(value)
-
 export const isLegacyHerbaticaWarrantyMetadata = (
   metadata: unknown
 ): metadata is ProductMetadata =>
   isRecord(metadata) &&
-  metadata.source === HERBATICA_PRODUCT_SOURCE &&
-  typeof metadata.warranty === "string"
+  metadata["source"] === HERBATICA_PRODUCT_SOURCE &&
+  typeof metadata["warranty"] === "string"
 
 const escapeHtml = (value: string) =>
   value
@@ -109,9 +107,9 @@ const parseContentSections = (value: unknown): ContentSection[] | undefined => {
   const sections = value.filter(
     (section): section is ContentSection =>
       isRecord(section) &&
-      typeof section.key === "string" &&
-      typeof section.title === "string" &&
-      typeof section.html === "string"
+      typeof section["key"] === "string" &&
+      typeof section["title"] === "string" &&
+      typeof section["html"] === "string"
   )
   if (
     sections.length !== CONTENT_SECTION_KEYS.length ||
@@ -128,15 +126,15 @@ export function prepareLegacyWarrantyMigration(
   metadata: ProductMetadata
 ): LegacyWarrantyMigrationPreparation {
   const warranty =
-    typeof metadata.warranty === "string"
-      ? metadata.warranty.replace(/\r\n/g, "\n").trim()
+    typeof metadata["warranty"] === "string"
+      ? metadata["warranty"].replace(/\r\n/g, "\n").trim()
       : ""
   if (!warranty) {
     return { reason: "metadata.warranty is absent or empty", safe: false }
   }
 
-  const sections = parseContentSections(metadata.content_sections)
-  const sectionsMap = metadata.content_sections_map
+  const sections = parseContentSections(metadata["content_sections"])
+  const sectionsMap = metadata["content_sections_map"]
   if (!(sections && isRecord(sectionsMap))) {
     return {
       reason: "legacy content_sections shape is not the expected fixed shape",
@@ -145,7 +143,7 @@ export function prepareLegacyWarrantyMigration(
   }
   const otherIndex = sections.findIndex(({ key }) => key === "other")
   const otherHtml = sections[otherIndex]?.html
-  const mappedOtherHtml = sectionsMap.other
+  const mappedOtherHtml = sectionsMap["other"]
   if (
     otherIndex < 0 ||
     typeof otherHtml !== "string" ||

@@ -54,13 +54,13 @@ describe("legacy Warranty migration preparation", () => {
       throw new Error(result.reason)
     }
     expect(result.metadata).not.toHaveProperty("warranty")
-    expect(result.metadata.unrelated).toEqual({ keep: true })
-    expect(result.metadata.content_sections).toHaveLength(5)
+    expect(result.metadata["unrelated"]).toEqual({ keep: true })
+    expect(result.metadata["content_sections"]).toHaveLength(5)
     expect(
-      (result.metadata.content_sections as Array<{ html: string }>)[4]?.html
+      (result.metadata["content_sections"] as Array<{ html: string }>)[4]?.html
     ).toBe("<p>Keep before</p>\n<p>Keep after</p>")
     expect(
-      (result.metadata.content_sections_map as { other: string }).other
+      (result.metadata["content_sections_map"] as { other: string }).other
     ).toBe("<p>Keep before</p>\n<p>Keep after</p>")
   })
 

@@ -38,7 +38,7 @@ export async function GET(
   }
   const escapedQuery = q ? escapeProductAttributeLikePattern(q) : undefined
   if (escapedQuery) {
-    filters.$or = [
+    filters["$or"] = [
       { key: { $ilike: `%${escapedQuery}%` } },
       { label: { $ilike: `%${escapedQuery}%` } },
     ]

@@ -105,7 +105,7 @@ function sourceIdentity(params: {
 
   return {
     sourceKey,
-    sourceVariantId,
+    ...(sourceVariantId === undefined ? {} : { sourceVariantId }),
     stableIdentity: `${sourceIdentityKey}:${params.product.handle}:${params.variant.sku}`,
   }
 }
@@ -128,13 +128,16 @@ function toClaimant(variant: IncomingVariant): ProductVariantEanClaimant {
     product_handle: variant.productHandle,
     sku: variant.sku,
     source_key: variant.sourceKey,
-    source_variant_id: variant.sourceVariantId,
+    ...(variant.sourceVariantId === undefined
+      ? {}
+      : { source_variant_id: variant.sourceVariantId }),
   }
 }
 
 function persistedOwnerClaimant(
   owner: PersistedEanOwner
 ): ProductVariantEanClaimant {
+  const sourceVariantId = getSourceVariantId(owner)
   return {
     product_handle:
       owner.product?.handle ??
@@ -142,7 +145,9 @@ function persistedOwnerClaimant(
       `unknown-product:${owner.id}`,
     sku: owner.sku ?? owner.id,
     source_key: "persisted",
-    source_variant_id: getSourceVariantId(owner),
+    ...(sourceVariantId === undefined
+      ? {}
+      : { source_variant_id: sourceVariantId }),
   }
 }
 
@@ -307,22 +312,23 @@ function resolveClaimedGroup(params: {
     resolution = "kept_existing"
   }
 
+  const transferredOwner =
+    transfersOwnership && persistedOwner ? persistedOwner : undefined
+
   return {
     issue: {
       ean,
       owner: toClaimant(winner),
-      previous_owner:
-        transfersOwnership && persistedOwner
-          ? persistedOwnerClaimant(persistedOwner)
-          : undefined,
+      ...(transferredOwner === undefined
+        ? {}
+        : { previous_owner: persistedOwnerClaimant(transferredOwner) }),
       resolution,
       suppressed: suppressed.map(toClaimant),
     },
     summary,
-    transfer:
-      transfersOwnership && persistedOwner
-        ? { id: persistedOwner.id, ean }
-        : undefined,
+    ...(transferredOwner === undefined
+      ? {}
+      : { transfer: { id: transferredOwner.id, ean } }),
   }
 }
 
@@ -347,8 +353,10 @@ function resolveClaimGroup(params: {
   return resolveClaimedGroup({
     claims: params.claims,
     ean: params.ean,
-    incomingOwner,
-    persistedOwner: params.persistedOwner,
+    ...(incomingOwner === undefined ? {} : { incomingOwner }),
+    ...(params.persistedOwner === undefined
+      ? {}
+      : { persistedOwner: params.persistedOwner }),
     products: params.products,
   })
 }
@@ -384,11 +392,12 @@ export function resolveProductVariantEanClaims(params: {
 
   for (const ean of [...claimsByEan.keys()].sort()) {
     const claims = claimsByEan.get(ean)?.sort(compareIncomingVariants) ?? []
+    const persistedOwner = persistedOwnerByEan.get(ean)
     const resolution = resolveClaimGroup({
       claims,
       ean,
       incomingVariants,
-      persistedOwner: persistedOwnerByEan.get(ean),
+      ...(persistedOwner === undefined ? {} : { persistedOwner }),
       products,
     })
     addSummary(summary, resolution.summary)

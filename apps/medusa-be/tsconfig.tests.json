@@ -10,9 +10,10 @@
     "noPropertyAccessFromIndexSignature": false,
     "noUncheckedIndexedAccess": false,
     "strictFunctionTypes": false,
-    "types": ["node", "vitest/globals"]
+    "types": ["node"]
   },
   "include": [
+    "vitest-globals.d.ts",
     "src/admin/vite-env.d.ts",
     "**/__tests__/**/*.ts",
     "**/*.spec.ts",

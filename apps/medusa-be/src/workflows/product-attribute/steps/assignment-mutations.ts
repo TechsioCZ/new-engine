@@ -162,14 +162,14 @@ export const planProductAttributeAssignmentMutations = ({
     if (operation.action === "remove") {
       return {
         definition_id: operation.definition_id,
-        existing,
+        ...(existing === undefined ? {} : { existing }),
         kind: "remove",
       }
     }
 
     return {
       definition_id: operation.definition_id,
-      existing,
+      ...(existing === undefined ? {} : { existing }),
       kind: "set",
       values:
         operation.definition.input_type === "text"

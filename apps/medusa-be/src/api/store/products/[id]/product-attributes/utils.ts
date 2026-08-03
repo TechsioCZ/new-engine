@@ -36,11 +36,13 @@ export type StoreProductAttributeResponse = {
   text_value: string | null
 }
 
-export type TranslatedProductAttributeAssignment =
-  ProductAttributeAssignmentRecord & {
-    definition?: ProductAttributeDefinitionRecord
-    option?: ProductAttributeOptionRecord | null
-  }
+export type TranslatedProductAttributeAssignment = Omit<
+  ProductAttributeAssignmentRecord,
+  "definition" | "option"
+> & {
+  definition?: ProductAttributeDefinitionRecord
+  option?: ProductAttributeOptionRecord | null
+}
 
 export const toPublicStoreProductAttributes = (
   assignments: TranslatedProductAttributeAssignment[]
@@ -126,7 +128,7 @@ export const listPublicStoreProductAttributes = async ({
           take: PRODUCT_ATTRIBUTE_READ_BATCH_SIZE,
         },
       },
-      { locale }
+      locale === undefined ? {} : { locale }
     )
     assignments.push(...(data as TranslatedProductAttributeAssignment[]))
     sourceCount = metadata?.count ?? assignments.length

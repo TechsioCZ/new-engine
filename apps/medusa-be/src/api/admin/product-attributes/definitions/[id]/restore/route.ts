@@ -16,7 +16,7 @@ export async function POST(
   const { result } = await restoreProductAttributeDefinitionsWorkflow(
     req.scope
   ).run({
-    input: { ids: [req.params.id ?? ""] },
+    input: { ids: [req.params["id"] ?? ""] },
   })
   const definition = result[0]
   const usageCounts = definition

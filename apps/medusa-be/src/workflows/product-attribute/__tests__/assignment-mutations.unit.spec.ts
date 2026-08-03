@@ -11,26 +11,85 @@ import {
   validateProductAttributeOperations,
 } from "../steps/assignment-mutations"
 
-const textDefinition: ProductAttributeDefinitionRecord = {
+const FIXED_DATE = new Date("2026-01-01")
+
+const buildDefinition = (
+  values: Pick<
+    ProductAttributeDefinitionRecord,
+    "id" | "input_type" | "is_public" | "key" | "label"
+  >
+): ProductAttributeDefinitionRecord => ({
+  assignments: [],
+  created_at: FIXED_DATE,
+  deleted_at: null,
+  options: [],
+  updated_at: FIXED_DATE,
+  ...values,
+})
+
+const buildOption = (
+  values: Pick<
+    ProductAttributeOptionRecord,
+    "definition" | "definition_id" | "id" | "key" | "label"
+  >
+): ProductAttributeOptionRecord => ({
+  assignments: [],
+  created_at: FIXED_DATE,
+  deleted_at: null,
+  updated_at: FIXED_DATE,
+  ...values,
+})
+
+const buildAssignment = ({
+  option: relatedOption,
+  ...values
+}: Pick<
+  ProductAttributeAssignmentRecord,
+  | "definition"
+  | "definition_id"
+  | "deleted_at"
+  | "id"
+  | "option_id"
+  | "product_id"
+  | "text_value"
+> & {
+  option?: ProductAttributeOptionRecord
+}): ProductAttributeAssignmentRecord => ({
+  created_at: FIXED_DATE,
+  option:
+    relatedOption ??
+    buildOption({
+      definition: values.definition,
+      definition_id: values.definition_id,
+      id: values.option_id ?? "patopt_unlinked",
+      key: "unlinked",
+      label: "Unlinked",
+    }),
+  updated_at: FIXED_DATE,
+  ...values,
+})
+
+const textDefinition = buildDefinition({
   id: "patdef_note",
   input_type: "text",
   is_public: false,
   key: "note",
   label: "Note",
-}
-const selectDefinition: ProductAttributeDefinitionRecord = {
+})
+const selectDefinition = buildDefinition({
   id: "patdef_warranty",
   input_type: "select",
   is_public: true,
   key: "warranty",
   label: "Warranty",
-}
-const option: ProductAttributeOptionRecord = {
+})
+const option = buildOption({
+  definition: selectDefinition,
   definition_id: selectDefinition.id,
   id: "patopt_two_years",
   key: "2-roky",
   label: "2 roky",
-}
+})
 const INACTIVE_OPTION_ERROR = /not an active option/
 const DUPLICATE_DEFINITION_ERROR = /occurs more than once/
 
@@ -96,14 +155,15 @@ describe("Product Attribute assignment validation", () => {
 
 describe("Product Attribute set/remove reconciliation", () => {
   it("reuses a soft-deleted assignment and prepares rollback state", () => {
-    const previous: ProductAttributeAssignmentRecord = {
+    const previous = buildAssignment({
+      definition: selectDefinition,
       definition_id: selectDefinition.id,
-      deleted_at: new Date("2026-01-01"),
+      deleted_at: FIXED_DATE,
       id: "pat_existing",
       option_id: "patopt_old",
       product_id: "prod_1",
       text_value: null,
-    }
+    })
     const operations = validateProductAttributeOperations({
       definitions: [selectDefinition],
       operations: [
@@ -138,13 +198,15 @@ describe("Product Attribute set/remove reconciliation", () => {
   })
 
   it("treats removal of an already deleted assignment as a no-op", () => {
-    const deleted: ProductAttributeAssignmentRecord = {
+    const deleted = buildAssignment({
+      definition: textDefinition,
       definition_id: textDefinition.id,
-      deleted_at: new Date("2026-01-01"),
+      deleted_at: FIXED_DATE,
       id: "pat_deleted",
+      option_id: null,
       product_id: "prod_1",
       text_value: "old",
-    }
+    })
     const operations = validateProductAttributeOperations({
       definitions: [textDefinition],
       operations: [
@@ -172,20 +234,24 @@ describe("Product Attribute set/remove reconciliation", () => {
   ])(
     "prefers the active assignment when history is returned %s",
     (_label, deletedFirst) => {
-      const active: ProductAttributeAssignmentRecord = {
+      const active = buildAssignment({
+        definition: textDefinition,
         definition_id: textDefinition.id,
         deleted_at: null,
         id: "pat_active",
+        option_id: null,
         product_id: "prod_1",
         text_value: "current",
-      }
-      const deleted: ProductAttributeAssignmentRecord = {
+      })
+      const deleted = buildAssignment({
+        definition: textDefinition,
         definition_id: textDefinition.id,
-        deleted_at: new Date("2026-01-01"),
+        deleted_at: FIXED_DATE,
         id: "pat_deleted",
+        option_id: null,
         product_id: "prod_1",
         text_value: "old",
-      }
+      })
       const operations = validateProductAttributeOperations({
         definitions: [textDefinition],
         operations: [

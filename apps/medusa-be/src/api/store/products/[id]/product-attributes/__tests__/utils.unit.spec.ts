@@ -1,46 +1,108 @@
 import { describe, expect, it } from "vitest"
 
+import type {
+  ProductAttributeAssignmentRecord,
+  ProductAttributeDefinitionRecord,
+  ProductAttributeOptionRecord,
+} from "../../../../../../utils/product-attributes"
+import type { TranslatedProductAttributeAssignment } from "../utils"
 import {
   paginatePublicStoreProductAttributes,
   toPublicStoreProductAttributes,
 } from "../utils"
 
+const RECORD_TIMESTAMP = new Date("2026-01-01T00:00:00.000Z")
+const RECORD_TIMESTAMPS = {
+  created_at: RECORD_TIMESTAMP,
+  deleted_at: null,
+  updated_at: RECORD_TIMESTAMP,
+}
+
+const createDefinition = (
+  overrides: Pick<
+    ProductAttributeDefinitionRecord,
+    "id" | "input_type" | "is_public" | "key" | "label"
+  >
+): ProductAttributeDefinitionRecord => ({
+  ...RECORD_TIMESTAMPS,
+  ...overrides,
+  assignments: [],
+  options: [],
+})
+
+const createOption = (
+  overrides: Pick<ProductAttributeOptionRecord, "id" | "key" | "label"> & {
+    definition: ProductAttributeDefinitionRecord
+  }
+): ProductAttributeOptionRecord => ({
+  ...RECORD_TIMESTAMPS,
+  ...overrides,
+  assignments: [],
+  definition_id: overrides.definition.id,
+})
+
+const createAssignment = (
+  overrides: Pick<ProductAttributeAssignmentRecord, "id" | "product_id"> & {
+    definition: ProductAttributeDefinitionRecord
+    option?: ProductAttributeOptionRecord | null
+    option_id?: string | null
+    text_value?: string | null
+  }
+): TranslatedProductAttributeAssignment => {
+  const {
+    definition,
+    option = null,
+    option_id = option?.id ?? null,
+    text_value = null,
+    ...rest
+  } = overrides
+
+  return {
+    ...RECORD_TIMESTAMPS,
+    ...rest,
+    definition,
+    definition_id: definition.id,
+    option,
+    option_id,
+    text_value,
+  }
+}
+
 describe("Store Product Attributes visibility", () => {
   it("returns only public definitions and strips select text values", () => {
+    const warrantyDefinition = createDefinition({
+      id: "patdef_warranty",
+      input_type: "select",
+      is_public: true,
+      key: "warranty",
+      label: "Warranty",
+    })
+
     expect(
       toPublicStoreProductAttributes([
-        {
-          definition: {
-            id: "patdef_warranty",
-            input_type: "select",
-            is_public: true,
-            key: "warranty",
-            label: "Warranty",
-          },
-          definition_id: "patdef_warranty",
+        createAssignment({
+          definition: warrantyDefinition,
           id: "pat_1",
-          option: {
-            definition_id: "patdef_warranty",
+          option: createOption({
+            definition: warrantyDefinition,
             id: "patopt_2",
             key: "2-roky",
             label: "2 roky",
-          },
-          option_id: "patopt_2",
+          }),
           product_id: "prod_1",
           text_value: "must-not-leak",
-        },
-        {
-          definition: {
+        }),
+        createAssignment({
+          definition: createDefinition({
             id: "patdef_supplier",
             input_type: "select",
             is_public: false,
             key: "supplier",
             label: "Supplier",
-          },
-          definition_id: "patdef_supplier",
+          }),
           id: "pat_2",
           product_id: "prod_1",
-        },
+        }),
       ])
     ).toEqual([
       {
@@ -61,69 +123,65 @@ describe("Store Product Attributes visibility", () => {
     ])
   })
 
-  it("omits a select assignment whose active option is unavailable", () => {
+  it("omits a select assignment when the active option is unavailable", () => {
     expect(
       toPublicStoreProductAttributes([
-        {
-          definition: {
+        createAssignment({
+          definition: createDefinition({
             id: "patdef_warranty",
             input_type: "select",
             is_public: true,
             key: "warranty",
             label: "Warranty",
-          },
-          definition_id: "patdef_warranty",
+          }),
           id: "pat_1",
           option: null,
           option_id: "patopt_deleted",
           product_id: "prod_1",
-        },
+        }),
       ])
     ).toEqual([])
   })
 
-  it("paginates after private and inactive assignments are omitted", () => {
+  it("paginates with private and inactive assignments omitted", () => {
     const result = paginatePublicStoreProductAttributes(
       [
-        {
-          definition: {
+        createAssignment({
+          definition: createDefinition({
             id: "private",
             input_type: "text",
             is_public: false,
             key: "private",
             label: "Private",
-          },
-          definition_id: "private",
+          }),
           id: "private-assignment",
           product_id: "prod_1",
           text_value: "hidden",
-        },
-        {
-          definition: {
+        }),
+        createAssignment({
+          definition: createDefinition({
             id: "second",
             input_type: "text",
             is_public: true,
             key: "z-second",
             label: "Second",
-          },
-          definition_id: "second",
+          }),
           id: "second-assignment",
           product_id: "prod_1",
           text_value: "second",
-        },
-        {
-          definition: {
+        }),
+        createAssignment({
+          definition: createDefinition({
             id: "first",
             input_type: "text",
             is_public: true,
             key: "a-first",
             label: "First",
-          },
-          definition_id: "first",
+          }),
           id: "first-assignment",
           product_id: "prod_1",
           text_value: "first",
-        },
+        }),
       ],
       { limit: 1, offset: 1 }
     )

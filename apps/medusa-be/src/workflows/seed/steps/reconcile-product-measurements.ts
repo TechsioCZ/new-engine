@@ -10,6 +10,7 @@ import type {
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { chunk } from "@techsio/std/array"
 
 import { ProductMeasurementLink } from "../../../links/product-measurement"
 import { ProductVariantMeasurementLink } from "../../../links/product-variant-measurement"
@@ -111,14 +112,6 @@ type ReconciliationSummary = {
   units_reused: number
   variants_cleared: number
   variants_set: number
-}
-
-const chunk = <T>(items: T[], size = RECONCILIATION_BATCH_SIZE) => {
-  const result: T[][] = []
-  for (let index = 0; index < items.length; index += size) {
-    result.push(items.slice(index, index + size))
-  }
-  return result
 }
 
 const normalizeUnitSymbol = (value: string) =>
@@ -385,8 +378,10 @@ async function createSeedMeasurementUnit(
         return null
       }
 
+      const { description, ...unitSource } = desired.source
       const createdUnit = await service.createMeasurementUnits({
-        ...desired.source,
+        ...unitSource,
+        ...(description === undefined ? {} : { description }),
         code,
       })
       return { action: "created", unit: createdUnit }
@@ -512,7 +507,7 @@ async function resolveProducts(
   const owned = input.filter((product) => product.measurement !== undefined)
   const productByHandle = new Map<string, ProductDTO>()
 
-  for (const inputChunk of chunk(owned)) {
+  for (const inputChunk of chunk(owned, RECONCILIATION_BATCH_SIZE)) {
     const handles = inputChunk.map((product) => product.handle)
     const products = await productService.listProducts(
       { handle: { $in: handles } },
@@ -993,7 +988,9 @@ function planVariantMeasurement({
     planOmittedVariantMeasurement({
       matching,
       plan,
-      previousProductMeasurement,
+      ...(previousProductMeasurement === undefined
+        ? {}
+        : { previousProductMeasurement }),
       productTarget,
       recordsByVariantAndProductMeasurement,
       variant,
@@ -1040,7 +1037,9 @@ export function buildVariantRecordMutationPlan(
       planVariantMeasurement({
         inputVariant: current.variantInputById.get(variant.id),
         plan,
-        previousProductMeasurement,
+        ...(previousProductMeasurement === undefined
+          ? {}
+          : { previousProductMeasurement }),
         productTarget,
         recordsByVariantAndProductMeasurement,
         variant,
@@ -1468,7 +1467,7 @@ export const reconcileProductMeasurementsStep = createStep(
     summary.units_restored = ensured.restored
     summary.units_reused = ensured.reused
 
-    for (const currentBatch of chunk(resolved)) {
+    for (const currentBatch of chunk(resolved, RECONCILIATION_BATCH_SIZE)) {
       const requiredUnits = getRequiredBatchMeasurementUnits(
         currentBatch,
         ensured.unitBySemanticKey

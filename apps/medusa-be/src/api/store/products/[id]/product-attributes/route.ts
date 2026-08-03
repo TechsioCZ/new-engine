@@ -24,7 +24,7 @@ export async function GET(
     product_attributes: StoreProductAttributeResponse[]
   }>
 ) {
-  const productId = req.params.id
+  const productId = req.params["id"]
   if (!productId) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
@@ -37,7 +37,7 @@ export async function GET(
     query,
     remoteQuery,
     {
-      ...(req.filterableFields ?? {}),
+      ...req.filterableFields,
       id: productId,
     }
   )
@@ -58,7 +58,7 @@ export async function GET(
   const { skip: offset, take = 20 } = req.queryConfig.pagination
   const page = await listPublicStoreProductAttributes({
     limit: take,
-    locale: req.locale,
+    ...(req.locale === undefined ? {} : { locale: req.locale }),
     offset,
     productId,
     query,
