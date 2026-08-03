@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest"
+
 import { createMedusaSdk } from "../src/shared/medusa-client"
 
 const patchBlockedLocalStorage = () => {
-  const originalGetItem = Storage.prototype.getItem
-  const originalSetItem = Storage.prototype.setItem
-  const originalRemoveItem = Storage.prototype.removeItem
+  const originalGetItem = Storage.prototype.getItem.bind(Storage.prototype)
+  const originalSetItem = Storage.prototype.setItem.bind(Storage.prototype)
+  const originalRemoveItem = Storage.prototype.removeItem.bind(
+    Storage.prototype
+  )
 
   Storage.prototype.getItem = function (key: string) {
     if (this === window.localStorage) {

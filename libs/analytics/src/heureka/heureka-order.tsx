@@ -2,6 +2,7 @@
 
 import Script from "next/script"
 import { useEffect, useRef } from "react"
+
 import { isHeurekaCountry, normalizeHeurekaCountry } from "./country"
 import type { HeurekaCountry, HeurekaProductItem } from "./types"
 

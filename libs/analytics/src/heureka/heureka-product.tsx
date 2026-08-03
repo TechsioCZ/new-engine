@@ -1,6 +1,7 @@
 "use client"
 
 import Script from "next/script"
+
 import { isHeurekaCountry, normalizeHeurekaCountry } from "./country"
 import type { HeurekaCountry } from "./types"
 

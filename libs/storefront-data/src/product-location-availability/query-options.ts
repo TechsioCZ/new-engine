@@ -18,7 +18,7 @@ export type CreateProductLocationAvailabilityQueryOptionsFactoryConfig<
   TParams,
 > = {
   service: ProductLocationAvailabilityService<TResponse, TParams>
-  buildDetailParams?: (input: TInput) => TParams
+  buildDetailParams?: ((input: TInput) => TParams) | undefined
   queryKeys?: ProductLocationAvailabilityQueryKeys<TParams>
   queryKeyNamespace?: QueryNamespace
   cacheConfig?: CacheConfig
@@ -31,7 +31,7 @@ export type ProductLocationAvailabilityQueryOptionsFactory<
   getDetailQueryOptions: (
     input: TInput,
     options?: {
-      queryOptions?: ReadQueryOptions<TResponse>
+      queryOptions?: ReadQueryOptions<TResponse> | undefined
       cacheStrategy?: CacheStrategy
     }
   ) => QueryFactoryOptions<TResponse>
@@ -39,8 +39,8 @@ export type ProductLocationAvailabilityQueryOptionsFactory<
 
 export function createProductLocationAvailabilityQueryOptionsFactory<
   TResponse,
-  TInput extends ProductLocationAvailabilityInputBase,
-  TParams,
+  TInput extends ProductLocationAvailabilityInputBase & TParams,
+  TParams = TInput,
 >({
   service,
   buildDetailParams,
@@ -56,14 +56,10 @@ export function createProductLocationAvailabilityQueryOptionsFactory<
   const resolvedQueryKeys =
     queryKeys ??
     createProductLocationAvailabilityQueryKeys<TParams>(queryKeyNamespace)
-  const buildDetail =
-    buildDetailParams ?? ((input: TInput) => input as unknown as TParams)
+  const buildDetail = buildDetailParams ?? ((input: TInput) => input)
 
   return {
-    getDetailQueryOptions: (
-      input,
-      options
-    ): QueryFactoryOptions<TResponse> => {
+    getDetailQueryOptions: (input, options): QueryFactoryOptions<TResponse> => {
       const detailParams = buildDetail(input)
       const cacheStrategy = options?.cacheStrategy ?? "realtime"
 
@@ -77,7 +73,7 @@ export function createProductLocationAvailabilityQueryOptionsFactory<
           return service.getProductLocationAvailability(detailParams, signal)
         },
         ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
+        ...options?.queryOptions,
       }
     },
   }

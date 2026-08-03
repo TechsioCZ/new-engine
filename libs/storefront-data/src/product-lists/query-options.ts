@@ -140,7 +140,7 @@ export function createProductListQueryOptionsFactory<
         queryKey: resolvedQueryKeys.list(buildListKey(input, listParams)),
         queryFn: ({ signal }) => service.listProductLists(listParams, signal),
         ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
+        ...options?.queryOptions,
       }
     },
     getDetailQueryOptions: (input, options) => {
@@ -157,7 +157,7 @@ export function createProductListQueryOptionsFactory<
           return service.getProductList(detailParams, signal)
         },
         ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
+        ...options?.queryOptions,
       }
     },
   }

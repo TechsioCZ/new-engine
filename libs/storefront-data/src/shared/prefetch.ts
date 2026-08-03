@@ -1,12 +1,10 @@
 import type { QueryClient } from "@tanstack/react-query"
+import { assertNever } from "@techsio/std/function"
+
 import type { CacheOptions } from "./cache-config"
 import type { QueryKey } from "./query-keys"
 
 export type PrefetchSkipMode = "fresh" | "any"
-
-const assertNever = (value: never): never => {
-  throw new Error(`Unsupported prefetch skip mode: ${String(value)}`)
-}
 
 export const isQueryFresh = (
   queryClient: QueryClient,

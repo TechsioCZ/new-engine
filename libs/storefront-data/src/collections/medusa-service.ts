@@ -1,5 +1,7 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { FindParams, HttpTypes, SelectParams } from "@medusajs/types"
+
+import type { IsExactly } from "../shared/type-utils"
 import type { CollectionListResponse, CollectionService } from "./types"
 
 type MedusaCollectionListQuery = FindParams &
@@ -34,8 +36,7 @@ export type MedusaCollectionTransformDetailContext<
   response: HttpTypes.StoreCollectionResponse
 }
 
-export type MedusaCollectionServiceConfig<
-  TCollection,
+type MedusaCollectionServiceConfigBase<
   TListParams extends MedusaCollectionListInput,
   TDetailParams extends MedusaCollectionDetailInput,
 > = {
@@ -44,16 +45,48 @@ export type MedusaCollectionServiceConfig<
   defaultDetailFields?: string
   normalizeListQuery?: (params: TListParams) => MedusaCollectionListQuery
   normalizeDetailQuery?: (params: TDetailParams) => MedusaCollectionDetailQuery
-  transformCollection?: (collection: HttpTypes.StoreCollection) => TCollection
-  transformListCollection?: (
-    collection: HttpTypes.StoreCollection,
-    context: MedusaCollectionTransformListContext<TListParams>
-  ) => TCollection
-  transformDetailCollection?: (
-    collection: HttpTypes.StoreCollection,
-    context: MedusaCollectionTransformDetailContext<TDetailParams>
-  ) => TCollection
 }
+
+type MedusaCollectionTransforms<
+  TCollection,
+  TListParams extends MedusaCollectionListInput,
+  TDetailParams extends MedusaCollectionDetailInput,
+> =
+  | {
+      transformCollection: (
+        collection: HttpTypes.StoreCollection
+      ) => TCollection
+      transformListCollection?: (
+        collection: HttpTypes.StoreCollection,
+        context: MedusaCollectionTransformListContext<TListParams>
+      ) => TCollection
+      transformDetailCollection?: (
+        collection: HttpTypes.StoreCollection,
+        context: MedusaCollectionTransformDetailContext<TDetailParams>
+      ) => TCollection
+    }
+  | {
+      transformCollection?: never
+      transformListCollection: (
+        collection: HttpTypes.StoreCollection,
+        context: MedusaCollectionTransformListContext<TListParams>
+      ) => TCollection
+      transformDetailCollection: (
+        collection: HttpTypes.StoreCollection,
+        context: MedusaCollectionTransformDetailContext<TDetailParams>
+      ) => TCollection
+    }
+
+export type MedusaCollectionServiceConfig<
+  TCollection,
+  TListParams extends MedusaCollectionListInput,
+  TDetailParams extends MedusaCollectionDetailInput,
+> = MedusaCollectionServiceConfigBase<TListParams, TDetailParams> &
+  (IsExactly<TCollection, HttpTypes.StoreCollection> extends true
+    ? Partial<
+        MedusaCollectionTransforms<TCollection, TListParams, TDetailParams>
+      >
+    : MedusaCollectionTransforms<TCollection, TListParams, TDetailParams>)
 
 const stripEnabled = <TQuery extends Record<string, unknown>>(
   query: TQuery
@@ -70,19 +103,52 @@ const stripEnabled = <TQuery extends Record<string, unknown>>(
  * Uses `/store/collections` through `sdk.client.fetch` so query cancellation
  * works with `AbortSignal` passed by TanStack Query.
  */
+type MedusaCollectionServiceArgs<
+  TCollection,
+  TListParams extends MedusaCollectionListInput,
+  TDetailParams extends MedusaCollectionDetailInput,
+> =
+  IsExactly<TCollection, HttpTypes.StoreCollection> extends true
+    ? [
+        config?:
+          | MedusaCollectionServiceConfig<
+              TCollection,
+              TListParams,
+              TDetailParams
+            >
+          | undefined,
+      ]
+    : [
+        config:
+          | MedusaCollectionServiceConfig<
+              TCollection,
+              TListParams,
+              TDetailParams
+            >
+          | undefined,
+      ]
+
 export function createMedusaCollectionService<
   TCollection = HttpTypes.StoreCollection,
   TListParams extends MedusaCollectionListInput = MedusaCollectionListInput,
-  TDetailParams extends
-    MedusaCollectionDetailInput = MedusaCollectionDetailInput,
+  TDetailParams extends MedusaCollectionDetailInput =
+    MedusaCollectionDetailInput,
 >(
   sdk: Medusa,
-  config?: MedusaCollectionServiceConfig<
+  ...[config]: MedusaCollectionServiceArgs<
     TCollection,
     TListParams,
     TDetailParams
   >
-): CollectionService<TCollection, TListParams, TDetailParams> {
+): CollectionService<TCollection, TListParams, TDetailParams>
+export function createMedusaCollectionService<
+  TListParams extends MedusaCollectionListInput,
+  TDetailParams extends MedusaCollectionDetailInput,
+>(
+  sdk: Medusa,
+  config?: MedusaCollectionServiceConfigBase<TListParams, TDetailParams> &
+    Partial<MedusaCollectionTransforms<unknown, TListParams, TDetailParams>>
+): CollectionService<unknown, TListParams, TDetailParams> {
   const {
     listPath = "/store/collections",
     defaultListFields,
@@ -94,27 +160,17 @@ export function createMedusaCollectionService<
     transformDetailCollection,
   } = config ?? {}
 
-  // Default transform assumes TCollection is compatible with StoreCollection.
-  // If not, provide transformCollection/transformListCollection/transformDetailCollection.
   const baseTransform =
     transformCollection ??
-    ((collection) => collection as unknown as TCollection)
+    ((collection: HttpTypes.StoreCollection): unknown => collection)
 
-  const mapListCollection: (
-    collection: HttpTypes.StoreCollection,
-    context: MedusaCollectionTransformListContext<TListParams>
-  ) => TCollection =
+  const mapListCollection =
     transformListCollection ??
-    ((collection: HttpTypes.StoreCollection, _context) =>
-      baseTransform(collection))
+    ((collection: HttpTypes.StoreCollection) => baseTransform(collection))
 
-  const mapDetailCollection: (
-    collection: HttpTypes.StoreCollection,
-    context: MedusaCollectionTransformDetailContext<TDetailParams>
-  ) => TCollection =
+  const mapDetailCollection =
     transformDetailCollection ??
-    ((collection: HttpTypes.StoreCollection, _context) =>
-      baseTransform(collection))
+    ((collection: HttpTypes.StoreCollection) => baseTransform(collection))
 
   const buildListQuery = (params: TListParams): MedusaCollectionListQuery => {
     const query = normalizeListQuery
@@ -151,14 +207,14 @@ export function createMedusaCollectionService<
     async getCollections(
       params: TListParams,
       signal?: AbortSignal
-    ): Promise<CollectionListResponse<TCollection>> {
+    ): Promise<CollectionListResponse<unknown>> {
       const query = buildListQuery(params)
       const response =
         await sdk.client.fetch<HttpTypes.StoreCollectionListResponse>(
           listPath,
           {
             query,
-            signal,
+            signal: signal ?? null,
           }
         )
 
@@ -175,7 +231,7 @@ export function createMedusaCollectionService<
     async getCollection(
       params: TDetailParams,
       signal?: AbortSignal
-    ): Promise<TCollection | null> {
+    ): Promise<unknown> {
       if (!params.id) {
         return null
       }
@@ -186,7 +242,7 @@ export function createMedusaCollectionService<
           `${listPath}/${params.id}`,
           {
             query,
-            signal,
+            signal: signal ?? null,
           }
         )
 

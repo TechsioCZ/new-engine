@@ -1,16 +1,25 @@
+import { readFileSync } from "node:fs"
+import { fileURLToPath } from "node:url"
+
 import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
-import { readFileSync } from "node:fs"
-import { fileURLToPath } from "node:url"
 import type { ReactNode } from "react"
+
 import { createCheckoutHooks } from "../src/checkout/hooks"
 import { createMedusaCheckoutService } from "../src/checkout/medusa-service"
+import { StorefrontDataProvider } from "../src/client/provider"
 import { createMedusaCustomerService } from "../src/customers/medusa-service"
 import { createMedusaOrderService } from "../src/orders/medusa-service"
-import { StorefrontDataProvider } from "../src/client/provider"
+import {
+  createStoreCustomerAddress,
+  createStoreOrder,
+  createStoreShippingOption,
+  createStoreShippingOptionWithServiceZone,
+} from "./medusa-fixtures"
 
-const createWrapper = (client: QueryClient) =>
+const createWrapper =
+  (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
@@ -34,17 +43,18 @@ describe("phase 2 regressions", () => {
     const fetch = vi
       .fn()
       .mockResolvedValueOnce({
-        orders: [{ id: "order_1" }],
+        orders: [createStoreOrder("order_1")],
+        limit: 10,
+        offset: 20,
         count: 1,
       } satisfies HttpTypes.StoreOrderListResponse)
       .mockResolvedValueOnce({
-        order: { id: "order_1" } as HttpTypes.StoreOrder,
+        order: createStoreOrder("order_1"),
       })
 
-    const service = createMedusaOrderService(
-      { client: { fetch } } as never,
-      { defaultFields: "id,status" }
-    )
+    const service = createMedusaOrderService({ client: { fetch } } as never, {
+      defaultFields: "id,status",
+    })
     const controller = new AbortController()
 
     const list = await service.getOrders(
@@ -76,20 +86,19 @@ describe("phase 2 regressions", () => {
     const fetch = vi
       .fn()
       .mockResolvedValueOnce({
-        orders: [{ id: "order_1" }],
+        orders: [createStoreOrder("order_1")],
+        limit: 10,
+        offset: 20,
         count: 1,
       } satisfies HttpTypes.StoreOrderListResponse)
       .mockRejectedValueOnce({ response: { status: 404 } })
 
-    const service = createMedusaOrderService(
-      { client: { fetch } } as never,
-      {
-        defaultListFields: "id,display_id",
-        defaultDetailFields: "id,*items",
-        defaultOrder: "-created_at",
-        returnNullOnNotFound: true,
-      }
-    )
+    const service = createMedusaOrderService({ client: { fetch } } as never, {
+      defaultListFields: "id,display_id",
+      defaultDetailFields: "id,*items",
+      defaultOrder: "-created_at",
+      returnNullOnNotFound: true,
+    })
     const controller = new AbortController()
 
     const list = await service.getOrders(
@@ -121,10 +130,9 @@ describe("phase 2 regressions", () => {
 
   it("skips order detail fetch when id is missing", async () => {
     const fetch = vi.fn()
-    const service = createMedusaOrderService(
-      { client: { fetch } } as never,
-      { defaultFields: "id,status" }
-    )
+    const service = createMedusaOrderService({ client: { fetch } } as never, {
+      defaultFields: "id,status",
+    })
 
     await expect(service.getOrder({})).resolves.toBeNull()
     expect(fetch).not.toHaveBeenCalled()
@@ -136,7 +144,10 @@ describe("phase 2 regressions", () => {
         fetch: vi
           .fn()
           .mockResolvedValueOnce({
-            addresses: [{ id: "addr_1" }],
+            addresses: [createStoreCustomerAddress("addr_1")],
+            limit: 1,
+            offset: 0,
+            count: 1,
           } satisfies HttpTypes.StoreCustomerAddressListResponse)
           .mockRejectedValueOnce({ status: 401 }),
       },
@@ -159,7 +170,9 @@ describe("phase 2 regressions", () => {
     expect(sdk.client.fetch).toHaveBeenNthCalledWith(
       1,
       "/store/customers/me/addresses",
-      { signal: controller.signal }
+      {
+        signal: controller.signal,
+      }
     )
 
     const unauthorized = await service.getAddresses({}, controller.signal)
@@ -170,13 +183,16 @@ describe("phase 2 regressions", () => {
     const fetch = vi
       .fn()
       .mockResolvedValueOnce({
-        shipping_options: [{ id: "opt_1" }],
+        shipping_options: [createStoreShippingOptionWithServiceZone("opt_1")],
       } satisfies HttpTypes.StoreShippingOptionListResponse)
       .mockResolvedValueOnce({
-        shipping_option: { id: "opt_1" } as HttpTypes.StoreCartShippingOption,
+        shipping_option: createStoreShippingOption("opt_1"),
       } satisfies HttpTypes.StoreShippingOptionResponse)
       .mockResolvedValueOnce({
         payment_providers: [{ id: "pp_1" }],
+        limit: 1,
+        offset: 0,
+        count: 1,
       } satisfies HttpTypes.StorePaymentProviderListResponse)
 
     const sdk = {
@@ -259,7 +275,8 @@ describe("phase 2 regressions", () => {
           shipping_methods: [{ shipping_option_id: optionId }],
         }) as Cart,
       listPaymentProviders: async () => [{ id: "pay_1" }] as PaymentProvider[],
-      initiatePaymentSession: async () => ({ id: "pay_col_1" }) as PaymentCollection,
+      initiatePaymentSession: async () =>
+        ({ id: "pay_col_1" }) as PaymentCollection,
     }
 
     const { useCheckoutShipping } = createCheckoutHooks<
@@ -274,7 +291,10 @@ describe("phase 2 regressions", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     })
     const wrapper = createWrapper(queryClient)
 
@@ -297,10 +317,7 @@ describe("phase 2 regressions", () => {
   })
 
   it("documents preset-first SSR prefetch without hardcoded query keys", () => {
-    const readme = readFileSync(
-      resolveTestRelativePath("../README.md"),
-      "utf8"
-    )
+    const readme = readFileSync(resolveTestRelativePath("../README.md"), "utf8")
 
     expect(readme).toContain("createMedusaStorefrontPreset")
     expect(readme).toContain("productHooks.getListQueryOptions")

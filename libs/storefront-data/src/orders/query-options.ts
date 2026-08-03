@@ -1,3 +1,5 @@
+import { omitUndefined } from "@techsio/std/object"
+
 import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
@@ -13,7 +15,6 @@ import type {
   OrderQueryKeys,
   OrderService,
 } from "./types"
-
 export type CreateOrderQueryOptionsFactoryConfig<
   TOrder,
   TListInput extends OrderListInputBase,
@@ -74,14 +75,16 @@ export function createOrderQueryOptionsFactory<
     queryKeys ??
     createOrderQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
 
-  return createSimpleListDetailQueryOptionsFactory({
-    getList: service.getOrders,
-    getDetail: service.getOrder,
-    buildListParams,
-    buildDetailParams,
-    queryKeys: resolvedQueryKeys,
-    cacheConfig,
-    defaultCacheStrategy: "userData",
-    missingDetailErrorMessage: "Order id is required for order queries",
-  })
+  return createSimpleListDetailQueryOptionsFactory(
+    omitUndefined({
+      getList: service.getOrders,
+      getDetail: service.getOrder,
+      buildListParams,
+      buildDetailParams,
+      queryKeys: resolvedQueryKeys,
+      cacheConfig,
+      defaultCacheStrategy: "userData" as const,
+      missingDetailErrorMessage: "Order id is required for order queries",
+    })
+  )
 }

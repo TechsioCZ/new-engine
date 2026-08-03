@@ -66,10 +66,11 @@ export function createCollectionHooks<
     queryKeys ??
     createCollectionQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
   const buildList =
-    buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
+    buildListParams ??
+    ((input: TListInput) => ({ ...input }) as TListInput & TListParams)
   const buildDetail =
     buildDetailParams ??
-    ((input: TDetailInput) => input as unknown as TDetailParams)
+    ((input: TDetailInput) => ({ ...input }) as TDetailInput & TDetailParams)
   const { getListQueryOptions, getDetailQueryOptions } =
     createCollectionQueryOptionsFactory({
       service,

@@ -1,6 +1,8 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
+import { omitUndefined } from "@techsio/std/object"
+
 import type { MedusaCompleteCartResult } from "../cart/medusa-service"
 import type {
   AddLineItemInputBase,
@@ -139,8 +141,8 @@ export type UseMedusaCompleteCartOptions = {
 
 export type CreateMedusaCartFlowConfig = {
   storefront: MedusaCartFlowStorefront
-  cartStorage?: StorageValueStore
-  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher
+  cartStorage?: StorageValueStore | undefined
+  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher | undefined
 }
 
 export type UseMedusaCartInput = Omit<CartInputBase, "cartId"> & {
@@ -243,9 +245,14 @@ export function createMedusaCartFlow({
         syncCartCaches(queryClient, cartQueryKeys, resolvedCart, {
           isActiveCartQueryKey,
         })
-        invalidateCartCaches(queryClient, cartQueryKeys, resolvedCart.id, {
-          isActiveCartQueryKey,
-        })
+        await invalidateCartCaches(
+          queryClient,
+          cartQueryKeys,
+          resolvedCart.id,
+          {
+            isActiveCartQueryKey,
+          }
+        )
       }
       options?.onSuccess?.(resolvedCart)
     },
@@ -295,7 +302,7 @@ export function createMedusaCartFlow({
       cartHooks.useCart({
         autoCreate: false,
         autoUpdateRegion: false,
-        ...(input ?? {}),
+        ...input,
       })
 
     return {
@@ -315,7 +322,7 @@ export function createMedusaCartFlow({
     const { cart, itemCount, isEmpty, hasItems } = cartHooks.useSuspenseCart({
       autoCreate: false,
       autoUpdateRegion: false,
-      ...(input ?? {}),
+      ...input,
     })
 
     return {
@@ -386,17 +393,23 @@ export function createMedusaCartFlow({
       getCompletedCartIdFromContext(context) ?? variables.cartId ?? null
 
     clearCompletedCart(queryClient, completedCartId)
-    queryClient.invalidateQueries({ queryKey: cartQueryKeys.all() })
-    queryClient.invalidateQueries({ queryKey: checkoutQueryKeys.all() })
+    const invalidations = [
+      queryClient.invalidateQueries({ queryKey: cartQueryKeys.all() }),
+      queryClient.invalidateQueries({ queryKey: checkoutQueryKeys.all() }),
+      queryClient.invalidateQueries({ queryKey: orderQueryKeys.all() }),
+    ]
     if (order.region_id) {
-      queryClient.invalidateQueries({
-        queryKey: checkoutQueryKeys.paymentProviders(order.region_id),
-      })
+      invalidations.push(
+        queryClient.invalidateQueries({
+          queryKey: checkoutQueryKeys.paymentProviders(order.region_id),
+        })
+      )
     }
 
     queryClient.setQueryData(orderQueryKeys.detail({ id: order.id }), order)
-    queryClient.invalidateQueries({ queryKey: orderQueryKeys.all() })
-    onSuccess?.(order)
+    return Promise.all(invalidations).then(() => {
+      onSuccess?.(order)
+    })
   }
 
   function useCompleteCart(options?: UseMedusaCompleteCartOptions) {
@@ -419,13 +432,15 @@ export function createMedusaCartFlow({
           return
         }
 
-        handleOrderCompletionSuccess({
-          queryClient,
-          order: result.order,
-          variables,
-          context,
-          onSuccess: options?.onSuccess,
-        })
+        return handleOrderCompletionSuccess(
+          omitUndefined({
+            queryClient,
+            order: result.order,
+            variables,
+            context: context ?? null,
+            onSuccess: options?.onSuccess,
+          })
+        )
       },
       onError: (error: unknown) => {
         options?.onRequestError?.(error)

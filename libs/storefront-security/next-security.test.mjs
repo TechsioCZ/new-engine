@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
+
 import {
   buildDevHmrOrigins,
   buildStorefrontContentSecurityPolicy,
@@ -12,7 +13,7 @@ const MISSING_BACKEND_URL_PATTERN = /Missing NEXT_PUBLIC_MEDUSA_BACKEND_URL/
 const INVALID_BACKEND_URL_PATTERN = /Invalid NEXT_PUBLIC_MEDUSA_BACKEND_URL/
 const UNKNOWN_PRESET_PATTERN = /Unknown storefront security preset/
 
-test("resolvePublicBackendOrigin falls back to localhost in development", () => {
+await test("resolvePublicBackendOrigin falls back to localhost in development", () => {
   assert.equal(
     resolvePublicBackendOrigin({
       isProduction: false,
@@ -22,7 +23,7 @@ test("resolvePublicBackendOrigin falls back to localhost in development", () => 
   )
 })
 
-test("resolvePublicBackendOrigin fails fast in production when missing", () => {
+await test("resolvePublicBackendOrigin fails fast in production when missing", () => {
   assert.throws(
     () =>
       resolvePublicBackendOrigin({
@@ -33,7 +34,7 @@ test("resolvePublicBackendOrigin fails fast in production when missing", () => {
   )
 })
 
-test("resolvePublicBackendOrigin fails fast in production when invalid", () => {
+await test("resolvePublicBackendOrigin fails fast in production when invalid", () => {
   assert.throws(
     () =>
       resolvePublicBackendOrigin({
@@ -44,7 +45,7 @@ test("resolvePublicBackendOrigin fails fast in production when invalid", () => {
   )
 })
 
-test("resolvePublicBackendOrigin honors envVarName overrides", () => {
+await test("resolvePublicBackendOrigin honors envVarName overrides", () => {
   const originalBackendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL
   const originalCustomBackendUrl = process.env.CUSTOM_MEDUSA_BACKEND_URL
 
@@ -75,7 +76,7 @@ test("resolvePublicBackendOrigin honors envVarName overrides", () => {
   }
 })
 
-test("buildDevHmrOrigins includes explicit custom host and :3000 variants", () => {
+await test("buildDevHmrOrigins includes explicit custom host and :3000 variants", () => {
   const origins = buildDevHmrOrigins({
     isProduction: false,
     allowedDevOrigins: ["n1.medusa.localhost"],
@@ -91,7 +92,7 @@ test("buildDevHmrOrigins includes explicit custom host and :3000 variants", () =
   ])
 })
 
-test("buildDevHmrOrigins normalizes full origins and explicit ports", () => {
+await test("buildDevHmrOrigins normalizes full origins and explicit ports", () => {
   const origins = buildDevHmrOrigins({
     isProduction: false,
     allowedDevOrigins: ["https://shop.localhost", "shop.localhost:3100"],
@@ -109,7 +110,7 @@ test("buildDevHmrOrigins normalizes full origins and explicit ports", () => {
   ])
 })
 
-test("medusaStorefront preset includes backend origin and dev HMR in CSP", () => {
+await test("medusaStorefront preset includes backend origin and dev HMR in CSP", () => {
   const preset = resolveStorefrontSecurityPreset({
     preset: "medusaStorefront",
     isProduction: false,
@@ -124,7 +125,7 @@ test("medusaStorefront preset includes backend origin and dev HMR in CSP", () =>
   assert.match(csp, /img-src 'self' data: blob: https:/)
 })
 
-test("unknown preset fails fast", () => {
+await test("unknown preset fails fast", () => {
   assert.throws(
     () =>
       resolveStorefrontSecurityPreset({
@@ -135,7 +136,7 @@ test("unknown preset fails fast", () => {
   )
 })
 
-test("createStorefrontSecurityConfig supports preset + extend + replace", async () => {
+await test("createStorefrontSecurityConfig supports preset + extend + replace", () => {
   const securityConfig = createStorefrontSecurityConfig({
     preset: "medusaStorefront",
     isProduction: false,
@@ -152,7 +153,7 @@ test("createStorefrontSecurityConfig supports preset + extend + replace", async 
     },
   })
 
-  const headerGroups = await securityConfig.headers()
+  const headerGroups = securityConfig.headers()
   const responseHeaders = headerGroups[0].headers
   const cspHeader = responseHeaders.find(
     (header) => header.key === "Content-Security-Policy"
@@ -170,12 +171,15 @@ test("createStorefrontSecurityConfig supports preset + extend + replace", async 
     cspHeader?.value ?? "",
     /script-src 'self' 'unsafe-inline' 'unsafe-eval' https:\/\/www\.googletagmanager\.com/
   )
-  assert.match(cspHeader?.value ?? "", /frame-src 'self' https:\/\/www\.ppl\.cz/)
+  assert.match(
+    cspHeader?.value ?? "",
+    /frame-src 'self' https:\/\/www\.ppl\.cz/
+  )
   assert.equal(permissionsHeader?.value, "camera=(), microphone=()")
   assert.equal(cacheControlHeader?.value, "public, max-age=60")
 })
 
-test("replace headers win over extend headers", async () => {
+await test("replace headers win over extend headers", () => {
   const securityConfig = createStorefrontSecurityConfig({
     isProduction: false,
     publicBackendUrl: "https://demo-medusa.example.com",
@@ -187,23 +191,23 @@ test("replace headers win over extend headers", async () => {
     },
   })
 
-  const frameOptionsHeader = (await securityConfig.headers())[0].headers.find(
-    (header) => header.key === "X-Frame-Options"
-  )
+  const frameOptionsHeader = securityConfig
+    .headers()[0]
+    .headers.find((header) => header.key === "X-Frame-Options")
 
   assert.equal(frameOptionsHeader?.value, "DENY")
 })
 
-test("legacy additional* options still extend the preset", async () => {
+await test("legacy additional* options still extend the preset", () => {
   const securityConfig = createStorefrontSecurityConfig({
     isProduction: false,
     publicBackendUrl: "https://demo-medusa.example.com",
     additionalConnectSrc: ["https://www.google-analytics.com"],
   })
 
-  const cspHeader = (await securityConfig.headers())[0].headers.find(
-    (header) => header.key === "Content-Security-Policy"
-  )
+  const cspHeader = securityConfig
+    .headers()[0]
+    .headers.find((header) => header.key === "Content-Security-Policy")
 
   assert.match(cspHeader?.value ?? "", /https:\/\/www\.google-analytics\.com/)
 })

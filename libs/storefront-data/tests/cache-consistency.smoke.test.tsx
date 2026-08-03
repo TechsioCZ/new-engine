@@ -1,12 +1,12 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
+
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createCustomerHooks } from "../src/customers/hooks"
+import type { CustomerService } from "../src/customers/types"
 import { createOrderQueryKeys } from "../src/orders/query-keys"
-import {
-  createProductHooks,
-} from "../src/products/hooks"
+import { createProductHooks } from "../src/products/hooks"
 import { createProductQueryKeys } from "../src/products/query-keys"
 import type {
   ProductListInputBase,
@@ -14,7 +14,6 @@ import type {
 } from "../src/products/types"
 import { createQueryKey } from "../src/shared/query-keys"
 import { RegionProvider } from "../src/shared/region-context"
-import type { CustomerService } from "../src/customers/types"
 
 describe("storefront-data cache/query consistency", () => {
   it("keeps separate product cache entries when region context changes", async () => {
@@ -41,7 +40,7 @@ describe("storefront-data cache/query consistency", () => {
       return {
         limit,
         offset,
-        region_id: input.region_id,
+        ...(input.region_id ? { region_id: input.region_id } : {}),
       }
     }
 
@@ -95,9 +94,12 @@ describe("storefront-data cache/query consistency", () => {
       </StorefrontDataProvider>
     )
 
-    const { result, rerender } = renderHook(() => useProducts({ page: 1, limit: 1 }), {
-      wrapper,
-    })
+    const { result, rerender } = renderHook(
+      () => useProducts({ page: 1, limit: 1 }),
+      {
+        wrapper,
+      }
+    )
 
     await waitFor(() => {
       expect(result.current.products[0]?.id).toBe("prod_reg_cz")
@@ -187,7 +189,9 @@ describe("storefront-data cache/query consistency", () => {
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries")
 
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <StorefrontDataProvider client={queryClient}>{children}</StorefrontDataProvider>
+      <StorefrontDataProvider client={queryClient}>
+        {children}
+      </StorefrontDataProvider>
     )
 
     const { result } = renderHook(() => useUpdateCustomer(), { wrapper })
@@ -234,20 +238,23 @@ describe("storefront-data cache/query consistency", () => {
     }
 
     const queryKeyNamespace = "cache-consistency-customer-address-mutations"
-    const { useCreateCustomerAddress, useUpdateCustomerAddress, useDeleteCustomerAddress } =
-      createCustomerHooks({
-        service,
-        buildListParams: (input: ListParams) => input,
-        addressAdapter: {
-          toCreateParams: (input: CreateParams) => input,
-          toUpdateParams: (input: UpdateParams & { addressId?: string }) => {
-            const { addressId: _addressId, ...rest } = input
-            return rest
-          },
+    const {
+      useCreateCustomerAddress,
+      useUpdateCustomerAddress,
+      useDeleteCustomerAddress,
+    } = createCustomerHooks({
+      service,
+      buildListParams: (input: ListParams) => input,
+      addressAdapter: {
+        toCreateParams: (input: CreateParams) => input,
+        toUpdateParams: (input: UpdateParams & { addressId?: string }) => {
+          const { addressId: _addressId, ...rest } = input
+          return rest
         },
-        buildUpdateCustomerParams: (input: UpdateCustomerParams) => input,
-        queryKeyNamespace,
-      })
+      },
+      buildUpdateCustomerParams: (input: UpdateCustomerParams) => input,
+      queryKeyNamespace,
+    })
 
     const authCustomerQueryKey = createQueryKey(
       queryKeyNamespace,
@@ -267,12 +274,20 @@ describe("storefront-data cache/query consistency", () => {
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries")
 
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <StorefrontDataProvider client={queryClient}>{children}</StorefrontDataProvider>
+      <StorefrontDataProvider client={queryClient}>
+        {children}
+      </StorefrontDataProvider>
     )
 
-    const createHook = renderHook(() => useCreateCustomerAddress(), { wrapper })
-    const updateHook = renderHook(() => useUpdateCustomerAddress(), { wrapper })
-    const deleteHook = renderHook(() => useDeleteCustomerAddress(), { wrapper })
+    const createHook = renderHook(() => useCreateCustomerAddress(), {
+      wrapper,
+    })
+    const updateHook = renderHook(() => useUpdateCustomerAddress(), {
+      wrapper,
+    })
+    const deleteHook = renderHook(() => useDeleteCustomerAddress(), {
+      wrapper,
+    })
 
     await act(async () => {
       await createHook.result.current.mutateAsync({ address_1: "Main 1" })
@@ -287,19 +302,20 @@ describe("storefront-data cache/query consistency", () => {
       await deleteHook.result.current.mutateAsync({ addressId: "addr_1" })
     })
 
-    const authInvalidationCalls = invalidateSpy.mock.calls.filter(
-      ([arg]) =>
-        Boolean(
-          arg &&
-            typeof arg === "object" &&
-            "queryKey" in (arg as Record<string, unknown>) &&
-            JSON.stringify((arg as { queryKey?: unknown }).queryKey) ===
-              JSON.stringify(authCustomerQueryKey)
-        )
+    const authInvalidationCalls = invalidateSpy.mock.calls.filter(([arg]) =>
+      Boolean(
+        arg &&
+        typeof arg === "object" &&
+        "queryKey" in (arg as Record<string, unknown>) &&
+        JSON.stringify((arg as { queryKey?: unknown }).queryKey) ===
+          JSON.stringify(authCustomerQueryKey)
+      )
     )
 
     expect(authInvalidationCalls.length).toBe(3)
-    expect(queryClient.getQueryState(authCustomerQueryKey)?.isInvalidated).toBe(true)
+    expect(queryClient.getQueryState(authCustomerQueryKey)?.isInvalidated).toBe(
+      true
+    )
   })
 
   it("normalizes order list keys and separates cache by list params", () => {
@@ -327,7 +343,6 @@ describe("storefront-data cache/query consistency", () => {
       enabled: true,
       filters: {
         kind: "retail",
-        name: undefined,
       },
     })
 

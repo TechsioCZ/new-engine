@@ -1,14 +1,15 @@
 import { useQuery } from "@tanstack/react-query"
+
 import type { CacheConfig } from "../shared/cache-config"
 import { createCacheConfig } from "../shared/cache-config"
 import { toErrorMessage } from "../shared/error-utils"
 import type { ReadQueryOptions } from "../shared/hook-types"
 import type { QueryNamespace } from "../shared/query-keys"
+import { createProductLocationAvailabilityQueryKeys } from "./query-keys"
 import {
   createProductLocationAvailabilityQueryOptionsFactory,
   type ProductLocationAvailabilityQueryOptionsFactory,
 } from "./query-options"
-import { createProductLocationAvailabilityQueryKeys } from "./query-keys"
 import type {
   ProductLocationAvailabilityInputBase,
   ProductLocationAvailabilityQueryKeys,
@@ -46,8 +47,8 @@ export type ProductLocationAvailabilityHooks<
 
 export function createProductLocationAvailabilityHooks<
   TResponse,
-  TInput extends ProductLocationAvailabilityInputBase,
-  TParams,
+  TInput extends ProductLocationAvailabilityInputBase & TParams,
+  TParams = TInput,
 >({
   service,
   buildDetailParams,

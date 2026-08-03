@@ -1,6 +1,4 @@
-import {
-  createPrefetchPagesPlan,
-} from "../src/shared/prefetch-pages-plan"
+import { createPrefetchPagesPlan } from "../src/shared/prefetch-pages-plan"
 
 describe("createPrefetchPagesPlan", () => {
   it("creates priority plan with immediate, medium, and low buckets", () => {

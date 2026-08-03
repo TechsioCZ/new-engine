@@ -1,3 +1,5 @@
+import { omitUndefined } from "@techsio/std/object"
+
 import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
@@ -13,7 +15,6 @@ import type {
   RegionQueryKeys,
   RegionService,
 } from "./types"
-
 export type CreateRegionQueryOptionsFactoryConfig<
   TRegion,
   TListInput extends RegionListInputBase,
@@ -74,14 +75,16 @@ export function createRegionQueryOptionsFactory<
     queryKeys ??
     createRegionQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
 
-  return createSimpleListDetailQueryOptionsFactory({
-    getList: service.getRegions,
-    getDetail: service.getRegion,
-    buildListParams,
-    buildDetailParams,
-    queryKeys: resolvedQueryKeys,
-    cacheConfig,
-    defaultCacheStrategy: "static",
-    missingDetailErrorMessage: "Region id is required for region queries",
-  })
+  return createSimpleListDetailQueryOptionsFactory(
+    omitUndefined({
+      getList: service.getRegions,
+      getDetail: service.getRegion,
+      buildListParams,
+      buildDetailParams,
+      queryKeys: resolvedQueryKeys,
+      cacheConfig,
+      defaultCacheStrategy: "static" as const,
+      missingDetailErrorMessage: "Region id is required for region queries",
+    })
+  )
 }

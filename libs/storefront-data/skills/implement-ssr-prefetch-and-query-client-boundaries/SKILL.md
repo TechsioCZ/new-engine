@@ -1,11 +1,7 @@
 ---
 name: implement-ssr-prefetch-and-query-client-boundaries
 description: >
-  Load this skill when using @techsio/storefront-data in Next.js Server
-  Components with getServerQueryClient, HydrationBoundary, dehydrate, and
-  preset-owned getListQueryOptions or getDetailQueryOptions. Use it for SSR
-  prefetch, request-scoped query-client ownership, and avoiding query-key drift
-  between server prefetch and client hooks.
+  Load this skill when using @techsio/storefront-data in Next.js Server Components with getServerQueryClient, HydrationBoundary, dehydrate, and preset-owned getListQueryOptions or getDetailQueryOptions. Use it for SSR prefetch, request-scoped query-client ownership, and avoiding query-key drift between server prefetch and client hooks.
 type: framework
 library: "@techsio/storefront-data"
 framework: react
