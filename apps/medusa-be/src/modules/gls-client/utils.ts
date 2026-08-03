@@ -3,13 +3,9 @@ import type { GLSShipmentState } from "./types"
 /**
  * Map GLS raw status codes to our normalised GLSShipmentState.
  *
- * GLS's REST API returns a mix of numeric and string codes depending on the
- * endpoint (e.g. "1" / 1 for "received data"). This helper unifies both and
- * falls back to "unknown" for anything we haven't mapped yet — mappings can be
- * refined once we verify against a real API response.
- *
- * GLS status names vary by account/API. Keep this mapping conservative and
- * update it from real GLS packetTracking responses when credentials are verified.
+ * GLS status names vary by account/API. This intentionally conservative
+ * fallback mapping only covers statuses observed in integration examples and
+ * can be updated from real packetTracking responses when credentials are verified.
  */
 export function mapGLSStatusCode(code: string | number): GLSShipmentState {
   const key = String(code).trim().toLowerCase()

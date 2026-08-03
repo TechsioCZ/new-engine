@@ -92,6 +92,13 @@ const nullableString = (value: unknown): string | null =>
 const toDate = (value: unknown): Date =>
   value instanceof Date ? value : new Date(String(value ?? Date.now()))
 
+const isUniqueConstraintError = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message : String(error)
+  return (
+    message.includes("unique constraint") || message.includes("duplicate key")
+  )
+}
+
 const mapGLSConfigDTO = (config: unknown): GLSConfigDTO => {
   if (!isRecord(config)) {
     throw new MedusaError(
@@ -241,6 +248,11 @@ export class GLSClientModuleService extends MedusaService({
       await this.invalidateConfigCache()
       return decryptFields(mapGLSConfigDTO(created), [...GLS_SENSITIVE_FIELDS])
     } catch (error) {
+      if (!isUniqueConstraintError(error)) {
+        throw error
+      }
+
+      // A concurrent writer inserted the row first; fall back to updating it.
       const concurrent = await this.getConfig()
       if (!concurrent) {
         throw error
