@@ -23,7 +23,7 @@ type CustomerSpendContext = {
   orders?: Array<OrderSpendContext | null> | null
 }
 
-export function getSpendWindow(company: CompanySpendContext): {
+function getSpendWindow(company: CompanySpendContext): {
   start: Date
   end: Date
 } {
@@ -57,7 +57,7 @@ export function getSpendWindow(company: CompanySpendContext): {
   }
 }
 
-export function getOrderTotalInSpendWindow(
+function getOrderTotalInSpendWindow(
   orders: Array<OrderSpendContext | null>,
   spendWindow: { start: Date; end: Date }
 ): number {

@@ -18,7 +18,7 @@ type WorkflowQueueRunner = (
 function isSendProductReviewRequestWorkflowInput(
   input: Record<string, unknown>
 ): input is SendProductReviewRequestWorkflowInput {
-  return typeof input.order_id === "string"
+  return typeof input["order_id"] === "string"
 }
 
 const workflowQueueRegistry: Record<string, WorkflowQueueRunner> = {

@@ -11,9 +11,9 @@ export const DELETE = async (
   req: AuthenticatedMedusaRequest<AdminRemoveCompanyFromCustomerGroupType>,
   res: MedusaResponse
 ) => {
-  const id = requirePathParam(req.params.id, "Company id")
+  const id = requirePathParam(req.params["id"], "Company id")
   const customerGroupId = requirePathParam(
-    req.params.customerGroupId,
+    req.params["customerGroupId"],
     "Customer group id"
   )
 

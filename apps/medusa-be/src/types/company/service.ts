@@ -15,12 +15,12 @@ import type {
   ModuleUpdateEmployee,
 } from "./module"
 
-export interface ModuleCompanyFilters extends BaseFilterable<ModuleCompanyFilters> {
+interface ModuleCompanyFilters extends BaseFilterable<ModuleCompanyFilters> {
   q?: string
   id?: string | string[]
 }
 
-export interface ModuleEmployeeFilters extends BaseFilterable<ModuleEmployeeFilters> {
+interface ModuleEmployeeFilters extends BaseFilterable<ModuleEmployeeFilters> {
   q?: string
   id?: string | string[]
   company_id?: string | string[]

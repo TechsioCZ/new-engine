@@ -53,18 +53,15 @@ export default async function seedDevData({ container }: ExecArgs) {
         name: "Czechia",
         currencyCode: "czk",
         countries: ["cz"],
-        paymentProviders: undefined,
       },
       {
         name: "Europe",
         currencyCode: "eur",
         countries: countries.filter((c) => c !== "cz"),
-        paymentProviders: undefined,
       },
     ],
     taxRegions: {
       countries,
-      taxProviderId: undefined,
     },
     stockLocations: {
       locations: [

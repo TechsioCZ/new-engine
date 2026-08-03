@@ -108,7 +108,7 @@ export class CustomerGroupsBatchClient {
         ] as never,
       },
     })
-    const created = result?.[0] as unknown as ExistingCustomerGroup | undefined
+    const created = result?.[0] as ExistingCustomerGroup | undefined
     if (!created) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
@@ -135,7 +135,7 @@ export class CustomerGroupsBatchClient {
     await updateCustomerGroupsWorkflow(this.container).run({
       input: {
         selector: { id: groupId },
-        update: this.mapper.buildUpdatePayload(existing, group) as never,
+        update: this.mapper.buildUpdatePayload(existing, group),
       },
     })
     await this.customerGroupCodeService.upsertCode({
@@ -153,7 +153,7 @@ export class CustomerGroupsBatchClient {
     }
     const { data } = await this.query.graph({
       entity: "customer_group",
-      fields: CUSTOMER_GROUP_FIELDS as unknown as string[],
+      fields: Array.from(CUSTOMER_GROUP_FIELDS),
       filters,
     })
     return (data ?? []) as ExistingCustomerGroup[]

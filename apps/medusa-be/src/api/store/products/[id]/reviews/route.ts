@@ -20,7 +20,7 @@ type ReviewRatingRecord = {
 const isReviewRatingRecord = (value: unknown): value is ReviewRatingRecord =>
   typeof value === "object" &&
   value !== null &&
-  typeof (value as Record<string, unknown>).rating === "number"
+  typeof (value as Record<string, unknown>)["rating"] === "number"
 
 async function getReviewSummary(req: MedusaRequest, productId: string) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -70,7 +70,7 @@ export async function GET(
 ) {
   const { limit, offset } = req.validatedQuery
   const productId =
-    typeof req.params.id === "string" ? req.params.id : undefined
+    typeof req.params["id"] === "string" ? req.params["id"] : undefined
 
   if (!productId) {
     throw new MedusaError(

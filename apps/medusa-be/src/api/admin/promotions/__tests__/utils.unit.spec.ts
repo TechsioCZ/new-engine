@@ -18,7 +18,7 @@ type VariantFixture = {
   id: string
   title: string
   sku: string | null
-  product?: { title: string }
+  product?: { title: string } | undefined
 }
 
 const createVariant = (
@@ -283,7 +283,11 @@ describe("getExtendedRuleAttributesMap", () => {
       )
       expect(applyToQuantity).toBeDefined()
       expect(applyToQuantity?.required).toBe(true)
-      expect(applyToQuantity?.disguised).toBe(true)
+      expect(
+        applyToQuantity !== undefined &&
+          "disguised" in applyToQuantity &&
+          applyToQuantity.disguised
+      ).toBe(true)
     })
   })
 
@@ -513,9 +517,9 @@ describe("buildBrandPromotionContext", () => {
         }),
       ],
     })
-    expect((result.items as Record<string, unknown>[])[1]).not.toHaveProperty(
-      "brand_ids"
-    )
+    expect(
+      (result["items"] as Record<string, unknown>[])[1]
+    ).not.toHaveProperty("brand_ids")
   })
 
   it("excludes links to deleted brands from promotion context", async () => {

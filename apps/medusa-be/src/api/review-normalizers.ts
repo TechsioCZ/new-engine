@@ -32,6 +32,11 @@ type PublicReviewRecord = Pick<
   | "title"
 >
 
+const isReviewEntity = (
+  value: unknown
+): value is Record<string, unknown> & object =>
+  typeof value === "object" && value !== null
+
 const LIKE_WILDCARD_REGEX = /[%_\\]/g
 const ORDER_FIELDS = new Set(["created_at", "rating", "status", "updated_at"])
 const LEADING_DASH_REGEX = /^-/
@@ -81,21 +86,18 @@ export const normalizeAdminReviewFilters = ({
   }
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
 export const isProductRecord = (value: unknown): value is ProductRecord =>
-  isRecord(value) && typeof value.id === "string"
+  isReviewEntity(value) && typeof value["id"] === "string"
 
 export const isReviewRecord = (value: unknown): value is ReviewRecord =>
-  isRecord(value) &&
-  typeof value.content === "string" &&
-  typeof value.customer_id === "string" &&
-  typeof value.id === "string" &&
-  typeof value.product_id === "string" &&
-  typeof value.rating === "number" &&
-  typeof value.status === "string" &&
-  typeof value.title === "string"
+  isReviewEntity(value) &&
+  typeof value["content"] === "string" &&
+  typeof value["customer_id"] === "string" &&
+  typeof value["id"] === "string" &&
+  typeof value["product_id"] === "string" &&
+  typeof value["rating"] === "number" &&
+  typeof value["status"] === "string" &&
+  typeof value["title"] === "string"
 
 export const filterProductRecords = (products: unknown): ProductRecord[] =>
   Array.isArray(products) ? products.filter(isProductRecord) : []

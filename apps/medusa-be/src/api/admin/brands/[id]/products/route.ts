@@ -41,7 +41,7 @@ export async function GET(
   req: AuthenticatedMedusaRequest<unknown, AdminGetBrandProductsSchemaType>,
   res: MedusaResponse
 ) {
-  const brandId = req.params.id ?? ""
+  const brandId = req.params["id"] ?? ""
 
   await retrieveBrandOrThrow(req.scope, brandId, { withDeleted: true })
 
@@ -74,7 +74,7 @@ export async function POST(
   req: AuthenticatedMedusaRequest<AdminUpdateBrandProductsSchemaType>,
   res: MedusaResponse
 ) {
-  const brandId = req.params.id ?? ""
+  const brandId = req.params["id"] ?? ""
 
   const { result } = await batchLinkProductsToBrandWorkflow(req.scope).run({
     input: {

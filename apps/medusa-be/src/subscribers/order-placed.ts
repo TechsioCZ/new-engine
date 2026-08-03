@@ -16,7 +16,7 @@ type OrderWithMetadata = {
 }
 
 function getOrderNote(order: OrderWithMetadata) {
-  const note = order.metadata?.order_note
+  const note = order.metadata?.["order_note"]
 
   if (typeof note !== "string") {
     return
@@ -31,10 +31,11 @@ export default async function orderPlacedHandler({
   event: { data },
   container,
 }: SubscriberArgs<OrderPlacedEvent>) {
+  const storeName = process.env["STORE_NAME"]
   await sendOrderReceiptWorkflow(container).run({
     input: {
       order_id: data.id,
-      store_name: process.env.STORE_NAME,
+      ...(storeName === undefined ? {} : { store_name: storeName }),
     },
   })
 

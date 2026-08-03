@@ -241,11 +241,11 @@ const ProductDescriptionEditor = ({
           : t("productContentSections.errors.saveFailed")
       )
     },
-    onSuccess: (response, variables) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (response, variables) => {
+      await queryClient.invalidateQueries({
         queryKey: ["product", variables.productId],
       })
-      queryClient.invalidateQueries({ queryKey: ["products"] })
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
 
       if (productIdRef.current !== variables.productId) {
         return

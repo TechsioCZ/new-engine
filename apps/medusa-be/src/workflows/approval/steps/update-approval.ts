@@ -13,6 +13,20 @@ import {
   type ModuleUpdateApproval,
 } from "../../../types"
 
+function parseApprovalStatus(value: unknown): ApprovalStatusType {
+  if (
+    value === ApprovalStatusType.PENDING ||
+    value === ApprovalStatusType.APPROVED ||
+    value === ApprovalStatusType.REJECTED
+  ) {
+    return value
+  }
+  throw new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
+    "Approval has an invalid status"
+  )
+}
+
 export const updateApprovalStep = createStep(
   "update-approval",
   async (
@@ -64,7 +78,7 @@ export const updateApprovalStep = createStep(
     const previousData: ModuleUpdateApproval = {
       handled_by: approval.handled_by,
       id: approval.id,
-      status: approval.status,
+      status: parseApprovalStatus(approval.status),
     }
 
     const [updatedApproval] = await approvalModule.updateApprovals([input])

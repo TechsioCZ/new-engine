@@ -83,9 +83,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       ? await fetchFilteredOrders(
           query,
           {
-            businessStatusGroup,
-            businessStatus,
-            carrier,
+            ...(businessStatusGroup ? { businessStatusGroup } : {}),
+            ...(businessStatus ? { businessStatus } : {}),
+            ...(carrier ? { carrier } : {}),
           },
           normalizedLimit,
           normalizedOffset

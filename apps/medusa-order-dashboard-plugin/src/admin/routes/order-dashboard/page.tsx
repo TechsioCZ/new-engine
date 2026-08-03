@@ -21,7 +21,7 @@ import {
   useDataTable,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { type ReactNode, useEffect, useState } from "react"
+import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 
@@ -89,10 +89,7 @@ type TargetStatusOption = {
   label: string
   value: OrderDashboardTargetStatus
 }
-type TranslationFunction = (
-  key: string,
-  options?: Record<string, unknown>
-) => string
+type TranslationFunction = ReturnType<typeof useTranslation>["t"]
 type StatusBadgeColor = "green" | "red" | "blue" | "orange" | "grey" | "purple"
 
 const labelFormats: OrderDashboardLabelFormat[] = ["A6", "A7"]
@@ -170,9 +167,13 @@ const OrderDashboardPage = () => {
   const ordersQuery = useQuery({
     queryFn: () =>
       listOrderDashboardOrders({
-        businessStatusGroup: businessStatusGroupFilter,
-        businessStatus: businessStatusFilter,
-        carrier: carrierFilter,
+        ...(businessStatusGroupFilter === undefined
+          ? {}
+          : { businessStatusGroup: businessStatusGroupFilter }),
+        ...(businessStatusFilter === undefined
+          ? {}
+          : { businessStatus: businessStatusFilter }),
+        ...(carrierFilter === undefined ? {} : { carrier: carrierFilter }),
         limit,
         offset,
       }),
@@ -190,10 +191,16 @@ const OrderDashboardPage = () => {
     queryKey: [ORDER_DASHBOARD_SUMMARY_QUERY_KEY],
   })
 
-  const orders = ordersQuery.data?.orders ?? []
+  const orders = useMemo(
+    () => ordersQuery.data?.orders ?? [],
+    [ordersQuery.data?.orders]
+  )
   const selectedOrders = Array.from(selectedOrdersById.values())
   const selectedOrderIds = Array.from(selectedOrdersById.keys())
-  const selectedOrderIdSet = new Set(selectedOrderIds)
+  const selectedOrderIdSet = useMemo(
+    () => new Set(selectedOrdersById.keys()),
+    [selectedOrdersById]
+  )
   const selectedPacketaCarrierOrderIds =
     getPacketaCarrierOrderIds(selectedOrders)
   const packetaEligibilityQuery = useQuery({
@@ -352,7 +359,9 @@ const OrderDashboardPage = () => {
     columnHelper.display({
       cell: ({ row }) => (
         <ManualStatusControl
-          manualStatus={row.original.manual_status}
+          {...(row.original.manual_status === undefined
+            ? {}
+            : { manualStatus: row.original.manual_status })}
           orderId={row.original.id}
         />
       ),
@@ -477,15 +486,17 @@ const OrderDashboardPage = () => {
   })
 
   const refreshOrders = () => {
-    queryClient.invalidateQueries({ queryKey: [ORDER_DASHBOARD_QUERY_KEY] })
-    queryClient.invalidateQueries({
+    void queryClient.invalidateQueries({
+      queryKey: [ORDER_DASHBOARD_QUERY_KEY],
+    })
+    void queryClient.invalidateQueries({
       queryKey: [ORDER_DASHBOARD_SUMMARY_QUERY_KEY],
     })
   }
 
   const refreshFulfillmentData = () => {
     refreshOrders()
-    queryClient.invalidateQueries({
+    void queryClient.invalidateQueries({
       queryKey: [PACKETA_ELIGIBILITY_QUERY_KEY],
       refetchType: "active",
     })
@@ -1240,8 +1251,10 @@ function ManualStatusControl({
         toast.error(result.skipped[0]?.reason ?? t("toast.manualStatusSkipped"))
       }
 
-      queryClient.invalidateQueries({ queryKey: [ORDER_DASHBOARD_QUERY_KEY] })
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
+        queryKey: [ORDER_DASHBOARD_QUERY_KEY],
+      })
+      void queryClient.invalidateQueries({
         queryKey: [ORDER_DASHBOARD_SUMMARY_QUERY_KEY],
       })
     },
@@ -1825,7 +1838,10 @@ function getSelectedStatusBlockedMessage(
   t: TranslationFunction
 ) {
   if (blockedOrders.length === 1) {
-    const [order] = blockedOrders
+    const order = blockedOrders[0]
+    if (!order) {
+      return null
+    }
     return t("targetStatusBlocker.selectedBlockedOne", {
       order: order.order_display_id,
       reason: order.reason,

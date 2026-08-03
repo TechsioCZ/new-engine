@@ -18,7 +18,7 @@ class DatabaseModuleService {
     }
 
     this.dbInitPromise_ = (async () => {
-      const connectionString = process.env.LEGACY_DATABASE_URL
+      const connectionString = process.env["LEGACY_DATABASE_URL"]
       if (!connectionString) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
@@ -36,11 +36,14 @@ class DatabaseModuleService {
   /**
    * Execute a raw SQL query and return the results
    */
-  async sqlRaw<T = object>(sql: SQL<T>) {
+  async sqlRaw<T extends Record<string, unknown> = Record<string, unknown>>(
+    sql: SQL<T>
+  ): Promise<T[]>
+  async sqlRaw(sql: SQL): Promise<unknown[]> {
     const db = await this.initDatabase()
     const [rows] = await db.execute(sql)
 
-    return rows as unknown as T[]
+    return Array.isArray(rows) ? rows : []
   }
 }
 

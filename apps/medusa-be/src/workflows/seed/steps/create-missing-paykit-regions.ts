@@ -6,9 +6,9 @@ import { createRegionsWorkflow } from "@medusajs/medusa/core-flows"
 export type CreateMissingPaykitRegionsStepInput = {
   name: string
   currencyCode: string
-  countries?: string[]
+  countries?: string[] | undefined
   paymentProviders: string[]
-  isTaxInclusive?: boolean
+  isTaxInclusive?: boolean | undefined
 }[]
 
 const CreateMissingPaykitRegionsStepId = "create-missing-paykit-regions-step"
@@ -29,7 +29,7 @@ export const createMissingPaykitRegionsStep = createStep(
         regions: input.map((region) => ({
           name: region.name,
           currency_code: region.currencyCode,
-          countries: region.countries,
+          ...(region.countries ? { countries: region.countries } : {}),
           payment_providers: region.paymentProviders,
           // Match the existing region seed default when PayKit creates fallback regions.
           is_tax_inclusive: region.isTaxInclusive ?? true,

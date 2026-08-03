@@ -12,7 +12,7 @@ export const StackedModalProvider = ({
 }: StackedModalProviderProps) => {
   const [state, setState] = useState<Record<string, boolean>>({})
 
-  const getIsOpen = (id: string) => state[id]
+  const getIsOpen = (id: string) => state[id] ?? false
 
   const setIsOpen = (id: string, open: boolean) => {
     setState((prevState) => ({

@@ -1,9 +1,5 @@
 import type { MedusaResponse } from "@medusajs/framework/http"
-import type {
-  HttpTypes,
-  QueryContextType,
-  RemoteQueryEntryPoints,
-} from "@medusajs/framework/types"
+import type { HttpTypes, QueryContextType } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -50,9 +46,7 @@ const includesCategoryVisibilityField = (fields: string[]) =>
     (field) => normalizeIncludedField(field) === "categories.is_internal"
   )
 
-const toStoreProduct = (
-  product: RemoteQueryEntryPoints["product"]
-): HttpTypes.StoreProduct => {
+const toStoreProduct = (product: object): HttpTypes.StoreProduct => {
   // query.graph uses the generated module entity type even when the selected
   // fields form a Store API response. Bridge that Medusa type boundary once.
   return product as HttpTypes.StoreProduct
@@ -75,15 +69,15 @@ export const GET = async (
     : requestedFields
 
   const filters: object = {
-    id: req.params.id,
+    id: req.params["id"],
     ...req.filterableFields,
   }
 
   const context: QueryContextType = {}
 
   if (req.pricingContext) {
-    context.variants ??= {}
-    context.variants.calculated_price ??= QueryContext(req.pricingContext)
+    context["variants"] ??= {}
+    context["variants"].calculated_price ??= QueryContext(req.pricingContext)
   }
 
   const includesCategoriesField = includesCategoryField(
@@ -109,16 +103,14 @@ export const GET = async (
       fields: productFields,
       filters,
     },
-    {
-      locale: req.locale,
-    }
+    req.locale === undefined ? {} : { locale: req.locale }
   )
   const queriedProduct = products[0]
 
   if (!queriedProduct) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product with id: ${req.params.id} was not found`
+      `Product with id: ${req.params["id"]} was not found`
     )
   }
 

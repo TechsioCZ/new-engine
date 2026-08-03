@@ -6,7 +6,7 @@ import { emitPaykitPaymentWebhookEvent } from "../../../../modules/payment-payki
 type RequestWithUrlParts = MedusaRequest & {
   originalUrl?: string
   protocol?: string
-  get?: (name: string) => string | undefined
+  get?: (name: string) => string
 }
 
 const isRequestWithUrlParts = (

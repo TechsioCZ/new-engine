@@ -90,13 +90,15 @@ export function toOrderBusinessStatusSummary(
   return {
     business_status: resolveOrderBusinessStatus(order),
     created_at: normalizeDate(order.created_at),
-    currency_code: order.currency_code,
-    custom_display_id: order.custom_display_id,
-    display_id: order.display_id,
-    email: order.email,
+    currency_code: order.currency_code ?? null,
+    ...(order.custom_display_id !== undefined
+      ? { custom_display_id: order.custom_display_id }
+      : {}),
+    display_id: order.display_id ?? null,
+    email: order.email ?? null,
     id: order.id,
     manual_status: getManualOrderBusinessStatusId(order) ?? null,
-    total: order.total,
+    total: order.total ?? null,
   }
 }
 
@@ -104,7 +106,7 @@ export function buildOrderBusinessStatusMetadata(
   metadata: Record<string, unknown> | null | undefined,
   status: ManualOrderBusinessStatusId | null
 ) {
-  const nextMetadata = { ...(metadata ?? {}) }
+  const nextMetadata = { ...metadata }
 
   if (status === null) {
     nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = null

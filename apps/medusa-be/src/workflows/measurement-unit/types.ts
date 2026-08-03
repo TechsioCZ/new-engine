@@ -1,7 +1,7 @@
 export type MeasurementUnitInput = {
   base_quantity: number
   code: string
-  description?: null | string
+  description?: null | string | undefined
   name: string
   symbol: string
 }

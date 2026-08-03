@@ -39,7 +39,9 @@ export const deleteProductListItemWorkflow = createWorkflow(
     const expectedListInput = transform(
       { currentItem, input },
       ({ currentItem: productListItem, input: workflowInput }) => ({
-        expected_list_id: workflowInput.expected_list_id,
+        ...(workflowInput.expected_list_id !== undefined
+          ? { expected_list_id: workflowInput.expected_list_id }
+          : {}),
         item: productListItem,
       })
     )

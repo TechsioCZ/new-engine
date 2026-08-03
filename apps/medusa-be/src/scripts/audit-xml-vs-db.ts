@@ -18,7 +18,7 @@ type XmlElement = {
 type XmlShopItem = {
   id: string
   name: string
-  guid?: string
+  guid?: string | undefined
   categoryPathsSeed: string[]
   categoryPathsStrict: string[]
   images: string[]
@@ -45,9 +45,9 @@ type DbProductRecord = {
   handle: string
   title: string
   status: string
-  thumbnail?: string
-  sourceShopitemId?: string
-  sourceGuid?: string
+  thumbnail?: string | undefined
+  sourceShopitemId?: string | undefined
+  sourceGuid?: string | undefined
   metadataCategoryPaths: string[]
   imageUrls: string[]
   categoryHandles: string[]
@@ -86,14 +86,14 @@ type ScriptOptions = {
   xmlPath: string
   outputDir: string
   sampleSize: number
-  sourceId?: string
+  sourceId?: string | undefined
 }
 
 type RawScriptOptions = {
-  outputDirArg?: string
+  outputDirArg?: string | undefined
   sampleSize: number
-  sourceId?: string
-  xmlPathArg?: string
+  sourceId?: string | undefined
+  xmlPathArg?: string | undefined
 }
 
 type MismatchType =
@@ -117,7 +117,7 @@ type ProductMismatch = {
   types: MismatchType[]
   xml: {
     name: string
-    guid?: string
+    guid?: string | undefined
     categoryPathsSeed: string[]
     categoryPathsStrict: string[]
     imageCount: number
@@ -126,7 +126,7 @@ type ProductMismatch = {
   db: {
     title: string
     status: string
-    sourceGuid?: string
+    sourceGuid?: string | undefined
     categoryPathCount: number
     categoryPaths: string[]
     categoryLinkCount: number
@@ -354,7 +354,7 @@ function parseShopItems(xml: string): XmlShopItem[] {
   return extractElements(xml, "SHOPITEM").map((shopItem) => {
     const categories = parseCategoryPaths(shopItem.inner)
     return {
-      id: shopItem.attributes.id ?? "",
+      id: shopItem.attributes["id"] ?? "",
       name: extractFirstText(shopItem.inner, "NAME") ?? "",
       guid: extractFirstText(shopItem.inner, "GUID"),
       categoryPathsSeed: categories.seedPaths,

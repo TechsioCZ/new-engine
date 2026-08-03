@@ -67,6 +67,16 @@ type MockStep = (
   payload: unknown
 }>
 
+const asMockStep = (candidate: unknown): MockStep => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  return candidate as MockStep
+}
+
 const makeContainer = ({
   companyService,
   graph,
@@ -115,7 +125,7 @@ describe("updateEmployeesStep", () => {
     }
     const container = makeContainer({ companyService, graph })
 
-    const result = await (updateEmployeesStep as MockStep)(
+    const result = await asMockStep(updateEmployeesStep)(
       {
         company_id: "comp_1",
         id: "emp_1",
@@ -157,6 +167,13 @@ describe("updateEmployeesStep", () => {
       },
       { throwIfKeyNotFound: true }
     )
+    expect(graph).toHaveBeenCalledTimes(2)
+    expect(result.payload).toEqual({
+      company: { id: "comp_1" },
+      customer: { id: "cus_1" },
+      id: "emp_1",
+      is_admin: true,
+    })
     expect(result.compensateInput).toEqual({ id: "emp_1", is_admin: false })
   })
 
@@ -170,7 +187,7 @@ describe("updateEmployeesStep", () => {
     const container = makeContainer({ companyService, graph })
 
     await expect(
-      (updateEmployeesStep as MockStep)(
+      asMockStep(updateEmployeesStep)(
         {
           company_id: "comp_1",
           id: "emp_2",

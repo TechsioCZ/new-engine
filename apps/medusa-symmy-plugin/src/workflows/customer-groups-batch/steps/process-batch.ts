@@ -34,7 +34,7 @@ const processCustomerGroupForBatch = async ({
   logger,
 }: {
   client: CustomerGroupsBatchClient
-  createdBy?: string
+  createdBy?: string | undefined
   customerGroupIndex: ExistingCustomerGroupIndex
   group: CustomerGroupInput
   logger: Logger

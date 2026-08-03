@@ -1,3 +1,5 @@
+import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { CryptoKey } from "jose"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { AdminPayloadSsoSchemaType } from "../../../../../../../src/api/admin/payload/sso/route"
@@ -39,51 +41,85 @@ const restoreEnv = () => {
   }
 }
 
-type MockResponse = {
+/**
+ * Asserts that a plain mock object contains the given keys before narrowing
+ * it to a framework type. Building the mock as `unknown` first (instead of
+ * the target type) avoids requiring every property of the huge Node
+ * request/response interfaces while still validating the shape the route
+ * handler actually reads from at runtime.
+ */
+function assertMockShape<T>(
+  candidate: unknown,
+  requiredKeys: readonly string[]
+): asserts candidate is T {
+  if (typeof candidate !== "object" || candidate === null) {
+    throw new TypeError("Expected a mock object")
+  }
+
+  for (const key of requiredKeys) {
+    if (!(key in candidate)) {
+      throw new TypeError(`Mock object missing required key: ${key}`)
+    }
+  }
+}
+
+type MockResponse = MedusaResponse & {
   json: ReturnType<typeof vi.fn>
   send: ReturnType<typeof vi.fn>
   setHeader: ReturnType<typeof vi.fn>
   status: ReturnType<typeof vi.fn>
 }
 
-type MockRequest = {
+type MockRequest = MedusaRequest<unknown, AdminPayloadSsoSchemaType> & {
   auth_context?: {
     actor_id?: string
     actor_type?: string
   }
   headers: Record<string, string>
-  validatedQuery: AdminPayloadSsoSchemaType
 }
 
-const createMockResponse = (): MockResponse => ({
-  json: vi.fn().mockReturnThis(),
-  send: vi.fn().mockReturnThis(),
-  setHeader: vi.fn(),
-  status: vi.fn().mockReturnThis(),
-})
+const createMockResponse = (): MockResponse => {
+  const candidate: unknown = {
+    json: vi.fn().mockReturnThis(),
+    send: vi.fn().mockReturnThis(),
+    setHeader: vi.fn(),
+    status: vi.fn().mockReturnThis(),
+  }
+  assertMockShape<MockResponse>(candidate, [
+    "json",
+    "send",
+    "setHeader",
+    "status",
+  ])
+  return candidate
+}
 
 const createMockRequest = (
   overrides: Record<string, unknown> = {},
   headers: Record<string, string> = {}
-): MockRequest => ({
-  headers,
-  auth_context: {
-    actor_id: "user_123",
-    actor_type: "user",
-  },
-  validatedQuery: {
-    returnTo: "/admin",
-  },
-  ...overrides,
-})
+): MockRequest => {
+  const candidate: unknown = {
+    headers,
+    auth_context: {
+      actor_id: "user_123",
+      actor_type: "user",
+    },
+    validatedQuery: {
+      returnTo: "/admin",
+    },
+    ...overrides,
+  }
+  assertMockShape<MockRequest>(candidate, ["headers", "validatedQuery"])
+  return candidate
+}
 
 describe("GET /admin/payload/sso", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockImportPKCS8.mockResolvedValue({} as CryptoKey)
-    process.env.PAYLOAD_SSO_PRIVATE_KEY = "private-key"
-    process.env.PAYLOAD_IFRAME_URL = "http://localhost:8083"
-    process.env.PAYLOAD_SSO_USER_EMAIL = "admin@example.com"
+    process.env["PAYLOAD_SSO_PRIVATE_KEY"] = "private-key"
+    process.env["PAYLOAD_IFRAME_URL"] = "http://localhost:8083"
+    process.env["PAYLOAD_SSO_USER_EMAIL"] = "admin@example.com"
   })
 
   afterEach(() => {
@@ -200,7 +236,7 @@ describe("GET /admin/payload/sso", () => {
   it("rejects non-http Payload iframe URLs", async () => {
     const { GET } =
       await import("../../../../../../../src/api/admin/payload/sso/route")
-    process.env.PAYLOAD_IFRAME_URL = "javascript:alert(1)"
+    process.env["PAYLOAD_IFRAME_URL"] = "javascript:alert(1)"
     const req = createMockRequest()
     const res = createMockResponse()
 

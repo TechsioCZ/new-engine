@@ -30,7 +30,7 @@ const emptyResult = (): BrandSearchProjectionResult => ({
 
 const asSearchDocuments = (records: Record<string, unknown>[]) =>
   records.filter(
-    (record): record is SearchDocument => typeof record.id === "string"
+    (record): record is SearchDocument => typeof record["id"] === "string"
   )
 
 export const reconcileBrandSearchProjection = async (
@@ -51,8 +51,8 @@ export const reconcileBrandSearchProjection = async (
   const result = emptyResult()
 
   if (input.brand_ids.length) {
-    const fields = await meilisearch.getFieldsForType(BRANDS)
-    const indexes = await meilisearch.getIndexesByType(BRANDS)
+    const fields = meilisearch.getFieldsForType(BRANDS)
+    const indexes = meilisearch.getIndexesByType(BRANDS)
     const { data } = await query.graph({
       entity: "brand",
       fields,
@@ -67,8 +67,8 @@ export const reconcileBrandSearchProjection = async (
     )
     const transformedBrands = brands.map((brand) => ({
       ...brand,
-      ...(typeof brand.handle === "string"
-        ? { handle: `/store/brands/${brand.handle}/products` }
+      ...(typeof brand["handle"] === "string"
+        ? { handle: `/store/brands/${brand["handle"]}/products` }
         : {}),
     }))
 
@@ -93,8 +93,8 @@ export const reconcileBrandSearchProjection = async (
 
   if (input.product_ids.length) {
     const productType = SearchUtils.indexTypes.PRODUCTS
-    const fields = await meilisearch.getFieldsForType(productType)
-    const indexes = await meilisearch.getIndexesByType(productType)
+    const fields = meilisearch.getFieldsForType(productType)
+    const indexes = meilisearch.getIndexesByType(productType)
     const { data } = await query.graph({
       entity: "product",
       fields,
@@ -104,7 +104,7 @@ export const reconcileBrandSearchProjection = async (
     })
     const products = asSearchDocuments(data as Record<string, unknown>[])
     const indexableProducts = products.filter(
-      (product) => !product.status || product.status === "published"
+      (product) => !product["status"] || product["status"] === "published"
     )
     const indexableIds = new Set(indexableProducts.map((product) => product.id))
     const deletedIds = input.product_ids.filter(

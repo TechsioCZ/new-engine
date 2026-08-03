@@ -45,8 +45,8 @@ const QrPaymentsSettingsPage = () => {
         method: "POST",
         body: payload,
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["qr-payment-config"] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["qr-payment-config"] })
       toast.success("QR payment configuration saved")
     },
     onError: (err) => {

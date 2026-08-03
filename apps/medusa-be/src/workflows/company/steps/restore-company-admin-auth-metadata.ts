@@ -17,8 +17,8 @@ type CompanyWithEmployees = {
 
 type RestoreCompanyAdminAuthMetadataCompensation = {
   admin_candidates: Array<{
-    customer_id?: string | null
-    email?: string | null
+    customer_id: string | null | undefined
+    email: string | null | undefined
   }>
   company_ids: string[]
   provider_identity_ids: string[]

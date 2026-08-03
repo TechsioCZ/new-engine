@@ -33,7 +33,7 @@ export const GET = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) => {
-  const groupIds = [...new Set(toStringArray(req.query.group_id))]
+  const groupIds = [...new Set(toStringArray(req.query["group_id"]))]
 
   if (!groupIds.length) {
     res.json({ customer_group_links: [] })

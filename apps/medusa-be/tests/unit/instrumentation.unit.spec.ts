@@ -74,13 +74,18 @@ describe("instrumentation", () => {
 
     expect(sentryInit).toHaveBeenCalledWith(
       expect.objectContaining({
-        dsn: process.env.SENTRY_DSN,
+        dsn: process.env["SENTRY_DSN"],
         instrumenter: "otel",
         beforeSend: expect.any(Function),
       })
     )
 
-    const beforeSend = sentryInit.mock.calls[0][0].beforeSend
+    const sentryOptions = sentryInit.mock.calls[0]?.[0]
+    expect(sentryOptions).toBeDefined()
+    if (sentryOptions === undefined) {
+      throw new Error("Expected Sentry initialization options")
+    }
+    const beforeSend = sentryOptions.beforeSend
     const event = { event_id: "evt_1" }
     expect(
       beforeSend(event, { originalException: new Error("ignore") })
@@ -92,19 +97,30 @@ describe("instrumentation", () => {
     )
 
     expect(sentryPropagatorMock).toHaveBeenCalledTimes(1)
-    expect(setGlobalPropagator).toHaveBeenCalledWith(
-      sentryPropagatorMock.mock.results[0].value
-    )
+    const propagatorResult = sentryPropagatorMock.mock.results[0]
+    expect(propagatorResult).toBeDefined()
+    if (propagatorResult === undefined) {
+      throw new Error("Expected Sentry propagator result")
+    }
+    expect(setGlobalPropagator).toHaveBeenCalledWith(propagatorResult.value)
 
     instrumentation.register()
     expect(otlpExporterMock).toHaveBeenCalledTimes(1)
     expect(sentrySpanProcessorMock).toHaveBeenCalledTimes(1)
 
+    const exporterResult = otlpExporterMock.mock.results[0]
+    const spanProcessorResult = sentrySpanProcessorMock.mock.results[0]
+    expect(exporterResult).toBeDefined()
+    expect(spanProcessorResult).toBeDefined()
+    if (exporterResult === undefined || spanProcessorResult === undefined) {
+      throw new Error("Expected OpenTelemetry constructor results")
+    }
+
     expect(registerOtel).toHaveBeenCalledWith(
       expect.objectContaining({
-        serviceName: process.env.SENTRY_NAME ?? "medusa-default",
-        traceExporter: otlpExporterMock.mock.results[0].value,
-        spanProcessors: [sentrySpanProcessorMock.mock.results[0].value],
+        serviceName: process.env["SENTRY_NAME"] ?? "medusa-default",
+        traceExporter: exporterResult.value,
+        spanProcessors: [spanProcessorResult.value],
         instrument: {
           http: true,
           workflows: true,

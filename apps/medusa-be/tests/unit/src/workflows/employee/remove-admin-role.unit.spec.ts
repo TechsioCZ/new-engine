@@ -47,6 +47,25 @@ type MockStep = {
   ) => Promise<void>
 }
 
+const asMockStep = (candidate: unknown): MockStep => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  if (
+    !("compensate" in candidate) ||
+    typeof candidate.compensate !== "function"
+  ) {
+    throw new TypeError(
+      "Expected the mocked workflow step to expose a compensate function"
+    )
+  }
+
+  return candidate as MockStep
+}
+
 const makeContainer = ({
   graph,
   updateProviderIdentities = vi.fn(),
@@ -95,7 +114,7 @@ describe("removeAdminRoleStep", () => {
     const updateProviderIdentities = vi.fn()
     const container = makeContainer({ graph, updateProviderIdentities })
 
-    const result = await (removeAdminRoleStep as MockStep)(
+    const result = await asMockStep(removeAdminRoleStep)(
       {
         customer_id: "cus_1",
         email: "employee@example.com",
@@ -141,7 +160,7 @@ describe("removeAdminRoleStep", () => {
     const updateProviderIdentities = vi.fn().mockResolvedValue(undefined)
     const container = makeContainer({ graph, updateProviderIdentities })
 
-    const result = await (removeAdminRoleStep as MockStep)(
+    const result = await asMockStep(removeAdminRoleStep)(
       {
         customer_id: "cus_1",
         email: "employee@example.com",
@@ -193,7 +212,7 @@ describe("removeAdminRoleStep", () => {
     const updateProviderIdentities = vi.fn().mockResolvedValue(undefined)
     const container = makeContainer({ graph, updateProviderIdentities })
 
-    const result = await (removeAdminRoleStep as MockStep)(
+    const result = await asMockStep(removeAdminRoleStep)(
       {
         customer_id: "cus_1",
         email: "employee@example.com",

@@ -166,15 +166,15 @@ export async function GET(
     })
   }
 
-  const privateKey = process.env.PAYLOAD_SSO_PRIVATE_KEY
-  const payloadIframeUrl = process.env.PAYLOAD_IFRAME_URL
-  const ssoEmail = process.env.PAYLOAD_SSO_USER_EMAIL
-  const issuer = process.env.PAYLOAD_SSO_ISSUER ?? DEFAULT_ISSUER
-  const audience = process.env.PAYLOAD_SSO_AUDIENCE ?? DEFAULT_AUDIENCE
-  const alg = process.env.PAYLOAD_SSO_ALG ?? DEFAULT_ALG
+  const privateKey = process.env["PAYLOAD_SSO_PRIVATE_KEY"]
+  const payloadIframeUrl = process.env["PAYLOAD_IFRAME_URL"]
+  const ssoEmail = process.env["PAYLOAD_SSO_USER_EMAIL"]
+  const issuer = process.env["PAYLOAD_SSO_ISSUER"] ?? DEFAULT_ISSUER
+  const audience = process.env["PAYLOAD_SSO_AUDIENCE"] ?? DEFAULT_AUDIENCE
+  const alg = process.env["PAYLOAD_SSO_ALG"] ?? DEFAULT_ALG
   const ttl = (() => {
     const parsedTtl = Number.parseInt(
-      process.env.PAYLOAD_SSO_TOKEN_TTL ?? "",
+      process.env["PAYLOAD_SSO_TOKEN_TTL"] ?? "",
       10
     )
     return parsedTtl > 0 ? parsedTtl : DEFAULT_TOKEN_TTL_SECONDS
@@ -196,7 +196,7 @@ export async function GET(
 
   const issuedAt = Math.floor(Date.now() / 1000)
   const expiresAt = issuedAt + ttl
-  let key: CryptoKey
+  let key: Awaited<ReturnType<typeof importPKCS8>>
   try {
     key = await importPKCS8(normalizeKey(privateKey), alg)
   } catch (error) {

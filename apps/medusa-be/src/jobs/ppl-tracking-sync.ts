@@ -50,7 +50,7 @@ export default async function pplTrackingSyncJob(container: MedusaContainer) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
   // Check global feature flag (module loaded)
-  if (process.env.FEATURE_PPL_ENABLED !== "1") {
+  if (process.env["FEATURE_PPL_ENABLED"] !== "1") {
     logger.debug(
       "PPL Tracking Sync: PPL module is disabled (FEATURE_PPL_ENABLED != 1), skipping"
     )

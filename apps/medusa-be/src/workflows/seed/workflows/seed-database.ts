@@ -135,29 +135,34 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
         createRegionsResult,
       },
       (data) =>
-        data.input.shippingOptions.map((option) => ({
-          name: option.name,
-          providerId:
-            option.providerId ??
-            data.input.workflowDefaults.fulfillmentProviderId,
-          serviceZoneId: data.createFulfillmentSetsResult.serviceZone.id,
-          shippingProfileId:
-            data.createDefaultShippingProfileResult.shippingProfile.id,
-          regions: data.createRegionsResult.result.map((region) => ({
-            ...region,
-            amount:
-              option.prices.find(
-                (p) =>
-                  p.currencyCode?.toLowerCase() ===
-                  region.currency_code?.toLowerCase()
-              )?.amount ??
-              data.input.workflowDefaults.shippingOptionPriceAmount,
-          })),
-          type: option.type,
-          prices: option.prices,
-          rules: option.rules,
-          data: option.data,
-        }))
+        data.input.shippingOptions.map((option) => {
+          const shippingOption: Steps.CreateShippingOptionsStepInput[number] = {
+            name: option.name,
+            providerId:
+              option.providerId ??
+              data.input.workflowDefaults.fulfillmentProviderId,
+            serviceZoneId: data.createFulfillmentSetsResult.serviceZone.id,
+            shippingProfileId:
+              data.createDefaultShippingProfileResult.shippingProfile.id,
+            regions: data.createRegionsResult.result.map((region) => ({
+              ...region,
+              amount:
+                option.prices.find(
+                  (p) =>
+                    p.currencyCode?.toLowerCase() ===
+                    region.currency_code?.toLowerCase()
+                )?.amount ??
+                data.input.workflowDefaults.shippingOptionPriceAmount,
+            })),
+            type: option.type,
+            prices: option.prices,
+            rules: option.rules,
+          }
+          if (option.data !== undefined) {
+            shippingOption.data = option.data
+          }
+          return shippingOption
+        })
     )
 
   const createShippingOptionsResult = Steps.createShippingOptionsStep(
@@ -258,7 +263,9 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     },
     (data) => ({
       productIds: data.createProductsResult.result,
-      priceLists: data.input.priceLists,
+      ...(data.input.priceLists !== undefined
+        ? { priceLists: data.input.priceLists }
+        : {}),
       config: data.input.priceListSync,
     })
   )
@@ -277,7 +284,9 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
       },
       (data) => ({
         enabled: true,
-        countries: data.input.taxRates?.countries,
+        ...(data.input.taxRates?.countries !== undefined
+          ? { countries: data.input.taxRates?.countries }
+          : {}),
         config: data.input.taxRates?.config,
         productIds: data.createProductsResult.result,
       })

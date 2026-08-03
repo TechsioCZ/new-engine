@@ -5,6 +5,7 @@ import {
   Button,
   Container,
   createDataTableColumnHelper,
+  type DataTableColumnDef,
   Heading,
   Input,
   Select,
@@ -251,7 +252,7 @@ const AttributeTypesSection = () => {
     }
   }
 
-  const columns = [
+  const columns: DataTableColumnDef<BrandAttributeType>[] = [
     attributeTypeColumnHelper.accessor("name", {
       header: t("columns.name"),
       cell: ({ row }) => (
@@ -512,7 +513,7 @@ const BrandsPage = () => {
   const handleRestore = (brand: Brand) => {
     restoreMutation.mutate(brand.id)
   }
-  const columns = [
+  const columns: DataTableColumnDef<Brand>[] = [
     brandColumnHelper.accessor("title", {
       header: t("columns.title"),
       cell: ({ row }) => (

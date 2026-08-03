@@ -7,7 +7,7 @@ import {
 } from "../../utils"
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  const id = req.params.id ?? ""
+  const id = req.params["id"] ?? ""
 
   await retrieveMeasurementUnitOrThrow(req.scope, id, { withDeleted: true })
   await restoreMeasurementUnitsWorkflow(req.scope).run({

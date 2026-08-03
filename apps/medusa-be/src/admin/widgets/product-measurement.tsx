@@ -69,9 +69,9 @@ const getSelectedUnit = ({
   selectedId,
   units,
 }: {
-  createdUnit?: MeasurementUnit
-  currentMeasurement?: ProductMeasurement | null
-  selectedId?: string
+  createdUnit?: MeasurementUnit | undefined
+  currentMeasurement?: ProductMeasurement | null | undefined
+  selectedId?: string | undefined
   units: MeasurementUnit[]
 }) => {
   if (!selectedId) {
@@ -98,7 +98,7 @@ const MeasurementSelectionRows = ({
   onSelect,
   units,
 }: {
-  currentUnitId?: string
+  currentUnitId?: string | undefined
   isLoading: boolean
   onSelect: (unitId: string) => void
   units: MeasurementUnit[]
@@ -228,7 +228,7 @@ const ProductMeasurementDrawer = ({
   open,
   productId,
 }: {
-  currentMeasurement?: ProductMeasurement | null
+  currentMeasurement?: ProductMeasurement | null | undefined
   onOpenChange: (open: boolean) => void
   open: boolean
   productId: string

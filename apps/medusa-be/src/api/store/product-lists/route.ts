@@ -31,11 +31,11 @@ export async function GET(
   }
 
   if (handle) {
-    filters.handle = handle
+    filters["handle"] = handle
   }
 
   if (type) {
-    filters.type = type
+    filters["type"] = type
   }
 
   const productListService =

@@ -21,7 +21,7 @@ type Region = {
 export type Product = {
   id: string
   title: string
-  variants: ProductVariant[]
+  variants: [ProductVariant, ...ProductVariant[]]
 }
 
 export type ProductVariant = {

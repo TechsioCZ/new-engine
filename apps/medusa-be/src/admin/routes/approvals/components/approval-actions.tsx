@@ -97,5 +97,3 @@ export const ApprovalActions = ({ cart }: { cart: ApprovalActionCart }) => {
 
   return null
 }
-
-export default ApprovalActions

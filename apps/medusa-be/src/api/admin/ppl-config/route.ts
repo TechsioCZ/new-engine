@@ -7,6 +7,7 @@ import type {
   PplConfigDTO,
   PplConfigResponse,
 } from "../../../modules/ppl-client/types"
+import { definedProperties } from "../../../utils/defined-properties"
 import { updatePplConfigWorkflow } from "../../../workflows/ppl-config/update-ppl-config"
 import type { PostAdminPplConfigSchemaType } from "./validators"
 
@@ -62,7 +63,7 @@ export async function POST(
   res: MedusaResponse
 ) {
   const { result: updated } = await updatePplConfigWorkflow(req.scope).run({
-    input: req.validatedBody,
+    input: definedProperties(req.validatedBody),
   })
 
   res.json({ config: toConfigResponse(updated) })

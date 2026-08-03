@@ -482,13 +482,13 @@ function buildPaginatedPdf(
   const discountTotal = getDiscountTotal(order)
   const shippingTotal = getShippingSubtotalTotal(order)
   const total = getTotal(order)
-  const supplierName = process.env.STORE_NAME || "N1 Shop"
+  const supplierName = process.env["STORE_NAME"] || "N1 Shop"
   const pages = paginateTableRows(tableRows).map((page) => {
     const commands: PdfCommand[] = []
 
     if (page.isFirstPage) {
       renderFirstPageHeader(commands, {
-        billingAddress,
+        ...(billingAddress !== undefined ? { billingAddress } : {}),
         order,
         orderNumber,
         paymentQrCommands,
@@ -525,7 +525,7 @@ function buildPaginatedPdf(
 
     if (page.includeSummary) {
       renderSummary(commands, {
-        currency,
+        ...(currency !== undefined ? { currency } : {}),
         discountTotal,
         shippingTotal,
         subtotal,
@@ -551,7 +551,7 @@ function buildPdf(order: OrderReceiptOrder) {
   const discountTotal = getDiscountTotal(order)
   const shippingTotal = getShippingSubtotalTotal(order)
   const total = getTotal(order)
-  const supplierName = process.env.STORE_NAME || "N1 Shop"
+  const supplierName = process.env["STORE_NAME"] || "N1 Shop"
   const paymentQrCommands = buildPaymentQrCommands(order)
   const supplierY = paymentQrCommands.length
     ? SUPPLIER_Y_WITH_PAYMENT_QR
@@ -742,7 +742,7 @@ function getQrPaymentSpayd(order: OrderReceiptOrder) {
         continue
       }
 
-      const spayd = payment.data?.payment_qr_spayd
+      const spayd = payment.data?.["payment_qr_spayd"]
 
       if (typeof spayd === "string" && spayd.trim()) {
         return spayd

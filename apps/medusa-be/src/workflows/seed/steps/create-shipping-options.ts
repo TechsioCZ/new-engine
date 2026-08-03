@@ -97,34 +97,39 @@ export const createShippingOptionsStep = createStep(
       logger.info("Creating missing shipping options...")
 
       // For new shipping options, always create a new type
-      const workflowInput = missingOptions.map((option) => ({
-        name: option.name,
-        price_type: "flat" as const,
-        provider_id: option.providerId,
-        service_zone_id: option.serviceZoneId,
-        shipping_profile_id: option.shippingProfileId,
-        data: option.data,
-        type: {
-          label: option.type.label,
-          description: option.type.description,
-          code: option.type.code,
-        },
-        prices: [
-          ...option.prices.map((price) => ({
-            currency_code: price.currencyCode as string,
-            amount: price.amount,
+      const workflowInput = missingOptions.map((option) => {
+        const createInput = {
+          name: option.name,
+          price_type: "flat" as const,
+          provider_id: option.providerId,
+          service_zone_id: option.serviceZoneId,
+          shipping_profile_id: option.shippingProfileId,
+          type: {
+            label: option.type.label,
+            description: option.type.description,
+            code: option.type.code,
+          },
+          prices: [
+            ...option.prices.flatMap((price) =>
+              price.currencyCode
+                ? [{ currency_code: price.currencyCode, amount: price.amount }]
+                : []
+            ),
+            ...option.regions.map((region) => ({
+              region_id: region.id,
+              amount: region.amount,
+            })),
+          ],
+          rules: option.rules.map((rule) => ({
+            attribute: rule.attribute,
+            operator: rule.operator,
+            value: rule.value,
           })),
-          ...option.regions.map((region) => ({
-            region_id: region.id as string,
-            amount: region.amount,
-          })),
-        ],
-        rules: option.rules.map((rule) => ({
-          attribute: rule.attribute,
-          operator: rule.operator,
-          value: rule.value,
-        })),
-      }))
+        }
+        return option.data === undefined
+          ? createInput
+          : { ...createInput, data: option.data }
+      })
 
       const { result: createResult } = await createShippingOptionsWorkflow(
         container
@@ -155,14 +160,19 @@ export const createShippingOptionsStep = createStep(
             provider_id: inputOption.providerId,
             service_zone_id: inputOption.serviceZoneId,
             shipping_profile_id: inputOption.shippingProfileId,
-            data: inputOption.data,
             prices: [
-              ...inputOption.prices.map((price) => ({
-                currency_code: price.currencyCode as string,
-                amount: price.amount,
-              })),
+              ...inputOption.prices.flatMap((price) =>
+                price.currencyCode
+                  ? [
+                      {
+                        currency_code: price.currencyCode,
+                        amount: price.amount,
+                      },
+                    ]
+                  : []
+              ),
               ...inputOption.regions.map((region) => ({
-                region_id: region.id as string,
+                region_id: region.id,
                 amount: region.amount,
               })),
             ],
@@ -171,6 +181,9 @@ export const createShippingOptionsStep = createStep(
               operator: rule.operator,
               value: rule.value,
             })),
+            ...(inputOption.data === undefined
+              ? {}
+              : { data: inputOption.data }),
           }
 
           if (codeMatches && existingType) {

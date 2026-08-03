@@ -70,13 +70,13 @@ const getFirstNumber = (
 }
 
 async function resolvePublishableKey(query: QueryService) {
-  const explicitToken = process.env.PUBLISHABLE_KEY?.trim()
+  const explicitToken = process.env["PUBLISHABLE_KEY"]?.trim()
   const filters: Record<string, unknown> = {
     type: "publishable",
   }
 
   if (explicitToken) {
-    filters.token = explicitToken
+    filters["token"] = explicitToken
   }
 
   const result = await query.graph({
@@ -262,8 +262,8 @@ export default async function debugProductCount({ container }: ExecArgs) {
     ContainerRegistrationKeys.PG_CONNECTION
   )
   const query = container.resolve<QueryService>(ContainerRegistrationKeys.QUERY)
-  const runAnalyze = process.env.RUN_ANALYZE === "1"
-  const take = Number.parseInt(process.env.PRODUCT_COUNT_TAKE ?? "1500", 10)
+  const runAnalyze = process.env["RUN_ANALYZE"] === "1"
+  const take = Number.parseInt(process.env["PRODUCT_COUNT_TAKE"] ?? "1500", 10)
 
   const { token, salesChannelIds } = await resolvePublishableKey(query)
   logger.info(`[Product count debug] publishable key: ${token}`)

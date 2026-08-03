@@ -19,14 +19,18 @@ export const QuoteItems = ({
 
   return (
     <div>
-      {preview.items?.map((item) => (
-        <QuoteItem
-          currencyCode={order.currency_code}
-          item={item}
-          key={item.id}
-          originalItem={originalItemsMap.get(item.id)}
-        />
-      ))}
+      {preview.items?.map((item) => {
+        const originalItem = originalItemsMap.get(item.id)
+
+        return (
+          <QuoteItem
+            currencyCode={order.currency_code}
+            item={item}
+            key={item.id}
+            {...(originalItem ? { originalItem } : {})}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -87,7 +91,7 @@ export const QuoteItem = ({
             className="items-end justify-end text-right text-sm"
             currencyCode={currencyCode}
             originalAmount={
-              isAddedItem ? item.unit_price : originalItem?.unit_price
+              isAddedItem ? item.unit_price : (originalItem?.unit_price ?? null)
             }
           />
         </div>
@@ -138,7 +142,9 @@ export const QuoteItem = ({
           }
           className="items-end justify-end text-right text-sm"
           currencyCode={currencyCode}
-          originalAmount={isAddedItem ? item?.total : originalItem?.total}
+          originalAmount={
+            isAddedItem ? item.total : (originalItem?.total ?? null)
+          }
         />
       </div>
     </div>

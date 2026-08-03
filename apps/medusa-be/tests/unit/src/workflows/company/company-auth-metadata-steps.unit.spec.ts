@@ -58,6 +58,25 @@ type MockStep = {
   ) => Promise<void>
 }
 
+const asMockStep = (candidate: unknown): MockStep => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  if (
+    !("compensate" in candidate) ||
+    typeof candidate.compensate !== "function"
+  ) {
+    throw new TypeError(
+      "Expected the mocked workflow step to expose a compensate function"
+    )
+  }
+
+  return candidate as MockStep
+}
+
 const makeAuthService = (
   overrides: Partial<AuthService> = {}
 ): AuthService => ({
@@ -129,7 +148,7 @@ describe("company admin auth metadata steps", () => {
     const authService = makeAuthService()
     const container = makeContainer({ authService, graph })
 
-    const result = await (clearCompanyAdminAuthMetadataStep as MockStep)(
+    const result = await asMockStep(clearCompanyAdminAuthMetadataStep)(
       ["comp_1"],
       { container }
     )
@@ -190,7 +209,7 @@ describe("company admin auth metadata steps", () => {
     const authService = makeAuthService()
     const container = makeContainer({ authService, graph })
 
-    const result = await (restoreCompanyAdminAuthMetadataStep as MockStep)(
+    const result = await asMockStep(restoreCompanyAdminAuthMetadataStep)(
       ["comp_1"],
       { container }
     )
@@ -266,7 +285,7 @@ describe("company admin auth metadata steps", () => {
     const authService = makeAuthService()
     const container = makeContainer({ authService, graph })
 
-    await (restoreCompanyAdminAuthMetadataStep as MockStep).compensate(
+    await asMockStep(restoreCompanyAdminAuthMetadataStep).compensate(
       {
         admin_candidates: [
           {

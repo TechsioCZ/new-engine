@@ -114,7 +114,7 @@ export class InvoicesBatchClientMapperHelper {
       (item) => item.invoice_number !== invoice.invoice_number
     )
     return {
-      ...(existingMetadata ?? {}),
+      ...existingMetadata,
       invoices: [...filtered, nextInvoice],
       invoice_number: invoice.invoice_number,
       invoice_date: invoice.invoice_date,
@@ -123,7 +123,7 @@ export class InvoicesBatchClientMapperHelper {
   }
 
   private getExistingInvoices(metadata: Metadata | null | undefined) {
-    const invoices = metadata?.invoices
+    const invoices = metadata?.["invoices"]
     if (!Array.isArray(invoices)) {
       return []
     }

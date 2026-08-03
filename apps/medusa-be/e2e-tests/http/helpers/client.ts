@@ -46,7 +46,7 @@ export async function requestJson<T extends JsonObject = JsonObject>(
       ...(options?.token ? { authorization: `Bearer ${options.token}` } : {}),
       ...options?.headers,
     },
-    body: options?.body ? JSON.stringify(options.body) : undefined,
+    ...(options?.body ? { body: JSON.stringify(options.body) } : {}),
   })
   const rawBody = await response.text()
   const data = rawBody ? (JSON.parse(rawBody) as T) : ({} as T)
@@ -92,9 +92,9 @@ export function createClient(
       options?: { body?: JsonObject; method?: string }
     ) =>
       await requestJson<T>(baseUrl, path, {
-        body: options?.body,
+        ...(options?.body ? { body: options.body } : {}),
         headers,
-        method: options?.method,
+        ...(options?.method ? { method: options.method } : {}),
       }),
   }
 }

@@ -9,7 +9,7 @@ export const ProductListItemVariantLink = defineLink(
     isList: true,
   },
   {
-    linkable: ProductModule.linkable.productVariant,
+    linkable: ProductModule.linkable["productVariant"],
     filterable: ["id", "sku", "title"],
   }
 )

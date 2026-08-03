@@ -87,9 +87,9 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
     } else {
       try {
         const resolvedCustomer = await resolveCustomerId(email, {
-          first_name,
-          last_name,
-          phone,
+          ...(first_name === undefined ? {} : { first_name }),
+          ...(last_name === undefined ? {} : { last_name }),
+          ...(phone === undefined ? {} : { phone }),
         })
 
         if (!resolvedCustomer) {

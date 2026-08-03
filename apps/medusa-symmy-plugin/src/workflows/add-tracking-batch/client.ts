@@ -109,7 +109,7 @@ export class TrackingBatchClient {
     order,
     shipment,
   }: {
-    createdBy?: string
+    createdBy?: string | undefined
     items: ResolvedTrackingItems
     order: ExistingOrder
     shipment: TrackingShipmentInput
@@ -121,7 +121,7 @@ export class TrackingBatchClient {
     ).run({
       input: {
         order_id: order.id,
-        created_by: createdBy,
+        ...(createdBy !== undefined ? { created_by: createdBy } : {}),
         items,
         no_notification: noNotification,
         metadata,
@@ -134,7 +134,7 @@ export class TrackingBatchClient {
       input: {
         order_id: order.id,
         fulfillment_id: fulfillmentId,
-        created_by: createdBy,
+        ...(createdBy !== undefined ? { created_by: createdBy } : {}),
         items,
         no_notification: noNotification,
         labels: [
@@ -163,7 +163,7 @@ export class TrackingBatchClient {
     }
     const { data } = await this.query.graph({
       entity: "order",
-      fields: ORDER_FIELDS as unknown as string[],
+      fields: Array.from(ORDER_FIELDS),
       filters,
     })
     return (data ?? []) as ExistingOrder[]

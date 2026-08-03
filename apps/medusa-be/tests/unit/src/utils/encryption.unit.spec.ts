@@ -26,14 +26,14 @@ const decryptValue = (value: string): string => {
 }
 
 describe("encryption utilities", () => {
-  const originalEnv = process.env.SETTINGS_ENCRYPTION_KEY
+  const originalEnv = process.env["SETTINGS_ENCRYPTION_KEY"]
 
   afterEach(() => {
     if (originalEnv) {
-      process.env.SETTINGS_ENCRYPTION_KEY = originalEnv
+      process.env["SETTINGS_ENCRYPTION_KEY"] = originalEnv
     } else {
       // biome-ignore lint/performance/noDelete: required to truly unset env var for testing
-      delete process.env.SETTINGS_ENCRYPTION_KEY
+      delete process.env["SETTINGS_ENCRYPTION_KEY"]
     }
   })
 
@@ -59,9 +59,9 @@ describe("encryption utilities", () => {
     ])("throws error when $scenario", ({ key, expectedError }) => {
       if (key === undefined) {
         // biome-ignore lint/performance/noDelete: required to truly unset env var for testing
-        delete process.env.SETTINGS_ENCRYPTION_KEY
+        delete process.env["SETTINGS_ENCRYPTION_KEY"]
       } else {
-        process.env.SETTINGS_ENCRYPTION_KEY = key
+        process.env["SETTINGS_ENCRYPTION_KEY"] = key
       }
 
       expect(() => encryptFields({ value: "secret" }, ["value"])).toThrow(
@@ -72,7 +72,7 @@ describe("encryption utilities", () => {
 
   describe("encryptFields / decryptFields", () => {
     beforeEach(() => {
-      process.env.SETTINGS_ENCRYPTION_KEY = VALID_KEY
+      process.env["SETTINGS_ENCRYPTION_KEY"] = VALID_KEY
     })
 
     it("round-trips plaintext correctly", () => {

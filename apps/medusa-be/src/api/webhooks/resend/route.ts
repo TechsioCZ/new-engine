@@ -194,7 +194,7 @@ async function storePendingWebhookEvent({
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const payload = getPayload(req)
-  const webhookSecret = process.env.RESEND_WEBHOOK_SECRET
+  const webhookSecret = process.env["RESEND_WEBHOOK_SECRET"]
 
   if (webhookSecret) {
     const isValidSignature = verifySvixSignature({

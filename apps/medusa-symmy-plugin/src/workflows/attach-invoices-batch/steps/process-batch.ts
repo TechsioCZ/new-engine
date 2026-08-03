@@ -25,7 +25,7 @@ const processInvoiceForBatch = async ({
   invoice: InvoiceInput
   logger: Logger
   orderIndex: ExistingOrderIndex
-  userId?: string
+  userId?: string | undefined
 }): Promise<AttachInvoicesBatchResult> => {
   const orderIdentifier =
     invoicesBatchClientMapperHelper.getOrderIdentifier(invoice)

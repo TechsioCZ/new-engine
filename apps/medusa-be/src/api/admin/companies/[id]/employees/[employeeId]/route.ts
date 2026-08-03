@@ -4,6 +4,7 @@ import type {
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
+import { definedProperties } from "../../../../../../utils/defined-properties"
 import { requirePathParam } from "../../../../../../utils/path-params"
 import {
   deleteEmployeesWorkflow,
@@ -18,7 +19,8 @@ export const GET = async (
   req: AuthenticatedMedusaRequest<AdminGetEmployeeParamsType>,
   res: MedusaResponse
 ) => {
-  const { id, employeeId } = req.params
+  const id = requirePathParam(req.params["id"], "Company id")
+  const employeeId = requirePathParam(req.params["employeeId"], "Employee id")
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const {
@@ -40,17 +42,17 @@ export const POST = async (
   res: MedusaResponse
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const { id } = req.params
-  const employeeId = requirePathParam(req.params.employeeId, "Employee id")
+  const id = requirePathParam(req.params["id"], "Company id")
+  const employeeId = requirePathParam(req.params["employeeId"], "Employee id")
   const { spending_limit, is_admin } = req.validatedBody
 
   await updateEmployeesWorkflow(req.scope).run({
-    input: {
+    input: definedProperties({
       id: employeeId,
       company_id: id,
       spending_limit,
       is_admin,
-    },
+    }),
   })
 
   const {
@@ -71,8 +73,8 @@ export const DELETE = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) => {
-  const { id } = req.params
-  const employeeId = requirePathParam(req.params.employeeId, "Employee id")
+  const id = requirePathParam(req.params["id"], "Company id")
+  const employeeId = requirePathParam(req.params["employeeId"], "Employee id")
 
   await deleteEmployeesWorkflow(req.scope).run({
     input: {

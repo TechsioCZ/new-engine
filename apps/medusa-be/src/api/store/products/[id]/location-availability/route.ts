@@ -117,7 +117,7 @@ export async function GET(
     query,
     remoteQuery,
     {
-      ...(req.filterableFields ?? {}),
+      ...req.filterableFields,
       id: productId,
     }
   )

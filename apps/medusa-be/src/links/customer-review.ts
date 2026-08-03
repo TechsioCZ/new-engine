@@ -8,7 +8,7 @@ export const CustomerReviewLink = defineLink(
     linkable: ProductReviewModule.linkable.review,
     field: "customer_id",
   },
-  CustomerModule.linkable.customer,
+  CustomerModule.linkable["customer"],
   {
     readOnly: true,
   }

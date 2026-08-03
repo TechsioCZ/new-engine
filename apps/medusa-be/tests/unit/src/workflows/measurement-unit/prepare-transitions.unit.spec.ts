@@ -69,6 +69,16 @@ const container = {
   resolve: vi.fn(),
 }
 
+const asMockStep = (candidate: unknown): MockStep => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  return candidate as MockStep
+}
+
 describe("measurement transition preparation", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -106,7 +116,7 @@ describe("measurement transition preparation", () => {
     ])
     const { prepareProductMeasurementTransitionStep } =
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
-    const result = await (prepareProductMeasurementTransitionStep as MockStep)(
+    const result = await asMockStep(prepareProductMeasurementTransitionStep)(
       {
         measurement_unit_id: "unit_new",
         product_id: "prod_1",
@@ -134,7 +144,7 @@ describe("measurement transition preparation", () => {
     ])
     const { prepareVariantMeasurementMigrationStep } =
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
-    const result = await (prepareVariantMeasurementMigrationStep as MockStep)(
+    const result = await asMockStep(prepareVariantMeasurementMigrationStep)(
       {
         previous_variant_measurements: [
           {
@@ -183,7 +193,7 @@ describe("measurement transition preparation", () => {
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
 
     await expect(
-      (prepareVariantMeasurementMigrationStep as MockStep)(
+      asMockStep(prepareVariantMeasurementMigrationStep)(
         {
           previous_variant_measurements: [
             {
@@ -207,7 +217,7 @@ describe("measurement transition preparation", () => {
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
 
     await expect(
-      (prepareSetProductVariantMeasurementStep as MockStep)(
+      asMockStep(prepareSetProductVariantMeasurementStep)(
         {
           product_id: "prod_1",
           product_unit_quantity: Number.NaN,
@@ -227,7 +237,7 @@ describe("measurement transition preparation", () => {
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
 
     await expect(
-      (prepareSetProductVariantMeasurementStep as MockStep)(
+      asMockStep(prepareSetProductVariantMeasurementStep)(
         {
           product_id: "prod_1",
           product_unit_quantity: 2,
@@ -254,7 +264,7 @@ describe("measurement transition preparation", () => {
     })
     const { prepareProductMeasurementLinkPlanStep } =
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
-    const result = await (prepareProductMeasurementLinkPlanStep as MockStep)(
+    const result = await asMockStep(prepareProductMeasurementLinkPlanStep)(
       {
         product_id: "prod_1",
         product_measurement_id: "pm_target",
@@ -291,7 +301,7 @@ describe("measurement transition preparation", () => {
     })
     const { prepareProductMeasurementLinkPlanStep } =
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
-    const result = await (prepareProductMeasurementLinkPlanStep as MockStep)(
+    const result = await asMockStep(prepareProductMeasurementLinkPlanStep)(
       {
         product_id: "prod_1",
         product_measurement_id: "pm_target",
@@ -319,7 +329,7 @@ describe("measurement transition preparation", () => {
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
 
     await expect(
-      (prepareProductMeasurementLinkPlanStep as MockStep)(
+      asMockStep(prepareProductMeasurementLinkPlanStep)(
         {
           product_id: "prod_1",
           product_measurement_id: "pm_1",

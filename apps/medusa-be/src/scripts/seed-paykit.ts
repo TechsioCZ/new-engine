@@ -143,12 +143,14 @@ const toRegionSeedInput = (
     )
   }
 
+  const paymentProviders = paymentProviderMap.get(region.id)
+
   return {
     id: region.id,
     name: region.name,
     currencyCode,
     countries: region.countries?.map((country) => country.iso_2),
-    paymentProviders: paymentProviderMap.get(region.id),
+    ...(paymentProviders ? { paymentProviders } : {}),
   }
 }
 

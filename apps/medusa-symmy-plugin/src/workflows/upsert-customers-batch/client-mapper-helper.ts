@@ -171,27 +171,37 @@ export class CustomerBatchClientMapperHelper {
   }
 
   buildUpdatePayload(existing: ExistingCustomer, customer: CustomerInput) {
+    const email = this.normalizeEmail(customer.email)
+
     return {
-      company_name: customer.company_name,
+      ...(customer.company_name === undefined
+        ? {}
+        : { company_name: customer.company_name }),
       first_name: customer.first_name,
       last_name: customer.last_name,
-      email: this.normalizeEmail(customer.email),
-      phone: customer.phone,
+      ...(email === undefined ? {} : { email }),
+      ...(customer.phone === undefined ? {} : { phone: customer.phone }),
       metadata: this.buildMetadata(existing.metadata, customer),
     }
   }
 
   buildAddressPayload(address: CustomerAddressInput) {
     return {
-      first_name: address.first_name,
-      last_name: address.last_name,
-      company: address.company,
+      ...(address.first_name === undefined
+        ? {}
+        : { first_name: address.first_name }),
+      ...(address.last_name === undefined
+        ? {}
+        : { last_name: address.last_name }),
+      ...(address.company === undefined ? {} : { company: address.company }),
       address_1: address.address_1,
-      address_2: address.address_2,
+      ...(address.address_2 === undefined
+        ? {}
+        : { address_2: address.address_2 }),
       city: address.city,
       postal_code: address.postal_code,
       country_code: address.country_code.toLowerCase(),
-      phone: address.phone,
+      ...(address.phone === undefined ? {} : { phone: address.phone }),
     }
   }
 
@@ -231,8 +241,8 @@ export class CustomerBatchClientMapperHelper {
     customer: CustomerInput
   ) {
     return {
-      ...(existingMetadata ?? {}),
-      ...(customer.metadata ?? {}),
+      ...existingMetadata,
+      ...customer.metadata,
       ...(customer.identifier_type !== "email" &&
       customer.identifier_type !== "customer_id"
         ? {

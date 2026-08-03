@@ -125,7 +125,7 @@ function collectPrintableLabels(
         ): item is {
           fulfillment: PacketaFulfillmentRecord
           data: PacketaFulfillmentData
-        } => typeof item.data?.packet_id === "number"
+        } => typeof item.data?.["packet_id"] === "number"
       )
 
     if (orderLabels.length === 0) {
@@ -136,7 +136,9 @@ function collectPrintableLabels(
     for (const { fulfillment, data } of orderLabels) {
       labels.push({
         order_id: order.id,
-        order_display_id: order.display_id,
+        ...(order.display_id !== undefined
+          ? { order_display_id: order.display_id }
+          : {}),
         fulfillment_id: fulfillment.id,
         packet_id: data.packet_id,
         barcode: data.barcode,

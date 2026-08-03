@@ -50,7 +50,7 @@ const toEmailLogResponse = (emailLog: EmailLogDTO) => ({
 })
 
 async function retrieveResendEmail(emailId: string) {
-  const apiKey = process.env.RESEND_API_KEY
+  const apiKey = process.env["RESEND_API_KEY"]
 
   if (!apiKey) {
     throw new MedusaError(

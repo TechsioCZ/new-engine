@@ -13,6 +13,17 @@ import {
   type ModuleCreateApproval,
 } from "../../../types"
 
+function parseApprovalStatus(value: unknown): ApprovalStatusType | undefined {
+  if (
+    value === ApprovalStatusType.PENDING ||
+    value === ApprovalStatusType.APPROVED ||
+    value === ApprovalStatusType.REJECTED
+  ) {
+    return value
+  }
+  return
+}
+
 export const createApprovalStep = createStep(
   "create-approval",
   async (
@@ -61,14 +72,25 @@ export const createApprovalStep = createStep(
       )
     }
 
-    if (cart.approval_status?.status === ApprovalStatusType.PENDING) {
+    const cartApprovalStatus = parseApprovalStatus(cart.approval_status?.status)
+    if (
+      cart.approval_status?.status !== undefined &&
+      cartApprovalStatus === undefined
+    ) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Cart ${cart.id} has an invalid approval status`
+      )
+    }
+
+    if (cartApprovalStatus === ApprovalStatusType.PENDING) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
         "Cart already has a pending approval"
       )
     }
 
-    if (cart.approval_status?.status === ApprovalStatusType.APPROVED) {
+    if (cartApprovalStatus === ApprovalStatusType.APPROVED) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
         "Cart is already approved"

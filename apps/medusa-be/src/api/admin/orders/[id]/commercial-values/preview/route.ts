@@ -14,7 +14,7 @@ export async function POST(
   req: MedusaRequest<PostAdminOrderCommercialValuesPreviewSchemaType>,
   res: MedusaResponse
 ) {
-  const id = requireCommercialValuesOrderId(req.params.id)
+  const id = requireCommercialValuesOrderId(req.params["id"])
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const order = await fetchEditableCommercialValuesOrder(
     req.scope,

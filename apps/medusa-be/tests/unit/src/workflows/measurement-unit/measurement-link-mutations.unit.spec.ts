@@ -61,6 +61,16 @@ type MockStep = {
   ) => Promise<void>
 }
 
+const asMockStep = (candidate: unknown): MockStep => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  return candidate as MockStep
+}
+
 const container = {
   resolve: vi.fn(() => link),
 }
@@ -73,7 +83,7 @@ describe("measurement link mutation compensation", () => {
   it("restores dismissed product-measurement links on rollback", async () => {
     const { dismissProductMeasurementLinksStep } =
       await import("../../../../../src/workflows/measurement-unit/steps/measurement-link-mutations")
-    const step = dismissProductMeasurementLinksStep as MockStep
+    const step = asMockStep(dismissProductMeasurementLinksStep)
     const links = [
       {
         product_id: "prod_1",
@@ -101,7 +111,7 @@ describe("measurement link mutation compensation", () => {
   it("dismisses restored variant links again on rollback", async () => {
     const { restoreProductVariantMeasurementLinksStep } =
       await import("../../../../../src/workflows/measurement-unit/steps/measurement-link-mutations")
-    const step = restoreProductVariantMeasurementLinksStep as MockStep
+    const step = asMockStep(restoreProductVariantMeasurementLinksStep)
     const links = [
       {
         product_variant_id: "variant_1",

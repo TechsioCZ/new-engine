@@ -72,7 +72,7 @@ export class ProductBatchClient {
   async preload(products: ProductInput[]): Promise<ExistingProductIndex> {
     const { erpIds, skus, eans } =
       this.helper.collectProductIdentifiers(products)
-    const fields = PRODUCT_PREFETCH_FIELDS as unknown as string[]
+    const fields: string[] = [...PRODUCT_PREFETCH_FIELDS]
     const [erpProducts, skuVariants, eanVariants] = await Promise.all([
       this.queryProductsByExternalIds(erpIds, fields),
       this.queryVariantProductRefs("sku", skus),

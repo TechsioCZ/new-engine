@@ -11,7 +11,7 @@ import {
 import type { AdminSetProductMeasurementSchemaType } from "../../../measurement-units/validators"
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const productId = req.params.id ?? ""
+  const productId = req.params["id"] ?? ""
 
   await retrieveProductOrThrow(req.scope, productId)
 
@@ -29,7 +29,7 @@ export async function POST(
   req: MedusaRequest<AdminSetProductMeasurementSchemaType>,
   res: MedusaResponse
 ) {
-  const productId = req.params.id ?? ""
+  const productId = req.params["id"] ?? ""
 
   await setProductMeasurementWorkflow(req.scope).run({
     input: {
@@ -49,7 +49,7 @@ export async function POST(
 }
 
 export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
-  const productId = req.params.id ?? ""
+  const productId = req.params["id"] ?? ""
 
   await retrieveProductOrThrow(req.scope, productId)
   await deleteProductMeasurementWorkflow(req.scope).run({

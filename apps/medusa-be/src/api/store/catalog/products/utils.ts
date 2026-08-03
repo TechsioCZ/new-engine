@@ -274,13 +274,16 @@ export const getNumericFacetStats = (
   }
 
   const typedFacet = rawFacet as Record<string, unknown>
-  const minValue = typedFacet.min
-  const maxValue = typedFacet.max
+  const minValue = typedFacet["min"]
+  const maxValue = typedFacet["max"]
 
   const min = typeof minValue === "number" ? minValue : undefined
   const max = typeof maxValue === "number" ? maxValue : undefined
 
-  return { min, max }
+  return {
+    ...(min !== undefined ? { min } : {}),
+    ...(max !== undefined ? { max } : {}),
+  }
 }
 
 export const humanizeFacetHandle = (handle: string): string =>
