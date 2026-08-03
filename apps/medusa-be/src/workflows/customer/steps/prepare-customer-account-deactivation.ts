@@ -17,6 +17,11 @@ type CustomerRecord = {
 }
 
 type ProviderIdentityRecord = {
+  auth_identity?: {
+    app_metadata?: {
+      customer_id?: unknown
+    } | null
+  } | null
   auth_identity_id?: string | null
   id: string
 }
@@ -68,7 +73,7 @@ export const prepareCustomerAccountDeactivationStep = createStep(
     if (customer.email) {
       const providerIdentityResult: unknown = await query.graph({
         entity: "provider_identity",
-        fields: ["id", "auth_identity_id"],
+        fields: ["id", "auth_identity_id", "auth_identity.app_metadata"],
         filters: {
           entity_id: customer.email,
           provider: "emailpass",
@@ -82,7 +87,12 @@ export const prepareCustomerAccountDeactivationStep = createStep(
         )
       }
 
-      const [providerIdentity] = providerIdentityResult.data
+      const providerIdentity = providerIdentityResult.data.find(
+        (identity) =>
+          identity.auth_identity_id &&
+          identity.auth_identity?.app_metadata?.customer_id ===
+            input.customer_id
+      )
 
       authIdentityId = providerIdentity?.auth_identity_id ?? undefined
     }
