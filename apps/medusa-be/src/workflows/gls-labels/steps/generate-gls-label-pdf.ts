@@ -12,7 +12,7 @@ import {
   collectPrintableGLSLabels,
   downloadGLSLabelPdfsInChunks,
   type GLSLabelOrder,
-  resolveGLSLabelOffset,
+  resolveGLSLabelPrintOptions,
 } from "../helpers/labels"
 
 export type GenerateGLSLabelPdfStepInput = {
@@ -55,21 +55,22 @@ export const generateGLSLabelPdfStep = createStep(
       input.order_ids,
       orders as GLSLabelOrder[]
     )
-    const resolvedLabelOffset = await resolveGLSLabelOffset(
+    const { labelFormat, labelOffset } = await resolveGLSLabelPrintOptions(
       glsClient,
+      input.label_format,
       input.label_offset
     )
 
     const labelPdfs = await downloadGLSLabelPdfsInChunks(
       labels,
       glsClient,
-      input.label_format
+      labelFormat
     )
 
     const pdfBytes = await composeGLSLabelsOnA4(
       labelPdfs,
-      resolvedLabelOffset,
-      input.label_format
+      labelOffset,
+      labelFormat
     )
 
     return new StepResponse({

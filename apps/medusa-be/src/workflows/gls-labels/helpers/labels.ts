@@ -99,16 +99,21 @@ export function collectPrintableGLSLabels(
   return labels
 }
 
-export async function resolveGLSLabelOffset(
+export async function resolveGLSLabelPrintOptions(
   glsClient: GLSClientModuleService,
+  requestLabelFormat: GLSLabelFormat | undefined,
   requestLabelOffset: number | undefined
-): Promise<number> {
-  if (requestLabelOffset !== undefined) {
-    return requestLabelOffset
-  }
-
+): Promise<{ labelFormat: GLSLabelFormat; labelOffset: number }> {
   const config = await glsClient.getConfig()
-  return normalizeA4LabelOffset(config?.default_label_offset ?? 0)
+  const configLabelFormat = config?.default_label_format
+  const labelFormat =
+    requestLabelFormat ?? (configLabelFormat === "A7" ? "A7" : "A6")
+  const labelOffset =
+    requestLabelOffset !== undefined
+      ? requestLabelOffset
+      : normalizeA4LabelOffset(config?.default_label_offset ?? 0)
+
+  return { labelFormat, labelOffset }
 }
 
 export async function downloadGLSLabelPdfsInChunks(
