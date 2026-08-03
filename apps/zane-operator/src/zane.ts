@@ -264,6 +264,55 @@ function normalizeDockerfileBuilderOptions(
   }
 }
 
+function normalizeEnvVariables(value: unknown): ZaneEnvVariable[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined
+  }
+
+  const variables: ZaneEnvVariable[] = []
+  for (const entry of value) {
+    if (
+      isRecord(entry) &&
+      typeof entry["id"] === "string" &&
+      typeof entry["key"] === "string" &&
+      typeof entry["value"] === "string"
+    ) {
+      variables.push({
+        id: entry["id"],
+        key: entry["key"],
+        value: entry["value"],
+      })
+    }
+  }
+  return variables
+}
+
+// The environment reference carries the variables that bootstrap-generated
+// {{env.X}} references resolve against. Dropping it makes the Meilisearch and
+// Medusa provisioners fall back to the literal placeholder as a credential.
+function normalizeEnvironmentReference(
+  value: unknown
+): ZaneServiceDetails["environment"] | undefined {
+  if (value === null) {
+    return null
+  }
+
+  if (
+    !isRecord(value) ||
+    typeof value["id"] !== "string" ||
+    typeof value["name"] !== "string"
+  ) {
+    return undefined
+  }
+
+  const variables = normalizeEnvVariables(value["variables"])
+  return {
+    id: value["id"],
+    name: value["name"],
+    ...(variables === undefined ? {} : { variables }),
+  }
+}
+
 function normalizeGitAppRef(
   value: unknown
 ): ZaneServiceDetails["git_app"] | undefined {
@@ -348,6 +397,7 @@ function normalizeServiceDetails(
   const dockerfileBuilderOptions = normalizeDockerfileBuilderOptions(
     object["dockerfile_builder_options"]
   )
+  const environment = normalizeEnvironmentReference(object["environment"])
   const gitApp = normalizeGitAppRef(object["git_app"])
   const healthcheck = normalizeHealthcheck(object["healthcheck"])
   const resourceLimits = normalizeResourceLimits(object["resource_limits"])
@@ -385,6 +435,7 @@ function normalizeServiceDetails(
     ...(typeof object["command"] === "string"
       ? { command: object["command"] }
       : {}),
+    ...(environment === undefined ? {} : { environment }),
     ...(Array.isArray(object["system_env_variables"])
       ? {
           system_env_variables: object[
