@@ -14,7 +14,7 @@ function isError(error: unknown): error is Error {
   return error instanceof Error
 }
 
-function resolveErrorMessage(error: unknown): string {
+export function resolveErrorMessage(error: unknown): string {
   if (isError(error)) {
     return error.message
   }
@@ -85,6 +85,7 @@ export type CartServiceErrorCode =
   | "PAYMENT_INIT_FAILED"
   | "PAYMENT_FAILED"
   | "ORDER_CREATION_FAILED"
+  | "INSUFFICIENT_INVENTORY"
   | "VALIDATION_ERROR"
   | "NETWORK_ERROR"
 
@@ -136,6 +137,45 @@ export class CartServiceError extends Error {
    */
   static isCartServiceError(error: unknown): error is CartServiceError {
     return error instanceof CartServiceError
+  }
+}
+
+// ============================================================================
+// Cart Address Update Error
+// ============================================================================
+
+/**
+ * Stable discriminators for failures of the cart address update mutation.
+ *
+ * `BILLING_ADDRESS_INVALID` is raised before any network call, when the
+ * locally entered billing address fails validation. `ADDRESS_UPDATE_REJECTED`
+ * covers every remote/unknown failure: the Medusa SDK `FetchError` only
+ * carries `message`, `status` and `statusText`, so it exposes no field-level
+ * attribution the UI could branch on.
+ */
+export type CartAddressUpdateErrorCode =
+  | "BILLING_ADDRESS_INVALID"
+  | "ADDRESS_UPDATE_REJECTED"
+
+export class CartAddressUpdateError extends Error {
+  readonly code: CartAddressUpdateErrorCode
+  readonly originalError?: unknown
+
+  constructor(
+    message: string,
+    code: CartAddressUpdateErrorCode,
+    originalError?: unknown
+  ) {
+    super(message)
+    this.name = "CartAddressUpdateError"
+    this.code = code
+    this.originalError = originalError
+  }
+
+  static isCartAddressUpdateError(
+    error: unknown
+  ): error is CartAddressUpdateError {
+    return error instanceof CartAddressUpdateError
   }
 }
 

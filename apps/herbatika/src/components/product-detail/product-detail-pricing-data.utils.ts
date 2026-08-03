@@ -10,7 +10,7 @@ import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shippi
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { formatUnitPriceLabel } from "@/lib/storefront/unit-price"
 
-export const resolveDisplayOriginalLabel = (
+const resolveDisplayOriginalLabel = (
   productPrice: ReturnType<typeof resolvePriceState> | null,
   displayOriginalAmount: number | null,
   currentCurrencyCode: string

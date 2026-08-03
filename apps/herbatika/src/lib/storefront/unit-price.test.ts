@@ -37,7 +37,6 @@ describe("formatUnitPriceLabel", () => {
   it.each([
     null,
     {
-      calculated_amount: undefined,
       currency_code: "eur",
       product_unit_quantity: 75,
       unit_base_quantity: 100,

@@ -18,6 +18,12 @@ import { useCheckoutShipping } from "@/hooks/use-checkout-shipping"
 import { useSuspenseRegion } from "@/hooks/use-region"
 import { useUpdateCartAddress } from "@/hooks/use-update-cart-address"
 import {
+  CartAddressUpdateError,
+  type CartAddressUpdateErrorCode,
+  CartServiceError,
+  type CartServiceErrorCode,
+} from "@/lib/errors"
+import {
   accessPointToAddress,
   addressToFormData,
   DEFAULT_ADDRESS,
@@ -26,6 +32,43 @@ import {
   type PplAccessPointData,
 } from "@/utils/address-helpers"
 import type { AddressFormData } from "@/utils/address-validation"
+
+/**
+ * User-facing prefixes keyed by the error code the address mutation reports.
+ * Branching on the code keeps the copy stable when the underlying Medusa
+ * message text is reworded or localized.
+ */
+const DEFAULT_ADDRESS_ERROR_PREFIX = "Nepodařilo se uložit adresu"
+const ADDRESS_ERROR_PREFIX: Record<CartAddressUpdateErrorCode, string> = {
+  BILLING_ADDRESS_INVALID: "Neplatná adresa",
+  ADDRESS_UPDATE_REJECTED: DEFAULT_ADDRESS_ERROR_PREFIX,
+}
+
+/**
+ * User-facing prefixes keyed by `CartServiceError.code`.
+ *
+ * `completeCart` only ever rejects with `ORDER_CREATION_FAILED` or with the
+ * code `CartServiceError.fromMedusaError` derives from the HTTP status, so the
+ * payment and inventory codes never reach this branch. Medusa reports those as
+ * a resolved `success: false` result instead, attributed below.
+ */
+const DEFAULT_COMPLETION_ERROR_PREFIX = "Nepodařilo se dokončit objednávku"
+const COMPLETION_ERROR_PREFIX: Partial<Record<CartServiceErrorCode, string>> = {
+  CART_NOT_FOUND: "Košík nebyl nalezen",
+  NETWORK_ERROR: "Chyba spojení se serverem",
+  VALIDATION_ERROR: "Objednávka obsahuje neplatné údaje",
+}
+
+/**
+ * User-facing prefixes keyed by the `MedusaError` type the store API reports on
+ * a completion that fails without rejecting. Only the payment types carry a
+ * stable discriminator here; insufficient inventory travels as a `code` the
+ * store response does not expose, so it falls back to the default copy.
+ */
+const COMPLETION_RESULT_ERROR_PREFIX: Record<string, string> = {
+  payment_authorization_error: "Chyba platby",
+  payment_requires_more_error: "Platba vyžaduje dodatečné potvrzení",
+}
 
 export type CheckoutFormData = {
   email?: string
@@ -125,6 +168,16 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
       onSuccess: (order) => {
         router.push(`/orders/${order.id}?success=true`)
       },
+      // A completion that fails validation or payment resolves instead of
+      // rejecting, so without this the submit handler's catch never runs and
+      // the shopper is left on a silent, unchanged form.
+      onError: (completionError) => {
+        const prefix =
+          COMPLETION_RESULT_ERROR_PREFIX[completionError.type] ??
+          DEFAULT_COMPLETION_ERROR_PREFIX
+
+        setError(`${prefix}: ${completionError.message}`)
+      },
     })
 
   const initialStateRef = useRef<InitialCheckoutState | null>(null)
@@ -192,24 +245,12 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
           ...(cartEmail ? { email: cartEmail } : {}),
         })
       } catch (err) {
-        if (err instanceof Error) {
-          if (
-            err.message.includes("billing") ||
-            err.message.includes("faktur")
-          ) {
-            setError(`Chyba fakturační adresy: ${err.message}`)
-          } else if (
-            err.message.includes("shipping") ||
-            err.message.includes("doruč")
-          ) {
-            setError(`Chyba doručovací adresy: ${err.message}`)
-          } else if (err.message.includes("Validation")) {
-            setError(`Neplatná adresa: ${err.message}`)
-          } else {
-            setError(`Nepodařilo se uložit adresu: ${err.message}`)
-          }
+        if (CartAddressUpdateError.isCartAddressUpdateError(err)) {
+          setError(`${ADDRESS_ERROR_PREFIX[err.code]}: ${err.message}`)
+        } else if (err instanceof Error) {
+          setError(`${DEFAULT_ADDRESS_ERROR_PREFIX}: ${err.message}`)
         } else {
-          setError("Nepodařilo se uložit adresu")
+          setError(DEFAULT_ADDRESS_ERROR_PREFIX)
         }
         return
       }
@@ -218,22 +259,14 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
       try {
         await completeCartAsync({ cartId: cart.id })
       } catch (err) {
-        if (err instanceof Error) {
-          if (
-            err.message.includes("payment") ||
-            err.message.includes("platb")
-          ) {
-            setError(`Chyba platby: ${err.message}`)
-          } else if (
-            err.message.includes("stock") ||
-            err.message.includes("sklad")
-          ) {
-            setError(`Některé produkty nejsou skladem: ${err.message}`)
-          } else {
-            setError(`Nepodařilo se dokončit objednávku: ${err.message}`)
-          }
+        if (CartServiceError.isCartServiceError(err)) {
+          setError(
+            `${COMPLETION_ERROR_PREFIX[err.code] ?? DEFAULT_COMPLETION_ERROR_PREFIX}: ${err.message}`
+          )
+        } else if (err instanceof Error) {
+          setError(`${DEFAULT_COMPLETION_ERROR_PREFIX}: ${err.message}`)
         } else {
-          setError("Nepodařilo se dokončit objednávku")
+          setError(DEFAULT_COMPLETION_ERROR_PREFIX)
         }
       }
     },

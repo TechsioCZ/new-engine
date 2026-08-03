@@ -88,7 +88,7 @@ export const resolveTopOfferOriginalAmount = (params: {
   return null
 }
 
-type StorefrontPriceSource = "calculated_price" | "top_offer"
+export type StorefrontPriceSource = "calculated_price" | "top_offer"
 
 type StorefrontPriceInput = {
   calculatedAmount: unknown

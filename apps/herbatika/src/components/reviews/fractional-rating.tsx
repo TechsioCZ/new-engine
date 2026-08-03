@@ -1,5 +1,6 @@
 "use client"
 
+import { clamp } from "@techsio/std/number"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { useTranslations } from "next-intl"
 import type { CSSProperties } from "react"
@@ -10,9 +11,6 @@ type FractionalRatingProps = {
 }
 
 const STAR_COUNT = 5
-
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(Math.max(value, min), max)
 
 export function FractionalRating({ label, value }: FractionalRatingProps) {
   const tCatalog = useTranslations("catalog")
