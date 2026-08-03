@@ -157,6 +157,9 @@ const sharedEnvCleanupKeys = [
   "PRODUCT_REVIEW_REQUEST_MESSAGE",
   "PRODUCT_REVIEW_REQUEST_DELAY_MINUTES",
   "PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS",
+  "CLOUDFLARE_TURNSTILE_ENABLED",
+  "CLOUDFLARE_TURNSTILE_ALLOWED_HOSTNAMES",
+  "MEDUSA_DISABLE_ZBOZI_ACCESS_TOKEN_BOOTSTRAP",
   "WORKFLOW_QUEUE_RUNNER_BATCH_SIZE",
   "WORKFLOW_QUEUE_RUNNER_SCHEDULE",
   "SETTINGS_ENCRYPTION_KEY",
@@ -339,6 +342,9 @@ const sharedEnvCleanupKeys = [
   "DC_PRODUCT_REVIEW_REQUEST_MESSAGE",
   "DC_PRODUCT_REVIEW_REQUEST_DELAY_MINUTES",
   "DC_PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS",
+  "DC_CLOUDFLARE_TURNSTILE_ENABLED",
+  "DC_CLOUDFLARE_TURNSTILE_ALLOWED_HOSTNAMES",
+  "DC_MEDUSA_DISABLE_ZBOZI_ACCESS_TOKEN_BOOTSTRAP",
   "DC_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE",
   "DC_WORKFLOW_QUEUE_RUNNER_SCHEDULE",
   "DC_MEDUSA_DEV_DB_USER",
@@ -958,6 +964,24 @@ function buildZaneProjectServices(
           ),
         },
         {
+          envVar: "CLOUDFLARE_TURNSTILE_ENABLED",
+          source: literalSource(
+            process.env.DC_CLOUDFLARE_TURNSTILE_ENABLED ?? "0"
+          ),
+        },
+        {
+          envVar: "CLOUDFLARE_TURNSTILE_ALLOWED_HOSTNAMES",
+          source: literalSource(
+            process.env.DC_CLOUDFLARE_TURNSTILE_ALLOWED_HOSTNAMES ?? ""
+          ),
+        },
+        {
+          envVar: "MEDUSA_DISABLE_ZBOZI_ACCESS_TOKEN_BOOTSTRAP",
+          source: literalSource(
+            process.env.DC_MEDUSA_DISABLE_ZBOZI_ACCESS_TOKEN_BOOTSTRAP ?? "0"
+          ),
+        },
+        {
           envVar: "WORKFLOW_QUEUE_RUNNER_BATCH_SIZE",
           source: literalSource(
             process.env.DC_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE ?? "500"
@@ -1390,6 +1414,17 @@ function buildZaneProjectServices(
         {
           envVar: "NEXT_PUBLIC_PAYLOAD_BASE_URL",
           source: servicePublicOrigins.payload,
+        },
+        {
+          envVar: "PAYLOAD_BASE_URL_INTERNAL",
+          source: serviceInternalOriginSource("payload", 3000),
+        },
+        {
+          envVar: "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED",
+          source: literalSource(
+            process.env.DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED ??
+              "0"
+          ),
         },
       ],
     },
