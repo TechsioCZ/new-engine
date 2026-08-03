@@ -7,6 +7,7 @@ import {
 } from "@medusajs/framework/utils"
 import { wrapProductsWithTaxPrices } from "@medusajs/medusa/api/store/products/helpers"
 import { wrapVariantsWithInventoryQuantityForSalesChannel } from "@medusajs/medusa/api/utils/middlewares/products/variant-inventory-quantity"
+
 import {
   decorateProductsWithMeasurements,
   getMeasurementDecorationOptions,
@@ -42,14 +43,12 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   )
 
   if (isPresent(req.pricingContext)) {
-    context.variants ??= {}
-    ;(context.variants as Record<string, unknown>).calculated_price =
+    context["variants"] ??= {}
+    ;(context["variants"] as Record<string, unknown>)["calculated_price"] =
       QueryContext(req.pricingContext as Record<string, unknown>)
   }
 
-  const { data: products = [], metadata } = await (
-    query.graph as GraphWithOptions
-  )(
+  const { data: products, metadata } = await (query.graph as GraphWithOptions)(
     {
       entity: "product",
       fields: productFields,

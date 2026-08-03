@@ -9,6 +9,7 @@ import { filterByValidSalesChannels } from "@medusajs/medusa/api/utils/middlewar
 import { normalizeDataForContext } from "@medusajs/medusa/api/utils/middlewares/products/normalize-data-for-context"
 import { setPricingContext } from "@medusajs/medusa/api/utils/middlewares/products/set-pricing-context"
 import { setTaxContext } from "@medusajs/medusa/api/utils/middlewares/products/set-tax-context"
+
 import {
   STORE_CATALOG_PRODUCTS_ALLOWED_FIELDS,
   STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,

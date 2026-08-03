@@ -4,6 +4,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import {
   ApprovalStatusType,
@@ -11,6 +12,20 @@ import {
   type ModuleApproval,
   type ModuleUpdateApproval,
 } from "../../../types"
+
+function parseApprovalStatus(value: unknown): ApprovalStatusType {
+  if (
+    value === ApprovalStatusType.PENDING ||
+    value === ApprovalStatusType.APPROVED ||
+    value === ApprovalStatusType.REJECTED
+  ) {
+    return value
+  }
+  throw new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
+    "Approval has an invalid status"
+  )
+}
 
 export const updateApprovalStep = createStep(
   "update-approval",
@@ -63,7 +78,7 @@ export const updateApprovalStep = createStep(
     const previousData: ModuleUpdateApproval = {
       handled_by: approval.handled_by,
       id: approval.id,
-      status: approval.status,
+      status: parseApprovalStatus(approval.status),
     }
 
     const [updatedApproval] = await approvalModule.updateApprovals([input])

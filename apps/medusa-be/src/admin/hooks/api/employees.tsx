@@ -7,6 +7,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
+
 import type {
   AdminCreateEmployee,
   AdminEmployeeResponse,
@@ -72,17 +73,17 @@ export const useCreateEmployee = (
           body: employee,
         }
       ),
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: employeeQueryKey.lists(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.details(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
-      options?.onSuccess?.(data, variables, context)
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })
@@ -111,20 +112,20 @@ export const useUpdateEmployee = (
           body: employee,
         }
       ),
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: employeeQueryKey.detail(employeeId),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: employeeQueryKey.lists(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.details(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
-      options?.onSuccess?.(data, variables, context)
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })
@@ -144,20 +145,20 @@ export const useDeleteEmployee = (
           method: "DELETE",
         }
       ),
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: employeeQueryKey.detail(variables),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: employeeQueryKey.lists(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.details(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
-      options?.onSuccess?.(data, variables, context)
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })

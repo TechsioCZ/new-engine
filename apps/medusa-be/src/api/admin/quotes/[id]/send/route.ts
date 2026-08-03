@@ -3,6 +3,7 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { requirePathParam } from "../../../../../utils/path-params"
 import { merchantSendQuoteWorkflow } from "../../../../../workflows/quote/workflows"
 import type { AdminSendQuoteType } from "../../validators"
@@ -12,7 +13,7 @@ export const POST = async (
   res: MedusaResponse
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const id = requirePathParam(req.params.id, "Quote id")
+  const id = requirePathParam(req.params["id"], "Quote id")
 
   await merchantSendQuoteWorkflow(req.scope).run({
     input: {

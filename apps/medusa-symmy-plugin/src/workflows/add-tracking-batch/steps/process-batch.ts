@@ -1,6 +1,7 @@
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { TrackingBatchClient, type TrackingOrderIndex } from "../client"
 import { trackingBatchClientMapperHelper } from "../client-mapper-helper"
 import type {
@@ -31,7 +32,7 @@ const processShipmentForBatch = async ({
   shipment,
 }: {
   client: TrackingBatchClient
-  createdBy?: string
+  createdBy?: string | undefined
   logger: Logger
   orderIndex: TrackingOrderIndex
   shipment: TrackingShipmentInput

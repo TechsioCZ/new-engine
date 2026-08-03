@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.hoisted(() => {
-  process.env.SETTINGS_ENCRYPTION_KEY =
+  process.env["SETTINGS_ENCRYPTION_KEY"] =
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 })
 
@@ -15,6 +15,7 @@ vi.mock("../client", () => ({
 
 import { Modules } from "@medusajs/framework/utils"
 import { moduleIntegrationTestRunner } from "@medusajs/test-utils"
+
 import { PPL_CLIENT_MODULE } from "../index"
 import PplConfig from "../models/ppl-config"
 import type { PplClientModuleService } from "../service"

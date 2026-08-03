@@ -7,6 +7,7 @@ import {
 import { ProductStatus } from "@medusajs/framework/utils"
 import { listProductQueryConfig } from "@medusajs/medusa/api/store/products/query-config"
 import { filterByValidSalesChannels } from "@medusajs/medusa/api/utils/middlewares/products/filter-by-valid-sales-channels"
+
 import {
   StoreBrandsDetailProductsSchema,
   StoreBrandsDetailSchema,

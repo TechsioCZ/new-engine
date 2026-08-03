@@ -13,6 +13,7 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import { ORDER_RECEIPT_MODULE } from "../modules/order-receipt"
 import type OrderReceiptModuleService from "../modules/order-receipt/service"
 import type { OrderReceiptOrder } from "../modules/order-receipt/service"
@@ -156,7 +157,9 @@ const buildOrderPaymentReminderNotificationStep = createStep(
           store_name: input.store_name,
           total: formatTotal(order) ?? input.total,
         },
-        receiver_id: input.customer_id,
+        ...(input.customer_id !== undefined
+          ? { receiver_id: input.customer_id }
+          : {}),
         resource_id: input.order_id,
         resource_type: "order",
         template: "order-payment-reminder",

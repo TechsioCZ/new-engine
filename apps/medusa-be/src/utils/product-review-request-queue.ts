@@ -1,6 +1,7 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import type { Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { EMAIL_LOG_MODULE } from "../modules/email-log"
 import type EmailLogModuleService from "../modules/email-log/service"
 import { WORKFLOW_QUEUE_MODULE } from "../modules/workflow-queue"
@@ -73,7 +74,9 @@ function isReviewRequestOrder(value: unknown): value is ReviewRequestOrder {
 
   const record = value as Record<string, unknown>
 
-  return typeof record.id === "string" && typeof record.display_id === "number"
+  return (
+    typeof record["id"] === "string" && typeof record["display_id"] === "number"
+  )
 }
 
 async function retrieveOrderForReviewRequest(

@@ -4,6 +4,7 @@ import type {
   Logger,
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+
 import { DATABASE_MODULE } from "../modules/database"
 import type DatabaseModuleService from "../modules/database/service"
 import seedN1Workflow, {
@@ -77,18 +78,15 @@ export default async function seedN1({ container }: ExecArgs) {
         name: "Czechia",
         currencyCode: "czk",
         countries: ["cz"],
-        paymentProviders: undefined,
       },
       {
         name: "Europe",
         currencyCode: "eur",
         countries: countries.filter((c) => c !== "cz"),
-        paymentProviders: undefined,
       },
     ],
     taxRegions: {
       countries,
-      taxProviderId: undefined,
     },
     stockLocations: {
       locations: [

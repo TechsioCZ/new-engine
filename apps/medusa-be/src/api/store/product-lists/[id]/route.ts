@@ -4,8 +4,10 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import { PRODUCT_LIST_MODULE } from "../../../../modules/product-list/constants"
 import type ProductListModuleService from "../../../../modules/product-list/service"
+import { definedProperties } from "../../../../utils/defined-properties"
 import { assertCustomerOwnsProductList } from "../../../../utils/product-list-links"
 import { deleteProductListWorkflow } from "../../../../workflows/product-list/workflows/delete-product-list"
 import { updateProductListWorkflow } from "../../../../workflows/product-list/workflows/update-product-list"
@@ -83,7 +85,7 @@ export async function POST(
   ).run({
     input: {
       customer_id: req.auth_context.actor_id,
-      data: req.validatedBody,
+      data: definedProperties(req.validatedBody),
       list_id: listId,
     },
   })

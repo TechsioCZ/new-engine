@@ -1,5 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
+import { definedProperties } from "../../../../../utils/defined-properties"
 import { requirePathParam } from "../../../../../utils/path-params"
 import { createEmployeesWorkflow } from "../../../../../workflows/employee/workflows"
 import type {
@@ -11,7 +13,7 @@ export const GET = async (
   req: MedusaRequest<AdminGetEmployeeParamsType>,
   res: MedusaResponse
 ) => {
-  const id = requirePathParam(req.params.id, "Company id")
+  const id = requirePathParam(req.params["id"], "Company id")
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const {
@@ -43,13 +45,13 @@ export const POST = async (
   res: MedusaResponse
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const id = requirePathParam(req.params.id, "Company id")
+  const id = requirePathParam(req.params["id"], "Company id")
 
   const { result: createdEmployee } = await createEmployeesWorkflow(
     req.scope
   ).run({
     input: {
-      employeeData: { ...req.validatedBody, company_id: id },
+      employeeData: definedProperties({ ...req.validatedBody, company_id: id }),
       customerId: req.validatedBody.customer_id,
     },
   })

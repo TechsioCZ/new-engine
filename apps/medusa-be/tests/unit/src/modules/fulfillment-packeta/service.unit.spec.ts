@@ -1,9 +1,12 @@
+import { logger } from "@medusajs/framework"
 import type {
+  Context,
+  CreateFileDTO,
+  FileDTO,
   FulfillmentOrderDTO,
-  IFileModuleService,
-  Logger,
-  Query,
+  ValidateFulfillmentDataContext,
 } from "@medusajs/framework/types"
+import type { Mocked } from "vitest"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("../../../../../src/modules/packeta-client", () => ({
@@ -11,19 +14,36 @@ vi.mock("../../../../../src/modules/packeta-client", () => ({
 }))
 
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+
 import PacketaFulfillmentProviderService from "../../../../../src/modules/fulfillment-packeta/service"
 // Import after mock
 import type { PacketaClientModuleService } from "../../../../../src/modules/packeta-client"
 import type { PacketaOptions } from "../../../../../src/modules/packeta-client/types"
 
-const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-  debug: vi.fn(),
+type PacketaClientStub = Pick<
+  PacketaClientModuleService,
+  | "cancelPacket"
+  | "createPacket"
+  | "downloadLabelPdf"
+  | "getBranches"
+  | "getEffectiveConfig"
+  | "getPacketStatus"
+>
+type FileServiceStub = {
+  createFiles: (
+    data: CreateFileDTO[],
+    sharedContext?: Context
+  ) => Promise<FileDTO[]>
+}
+type QueryStub = {
+  graph: (input: {
+    entity: string
+    fields: string[]
+    filters?: Record<string, unknown>
+  }) => Promise<{ data: unknown[] }>
 }
 
-const mockPacketaClient = {
+const mockPacketaClient: Mocked<PacketaClientStub> = {
   getEffectiveConfig: vi.fn(),
   createPacket: vi.fn(),
   cancelPacket: vi.fn(),
@@ -32,12 +52,31 @@ const mockPacketaClient = {
   getBranches: vi.fn(),
 }
 
-const mockFileService = {
-  createFiles: vi.fn(),
+const mockFileService: Mocked<FileServiceStub> = {
+  createFiles:
+    vi.fn<
+      (data: CreateFileDTO[], sharedContext?: Context) => Promise<FileDTO[]>
+    >(),
 }
 
-const mockQuery = {
+const mockQuery: Mocked<QueryStub> = {
   graph: vi.fn(),
+}
+
+const validationContext: ValidateFulfillmentDataContext = {
+  from_location: {
+    address_id: "addr_stock_1",
+    created_at: new Date(),
+    deleted_at: null,
+    fulfillment_sets: [],
+    id: "sloc_1",
+    metadata: null,
+    name: "Warehouse",
+    updated_at: new Date(),
+  },
+  id: "cart_1",
+  items: [],
+  shipping_address: undefined,
 }
 
 const PICKUP_POINT_ERROR = /Pickup point/
@@ -57,10 +96,10 @@ const defaultOptions: PacketaOptions = {
 }
 
 const createInjectedDependencies = (): InjectedDependencies => ({
-  logger: mockLogger as unknown as Logger,
-  packeta_client: mockPacketaClient as unknown as PacketaClientModuleService,
-  [Modules.FILE]: mockFileService as unknown as IFileModuleService,
-  [ContainerRegistrationKeys.QUERY]: mockQuery as unknown as Query,
+  logger,
+  packeta_client: mockPacketaClient,
+  [Modules.FILE]: mockFileService,
+  [ContainerRegistrationKeys.QUERY]: mockQuery,
 })
 
 const createService = (options: Partial<PacketaOptions> = {}) =>
@@ -119,7 +158,10 @@ describe("PacketaFulfillmentProviderService", () => {
     })
     mockPacketaClient.downloadLabelPdf.mockResolvedValue(Buffer.from("PDF"))
     mockFileService.createFiles.mockResolvedValue([
-      { url: "https://files.example/packeta-label-Z987654321.pdf" },
+      {
+        id: "file_1",
+        url: "https://files.example/packeta-label-Z987654321.pdf",
+      },
     ])
     mockQuery.graph.mockResolvedValue({ data: [] })
   })
@@ -158,7 +200,7 @@ describe("PacketaFulfillmentProviderService", () => {
         createService().validateFulfillmentData(
           { code: "z_point", supports_cod: false },
           {},
-          {} as any
+          validationContext
         )
       ).rejects.toThrow(PICKUP_POINT_ERROR)
     })
@@ -168,7 +210,7 @@ describe("PacketaFulfillmentProviderService", () => {
         createService().validateFulfillmentData(
           { code: "z_point", supports_cod: false },
           { access_point_id: "not-a-number" },
-          {} as any
+          validationContext
         )
       ).rejects.toThrow(INVALID_PICKUP_POINT_ERROR)
     })
@@ -177,7 +219,7 @@ describe("PacketaFulfillmentProviderService", () => {
       const data = await createService().validateFulfillmentData(
         { code: "z_point_cod", supports_cod: true },
         { access_point_id: "4242", access_point_name: "Praha 1" },
-        {} as any
+        validationContext
       )
       expect(data).toMatchObject({
         code: "z_point_cod",
@@ -198,7 +240,7 @@ describe("PacketaFulfillmentProviderService", () => {
     })
 
     it("throws when shipping_address is missing", async () => {
-      const order = createOrder({ shipping_address: undefined })
+      const { shipping_address: _shippingAddress, ...order } = createOrder()
       await expect(
         createService().createFulfillment(createShippingData(), [], order, {
           id: "ful_1",
@@ -260,7 +302,8 @@ describe("PacketaFulfillmentProviderService", () => {
     })
 
     it("throws for COD when order total is missing", async () => {
-      const order = createOrder({ total: undefined } as any)
+      const order = createOrder()
+      Object.defineProperty(order, "total", { value: undefined })
       await expect(
         createService().createFulfillment(
           createShippingData({ supports_cod: true }),
@@ -289,20 +332,19 @@ describe("PacketaFulfillmentProviderService", () => {
     })
 
     it("calculates weight from variant weight in grams", async () => {
-      const order = createOrder({
-        items: [
+      const order = createOrder()
+      Object.defineProperty(order, "items", {
+        value: [
           {
             id: "ordli_1",
             quantity: 2,
-            variant: {
-              weight: 400,
-            },
-          } as any,
+            variant: { weight: 400 },
+          },
         ],
       })
       await createService().createFulfillment(
         createShippingData(),
-        [{ line_item_id: "ordli_1", quantity: 2 } as any],
+        [{ line_item_id: "ordli_1", quantity: 2 }],
         order,
         { id: "ful_1" }
       )
@@ -316,19 +358,20 @@ describe("PacketaFulfillmentProviderService", () => {
       mockQuery.graph.mockResolvedValueOnce({
         data: [{ id: "prod_1", weight: 1000 }],
       })
-      const order = createOrder({
-        items: [
+      const order = createOrder()
+      Object.defineProperty(order, "items", {
+        value: [
           {
             id: "ordli_1",
             product_id: "prod_1",
             quantity: 3,
             variant: {},
-          } as any,
+          },
         ],
       })
       await createService().createFulfillment(
         createShippingData(),
-        [{ line_item_id: "ordli_1", quantity: 3 } as any],
+        [{ line_item_id: "ordli_1", quantity: 3 }],
         order,
         { id: "ful_1" }
       )
@@ -349,8 +392,8 @@ describe("PacketaFulfillmentProviderService", () => {
         order,
         { id: "ful_1" }
       )
-      expect((result.data as any).status).toBe("completed")
-      expect((result.data as any).label_url).toBeUndefined()
+      expect(result.data["status"]).toBe("completed")
+      expect(result.data["label_url"]).toBeUndefined()
       expect(result.labels).toEqual([])
     })
   })

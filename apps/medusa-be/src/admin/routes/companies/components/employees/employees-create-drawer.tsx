@@ -1,6 +1,7 @@
 import { Button, Drawer, toast } from "@medusajs/ui"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import type { QueryCompany } from "../../../../../types"
 import {
   useAdminCreateCustomer,
@@ -86,9 +87,9 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
     } else {
       try {
         const resolvedCustomer = await resolveCustomerId(email, {
-          first_name,
-          last_name,
-          phone,
+          ...(first_name === undefined ? {} : { first_name }),
+          ...(last_name === undefined ? {} : { last_name }),
+          ...(phone === undefined ? {} : { phone }),
         })
 
         if (!resolvedCustomer) {

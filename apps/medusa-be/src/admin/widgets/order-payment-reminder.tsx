@@ -11,6 +11,7 @@ import {
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
+
 import { sdk } from "../lib/sdk"
 
 type PaymentReminderOrder = {
@@ -93,9 +94,9 @@ const OrderEmailSendControl = ({
         error instanceof Error ? error.message : "Failed to send order email"
       )
     },
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       toast.success(`${response.template.label} sent`)
-      queryClient.invalidateQueries({ queryKey: UNPAID_ORDERS_QUERY_KEY })
+      await queryClient.invalidateQueries({ queryKey: UNPAID_ORDERS_QUERY_KEY })
     },
   })
 

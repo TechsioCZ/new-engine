@@ -2,15 +2,15 @@ import { MedusaError } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
 
 export type BrandScalarWriteInput = {
-  handle?: string
-  title?: string
-  gpsr_contact_email?: string | null
-  gpsr_european_reseller_contact_email?: string | null
-  gpsr_european_reseller_manufacturing_company_name?: string | null
-  gpsr_european_reseller_postal_address?: string | null
-  gpsr_manufactured_outside_eu?: boolean
-  gpsr_manufacturing_company_name?: string | null
-  gpsr_postal_address?: string | null
+  handle?: string | undefined
+  title?: string | undefined
+  gpsr_contact_email?: string | null | undefined
+  gpsr_european_reseller_contact_email?: string | null | undefined
+  gpsr_european_reseller_manufacturing_company_name?: string | null | undefined
+  gpsr_european_reseller_postal_address?: string | null | undefined
+  gpsr_manufactured_outside_eu?: boolean | undefined
+  gpsr_manufacturing_company_name?: string | null | undefined
+  gpsr_postal_address?: string | null | undefined
 }
 
 const emailSchema = z.string().email()

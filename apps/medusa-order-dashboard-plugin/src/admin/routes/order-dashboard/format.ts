@@ -8,10 +8,10 @@ import {
   type OrderDashboardTargetStatus,
 } from "./types"
 
-type TranslationFunction = (
-  key: string,
-  options?: Record<string, unknown>
-) => string
+type TranslationFunction = {
+  (key: string): string
+  (key: string, values: Record<string, unknown>): string
+}
 
 // Local copy for dashboard pre-checks; the backend mutation remains final.
 const ORDER_DASHBOARD_ALLOWED_STATUS_TRANSITIONS = {

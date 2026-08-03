@@ -11,6 +11,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+
 import { normalizeProductSalesChannelFilter } from "../../../../utils/product-filters"
 import {
   buildProductLocationAvailability,
@@ -116,7 +117,7 @@ export async function GET(
     query,
     remoteQuery,
     {
-      ...(req.filterableFields ?? {}),
+      ...req.filterableFields,
       id: productId,
     }
   )

@@ -1,10 +1,9 @@
 import { defineLink } from "@medusajs/framework/utils"
 import CustomerModule from "@medusajs/medusa/customer"
+
 import CompanyModule from "../modules/company"
 
-export const CompanyCustomerGroupLink = defineLink(
+export default defineLink(
   CompanyModule.linkable.company,
-  CustomerModule.linkable.customerGroup
+  CustomerModule.linkable["customerGroup"]
 )
-
-export default CompanyCustomerGroupLink

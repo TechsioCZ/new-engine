@@ -15,6 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
+
 import {
   deleteProductVariantMeasurement,
   measurementUnitQueryKeys,
@@ -37,7 +38,7 @@ const ProductVariantMeasurementContent = ({
   error,
   isLoading,
 }: {
-  data?: ProductVariantMeasurementResponse
+  data?: ProductVariantMeasurementResponse | undefined
   error: unknown
   isLoading: boolean
 }) => {
@@ -98,7 +99,7 @@ const ProductVariantMeasurementDrawer = ({
   productId,
   productVariantId,
 }: {
-  data?: ProductVariantMeasurementResponse
+  data?: ProductVariantMeasurementResponse | undefined
   onOpenChange: (open: boolean) => void
   open: boolean
   productId: string
@@ -253,8 +254,8 @@ const ProductVariantMeasurementWidget = ({
 }: ProductVariantMeasurementWidgetProps) => {
   const { t } = useTranslation("measurementUnits")
   const params = useParams()
-  const productId = variant?.product_id ?? params.id
-  const productVariantId = variant?.id ?? params.variant_id
+  const productId = variant?.product_id ?? params["id"]
+  const productVariantId = variant?.id ?? params["variant_id"]
   const [open, setOpen] = useState(false)
 
   const { data, error, isLoading } = useQuery({

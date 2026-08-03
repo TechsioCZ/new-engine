@@ -1,4 +1,5 @@
 import { clx } from "@medusajs/ui"
+
 import { PlaceholderCell } from "./placeholder-cell"
 
 type CellProps = {

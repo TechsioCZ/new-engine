@@ -10,6 +10,7 @@ import {
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import {
   createOrderDashboardFulfillment,
   listOrderDashboardFulfillmentOrders,
@@ -24,10 +25,7 @@ import type {
   OrderDashboardShippingOption,
 } from "./types"
 
-type TranslationFunction = (
-  key: string,
-  options?: Record<string, unknown>
-) => string
+type TranslationFunction = ReturnType<typeof useTranslation>["t"]
 
 type OrderDashboardBlockingOrder = {
   id: string
@@ -100,10 +98,10 @@ export function OrderFulfillmentModal({
   })
 
   const stockLocations = stockLocationsQuery.data ?? []
-  const shippingOptions = shippingOptionsQuery.data ?? []
+  const shippingOptions = shippingOptionsQuery.data
   const preview = useMemo(
     () =>
-      locationId && fulfillmentOrdersQuery.data && shippingOptionsQuery.data
+      locationId && fulfillmentOrdersQuery.data && shippingOptions
         ? getBulkFulfillmentPreview(
             fulfillmentOrdersQuery.data,
             selectedOrders,
@@ -116,7 +114,6 @@ export function OrderFulfillmentModal({
       locationId,
       selectedOrders,
       shippingOptions,
-      shippingOptionsQuery.data,
       t,
     ]
   )
@@ -202,11 +199,14 @@ export function OrderFulfillmentModal({
   }, [open])
 
   useEffect(() => {
-    if (!open || locationId || !stockLocations.length) {
+    if (!open || locationId || !stockLocations?.length) {
       return
     }
 
-    setLocationId(stockLocations[0].id)
+    const [firstStockLocation] = stockLocations
+    if (firstStockLocation) {
+      setLocationId(firstStockLocation.id)
+    }
   }, [locationId, open, stockLocations])
 
   useEffect(() => {

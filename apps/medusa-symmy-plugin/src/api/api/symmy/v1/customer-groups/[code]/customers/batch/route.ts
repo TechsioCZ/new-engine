@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import { enqueueImportJob } from "../../../../../../../../lib/queued-job-handler"
 import {
   SYMMY_CUSTOMER_GROUP_CUSTOMERS_ASSIGN_JOB_TYPE,
@@ -79,7 +80,7 @@ export const POST = async (
   await enqueueImportJob(req, res, {
     type: SYMMY_CUSTOMER_GROUP_CUSTOMERS_ASSIGN_JOB_TYPE,
     payload: {
-      code: req.params.code,
+      code: req.params["code"],
       customer_identifiers: req.validatedBody.customer_identifiers,
     },
     total: req.validatedBody.customer_identifiers.length,

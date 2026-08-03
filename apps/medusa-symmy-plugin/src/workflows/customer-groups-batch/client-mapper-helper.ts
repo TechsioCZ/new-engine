@@ -147,8 +147,8 @@ export class CustomerGroupsBatchClientMapperHelper {
       erp_code: _erpCode,
       ...metadata
     } = {
-      ...(existingMetadata ?? {}),
-      ...(group.metadata ?? {}),
+      ...existingMetadata,
+      ...group.metadata,
     }
     return {
       ...metadata,

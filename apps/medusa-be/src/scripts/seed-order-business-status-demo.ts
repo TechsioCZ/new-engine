@@ -1,6 +1,7 @@
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createOrderWorkflow } from "@medusajs/medusa/core-flows"
+
 import {
   type ManualOrderBusinessStatusId,
   ORDER_BUSINESS_STATUS_METADATA_KEY,
@@ -241,15 +242,17 @@ async function createDemoOrder({
       email: demo.email,
       items: [
         {
-          product_handle: variant.product?.handle ?? undefined,
-          product_id: variant.product?.id ?? undefined,
+          ...(variant.product?.handle
+            ? { product_handle: variant.product.handle }
+            : {}),
+          ...(variant.product?.id ? { product_id: variant.product.id } : {}),
           product_title: variant.product?.title ?? "Business status demo",
           quantity: 1,
           title: variant.product?.title ?? variant.title ?? "Demo item",
           unit_price: getDemoItemAmount(index),
           variant_id: variant.id,
-          variant_sku: variant.sku ?? undefined,
-          variant_title: variant.title ?? undefined,
+          ...(variant.sku ? { variant_sku: variant.sku } : {}),
+          ...(variant.title ? { variant_title: variant.title } : {}),
         },
       ],
       metadata: buildDemoMetadata({}, demo),
@@ -576,7 +579,7 @@ async function fetchBusinessStatusDemoOrders(query: QueryService) {
 
   return Array.isArray(data)
     ? (data as DemoOrder[]).filter(
-        (order) => order.metadata?.order_business_status_demo === true
+        (order) => order.metadata?.["order_business_status_demo"] === true
       )
     : []
 }
@@ -586,14 +589,14 @@ function buildDemoMetadata(
   demo: BusinessStatusDemo
 ) {
   const nextMetadata: Record<string, unknown> = {
-    ...(metadata ?? {}),
+    ...metadata,
     order_business_status_demo: true,
     order_business_status_demo_expected_status: demo.expectedStatus,
     order_business_status_demo_key: demo.key,
   }
 
   // biome-ignore lint/performance/noDelete: remove a legacy seed marker from serialized demo metadata.
-  delete nextMetadata.order_business_status_demo_expected_label
+  delete nextMetadata["order_business_status_demo_expected_label"]
 
   if (demo.manualStatus) {
     nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = demo.manualStatus
@@ -609,7 +612,7 @@ function getRows<T>(result: RawRows<T>) {
 }
 
 function getDemoKey(order: DemoOrder) {
-  const key = order.metadata?.order_business_status_demo_key
+  const key = order.metadata?.["order_business_status_demo_key"]
   return typeof key === "string" ? key : undefined
 }
 

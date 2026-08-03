@@ -2,12 +2,10 @@ import { describe, expect, it } from "vitest"
 
 describe("store company middlewares", () => {
   it("requires route company membership for company and employee read routes", async () => {
-    const { ensureCompanyMember } = await import(
-      "../../../../../../src/api/middlewares/ensure-role"
-    )
-    const { storeCompaniesMiddlewares } = await import(
-      "../../../../../../src/api/store/companies/middlewares"
-    )
+    const { ensureCompanyMember } =
+      await import("../../../../../../src/api/middlewares/ensure-role")
+    const { storeCompaniesMiddlewares } =
+      await import("../../../../../../src/api/store/companies/middlewares")
 
     const memberScopedRoutes = [
       "/store/companies/:id",
@@ -28,9 +26,8 @@ describe("store company middlewares", () => {
   })
 
   it("requires company admin authorization for employee delete routes", async () => {
-    const { storeCompaniesMiddlewares } = await import(
-      "../../../../../../src/api/store/companies/middlewares"
-    )
+    const { storeCompaniesMiddlewares } =
+      await import("../../../../../../src/api/store/companies/middlewares")
 
     const deleteEmployeeRoute = storeCompaniesMiddlewares.find(
       (route) =>
@@ -40,6 +37,6 @@ describe("store company middlewares", () => {
 
     expect(deleteEmployeeRoute).toBeDefined()
     expect(deleteEmployeeRoute?.middlewares).toHaveLength(1)
-    expect(deleteEmployeeRoute?.middlewares[0]).toBeTypeOf("function")
+    expect(deleteEmployeeRoute?.middlewares?.[0]).toBeTypeOf("function")
   })
 })

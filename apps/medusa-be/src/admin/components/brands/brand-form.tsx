@@ -19,6 +19,7 @@ import {
   useState,
 } from "react"
 import { useTranslation } from "react-i18next"
+
 import {
   type Brand,
   type BrandAttribute,
@@ -53,7 +54,7 @@ export type BrandFormState = {
   title: string
 }
 
-type BrandFormErrors = Partial<Record<keyof BrandFormState, string>>
+type BrandFormErrors = Partial<Record<keyof BrandFormState, string | undefined>>
 
 const emptyAttribute = (
   attributeTypes: BrandAttributeType[] = [],

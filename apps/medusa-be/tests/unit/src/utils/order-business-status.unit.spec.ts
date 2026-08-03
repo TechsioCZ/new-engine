@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+
 import {
   getOrderBusinessManualStatusUpdateBlockReason,
   isManualOrderBusinessStatusId,
@@ -12,12 +13,6 @@ import {
 const createOrder = (
   overrides: Partial<OrderBusinessStatusInput> = {}
 ): OrderBusinessStatusInput => ({
-  fulfillment_status: undefined,
-  fulfillments: undefined,
-  metadata: undefined,
-  payment_collections: undefined,
-  payment_status: undefined,
-  status: undefined,
   ...overrides,
 })
 

@@ -2,6 +2,7 @@ import type {
   CreateProductsWorkflowInput,
   UpdateProductsWorkflowInputProducts,
 } from "@medusajs/medusa/core-flows"
+
 import type {
   ExistingProduct,
   ExistingProductIndex,
@@ -129,7 +130,7 @@ export class ProductBatchClientMapperHelper {
       return
     }
     return {
-      ...(variant.metadata ?? {}),
+      ...variant.metadata,
       ...(variant.vat_rate !== undefined ? { vat_rate: variant.vat_rate } : {}),
     }
   }
@@ -220,15 +221,19 @@ export class ProductBatchClientMapperHelper {
     const productOptions = this.buildOptionsDefinition(variants)
     const fallbackPrices = this.normalizePrices(product.base_prices)
     const variantPayload = variants.length
-      ? variants.map((variant) => ({
-          title: variant.title,
-          sku: variant.sku,
-          ean: variant.ean,
-          manage_inventory: variant.manage_inventory ?? true,
-          prices: this.normalizePrices(variant.prices) ?? fallbackPrices ?? [],
-          options: this.normalizeVariantOptions(variant, productOptions),
-          metadata: this.buildVariantMetadata(variant),
-        }))
+      ? variants.map((variant) => {
+          const metadata = this.buildVariantMetadata(variant)
+          return {
+            title: variant.title,
+            ...(variant.sku === undefined ? {} : { sku: variant.sku }),
+            ...(variant.ean === undefined ? {} : { ean: variant.ean }),
+            manage_inventory: variant.manage_inventory ?? true,
+            prices:
+              this.normalizePrices(variant.prices) ?? fallbackPrices ?? [],
+            options: this.normalizeVariantOptions(variant, productOptions),
+            ...(metadata === undefined ? {} : { metadata }),
+          }
+        })
       : [
           {
             title: product.title,
@@ -243,30 +248,35 @@ export class ProductBatchClientMapperHelper {
       resolvedCategories
     )
 
+    const images = this.buildImagesPayload(product.images)
+
     return {
       title: product.title,
-      subtitle: product.subtitle,
-      description: product.description,
-      handle: product.handle,
+      ...(product.subtitle === undefined ? {} : { subtitle: product.subtitle }),
+      ...(product.description === undefined
+        ? {}
+        : { description: product.description }),
+      ...(product.handle === undefined ? {} : { handle: product.handle }),
       status: product.status ?? "published",
       discountable: product.discountable ?? true,
-      weight: product.weight,
-      hs_code: product.hs_code,
-      external_id:
-        product.identifier_type === "erp_id" ? product.erp_id : undefined,
-      options: productOptions,
-      images: this.buildImagesPayload(product.images),
+      ...(product.weight === undefined ? {} : { weight: product.weight }),
+      ...(product.hs_code === undefined ? {} : { hs_code: product.hs_code }),
+      ...(product.identifier_type === "erp_id" && product.erp_id !== undefined
+        ? { external_id: product.erp_id }
+        : {}),
+      ...(productOptions === undefined ? {} : { options: productOptions }),
+      ...(images === undefined ? {} : { images }),
       metadata: {
-        ...(product.metadata ?? {}),
+        ...product.metadata,
         ...(product.identifier_type === "erp_id" && product.erp_id
           ? { erp_id: product.erp_id }
           : {}),
       },
       variants: variantPayload,
-      sales_channels: defaultSalesChannelId
-        ? [{ id: defaultSalesChannelId }]
-        : undefined,
-      category_ids: categoryIds.length ? categoryIds : undefined,
+      ...(defaultSalesChannelId
+        ? { sales_channels: [{ id: defaultSalesChannelId }] }
+        : {}),
+      ...(categoryIds.length ? { category_ids: categoryIds } : {}),
     }
   }
 
@@ -298,49 +308,59 @@ export class ProductBatchClientMapperHelper {
     return {
       id: productId,
       title: product.title,
-      subtitle: product.subtitle,
-      description: product.description,
-      handle: product.handle,
+      ...(product.subtitle === undefined ? {} : { subtitle: product.subtitle }),
+      ...(product.description === undefined
+        ? {}
+        : { description: product.description }),
+      ...(product.handle === undefined ? {} : { handle: product.handle }),
       status: product.status ?? "published",
       discountable: product.discountable ?? true,
-      weight: product.weight,
-      hs_code: product.hs_code,
-      external_id:
-        product.identifier_type === "erp_id" ? product.erp_id : undefined,
-      images,
+      ...(product.weight === undefined ? {} : { weight: product.weight }),
+      ...(product.hs_code === undefined ? {} : { hs_code: product.hs_code }),
+      ...(product.identifier_type === "erp_id" && product.erp_id !== undefined
+        ? { external_id: product.erp_id }
+        : {}),
+      ...(images === undefined ? {} : { images }),
       metadata: {
-        ...(existing.metadata ?? {}),
-        ...(product.metadata ?? {}),
+        ...existing.metadata,
+        ...product.metadata,
         ...(product.identifier_type === "erp_id" && product.erp_id
           ? { erp_id: product.erp_id }
           : {}),
       },
-      variants: variants.length
-        ? variants.map((variant) => {
-            const variantId = this.findExistingVariantId(
-              variant,
-              existingVariantIndex
-            )
-            return {
-              ...(variantId ? { id: variantId } : {}),
-              title: variant.title,
-              sku: variant.sku,
-              ean: variant.ean,
-              manage_inventory: variant.manage_inventory ?? true,
-              prices: this.normalizePrices(variant.prices) ?? fallbackPrices,
-              ...(variantId
-                ? {}
-                : {
-                    options: this.normalizeVariantOptions(
-                      variant,
-                      productOptions
-                    ),
-                  }),
-              metadata: this.buildVariantMetadata(variant),
-            }
-          })
-        : undefined,
-      category_ids: categoryIdsForUpdate,
+      ...(variants.length
+        ? {
+            variants: variants.map((variant) => {
+              const variantId = this.findExistingVariantId(
+                variant,
+                existingVariantIndex
+              )
+              const prices =
+                this.normalizePrices(variant.prices) ?? fallbackPrices
+              const metadata = this.buildVariantMetadata(variant)
+              return {
+                ...(variantId ? { id: variantId } : {}),
+                title: variant.title,
+                ...(variant.sku === undefined ? {} : { sku: variant.sku }),
+                ...(variant.ean === undefined ? {} : { ean: variant.ean }),
+                manage_inventory: variant.manage_inventory ?? true,
+                ...(prices === undefined ? {} : { prices }),
+                ...(variantId
+                  ? {}
+                  : {
+                      options: this.normalizeVariantOptions(
+                        variant,
+                        productOptions
+                      ),
+                    }),
+                ...(metadata === undefined ? {} : { metadata }),
+              }
+            }),
+          }
+        : {}),
+      ...(categoryIdsForUpdate === undefined
+        ? {}
+        : { category_ids: categoryIdsForUpdate }),
     }
   }
 
@@ -388,7 +408,7 @@ export class ProductBatchClientMapperHelper {
 
     for (const variant of variants) {
       const value = variant[field]
-      const productId = variant.product_id
+      const productId = variant["product_id"]
       if (typeof value === "string" && typeof productId === "string") {
         result.set(value, productId)
       }

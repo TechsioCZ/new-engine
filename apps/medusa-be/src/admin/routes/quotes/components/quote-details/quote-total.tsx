@@ -1,6 +1,7 @@
 import type { AdminOrder, AdminOrderPreview } from "@medusajs/framework/types"
 import { Text } from "@medusajs/ui"
 import { useTranslation } from "react-i18next"
+
 import { formatAmount } from "../../../../utils"
 
 export const QuoteTotal = ({

@@ -1,5 +1,6 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { describe, expect, it } from "vitest"
+
 import {
   normalizeNonNegativeInteger,
   normalizePositiveInteger,
@@ -25,12 +26,12 @@ describe("product-list normalizers", () => {
       expect(normalizeProductListAccessType(undefined)).toBe("private")
     })
 
-    it.each([
-      "private",
-      "public",
-    ] as const)("accepts %s access", (accessType) => {
-      expect(normalizeProductListAccessType(accessType)).toBe(accessType)
-    })
+    it.each(["private", "public"] as const)(
+      "accepts %s access",
+      (accessType) => {
+        expect(normalizeProductListAccessType(accessType)).toBe(accessType)
+      }
+    )
 
     it("rejects unsupported access values", () => {
       expect(

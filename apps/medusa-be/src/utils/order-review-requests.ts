@@ -36,12 +36,12 @@ export function buildProductReviewRequestUrl({
   const encodedToken = encodeURIComponent(token)
   const searchParams = new URLSearchParams({ product_id: productId })
 
-  return `${baseUrl}${PRODUCT_REVIEW_REQUEST_PATH}/${encodedToken}?${searchParams}`
+  return `${baseUrl}${PRODUCT_REVIEW_REQUEST_PATH}/${encodedToken}?${searchParams.toString()}`
 }
 
 function getReviewRequestDelayMs() {
   const configuredMinutes = Number(
-    process.env.PRODUCT_REVIEW_REQUEST_DELAY_MINUTES
+    process.env["PRODUCT_REVIEW_REQUEST_DELAY_MINUTES"]
   )
 
   if (Number.isFinite(configuredMinutes) && configuredMinutes >= 0) {
@@ -117,22 +117,6 @@ export function isPaidOrder(order: ReviewRequestOrder) {
   )
 }
 
-export function isReviewRequestReadyOrder(
-  order: ReviewRequestOrder,
-  now = new Date()
-) {
-  if (!isPaidOrder(order)) {
-    return false
-  }
-
-  const paidAt = getOrderPaidAt(order)
-  if (!paidAt) {
-    return false
-  }
-
-  return now.getTime() - paidAt.getTime() >= getReviewRequestDelayMs()
-}
-
 export function getReviewRequestRunAt(order: ReviewRequestOrder) {
   const paidAt = getOrderPaidAt(order)
   if (!paidAt) {
@@ -143,5 +127,7 @@ export function getReviewRequestRunAt(order: ReviewRequestOrder) {
 }
 
 export function getReviewRequestMessage() {
-  return process.env.PRODUCT_REVIEW_REQUEST_MESSAGE ?? "Napiš recenzi produktu"
+  return (
+    process.env["PRODUCT_REVIEW_REQUEST_MESSAGE"] ?? "Napiš recenzi produktu"
+  )
 }

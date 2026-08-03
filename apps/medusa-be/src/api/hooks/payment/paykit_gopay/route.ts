@@ -1,11 +1,12 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import { PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID } from "../../../../modules/payment-paykit/constants"
 import { emitPaykitPaymentWebhookEvent } from "../../../../modules/payment-paykit/webhooks"
 
 type RequestWithUrlParts = MedusaRequest & {
   originalUrl?: string
   protocol?: string
-  get?: (name: string) => string | undefined
+  get?: (name: string) => string
 }
 
 const isRequestWithUrlParts = (

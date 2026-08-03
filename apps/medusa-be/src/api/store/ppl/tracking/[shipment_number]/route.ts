@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import {
   PPL_CLIENT_MODULE,
   PPL_STATUS_MESSAGES,
@@ -28,7 +29,7 @@ export async function GET(
     return
   }
 
-  if (process.env.FEATURE_PPL_ENABLED !== "1") {
+  if (process.env["FEATURE_PPL_ENABLED"] !== "1") {
     res.status(503).json({
       error: "PPL service is not enabled",
     })

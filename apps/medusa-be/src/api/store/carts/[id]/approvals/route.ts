@@ -2,6 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
+
 import { requirePathParam } from "../../../../../utils/path-params"
 import { createApprovalsWorkflow } from "../../../../../workflows/approval/workflows"
 
@@ -9,7 +10,7 @@ export const POST = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) => {
-  const cartId = requirePathParam(req.params.id, "Cart id")
+  const cartId = requirePathParam(req.params["id"], "Cart id")
   const { customer_id } = req.auth_context.app_metadata as {
     customer_id: string
   }

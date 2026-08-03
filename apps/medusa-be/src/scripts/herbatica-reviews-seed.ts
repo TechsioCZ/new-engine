@@ -1,5 +1,6 @@
 import type { ExecArgs, Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { PRODUCT_REVIEW_MODULE } from "../modules/product-review"
 import type ProductReviewModuleService from "../modules/product-review/service"
 import { HERBATICA_REVIEWS_XML_ENV } from "./herbatica-seed-config"
@@ -47,19 +48,21 @@ type ReviewRecord = {
   product_id: string
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isReviewImportRecord = (
+  value: unknown
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const isProductVariantRecord = (
   value: unknown
 ): value is ProductVariantRecord =>
-  isRecord(value) && typeof value.id === "string"
+  isReviewImportRecord(value) && typeof value["id"] === "string"
 
 const isReviewRecord = (value: unknown): value is ReviewRecord =>
-  isRecord(value) &&
-  typeof value.customer_id === "string" &&
-  typeof value.id === "string" &&
-  typeof value.product_id === "string"
+  isReviewImportRecord(value) &&
+  typeof value["customer_id"] === "string" &&
+  typeof value["id"] === "string" &&
+  typeof value["product_id"] === "string"
 
 const toValidDate = (value?: string) => {
   if (!value) {
@@ -101,6 +104,8 @@ const parseReviewProducts = (source: string): ParsedReviewProduct[] => {
       extractFirstText(product.inner, "product_url")
     )
 
+    const variantId = getUrlVariantId(url)
+
     return {
       gtins: extractElements(product.inner, "gtin")
         .map((gtin) => normalizeInlineText(gtin.inner))
@@ -108,7 +113,7 @@ const parseReviewProducts = (source: string): ParsedReviewProduct[] => {
       skus: extractElements(product.inner, "sku")
         .map((sku) => normalizeInlineText(sku.inner))
         .filter((sku): sku is string => Boolean(sku)),
-      variantId: getUrlVariantId(url),
+      ...(variantId ? { variantId } : {}),
     }
   })
 }
@@ -125,20 +130,23 @@ const parseHerbaticaReviewsXml = (xml: string): ParsedReview[] => {
       continue
     }
 
+    const reviewerName = normalizeInlineText(
+      extractFirstText(
+        extractFirstElementContent(review.inner, "reviewer") ?? "",
+        "name"
+      )
+    )
+    const timestamp = normalizeInlineText(
+      extractFirstText(review.inner, "review_timestamp")
+    )
+
     reviews.push({
       content,
       id,
       products: parseReviewProducts(review.inner),
       rating,
-      reviewerName: normalizeInlineText(
-        extractFirstText(
-          extractFirstElementContent(review.inner, "reviewer") ?? "",
-          "name"
-        )
-      ),
-      timestamp: normalizeInlineText(
-        extractFirstText(review.inner, "review_timestamp")
-      ),
+      ...(reviewerName ? { reviewerName } : {}),
+      ...(timestamp ? { timestamp } : {}),
     })
   }
 
@@ -255,12 +263,12 @@ const resolveReviewsXmlPath = (args?: string[]) => {
   )
 }
 
-const chunk = <T>(items: T[], size: number) => {
-  const chunks: T[][] = []
+const chunkReviewBatches = <T>(items: T[], size: number) => {
+  const batches: T[][] = []
   for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size))
+    batches.push(items.slice(index, index + size))
   }
-  return chunks
+  return batches
 }
 
 const getReviewCustomerId = (reviewId: string) =>
@@ -346,7 +354,10 @@ export const importHerbaticaReviews = async ({
     }
   }
 
-  for (const reviewBatch of chunk(pendingReviews, REVIEW_BATCH_SIZE)) {
+  for (const reviewBatch of chunkReviewBatches(
+    pendingReviews,
+    REVIEW_BATCH_SIZE
+  )) {
     await reviewService.createReviews(reviewBatch)
   }
 

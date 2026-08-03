@@ -5,6 +5,7 @@ import {
   MedusaContext,
   MedusaService,
 } from "@medusajs/framework/utils"
+
 import Brand from "./models/brand"
 import BrandAttribute from "./models/brand-attribute"
 import BrandAttributeType from "./models/brand-attribute-type"
@@ -15,11 +16,11 @@ export type BrandAttributeInput = {
 }
 
 export type BrandAttributeRecord = {
-  deleted_at?: string | Date | null
+  deleted_at?: string | Date | null | undefined
   id: string
   value: string
   attributeType?: {
-    deleted_at?: string | Date | null
+    deleted_at?: string | Date | null | undefined
     id: string
     name: string
   }
@@ -49,7 +50,7 @@ const normalizeAttributes = (attributes: BrandAttributeInput[] = []) => {
   return [...byName.values()]
 }
 
-const isDeleted = (record: { deleted_at?: string | Date | null }) =>
+const isDeleted = (record: { deleted_at?: string | Date | null | undefined }) =>
   !!record.deleted_at
 
 export const shouldDeleteBrandAttribute = (

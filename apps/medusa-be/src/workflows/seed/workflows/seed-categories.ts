@@ -3,6 +3,7 @@ import {
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import {
   type CreateProductCategoriesStepInput,
   createProductCategoriesStep,
@@ -10,10 +11,10 @@ import {
 
 export type CategoryRaw = {
   title: string
-  description?: string
+  description?: string | undefined
   handle: string
   isActive: boolean
-  parentHandle?: string
+  parentHandle?: string | undefined
 }
 
 const seedCategoriesWorkflowId = "seed-categories-workflow"
@@ -25,10 +26,10 @@ function seedCategoriesWorkflowComposer(input: CategoryRaw[]) {
     (data) =>
       data.input.map((i) => ({
         name: i.title,
-        description: i.description,
+        ...(i.description ? { description: i.description } : {}),
         handle: i.handle,
         isActive: Boolean(Number(i.isActive)),
-        parentHandle: i.parentHandle,
+        ...(i.parentHandle ? { parentHandle: i.parentHandle } : {}),
       }))
   )
 

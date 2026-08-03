@@ -1,6 +1,7 @@
 import { StatusBadge } from "@medusajs/ui"
 import { createColumnHelper } from "@tanstack/react-table"
 import { useTranslation } from "react-i18next"
+
 import type { AdminCartWithApprovals } from "../../../../../types"
 import { ApprovalStatusType } from "../../../../../types"
 import { DateCell } from "../../../../components/common/table/table-cells/date-cell"
@@ -17,9 +18,9 @@ const getApprovalItems = (
     id: item.id,
     product_title: item.product_title ?? item.title ?? "-",
     quantity: item.quantity,
-    thumbnail: item.thumbnail ?? undefined,
+    ...(item.thumbnail ? { thumbnail: item.thumbnail } : {}),
     unit_price: item.unit_price,
-    variant_title: item.variant_title ?? undefined,
+    ...(item.variant_title ? { variant_title: item.variant_title } : {}),
   })) ?? []
 
 const getStatusColor = (status: ApprovalStatusType) => {
@@ -44,7 +45,7 @@ export const useApprovalsTableColumns = () => {
     }),
     columnHelper.accessor("updated_at", {
       header: t("columns.updatedAt"),
-      cell: ({ getValue }) => <DateCell date={getValue()} />,
+      cell: ({ getValue }) => <DateCell date={getValue() ?? null} />,
     }),
     columnHelper.display({
       id: "company",

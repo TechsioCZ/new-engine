@@ -4,6 +4,7 @@ import type {
   MedusaContainer,
 } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import { MEASUREMENT_UNIT_MODULE } from "../modules/measurement-unit"
 import type MeasurementUnit from "../modules/measurement-unit/models/measurement-unit"
 import type ProductMeasurement from "../modules/measurement-unit/models/product-measurement"
@@ -19,16 +20,16 @@ export type ProductVariantMeasurementRecord = InferEntityType<
 >
 
 export type MeasurementUnitResponse = {
-  active_product_count?: number
+  active_product_count?: number | undefined
   base_quantity: number
   code: string
-  created_at?: Date | string
-  deleted_at?: Date | string | null
-  description?: null | string
+  created_at?: Date | string | undefined
+  deleted_at?: Date | string | null | undefined
+  description?: null | string | undefined
   id: string
   name: string
   symbol: string
-  updated_at?: Date | string
+  updated_at?: Date | string | undefined
 }
 
 export type ProductMeasurementResponse = {
@@ -147,7 +148,7 @@ export const getMeasurementDecorationQueryFields = (
 export const getMeasurementUnitService = (scope: MedusaContainer) =>
   scope.resolve<MeasurementUnitModuleService>(MEASUREMENT_UNIT_MODULE)
 
-export const toNumber = (value: number | string | unknown) => {
+export const toNumber = (value: unknown) => {
   if (typeof value === "number") {
     return value
   }

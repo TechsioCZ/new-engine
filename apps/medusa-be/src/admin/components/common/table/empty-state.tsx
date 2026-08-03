@@ -94,9 +94,11 @@ export const NoRecords = ({
         </div>
       </div>
 
-      {buttonVariant === "default" && <DefaultButton action={action} />}
+      {buttonVariant === "default" && (
+        <DefaultButton {...(action ? { action } : {})} />
+      )}
       {buttonVariant === "transparentIconLeft" && (
-        <TransparentIconLeftButton action={action} />
+        <TransparentIconLeftButton {...(action ? { action } : {})} />
       )}
     </div>
   )

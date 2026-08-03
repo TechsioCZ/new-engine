@@ -10,8 +10,8 @@ const isIframeEnabled = (value: string | undefined) => {
 
 /** Admin API handler for fetching Payload runtime configuration. */
 export async function GET(_req: MedusaRequest, res: MedusaResponse) {
-  const iframeUrl = process.env.PAYLOAD_IFRAME_URL ?? null
-  const iframeEnabled = isIframeEnabled(process.env.IS_IFRAME_PAYLOAD)
+  const iframeUrl = process.env["PAYLOAD_IFRAME_URL"] ?? null
+  const iframeEnabled = isIframeEnabled(process.env["IS_IFRAME_PAYLOAD"])
 
   res.setHeader("Cache-Control", "no-store")
   return res.json({ iframeUrl, isIframeEnabled: iframeEnabled })

@@ -4,6 +4,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+
 import type { RuleValueOptionsQuerySchemaType } from "../../../schema"
 import {
   escapeLikePattern,
@@ -15,7 +16,7 @@ export async function GET(
   req: MedusaRequest<unknown, RuleValueOptionsQuerySchemaType>,
   res: MedusaResponse
 ) {
-  const ruleType = req.params.rule_type
+  const ruleType = req.params["rule_type"]
 
   if (!ruleType) {
     throw new MedusaError(
@@ -32,7 +33,7 @@ export async function GET(
 
   if (searchQuery) {
     const escaped = escapeLikePattern(searchQuery)
-    filters.$or = [
+    filters["$or"] = [
       { title: { $ilike: `%${escaped}%` } },
       { sku: { $ilike: `%${escaped}%` } },
     ]
@@ -40,7 +41,7 @@ export async function GET(
 
   const valueFilter = req.validatedQuery.value ?? req.validatedQuery.id
   if (valueFilter) {
-    filters.id = Array.isArray(valueFilter) ? valueFilter : [valueFilter]
+    filters["id"] = Array.isArray(valueFilter) ? valueFilter : [valueFilter]
   }
 
   const limit = req.validatedQuery.limit

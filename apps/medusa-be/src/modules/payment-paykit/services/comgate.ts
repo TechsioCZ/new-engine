@@ -3,6 +3,7 @@ import type {
   InitiatePaymentInput,
 } from "@medusajs/framework/types"
 import { MedusaError, ModuleProvider, Modules } from "@medusajs/framework/utils"
+
 import { PAYKIT_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
 import {
   type PaykitInjectedDependencies,
@@ -122,7 +123,7 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
     input: InitiatePaymentInput,
     data: Record<string, unknown>
   ): string | undefined {
-    const dataCustomer = data.customer
+    const dataCustomer = data["customer"]
 
     return (
       (typeof dataCustomer === "string"
@@ -133,7 +134,7 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
       "email" in dataCustomer
         ? getEmailValue(dataCustomer.email)
         : undefined) ??
-      getEmailValue(data.email) ??
+      getEmailValue(data["email"]) ??
       getEmailValue(input.context?.customer?.email)
     )
   }
@@ -146,8 +147,8 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
     const email = this.getComgateCustomerEmail(input, data)
     const paymentLabel = getStringValue(
       this.options_.paymentLabel,
-      providerMetadata.paymentLabel,
-      providerMetadata.label
+      providerMetadata["paymentLabel"],
+      providerMetadata["label"]
     )
 
     return {

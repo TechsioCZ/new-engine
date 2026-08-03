@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+
 import {
   buildProductLocationAvailability,
   type InventoryLevel,
@@ -42,6 +43,28 @@ const level = (
   reserved_quantity: 0,
   stocked_quantity: availableQuantity,
 })
+
+const firstVariant = (
+  response: ReturnType<typeof buildProductLocationAvailability>
+) => {
+  const variant = response.variants[0]
+  if (!variant) {
+    throw new Error("expected variant")
+  }
+
+  return variant
+}
+
+const warehouseAvailability = (
+  response: ReturnType<typeof buildProductLocationAvailability>
+) => {
+  const entry = firstVariant(response).location_availability[1]
+  if (!entry) {
+    throw new Error("expected warehouse location availability entry")
+  }
+
+  return entry
+}
 
 describe("buildProductLocationAvailability", () => {
   it("returns configured stock locations for every variant and defaults missing levels to zero", () => {
@@ -106,7 +129,7 @@ describe("buildProductLocationAvailability", () => {
       variantIds: ["variant_1"],
     })
 
-    expect(response.variants[0].location_availability).toEqual([
+    expect(firstVariant(response).location_availability).toEqual([
       {
         available_quantity: 4,
         location_id: "sloc_default",
@@ -136,9 +159,7 @@ describe("buildProductLocationAvailability", () => {
       variantIds: ["variant_1"],
     })
 
-    expect(
-      response.variants[0].location_availability[1].available_quantity
-    ).toBe(7)
+    expect(warehouseAvailability(response).available_quantity).toBe(7)
   })
 
   it("aggregates multiple inventory levels for the same stock location", () => {
@@ -153,9 +174,7 @@ describe("buildProductLocationAvailability", () => {
       variantIds: ["variant_1"],
     })
 
-    expect(
-      response.variants[0].location_availability[1].available_quantity
-    ).toBe(13)
+    expect(warehouseAvailability(response).available_quantity).toBe(13)
   })
 
   it("divides by required_quantity and limits bundled variants by the scarcest inventory item", () => {
@@ -173,9 +192,7 @@ describe("buildProductLocationAvailability", () => {
       variantIds: ["variant_1"],
     })
 
-    expect(
-      response.variants[0].location_availability[1].available_quantity
-    ).toBe(3)
+    expect(warehouseAvailability(response).available_quantity).toBe(3)
   })
 
   it("ignores inventory levels outside the configured stock locations", () => {
@@ -190,7 +207,7 @@ describe("buildProductLocationAvailability", () => {
       variantIds: ["variant_1"],
     })
 
-    expect(response.variants[0].location_availability).toEqual([
+    expect(firstVariant(response).location_availability).toEqual([
       {
         available_quantity: 3,
         location_id: STORE_LOCATION.id,

@@ -8,6 +8,7 @@ import {
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useSearchParams } from "react-router-dom"
+
 import { DataTableFilterContext, useDataTableFilterContext } from "./context"
 import { NumberFilter } from "./number-filter"
 import { SelectFilter } from "./select-filter"
@@ -58,7 +59,7 @@ export const DataTableFilter = ({
   const [open, setOpen] = useState(false)
 
   const [activeFilters, setActiveFilters] = useState(
-    getInitialFilters({ searchParams, filters, prefix })
+    getInitialFilters({ searchParams, filters, ...(prefix ? { prefix } : {}) })
   )
 
   const availableFilters = filters.filter(
@@ -77,7 +78,7 @@ export const DataTableFilter = ({
       const missingFilters = getMissingActiveFilters({
         activeFilters,
         filters,
-        prefix,
+        ...(prefix ? { prefix } : {}),
         searchParams,
       })
 
@@ -117,12 +118,16 @@ export const DataTableFilter = ({
                 <SelectFilter
                   filter={filter}
                   key={filter.key}
-                  multiple={filter.multiple}
+                  {...(filter.multiple === undefined
+                    ? {}
+                    : { multiple: filter.multiple })}
                   openOnMount={filter.openOnMount}
                   options={filter.options}
-                  prefix={prefix}
-                  readonly={readonly}
-                  searchable={filter.searchable}
+                  {...(prefix ? { prefix } : {})}
+                  {...(readonly === undefined ? {} : { readonly })}
+                  {...(filter.searchable === undefined
+                    ? {}
+                    : { searchable: filter.searchable })}
                 />
               )
             case "string":
@@ -131,8 +136,8 @@ export const DataTableFilter = ({
                   filter={filter}
                   key={filter.key}
                   openOnMount={filter.openOnMount}
-                  prefix={prefix}
-                  readonly={readonly}
+                  {...(prefix ? { prefix } : {})}
+                  {...(readonly === undefined ? {} : { readonly })}
                 />
               )
             case "number":
@@ -141,8 +146,8 @@ export const DataTableFilter = ({
                   filter={filter}
                   key={filter.key}
                   openOnMount={filter.openOnMount}
-                  prefix={prefix}
-                  readonly={readonly}
+                  {...(prefix ? { prefix } : {})}
+                  {...(readonly === undefined ? {} : { readonly })}
                 />
               )
             default:
@@ -192,7 +197,7 @@ export const DataTableFilter = ({
           </PopoverRoot>
         )}
         {!readonly && activeFilters.length > 0 && (
-          <ClearAllFilters filters={filters} prefix={prefix} />
+          <ClearAllFilters filters={filters} {...(prefix ? { prefix } : {})} />
         )}
       </div>
     </DataTableFilterContext.Provider>
@@ -257,7 +262,6 @@ const getInitialFilters = ({
       if (filter.type === "select") {
         activeFilters.push({
           ...filter,
-          multiple: filter.multiple,
           options: filter.options,
           openOnMount: false,
         })
@@ -292,7 +296,6 @@ const getMissingActiveFilters = ({
       if (filter.type === "select") {
         missingFilters.push({
           ...filter,
-          multiple: filter.multiple,
           options: filter.options,
           openOnMount: false,
         })

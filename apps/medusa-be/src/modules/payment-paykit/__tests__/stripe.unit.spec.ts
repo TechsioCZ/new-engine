@@ -1,11 +1,20 @@
+import type { CapturePaymentInput } from "@medusajs/framework/types"
 import {
   MedusaError,
   PaymentActions,
   PaymentSessionStatus,
 } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
+
 import { PaykitStripePaymentProvider } from "../services/stripe"
 import { createMockContainer, createMockPaykitClient } from "./helpers"
+
+// PaykitStripePaymentProvider.capturePayment reads an explicit `amount`
+// override that is not part of the official CapturePaymentInput DTO but is
+// still supported at runtime via a structural check (see getExplicitCaptureAmount).
+type CapturePaymentInputWithAmount = CapturePaymentInput & {
+  amount?: unknown
+}
 
 describe("PaykitStripePaymentProvider", () => {
   it("validates required Stripe options", () => {
@@ -441,15 +450,17 @@ describe("PaykitStripePaymentProvider", () => {
       client,
     })
 
+    const input: CapturePaymentInputWithAmount = {
+      amount: { invalid: true },
+      data: {
+        id: "stripe-payment-1",
+        amount: 1050,
+        currency: "czk",
+      },
+    }
+
     await expect(
-      provider.capturePayment({
-        amount: { invalid: true },
-        data: {
-          id: "stripe-payment-1",
-          amount: 1050,
-          currency: "czk",
-        },
-      })
+      provider.capturePayment(input as CapturePaymentInput)
     ).rejects.toMatchObject({
       type: MedusaError.Types.INVALID_DATA,
       message: "PayKit capture amount must be numeric",

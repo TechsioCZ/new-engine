@@ -1,4 +1,7 @@
+import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import type { PostAdminOrderExpeditionStatusSchemaType } from "../../../../../../../src/api/admin/order-expedition/validators"
 
 vi.mock("@medusajs/framework/utils", () => ({
   ContainerRegistrationKeys: {
@@ -40,20 +43,58 @@ vi.mock(
   })
 )
 
-const createMockResponse = () => ({
-  json: vi.fn().mockReturnThis(),
-  status: vi.fn().mockReturnThis(),
-})
+/**
+ * Asserts that a plain mock object contains the given keys before narrowing
+ * it to a framework type. Building the mock as `unknown` first (instead of
+ * the target type) avoids requiring every property of the huge Node
+ * request/response interfaces while still validating the shape the route
+ * handler actually reads from at runtime.
+ */
+function assertMockShape<T>(
+  candidate: unknown,
+  requiredKeys: readonly string[]
+): asserts candidate is T {
+  if (typeof candidate !== "object" || candidate === null) {
+    throw new TypeError("Expected a mock object")
+  }
+
+  for (const key of requiredKeys) {
+    if (!(key in candidate)) {
+      throw new TypeError(`Mock object missing required key: ${key}`)
+    }
+  }
+}
+
+type MockStatusResponse = MedusaResponse & {
+  json: ReturnType<typeof vi.fn>
+  status: ReturnType<typeof vi.fn>
+}
+
+const createMockResponse = (): MockStatusResponse => {
+  const candidate: unknown = {
+    json: vi.fn().mockReturnThis(),
+    status: vi.fn().mockReturnThis(),
+  }
+  assertMockShape<MockStatusResponse>(candidate, ["json", "status"])
+  return candidate
+}
 
 const createMockRequest = (
   validatedBody: Record<string, unknown>,
   graph: ReturnType<typeof vi.fn>
-) => ({
-  scope: {
-    resolve: vi.fn(() => ({ graph })),
-  },
-  validatedBody,
-})
+): MedusaRequest<PostAdminOrderExpeditionStatusSchemaType> => {
+  const candidate: unknown = {
+    scope: {
+      resolve: vi.fn(() => ({ graph })),
+    },
+    validatedBody,
+  }
+  assertMockShape<MedusaRequest<PostAdminOrderExpeditionStatusSchemaType>>(
+    candidate,
+    ["scope", "validatedBody"]
+  )
+  return candidate
+}
 
 describe("POST /admin/order-expedition/status", () => {
   beforeEach(() => {
@@ -61,9 +102,8 @@ describe("POST /admin/order-expedition/status", () => {
   })
 
   it("prevalidates every selected order and blocks the whole batch when one is missing", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/status/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi.fn().mockResolvedValue({
       data: [{ id: "order_1", display_id: 1001, status: "pending" }],
     })
@@ -98,9 +138,8 @@ describe("POST /admin/order-expedition/status", () => {
   })
 
   it("runs completed as one bulk workflow after prevalidation", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/status/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -138,9 +177,8 @@ describe("POST /admin/order-expedition/status", () => {
   })
 
   it("runs direct Medusa status updates through the custom bulk update workflow", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/status/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -184,9 +222,8 @@ describe("POST /admin/order-expedition/status", () => {
   })
 
   it("blocks cancellation before mutation when a selected order has active fulfillments", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/status/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
@@ -224,9 +261,8 @@ describe("POST /admin/order-expedition/status", () => {
   })
 
   it("blocks direct status updates for final archived orders", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/status/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
@@ -263,9 +299,8 @@ describe("POST /admin/order-expedition/status", () => {
   })
 
   it("blocks archive for mutable orders that must be finalized first", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/status/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
@@ -302,9 +337,8 @@ describe("POST /admin/order-expedition/status", () => {
   })
 
   it("allows canceled orders to be archived", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/status/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -348,9 +382,8 @@ describe("POST /admin/order-expedition/status", () => {
   })
 
   it("runs cancel through the custom bulk cancel workflow after prevalidation", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/status/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({

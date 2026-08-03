@@ -10,6 +10,7 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import { ORDER_NOTE_MODULE } from "../../modules/order-note"
 import type OrderNoteModuleService from "../../modules/order-note/service"
 
@@ -61,20 +62,22 @@ const upsertOrderNoteStep = createStep(
       order_id: input.order_id,
     })
 
-    return new StepResponse<{ order_id: string }, RestoreOrderNoteCompensation>(
+    const compensation: RestoreOrderNoteCompensation = {
+      order_id: input.order_id,
+    }
+
+    if (existingNoteRecord && typeof existingNoteRecord.note === "string") {
+      compensation.previousNote = {
+        note: existingNoteRecord.note,
+        order_id: existingNoteRecord.order_id ?? input.order_id,
+      }
+    }
+
+    return new StepResponse(
       {
         order_id: input.order_id,
       },
-      {
-        order_id: input.order_id,
-        previousNote:
-          existingNoteRecord && typeof existingNoteRecord.note === "string"
-            ? {
-                note: existingNoteRecord.note,
-                order_id: existingNoteRecord.order_id ?? input.order_id,
-              }
-            : undefined,
-      }
+      compensation
     )
   },
   async (input, { container }) => {
@@ -120,7 +123,7 @@ const clearOrderNoteMetadataStep = createStep(
     }
 
     const orderRecord = order as OrderRecord
-    const previousMetadata = { ...(orderRecord.metadata ?? {}) }
+    const previousMetadata = { ...orderRecord.metadata }
     const { order_note: _orderNote, ...nextMetadata } = previousMetadata
 
     await orderService.updateOrders(input.order_id, {

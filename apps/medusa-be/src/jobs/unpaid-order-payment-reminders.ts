@@ -1,8 +1,10 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import type { ILockingModule, Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+
 import { EMAIL_LOG_MODULE } from "../modules/email-log"
 import type EmailLogModuleService from "../modules/email-log/service"
+import { executeWithLockTimeout } from "../utils/locking"
 import {
   fetchUnpaidOrders,
   formatTotal,
@@ -38,15 +40,19 @@ async function sendReminder(
     return
   }
 
+  const customerId = order.customer_id ?? undefined
+  const storeName = process.env["STORE_NAME"]
+  const total = formatTotal(order)
+
   await sendOrderPaymentReminderWorkflow(container).run({
     input: {
-      customer_id: order.customer_id ?? undefined,
+      ...(customerId === undefined ? {} : { customer_id: customerId }),
       email: order.email,
       order_display_id: getOrderDisplayId(order),
       order_id: order.id,
       payment_url: getPaymentUrl(order),
-      store_name: process.env.STORE_NAME,
-      total: formatTotal(order),
+      ...(storeName === undefined ? {} : { store_name: storeName }),
+      ...(total === undefined ? {} : { total }),
     },
   })
 }
@@ -159,26 +165,19 @@ export default async function unpaidOrderPaymentRemindersJob(
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
 
-  try {
-    await lockingModule.execute(
-      JOB_LOCK_KEY,
-      async () => {
-        await executePaymentReminderJob(container, logger)
-      },
-      { timeout: JOB_LOCK_TIMEOUT }
-    )
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message.includes("Timed-out acquiring lock")
-    ) {
-      logger.info(
-        "Unpaid Order Payment Reminders: Skipping - another instance is already running"
-      )
-      return
+  const result = await executeWithLockTimeout(
+    lockingModule,
+    JOB_LOCK_KEY,
+    JOB_LOCK_TIMEOUT,
+    async () => {
+      await executePaymentReminderJob(container, logger)
     }
+  )
 
-    throw error
+  if (result.status === "timed_out") {
+    logger.info(
+      "Unpaid Order Payment Reminders: Skipping - another instance is already running"
+    )
   }
 }
 

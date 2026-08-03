@@ -1,4 +1,5 @@
 import { model } from "@medusajs/framework/utils"
+
 import BrandAttribute from "./brand-attribute"
 
 const BrandAttributeType = model

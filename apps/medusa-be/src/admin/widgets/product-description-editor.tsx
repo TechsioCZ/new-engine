@@ -4,6 +4,7 @@ import { Button, Container, Heading, Text, toast } from "@medusajs/ui"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { RichHtmlEditor } from "../components/rich-html-editor"
 import {
   buildContentSections,
@@ -240,11 +241,11 @@ const ProductDescriptionEditor = ({
           : t("productContentSections.errors.saveFailed")
       )
     },
-    onSuccess: (response, variables) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (response, variables) => {
+      await queryClient.invalidateQueries({
         queryKey: ["product", variables.productId],
       })
-      queryClient.invalidateQueries({ queryKey: ["products"] })
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
 
       if (productIdRef.current !== variables.productId) {
         return

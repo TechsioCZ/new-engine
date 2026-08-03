@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
+
 import { ProductStatus } from "@medusajs/framework/utils"
 import { describe, expect, it } from "vitest"
+
 import {
   type HerbaticaCategoryExport,
   parseHerbaticaCategoriesXmlFile,
@@ -19,6 +21,39 @@ import {
 
 const DIRTY_FEED_MARKUP_PATTERN =
   /data-turn-id|data-message-author-role|data-testid|ChatGPT|markdown prose|webpage-citation-pill|_ngcontent-ng|markdown-main-panel/i
+
+function getContentSections(product: unknown) {
+  if (
+    !product ||
+    typeof product !== "object" ||
+    !("metadata" in product) ||
+    !product.metadata ||
+    typeof product.metadata !== "object" ||
+    !("content_sections_map" in product.metadata)
+  ) {
+    throw new Error("Expected product content sections metadata")
+  }
+
+  const sections = product.metadata["content_sections_map"]
+  if (
+    !sections ||
+    typeof sections !== "object" ||
+    !("composition" in sections) ||
+    typeof sections.composition !== "string" ||
+    !("description" in sections) ||
+    typeof sections.description !== "string" ||
+    !("other" in sections) ||
+    typeof sections.other !== "string" ||
+    !("usage" in sections) ||
+    typeof sections.usage !== "string" ||
+    !("warning" in sections) ||
+    typeof sections.warning !== "string"
+  ) {
+    throw new Error("Expected string product content sections")
+  }
+
+  return sections
+}
 
 describe("Herbatica seed category mapping", () => {
   it("prefers canonical category export data over malformed product paths", () => {
@@ -677,25 +712,23 @@ describe("Herbatica seed product content sections", () => {
     `
 
     const result = buildSeedInputFromXml(xml)
-    const product = result.products[0]
-    const contentSections = product?.metadata?.content_sections_map as Record<
-      string,
-      string
-    >
+    const contentSections = getContentSections(result.products[0])
 
-    expect(contentSections.description).toContain("Hlavný popis produktu")
-    expect(contentSections.description).toContain("Krátky popis produktu")
-    expect(contentSections.description).not.toContain("Neprekračujte")
-    expect(contentSections.description).not.toContain("Skladovanie")
-    expect(contentSections.usage).toContain("Dospelí užívajú 4 kapsuly denne")
-    expect(contentSections.warning).toContain("Neprekračujte")
-    expect(contentSections.composition).toContain(
+    expect(contentSections["description"]).toContain("Hlavný popis produktu")
+    expect(contentSections["description"]).toContain("Krátky popis produktu")
+    expect(contentSections["description"]).not.toContain("Neprekračujte")
+    expect(contentSections["description"]).not.toContain("Skladovanie")
+    expect(contentSections["usage"]).toContain(
+      "Dospelí užívajú 4 kapsuly denne"
+    )
+    expect(contentSections["warning"]).toContain("Neprekračujte")
+    expect(contentSections["composition"]).toContain(
       "Olej zo semien ostropestreca"
     )
-    expect(contentSections.other).toContain("Výživové údaje")
-    expect(contentSections.other).toContain("Skladovanie")
-    expect(contentSections.other).toContain("Obsah balenia/Objem")
-    expect(contentSections.other).toContain("Krajina pôvodu")
+    expect(contentSections["other"]).toContain("Výživové údaje")
+    expect(contentSections["other"]).toContain("Skladovanie")
+    expect(contentSections["other"]).toContain("Obsah balenia/Objem")
+    expect(contentSections["other"]).toContain("Krajina pôvodu")
   })
 
   it("uses explicit section headings without classifying marketing headings", () => {
@@ -728,18 +761,16 @@ describe("Herbatica seed product content sections", () => {
     `
 
     const result = buildSeedInputFromXml(xml)
-    const product = result.products[0]
-    const contentSections = product?.metadata?.content_sections_map as Record<
-      string,
-      string
-    >
+    const contentSections = getContentSections(result.products[0])
 
-    expect(contentSections.description).toContain("regenerácia pečene")
-    expect(contentSections.description).toContain("Jednoduché použitie v praxi")
-    expect(contentSections.description).toContain("marketingový odsek")
-    expect(contentSections.usage).toContain("Užívajte jednu kapsulu denne")
-    expect(contentSections.warning).toContain("Nevhodné pre deti")
-    expect(contentSections.usage).not.toContain("marketingový odsek")
+    expect(contentSections["description"]).toContain("regenerácia pečene")
+    expect(contentSections["description"]).toContain(
+      "Jednoduché použitie v praxi"
+    )
+    expect(contentSections["description"]).toContain("marketingový odsek")
+    expect(contentSections["usage"]).toContain("Užívajte jednu kapsulu denne")
+    expect(contentSections["warning"]).toContain("Nevhodné pre deti")
+    expect(contentSections["usage"]).not.toContain("marketingový odsek")
   })
 
   it("splits multiple labels from the same paragraph without duplicating them in description", () => {
@@ -772,17 +803,13 @@ describe("Herbatica seed product content sections", () => {
     `
 
     const result = buildSeedInputFromXml(xml)
-    const product = result.products[0]
-    const contentSections = product?.metadata?.content_sections_map as Record<
-      string,
-      string
-    >
+    const contentSections = getContentSections(result.products[0])
 
-    expect(contentSections.description).toContain("Úvodný popis")
-    expect(contentSections.description).not.toContain("amarantový olej")
-    expect(contentSections.composition).toContain("amarantový olej")
-    expect(contentSections.other).toContain("Objem")
-    expect(contentSections.other).toContain("Krajina pôvodu")
+    expect(contentSections["description"]).toContain("Úvodný popis")
+    expect(contentSections["description"]).not.toContain("amarantový olej")
+    expect(contentSections["composition"]).toContain("amarantový olej")
+    expect(contentSections["other"]).toContain("Objem")
+    expect(contentSections["other"]).toContain("Krajina pôvodu")
   })
 })
 

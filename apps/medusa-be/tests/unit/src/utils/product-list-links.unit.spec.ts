@@ -1,8 +1,10 @@
+import type { MedusaContainer } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
+
 import {
   assertCustomerOwnsProductList,
   listCustomerProductListIds,
@@ -18,15 +20,26 @@ vi.mock("../../../../src/links/customer-product-list", () => ({
   },
 }))
 
-const makeContainer = (query: { graph: ReturnType<typeof vi.fn> }) => ({
-  resolve: vi.fn((key) => {
-    if (key === ContainerRegistrationKeys.QUERY) {
-      return query
-    }
+const asMedusaContainer = (value: {
+  resolve: (key: string) => unknown
+}): MedusaContainer => {
+  if (typeof value.resolve !== "function") {
+    throw new TypeError("mock container requires a resolve function")
+  }
 
-    throw new Error(`Unexpected dependency: ${String(key)}`)
-  }),
-})
+  return value as MedusaContainer
+}
+
+const makeContainer = (query: { graph: ReturnType<typeof vi.fn> }) =>
+  asMedusaContainer({
+    resolve: vi.fn((key) => {
+      if (key === ContainerRegistrationKeys.QUERY) {
+        return query
+      }
+
+      throw new Error(`Unexpected dependency: ${String(key)}`)
+    }),
+  })
 
 describe("listCustomerProductListIds", () => {
   it("paginates customer product-list links and filters invalid records", async () => {

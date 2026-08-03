@@ -1,6 +1,7 @@
 import { Modules } from "@medusajs/framework/utils"
+
 import { type MedusaConfigEnv, requireRedisUrl } from "./env"
-import { assertNever, type MedusaModuleConfig } from "./types"
+import { assertUnhandledConfigValue, type MedusaModuleConfig } from "./types"
 
 type ModuleProviderConfig = {
   id: string
@@ -33,7 +34,7 @@ export function buildNotificationProvider(
         },
       }
     default:
-      return assertNever(env.notificationProvider)
+      return assertUnhandledConfigValue(env.notificationProvider)
   }
 }
 
@@ -87,7 +88,7 @@ export function buildCachingModule(env: MedusaConfigEnv): MedusaModuleConfig {
         },
       }
     default:
-      return assertNever(env.cacheProvider)
+      return assertUnhandledConfigValue(env.cacheProvider)
   }
 }
 
@@ -107,7 +108,7 @@ export function buildEventBusModule(env: MedusaConfigEnv): MedusaModuleConfig {
         },
       }
     default:
-      return assertNever(env.eventBusProvider)
+      return assertUnhandledConfigValue(env.eventBusProvider)
   }
 }
 
@@ -129,7 +130,7 @@ export function buildWorkflowEngineModule(
         },
       }
     default:
-      return assertNever(env.workflowEngineProvider)
+      return assertUnhandledConfigValue(env.workflowEngineProvider)
   }
 }
 
@@ -151,7 +152,7 @@ function buildLockingProvider(env: MedusaConfigEnv): ModuleProviderConfig {
         },
       }
     default:
-      return assertNever(env.lockingProvider)
+      return assertUnhandledConfigValue(env.lockingProvider)
   }
 }
 
@@ -193,7 +194,7 @@ function buildFileProvider(env: MedusaConfigEnv): ModuleProviderConfig {
         },
       }
     default:
-      return assertNever(env.fileProvider)
+      return assertUnhandledConfigValue(env.fileProvider)
   }
 }
 

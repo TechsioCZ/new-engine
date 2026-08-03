@@ -6,6 +6,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
+
 import type {
   AdminApproval,
   AdminApprovalSettings,
@@ -48,16 +49,16 @@ export const useUpdateApprovalSettings = (
 
       return approvalSettings
     },
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: approvalSettingsQueryKey.detail(companyId),
       })
 
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.details(),
       })
 
-      options?.onSuccess?.(data, variables, context)
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })
@@ -72,7 +73,7 @@ export const useApprovals = (
   const fetchApprovals = async () =>
     sdk.client.fetch<AdminApprovalsResponse>("/admin/approvals", {
       method: "GET",
-      query,
+      ...(query ? { query } : {}),
     })
 
   return useQuery({
@@ -94,12 +95,12 @@ export const useUpdateApproval = (
         body: payload,
         method: "POST",
       }),
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: approvalQueryKey.lists(),
       })
 
-      options?.onSuccess?.(data, variables, context)
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })

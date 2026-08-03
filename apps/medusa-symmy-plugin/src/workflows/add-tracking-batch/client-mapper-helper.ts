@@ -1,4 +1,5 @@
 import { MedusaError } from "@medusajs/framework/utils"
+
 import type {
   ExistingOrder,
   OrderLineItem,
@@ -102,8 +103,12 @@ export class TrackingBatchClientMapperHelper {
           `SKU '${requested.sku}' matches multiple order items in order '${order.id}'`
         )
       }
+      const match = matches[0]
+      if (!match) {
+        throw new Error(`SKU '${requested.sku}' could not be resolved`)
+      }
       return {
-        id: matches[0].id,
+        id: match.id,
         quantity: requested.quantity,
       }
     })
@@ -111,9 +116,11 @@ export class TrackingBatchClientMapperHelper {
 
   buildShipmentMetadata(shipment: TrackingShipmentInput) {
     return {
-      carrier: shipment.carrier,
+      ...(shipment.carrier !== undefined ? { carrier: shipment.carrier } : {}),
       tracking_number: shipment.tracking_number,
-      tracking_url: shipment.tracking_url,
+      ...(shipment.tracking_url !== undefined
+        ? { tracking_url: shipment.tracking_url }
+        : {}),
     }
   }
 

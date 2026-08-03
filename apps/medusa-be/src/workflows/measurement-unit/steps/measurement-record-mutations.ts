@@ -1,4 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import {
   getMeasurementUnitService,
   type ProductMeasurementRecord,
@@ -6,7 +7,7 @@ import {
 } from "../../../utils/measurement-units"
 
 type ActivateProductMeasurementInput = {
-  existing?: ProductMeasurementRecord
+  existing?: ProductMeasurementRecord | undefined
   measurement_unit_id: string
   product_id: string
 }

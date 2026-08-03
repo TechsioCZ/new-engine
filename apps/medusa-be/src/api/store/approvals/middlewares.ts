@@ -8,6 +8,7 @@ import {
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type { MiddlewareRoute } from "@medusajs/medusa"
+
 import { ApprovalType } from "../../../types"
 import { ensureRole } from "../../middlewares/ensure-role"
 import { approvalTransformQueryConfig } from "./query-config"
@@ -21,6 +22,11 @@ const ensureApprovalType = async (
   const { id } = req.params
   const { customer_id: customerId } = req.auth_context.app_metadata as {
     customer_id?: string
+  }
+
+  if (!id) {
+    res.status(400).json({ message: "Approval id is required" })
+    return
   }
 
   if (!customerId) {
@@ -43,9 +49,7 @@ const ensureApprovalType = async (
     return
   }
 
-  const approvalType = approval.type as unknown as ApprovalType
-
-  if (approvalType !== ApprovalType.ADMIN) {
+  if (approval.type !== ApprovalType.ADMIN) {
     res.status(403).json({ message: "Forbidden" })
     return
   }

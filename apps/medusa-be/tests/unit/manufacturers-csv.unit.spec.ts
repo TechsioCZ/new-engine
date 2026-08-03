@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+
 import {
   buildManufacturersLookup,
   parseManufacturersCsv,
@@ -51,18 +52,18 @@ function csvRow(overrides: Partial<Record<string, string>> = {}) {
   }
 
   return [
-    values.id,
-    values.name,
-    values.indexName,
-    values.contactEmail,
-    values.europeanResellerContactEmail,
-    values.europeanResellerManufacturingCompanyName,
-    values.europeanResellerPostalAddress,
-    values.manufacturingCompanyName,
-    values.postalAddress,
-    values.inList,
-    values.inMenu,
-    values.description,
+    values["id"],
+    values["name"],
+    values["indexName"],
+    values["contactEmail"],
+    values["europeanResellerContactEmail"],
+    values["europeanResellerManufacturingCompanyName"],
+    values["europeanResellerPostalAddress"],
+    values["manufacturingCompanyName"],
+    values["postalAddress"],
+    values["inList"],
+    values["inMenu"],
+    values["description"],
   ].join(";")
 }
 
@@ -94,32 +95,33 @@ describe("parseManufacturersCsv", () => {
     ).toHaveLength(1)
   })
 
-  it.each([
-    "1",
-    "true",
-    "TRUE",
-    "yes",
-    "on",
-  ])("accepts true boolean spelling %s", (value) => {
-    expect(
-      parseManufacturersCsv(`${HEADERS}\n${csvRow({ inList: value })}`)[0]
-        .inList
-    ).toBe(true)
-  })
+  it.each(["1", "true", "TRUE", "yes", "on"])(
+    "accepts true boolean spelling %s",
+    (value) => {
+      const row = parseManufacturersCsv(
+        `${HEADERS}\n${csvRow({ inList: value })}`
+      )[0]
+      if (!row) {
+        throw new Error("expected row")
+      }
 
-  it.each([
-    "",
-    "0",
-    "false",
-    "FALSE",
-    "no",
-    "off",
-  ])("accepts false boolean spelling %s", (value) => {
-    expect(
-      parseManufacturersCsv(`${HEADERS}\n${csvRow({ inList: value })}`)[0]
-        .inList
-    ).toBe(false)
-  })
+      expect(row.inList).toBe(true)
+    }
+  )
+
+  it.each(["", "0", "false", "FALSE", "no", "off"])(
+    "accepts false boolean spelling %s",
+    (value) => {
+      const row = parseManufacturersCsv(
+        `${HEADERS}\n${csvRow({ inList: value })}`
+      )[0]
+      if (!row) {
+        throw new Error("expected row")
+      }
+
+      expect(row.inList).toBe(false)
+    }
+  )
 
   it("derives outside-EU only from a complete representative", () => {
     const row = parseManufacturersCsv(
@@ -129,6 +131,9 @@ describe("parseManufacturersCsv", () => {
         europeanResellerPostalAddress: "Prague",
       })}`
     )[0]
+    if (!row) {
+      throw new Error("expected row")
+    }
 
     expect(row.gpsr_manufactured_outside_eu).toBe(true)
   })

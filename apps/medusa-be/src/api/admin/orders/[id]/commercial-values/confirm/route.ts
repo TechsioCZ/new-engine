@@ -4,6 +4,8 @@ import type {
 } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
+import { definedProperties } from "../../../../../../utils/defined-properties"
 import { applyOrderCommercialValues } from "../../../../../../workflows/order-commercial-values/apply-commercial-values"
 import {
   fetchEditableCommercialValuesOrder,
@@ -17,7 +19,7 @@ export async function POST(
   req: AuthenticatedMedusaRequest<PostAdminOrderCommercialValuesConfirmSchemaType>,
   res: MedusaResponse
 ) {
-  const id = requireCommercialValuesOrderId(req.params.id)
+  const id = requireCommercialValuesOrderId(req.params["id"])
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const order = await fetchEditableCommercialValuesOrder(
     req.scope,
@@ -34,7 +36,7 @@ export async function POST(
     ),
     container: req.scope,
     order: toApplyCommercialValuesOrder(order),
-    request: req.validatedBody,
+    request: definedProperties(req.validatedBody),
   })
 
   res.json({ commercial_values: result })

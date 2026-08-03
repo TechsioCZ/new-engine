@@ -8,6 +8,7 @@ import {
   createPriceListsWorkflow,
   updatePriceListsWorkflow,
 } from "@medusajs/medusa/core-flows"
+
 import {
   SYMMY_CUSTOMER_GROUP_CODE_MODULE,
   type SymmyCustomerGroupCodeModuleService,
@@ -146,12 +147,12 @@ export class PriceListsClient {
     limit,
     offset,
   }: {
-    code?: string
+    code?: string | undefined
     limit: number
     offset: number
   }) {
     const { mappings, count } = await this.priceListCodeService.listPage({
-      erpCode: code,
+      ...(code !== undefined ? { erpCode: code } : {}),
       limit,
       offset,
     })
@@ -207,7 +208,7 @@ export class PriceListsClient {
         ] as never,
       },
     })
-    const created = result?.[0] as unknown as ExistingPriceList | undefined
+    const created = result?.[0] as ExistingPriceList | undefined
     if (!created) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
@@ -290,7 +291,7 @@ export class PriceListsClient {
 
     const { data } = await this.query.graph({
       entity: "price",
-      fields: PRICE_FIELDS as unknown as string[],
+      fields: Array.from(PRICE_FIELDS),
       filters: {
         price_list_id: priceListId,
         price_set_id: Array.from(priceSetIds),
@@ -333,7 +334,7 @@ export class PriceListsClient {
     }
     const { data } = await this.query.graph({
       entity: "price_list",
-      fields: PRICE_LIST_FIELDS as unknown as string[],
+      fields: Array.from(PRICE_LIST_FIELDS),
       filters: { id: Array.from(ids) },
     })
     return new Map(
@@ -393,8 +394,8 @@ export class PriceListsClient {
   ): Map<string, string> {
     const map = new Map<string, string>()
     for (const variant of variants) {
-      const id = variant.id
-      const priceSet = variant.price_set
+      const id = variant["id"]
+      const priceSet = variant["price_set"]
       const priceSetId =
         priceSet && typeof priceSet === "object" && "id" in priceSet
           ? priceSet.id
@@ -419,6 +420,7 @@ export class PriceListsClient {
     if (price.identifier_type === "variant_id" && price.variant_id) {
       return variantMaps.byId.get(price.variant_id)
     }
+    return undefined
   }
 
   private async queryCustomerGroups(filters: Record<string, string[]>) {

@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import { restoreMeasurementUnitsWorkflow } from "../../../../../workflows/measurement-unit/workflows/restore-measurement-units"
 import {
   retrieveMeasurementUnitOrThrow,
@@ -6,7 +7,7 @@ import {
 } from "../../utils"
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  const id = req.params.id ?? ""
+  const id = req.params["id"] ?? ""
 
   await retrieveMeasurementUnitOrThrow(req.scope, id, { withDeleted: true })
   await restoreMeasurementUnitsWorkflow(req.scope).run({

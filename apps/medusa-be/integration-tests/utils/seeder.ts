@@ -1,4 +1,26 @@
-export async function regionSeeder({ api, adminHeaders, data }) {
+import type { MedusaSuiteOptions } from "@medusajs/test-utils"
+
+type TestApi = MedusaSuiteOptions["api"]
+type TestHeaders = { headers: Record<string, string> }
+type SeederData = Record<string, unknown>
+
+type AdminSeederInput = {
+  api: TestApi
+  adminHeaders: TestHeaders
+  data: SeederData
+}
+
+type StoreSeederInput = {
+  api: TestApi
+  storeHeaders: TestHeaders
+  data: SeederData
+}
+
+export async function regionSeeder({
+  api,
+  adminHeaders,
+  data,
+}: AdminSeederInput) {
   return (
     await api.post(
       "/admin/regions",
@@ -8,7 +30,11 @@ export async function regionSeeder({ api, adminHeaders, data }) {
   ).data.region
 }
 
-export async function salesChannelSeeder({ api, adminHeaders, data }) {
+export async function salesChannelSeeder({
+  api,
+  adminHeaders,
+  data,
+}: AdminSeederInput) {
   return (
     await api.post(
       "/admin/sales-channels",
@@ -18,7 +44,11 @@ export async function salesChannelSeeder({ api, adminHeaders, data }) {
   ).data.sales_channel
 }
 
-export async function productSeeder({ api, adminHeaders, data }) {
+export async function productSeeder({
+  api,
+  adminHeaders,
+  data,
+}: AdminSeederInput) {
   return (
     await api.post(
       "/admin/products",
@@ -54,7 +84,11 @@ export async function productSeeder({ api, adminHeaders, data }) {
   ).data.product
 }
 
-export async function cartSeeder({ api, storeHeaders, data }) {
+export async function cartSeeder({
+  api,
+  storeHeaders,
+  data,
+}: StoreSeederInput) {
   return (
     await api.post(
       "/store/carts",

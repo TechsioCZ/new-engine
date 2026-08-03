@@ -1,16 +1,19 @@
 import type { DeleteEntityInput, Link } from "@medusajs/framework/modules-sdk"
-import type { Query, RemoteQueryEntryPoints } from "@medusajs/framework/types"
+import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 import type {
   ICompanyModuleService,
   ModuleCreateEmployee,
+  QueryGraphEmployee,
 } from "../../../types"
+import { definedProperties } from "../../../utils/defined-properties"
 
 type EmployeeCustomerLinkRow = {
   customer_id?: string
@@ -66,10 +69,7 @@ export const createOrRestoreEmployeeStep = createStep(
     input: ModuleCreateEmployee,
     { container }
   ): Promise<
-    StepResponse<
-      RemoteQueryEntryPoints["employee"],
-      CreateOrRestoreEmployeeCompensation
-    >
+    StepResponse<QueryGraphEmployee, CreateOrRestoreEmployeeCompensation>
   > => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
@@ -127,11 +127,13 @@ export const createOrRestoreEmployeeStep = createStep(
 
       await companyModuleService.restoreEmployees([restorableEmployee.id])
       await link.restore(restoredLinkInput)
-      const updatedEmployee = await companyModuleService.updateEmployees({
-        id: restorableEmployee.id,
-        is_admin: input.is_admin,
-        spending_limit: input.spending_limit,
-      })
+      const updatedEmployee = await companyModuleService.updateEmployees(
+        definedProperties({
+          id: restorableEmployee.id,
+          is_admin: input.is_admin,
+          spending_limit: input.spending_limit,
+        })
+      )
 
       const {
         data: [restoredEmployee],

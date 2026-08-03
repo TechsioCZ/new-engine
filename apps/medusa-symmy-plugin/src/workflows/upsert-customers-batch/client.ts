@@ -10,6 +10,7 @@ import {
   updateCustomerAddressesWorkflow,
   updateCustomersWorkflow,
 } from "@medusajs/medusa/core-flows"
+
 import {
   SYMMY_CUSTOMER_GROUP_CODE_MODULE,
   type SymmyCustomerGroupCodeModuleService,
@@ -157,13 +158,13 @@ export class CustomerBatchClient {
     return this.mapper.findExistingCustomer(customer, index)
   }
 
-  async createCustomer(customer: CustomerInput): Promise<ExistingCustomer> {
+  async createCustomer(customer: CustomerInput): Promise<{ id: string }> {
     const { result } = await createCustomersWorkflow(this.container).run({
       input: {
         customersData: [this.mapper.buildCreatePayload(customer)] as never,
       },
     })
-    const created = result?.[0] as unknown as ExistingCustomer | undefined
+    const created = result?.[0]
     if (!created) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
@@ -181,7 +182,7 @@ export class CustomerBatchClient {
     await updateCustomersWorkflow(this.container).run({
       input: {
         selector: { id: customerId },
-        update: this.mapper.buildUpdatePayload(existing, customer) as never,
+        update: this.mapper.buildUpdatePayload(existing, customer),
       },
     })
   }
@@ -216,7 +217,7 @@ export class CustomerBatchClient {
         await updateCustomerAddressesWorkflow(this.container).run({
           input: {
             selector: { id: address.address_id, customer_id: customerId },
-            update: this.mapper.buildAddressPayload(address) as never,
+            update: this.mapper.buildAddressPayload(address),
           },
         })
         continue
@@ -284,7 +285,7 @@ export class CustomerBatchClient {
     }
     const { data } = await this.query.graph({
       entity: "customer",
-      fields: CUSTOMER_FIELDS as unknown as string[],
+      fields: Array.from(CUSTOMER_FIELDS),
       filters,
     })
     return (data ?? []) as ExistingCustomer[]

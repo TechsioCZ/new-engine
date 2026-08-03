@@ -2,6 +2,7 @@ import { Check, XMark } from "@medusajs/icons"
 import { IconButton, usePrompt } from "@medusajs/ui"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { ApprovalStatusType, ApprovalType } from "../../../../types"
 import { useUpdateApproval } from "../../../hooks/api"
 
@@ -96,5 +97,3 @@ export const ApprovalActions = ({ cart }: { cart: ApprovalActionCart }) => {
 
   return null
 }
-
-export default ApprovalActions

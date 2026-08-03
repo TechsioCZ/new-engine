@@ -1,4 +1,7 @@
+import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import type { PostAdminOrderBusinessStatusesBulkSchemaType } from "../../../../../../../src/api/admin/order-business-statuses/validators"
 
 vi.mock("@medusajs/framework/utils", () => ({
   ContainerRegistrationKeys: {
@@ -11,9 +14,45 @@ vi.mock("@medusajs/framework/utils", () => ({
   },
 }))
 
-const createMockResponse = () => ({
-  json: vi.fn().mockReturnThis(),
-})
+/**
+ * Asserts that a plain mock object contains the given keys before narrowing
+ * it to a framework type. Building the mock as `unknown` first (instead of
+ * the target type) avoids requiring every property of the huge Node
+ * request/response interfaces while still validating the shape the route
+ * handler actually reads from at runtime.
+ */
+function assertMockShape<T>(
+  candidate: unknown,
+  requiredKeys: readonly string[]
+): asserts candidate is T {
+  if (typeof candidate !== "object" || candidate === null) {
+    throw new TypeError("Expected a mock object")
+  }
+
+  for (const key of requiredKeys) {
+    if (!(key in candidate)) {
+      throw new TypeError(`Mock object missing required key: ${key}`)
+    }
+  }
+}
+
+type MockJsonResponse = MedusaResponse & { json: ReturnType<typeof vi.fn> }
+
+const createMockResponse = (): MockJsonResponse => {
+  const candidate: unknown = { json: vi.fn().mockReturnThis() }
+  assertMockShape<MockJsonResponse>(candidate, ["json"])
+  return candidate
+}
+
+const asMockRequest = (
+  candidate: unknown
+): MedusaRequest<PostAdminOrderBusinessStatusesBulkSchemaType> => {
+  assertMockShape<MedusaRequest<PostAdminOrderBusinessStatusesBulkSchemaType>>(
+    candidate,
+    ["scope", "validatedBody"]
+  )
+  return candidate
+}
 
 describe("POST /admin/order-business-statuses/bulk", () => {
   beforeEach(() => {
@@ -21,9 +60,8 @@ describe("POST /admin/order-business-statuses/bulk", () => {
   })
 
   it("updates eligible orders and skips blocked ones", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-business-statuses/bulk/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-business-statuses/bulk/route")
     const clearCache = vi.fn().mockResolvedValue(undefined)
     const warn = vi.fn()
     const updateOrders = vi.fn().mockResolvedValue(undefined)
@@ -53,7 +91,7 @@ describe("POST /admin/order-business-statuses/bulk", () => {
           },
         ],
       })
-    const req = {
+    const req = asMockRequest({
       scope: {
         resolve: vi.fn((key) => {
           if (key === "query") {
@@ -79,7 +117,7 @@ describe("POST /admin/order-business-statuses/bulk", () => {
         order_ids: ["order_1", "order_2", "order_missing"],
         status: "processing",
       },
-    }
+    })
     const res = createMockResponse()
 
     await POST(req, res)
@@ -112,9 +150,8 @@ describe("POST /admin/order-business-statuses/bulk", () => {
   })
 
   it("keeps updating eligible orders when one update fails", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-business-statuses/bulk/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-business-statuses/bulk/route")
     const clearCache = vi.fn().mockResolvedValue(undefined)
     const warn = vi.fn()
     const updateOrders = vi.fn((id: string) =>
@@ -148,7 +185,7 @@ describe("POST /admin/order-business-statuses/bulk", () => {
           },
         ],
       })
-    const req = {
+    const req = asMockRequest({
       scope: {
         resolve: vi.fn((key) => {
           if (key === "query") {
@@ -174,7 +211,7 @@ describe("POST /admin/order-business-statuses/bulk", () => {
         order_ids: ["order_1", "order_2"],
         status: "processing",
       },
-    }
+    })
     const res = createMockResponse()
 
     await POST(req, res)

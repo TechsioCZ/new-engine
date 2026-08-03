@@ -1,4 +1,5 @@
 import { z } from "@medusajs/framework/zod"
+
 import { PriceInputSchema } from "../../../batch-upsert/validators"
 
 const PRICE_LIST_PRICES_BATCH_MAX = 500

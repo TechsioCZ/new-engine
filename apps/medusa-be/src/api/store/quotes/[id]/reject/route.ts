@@ -4,6 +4,7 @@ import type {
 } from "@medusajs/framework"
 import type { RemoteQueryFunction } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { requirePathParam } from "../../../../../utils/path-params"
 import { customerRejectQuoteWorkflow } from "../../../../../workflows/quote/workflows"
 import type { RejectQuoteType } from "../../validators"
@@ -12,7 +13,7 @@ export const POST = async (
   req: AuthenticatedMedusaRequest<RejectQuoteType>,
   res: MedusaResponse
 ) => {
-  const id = requirePathParam(req.params.id, "Quote id")
+  const id = requirePathParam(req.params["id"], "Quote id")
 
   const query = req.scope.resolve<RemoteQueryFunction>(
     ContainerRegistrationKeys.QUERY

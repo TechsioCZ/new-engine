@@ -2,6 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
+
 import { requirePathParam } from "../../../../utils/path-params"
 import { updateApprovalsWorkflow } from "../../../../workflows/approval/workflows"
 import type { StoreUpdateApprovalType } from "../validators"
@@ -14,7 +15,7 @@ export const POST = async (
     customer_id: string
   }
 
-  const approvalId = requirePathParam(req.params.id, "Approval id")
+  const approvalId = requirePathParam(req.params["id"], "Approval id")
   const { status } = req.validatedBody
 
   const { result: approval, errors } = await updateApprovalsWorkflow(

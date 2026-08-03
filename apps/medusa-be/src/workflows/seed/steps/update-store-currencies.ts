@@ -30,6 +30,9 @@ export const updateStoreCurrenciesStep = createStep(
 
     // medusa bug? storeModuleService interface is not exported / defined?
     const [store]: StoreDTO[] = await storeModuleService.listStores()
+    if (!store) {
+      throw new Error("Store not found while updating seed currencies")
+    }
 
     const currencies = input.currencies.map((i) => ({
       currency_code: i.code,
@@ -37,7 +40,7 @@ export const updateStoreCurrenciesStep = createStep(
     }))
     const result = await updateStoresWorkflow(container).run({
       input: {
-        selector: { id: store?.id },
+        selector: { id: store.id },
         update: {
           supported_currencies: currencies,
           default_sales_channel_id: input.defaultSalesChannelId,

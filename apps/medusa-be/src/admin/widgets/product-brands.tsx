@@ -7,6 +7,7 @@ import {
   Button,
   Container,
   createDataTableColumnHelper,
+  type DataTableColumnDef,
   Drawer,
   Heading,
   Input,
@@ -17,6 +18,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
+
 import { BrandDataTable } from "../components/brands/brand-data-table"
 import {
   isBrandSelectable,
@@ -254,7 +256,7 @@ const BrandAssignmentDrawer = ({
   open,
   productId,
 }: {
-  currentBrand?: Brand
+  currentBrand?: Brand | undefined
   onOpenChange: (open: boolean) => void
   open: boolean
   productId: string
@@ -359,7 +361,7 @@ const BrandAssignmentDrawer = ({
 
     mutation.mutate(selectedId)
   }
-  const columns = [
+  const columns: DataTableColumnDef<Brand>[] = [
     brandColumnHelper.accessor("title", {
       header: t("columns.brand"),
       cell: ({ row }) => (

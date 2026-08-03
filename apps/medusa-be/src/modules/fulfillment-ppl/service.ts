@@ -14,6 +14,7 @@ import {
   AbstractFulfillmentProviderService,
   MedusaError,
 } from "@medusajs/framework/utils"
+
 import { PPL_CLIENT_MODULE, type PplClientModuleService } from "../ppl-client"
 import type {
   PplCodSettings,
@@ -27,6 +28,45 @@ import type {
 type InjectedDependencies = {
   logger: Logger
 } & Record<typeof PPL_CLIENT_MODULE, PplClientModuleService>
+
+const PPL_PRODUCT_TYPES: readonly PplProductType[] = [
+  "SMAR",
+  "SMAD",
+  "PRIV",
+  "PRID",
+]
+
+const isPplProductType = (value: unknown): value is PplProductType =>
+  typeof value === "string" && PPL_PRODUCT_TYPES.includes(value)
+
+const isPplShippingOptionData = (
+  value: Record<string, unknown>
+): value is Record<string, unknown> &
+  Pick<
+    PplShippingOptionData,
+    "product_type" | "supports_cod" | "access_point_id"
+  > =>
+  isPplProductType(value["product_type"]) &&
+  typeof value["supports_cod"] === "boolean" &&
+  (value["access_point_id"] === undefined ||
+    typeof value["access_point_id"] === "string")
+
+const getPplFulfillmentData = (
+  data: Record<string, unknown>
+): Partial<PplFulfillmentData> => ({
+  ...(typeof data["batch_id"] === "string"
+    ? { batch_id: data["batch_id"] }
+    : {}),
+  ...(typeof data["shipment_number"] === "string"
+    ? { shipment_number: data["shipment_number"] }
+    : {}),
+  ...(typeof data["label_url"] === "string"
+    ? { label_url: data["label_url"] }
+    : {}),
+  ...(typeof data["tracking_url"] === "string"
+    ? { tracking_url: data["tracking_url"] }
+    : {}),
+})
 
 /**
  * PPL Fulfillment Provider Service
@@ -118,8 +158,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
   override async validateOption(
     data: Record<string, unknown>
   ): Promise<boolean> {
-    const validProducts: PplProductType[] = ["SMAR", "SMAD", "PRIV", "PRID"]
-    return validProducts.includes(data.product_type as PplProductType)
+    return isPplProductType(data["product_type"])
   }
 
   /**
@@ -140,11 +179,26 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
       )
     }
 
-    const requiresAccessPoint = optionData.requires_access_point as boolean
+    const productType = optionData["product_type"]
+    const requiresAccessPoint = optionData["requires_access_point"] === true
+    const supportsCod = optionData["supports_cod"] === true
+    if (!isPplProductType(productType)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "PPL: Invalid shipping option data"
+      )
+    }
+
+    const accessPointId = data["access_point_id"]
+    if (accessPointId !== undefined && typeof accessPointId !== "string") {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "PPL: Access point ID must be a string"
+      )
+    }
 
     // If this option requires access point, validate it was selected
     if (requiresAccessPoint) {
-      const accessPointId = data.access_point_id as string | undefined
       if (!accessPointId) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
@@ -156,14 +210,22 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
     }
 
     // Return data to be stored in shipping_method.data
-    return {
-      product_type: optionData.product_type as PplProductType,
+    const validatedData: PplShippingOptionData = {
+      product_type: productType,
       requires_access_point: requiresAccessPoint,
-      supports_cod: optionData.supports_cod as boolean,
-      access_point_id: data.access_point_id as string | undefined,
-      access_point_name: data.access_point_name as string | undefined,
-      access_point_type: data.access_point_type as string | undefined,
+      supports_cod: supportsCod,
     }
+    if (accessPointId !== undefined) {
+      validatedData.access_point_id = accessPointId
+    }
+    if (typeof data["access_point_name"] === "string") {
+      validatedData.access_point_name = data["access_point_name"]
+    }
+    if (typeof data["access_point_type"] === "string") {
+      validatedData.access_point_type = data["access_point_type"]
+    }
+
+    return validatedData
   }
 
   override async createFulfillment(
@@ -172,7 +234,13 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
     order: Partial<FulfillmentOrderDTO> | undefined,
     fulfillment: Partial<Omit<FulfillmentDTO, "provider_id" | "data" | "items">>
   ): Promise<CreateFulfillmentResult> {
-    const shippingData = data as unknown as PplShippingOptionData
+    if (!isPplShippingOptionData(data)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "PPL: Invalid shipping data"
+      )
+    }
+    const shippingData = data
     const {
       product_type: productType,
       access_point_id: accessPointId,
@@ -238,7 +306,9 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
         status: "pending",
         batch_id: batchId,
         product_type: productType,
-        access_point_id: accessPointId,
+        ...(accessPointId !== undefined
+          ? { access_point_id: accessPointId }
+          : {}),
       } satisfies PplFulfillmentData,
       labels: [],
     }
@@ -325,7 +395,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
   override async cancelFulfillment(
     data: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
-    const fulfillmentData = data as unknown as PplFulfillmentData
+    const fulfillmentData = getPplFulfillmentData(data)
     let shipmentNumber = fulfillmentData.shipment_number
     const batchId = fulfillmentData.batch_id
 
@@ -427,7 +497,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
   override async getFulfillmentDocuments(
     data: Record<string, unknown>
   ): Promise<{ type: string; url: string; format?: string }[]> {
-    const fulfillmentData = data as unknown as PplFulfillmentData
+    const fulfillmentData = getPplFulfillmentData(data)
     const documents: { type: string; url: string; format?: string }[] = []
 
     if (fulfillmentData.label_url) {
@@ -456,7 +526,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
     fulfillmentData: Record<string, unknown>,
     documentType: string
   ): Promise<{ type: string; url: string; format?: string } | null> {
-    const data = fulfillmentData as unknown as PplFulfillmentData
+    const data = getPplFulfillmentData(fulfillmentData)
 
     switch (documentType) {
       case "label":
@@ -570,10 +640,19 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
       codCurrency: orderCurrency,
       codVarSym: orderId,
       ...(config.cod_iban
-        ? { iban: config.cod_iban, swift: config.cod_swift }
+        ? {
+            iban: config.cod_iban,
+            ...(config.cod_swift !== undefined
+              ? { swift: config.cod_swift }
+              : {}),
+          }
         : {
-            bankAccount: config.cod_bank_account,
-            bankCode: config.cod_bank_code,
+            ...(config.cod_bank_account !== undefined
+              ? { bankAccount: config.cod_bank_account }
+              : {}),
+            ...(config.cod_bank_code !== undefined
+              ? { bankCode: config.cod_bank_code }
+              : {}),
           }),
     }
   }

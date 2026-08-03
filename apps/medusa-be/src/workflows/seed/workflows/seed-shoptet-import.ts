@@ -2,6 +2,7 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import seedDatabaseWorkflow, {
   type SeedDatabaseWorkflowInput,
 } from "./seed-database"
@@ -22,5 +23,3 @@ export const seedShoptetImportWorkflow = createWorkflow(
   SeedShoptetImportWorkflowId,
   seedShoptetImportWorkflowComposer
 )
-
-export default seedShoptetImportWorkflow

@@ -3,6 +3,7 @@ import type {
   InitiatePaymentInput,
 } from "@medusajs/framework/types"
 import { ModuleProvider, Modules } from "@medusajs/framework/utils"
+
 import { PAYKIT_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
 import {
   type PaykitInjectedDependencies,
@@ -99,8 +100,8 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
   ): Record<string, unknown> {
     const providerMetadata = super.getCreateProviderMetadata(input, data)
     const successUrl = getStringValue(
-      providerMetadata.success_url,
-      providerMetadata.return_url
+      providerMetadata["success_url"],
+      providerMetadata["return_url"]
     )
 
     return {

@@ -11,6 +11,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { FormEvent } from "react"
 import { useEffect, useState } from "react"
+
 import { sdk } from "../../../lib/sdk"
 
 export const handle = {
@@ -44,8 +45,8 @@ const QrPaymentsSettingsPage = () => {
         method: "POST",
         body: payload,
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["qr-payment-config"] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["qr-payment-config"] })
       toast.success("QR payment configuration saved")
     },
     onError: (err) => {

@@ -7,6 +7,7 @@ import type {
   Query,
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+
 import {
   PACKETA_CLIENT_MODULE,
   PACKETA_DELIVERED_STATES,
@@ -16,6 +17,7 @@ import {
   type PacketaPacketStatusRecord,
   type PacketaShipmentState,
 } from "../modules/packeta-client"
+import { executeWithLockTimeout } from "../utils/locking"
 
 type FulfillmentRecord = {
   id: string
@@ -54,7 +56,7 @@ export default async function packetaTrackingSyncJob(
 ) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
-  if (process.env.FEATURE_PACKETA_ENABLED !== "1") {
+  if (process.env["FEATURE_PACKETA_ENABLED"] !== "1") {
     logger.debug(
       "Packeta Tracking Sync: module disabled (FEATURE_PACKETA_ENABLED != 1), skipping"
     )
@@ -63,22 +65,19 @@ export default async function packetaTrackingSyncJob(
 
   const lockingService = container.resolve<ILockingModule>(Modules.LOCKING)
 
-  try {
-    await lockingService.execute(
-      LOCK_KEY,
-      async () => {
-        await run(container, logger)
-      },
-      { timeout: LOCK_TIMEOUT_SECONDS }
-    )
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("Timed-out")) {
-      logger.debug(
-        "Packeta Tracking Sync: lock held by another instance, skipping"
-      )
-      return
+  const result = await executeWithLockTimeout(
+    lockingService,
+    LOCK_KEY,
+    LOCK_TIMEOUT_SECONDS,
+    async () => {
+      await run(container, logger)
     }
-    throw error
+  )
+
+  if (result.status === "timed_out") {
+    logger.debug(
+      "Packeta Tracking Sync: lock held by another instance, skipping"
+    )
   }
 }
 

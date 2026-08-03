@@ -1,5 +1,6 @@
 import { type PropsWithChildren, useState } from "react"
 import { useNavigate } from "react-router-dom"
+
 import { RouteModalProviderContext } from "./route-modal-context"
 
 type RouteModalProviderProps = PropsWithChildren<{

@@ -4,6 +4,7 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+
 import { MEASUREMENT_UNIT_MODULE } from "../../../modules/measurement-unit"
 import { getMeasurementUnitService } from "../../../utils/measurement-units"
 
@@ -214,7 +215,9 @@ export const getCurrentProductMeasurement = async (
     {
       relations: ["measurement_unit", "variant_measurements"],
       take: 1,
-      withDeleted: options.withDeleted,
+      ...(options.withDeleted === undefined
+        ? {}
+        : { withDeleted: options.withDeleted }),
     }
   )
 
@@ -232,7 +235,9 @@ export const listProductMeasurementsForProduct = async (
     },
     {
       relations: ["measurement_unit", "variant_measurements"],
-      withDeleted: options.withDeleted,
+      ...(options.withDeleted === undefined
+        ? {}
+        : { withDeleted: options.withDeleted }),
     }
   )
 

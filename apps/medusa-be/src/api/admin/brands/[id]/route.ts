@@ -2,6 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+
 import {
   deleteBrandsWorkflow,
   updateBrandsWorkflow,
@@ -17,7 +18,7 @@ export async function GET(
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) {
-  const brandId = req.params.id ?? ""
+  const brandId = req.params["id"] ?? ""
   const brand = await retrieveBrandOrThrow(req.scope, brandId, {
     withDeleted: true,
   })
@@ -34,7 +35,7 @@ export async function POST(
   req: AuthenticatedMedusaRequest<AdminUpdateBrandSchemaType>,
   res: MedusaResponse
 ) {
-  const brandId = req.params.id ?? ""
+  const brandId = req.params["id"] ?? ""
 
   const { result } = await updateBrandsWorkflow(req.scope).run({
     input: {
@@ -60,7 +61,7 @@ export async function DELETE(
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) {
-  const id = req.params.id ?? ""
+  const id = req.params["id"] ?? ""
 
   await deleteBrandsWorkflow(req.scope).run({
     input: {

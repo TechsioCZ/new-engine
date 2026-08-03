@@ -6,6 +6,7 @@ import type {
 } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { EMAIL_LOG_MODULE } from "../../modules/email-log"
 import type EmailLogModuleService from "../../modules/email-log/service"
 import { getResendTemplateSubject } from "../../modules/resend/templates"

@@ -4,13 +4,15 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { addToCartWorkflow } from "@medusajs/medusa/core-flows"
+
+import { requirePathParam } from "../../../../../../utils/path-params"
 import type { StoreAddLineItemsBulkType } from "../../../validators"
 
 export async function POST(
   req: MedusaRequest<StoreAddLineItemsBulkType>,
   res: MedusaResponse
 ) {
-  const { id } = req.params
+  const id = requirePathParam(req.params["id"], "Cart id")
   const { line_items } = req.validatedBody
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 

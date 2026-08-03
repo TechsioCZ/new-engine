@@ -1,5 +1,6 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
 import { PRODUCT_LIST_MODULE } from "../../../../../src/modules/product-list/constants"
 
 const {
@@ -68,6 +69,25 @@ type MockStep = {
   ) => Promise<void>
 }
 
+const asMockStep = (candidate: unknown): MockStep => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  if (
+    !("compensate" in candidate) ||
+    typeof candidate.compensate !== "function"
+  ) {
+    throw new TypeError(
+      "Expected the mocked workflow step to expose a compensate function"
+    )
+  }
+
+  return candidate as MockStep
+}
+
 const makeService = (): MockService => ({
   createCustomProductList: vi.fn(),
   createFavoriteProductList: vi.fn(),
@@ -110,11 +130,10 @@ describe("createCustomerProductListStep", () => {
     const service = makeService()
     mockFindCustomerFavoriteProductList.mockResolvedValue(existingFavorite)
     const container = makeContainer(service)
-    const { createCustomerProductListStep } = await import(
-      "../../../../../src/workflows/product-list/steps/create-customer-product-list"
-    )
+    const { createCustomerProductListStep } =
+      await import("../../../../../src/workflows/product-list/steps/create-customer-product-list")
 
-    const result = await (createCustomerProductListStep as MockStep)(
+    const result = await asMockStep(createCustomerProductListStep)(
       {
         customer_id: "cus_1",
         data: {},
@@ -148,12 +167,11 @@ describe("createCustomerProductListStep", () => {
       handle: "summer-picks",
     })
     const container = makeContainer(service)
-    const { createCustomerProductListStep } = await import(
-      "../../../../../src/workflows/product-list/steps/create-customer-product-list"
-    )
+    const { createCustomerProductListStep } =
+      await import("../../../../../src/workflows/product-list/steps/create-customer-product-list")
 
     await expect(
-      (createCustomerProductListStep as MockStep)(
+      asMockStep(createCustomerProductListStep)(
         {
           customer_id: "cus_1",
           data: {
@@ -181,10 +199,9 @@ describe("createCustomerProductListStep", () => {
   it("compensates only newly created product lists", async () => {
     const service = makeService()
     const container = makeContainer(service)
-    const { createCustomerProductListStep } = await import(
-      "../../../../../src/workflows/product-list/steps/create-customer-product-list"
-    )
-    const step = createCustomerProductListStep as MockStep
+    const { createCustomerProductListStep } =
+      await import("../../../../../src/workflows/product-list/steps/create-customer-product-list")
+    const step = asMockStep(createCustomerProductListStep)
 
     await step.compensate(
       {
@@ -228,11 +245,10 @@ describe("createProductListItemStep", () => {
     mockAssertProductSelectionExists.mockResolvedValue(undefined)
     mockFindProductListItemForSelection.mockResolvedValue(null)
     const container = makeContainer(service)
-    const { createProductListItemStep } = await import(
-      "../../../../../src/workflows/product-list/steps/create-product-list-item"
-    )
+    const { createProductListItemStep } =
+      await import("../../../../../src/workflows/product-list/steps/create-product-list-item")
 
-    const result = await (createProductListItemStep as MockStep)(
+    const result = await asMockStep(createProductListItemStep)(
       {
         customer_id: "cus_1",
         list_id: "plist_favorite",
@@ -279,11 +295,10 @@ describe("createProductListItemStep", () => {
     mockAssertProductSelectionExists.mockResolvedValue(undefined)
     mockFindProductListItemForSelection.mockResolvedValue(null)
     const container = makeContainer(service)
-    const { createProductListItemStep } = await import(
-      "../../../../../src/workflows/product-list/steps/create-product-list-item"
-    )
+    const { createProductListItemStep } =
+      await import("../../../../../src/workflows/product-list/steps/create-product-list-item")
 
-    const result = await (createProductListItemStep as MockStep)(
+    const result = await asMockStep(createProductListItemStep)(
       {
         customer_id: "cus_1",
         list_id: "plist_favorite",
@@ -342,11 +357,10 @@ describe("createProductListItemStep", () => {
     mockAssertProductSelectionExists.mockResolvedValue(undefined)
     mockFindProductListItemForSelection.mockResolvedValue(existingItem)
     const container = makeContainer(service)
-    const { createProductListItemStep } = await import(
-      "../../../../../src/workflows/product-list/steps/create-product-list-item"
-    )
+    const { createProductListItemStep } =
+      await import("../../../../../src/workflows/product-list/steps/create-product-list-item")
 
-    const result = await (createProductListItemStep as MockStep)(
+    const result = await asMockStep(createProductListItemStep)(
       {
         customer_id: "cus_1",
         list_id: "plist_custom",
@@ -384,10 +398,9 @@ describe("createProductListItemStep", () => {
   it("compensates only newly created list items", async () => {
     const service = makeService()
     const container = makeContainer(service)
-    const { createProductListItemStep } = await import(
-      "../../../../../src/workflows/product-list/steps/create-product-list-item"
-    )
-    const step = createProductListItemStep as MockStep
+    const { createProductListItemStep } =
+      await import("../../../../../src/workflows/product-list/steps/create-product-list-item")
+    const step = asMockStep(createProductListItemStep)
 
     await step.compensate(
       {
@@ -423,11 +436,10 @@ describe("incrementProductListItemStep", () => {
     const service = makeService()
     service.incrementProductListItemQuantity.mockResolvedValue(incrementedItem)
     const container = makeContainer(service)
-    const { incrementProductListItemStep } = await import(
-      "../../../../../src/workflows/product-list/steps/increment-product-list-item"
-    )
+    const { incrementProductListItemStep } =
+      await import("../../../../../src/workflows/product-list/steps/increment-product-list-item")
 
-    const result = await (incrementProductListItemStep as MockStep)(
+    const result = await asMockStep(incrementProductListItemStep)(
       {
         item_id: "plitem_1",
         list_id: "plist_favorite",
@@ -463,11 +475,10 @@ describe("incrementProductListItemStep", () => {
     })
     service.incrementProductListItemQuantity.mockResolvedValue(incrementedItem)
     const container = makeContainer(service)
-    const { incrementProductListItemStep } = await import(
-      "../../../../../src/workflows/product-list/steps/increment-product-list-item"
-    )
+    const { incrementProductListItemStep } =
+      await import("../../../../../src/workflows/product-list/steps/increment-product-list-item")
 
-    const result = await (incrementProductListItemStep as MockStep)(
+    const result = await asMockStep(incrementProductListItemStep)(
       {
         item_id: "plitem_1",
         list_id: "plist_custom",
@@ -493,10 +504,9 @@ describe("incrementProductListItemStep", () => {
   it("compensates by restoring the previous item quantity", async () => {
     const service = makeService()
     const container = makeContainer(service)
-    const { incrementProductListItemStep } = await import(
-      "../../../../../src/workflows/product-list/steps/increment-product-list-item"
-    )
-    const step = incrementProductListItemStep as MockStep
+    const { incrementProductListItemStep } =
+      await import("../../../../../src/workflows/product-list/steps/increment-product-list-item")
+    const step = asMockStep(incrementProductListItemStep)
 
     await step.compensate(
       {

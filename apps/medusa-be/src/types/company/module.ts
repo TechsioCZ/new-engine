@@ -1,6 +1,7 @@
 /* Entity: Company */
 
 import type { CustomerDTO, CustomerGroupDTO } from "@medusajs/framework/types"
+
 import type { ModuleApprovalSettings } from "../approval"
 
 export const ModuleCompanySpendingLimitResetFrequency = {
@@ -78,9 +79,5 @@ export type ModuleCreateEmployee = {
 }
 
 export interface ModuleUpdateEmployee extends Partial<ModuleEmployee> {
-  id: string
-}
-
-export type ModuleDeleteEmployee = {
   id: string
 }

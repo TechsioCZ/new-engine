@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs"
+
 import {
   decodeXml,
   extractElements,
@@ -10,21 +11,21 @@ import {
 
 export type HerbaticaCategoryExport = {
   id: string
-  guid?: string
-  parentId?: string
+  guid?: string | undefined
+  parentId?: string | undefined
   title: string
-  linkText?: string
-  url?: string
-  topDescriptionHtml?: string
-  bottomDescriptionHtml?: string
-  metaTitle?: string
-  metaDescription?: string
+  linkText?: string | undefined
+  url?: string | undefined
+  topDescriptionHtml?: string | undefined
+  bottomDescriptionHtml?: string | undefined
+  metaTitle?: string | undefined
+  metaDescription?: string | undefined
   isVisible: boolean
   expandInMenu: boolean
-  access?: string
-  priority?: number
-  pageType?: string
-  searchPriority?: number
+  access?: string | undefined
+  priority?: number | undefined
+  pageType?: string | undefined
+  searchPriority?: number | undefined
   isSystem: boolean
 }
 
@@ -118,41 +119,58 @@ export function parseHerbaticaCategoriesXml(
       extractFirstText(element.inner, "PARENT_ID")
     )
 
+    const guid = normalizeInlineText(extractFirstText(element.inner, "GUID"))
+    const resolvedParentId =
+      parentId && parentId !== "0" && parentId !== "1" ? parentId : undefined
+    const linkText = normalizeInlineText(
+      extractFirstText(element.inner, "LINK_TEXT")
+    )
+    const url = normalizeInlineText(
+      extractFirstText(element.inner, "INDEX_NAME")
+    )
+    const topDescriptionHtml = trimHtmlFragment(
+      extractFirstText(element.inner, "TOP_DESCRIPTION")
+    )
+    const bottomDescriptionHtml = trimHtmlFragment(
+      extractFirstText(element.inner, "BOTTOM_DESCRIPTION")
+    )
+    const metaTitle = normalizeInlineText(
+      extractFirstText(element.inner, "META_TITLE")
+    )
+    const metaDescription = normalizeInlineText(
+      extractFirstText(element.inner, "META_DESCRIPTION")
+    )
+    const access = normalizeInlineText(
+      extractFirstText(element.inner, "ACCESS")
+    )
+    const priority = parseInteger(extractFirstText(element.inner, "PRIORITY"))
+    const pageType = normalizeInlineText(
+      extractFirstText(element.inner, "PAGE_TYPE")
+    )
+    const searchPriority = parseInteger(
+      extractFirstText(element.inner, "SEARCH_PRIORITY")
+    )
+
     categories.push({
       id,
-      guid: normalizeInlineText(extractFirstText(element.inner, "GUID")),
-      parentId:
-        parentId && parentId !== "0" && parentId !== "1" ? parentId : undefined,
+      guid,
+      parentId: resolvedParentId,
       title,
-      linkText: normalizeInlineText(
-        extractFirstText(element.inner, "LINK_TEXT")
-      ),
-      url: normalizeInlineText(extractFirstText(element.inner, "INDEX_NAME")),
-      topDescriptionHtml: trimHtmlFragment(
-        extractFirstText(element.inner, "TOP_DESCRIPTION")
-      ),
-      bottomDescriptionHtml: trimHtmlFragment(
-        extractFirstText(element.inner, "BOTTOM_DESCRIPTION")
-      ),
-      metaTitle: normalizeInlineText(
-        extractFirstText(element.inner, "META_TITLE")
-      ),
-      metaDescription: normalizeInlineText(
-        extractFirstText(element.inner, "META_DESCRIPTION")
-      ),
+      linkText,
+      url,
+      topDescriptionHtml,
+      bottomDescriptionHtml,
+      metaTitle,
+      metaDescription,
       isVisible:
         parseBoolean(extractFirstText(element.inner, "VISIBLE")) ?? true,
       expandInMenu:
         parseBoolean(extractFirstText(element.inner, "EXPAND_IN_MENU")) ??
         false,
-      access: normalizeInlineText(extractFirstText(element.inner, "ACCESS")),
-      priority: parseInteger(extractFirstText(element.inner, "PRIORITY")),
-      pageType: normalizeInlineText(
-        extractFirstText(element.inner, "PAGE_TYPE")
-      ),
-      searchPriority: parseInteger(
-        extractFirstText(element.inner, "SEARCH_PRIORITY")
-      ),
+      access,
+      priority,
+      pageType,
+      searchPriority,
       isSystem:
         parseBoolean(extractFirstText(element.inner, "IS_SYSTEM")) ?? false,
     })

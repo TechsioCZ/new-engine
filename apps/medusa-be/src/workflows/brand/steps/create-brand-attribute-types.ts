@@ -1,6 +1,7 @@
 import type { Context, InferTypeOf } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import type BrandAttributeType from "../../../modules/brand/models/brand-attribute-type"
 import type BrandModuleService from "../../../modules/brand/service"
 import type { CreateBrandAttributeTypesWorkflowInput } from "../types"

@@ -16,6 +16,7 @@ import {
 } from "@medusajs/ui"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { ActionMenu, AmountCell, Thumbnail } from "../../../../components"
 import { Form } from "../../../../components/common/form"
 import {
@@ -27,7 +28,7 @@ import {
 import { currencySymbolMap } from "../../../../utils"
 
 type ManageItemProps = {
-  originalItem?: AdminOrder["items"][0]
+  originalItem?: AdminOrder["items"][0] | undefined
   item: AdminOrderPreview["items"][0]
   currencyCode: string
   orderId: string
@@ -84,14 +85,14 @@ function ManageItem({
     try {
       if (addItemAction) {
         await updateAddedItem({
-          quantity,
-          unit_price,
+          ...(quantity === undefined ? {} : { quantity }),
+          ...(unit_price === undefined ? {} : { unit_price }),
           actionId: addItemAction.id,
         })
       } else {
         await updateOriginalItem({
-          quantity,
-          unit_price,
+          ...(quantity === undefined ? {} : { quantity }),
+          ...(unit_price === undefined ? {} : { unit_price }),
           itemId: item.id,
         })
       }
@@ -210,7 +211,7 @@ function ManageItem({
                 const quantity = val === "" ? null : Number(val)
 
                 if (quantity) {
-                  onUpdate({ quantity })
+                  void onUpdate({ quantity })
                 }
               }}
               type="number"
@@ -224,7 +225,7 @@ function ManageItem({
             <AmountCell
               amount={item.total}
               currencyCode={currencyCode}
-              originalAmount={originalItem?.total}
+              originalAmount={originalItem?.total ?? null}
             />
           </div>
 
@@ -277,7 +278,7 @@ function ManageItem({
             <div className="flex-grow">
               <Form.Field
                 name={`inbound_items.${item.id}.unit_price`}
-                render={({ field: { ref, ...field } }) => (
+                render={({ field }) => (
                   <Form.Item>
                     <Form.Control>
                       <CurrencyInput
@@ -289,7 +290,7 @@ function ManageItem({
                         onBlur={() => {
                           field.onChange(field.value)
 
-                          onUpdate({
+                          void onUpdate({
                             unit_price: Number.parseFloat(field.value),
                             quantity: item.quantity,
                           })

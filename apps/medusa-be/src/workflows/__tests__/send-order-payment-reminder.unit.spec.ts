@@ -148,14 +148,14 @@ describe("send order payment reminder workflow", () => {
       { container }
     )) as { output: Notification[] }
 
-    expect(result.output[0]?.data?.total).toBe(
+    expect(result.output[0]?.data?.["total"]).toBe(
       new Intl.NumberFormat("cs-CZ", {
         currency: "CZK",
         style: "currency",
       }).format(1234.56)
     )
-    expect(result.output[0]?.data?.total).not.toBe("stale input total")
-    expect(result.output[0]?.data?.total).not.toBe(1999)
+    expect(result.output[0]?.data?.["total"]).not.toBe("stale input total")
+    expect(result.output[0]?.data?.["total"]).not.toBe(1999)
     expect(graph).toHaveBeenCalledWith(
       expect.objectContaining({
         entity: "order",
@@ -202,33 +202,32 @@ describe("send order payment reminder workflow", () => {
         total: null,
       },
     },
-  ])("uses fetched order total precedence before input fallback %#", async ({
-    expectedTotal,
-    inputTotal,
-    order,
-  }) => {
-    await import("../send-order-payment-reminder")
+  ])(
+    "uses fetched order total precedence before input fallback %#",
+    async ({ expectedTotal, inputTotal, order }) => {
+      await import("../send-order-payment-reminder")
 
-    const step = workflowSdkMock.steps.get(
-      "build-order-payment-reminder-notification"
-    )
-    expect(step).toBeDefined()
+      const step = workflowSdkMock.steps.get(
+        "build-order-payment-reminder-notification"
+      )
+      expect(step).toBeDefined()
 
-    const { container } = createPaymentReminderNotificationContext(order)
+      const { container } = createPaymentReminderNotificationContext(order)
 
-    const result = (await step?.(
-      {
-        customer_id: "cus_123",
-        email: "customer@example.com",
-        order_display_id: "#1001",
-        order_id: "order_123",
-        payment_url: "https://shop.example/orders/order_123",
-        store_name: "Store",
-        total: inputTotal,
-      },
-      { container }
-    )) as { output: Notification[] }
+      const result = (await step?.(
+        {
+          customer_id: "cus_123",
+          email: "customer@example.com",
+          order_display_id: "#1001",
+          order_id: "order_123",
+          payment_url: "https://shop.example/orders/order_123",
+          store_name: "Store",
+          total: inputTotal,
+        },
+        { container }
+      )) as { output: Notification[] }
 
-    expect(result.output[0]?.data?.total).toBe(expectedTotal)
-  })
+      expect(result.output[0]?.data?.["total"]).toBe(expectedTotal)
+    }
+  )
 })

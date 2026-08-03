@@ -3,6 +3,7 @@ import { Checkbox } from "@medusajs/ui"
 import { createColumnHelper } from "@tanstack/react-table"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
+
 import { ProductCell, ProductHeader } from "../../../../../components"
 
 const columnHelper = createColumnHelper<HttpTypes.AdminProductVariant>()

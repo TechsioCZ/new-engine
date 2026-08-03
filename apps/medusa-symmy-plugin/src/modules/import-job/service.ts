@@ -1,4 +1,5 @@
 import { MedusaService } from "@medusajs/framework/utils"
+
 import SymmyImportJob from "./models/symmy-import-job"
 
 export type SymmyImportJobStatus = "queued" | "running" | "completed" | "failed"
@@ -56,7 +57,7 @@ export class SymmyImportJobModuleService extends MedusaService({
       { take: 1 }
     )
 
-    return (existing[0] as unknown as SymmyImportJobDTO | undefined) ?? null
+    return (existing[0] as SymmyImportJobDTO | undefined) ?? null
   }
 
   async createQueuedJob({
@@ -86,7 +87,7 @@ export class SymmyImportJobModuleService extends MedusaService({
         finished_at: null,
       })
 
-      return created as unknown as SymmyImportJobDTO
+      return created as SymmyImportJobDTO
     } catch (error) {
       const racedJob = await this.findByIdempotencyKey(type, idempotencyKey)
       if (racedJob && toErrorMessage(error).includes("unique")) {
@@ -98,7 +99,7 @@ export class SymmyImportJobModuleService extends MedusaService({
 
   async retrieveJob(id: string): Promise<SymmyImportJobDTO> {
     const job = await this.retrieveSymmyImportJob(id)
-    return job as unknown as SymmyImportJobDTO
+    return job as SymmyImportJobDTO
   }
 
   async markRunning(id: string): Promise<SymmyImportJobDTO> {
@@ -112,7 +113,7 @@ export class SymmyImportJobModuleService extends MedusaService({
       error: null,
     })
 
-    return updated as unknown as SymmyImportJobDTO
+    return updated as SymmyImportJobDTO
   }
 
   async markCompleted(
@@ -129,7 +130,7 @@ export class SymmyImportJobModuleService extends MedusaService({
       finished_at: new Date(),
     })
 
-    return updated as unknown as SymmyImportJobDTO
+    return updated as SymmyImportJobDTO
   }
 
   async markFailed(
@@ -145,6 +146,6 @@ export class SymmyImportJobModuleService extends MedusaService({
       finished_at: new Date(),
     })
 
-    return updated as unknown as SymmyImportJobDTO
+    return updated as SymmyImportJobDTO
   }
 }

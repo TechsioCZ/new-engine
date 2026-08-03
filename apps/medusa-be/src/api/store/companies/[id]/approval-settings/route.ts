@@ -6,6 +6,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+
 import { requirePathParam } from "../../../../../utils/path-params"
 import {
   ensureApprovalSettingsWorkflow,
@@ -20,7 +21,7 @@ export const POST = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
-  const id = requirePathParam(req.params.id, "Company id")
+  const id = requirePathParam(req.params["id"], "Company id")
 
   const {
     data: [approvalSettings],

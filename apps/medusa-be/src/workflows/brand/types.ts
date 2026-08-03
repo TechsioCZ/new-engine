@@ -8,15 +8,15 @@ export type BrandAttributeTypeInput = {
 
 export type BrandInput = {
   title: string
-  handle?: string
-  attributes?: BrandAttributeInput[]
-  gpsr_contact_email?: string | null
-  gpsr_european_reseller_contact_email?: string | null
-  gpsr_european_reseller_manufacturing_company_name?: string | null
-  gpsr_european_reseller_postal_address?: string | null
-  gpsr_manufactured_outside_eu?: boolean
-  gpsr_manufacturing_company_name?: string | null
-  gpsr_postal_address?: string | null
+  handle?: string | undefined
+  attributes?: BrandAttributeInput[] | undefined
+  gpsr_contact_email?: string | null | undefined
+  gpsr_european_reseller_contact_email?: string | null | undefined
+  gpsr_european_reseller_manufacturing_company_name?: string | null | undefined
+  gpsr_european_reseller_postal_address?: string | null | undefined
+  gpsr_manufactured_outside_eu?: boolean | undefined
+  gpsr_manufacturing_company_name?: string | null | undefined
+  gpsr_postal_address?: string | null | undefined
 }
 
 export type CreateBrandsWorkflowInput = {
@@ -27,7 +27,9 @@ export type UpdateBrandsWorkflowInput = {
   selector: {
     id: string
   }
-  update: Partial<BrandInput>
+  update: {
+    [Key in keyof BrandInput]?: BrandInput[Key] | undefined
+  }
 }
 
 export type DeleteBrandsWorkflowInput = {

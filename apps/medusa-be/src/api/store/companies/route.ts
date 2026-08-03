@@ -3,6 +3,8 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
+import { definedProperties } from "../../../utils/defined-properties"
 import { createCompaniesWorkflow } from "../../../workflows/company/workflows/create-companies"
 import type { StoreCreateCompanyType } from "./validators"
 
@@ -18,17 +20,19 @@ export const POST = async (
     req.scope
   ).run({
     input: Array.isArray(req.validatedBody)
-      ? req.validatedBody.map((company) => ({
-          ...company,
-          spending_limit_reset_frequency:
-            company.spending_limit_reset_frequency ?? undefined,
-        }))
+      ? req.validatedBody.map((company) =>
+          definedProperties({
+            ...company,
+            spending_limit_reset_frequency:
+              company.spending_limit_reset_frequency ?? undefined,
+          })
+        )
       : [
-          {
+          definedProperties({
             ...req.validatedBody,
             spending_limit_reset_frequency:
               req.validatedBody.spending_limit_reset_frequency ?? undefined,
-          },
+          }),
         ],
   })
 

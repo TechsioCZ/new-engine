@@ -58,6 +58,25 @@ type MockStep = {
   ) => Promise<void>
 }
 
+const asMockStep = (candidate: unknown): MockStep => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  if (
+    !("compensate" in candidate) ||
+    typeof candidate.compensate !== "function"
+  ) {
+    throw new TypeError(
+      "Expected the mocked workflow step to expose a compensate function"
+    )
+  }
+
+  return candidate as MockStep
+}
+
 const makeAuthService = (
   overrides: Partial<AuthService> = {}
 ): AuthService => ({
@@ -91,9 +110,8 @@ describe("company admin auth metadata steps", () => {
   })
 
   it("clears company admin auth metadata before company deletion", async () => {
-    const { clearCompanyAdminAuthMetadataStep } = await import(
-      "../../../../../src/workflows/company/steps/clear-company-admin-auth-metadata"
-    )
+    const { clearCompanyAdminAuthMetadataStep } =
+      await import("../../../../../src/workflows/company/steps/clear-company-admin-auth-metadata")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -130,7 +148,7 @@ describe("company admin auth metadata steps", () => {
     const authService = makeAuthService()
     const container = makeContainer({ authService, graph })
 
-    const result = await (clearCompanyAdminAuthMetadataStep as MockStep)(
+    const result = await asMockStep(clearCompanyAdminAuthMetadataStep)(
       ["comp_1"],
       { container }
     )
@@ -165,9 +183,8 @@ describe("company admin auth metadata steps", () => {
   })
 
   it("restores company admin auth metadata after company restore", async () => {
-    const { restoreCompanyAdminAuthMetadataStep } = await import(
-      "../../../../../src/workflows/company/steps/restore-company-admin-auth-metadata"
-    )
+    const { restoreCompanyAdminAuthMetadataStep } =
+      await import("../../../../../src/workflows/company/steps/restore-company-admin-auth-metadata")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -192,7 +209,7 @@ describe("company admin auth metadata steps", () => {
     const authService = makeAuthService()
     const container = makeContainer({ authService, graph })
 
-    const result = await (restoreCompanyAdminAuthMetadataStep as MockStep)(
+    const result = await asMockStep(restoreCompanyAdminAuthMetadataStep)(
       ["comp_1"],
       { container }
     )
@@ -237,9 +254,8 @@ describe("company admin auth metadata steps", () => {
   })
 
   it("does not clear restored admin metadata on compensation when another active admin role remains", async () => {
-    const { restoreCompanyAdminAuthMetadataStep } = await import(
-      "../../../../../src/workflows/company/steps/restore-company-admin-auth-metadata"
-    )
+    const { restoreCompanyAdminAuthMetadataStep } =
+      await import("../../../../../src/workflows/company/steps/restore-company-admin-auth-metadata")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -269,7 +285,7 @@ describe("company admin auth metadata steps", () => {
     const authService = makeAuthService()
     const container = makeContainer({ authService, graph })
 
-    await (restoreCompanyAdminAuthMetadataStep as MockStep).compensate(
+    await asMockStep(restoreCompanyAdminAuthMetadataStep).compensate(
       {
         admin_candidates: [
           {

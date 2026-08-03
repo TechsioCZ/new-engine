@@ -2,17 +2,17 @@ export type InvoiceIdentifierType = "display_id" | "order_id" | "erp_id"
 
 export type InvoiceInput = {
   identifier_type: InvoiceIdentifierType
-  display_id?: string
-  order_id?: string
-  erp_id?: string
+  display_id?: string | undefined
+  order_id?: string | undefined
+  erp_id?: string | undefined
   invoice_number: string
-  invoice_date?: string
-  url?: string
-  data?: string
+  invoice_date?: string | undefined
+  url?: string | undefined
+  data?: string | undefined
 }
 
 export type AttachInvoicesBatchInput = {
-  user_id?: string
+  user_id?: string | undefined
   invoices: InvoiceInput[]
 }
 

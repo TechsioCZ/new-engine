@@ -4,6 +4,8 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+
+import { definedProperties } from "../../../../../utils/defined-properties"
 import {
   getOrderEmailTemplate,
   isOrderEmailTemplate,
@@ -62,15 +64,15 @@ export async function POST(
   switch (template.template) {
     case "order-payment-reminder":
       await sendOrderPaymentReminderWorkflow(req.scope).run({
-        input: {
+        input: definedProperties({
           customer_id: order.customer_id ?? undefined,
           email: order.email,
           order_display_id: getOrderDisplayId(order),
           order_id: order.id,
           payment_url: getPaymentUrl(order),
-          store_name: process.env.STORE_NAME,
+          store_name: process.env["STORE_NAME"],
           total: formatTotal(order),
-        },
+        }),
       })
       break
     default:

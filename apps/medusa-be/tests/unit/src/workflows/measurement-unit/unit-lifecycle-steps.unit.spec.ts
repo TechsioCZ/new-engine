@@ -64,6 +64,16 @@ type MockStep = {
   ) => Promise<void>
 }
 
+const asMockStep = (candidate: unknown): MockStep => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  return candidate as MockStep
+}
+
 const context = { container: {} }
 
 describe("measurement unit lifecycle steps", () => {
@@ -82,10 +92,9 @@ describe("measurement unit lifecycle steps", () => {
       { code: "kg", id: "unit_kg" },
       { code: "piece", id: "unit_piece" },
     ])
-    const { createMeasurementUnitsStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/create-measurement-units"
-    )
-    const result = await (createMeasurementUnitsStep as MockStep)(
+    const { createMeasurementUnitsStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/create-measurement-units")
+    const result = await asMockStep(createMeasurementUnitsStep)(
       {
         units: [
           {
@@ -141,10 +150,9 @@ describe("measurement unit lifecycle steps", () => {
         id: "unit_1",
       },
     ])
-    const { deleteMeasurementUnitsStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/delete-measurement-units"
-    )
-    const result = await (deleteMeasurementUnitsStep as MockStep)(
+    const { deleteMeasurementUnitsStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/delete-measurement-units")
+    const result = await asMockStep(deleteMeasurementUnitsStep)(
       { ids: ["unit_1"] },
       context
     )
@@ -161,10 +169,9 @@ describe("measurement unit lifecycle steps", () => {
         id: "unit_1",
       },
     ])
-    const { deleteMeasurementUnitsStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/delete-measurement-units"
-    )
-    const step = deleteMeasurementUnitsStep as MockStep
+    const { deleteMeasurementUnitsStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/delete-measurement-units")
+    const step = asMockStep(deleteMeasurementUnitsStep)
     const result = await step({ ids: ["unit_1"] }, context)
 
     await step.compensate(result.compensateInput, context)
@@ -182,10 +189,9 @@ describe("measurement unit lifecycle steps", () => {
         id: "unit_1",
       },
     ])
-    const { restoreMeasurementUnitsStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/restore-measurement-units"
-    )
-    const step = restoreMeasurementUnitsStep as MockStep
+    const { restoreMeasurementUnitsStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/restore-measurement-units")
+    const step = asMockStep(restoreMeasurementUnitsStep)
     const result = await step({ ids: ["unit_1"] }, context)
 
     await step.compensate(result.compensateInput, context)
@@ -211,12 +217,11 @@ describe("measurement unit lifecycle steps", () => {
           id: "unit_active",
         },
       ])
-    const { restoreMeasurementUnitsStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/restore-measurement-units"
-    )
+    const { restoreMeasurementUnitsStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/restore-measurement-units")
 
     await expect(
-      (restoreMeasurementUnitsStep as MockStep)(
+      asMockStep(restoreMeasurementUnitsStep)(
         { ids: ["unit_deleted"] },
         context
       )
@@ -237,12 +242,11 @@ describe("measurement unit lifecycle steps", () => {
         symbol: "kg",
       },
     ])
-    const { updateMeasurementUnitStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/update-measurement-unit"
-    )
+    const { updateMeasurementUnitStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/update-measurement-unit")
 
     await expect(
-      (updateMeasurementUnitStep as MockStep)(
+      asMockStep(updateMeasurementUnitStep)(
         {
           id: "unit_1",
           update: { name: "Updated" },
@@ -270,11 +274,10 @@ describe("measurement unit lifecycle steps", () => {
     service.updateMeasurementUnits.mockResolvedValue({
       id: "unit_1",
     })
-    const { updateMeasurementUnitStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/update-measurement-unit"
-    )
+    const { updateMeasurementUnitStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/update-measurement-unit")
 
-    await (updateMeasurementUnitStep as MockStep)(
+    await asMockStep(updateMeasurementUnitStep)(
       {
         id: "unit_1",
         update: { description: "   " },

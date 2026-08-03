@@ -9,6 +9,7 @@ import {
 } from "@medusajs/ui"
 import type { MouseEvent } from "react"
 import { useTranslation } from "react-i18next"
+
 import { getPaginationTranslations } from "../../lib/table"
 
 type BrandDataTableProps<TData> = {
@@ -52,7 +53,7 @@ export const BrandDataTable = <TData,>({
     data,
     getRowId,
     isLoading,
-    onRowClick,
+    ...(onRowClick === undefined ? {} : { onRowClick }),
     pagination: {
       onPaginationChange: (next: DataTablePaginationState) => {
         onPageIndexChange(next.pageIndex)
@@ -60,12 +61,12 @@ export const BrandDataTable = <TData,>({
       state: pagination,
     },
     rowCount: count,
-    rowSelection,
+    ...(rowSelection === undefined ? {} : { rowSelection }),
   })
 
   return (
     <DataTable instance={instance}>
-      <DataTable.Table emptyState={emptyState} />
+      <DataTable.Table {...(emptyState === undefined ? {} : { emptyState })} />
       <DataTable.Pagination translations={getPaginationTranslations(t)} />
     </DataTable>
   )

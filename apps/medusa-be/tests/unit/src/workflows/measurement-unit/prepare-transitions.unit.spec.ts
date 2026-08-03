@@ -69,6 +69,16 @@ const container = {
   resolve: vi.fn(),
 }
 
+const asMockStep = (candidate: unknown): MockStep => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  return candidate as MockStep
+}
+
 describe("measurement transition preparation", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -104,10 +114,9 @@ describe("measurement transition preparation", () => {
         variant_measurements: [],
       },
     ])
-    const { prepareProductMeasurementTransitionStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions"
-    )
-    const result = await (prepareProductMeasurementTransitionStep as MockStep)(
+    const { prepareProductMeasurementTransitionStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
+    const result = await asMockStep(prepareProductMeasurementTransitionStep)(
       {
         measurement_unit_id: "unit_new",
         product_id: "prod_1",
@@ -133,10 +142,9 @@ describe("measurement transition preparation", () => {
         product_variant_id: "variant_1",
       },
     ])
-    const { prepareVariantMeasurementMigrationStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions"
-    )
-    const result = await (prepareVariantMeasurementMigrationStep as MockStep)(
+    const { prepareVariantMeasurementMigrationStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
+    const result = await asMockStep(prepareVariantMeasurementMigrationStep)(
       {
         previous_variant_measurements: [
           {
@@ -181,12 +189,11 @@ describe("measurement transition preparation", () => {
 
   it("rejects an invalid stored quantity instead of propagating NaN", async () => {
     service.listProductVariantMeasurements.mockResolvedValue([])
-    const { prepareVariantMeasurementMigrationStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions"
-    )
+    const { prepareVariantMeasurementMigrationStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
 
     await expect(
-      (prepareVariantMeasurementMigrationStep as MockStep)(
+      asMockStep(prepareVariantMeasurementMigrationStep)(
         {
           previous_variant_measurements: [
             {
@@ -206,12 +213,11 @@ describe("measurement transition preparation", () => {
   })
 
   it("enforces quantity invariants for direct workflow callers", async () => {
-    const { prepareSetProductVariantMeasurementStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions"
-    )
+    const { prepareSetProductVariantMeasurementStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
 
     await expect(
-      (prepareSetProductVariantMeasurementStep as MockStep)(
+      asMockStep(prepareSetProductVariantMeasurementStep)(
         {
           product_id: "prod_1",
           product_unit_quantity: Number.NaN,
@@ -227,12 +233,11 @@ describe("measurement transition preparation", () => {
 
   it("returns a validation error when the product has no measurement unit", async () => {
     helpers.getCanonicalProductMeasurement.mockResolvedValue(undefined)
-    const { prepareSetProductVariantMeasurementStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions"
-    )
+    const { prepareSetProductVariantMeasurementStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
 
     await expect(
-      (prepareSetProductVariantMeasurementStep as MockStep)(
+      asMockStep(prepareSetProductVariantMeasurementStep)(
         {
           product_id: "prod_1",
           product_unit_quantity: 2,
@@ -257,10 +262,9 @@ describe("measurement transition preparation", () => {
         ],
       }),
     })
-    const { prepareProductMeasurementLinkPlanStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions"
-    )
-    const result = await (prepareProductMeasurementLinkPlanStep as MockStep)(
+    const { prepareProductMeasurementLinkPlanStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
+    const result = await asMockStep(prepareProductMeasurementLinkPlanStep)(
       {
         product_id: "prod_1",
         product_measurement_id: "pm_target",
@@ -295,10 +299,9 @@ describe("measurement transition preparation", () => {
         ],
       }),
     })
-    const { prepareProductMeasurementLinkPlanStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions"
-    )
-    const result = await (prepareProductMeasurementLinkPlanStep as MockStep)(
+    const { prepareProductMeasurementLinkPlanStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
+    const result = await asMockStep(prepareProductMeasurementLinkPlanStep)(
       {
         product_id: "prod_1",
         product_measurement_id: "pm_target",
@@ -322,12 +325,11 @@ describe("measurement transition preparation", () => {
         data: [{ product_id: "prod_1" }],
       }),
     })
-    const { prepareProductMeasurementLinkPlanStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions"
-    )
+    const { prepareProductMeasurementLinkPlanStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
 
     await expect(
-      (prepareProductMeasurementLinkPlanStep as MockStep)(
+      asMockStep(prepareProductMeasurementLinkPlanStep)(
         {
           product_id: "prod_1",
           product_measurement_id: "pm_1",

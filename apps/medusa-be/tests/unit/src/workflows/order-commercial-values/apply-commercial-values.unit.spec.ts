@@ -1,7 +1,44 @@
 import type { MedusaContainer } from "@medusajs/framework"
-import { asValue, createContainer } from "@medusajs/framework/awilix"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { asValue } from "@medusajs/framework/awilix"
+import {
+  ContainerRegistrationKeys,
+  createMedusaContainer,
+  Modules,
+} from "@medusajs/framework/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import type { CommercialValuesItemInput } from "../../../../../src/utils/order-commercial-values"
+
+type ReplacementAdjustment = {
+  amount: number
+  code?: string | undefined
+  description?: string | undefined
+  is_tax_inclusive?: boolean | undefined
+  item_id?: string | undefined
+  promotion_id?: string | undefined
+  provider_id?: string | undefined
+  shipping_method_id?: string | undefined
+}
+
+type ReplacementAction = {
+  action: string
+  details: {
+    adjustments: ReplacementAdjustment[]
+    manual_discounts: {
+      item_discount_amount?: number | undefined
+      order_discount_amount: number
+      shipping_discount_amount?: number | undefined
+    }
+    reference_id: string
+  }
+  order_change_id: string
+  order_id: string
+  version: number
+}
+
+type CreateActionsRun = (input: {
+  input: ReplacementAction[]
+}) => Promise<{ result: { id: string }[] }>
 
 const {
   mockBeginRun,
@@ -14,7 +51,7 @@ const {
   mockBeginRun: vi.fn(),
   mockCancelRun: vi.fn(),
   mockConfirmRun: vi.fn(),
-  mockCreateActionsRun: vi.fn(),
+  mockCreateActionsRun: vi.fn<CreateActionsRun>(),
   mockItemUpdateRun: vi.fn(),
   mockRequestRun: vi.fn(),
 }))
@@ -29,6 +66,15 @@ vi.mock("@medusajs/medusa/core-flows", () => ({
 }))
 
 import { applyOrderCommercialValues } from "../../../../../src/workflows/order-commercial-values/apply-commercial-values"
+
+function getRequired<T>(values: readonly T[], index: number): T {
+  const value = values[index]
+  expect(value).toBeDefined()
+  if (value === undefined) {
+    throw new Error(`Expected value at index ${index}`)
+  }
+  return value
+}
 
 const logger = {
   error: vi.fn(),
@@ -56,18 +102,18 @@ const order = {
   ],
 }
 
+const calculationItem: CommercialValuesItemInput = {
+  existing_adjustments: getRequired(order.items, 0).adjustments,
+  item_id: "item_1",
+  original_unit_price: 1000,
+  quantity: 1,
+  unit_price: 1200,
+}
+
 const calculationInput = {
   currency_code: "czk",
   expected_order_version: 1,
-  items: [
-    {
-      existing_adjustments: order.items[0].adjustments,
-      item_id: "item_1",
-      original_unit_price: 1000,
-      quantity: 1,
-      unit_price: 1200,
-    },
-  ],
+  items: [calculationItem],
   order_id: "order_1",
   original_total: 950,
 }
@@ -105,11 +151,12 @@ describe("applyOrderCommercialValues", () => {
 
       return { data: [] }
     })
-    container = createContainer().register({
+    container = createMedusaContainer()
+    container.register({
       [ContainerRegistrationKeys.LOGGER]: asValue(logger),
       [ContainerRegistrationKeys.QUERY]: asValue(query),
       [Modules.LOCKING]: asValue(lockingModule),
-    }) as unknown as MedusaContainer
+    })
   })
 
   it("updates unit price, replaces adjustments, and confirms", async () => {
@@ -119,7 +166,7 @@ describe("applyOrderCommercialValues", () => {
         ...calculationInput,
         items: [
           {
-            ...calculationInput.items[0],
+            ...calculationItem,
             discount: { amount: 100, type: "amount" as const },
           },
         ],
@@ -164,7 +211,10 @@ describe("applyOrderCommercialValues", () => {
       },
     })
     expect(mockCreateActionsRun).toHaveBeenCalled()
-    const actionInput = mockCreateActionsRun.mock.calls[0][0].input[0]
+    const actionInput = getRequired(
+      getRequired(getRequired(mockCreateActionsRun.mock.calls, 0), 0).input,
+      0
+    )
     expect(actionInput.details.adjustments).toEqual([
       {
         amount: 50,
@@ -253,7 +303,10 @@ describe("applyOrderCommercialValues", () => {
 
     expect(mockItemUpdateRun).not.toHaveBeenCalled()
     expect(mockCreateActionsRun).toHaveBeenCalled()
-    const actionInput = mockCreateActionsRun.mock.calls[0][0].input[0]
+    const actionInput = getRequired(
+      getRequired(getRequired(mockCreateActionsRun.mock.calls, 0), 0).input,
+      0
+    )
     expect(actionInput).toMatchObject({
       action: "SHIPPING_ADJUSTMENTS_REPLACE",
       details: {
@@ -327,21 +380,23 @@ describe("applyOrderCommercialValues", () => {
       },
     })
 
-    const actionInput = mockCreateActionsRun.mock.calls[0][0].input[0]
+    const actionInput = getRequired(
+      getRequired(getRequired(mockCreateActionsRun.mock.calls, 0), 0).input,
+      0
+    )
 
     expect(actionInput.details.manual_discounts.shipping_discount_amount).toBe(
       9
     )
-    expect(actionInput.details.adjustments[0]).toMatchObject({
+    const adjustment = getRequired(actionInput.details.adjustments, 0)
+    expect(adjustment).toMatchObject({
       code: "manual_shipping_discount",
       description:
         'Manual shipping discount [cv_discount:{"type":"percentage","value_bps":9000}]',
       shipping_method_id: "ship_1",
     })
-    expect(actionInput.details.adjustments[0].amount).toBeCloseTo(
-      7.317_073_170_731_708
-    )
-    expect(actionInput.details.adjustments[0].is_tax_inclusive).toBeUndefined()
+    expect(adjustment.amount).toBeCloseTo(7.317_073_170_731_708)
+    expect(adjustment.is_tax_inclusive).toBeUndefined()
   })
 
   it("does not replace adjustments for omitted items", async () => {
@@ -370,7 +425,8 @@ describe("applyOrderCommercialValues", () => {
         ...calculationInput,
         items: [
           {
-            existing_adjustments: partialOrder.items[0].adjustments,
+            existing_adjustments: getRequired(partialOrder.items, 0)
+              .adjustments,
             item_id: "item_1",
             original_unit_price: 1000,
             quantity: 1,
@@ -421,7 +477,7 @@ describe("applyOrderCommercialValues", () => {
         ...calculationInput,
         items: [
           {
-            ...calculationInput.items[0],
+            ...calculationItem,
             unit_price: 1000,
           },
         ],
@@ -460,7 +516,7 @@ describe("applyOrderCommercialValues", () => {
           ...calculationInput,
           items: [
             {
-              ...calculationInput.items[0],
+              ...calculationItem,
               discount: { amount: 100, type: "amount" as const },
             },
           ],
@@ -506,7 +562,7 @@ describe("applyOrderCommercialValues", () => {
         ...calculationInput,
         items: [
           {
-            ...calculationInput.items[0],
+            ...calculationItem,
             discount: { amount: 100, type: "amount" as const },
           },
         ],
@@ -527,7 +583,12 @@ describe("applyOrderCommercialValues", () => {
 
     expect(mockBeginRun).not.toHaveBeenCalled()
     expect(mockCreateActionsRun).toHaveBeenCalled()
-    expect(mockCreateActionsRun.mock.calls[0][0].input[0]).toMatchObject({
+    expect(
+      getRequired(
+        getRequired(getRequired(mockCreateActionsRun.mock.calls, 0), 0).input,
+        0
+      )
+    ).toMatchObject({
       order_change_id: "oc_existing",
       version: 3,
     })
@@ -550,7 +611,7 @@ describe("applyOrderCommercialValues", () => {
           ...calculationInput,
           items: [
             {
-              ...calculationInput.items[0],
+              ...calculationItem,
               discount: { amount: 100, type: "amount" as const },
             },
           ],

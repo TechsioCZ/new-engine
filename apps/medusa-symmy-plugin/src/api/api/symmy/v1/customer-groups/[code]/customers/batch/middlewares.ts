@@ -3,6 +3,7 @@ import {
   authenticate,
   validateAndTransformBody,
 } from "@medusajs/framework/http"
+
 import { AssignCustomersToGroupBatchSchema } from "./validators"
 
 export const symmyCustomerGroupCustomersBatchRoutes: MiddlewareRoute[] = [

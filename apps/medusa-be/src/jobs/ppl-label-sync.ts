@@ -8,6 +8,7 @@ import type {
   Query,
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+
 import {
   PPL_CLIENT_MODULE,
   type PplBatchItem,
@@ -21,6 +22,7 @@ import {
   type PendingFulfillment,
   type SyncAttemptInfo,
 } from "../modules/ppl-client/utils"
+import { executeWithLockTimeout } from "../utils/locking"
 
 /** Lock key for preventing concurrent job runs */
 const JOB_LOCK_KEY = "ppl-label-sync-job"
@@ -52,7 +54,7 @@ export default async function pplLabelSyncJob(container: MedusaContainer) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
   // Check global feature flag (module loaded)
-  if (process.env.FEATURE_PPL_ENABLED !== "1") {
+  if (process.env["FEATURE_PPL_ENABLED"] !== "1") {
     logger.debug(
       "PPL Label Sync: PPL module is disabled (FEATURE_PPL_ENABLED != 1), skipping"
     )
@@ -73,26 +75,19 @@ export default async function pplLabelSyncJob(container: MedusaContainer) {
   const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
 
   // Use distributed lock to prevent concurrent job runs
-  try {
-    await lockingModule.execute(
-      JOB_LOCK_KEY,
-      async () => {
-        await executeSync(container, pplClient, logger)
-      },
-      { timeout: JOB_LOCK_TIMEOUT }
-    )
-  } catch (error) {
-    // Lock acquisition timeout means another instance is running - skip silently
-    if (
-      error instanceof Error &&
-      error.message.includes("Timed-out acquiring lock")
-    ) {
-      logger.info(
-        "PPL Label Sync: Skipping - another instance is already running"
-      )
-      return
+  const result = await executeWithLockTimeout(
+    lockingModule,
+    JOB_LOCK_KEY,
+    JOB_LOCK_TIMEOUT,
+    async () => {
+      await executeSync(container, pplClient, logger)
     }
-    throw error
+  )
+
+  if (result.status === "timed_out") {
+    logger.info(
+      "PPL Label Sync: Skipping - another instance is already running"
+    )
   }
 }
 

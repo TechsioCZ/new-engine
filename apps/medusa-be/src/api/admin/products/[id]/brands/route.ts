@@ -2,6 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+
 import { setProductBrandsWorkflow } from "../../../../../workflows/brand"
 import {
   getBrandActiveProductCounts,
@@ -16,7 +17,7 @@ export async function GET(
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) {
-  const productId = req.params.id ?? ""
+  const productId = req.params["id"] ?? ""
 
   await retrieveProductOrThrow(req.scope, productId)
 
@@ -39,7 +40,7 @@ export async function POST(
   req: AuthenticatedMedusaRequest<AdminSetProductBrandsSchemaType>,
   res: MedusaResponse
 ) {
-  const productId = req.params.id ?? ""
+  const productId = req.params["id"] ?? ""
 
   // Product-side assignment is an explicit replacement operation for one product.
   // Brand-side batch assignment rejects products owned by another brand.

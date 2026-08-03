@@ -54,7 +54,7 @@ export const ActionMenu = ({ groups }: ActionMenuProps) => (
                         "[&_svg]:text-ui-fg-disabled": action.disabled,
                       }
                     )}
-                    disabled={action.disabled}
+                    disabled={action.disabled ?? false}
                     key={action.label}
                     onClick={(e) => {
                       e.stopPropagation()
@@ -77,7 +77,7 @@ export const ActionMenu = ({ groups }: ActionMenuProps) => (
                         "[&_svg]:text-ui-fg-disabled": action.disabled,
                       }
                     )}
-                    disabled={action.disabled}
+                    disabled={action.disabled ?? false}
                   >
                     <Link onClick={(e) => e.stopPropagation()} to={action.to}>
                       {action.icon}

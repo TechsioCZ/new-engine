@@ -6,6 +6,7 @@ import {
   useState,
 } from "react"
 import { useTranslation } from "react-i18next"
+
 import type { AdminUpdateCompany } from "../../../../types"
 import { useRegions } from "../../../hooks/api"
 
@@ -83,7 +84,7 @@ const CompanyTextInput = ({
   value?: string | null
 }) => (
   <>
-    <RequiredLabel required={required}>{label}</RequiredLabel>
+    <RequiredLabel required={required ?? false}>{label}</RequiredLabel>
     <Input
       aria-describedby={error ? errorId : undefined}
       aria-invalid={!!error}
@@ -95,7 +96,7 @@ const CompanyTextInput = ({
       type={type}
       value={value || ""}
     />
-    <FieldError error={error} id={errorId} />
+    <FieldError {...(error ? { error } : {})} id={errorId} />
   </>
 )
 
@@ -129,13 +130,21 @@ export function CompanyForm({
     setFormData({ ...formData, [field]: e.target.value })
 
     if (isRequiredCompanyField(field)) {
-      setValidationErrors((prev) => ({ ...prev, [field]: undefined }))
+      setValidationErrors((prev) => {
+        const next = { ...prev }
+        delete next[field]
+        return next
+      })
     }
   }
 
   const handleCurrencyChange = (value: string) => {
     setFormData({ ...formData, currency_code: value })
-    setValidationErrors((prev) => ({ ...prev, currency_code: undefined }))
+    setValidationErrors((prev) => {
+      const next = { ...prev }
+      delete next.currency_code
+      return next
+    })
   }
 
   const handleCountryChange = (value: string) => {
@@ -180,7 +189,7 @@ export function CompanyForm({
       <Drawer.Body className="p-4">
         <div className="flex flex-col gap-2">
           <CompanyTextInput
-            error={validationErrors.name}
+            {...(validationErrors.name ? { error: validationErrors.name } : {})}
             errorId="company-name-error"
             label={t("fields.name")}
             name="name"
@@ -200,7 +209,9 @@ export function CompanyForm({
             value={formData.phone || ""}
           />
           <CompanyTextInput
-            error={validationErrors.email}
+            {...(validationErrors.email
+              ? { error: validationErrors.email }
+              : {})}
             errorId="company-email-error"
             label={t("fields.email")}
             name="email"
@@ -274,7 +285,7 @@ export function CompanyForm({
               <RequiredLabel required>{t("fields.currency")}</RequiredLabel>
 
               <Select
-                defaultValue={currencyCodes?.[0]}
+                defaultValue={currencyCodes?.[0] ?? ""}
                 disabled={regionsLoading}
                 name="currency_code"
                 onValueChange={handleCurrencyChange}
@@ -302,7 +313,9 @@ export function CompanyForm({
                 </Select.Content>
               </Select>
               <FieldError
-                error={validationErrors.currency_code}
+                {...(validationErrors.currency_code
+                  ? { error: validationErrors.currency_code }
+                  : {})}
                 id="company-currency-error"
               />
             </div>

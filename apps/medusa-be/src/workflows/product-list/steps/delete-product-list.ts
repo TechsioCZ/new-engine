@@ -1,5 +1,6 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
 import { normalizeProductListType } from "../../../modules/product-list/normalizers"
 import type ProductListModuleService from "../../../modules/product-list/service"

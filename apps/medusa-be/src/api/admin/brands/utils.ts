@@ -10,6 +10,7 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
+
 import { ProductBrandLink } from "../../../links/product-brand"
 import { BRAND_MODULE } from "../../../modules/brand"
 import type BrandModuleService from "../../../modules/brand/service"
@@ -17,7 +18,7 @@ import type BrandModuleService from "../../../modules/brand/service"
 export type BrandAttributeResponse = {
   attribute_type_id?: string
   attribute_type_deleted_at?: string | Date | null
-  id?: string
+  id?: string | undefined
   name: string
   value: string
 }
@@ -39,7 +40,7 @@ export type BrandResponse = {
   title: string
   handle: string
   attributes: BrandAttributeResponse[]
-  created_at?: string | Date
+  created_at?: string | Date | undefined
   deleted_at?: string | Date | null
   gpsr_contact_email?: string | null
   gpsr_european_reseller_contact_email?: string | null
@@ -48,7 +49,7 @@ export type BrandResponse = {
   gpsr_manufactured_outside_eu?: boolean
   gpsr_manufacturing_company_name?: string | null
   gpsr_postal_address?: string | null
-  updated_at?: string | Date
+  updated_at?: string | Date | undefined
 }
 
 export type BrandAttributeRecord = {
@@ -149,10 +150,10 @@ type BrandService = BrandModuleService & {
 }
 
 type ListProductsOptions = {
-  order?: Record<string, "ASC" | "DESC">
-  q?: string
-  skip?: number
-  take?: number
+  order?: Record<string, "ASC" | "DESC"> | undefined
+  q?: string | undefined
+  skip?: number | undefined
+  take?: number | undefined
 }
 
 type RetrieveBrandOptions = {
@@ -456,7 +457,9 @@ export const listProductBrandLinksByProductIds = async (
     filters: {
       product_id: { $in: ids },
     },
-    withDeleted: options.withDeleted,
+    ...(options.withDeleted === undefined
+      ? {}
+      : { withDeleted: options.withDeleted }),
   })
 
   return (data as LinkRecord[]).filter(
@@ -473,7 +476,9 @@ export const listProductBrandLinks = async (
   const { data } = await query.graph({
     entity: ProductBrandLink.entryPoint,
     fields: ["deleted_at", "product_id", "brand_id"],
-    withDeleted: options.withDeleted,
+    ...(options.withDeleted === undefined
+      ? {}
+      : { withDeleted: options.withDeleted }),
   })
 
   return (data as LinkRecord[]).filter(
@@ -598,10 +603,10 @@ export const listAndCountProducts = async (
       ...(q ? { q } : {}),
     },
     {
-      order,
       select: ["id", "title", "handle", "thumbnail", "status", "created_at"],
-      skip,
-      take,
+      ...(order === undefined ? {} : { order }),
+      ...(skip === undefined ? {} : { skip }),
+      ...(take === undefined ? {} : { take }),
     }
   )
 }

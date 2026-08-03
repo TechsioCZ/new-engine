@@ -6,6 +6,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+
 import { requirePathParam } from "../../../../../utils/path-params"
 import {
   ensureApprovalSettingsWorkflow,
@@ -19,7 +20,7 @@ export const GET = async (
   res: MedusaResponse
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const { id } = req.params
+  const id = requirePathParam(req.params["id"], "Company id")
 
   const { data: approvalSettings, metadata } = await query.graph({
     entity: "approval_settings",
@@ -46,7 +47,7 @@ export const POST = async (
   res: MedusaResponse
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const id = requirePathParam(req.params.id, "Company id")
+  const id = requirePathParam(req.params["id"], "Company id")
   const { requires_admin_approval, requires_sales_manager_approval } =
     req.validatedBody
 

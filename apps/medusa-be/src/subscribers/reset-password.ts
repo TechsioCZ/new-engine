@@ -1,5 +1,6 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import { sendForgotPasswordWorkflow } from "../workflows/send-forgot-password"
 
 type ResetPasswordEvent = {
@@ -12,7 +13,7 @@ export default async function resetPasswordHandler({
   event: { data },
   container,
 }: SubscriberArgs<ResetPasswordEvent>) {
-  const storefrontUrl = process.env.STOREFRONT_URL
+  const storefrontUrl = process.env["STOREFRONT_URL"]
   if (!storefrontUrl) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,

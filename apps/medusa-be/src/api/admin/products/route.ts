@@ -6,6 +6,7 @@ import {
   remapKeysForProduct,
   remapProductResponse,
 } from "@medusajs/medusa/api/admin/products/helpers"
+
 import { normalizeProductSalesChannelFilter } from "../../utils/product-filters"
 
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
@@ -20,7 +21,9 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     scope: req.scope,
     fields: selectFields,
     pagination: req.queryConfig.pagination,
-    withDeleted: req.queryConfig.withDeleted,
+    ...(req.queryConfig.withDeleted !== undefined
+      ? { withDeleted: req.queryConfig.withDeleted }
+      : {}),
   })
 
   res.json({

@@ -1,4 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
+import { definedProperties } from "../../../../utils/defined-properties"
 import { deleteMeasurementUnitsWorkflow } from "../../../../workflows/measurement-unit/workflows/delete-measurement-units"
 import { updateMeasurementUnitWorkflow } from "../../../../workflows/measurement-unit/workflows/update-measurement-unit"
 import {
@@ -8,7 +10,7 @@ import {
 import type { AdminUpdateMeasurementUnitSchemaType } from "../validators"
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const unitId = req.params.id ?? ""
+  const unitId = req.params["id"] ?? ""
   const unit = await retrieveMeasurementUnitOrThrow(req.scope, unitId, {
     withDeleted: true,
   })
@@ -22,14 +24,14 @@ export async function POST(
   req: MedusaRequest<AdminUpdateMeasurementUnitSchemaType>,
   res: MedusaResponse
 ) {
-  const unitId = req.params.id ?? ""
+  const unitId = req.params["id"] ?? ""
 
   await retrieveMeasurementUnitOrThrow(req.scope, unitId)
 
   const { result } = await updateMeasurementUnitWorkflow(req.scope).run({
     input: {
       id: unitId,
-      update: req.validatedBody,
+      update: definedProperties(req.validatedBody),
     },
   })
 
@@ -44,7 +46,7 @@ export async function POST(
 }
 
 export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
-  const id = req.params.id ?? ""
+  const id = req.params["id"] ?? ""
 
   await retrieveMeasurementUnitOrThrow(req.scope, id)
   await deleteMeasurementUnitsWorkflow(req.scope).run({

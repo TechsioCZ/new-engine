@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises"
 import path from "node:path"
+
 import type {
   CreateProductCollectionDTO,
   ExecArgs,
@@ -79,7 +80,9 @@ export default async function seedDemoData({ container }: ExecArgs) {
             currency_code: "usd",
           },
         ],
-        default_sales_channel_id: defaultSalesChannel[0]?.id,
+        ...(defaultSalesChannel[0]?.id
+          ? { default_sales_channel_id: defaultSalesChannel[0].id }
+          : {}),
       },
     },
   })
@@ -592,7 +595,9 @@ export default async function seedDemoData({ container }: ExecArgs) {
           handle: "t-shirt",
           weight: 400,
           status: ProductStatus.PUBLISHED,
-          images: images[PRODUCTS.MedusaTShirt],
+          ...(images[PRODUCTS.MedusaTShirt]
+            ? { images: images[PRODUCTS.MedusaTShirt] }
+            : {}),
           options: [
             {
               title: "Size",
@@ -766,7 +771,9 @@ export default async function seedDemoData({ container }: ExecArgs) {
           handle: "sweatshirt",
           weight: 400,
           status: ProductStatus.PUBLISHED,
-          images: images[PRODUCTS.MedusaSweatshirt],
+          ...(images[PRODUCTS.MedusaSweatshirt]
+            ? { images: images[PRODUCTS.MedusaSweatshirt] }
+            : {}),
           options: [
             {
               title: "Size",
@@ -859,7 +866,9 @@ export default async function seedDemoData({ container }: ExecArgs) {
           handle: "sweatpants",
           weight: 400,
           status: ProductStatus.PUBLISHED,
-          images: images[PRODUCTS.MedusaSweatpants],
+          ...(images[PRODUCTS.MedusaSweatpants]
+            ? { images: images[PRODUCTS.MedusaSweatpants] }
+            : {}),
           options: [
             {
               title: "Size",
@@ -952,7 +961,9 @@ export default async function seedDemoData({ container }: ExecArgs) {
           handle: "shorts",
           weight: 400,
           status: ProductStatus.PUBLISHED,
-          images: images[PRODUCTS.MedusaShorts],
+          ...(images[PRODUCTS.MedusaShorts]
+            ? { images: images[PRODUCTS.MedusaShorts] }
+            : {}),
           options: [
             {
               title: "Size",

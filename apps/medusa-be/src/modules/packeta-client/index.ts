@@ -1,4 +1,5 @@
 import { Module } from "@medusajs/framework/utils"
+
 import createDefaultConfigLoader from "./loaders/create-default-config"
 import { PacketaClientModuleService } from "./service"
 

@@ -1,6 +1,7 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { moduleIntegrationTestRunner } from "@medusajs/test-utils"
 import { describe, expect, it, vi } from "vitest"
+
 import { PRODUCT_LIST_MODULE } from "../constants"
 import ProductList from "../models/product-list"
 import ProductListItem from "../models/product-list-item"

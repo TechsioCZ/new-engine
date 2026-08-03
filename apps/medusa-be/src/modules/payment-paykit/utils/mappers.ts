@@ -1,13 +1,10 @@
 import type {
-  BigNumberInput,
   BigNumberValue,
   WebhookActionResult,
 } from "@medusajs/framework/types"
-import {
-  BigNumber,
-  PaymentActions,
-  PaymentSessionStatus,
-} from "@medusajs/framework/utils"
+import { PaymentActions, PaymentSessionStatus } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
+
 import type { PaykitPayment, PaykitRefund, PaykitWebhookEvent } from "../types"
 
 type PaykitWebhookMappingOptions = {
@@ -23,40 +20,37 @@ const MEDUSA_PROCESSABLE_WEBHOOK_ACTIONS = new Set<PaymentActions>([
   PaymentActions.SUCCESSFUL,
 ])
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
 const isPaykitPayment = (value: unknown): value is PaykitPayment =>
   isRecord(value) &&
-  (typeof value.id === "string" ||
+  (typeof value["id"] === "string" ||
     "amount" in value ||
     "amount_paid" in value ||
     "status" in value ||
     "state" in value)
 
-const isBigNumberInput = (value: unknown): value is BigNumberInput =>
-  value instanceof BigNumber ||
-  (isRecord(value) &&
-    "value" in value &&
-    (typeof value.value === "number" || typeof value.value === "string")) ||
-  (isRecord(value) &&
-    typeof value.toJSON === "function" &&
-    typeof value.valueOf === "function")
+type SerializableBigNumber = {
+  toJSON: () => unknown
+  valueOf: () => unknown
+}
+
+const isSerializableBigNumber = (
+  value: unknown
+): value is SerializableBigNumber =>
+  isRecord(value) &&
+  typeof value["toJSON"] === "function" &&
+  typeof value.valueOf === "function"
 
 const toBigNumberValue = (value: unknown): BigNumberValue | undefined => {
   if (typeof value === "number" || typeof value === "string") {
     return value
   }
 
-  if (!isBigNumberInput(value)) {
+  if (!isSerializableBigNumber(value)) {
     return
   }
 
-  try {
-    return new BigNumber(value)
-  } catch {
-    return
-  }
+  const serialized = value.toJSON()
+  return typeof serialized === "number" ? serialized : undefined
 }
 
 export const mapPaykitStatusToMedusa = (
@@ -122,12 +116,12 @@ const getWebhookPayment = (event: PaykitWebhookEvent): PaykitPayment | null => {
     return data
   }
 
-  if (isRecord(data) && isPaykitPayment(data.object)) {
-    return data.object
+  if (isRecord(data) && isPaykitPayment(data["object"])) {
+    return data["object"]
   }
 
-  if (isRecord(data) && isPaykitPayment(data.payment)) {
-    return data.payment
+  if (isRecord(data) && isPaykitPayment(data["payment"])) {
+    return data["payment"]
   }
 
   return null
@@ -139,16 +133,16 @@ const getWebhookSessionId = (
 ): string | undefined => {
   if (
     isRecord(payment.metadata) &&
-    typeof payment.metadata.session_id === "string"
+    typeof payment.metadata["session_id"] === "string"
   ) {
-    return payment.metadata.session_id
+    return payment.metadata["session_id"]
   }
 
   if (
     isRecord(event.metadata) &&
-    typeof event.metadata.session_id === "string"
+    typeof event.metadata["session_id"] === "string"
   ) {
-    return event.metadata.session_id
+    return event.metadata["session_id"]
   }
 
   return

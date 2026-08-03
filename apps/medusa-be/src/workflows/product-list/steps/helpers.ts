@@ -3,6 +3,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+
 import { ProductListItemProductLink } from "../../../links/product-list-item-product"
 import { ProductListItemVariantLink } from "../../../links/product-list-item-variant"
 import {
@@ -34,17 +35,18 @@ const PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE = 1000
 
 const isProductRecord = (value: unknown): value is ProductRecord =>
   isObjectRecord(value) &&
-  typeof value.id === "string" &&
-  (value.status === undefined || typeof value.status === "string")
+  typeof value["id"] === "string" &&
+  (value["status"] === undefined || typeof value["status"] === "string")
 
 const isProductVariantRecord = (
   value: unknown
 ): value is ProductVariantRecord =>
   isObjectRecord(value) &&
-  typeof value.id === "string" &&
-  (value.product === undefined ||
-    (isObjectRecord(value.product) &&
-      (value.product.id === undefined || typeof value.product.id === "string")))
+  typeof value["id"] === "string" &&
+  (value["product"] === undefined ||
+    (isObjectRecord(value["product"]) &&
+      (value["product"]["id"] === undefined ||
+        typeof value["product"]["id"] === "string")))
 
 export const getProductListType = (type: string): ProductListType => {
   if (PRODUCT_LIST_TYPES.includes(type as ProductListType)) {

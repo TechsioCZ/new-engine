@@ -3,6 +3,7 @@ import type { DetailWidgetProps } from "@medusajs/framework/types"
 import { Button, Container, Heading, Text, toast } from "@medusajs/ui"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
+
 import { RichHtmlEditor } from "../components/rich-html-editor"
 import { sdk } from "../lib/sdk"
 
@@ -73,7 +74,7 @@ const CategoryDescriptionEditor = ({
         {
           body: {
             metadata: {
-              ...(category?.metadata ?? {}),
+              ...category?.metadata,
               [TOP_DESCRIPTION_METADATA_KEY]: topDescriptionHtml,
               [BOTTOM_DESCRIPTION_METADATA_KEY]: bottomDescriptionHtml,
             },
@@ -88,7 +89,7 @@ const CategoryDescriptionEditor = ({
           : "Failed to save category descriptions"
       )
     },
-    onSuccess: (response, variables) => {
+    onSuccess: async (response, variables) => {
       const responseTopDescriptionHtml = getMetadataHtml(
         response.product_category.metadata,
         TOP_DESCRIPTION_METADATA_KEY
@@ -106,7 +107,7 @@ const CategoryDescriptionEditor = ({
       bottomDescriptionHtmlRef.current = nextBottomDescriptionHtml
       setSavedTopDescriptionHtml(nextTopDescriptionHtml)
       setSavedBottomDescriptionHtml(nextBottomDescriptionHtml)
-      queryClient.invalidateQueries({ queryKey: ["categories"] })
+      await queryClient.invalidateQueries({ queryKey: ["categories"] })
       toast.success("Category descriptions saved")
     },
   })

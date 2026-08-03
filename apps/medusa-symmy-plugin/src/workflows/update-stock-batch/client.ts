@@ -1,6 +1,7 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { batchInventoryItemLevelsWorkflow } from "@medusajs/medusa/core-flows"
+
 import {
   type ExistingLevel,
   type LevelDTO,
@@ -93,8 +94,8 @@ export class StockBatchClient {
       },
     })
     return {
-      created: (result?.created ?? []) as LevelDTO[],
-      updated: (result?.updated ?? []) as LevelDTO[],
+      created: result?.created ?? [],
+      updated: result?.updated ?? [],
     }
   }
 

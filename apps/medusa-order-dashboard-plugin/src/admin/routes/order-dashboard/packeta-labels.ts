@@ -1,3 +1,5 @@
+import type { useTranslation } from "react-i18next"
+
 import { getCarrierLabel } from "./format"
 import {
   ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS,
@@ -6,10 +8,7 @@ import {
   type OrderDashboardPacketaEligibilityOrder,
 } from "./types"
 
-type TranslationFunction = (
-  key: string,
-  options?: Record<string, unknown>
-) => string
+type TranslationFunction = ReturnType<typeof useTranslation>["t"]
 
 type PacketaLabelPreparation =
   | {

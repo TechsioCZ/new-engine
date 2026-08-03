@@ -1,9 +1,29 @@
 import { MedusaError, Modules } from "@medusajs/framework/utils"
-import type { Mock } from "vitest"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
 // Import after mocks
 import { PplClientModuleService } from "../../../../../src/modules/ppl-client/service"
 import { encryptFields } from "../../../../../src/utils/encryption"
+
+type FirstOverload<T> = T extends {
+  (...args: infer A1): infer R1
+  (...args: infer _A2): infer _R2
+}
+  ? (...args: A1) => R1
+  : never
+
+/**
+ * `updatePplConfigs` is a generated MedusaService CRUD method with a single-
+ * item and an array overload. TypeScript utility types (`Parameters`,
+ * `ReturnType`) resolve overloaded members to the last-declared signature, so
+ * `vi.spyOn` sees the array overload. This narrows the reference to the
+ * single-item overload before spying, without any unsafe cast.
+ */
+const asSingleUpdatePplConfigs = (
+  service: PplClientModuleService
+): {
+  updatePplConfigs: FirstOverload<PplClientModuleService["updatePplConfigs"]>
+} => service
 
 const { mockPplClient } = vi.hoisted(() => ({
   mockPplClient: {
@@ -106,6 +126,7 @@ const createMockConfig = (
   sender_email: null,
   created_at: new Date(),
   updated_at: new Date(),
+  deleted_at: null,
   ...overrides,
 })
 
@@ -275,6 +296,47 @@ describe("PplClientModuleService", () => {
       )
       expect(mockPplClient.fetchNewToken).not.toHaveBeenCalled()
     })
+
+    it("uses local fallback when lock acquisition stalls past the timeout", async () => {
+      // A provider that never grants the lock within the service's own
+      // acquisition timeout (LOCK_ACQUIRE_TIMEOUT_MS = 5000 in service.ts).
+      mockLockingService.execute.mockImplementationOnce(
+        () => new Promise<void>(() => {})
+      )
+      mockCacheService.get.mockResolvedValueOnce({
+        accessToken: "cached-token",
+        expiresAt: Date.now() + 120_000,
+      })
+
+      const service = createService()
+      const promise = service.createShipmentBatch([])
+
+      await vi.advanceTimersByTimeAsync(5000)
+      await promise
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        "PPL: Rate limit lock timed out, using local fallback"
+      )
+      expect(mockPplClient.createShipmentBatch).toHaveBeenCalledWith(
+        "cached-token",
+        [],
+        undefined
+      )
+    })
+
+    it.each([
+      ["a plain provider error", new Error("locking provider unavailable")],
+      [
+        "an unrelated Medusa conflict",
+        new MedusaError(MedusaError.Types.CONFLICT, "resource conflict"),
+      ],
+    ])("rethrows %s", async (_, error) => {
+      mockLockingService.execute.mockRejectedValueOnce(error)
+
+      const service = createService()
+
+      await expect(service.createShipmentBatch([])).rejects.toBe(error)
+    })
   })
 
   describe("caching - codelists", () => {
@@ -369,7 +431,7 @@ describe("PplClientModuleService", () => {
 
   describe("config management", () => {
     beforeEach(() => {
-      encryptFields.mockClear()
+      vi.mocked(encryptFields).mockClear()
     })
 
     describe("updateConfig - sensitive field handling", () => {
@@ -383,13 +445,15 @@ describe("PplClientModuleService", () => {
           })
         )
         // Mock updatePplConfigs
-        vi.spyOn(service, "updatePplConfigs").mockResolvedValue({
-          id: "config-1",
-          environment: "testing",
-          is_enabled: true,
-          client_id: "new-id",
-          client_secret: "existing-secret",
-        } as any)
+        vi.spyOn(
+          asSingleUpdatePplConfigs(service),
+          "updatePplConfigs"
+        ).mockResolvedValue(
+          createMockConfig({
+            client_id: "new-id",
+            client_secret: "existing-secret",
+          })
+        )
 
         await service.updateConfig({
           client_id: "new-id",
@@ -397,7 +461,12 @@ describe("PplClientModuleService", () => {
         })
 
         // encryptFields should NOT receive client_secret (it was filtered out)
-        const encryptCallArgs = (encryptFields as Mock).mock.calls[0][0]
+        const encryptCall = vi.mocked(encryptFields).mock.calls[0]
+        expect(encryptCall).toBeDefined()
+        if (encryptCall === undefined) {
+          throw new Error("Expected encryptFields call")
+        }
+        const [encryptCallArgs] = encryptCall
         expect(encryptCallArgs).not.toHaveProperty("client_secret")
         expect(encryptFields).toHaveBeenCalledWith(
           expect.any(Object),
@@ -413,10 +482,10 @@ describe("PplClientModuleService", () => {
             client_secret: "existing-secret",
           })
         )
-        vi.spyOn(service, "updatePplConfigs").mockResolvedValue({
-          id: "config-1",
-          client_secret: null,
-        } as any)
+        vi.spyOn(
+          asSingleUpdatePplConfigs(service),
+          "updatePplConfigs"
+        ).mockResolvedValue(createMockConfig({ client_secret: null }))
 
         await service.updateConfig({
           client_secret: null, // null = clear the value
