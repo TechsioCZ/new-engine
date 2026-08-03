@@ -22,17 +22,24 @@ export const deactivateCustomerAccountWorkflow = createWorkflow(
       }))
     )
 
-    deleteAuthIdentityStep(
+    const authIdentityDeletion = deleteAuthIdentityStep(
       transform({ prepared }, ({ prepared: payload }) => ({
         auth_identity_id: payload.auth_identity_id,
       }))
     )
 
     return new WorkflowResponse(
-      transform({ prepared }, ({ prepared: payload }) => ({
-        customer_id: payload.customer_id,
-        deleted: true,
-      }))
+      transform(
+        { authIdentityDeletion, prepared },
+        ({
+          authIdentityDeletion: authIdentityDeletionResult,
+          prepared: payload,
+        }) => ({
+          auth_identity_deleted: authIdentityDeletionResult.deleted,
+          customer_id: payload.customer_id,
+          deleted: true,
+        })
+      )
     )
   }
 )

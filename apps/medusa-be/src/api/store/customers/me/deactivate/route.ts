@@ -16,6 +16,7 @@ export async function POST(
   })
 
   res.status(200).json({
+    auth_identity_deleted: result.auth_identity_deleted,
     customer_id: result.customer_id,
     deleted: result.deleted,
   })
