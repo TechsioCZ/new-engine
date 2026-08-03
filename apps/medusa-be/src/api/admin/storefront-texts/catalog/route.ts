@@ -10,6 +10,7 @@ import { getStorefrontTextMarketConfiguration } from "../../../../modules/storef
 import { getStorefrontTextDefaultMessages } from "../../../../modules/storefront-text/registry"
 import type StorefrontTextModuleService from "../../../../modules/storefront-text/service"
 import { importStorefrontTextCatalogWorkflow } from "../../../../workflows/storefront-text/workflows/import-storefront-text-catalog"
+import { handleStorefrontTextLockError } from "../lock-error"
 import type {
   AdminGetStorefrontTextCatalogSchemaType,
   AdminImportStorefrontTextCatalogSchemaType,
@@ -64,16 +65,22 @@ export async function POST(
   const { catalog, market } = req.validatedBody
   const configuration = requireMarketConfiguration(market)
 
-  const { result } = await importStorefrontTextCatalogWorkflow(req.scope).run({
-    input: {
-      catalog,
-      market,
-    },
-  })
+  try {
+    const { result } = await importStorefrontTextCatalogWorkflow(req.scope).run(
+      {
+        input: {
+          catalog,
+          market,
+        },
+      }
+    )
 
-  res.json({
-    locale: configuration.locale,
-    market,
-    result,
-  })
+    res.json({
+      locale: configuration.locale,
+      market,
+      result,
+    })
+  } catch (error) {
+    handleStorefrontTextLockError(error, res)
+  }
 }

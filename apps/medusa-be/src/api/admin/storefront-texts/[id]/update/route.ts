@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { updateStorefrontTextWorkflow } from "../../../../../workflows/storefront-text/workflows/update-storefront-text"
+import { handleStorefrontTextLockError } from "../../lock-error"
 import type { AdminUpdateStorefrontTextSchemaType } from "../../validators"
 
 const getStorefrontTextId = (req: MedusaRequest) =>
@@ -19,14 +20,18 @@ export async function POST(
     )
   }
 
-  const { result: storefrontText } = await updateStorefrontTextWorkflow(
-    req.scope
-  ).run({
-    input: {
-      id,
-      update: req.validatedBody,
-    },
-  })
+  try {
+    const { result: storefrontText } = await updateStorefrontTextWorkflow(
+      req.scope
+    ).run({
+      input: {
+        id,
+        update: req.validatedBody,
+      },
+    })
 
-  res.json({ storefront_text: storefrontText })
+    res.json({ storefront_text: storefrontText })
+  } catch (error) {
+    handleStorefrontTextLockError(error, res)
+  }
 }
