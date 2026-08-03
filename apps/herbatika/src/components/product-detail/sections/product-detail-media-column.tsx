@@ -3,10 +3,8 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Gallery, type GalleryItem } from "@techsio/ui-kit/organisms/gallery"
 import NextImage from "next/image"
-import NextLink from "next/link"
 import type { ProductMediaFact } from "@/components/product-detail/product-detail.types"
 import { ProductDetailGalleryLightbox } from "@/components/product-detail/sections/product-detail-gallery-lightbox"
 import { useProductDetailGalleryState } from "@/components/product-detail/sections/use-product-detail-gallery-state"
@@ -139,16 +137,6 @@ export function ProductDetailMediaColumn({
             +421 2/321 123 45
           </Link>
         </div>
-        <LinkButton
-          as={NextLink}
-          className="min-h-chat-button shrink-0 px-350 py-150"
-          href="/"
-          size="sm"
-          theme="outlined"
-          variant="primary"
-        >
-          Spustiť chat
-        </LinkButton>
       </div>
     </div>
   )

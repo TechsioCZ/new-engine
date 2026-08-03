@@ -22,14 +22,6 @@ export function CheckoutHeader() {
 
         <div className="flex items-center gap-200">
           <Link
-            as={NextLink}
-            className="hidden items-center gap-100 text-fg-primary text-sm hover:text-primary md:inline-flex"
-            href="/#chat"
-          >
-            <Icon color="success" icon="token-icon-conversation" />
-            Spustiť chat
-          </Link>
-          <Link
             className="hidden items-center gap-100 text-fg-primary text-sm hover:text-primary lg:inline-flex"
             href="tel:+421232112345"
           >
