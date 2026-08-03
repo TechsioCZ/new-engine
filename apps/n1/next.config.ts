@@ -2,8 +2,22 @@ import { join } from "node:path"
 
 import type { NextConfig } from "next"
 
-const nextConfig: NextConfig = {
+import { createStorefrontSecurityConfig } from "../../libs/storefront-security/index.mjs"
+
+// Shared storefront hardening instead of a hand-rolled headers() block.
+// The preset's CSP is suppressed for now: N1 loads third-party analytics
+// (Heureka, Meta, Google, Leadhub), and the preset deliberately ships no
+// vendor origins, so enforcing it as-is would block those scripts and their
+// beacons. Enumerate the vendor origins into additionalScriptSrc/
+// additionalConnectSrc and drop this override to turn the CSP on.
+const storefrontSecurity = createStorefrontSecurityConfig({
+  preset: "medusaStorefront",
   allowedDevOrigins: ["n1.medusa.localhost"],
+  replace: { headers: [{ key: "Content-Security-Policy", value: null }] },
+})
+
+const nextConfig: NextConfig = {
+  ...storefrontSecurity,
   reactStrictMode: true,
   typedRoutes: true,
   output: "standalone",
@@ -46,41 +60,6 @@ const nextConfig: NextConfig = {
   experimental: {
     typedEnv: true,
     turbopackRustReactCompiler: true,
-  },
-
-  // Security headers
-  headers() {
-    return [
-      {
-        source: "/:path*",
-        headers: [
-          {
-            key: "X-Frame-Options",
-            value: "DENY",
-          },
-          {
-            key: "X-Content-Type-Options",
-            value: "nosniff",
-          },
-          {
-            key: "Referrer-Policy",
-            value: "origin-when-cross-origin",
-          },
-          {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(self)",
-          },
-          ...(process.env["NODE_ENV"] === "production"
-            ? [
-                {
-                  key: "Strict-Transport-Security",
-                  value: "max-age=31536000; includeSubDomains",
-                },
-              ]
-            : []),
-        ],
-      },
-    ]
   },
 }
 
