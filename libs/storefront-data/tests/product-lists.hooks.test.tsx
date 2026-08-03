@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook } from "@testing-library/react"
 import type { ReactNode } from "react"
+
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createProductListHooks } from "../src/product-lists/hooks"
 import { createProductListQueryKeys } from "../src/product-lists/query-keys"
@@ -27,7 +28,8 @@ type Service = ProductListService<
   DetailParams
 >
 
-const createWrapper = (client: QueryClient) =>
+const createWrapper =
+  (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
@@ -38,9 +40,8 @@ const buildListParams = (input: ProductListListInputBase): ListParams => {
   return { limit, offset: (page - 1) * limit }
 }
 
-const buildDetailParams = (
-  input: ProductListDetailInputBase
-): DetailParams => ({ id: input.id })
+const buildDetailParams = (input: ProductListDetailInputBase): DetailParams =>
+  input.id === undefined ? {} : { id: input.id }
 
 const createService = (overrides: Partial<Service> = {}): Service => ({
   listProductLists: async (params) => ({
@@ -124,7 +125,9 @@ describe("product-list prefetch hooks", () => {
     )
     const { result: anyResult } = renderHook(
       () => usePrefetchProductLists({ skipMode: "any" }),
-      { wrapper }
+      {
+        wrapper,
+      }
     )
     const { result: noSkipResult } = renderHook(
       () => usePrefetchProductLists({ skipIfCached: false }),

@@ -1,7 +1,8 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
-import { HttpResponse, http } from "msw"
+import { http, HttpResponse } from "msw"
 import type { ReactNode } from "react"
+
 import { createCartHooks } from "../src/cart/hooks"
 import { createCartQueryKeys } from "../src/cart/query-keys"
 import type { CartService, UpdateCartInputBase } from "../src/cart/types"
@@ -104,7 +105,7 @@ describe("storefront-data hook smoke tests", () => {
           lastUpdatePayload = payload
           return HttpResponse.json({
             cart: {
-              id: String(params.cartId),
+              id: String(params["cartId"]),
               region_id: payload.region_id ?? null,
               shipping_address: payload.shipping_address,
               billing_address: payload.billing_address,
@@ -137,10 +138,14 @@ describe("storefront-data hook smoke tests", () => {
       }
 
       const buildUpdateParams = (input: UpdateInput): UpdateParams => ({
-        email: input.email,
-        region_id: input.region_id,
-        shipping_address: input.shipping_address,
-        billing_address: input.billing_address,
+        ...(input.email ? { email: input.email } : {}),
+        ...(input.region_id ? { region_id: input.region_id } : {}),
+        ...(input.shipping_address
+          ? { shipping_address: input.shipping_address }
+          : {}),
+        ...(input.billing_address
+          ? { billing_address: input.billing_address }
+          : {}),
       })
 
       const buildAddressPayload = (input: AddressInput): AddressPayload => ({
@@ -150,7 +155,7 @@ describe("storefront-data hook smoke tests", () => {
         city: input.city,
         postal_code: input.postalCode,
         country_code: input.countryCode,
-        company: input.company,
+        ...(input.company ? { company: input.company } : {}),
       })
 
       const cartQueryKeys = createCartQueryKeys("smoke-cart")
@@ -171,6 +176,8 @@ describe("storefront-data hook smoke tests", () => {
       >({
         service: cartService,
         buildUpdateParams,
+        buildAddParams: (input) => input,
+        buildUpdateItemParams: (input) => input,
         queryKeys: cartQueryKeys,
         addressAdapter: {
           normalize: (input) => ({
@@ -274,7 +281,7 @@ describe("storefront-data hook smoke tests", () => {
       return {
         limit,
         offset,
-        region_id: input.region_id,
+        ...(input.region_id ? { region_id: input.region_id } : {}),
       }
     }
 
@@ -497,7 +504,7 @@ describe("storefront-data hook smoke tests", () => {
           })
         }),
         http.get(`${baseUrl}/orders/:id`, ({ params }) =>
-          HttpResponse.json({ order: { id: String(params.id) } })
+          HttpResponse.json({ order: { id: String(params["id"]) } })
         )
       )
 
@@ -511,7 +518,7 @@ describe("storefront-data hook smoke tests", () => {
           return response.json()
         },
         getOrder: async (params) => {
-          const response = await fetch(`${baseUrl}/orders/${params.id}`)
+          const response = await fetch(`${baseUrl}/orders/${params["id"]}`)
           const data = await response.json()
           return data.order as Order
         },
@@ -582,7 +589,7 @@ describe("storefront-data hook smoke tests", () => {
           async ({ request, params }) => {
             lastUpdateBody = (await request.json()) as Record<string, unknown>
             return HttpResponse.json({
-              address: { id: String(params.id), address_1: "Updated" },
+              address: { id: String(params["id"]), address_1: "Updated" },
             })
           }
         ),
@@ -668,7 +675,9 @@ describe("storefront-data hook smoke tests", () => {
 
       const listHook = renderHook(
         () => useCustomerAddresses({} as CustomerAddressListInputBase),
-        { wrapper }
+        {
+          wrapper,
+        }
       )
 
       await waitFor(() => {
@@ -698,7 +707,7 @@ describe("storefront-data hook smoke tests", () => {
         })
       })
 
-      expect(lastUpdateBody?.addressId).toBeUndefined()
+      expect(lastUpdateBody?.["addressId"]).toBeUndefined()
 
       const deleteHook = renderHook(() => useDeleteCustomerAddress(), {
         wrapper,
@@ -721,7 +730,7 @@ describe("storefront-data hook smoke tests", () => {
         })
       })
 
-      expect(lastUpdateBody?.metadata).toEqual({ company: "QA" })
+      expect(lastUpdateBody?.["metadata"]).toEqual({ company: "QA" })
     })
   })
 })

@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+
 import { getErrorStatus } from "../shared/medusa-errors"
 import type { OrderListResponse, OrderService } from "./types"
 
@@ -79,7 +80,7 @@ export function createMedusaOrderService(
             limit: params.limit,
             offset: params.offset,
           },
-          signal,
+          signal: signal ?? null,
         }
       )
       return {
@@ -103,7 +104,7 @@ export function createMedusaOrderService(
           query: {
             fields: detailFields,
           },
-          signal,
+          signal: signal ?? null,
         })
 
         return response.order ?? null

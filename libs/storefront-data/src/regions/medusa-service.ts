@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { FindParams, HttpTypes, SelectParams } from "@medusajs/types"
+
 import type { RegionListResponse, RegionService } from "./types"
 
 export type MedusaRegionListInput = FindParams &
@@ -45,7 +46,7 @@ export function createMedusaRegionService(
           "/store/regions",
           {
             query,
-            signal,
+            signal: signal ?? null,
           }
         )
       return {
@@ -66,7 +67,7 @@ export function createMedusaRegionService(
         `/store/regions/${id}`,
         {
           query,
-          signal,
+          signal: signal ?? null,
         }
       )
       return response.region ?? null

@@ -4,6 +4,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+
 import type { AuthQueryKeys } from "../auth/types"
 import type {
   StorefrontCustomerCreateAddressContext,
@@ -16,7 +17,7 @@ import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
-import { createQueryKey, type QueryNamespace } from "../shared/query-keys"
+import { type QueryNamespace, createQueryKey } from "../shared/query-keys"
 import { createCustomerQueryKeys } from "./query-keys"
 import type {
   CustomerAddressAdapter,
@@ -82,14 +83,14 @@ export function createCustomerHooks<
   TAddress,
   TListInput extends CustomerAddressListInputBase,
   TListParams = TListInput,
-  TCreateInput extends
-    CustomerAddressCreateInputBase = CustomerAddressCreateInputBase,
+  TCreateInput extends CustomerAddressCreateInputBase =
+    CustomerAddressCreateInputBase,
   TCreateParams = TCreateInput,
-  TUpdateInput extends
-    CustomerAddressUpdateInputBase = CustomerAddressUpdateInputBase,
+  TUpdateInput extends CustomerAddressUpdateInputBase =
+    CustomerAddressUpdateInputBase,
   TUpdateParams = TUpdateInput,
-  TUpdateCustomerInput extends
-    CustomerProfileUpdateInputBase = CustomerProfileUpdateInputBase,
+  TUpdateCustomerInput extends CustomerProfileUpdateInputBase =
+    CustomerProfileUpdateInputBase,
   TUpdateCustomerParams = TUpdateCustomerInput,
 >({
   service,
@@ -119,13 +120,14 @@ export function createCustomerHooks<
     customer: () => createQueryKey(queryKeyNamespace, "auth", "customer"),
   }
   const buildList =
-    buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
+    buildListParams ??
+    ((input: TListInput) => ({ ...input }) as TListInput & TListParams)
   const buildCreate: (
     input: TCreateInput,
     context: StorefrontCustomerCreateAddressContext
   ) => TCreateParams =
     addressAdapter?.toCreateParams ??
-    ((input: TCreateInput) => input as unknown as TCreateParams)
+    ((input: TCreateInput) => ({ ...input }) as TCreateInput & TCreateParams)
   const buildUpdate: (
     input: TUpdateInput,
     context: StorefrontCustomerUpdateAddressContext
@@ -136,11 +138,12 @@ export function createCustomerHooks<
         input as TUpdateInput & {
           addressId?: string
         }
-      return restUpdateInput as unknown as TUpdateParams
+      return { ...restUpdateInput } as typeof restUpdateInput & TUpdateParams
     })
   const buildUpdateCustomer =
     buildUpdateCustomerParams ??
-    ((input: TUpdateCustomerInput) => input as unknown as TUpdateCustomerParams)
+    ((input: TUpdateCustomerInput) =>
+      ({ ...input }) as TUpdateCustomerInput & TUpdateCustomerParams)
 
   function useCustomerAddresses(
     input: TListInput,
@@ -160,7 +163,7 @@ export function createCustomerHooks<
       queryFn: ({ signal }) => service.getAddresses(listParams, signal),
       enabled,
       ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
+      ...options?.queryOptions,
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
 
@@ -188,7 +191,7 @@ export function createCustomerHooks<
       queryKey: resolvedQueryKeys.addresses(listParams),
       queryFn: ({ signal }) => service.getAddresses(listParams, signal),
       ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
+      ...options?.queryOptions,
     })
     const { data, isFetching } = query
 
@@ -218,12 +221,12 @@ export function createCustomerHooks<
           buildCreate(normalized, { mode: "create" })
         )
       },
-      onMutate: options?.onMutate,
-      onSuccess: (address, variables, context) => {
-        queryClient.invalidateQueries({
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSuccess: async (address, variables, context) => {
+        await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
         })
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(address, variables, context)
@@ -264,12 +267,12 @@ export function createCustomerHooks<
           })
         )
       },
-      onMutate: options?.onMutate,
-      onSuccess: (address, variables, context) => {
-        queryClient.invalidateQueries({
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSuccess: async (address, variables, context) => {
+        await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
         })
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(address, variables, context)
@@ -294,12 +297,12 @@ export function createCustomerHooks<
         }
         return service.deleteAddress(addressId)
       },
-      onMutate: options?.onMutate,
-      onSuccess: (data, variables, context) => {
-        queryClient.invalidateQueries({
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSuccess: async (data, variables, context) => {
+        await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
         })
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(data, variables, context)
@@ -324,12 +327,12 @@ export function createCustomerHooks<
         }
         return service.updateCustomer(buildUpdateCustomer(input))
       },
-      onMutate: options?.onMutate,
-      onSuccess: (customer, variables, context) => {
-        queryClient.invalidateQueries({
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSuccess: async (customer, variables, context) => {
+        await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.profile(),
         })
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(customer, variables, context)
@@ -358,14 +361,14 @@ export type CustomerHooks<
   TAddress,
   TListInput extends CustomerAddressListInputBase,
   TListParams = TListInput,
-  TCreateInput extends
-    CustomerAddressCreateInputBase = CustomerAddressCreateInputBase,
+  TCreateInput extends CustomerAddressCreateInputBase =
+    CustomerAddressCreateInputBase,
   TCreateParams = TCreateInput,
-  TUpdateInput extends
-    CustomerAddressUpdateInputBase = CustomerAddressUpdateInputBase,
+  TUpdateInput extends CustomerAddressUpdateInputBase =
+    CustomerAddressUpdateInputBase,
   TUpdateParams = TUpdateInput,
-  TUpdateCustomerInput extends
-    CustomerProfileUpdateInputBase = CustomerProfileUpdateInputBase,
+  TUpdateCustomerInput extends CustomerProfileUpdateInputBase =
+    CustomerProfileUpdateInputBase,
   TUpdateCustomerParams = TUpdateCustomerInput,
 > = ReturnType<
   typeof createCustomerHooks<

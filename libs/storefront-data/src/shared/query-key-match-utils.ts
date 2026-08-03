@@ -1,4 +1,5 @@
-import { isPlainRecord } from "./object-utils"
+import { isRecord as isPlainRecord } from "@techsio/std/object"
+
 import type { QueryKey } from "./query-keys"
 
 export const areQueryKeySegmentsEqual = (

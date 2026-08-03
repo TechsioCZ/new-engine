@@ -3,6 +3,8 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+import { omitUndefined } from "@techsio/std/object"
+
 import {
   type CacheConfig,
   type CacheStrategy,
@@ -150,11 +152,11 @@ const resolveListPagination = <TInput extends ListInputBase, TListParams>(
   const offsetFromParams = (listParams as { offset?: number }).offset
 
   return resolvePagination(
-    {
+    omitUndefined({
       page: input.page,
       limit: limitFromParams ?? input.limit,
       offset: offsetFromParams,
-    },
+    }),
     defaultPageSize
   )
 }
@@ -194,9 +196,10 @@ export function createSimpleListDetailHooks<
     const listParams = buildList(stripEnabled(input))
     const enabled = inputEnabled ?? true
     const query = useQuery({
-      ...getListQueryOptions(input, {
-        queryOptions: options?.queryOptions,
-      }),
+      ...getListQueryOptions(
+        input,
+        omitUndefined({ queryOptions: options?.queryOptions })
+      ),
       enabled,
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
@@ -227,9 +230,10 @@ export function createSimpleListDetailHooks<
   ): SimpleSuspenseListHookResult<TItem, TListResponse> {
     const listParams = buildList(stripEnabled(input))
     const query = useSuspenseQuery({
-      ...getListQueryOptions(input, {
-        queryOptions: options?.queryOptions,
-      }),
+      ...getListQueryOptions(
+        input,
+        omitUndefined({ queryOptions: options?.queryOptions })
+      ),
     })
     const { data, isFetching } = query
     const pagination = resolveListPagination(input, listParams, defaultPageSize)
@@ -259,9 +263,10 @@ export function createSimpleListDetailHooks<
   ): SimpleDetailHookResult<TItem> {
     const enabled = input.enabled ?? Boolean(input.id)
     const query = useQuery({
-      ...getDetailQueryOptions(input, {
-        queryOptions: options?.queryOptions,
-      }),
+      ...getDetailQueryOptions(
+        input,
+        omitUndefined({ queryOptions: options?.queryOptions })
+      ),
       enabled,
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
@@ -281,9 +286,10 @@ export function createSimpleListDetailHooks<
     options?: SimpleSuspenseOptions<TItem | null>
   ): SimpleSuspenseDetailHookResult<TItem> {
     const query = useSuspenseQuery({
-      ...getDetailQueryOptions(input, {
-        queryOptions: options?.queryOptions,
-      }),
+      ...getDetailQueryOptions(
+        input,
+        omitUndefined({ queryOptions: options?.queryOptions })
+      ),
     })
     const { data, isFetching } = query
 

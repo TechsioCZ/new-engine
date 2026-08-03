@@ -175,7 +175,8 @@ export function createStorefrontSecurityConfig(options = {}) {
   const permissionsPolicyDirectives =
     normalizedReplace.permissionsPolicy ??
     uniquePolicySources([
-      ...(presetConfig.permissionsPolicy ?? DEFAULT_PERMISSIONS_POLICY_DIRECTIVES),
+      ...(presetConfig.permissionsPolicy ??
+        DEFAULT_PERMISSIONS_POLICY_DIRECTIVES),
       ...(legacyExtend.permissionsPolicy ?? []),
       ...(normalizedExtend.permissionsPolicy ?? []),
     ])

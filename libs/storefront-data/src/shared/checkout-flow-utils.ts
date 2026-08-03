@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import { omitUndefined } from "@techsio/std/object"
 
 export type CheckoutCartWithId = {
   id?: string | null
@@ -23,10 +24,10 @@ export const resolveCheckoutCartInput = <TCart extends CheckoutCartWithId>({
     return { resolvedCartId }
   }
 
-  return {
+  return omitUndefined({
     resolvedCartId,
     normalizedCart: cart,
-  }
+  })
 }
 
 export const resolveEffectiveCheckoutCart = <TCart>({

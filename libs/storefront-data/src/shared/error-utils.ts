@@ -4,17 +4,17 @@ type ErrorLikeCode = { code?: unknown }
 const hasStringMessage = (error: unknown): error is { message: string } =>
   Boolean(
     error &&
-      typeof error === "object" &&
-      "message" in error &&
-      typeof (error as ErrorLikeMessage).message === "string"
+    typeof error === "object" &&
+    "message" in error &&
+    typeof (error as ErrorLikeMessage).message === "string"
   )
 
 const hasStringCode = (error: unknown): error is { code: string } =>
   Boolean(
     error &&
-      typeof error === "object" &&
-      "code" in error &&
-      typeof (error as ErrorLikeCode).code === "string"
+    typeof error === "object" &&
+    "code" in error &&
+    typeof (error as ErrorLikeCode).code === "string"
   )
 
 export const toErrorMessage = (error: unknown): string | null => {
@@ -34,8 +34,15 @@ export const toErrorMessage = (error: unknown): string | null => {
     return error
   }
 
-  const serialized = String(error)
-  return serialized === "[object Object]" ? null : serialized
+  if (
+    typeof error === "number" ||
+    typeof error === "bigint" ||
+    typeof error === "boolean"
+  ) {
+    return String(error)
+  }
+
+  return null
 }
 
 export const toErrorMessageWithFallback = (

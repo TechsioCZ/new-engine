@@ -1,6 +1,6 @@
-import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
+
 import { createMedusaStorefrontServerReadPreset } from "../src/medusa/server-read"
 import { createOrderQueryKeys } from "../src/orders/query-keys"
 import type {
@@ -10,6 +10,7 @@ import type {
 import { createProductListQueryKeys } from "../src/product-lists/query-keys"
 import { createProductQueryKeys } from "../src/products/query-keys"
 import { createRegionQueryKeys } from "../src/regions/query-keys"
+import { createTestMedusaSdk } from "./medusa-fixtures"
 
 const createSdkMock = () => {
   const clientFetch = vi.fn(
@@ -51,22 +52,19 @@ const createSdkMock = () => {
     }
   )
 
+  const sdk = createTestMedusaSdk()
+  Object.defineProperty(sdk.client, "fetch", { value: clientFetch })
+  Object.defineProperty(sdk.store.cart, "retrieve", {
+    value: vi.fn(async () => ({ cart: null })),
+  })
+  Object.defineProperty(sdk.store.payment, "initiatePaymentSession", {
+    value: vi.fn(async () => ({
+      payment_collection: { payment_sessions: [] },
+    })),
+  })
+
   return {
-    sdk: {
-      client: {
-        fetch: clientFetch,
-      },
-      store: {
-        cart: {
-          retrieve: vi.fn(async () => ({ cart: null })),
-        },
-        payment: {
-          initiatePaymentSession: vi.fn(async () => ({
-            payment_collection: { payment_sessions: [] },
-          })),
-        },
-      },
-    } as unknown as Medusa,
+    sdk,
     spies: {
       clientFetch,
     },
@@ -76,14 +74,14 @@ const createSdkMock = () => {
 describe("createMedusaStorefrontServerReadPreset", () => {
   it("builds namespaced reusable read query options for SSR prefetch", async () => {
     const { sdk, spies } = createSdkMock()
-    const productQueryKeys = createProductQueryKeys<{ limit: number }, { handle: string }>([
-      "tenant",
-      "demo",
-    ])
-    const regionQueryKeys = createRegionQueryKeys<Record<string, never>, { id: string }>([
-      "tenant",
-      "demo",
-    ])
+    const productQueryKeys = createProductQueryKeys<
+      { limit: number },
+      { handle: string }
+    >(["tenant", "demo"])
+    const regionQueryKeys = createRegionQueryKeys<
+      Record<string, never>,
+      { id: string }
+    >(["tenant", "demo"])
     const productListQueryKeys = createProductListQueryKeys<
       MedusaProductListListKeyInput,
       MedusaProductListDetailKeyInput
@@ -168,9 +166,10 @@ describe("createMedusaStorefrontServerReadPreset", () => {
 
   it("supports custom order services and list param builders without touching hooks", async () => {
     const { sdk } = createSdkMock()
-    const orderQueryKeys = createOrderQueryKeys<{ limit: number; offset: number }, { id: string }>(
-      "storefront-data"
-    )
+    const orderQueryKeys = createOrderQueryKeys<
+      { limit: number; offset: number },
+      { id: string }
+    >("storefront-data")
 
     const customOrderService = {
       getOrders: vi.fn(

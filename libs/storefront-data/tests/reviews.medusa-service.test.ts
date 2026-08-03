@@ -1,6 +1,6 @@
-import type Medusa from "@medusajs/js-sdk"
 import { createMedusaProductReviewService } from "../src/reviews/medusa-service"
 import type { ReviewBase } from "../src/reviews/types"
+import { createTestMedusaSdk } from "./medusa-fixtures"
 
 const createReview = (rating: number, index: number): ReviewBase => ({
   content: `Review ${index}`,
@@ -31,16 +31,10 @@ const createReviewResponse = ({
 })
 
 const createSdkMock = () => {
+  const sdk = createTestMedusaSdk()
   const fetch = vi.fn()
-
-  return {
-    fetch,
-    sdk: {
-      client: {
-        fetch,
-      },
-    } as unknown as Medusa,
-  }
+  Object.defineProperty(sdk.client, "fetch", { value: fetch })
+  return { fetch, sdk }
 }
 
 describe("createMedusaProductReviewService", () => {
@@ -96,14 +90,14 @@ describe("createMedusaProductReviewService", () => {
         limit: 3,
         offset: 0,
       },
-      signal: undefined,
+      signal: null,
     })
     expect(fetch).toHaveBeenNthCalledWith(2, "/store/products/prod_1/reviews", {
       query: {
         limit: 9,
         offset: 0,
       },
-      signal: undefined,
+      signal: null,
     })
     expect(result.reviews).toHaveLength(3)
     expect(result.summary).toEqual({
