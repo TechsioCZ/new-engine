@@ -1,12 +1,8 @@
 # @techsio/ui-kit — Skill Spec
 
-`@techsio/ui-kit` is the shared React 19 UI library in `libs/ui`, built with
-Tailwind v4 tokens, tailwind-variants, Zag.js, Storybook 10, RSLib, and Figma
-Code Connect. The skills cover two separate work modes: authoring/refactoring
-the library itself, and using the library correctly inside apps/*.
+`@techsio/ui-kit` is the shared React 19 UI library in `libs/ui`, built with Tailwind v4 tokens, tailwind-variants, Zag.js, Storybook 10, RSLib, and Figma Code Connect. The skills cover two separate work modes: authoring/refactoring the library itself, and using the library correctly inside apps/*.
 
-Generated from `skills/_artifacts/domain_map.yaml`.
-Status: reviewed.
+Generated from `skills/_artifacts/domain_map.yaml`. Status: reviewed.
 
 ## Domains
 
@@ -91,8 +87,7 @@ Total: 14 skills, 52 failure modes.
 
 ## Remaining Gaps
 
-None. Phase 4 interview findings are recorded in `domain_map.yaml` under
-`resolved_interview_findings`.
+None. Phase 4 interview findings are recorded in `domain_map.yaml` under `resolved_interview_findings`.
 
 ## Recommended Skill File Structure
 

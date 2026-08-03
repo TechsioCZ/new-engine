@@ -2,9 +2,7 @@
 component_version: "1.0.0"
 name: pagination-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Pagination for
-  link-based paginated navigation with Zag.js pagination, getPageUrl,
-  LinkButton, NextLink adapters, compact mode, variants, and sizes.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Pagination for link-based paginated navigation with Zag.js pagination, getPageUrl, LinkButton, NextLink adapters, compact mode, variants, and sizes.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -22,20 +20,25 @@ sources:
 
 # @techsio/ui-kit Pagination Usage
 
-Use Pagination for page-based navigation. Do not use it for infinite scroll or
-stepper/wizard progress.
+Use Pagination for page-based navigation. Do not use it for infinite scroll or stepper/wizard progress.
 
 ## Setup
 
 ```tsx
 import NextLink from "next/link"
-import { Pagination, createPaginationGetPageUrl } from "@techsio/ui-kit/molecules/pagination"
+import {
+  Pagination,
+  createPaginationGetPageUrl,
+} from "@techsio/ui-kit/molecules/pagination"
 
-<Pagination
+;<Pagination
   count={120}
   pageSize={12}
   linkAs={NextLink}
-  getPageUrl={createPaginationGetPageUrl({ pathname: "/products", searchParams })}
+  getPageUrl={createPaginationGetPageUrl({
+    pathname: "/products",
+    searchParams,
+  })}
 />
 ```
 
@@ -55,8 +58,7 @@ onChange/onPageChange, translations
 
 ### Always provide getPageUrl
 
-Pagination is link-based. Use `createPaginationGetPageUrl` to preserve query
-params and avoid ad hoc URL string handling.
+Pagination is link-based. Use `createPaginationGetPageUrl` to preserve query params and avoid ad hoc URL string handling.
 
 ### Use NextLink in Next apps
 

@@ -1,10 +1,7 @@
 ---
 name: component-consistency-validation
 description: >
-  Use after changing @techsio/ui-kit component TSX, token CSS, Storybook
-  stories, Figma Code Connect files, package exports, or validation scripts.
-  Checks prop/variant/token/story/Figma consistency and recommends focused
-  commands before maintainer handoff.
+  Use after changing @techsio/ui-kit component TSX, token CSS, Storybook stories, Figma Code Connect files, package exports, or validation scripts. Checks prop/variant/token/story/Figma consistency and recommends focused commands before maintainer handoff.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -73,8 +70,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Carousel } from "@techsio/ui-kit/molecules/carousel"
 ```
 
-The package exports wildcard subpaths for atoms, molecules, organisms,
-templates, tokens, and utils. Do not expect a root barrel export.
+The package exports wildcard subpaths for atoms, molecules, organisms, templates, tokens, and utils. Do not expect a root barrel export.
 
 ### Check Code Connect when public props change
 
@@ -82,8 +78,7 @@ templates, tokens, and utils. Do not expect a root barrel export.
 pnpm --dir libs/ui figma:connect:parse
 ```
 
-Use `figma-sync-handoff` for follow-up ownership. Do not publish or edit Figma
-unless the maintainer asks.
+Use `figma-sync-handoff` for follow-up ownership. Do not publish or edit Figma unless the maintainer asks.
 
 ## Common Mistakes
 
@@ -105,8 +100,7 @@ argTypes: {
 }
 ```
 
-Storybook controls are copied by app developers, so undocumented or
-nonexistent options become app bugs.
+Storybook controls are copied by app developers, so undocumented or nonexistent options become app bugs.
 
 Source: libs/ui/src/atoms/button.tsx and libs/ui/stories/atoms/button.stories.tsx
 
@@ -124,8 +118,7 @@ Correct:
 pnpm --dir libs/ui validate:tokens
 ```
 
-The token usage validator maps Tailwind utility namespaces to required CSS
-custom properties.
+The token usage validator maps Tailwind utility namespaces to required CSS custom properties.
 
 Source: libs/ui/scripts/validate-token-usage.js
 
@@ -145,8 +138,7 @@ Correct:
 </Carousel.Root>
 ```
 
-Compound children rely on context guards such as
-`Carousel components must be used within Carousel.Root`.
+Compound children rely on context guards such as `Carousel components must be used within Carousel.Root`.
 
 Source: libs/ui/src/molecules/carousel.tsx
 
@@ -162,6 +154,4 @@ pnpm --dir libs/ui storybook:a11y
 pnpm --dir libs/ui test:components
 ```
 
-Run only commands relevant to the changed area unless the maintainer asks for
-a full readiness pass.
-
+Run only commands relevant to the changed area unless the maintainer asks for a full readiness pass.

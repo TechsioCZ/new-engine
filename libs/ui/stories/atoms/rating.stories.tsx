@@ -1,54 +1,55 @@
-'use client'
+"use client"
 
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { VariantContainer } from '../../.storybook/decorator'
-import { Rating } from '../../src/atoms/rating'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
+
+import { VariantContainer } from "../../.storybook/decorator"
+import { Rating } from "../../src/atoms/rating"
 
 const meta: Meta<typeof Rating> = {
-  title: 'Atoms/Rating',
+  title: "Atoms/Rating",
   component: Rating,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     value: {
-      control: { type: 'number', min: 0, max: 10, step: 0.5 },
-      description: 'Current rating value',
+      control: { type: "number", min: 0, max: 10, step: 0.5 },
+      description: "Current rating value",
     },
     defaultValue: {
-      control: { type: 'number', min: 0, max: 10, step: 0.5 },
-      description: 'Default rating value',
+      control: { type: "number", min: 0, max: 10, step: 0.5 },
+      description: "Default rating value",
     },
     count: {
-      control: { type: 'number', min: 1, max: 10 },
-      description: 'Number of rating items',
+      control: { type: "number", min: 1, max: 10 },
+      description: "Number of rating items",
     },
     size: {
-      control: { type: 'select' },
-      options: ['sm', 'md', 'lg'],
-      description: 'Size variant',
+      control: { type: "select" },
+      options: ["sm", "md", "lg"],
+      description: "Size variant",
     },
     labelText: {
-      control: 'text',
-      description: 'Label text for the rating group',
+      control: "text",
+      description: "Label text for the rating group",
     },
     readOnly: {
-      control: 'boolean',
-      description: 'Make rating read-only',
+      control: "boolean",
+      description: "Make rating read-only",
     },
     disabled: {
-      control: 'boolean',
-      description: 'Disable rating interaction',
+      control: "boolean",
+      description: "Disable rating interaction",
     },
     allowHalf: {
-      control: 'boolean',
-      description: 'Allow half star ratings',
+      control: "boolean",
+      description: "Allow half star ratings",
     },
     name: {
-      control: 'text',
-      description: 'Form field name',
+      control: "text",
+      description: "Form field name",
     },
   },
 }
@@ -60,7 +61,7 @@ export const Playground: Story = {
   args: {
     defaultValue: 3,
     count: 5,
-    size: 'md',
+    size: "md",
     allowHalf: true,
   },
 }

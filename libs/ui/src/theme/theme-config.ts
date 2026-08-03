@@ -25,7 +25,7 @@ export type BrandConfig = {
    * `data-theme` attribute value for this brand. Omitted for the base brand,
    * which is the default `:root` / `@theme` and needs no attribute.
    */
-  attr?: string
+  attr?: string | undefined
 }
 
 export const THEMES = {

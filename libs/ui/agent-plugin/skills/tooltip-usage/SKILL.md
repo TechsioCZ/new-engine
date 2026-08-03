@@ -2,9 +2,7 @@
 component_version: "1.0.0"
 name: tooltip-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Tooltip for
-  supplemental hover/focus help using the Zag.js tooltip wrapper, supported
-  timing, placement, interaction, controlled state, and token styling props.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Tooltip for supplemental hover/focus help using the Zag.js tooltip wrapper, supported timing, placement, interaction, controlled state, and token styling props.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -21,8 +19,7 @@ sources:
 
 # @techsio/ui-kit Tooltip Usage
 
-Use Tooltip for short supplemental information on hover/focus. Do not use it
-for required instructions, blocking errors, or primary content.
+Use Tooltip for short supplemental information on hover/focus. Do not use it for required instructions, blocking errors, or primary content.
 
 ## Setup
 
@@ -30,7 +27,7 @@ for required instructions, blocking errors, or primary content.
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Tooltip } from "@techsio/ui-kit/atoms/tooltip"
 
-<Tooltip content="Search products" placement="top">
+;<Tooltip content="Search products" placement="top">
   <Button aria-label="Search" icon="icon-[mdi--magnify]" />
 </Tooltip>
 ```
@@ -52,7 +49,11 @@ placement, gutter, offset, flip, sameWidth, boundary, listeners, strategy
 
 ```tsx
 <Tooltip content="The SKU is visible to warehouse staff.">
-  <Button theme="unstyled" aria-label="SKU help" icon="icon-[mdi--help-circle-outline]" />
+  <Button
+    theme="unstyled"
+    aria-label="SKU help"
+    icon="icon-[mdi--help-circle-outline]"
+  />
 </Tooltip>
 ```
 
@@ -62,7 +63,11 @@ If the text is required to complete the task, render visible help text instead.
 
 ```tsx
 <Tooltip content="Delete product">
-  <Button variant="danger" aria-label="Delete product" icon="icon-[mdi--trash-can-outline]" />
+  <Button
+    variant="danger"
+    aria-label="Delete product"
+    icon="icon-[mdi--trash-can-outline]"
+  />
 </Tooltip>
 ```
 
@@ -155,10 +160,7 @@ Wrong:
 Correct:
 
 ```tsx
-<FormInput
-  type="password"
-  helperText="Password must contain 12 characters."
-/>
+<FormInput type="password" helperText="Password must contain 12 characters." />
 ```
 
 Visible field help should not depend on hover/focus discovery.

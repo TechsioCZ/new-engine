@@ -10,6 +10,7 @@
  * the form-input-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import type { ReactNode } from "react"
+
 import { Input, type InputProps } from "../atoms/input"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
@@ -19,8 +20,8 @@ type ValidateStatus = "default" | "error" | "success" | "warning"
 interface FormInputRawProps extends InputProps {
   id: string
   label: ReactNode
-  validateStatus?: ValidateStatus
-  helpText?: ReactNode
+  validateStatus?: ValidateStatus | undefined
+  helpText?: ReactNode | undefined
 }
 
 export function FormInputRaw({
@@ -54,7 +55,7 @@ export function FormInputRaw({
 }
 
 type FormInputProps = FormInputRawProps & {
-  showHelpTextIcon?: boolean
+  showHelpTextIcon?: boolean | undefined
 }
 
 export function FormInput({

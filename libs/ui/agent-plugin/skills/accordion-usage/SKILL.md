@@ -2,9 +2,7 @@
 component_version: "1.0.0"
 name: accordion-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Accordion for
-  collapsible sections using the Zag.js-backed compound anatomy, supported
-  variant, shadow, size, value, multiple, and collapsible props.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Accordion for collapsible sections using the Zag.js-backed compound anatomy, supported variant, shadow, size, value, multiple, and collapsible props.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -22,15 +20,14 @@ sources:
 
 # @techsio/ui-kit Accordion Usage
 
-Use Accordion for related collapsible content sections. Do not build disclosure
-behavior with local state and native buttons when this component fits.
+Use Accordion for related collapsible content sections. Do not build disclosure behavior with local state and native buttons when this component fits.
 
 ## Setup
 
 ```tsx
 import { Accordion } from "@techsio/ui-kit/molecules/accordion"
 
-<Accordion defaultValue={["shipping"]} multiple={false}>
+;<Accordion defaultValue={["shipping"]} multiple={false}>
   <Accordion.Item value="shipping">
     <Accordion.Header>
       <Accordion.Title>Shipping</Accordion.Title>
@@ -55,8 +52,7 @@ collapsible, multiple, disabled, dir, onChange
 
 ### Keep Zag anatomy intact
 
-Use `Accordion.Item`, `Accordion.Header`, `Accordion.Content`, and optional
-`Accordion.Indicator`, `Accordion.Title`, `Accordion.Subtitle`.
+Use `Accordion.Item`, `Accordion.Header`, `Accordion.Content`, and optional `Accordion.Indicator`, `Accordion.Title`, `Accordion.Subtitle`.
 
 ### Choose behavior from content model
 
@@ -69,9 +65,7 @@ nested accordion -> variant=child
 
 ### Let tokens own visual state
 
-Do not duplicate expanded, hover, padding, border, or icon rotation styling in
-app `className`. Override `_accordion.css` tokens if the app needs a different
-visual system.
+Do not duplicate expanded, hover, padding, border, or icon rotation styling in app `className`. Override `_accordion.css` tokens if the app needs a different visual system.
 
 ## Common Mistakes
 
@@ -80,15 +74,19 @@ visual system.
 Wrong:
 
 ```tsx
-<button onClick={() => setOpen(!open)}>Shipping</button>
-{open && <div>Delivery options</div>}
+;<button onClick={() => setOpen(!open)}>Shipping</button>
+{
+  open && <div>Delivery options</div>
+}
 ```
 
 Correct:
 
 ```tsx
 <Accordion.Item value="shipping">
-  <Accordion.Header><Accordion.Title>Shipping</Accordion.Title></Accordion.Header>
+  <Accordion.Header>
+    <Accordion.Title>Shipping</Accordion.Title>
+  </Accordion.Header>
   <Accordion.Content>Delivery options</Accordion.Content>
 </Accordion.Item>
 ```
@@ -134,4 +132,3 @@ rg -n "setOpen|<details|<summary|<Accordion[^>]*defaultValue=\"|<Accordion[^>]*v
 rg -n "<Accordion[^>]*className=.*(bg-|text-|border-|p-|px-|py-)" apps
 rg -n "<Accordion\\.Content[^>]*className=.*(bg-|text-|p-|px-|py-)" apps
 ```
-

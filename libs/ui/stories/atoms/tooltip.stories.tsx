@@ -1,27 +1,29 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { type ComponentPropsWithoutRef, useState } from 'react'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
-import { Button } from '@/atoms/button'
-import { type IconType } from '@/atoms/icon'
-import { Tooltip } from '@/atoms/tooltip'
-import { iconLabels, iconOptions } from '../helpers/icon-options'
-import { Link } from '@/atoms/link'
-import { Input } from '@/atoms/input'
-import { Label } from '@/atoms/label'
+import type { Meta, StoryObj } from "@storybook/react"
+import { type ComponentPropsWithoutRef, useState } from "react"
+
+import { Button } from "@/atoms/button"
+import { type IconType } from "@/atoms/icon"
+import { Input } from "@/atoms/input"
+import { Label } from "@/atoms/label"
+import { Link } from "@/atoms/link"
+import { Tooltip } from "@/atoms/tooltip"
+
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { iconLabels, iconOptions } from "../helpers/icon-options"
 
 type PlaygroundArgs = ComponentPropsWithoutRef<typeof Tooltip> & {
-  triggerType?: 'button' | 'icon'
+  triggerType?: "button" | "icon"
   triggerLabel?: string
   triggerIcon?: IconType
-  triggerVariant?: 'primary' | 'secondary' | 'tertiary' | 'danger' | 'warning'
-  triggerSize?: 'sm' | 'md' | 'lg'
+  triggerVariant?: "primary" | "secondary" | "tertiary" | "danger" | "warning"
+  triggerSize?: "sm" | "md" | "lg"
 }
 
 const meta: Meta<typeof Tooltip> = {
-  title: 'Atoms/Tooltip',
+  title: "Atoms/Tooltip",
   component: Tooltip,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
     docs: {
       description: {
         component: `
@@ -37,87 +39,87 @@ A tooltip component built with Zag.js that provides accessible, customizable too
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     content: {
-      control: 'text',
-      description: 'Content to display in the tooltip',
+      control: "text",
+      description: "Content to display in the tooltip",
     },
     size: {
-      control: { type: 'select' },
-      options: ['sm', 'md', 'lg'],
-      description: 'Visual size of the tooltip',
+      control: { type: "select" },
+      options: ["sm", "md", "lg"],
+      description: "Visual size of the tooltip",
     },
     openDelay: {
-      control: { type: 'range', min: 0, max: 2000, step: 100 },
-      description: 'Delay before tooltip opens (ms)',
+      control: { type: "range", min: 0, max: 2000, step: 100 },
+      description: "Delay before tooltip opens (ms)",
     },
     closeDelay: {
-      control: { type: 'range', min: 0, max: 2000, step: 100 },
-      description: 'Delay before tooltip closes (ms)',
+      control: { type: "range", min: 0, max: 2000, step: 100 },
+      description: "Delay before tooltip closes (ms)",
     },
     interactive: {
-      control: 'boolean',
-      description: 'Allow hovering over tooltip content',
+      control: "boolean",
+      description: "Allow hovering over tooltip content",
     },
     placement: {
-      control: { type: 'select' },
+      control: { type: "select" },
       options: [
-        'top',
-        'top-start',
-        'top-end',
-        'right',
-        'right-start',
-        'right-end',
-        'bottom',
-        'bottom-start',
-        'bottom-end',
-        'left',
-        'left-start',
-        'left-end',
+        "top",
+        "top-start",
+        "top-end",
+        "right",
+        "right-start",
+        "right-end",
+        "bottom",
+        "bottom-start",
+        "bottom-end",
+        "left",
+        "left-start",
+        "left-end",
       ],
-      description: 'Where tooltip appears relative to trigger',
+      description: "Where tooltip appears relative to trigger",
     },
     gutter: {
-      control: { type: 'range', min: 0, max: 50, step: 5 },
-      description: 'Minimum distance from screen edges',
+      control: { type: "range", min: 0, max: 50, step: 5 },
+      description: "Minimum distance from screen edges",
     },
     flip: {
-      control: 'boolean',
+      control: "boolean",
       description: "Auto-flip to opposite side if doesn't fit",
     },
     sameWidth: {
-      control: 'boolean',
-      description: 'Match trigger element width',
+      control: "boolean",
+      description: "Match trigger element width",
     },
     strategy: {
-      control: { type: 'select' },
-      options: ['absolute', 'fixed'],
-      description: 'CSS positioning strategy',
+      control: { type: "select" },
+      options: ["absolute", "fixed"],
+      description: "CSS positioning strategy",
     },
     defaultOpen: {
-      control: 'boolean',
-      description: 'Initial open state',
+      control: "boolean",
+      description: "Initial open state",
     },
     disabled: {
-      control: 'boolean',
-      description: 'Disable tooltip functionality',
+      control: "boolean",
+      description: "Disable tooltip functionality",
     },
     closeOnEscape: {
-      control: 'boolean',
-      description: 'Close on ESC key press',
+      control: "boolean",
+      description: "Close on ESC key press",
     },
     closeOnPointerDown: {
-      control: 'boolean',
-      description: 'Close on any pointer down',
+      control: "boolean",
+      description: "Close on any pointer down",
     },
     closeOnScroll: {
-      control: 'boolean',
-      description: 'Close when page scrolls',
+      control: "boolean",
+      description: "Close when page scrolls",
     },
     closeOnClick: {
-      control: 'boolean',
-      description: 'Close on any click',
+      control: "boolean",
+      description: "Close on any click",
     },
   },
 }
@@ -127,42 +129,42 @@ type Story = StoryObj<typeof meta>
 
 export const Playground: StoryObj<PlaygroundArgs> = {
   args: {
-    content: 'This is a helpful tooltip!',
-    triggerType: 'button',
-    triggerLabel: 'Hover me',
-    triggerIcon: 'icon-[mdi--magnify]',
-    triggerVariant: 'primary',
-    triggerSize: 'md',
+    content: "This is a helpful tooltip!",
+    triggerType: "button",
+    triggerLabel: "Hover me",
+    triggerIcon: "icon-[mdi--magnify]",
+    triggerVariant: "primary",
+    triggerSize: "md",
   },
   argTypes: {
     triggerType: {
-      control: 'select',
-      options: ['button', 'icon'],
-      description: 'Type of trigger element',
+      control: "select",
+      options: ["button", "icon"],
+      description: "Type of trigger element",
     },
     triggerLabel: {
-      control: 'text',
-      description: 'Label for button trigger',
+      control: "text",
+      description: "Label for button trigger",
     },
     triggerIcon: {
       control: {
-        type: 'select',
+        type: "select",
         labels: iconLabels,
       },
-      options: iconOptions.filter(
-        (option): option is IconType => Boolean(option)
+      options: iconOptions.filter((option): option is IconType =>
+        Boolean(option)
       ),
-      description: 'Icon for icon trigger',
+      description: "Icon for icon trigger",
     },
     triggerVariant: {
-      control: 'select',
-      options: ['primary', 'secondary', 'tertiary', 'warning', 'danger'],
-      description: 'Button variant for trigger',
+      control: "select",
+      options: ["primary", "secondary", "tertiary", "warning", "danger"],
+      description: "Button variant for trigger",
     },
     triggerSize: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Button size for trigger',
+      control: "select",
+      options: ["sm", "md", "lg"],
+      description: "Button size for trigger",
     },
   },
   render: (args) => {
@@ -174,11 +176,11 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       triggerSize,
       ...tooltipArgs
     } = args
-    const icon = triggerIcon ?? 'icon-[mdi--magnify]'
-    const label = triggerLabel ?? 'Tooltip trigger'
+    const icon = triggerIcon ?? "icon-[mdi--magnify]"
+    const label = triggerLabel ?? "Tooltip trigger"
 
     const trigger =
-      triggerType === 'icon' ? (
+      triggerType === "icon" ? (
         <Button
           aria-label={label}
           icon={icon}
@@ -215,11 +217,11 @@ export const Sizes: Story = {
 
 export const WithIcon: Story = {
   args: {
-    content: 'Get help and support',
+    content: "Get help and support",
     children: (
       <Button theme="unstyled" icon="icon-[mdi--help-circle-outline]" />
     ),
-    placement: 'top',
+    placement: "top",
   },
 }
 
@@ -248,7 +250,7 @@ export const WithLinks: Story = {
   args: {
     content: (
       <div>
-        Learn more in our{' '}
+        Learn more in our{" "}
         <Link
           href="#"
           className="text-primary underline hover:no-underline"
@@ -259,7 +261,7 @@ export const WithLinks: Story = {
       </div>
     ),
     interactive: true,
-    placement: 'top',
+    placement: "top",
     children: <Button theme="unstyled" icon="icon-[mdi--information]" />,
   },
 }
@@ -423,7 +425,7 @@ export const ControlledTooltip: Story = {
           <div className="w-full space-y-400">
             <div className="flex justify-center gap-400">
               <Button onClick={() => setIsOpen(!isOpen)}>
-                {isOpen ? 'Close' : 'Open'} Tooltip
+                {isOpen ? "Close" : "Open"} Tooltip
               </Button>
               <Button
                 onClick={() => setIsOpen(false)}
@@ -446,7 +448,7 @@ export const ControlledTooltip: Story = {
             </div>
 
             <div className="text-center text-sm">
-              Tooltip state: {isOpen ? 'Open' : 'Closed'}
+              Tooltip state: {isOpen ? "Open" : "Closed"}
             </div>
           </div>
         </VariantGroup>
@@ -464,7 +466,7 @@ export const LongContent: Story = {
         veniam, quis nostrud exercitation ullamco laboris.
       </div>
     ),
-    placement: 'top',
+    placement: "top",
     children: <Button>Long Content</Button>,
   },
 }
@@ -475,7 +477,10 @@ export const FormHelper: Story = {
       <VariantGroup title="Form Field Helpers" fullWidth>
         <div className="max-w-3xl space-y-400">
           <div className="space-y-200">
-            <Label className="flex items-center gap-200" htmlFor="tooltip-password">
+            <Label
+              className="flex items-center gap-200"
+              htmlFor="tooltip-password"
+            >
               Password
               <Tooltip
                 content="Must be at least 8 characters with uppercase, lowercase, and numbers"
@@ -497,7 +502,10 @@ export const FormHelper: Story = {
           </div>
 
           <div className="space-y-200">
-            <Label className="flex items-center gap-200" htmlFor="tooltip-api-key">
+            <Label
+              className="flex items-center gap-200"
+              htmlFor="tooltip-api-key"
+            >
               API Key
               <Tooltip
                 content="Found in your account settings under 'Developer Options'"
@@ -511,11 +519,7 @@ export const FormHelper: Story = {
                 />
               </Tooltip>
             </Label>
-            <Input
-              id="tooltip-api-key"
-              type="text"
-              placeholder="sk-..."
-            />
+            <Input id="tooltip-api-key" type="text" placeholder="sk-..." />
           </div>
         </div>
       </VariantGroup>
@@ -529,13 +533,18 @@ export const OutlineVariant: Story = {
       <VariantGroup title="Navigation Bar">
         <div className="flex gap-100 rounded-lg p-200">
           {[
-            { icon: 'icon-[mdi--home]', label: 'Dashboard' },
-            { icon: 'icon-[mdi--chart-line]', label: 'Analytics' },
-            { icon: 'icon-[mdi--users]', label: 'Team Members' },
-            { icon: 'icon-[mdi--settings]', label: 'Settings' },
-            { icon: 'icon-[mdi--help-circle]', label: 'Help & Support' },
+            { icon: "icon-[mdi--home]", label: "Dashboard" },
+            { icon: "icon-[mdi--chart-line]", label: "Analytics" },
+            { icon: "icon-[mdi--users]", label: "Team Members" },
+            { icon: "icon-[mdi--settings]", label: "Settings" },
+            { icon: "icon-[mdi--help-circle]", label: "Help & Support" },
           ].map(({ icon, label }) => (
-            <Tooltip key={label} content={label} placement="bottom" variant="outline">
+            <Tooltip
+              key={label}
+              content={label}
+              placement="bottom"
+              variant="outline"
+            >
               <Button
                 aria-label={label}
                 className="rounded p-200 transition-colors"
@@ -556,9 +565,9 @@ export const DataPreview: Story = {
       <VariantGroup title="Dashboard Cards" fullWidth>
         <div className="grid w-full grid-cols-3 gap-400">
           {[
-            { value: '1,234', label: 'Users', change: '+12%' },
-            { value: '$45.2K', label: 'Revenue', change: '+8%' },
-            { value: '98.5%', label: 'Uptime', change: '+0.2%' },
+            { value: "1,234", label: "Users", change: "+12%" },
+            { value: "$45.2K", label: "Revenue", change: "+8%" },
+            { value: "98.5%", label: "Uptime", change: "+0.2%" },
           ].map(({ value, label, change }) => (
             <Tooltip
               key={label}

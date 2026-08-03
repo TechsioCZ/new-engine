@@ -2,9 +2,7 @@
 component_version: "1.0.0"
 name: badge-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Badge for
-  compact status, category, discount, or metadata labels without duplicating
-  token-backed color and spacing classes in JSX.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Badge for compact status, category, discount, or metadata labels without duplicating token-backed color and spacing classes in JSX.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -20,15 +18,14 @@ sources:
 
 # @techsio/ui-kit Badge Usage
 
-Use Badge for short non-interactive labels. It is not a button, link, alert, or
-long message container.
+Use Badge for short non-interactive labels. It is not a button, link, alert, or long message container.
 
 ## Setup
 
 ```tsx
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 
-<Badge variant="success" size="md">
+;<Badge variant="success" size="md">
   Published
 </Badge>
 ```
@@ -55,8 +52,7 @@ discount -> price/promotion label
 outline -> low-emphasis label
 ```
 
-Do not use `danger` only because the design has red text. If the visual should
-change globally, use `app-token-overrides`.
+Do not use `danger` only because the design has red text. If the visual should change globally, use `app-token-overrides`.
 
 ### Keep Badge text short
 
@@ -64,8 +60,7 @@ change globally, use `app-token-overrides`.
 <Badge variant="warning">Pending</Badge>
 ```
 
-If the content needs a sentence or action, use `StatusText`, `Toast`, `Alert`
-when available, or another molecule/organism usage skill.
+If the content needs a sentence or action, use `StatusText`, `Toast`, `Alert` when available, or another molecule/organism usage skill.
 
 ### Treat dynamic as an explicit escape hatch
 
@@ -80,9 +75,7 @@ when available, or another molecule/organism usage skill.
 </Badge>
 ```
 
-Use `dynamic` only for values that cannot be represented by the standard
-semantic/component token chain, such as runtime swatches. Prefer semantic
-variants first.
+Use `dynamic` only for values that cannot be represented by the standard semantic/component token chain, such as runtime swatches. Prefer semantic variants first.
 
 ## Common Mistakes
 
@@ -118,8 +111,7 @@ Correct:
 <Badge variant="danger">Failed</Badge>
 ```
 
-The badge token classes already provide background, foreground, border,
-padding, radius, and text sizing.
+The badge token classes already provide background, foreground, border, padding, radius, and text sizing.
 
 Source: libs/ui/src/tokens/components/atoms/_badge.css
 
@@ -174,4 +166,3 @@ rg -n "variant=\"(ghost|neutral|error)\"" apps
 rg -n "<Badge[^>]*variant=\"dynamic\"" apps
 rg -n "<Badge[^>]*className=.*(bg-|text-|border-|px-|py-|rounded-)" apps
 ```
-

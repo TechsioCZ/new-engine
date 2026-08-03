@@ -29,6 +29,7 @@ import {
   useId,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { ActionIcon } from "../atoms/action-icon"
 import { Button, type ButtonProps } from "../atoms/button"
 import { tv } from "../utils"
@@ -110,14 +111,14 @@ function usePopoverContext() {
 export type PopoverRootProps = VariantProps<typeof popoverVariants> &
   Omit<PopoverMachineProps, "id" | "positioning"> & {
     children: ReactNode
-    flip?: PopoverPositioningOptions["flip"]
-    gutter?: PopoverPositioningOptions["gutter"]
-    id?: string
-    offset?: PopoverPositioningOptions["offset"]
-    overflowPadding?: PopoverPositioningOptions["overflowPadding"]
-    placement?: PopoverPlacement
-    sameWidth?: PopoverPositioningOptions["sameWidth"]
-    slide?: PopoverPositioningOptions["slide"]
+    flip?: PopoverPositioningOptions["flip"] | undefined
+    gutter?: PopoverPositioningOptions["gutter"] | undefined
+    id?: string | undefined
+    offset?: PopoverPositioningOptions["offset"] | undefined
+    overflowPadding?: PopoverPositioningOptions["overflowPadding"] | undefined
+    placement?: PopoverPlacement | undefined
+    sameWidth?: PopoverPositioningOptions["sameWidth"] | undefined
+    slide?: PopoverPositioningOptions["slide"] | undefined
   }
 
 export function Popover({
@@ -148,18 +149,21 @@ export function Popover({
   const generatedId = useId()
   const uniqueId = id || generatedId
 
+  const machineProps = Object.fromEntries(
+    Object.entries(props).filter(([, option]) => option !== undefined)
+  )
   const service = useMachine(machine, {
-    ...props,
+    ...machineProps,
     autoFocus,
     closeOnEscape,
     closeOnInteractOutside,
-    defaultOpen,
+    ...(defaultOpen !== undefined && { defaultOpen }),
     dir,
     id: uniqueId,
     modal,
-    onOpenChange,
-    onPointerDownOutside,
-    open,
+    ...(onOpenChange !== undefined && { onOpenChange }),
+    ...(onPointerDownOutside !== undefined && { onPointerDownOutside }),
+    ...(open !== undefined && { open }),
     portalled,
     positioning: {
       flip,
@@ -189,7 +193,7 @@ export function Popover({
 }
 
 export type PopoverAnchorProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Popover.Anchor = function PopoverAnchor({
@@ -198,14 +202,14 @@ Popover.Anchor = function PopoverAnchor({
   ...props
 }: PopoverAnchorProps) {
   const { api } = usePopoverContext()
-  const anchorProps = mergeProps(props, api.getAnchorProps())
+  const anchorProps = mergeProps(api.getAnchorProps(), props)
 
   return <div {...anchorProps} className={className} ref={ref} />
 }
 
 export type PopoverTriggerProps = ButtonProps & {
-  clickBehavior?: "toggle" | "manual"
-  ref?: Ref<HTMLButtonElement>
+  clickBehavior?: "toggle" | "manual" | undefined
+  ref?: Ref<HTMLButtonElement> | undefined
 }
 
 Popover.Trigger = function PopoverTrigger({
@@ -226,7 +230,7 @@ Popover.Trigger = function PopoverTrigger({
     onClick: onMachineClick,
     ...machineTriggerProps
   } = api.getTriggerProps() as ComponentPropsWithoutRef<"button">
-  const buttonProps = mergeProps(props, machineTriggerProps)
+  const buttonProps = mergeProps(machineTriggerProps, props)
   const isDisabled = Boolean(disabled || machineDisabled)
 
   return (
@@ -253,7 +257,7 @@ Popover.Trigger = function PopoverTrigger({
 }
 
 export type PopoverIndicatorProps = ComponentPropsWithoutRef<"span"> & {
-  ref?: Ref<HTMLSpanElement>
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
 Popover.Indicator = function PopoverIndicator({
@@ -262,7 +266,7 @@ Popover.Indicator = function PopoverIndicator({
   ...props
 }: PopoverIndicatorProps) {
   const { api, styles } = usePopoverContext()
-  const indicatorProps = mergeProps(props, api.getIndicatorProps())
+  const indicatorProps = mergeProps(api.getIndicatorProps(), props)
 
   return (
     <span
@@ -275,8 +279,8 @@ Popover.Indicator = function PopoverIndicator({
 }
 
 export type PopoverPositionerProps = ComponentPropsWithoutRef<"div"> & {
-  forceMount?: boolean
-  ref?: Ref<HTMLDivElement>
+  forceMount?: boolean | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Popover.Positioner = function PopoverPositioner({
@@ -292,7 +296,7 @@ Popover.Positioner = function PopoverPositioner({
     return null
   }
 
-  const positionerProps = mergeProps(props, api.getPositionerProps())
+  const positionerProps = mergeProps(api.getPositionerProps(), props)
   const positionerNode = (
     <div
       {...positionerProps}
@@ -307,11 +311,11 @@ Popover.Positioner = function PopoverPositioner({
 }
 
 export type PopoverContentProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 type PopoverContentMergedProps = ComponentPropsWithoutRef<"div"> & {
-  "data-placement"?: PopoverPlacement
+  "data-placement"?: PopoverPlacement | undefined
 }
 
 Popover.Content = function PopoverContent({
@@ -324,8 +328,8 @@ Popover.Content = function PopoverContent({
   const machineContentProps =
     api.getContentProps() as ComponentPropsWithoutRef<"div">
   const contentProps = mergeProps(
-    props,
-    machineContentProps
+    machineContentProps,
+    props
   ) as PopoverContentMergedProps
   const contentPlacement = contentProps["data-placement"]
   // Derive data-side from Zag's computed placement so flipped positions animate from the actual side.
@@ -348,7 +352,7 @@ Popover.Content = function PopoverContent({
 }
 
 export type PopoverArrowProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Popover.Arrow = function PopoverArrow({
@@ -358,7 +362,7 @@ Popover.Arrow = function PopoverArrow({
   ...props
 }: PopoverArrowProps) {
   const { api, styles } = usePopoverContext()
-  const arrowProps = mergeProps(props, api.getArrowProps())
+  const arrowProps = mergeProps(api.getArrowProps(), props)
 
   return (
     <div {...arrowProps} className={styles.arrow({ className })} ref={ref}>
@@ -368,7 +372,7 @@ Popover.Arrow = function PopoverArrow({
 }
 
 export type PopoverArrowTipProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Popover.ArrowTip = function PopoverArrowTip({
@@ -377,7 +381,7 @@ Popover.ArrowTip = function PopoverArrowTip({
   ...props
 }: PopoverArrowTipProps) {
   const { api, styles } = usePopoverContext()
-  const arrowTipProps = mergeProps(props, api.getArrowTipProps())
+  const arrowTipProps = mergeProps(api.getArrowTipProps(), props)
 
   return (
     <div
@@ -389,7 +393,7 @@ Popover.ArrowTip = function PopoverArrowTip({
 }
 
 export type PopoverTitleProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Popover.Title = function PopoverTitle({
@@ -398,7 +402,7 @@ Popover.Title = function PopoverTitle({
   ...props
 }: PopoverTitleProps) {
   const { api, styles } = usePopoverContext()
-  const titleProps = mergeProps(props, api.getTitleProps())
+  const titleProps = mergeProps(api.getTitleProps(), props)
 
   return (
     <div {...titleProps} className={styles.title({ className })} ref={ref} />
@@ -406,7 +410,7 @@ Popover.Title = function PopoverTitle({
 }
 
 export type PopoverDescriptionProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Popover.Description = function PopoverDescription({
@@ -415,7 +419,7 @@ Popover.Description = function PopoverDescription({
   ...props
 }: PopoverDescriptionProps) {
   const { api, styles } = usePopoverContext()
-  const descriptionProps = mergeProps(props, api.getDescriptionProps())
+  const descriptionProps = mergeProps(api.getDescriptionProps(), props)
 
   return (
     <div
@@ -427,7 +431,7 @@ Popover.Description = function PopoverDescription({
 }
 
 export type PopoverCloseTriggerProps = ButtonProps & {
-  ref?: Ref<HTMLButtonElement>
+  ref?: Ref<HTMLButtonElement> | undefined
 }
 
 Popover.CloseTrigger = function PopoverCloseTrigger({
@@ -444,7 +448,7 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
   const { api, styles } = usePopoverContext()
   const { onClick: onMachineClick, ...machineCloseTriggerProps } =
     api.getCloseTriggerProps() as ComponentPropsWithoutRef<"button">
-  const buttonProps = mergeProps(props, machineCloseTriggerProps)
+  const buttonProps = mergeProps(machineCloseTriggerProps, props)
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     onClick?.(event)
     if (!event.defaultPrevented) {

@@ -1,8 +1,6 @@
 # Techsio UI Kit AI — plugin guidance
 
-This folder is the **techsio-ui-kit-ai** agent plugin for developing `@techsio/ui-kit`
-(`libs/ui`). Canonical library rules live in `libs/ui/AGENTS.md` — read that first; this file
-only routes.
+This folder is the **techsio-ui-kit-ai** agent plugin for developing `@techsio/ui-kit` (`libs/ui`). Canonical library rules live in `libs/ui/AGENTS.md` — read that first; this file only routes.
 
 ## Routing
 
@@ -23,5 +21,5 @@ only routes.
 - React 19: `ref` prop, no `forwardRef`; `type` not `interface`; named exports; no barrels.
 - Styling only via `tv()` + component token classes; two-layer tokens in `@theme static`.
 - State via data attributes; interactive components via Zag.js compound pattern.
-- Every component change ends with the `ui-validate` gate; never lint with `biome check .`.
-- Never touch `apps/herbatika` from UI-kit work (pre-existing red lint on master).
+- Every component change ends with the `ui-validate` gate; Ultracite is advisory, while the root TypeScript 7 UI project must pass both `tsc` and native `tsgo`.
+- Keep UI-kit work scoped to `libs/ui`; touch consumers only when the task explicitly includes them.

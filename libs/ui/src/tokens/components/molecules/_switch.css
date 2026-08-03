@@ -8,8 +8,7 @@
 
 @theme static {
   --spacing-switch-translate-track: calc(
-    var(--spacing-switch-track-width) -
-    var(--spacing-switch-track-height) -
-    var(--spacing-switch-control)
+    var(--spacing-switch-track-width) - var(--spacing-switch-track-height) -
+      var(--spacing-switch-control)
   );
 }

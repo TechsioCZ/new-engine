@@ -1,30 +1,31 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
-import { Input } from '../../src/atoms/input'
-import { Label } from '../../src/atoms/label'
-import { StatusText } from '../../src/atoms/status-text'
+import type { Meta, StoryObj } from "@storybook/react"
+
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Input } from "../../src/atoms/input"
+import { Label } from "../../src/atoms/label"
+import { StatusText } from "../../src/atoms/status-text"
 
 const meta: Meta<typeof Input> = {
-  title: 'Atoms/Input',
+  title: "Atoms/Input",
   component: Input,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Input size',
+      control: "select",
+      options: ["sm", "md", "lg"],
+      description: "Input size",
     },
     variant: {
-      control: 'select',
-      options: ['default', 'error', 'success', 'warning'],
-      description: 'Visual variant of input',
+      control: "select",
+      options: ["default", "error", "success", "warning"],
+      description: "Visual variant of input",
     },
     disabled: {
-      control: 'boolean',
-      description: 'Disabled state',
+      control: "boolean",
+      description: "Disabled state",
     },
   },
 }
@@ -35,7 +36,7 @@ type Story = StoryObj<typeof Input>
 // Interactive playground
 export const Playground: Story = {
   args: {
-    placeholder: 'Enter text...',
+    placeholder: "Enter text...",
   },
 }
 
@@ -95,7 +96,9 @@ export const AllVariants: Story = {
             variant="error"
             placeholder="john@example.com"
           />
-          <StatusText status="error" showIcon>Email is in invalid format</StatusText>
+          <StatusText status="error" showIcon>
+            Email is in invalid format
+          </StatusText>
         </div>
 
         <div className="w-64">

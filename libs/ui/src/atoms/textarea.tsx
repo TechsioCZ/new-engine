@@ -11,6 +11,7 @@
  */
 import type { Ref, TextareaHTMLAttributes } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 
 const textareaVariants = tv({
@@ -84,9 +85,10 @@ const textareaVariants = tv({
 })
 
 export interface TextareaProps
-  extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "size">,
+  extends
+    Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "size">,
     VariantProps<typeof textareaVariants> {
-  ref?: Ref<HTMLTextAreaElement>
+  ref?: Ref<HTMLTextAreaElement> | undefined
 }
 
 export function Textarea({

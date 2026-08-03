@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 import { fn } from "storybook/test"
+
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import {
@@ -287,7 +288,11 @@ export const Controlled: Story = {
         </RadioGroup>
 
         <div className="flex items-center gap-150">
-          <Button onClick={() => setValue("starter")} size="sm" theme="outlined">
+          <Button
+            onClick={() => setValue("starter")}
+            size="sm"
+            theme="outlined"
+          >
             Set Starter
           </Button>
           <Button onClick={() => setValue("scale")} size="sm" theme="outlined">

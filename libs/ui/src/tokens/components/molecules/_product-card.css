@@ -26,6 +26,8 @@
 
   --spacing-product-card-max: 100%;
 
+  --aspect-product-card-image: var(--aspect-card);
+
   --border-product-card-width: var(--border-width-product-card);
 }
 

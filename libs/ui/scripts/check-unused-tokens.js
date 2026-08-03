@@ -8,8 +8,9 @@
  */
 
 import fs from "fs"
-import { globSync } from "glob"
 import path from "path"
+
+import { globSync } from "glob"
 
 // Configuration
 const TOKEN_DIRS = ["src/tokens"]
