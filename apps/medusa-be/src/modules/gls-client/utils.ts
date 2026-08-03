@@ -1,13 +1,8 @@
 import type { GLSShipmentState } from "./types"
 
 /**
- * Map GLS raw status codes to our normalised GLSShipmentState.
- *
- * GLS status names vary by account/API. This intentionally conservative
- * fallback mapping only covers statuses observed in integration examples and
- * can be updated from real packetTracking responses when credentials are verified.
- */
-export function mapGLSStatusCode(code: string | number): GLSShipmentState {
+ * Map raw GLS-like tracking codes to our normalised GLSShipmentState.
+ */ export function mapGLSStatusCode(code: string | number): GLSShipmentState {
   const key = String(code).trim().toLowerCase()
 
   switch (key) {
