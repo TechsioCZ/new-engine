@@ -16,7 +16,9 @@ export const deleteAuthIdentityStep = createStep(
       return new StepResponse({ deleted: false })
     }
 
-    const authModuleService = container.resolve<IAuthModuleService>(Modules.AUTH)
+    const authModuleService = container.resolve<IAuthModuleService>(
+      Modules.AUTH
+    )
 
     await authModuleService.deleteAuthIdentities([input.auth_identity_id])
 

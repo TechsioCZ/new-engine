@@ -13,7 +13,7 @@ type DeactivateCustomerAccountWorkflowInput = {
 
 export const deactivateCustomerAccountWorkflow = createWorkflow(
   "deactivate-customer-account",
-  function (input: DeactivateCustomerAccountWorkflowInput) {
+  (input: DeactivateCustomerAccountWorkflowInput) => {
     const prepared = prepareCustomerAccountDeactivationStep(input)
 
     softDeleteCustomerStep(
