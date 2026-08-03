@@ -3,16 +3,19 @@ import { Tooltip } from "@techsio/ui-kit/atoms/tooltip"
 import { Steps } from "@techsio/ui-kit/molecules/steps"
 
 export type HerbatikaCheckoutStepItem = {
+  disabled: boolean
   id: string
   title: string
 }
 
 type HerbatikaCheckoutStepsProps = {
+  onStepChange: (step: number) => void
   step: number
   steps: readonly HerbatikaCheckoutStepItem[]
 }
 
 export function HerbatikaCheckoutSteps({
+  onStepChange,
   step,
   steps,
 }: HerbatikaCheckoutStepsProps) {
@@ -20,7 +23,12 @@ export function HerbatikaCheckoutSteps({
   const visualStepCount = steps.length + 1
 
   return (
-    <Steps count={visualStepCount} linear size="sm" step={step}>
+    <Steps
+      count={visualStepCount}
+      onStepChange={({ step: nextStep }) => onStepChange(nextStep)}
+      size="sm"
+      step={step}
+    >
       <Steps.List className="mx-auto w-full rounded-xl p-300 md:w-fit md:justify-start">
         {steps.map((item, index) => (
           <Steps.Item
@@ -29,8 +37,9 @@ export function HerbatikaCheckoutSteps({
             key={item.id}
           >
             <Steps.Trigger
+              aria-label={item.title}
               className="min-h-750 min-w-750 justify-center"
-              disabled
+              disabled={item.disabled}
             >
               <Steps.Indicator>
                 <Tooltip

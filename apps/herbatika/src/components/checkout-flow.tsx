@@ -7,6 +7,9 @@ import {
   type CheckoutStepSlug,
 } from "@/components/checkout/checkout.constants"
 import {
+  canNavigateToCheckoutStep,
+} from "@/components/checkout/checkout-step-navigation"
+import {
   canAccessCheckoutStep,
   resolveCheckoutStepHref,
   resolveCheckoutStepIndexBySlug,
@@ -51,6 +54,28 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
     !canAccessStep &&
     !controller.completedOrderId &&
     redirectStep !== activeStep
+  const activeStepIndex = resolveCheckoutStepIndexBySlug(activeStep)
+  const highestAccessibleStepIndex =
+    resolveCheckoutStepIndexBySlug(requiredStep)
+  const isCheckoutComplete = Boolean(controller.completedOrderId)
+  const checkoutSteps = CHECKOUT_STEPS.map((step, index) => ({
+    ...step,
+    disabled: !canNavigateToCheckoutStep({
+      highestAccessibleStepIndex,
+      isCheckoutComplete,
+      stepCount: CHECKOUT_STEPS.length,
+      targetStepIndex: index,
+    }),
+  }))
+
+  const handleCheckoutStepChange = (targetStepIndex: number) => {
+    const targetStep = checkoutSteps[targetStepIndex]
+    if (!targetStep || targetStep.disabled) {
+      return
+    }
+
+    router.push(resolveCheckoutStepHref(targetStep.slug))
+  }
 
   useEffect(() => {
     if (!shouldRedirectStep) {
@@ -64,8 +89,7 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
     return <main className="mx-auto min-h-dvh w-full max-w-max-w" />
   }
 
-  const activeStepIndex = resolveCheckoutStepIndexBySlug(activeStep)
-  const checkoutStepIndex = controller.completedOrderId
+  const checkoutStepIndex = isCheckoutComplete
     ? CHECKOUT_STEPS.length
     : activeStepIndex
 
@@ -73,7 +97,8 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 pt-600 pb-850 font-rubik lg:px-550 xl:px-700">
       <CheckoutStepsSection
         checkoutStepIndex={checkoutStepIndex}
-        steps={CHECKOUT_STEPS}
+        onStepChange={handleCheckoutStepChange}
+        steps={checkoutSteps}
       />
 
       <CheckoutFeedbackSection
