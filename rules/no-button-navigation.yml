@@ -1,0 +1,19 @@
+id: no-button-navigation
+language: Tsx
+severity: error
+message: Navigation must use a link primitive; do not turn buttons into links with router or location calls.
+files:
+  - "apps/**/src/**/*.{tsx,jsx}"
+  - "libs/**/src/**/*.{tsx,jsx}"
+ignores:
+  - "**/*.figma.{ts,tsx}"
+rule:
+  any:
+    - pattern: <$BUTTON $$$A onClick={() => router.push($URL)} $$$B>$$$CHILDREN</$BUTTON>
+    - pattern: <$BUTTON $$$A onClick={() => router.replace($URL)} $$$B>$$$CHILDREN</$BUTTON>
+    - pattern: <$BUTTON $$$A onClick={() => navigate($URL)} $$$B>$$$CHILDREN</$BUTTON>
+    - pattern: <$BUTTON $$$A onClick={() => window.location.assign($URL)} $$$B>$$$CHILDREN</$BUTTON>
+    - pattern: <$BUTTON $$$A onClick={() => window.location.replace($URL)} $$$B>$$$CHILDREN</$BUTTON>
+constraints:
+  BUTTON:
+    regex: ^(Button|button)$

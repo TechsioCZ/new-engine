@@ -8,12 +8,17 @@
  */
 
 @theme static {
-  --padding-accordion-title-sm: var(--padding-accordion-title-y-sm) var(--padding-accordion-title-x-sm);
-  --padding-accordion-title-md: var(--padding-accordion-title-y-md) var(--padding-accordion-title-x-md);
-  --padding-accordion-title-lg: var(--padding-accordion-title-y-lg) var(--padding-accordion-title-x-lg);
+  --padding-accordion-title-sm: var(--padding-accordion-title-y-sm)
+    var(--padding-accordion-title-x-sm);
+  --padding-accordion-title-md: var(--padding-accordion-title-y-md)
+    var(--padding-accordion-title-x-md);
+  --padding-accordion-title-lg: var(--padding-accordion-title-y-lg)
+    var(--padding-accordion-title-x-lg);
 
-  --padding-accordion-content-md: var(--padding-accordion-content-y-md) var(--padding-accordion-content-x-md);
-  --padding-accordion-content-lg: var(--padding-accordion-content-y-lg) var(--padding-accordion-content-x-lg);
+  --padding-accordion-content-md: var(--padding-accordion-content-y-md)
+    var(--padding-accordion-content-x-md);
+  --padding-accordion-content-lg: var(--padding-accordion-content-y-lg)
+    var(--padding-accordion-content-x-lg);
 }
 
 /* Semantic tokens for accordion icons */

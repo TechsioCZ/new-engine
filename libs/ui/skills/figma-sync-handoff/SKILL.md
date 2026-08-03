@@ -1,10 +1,7 @@
 ---
 name: figma-sync-handoff
 description: >
-  Use when @techsio/ui-kit component work should flag a Figma library or Figma
-  Code Connect follow-up. Prepares a reminder and points to the
-  component-to-figma skill; never edits Figma or runs Figma MCP tools
-  automatically.
+  Use when @techsio/ui-kit component work should flag a Figma library or Figma Code Connect follow-up. Prepares a reminder and points to the component-to-figma skill; never edits Figma or runs Figma MCP tools automatically.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -18,8 +15,7 @@ sources:
 
 # @techsio/ui-kit Figma Sync Handoff
 
-Use this after component work changes public visuals, public props, variants,
-tokens, or Code Connect mappings.
+Use this after component work changes public visuals, public props, variants, tokens, or Code Connect mappings.
 
 ## Setup
 
@@ -74,8 +70,7 @@ Public prop additions or renames should trigger a mapping review.
 primitive/core values -> semantic aliases -> component-specific aliases
 ```
 
-Component-specific Figma variables should alias upper-layer variables when the
-code token chain already provides them.
+Component-specific Figma variables should alias upper-layer variables when the code token chain already provides them.
 
 ## Common Mistakes
 

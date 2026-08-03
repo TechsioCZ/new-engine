@@ -1,10 +1,7 @@
 ---
 name: tailwind-token-authoring
 description: >
-  Use when adding or changing Tailwind v4 tokens in @techsio/ui-kit, including
-  @theme static, semantic aliases, two-layer component tokens, component CSS
-  imports, Tailwind token utility class mapping, app override compatibility, and
-  token validator commands.
+  Use when adding or changing Tailwind v4 tokens in @techsio/ui-kit, including @theme static, semantic aliases, two-layer component tokens, component CSS imports, Tailwind token utility class mapping, app override compatibility, and token validator commands.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -25,8 +22,7 @@ sources:
 
 # @techsio/ui-kit Tailwind Token Authoring
 
-Use this for `libs/ui/src/tokens/**/*.css` and component token classes used from
-`tv()`.
+Use this for `libs/ui/src/tokens/**/*.css` and component token classes used from `tv()`.
 
 ## Setup
 
@@ -59,8 +55,7 @@ const alert = tv({
 })
 ```
 
-`--color-*` maps to `bg-*`, `text-*`, `border-*`, and related color utilities.
-`--padding-*` maps to `p-*`. `--font-weight-*` maps to `font-*`.
+`--color-*` maps to `bg-*`, `text-*`, `border-*`, and related color utilities. `--padding-*` maps to `p-*`. `--font-weight-*` maps to `font-*`.
 
 ### Keep component tokens app-overridable
 
@@ -71,8 +66,7 @@ const alert = tv({
 }
 ```
 
-Apps can change `--color-primary` globally or override
-`--color-button-bg-primary` only when the component needs a specific exception.
+Apps can change `--color-primary` globally or override `--color-button-bg-primary` only when the component needs a specific exception.
 
 ### Use component utilities for focus
 
@@ -82,8 +76,7 @@ const input = tv({
 })
 ```
 
-Issue 329 standardizes focus-visible outline utilities in component CSS instead
-of long arbitrary outline expressions in TSX.
+Issue 329 standardizes focus-visible outline utilities in component CSS instead of long arbitrary outline expressions in TSX.
 
 ### Preserve token entrypoints
 
@@ -139,8 +132,7 @@ Correct:
 }
 ```
 
-Derived color tokens must use `-bg`, `-fg`, or `-border`; component names are
-not abbreviated.
+Derived color tokens must use `-bg`, `-fg`, or `-border`; component names are not abbreviated.
 
 Source: libs/ui/AGENTS.md
 
@@ -158,8 +150,7 @@ Correct:
 const panel = tv({ base: "z-popover" })
 ```
 
-Every custom token utility used in TSX must have a matching theme token or be a
-recognized standard utility.
+Every custom token utility used in TSX must have a matching theme token or be a recognized standard utility.
 
 Source: libs/ui/scripts/validate-token-usage.js
 
@@ -181,8 +172,7 @@ Correct:
 }
 ```
 
-New work follows `--border-width-<component>`. Existing old shapes are legacy
-unless a migration is explicitly in scope.
+New work follows `--border-width-<component>`. Existing old shapes are legacy unless a migration is explicitly in scope.
 
 Source: libs/ui/AGENTS.md
 
@@ -204,8 +194,7 @@ const trigger = tv({
 })
 ```
 
-Focus styling should use readable component utilities defined in the component
-token file.
+Focus styling should use readable component utilities defined in the component token file.
 
 Source: https://github.com/TechsioCZ/new-engine/issues/329
 
@@ -217,4 +206,3 @@ pnpm --dir libs/ui validate:token-definitions
 pnpm --dir libs/ui validate:tokens
 bunx biome check --write libs/ui/src/tokens/components/atoms/_button.css
 ```
-

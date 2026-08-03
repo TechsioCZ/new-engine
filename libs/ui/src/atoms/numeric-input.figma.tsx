@@ -1,4 +1,5 @@
 import figma from "@figma/code-connect"
+
 import { NumericInput } from "./numeric-input"
 
 figma.connect(

@@ -1,17 +1,18 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
-import { Icon, type IconType } from '../../src/atoms/icon'
-import { iconLabels, iconOptions } from '../helpers/icon-options'
+import type { Meta, StoryObj } from "@storybook/react"
+
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Icon, type IconType } from "../../src/atoms/icon"
+import { iconLabels, iconOptions } from "../helpers/icon-options"
 
 const tokenIconOptions: IconType[] = [
-  'token-icon-error',
-  'token-icon-success',
-  'token-icon-warning',
-  'token-icon-info',
-  'token-icon-input-error',
-  'token-icon-input-success',
-  'token-icon-input-warning',
-  'token-icon-input-info',
+  "token-icon-error",
+  "token-icon-success",
+  "token-icon-warning",
+  "token-icon-info",
+  "token-icon-input-error",
+  "token-icon-input-success",
+  "token-icon-input-warning",
+  "token-icon-input-info",
 ]
 
 const iconControlOptions: IconType[] = [
@@ -21,53 +22,60 @@ const iconControlOptions: IconType[] = [
 
 const iconControlLabels: Record<string, string> = {
   ...iconLabels,
-  'token-icon-error': 'Token Error',
-  'token-icon-success': 'Token Success',
-  'token-icon-warning': 'Token Warning',
-  'token-icon-info': 'Token Info',
-  'token-icon-input-error': 'Token Input Error',
-  'token-icon-input-success': 'Token Input Success',
-  'token-icon-input-warning': 'Token Input Warning',
-  'token-icon-input-info': 'Token Input Info',
+  "token-icon-error": "Token Error",
+  "token-icon-success": "Token Success",
+  "token-icon-warning": "Token Warning",
+  "token-icon-info": "Token Info",
+  "token-icon-input-error": "Token Input Error",
+  "token-icon-input-success": "Token Input Success",
+  "token-icon-input-warning": "Token Input Warning",
+  "token-icon-input-info": "Token Input Info",
 }
 
 const meta: Meta<typeof Icon> = {
-  title: 'Atoms/Icon',
+  title: "Atoms/Icon",
   component: Icon,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     icon: {
       control: {
-        type: 'select',
+        type: "select",
         labels: iconControlLabels,
       },
       options: iconControlOptions,
-      description: 'Icon token or inline icon class',
+      description: "Icon token or inline icon class",
     },
     size: {
-      control: 'select',
-      options: ['current', 'xs', 'sm', 'md', 'lg', 'xl', '2xl'],
-      description: 'Size token for the icon',
+      control: "select",
+      options: ["current", "xs", "sm", "md", "lg", "xl", "2xl"],
+      description: "Size token for the icon",
       table: {
-        defaultValue: { summary: 'current' },
+        defaultValue: { summary: "current" },
       },
     },
     color: {
-      control: 'select',
-      options: ['current', 'primary', 'secondary', 'success', 'danger', 'warning'],
-      description: 'Color token for the icon',
+      control: "select",
+      options: [
+        "current",
+        "primary",
+        "secondary",
+        "success",
+        "danger",
+        "warning",
+      ],
+      description: "Color token for the icon",
       table: {
-        defaultValue: { summary: 'current' },
+        defaultValue: { summary: "current" },
       },
     },
   },
   args: {
-    icon: 'token-icon-error',
-    size: 'md',
-    color: 'current',
+    icon: "token-icon-error",
+    size: "md",
+    color: "current",
   },
 }
 

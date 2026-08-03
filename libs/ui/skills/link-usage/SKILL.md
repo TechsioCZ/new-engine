@@ -2,9 +2,7 @@
 component_version: "1.0.0"
 name: link-usage
 description: >
-  Use after component-usage-ux when an app needs the low-level
-  @techsio/ui-kit Link atom for inline or unstyled navigation, including
-  external links and framework adapter usage.
+  Use after component-usage-ux when an app needs the low-level @techsio/ui-kit Link atom for inline or unstyled navigation, including external links and framework adapter usage.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -19,8 +17,7 @@ sources:
 
 # @techsio/ui-kit Link Usage
 
-Use Link for inline navigation or when a molecule needs a framework-agnostic
-link. Use LinkButton when the link should look like a button.
+Use Link for inline navigation or when a molecule needs a framework-agnostic link. Use LinkButton when the link should look like a button.
 
 ## Setup
 
@@ -28,7 +25,7 @@ link. Use LinkButton when the link should look like a button.
 import NextLink from "next/link"
 import { Link } from "@techsio/ui-kit/atoms/link"
 
-<Link as={NextLink} href="/terms">
+;<Link as={NextLink} href="/terms">
   Terms
 </Link>
 ```
@@ -86,7 +83,9 @@ Wrong:
 Correct:
 
 ```tsx
-<Link as={NextLink} href="/account">Account</Link>
+<Link as={NextLink} href="/account">
+  Account
+</Link>
 ```
 
 Source: libs/ui/src/atoms/link.tsx
@@ -104,7 +103,9 @@ Wrong:
 Correct:
 
 ```tsx
-<LinkButton href="/checkout" variant="primary">Checkout</LinkButton>
+<LinkButton href="/checkout" variant="primary">
+  Checkout
+</LinkButton>
 ```
 
 Source: libs/ui/src/atoms/link-button.tsx
@@ -120,7 +121,9 @@ Wrong:
 Correct:
 
 ```tsx
-<Link href="https://vendor.example" external>Vendor</Link>
+<Link href="https://vendor.example" external>
+  Vendor
+</Link>
 ```
 
 Source: libs/ui/src/atoms/link.tsx
@@ -136,7 +139,9 @@ const AppLink = (props: Props) => <NextLink className="underline" {...props} />
 Correct:
 
 ```tsx
-<Link as={NextLink} href="/blog">Blog</Link>
+<Link as={NextLink} href="/blog">
+  Blog
+</Link>
 ```
 
 ## Validation Commands

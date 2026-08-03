@@ -19,6 +19,7 @@ import {
   useId,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { Button } from "../atoms/button"
 import { Icon, type IconProps, type IconType } from "../atoms/icon"
 import { tv } from "../utils"
@@ -106,10 +107,10 @@ const accordionVariants = tv({
 // Context for sharing state between sub-components
 interface AccordionContextValue {
   api: ReturnType<typeof accordion.connect>
-  size?: "sm" | "md" | "lg"
-  shadow?: "sm" | "md" | "none"
+  size?: "sm" | "md" | "lg" | undefined
+  shadow?: "sm" | "md" | "none" | undefined
   styles: ReturnType<typeof accordionVariants>
-  variant?: "default" | "borderless" | "child"
+  variant?: "default" | "borderless" | "child" | undefined
 }
 
 const AccordionContext = createContext<AccordionContextValue | null>(null)
@@ -125,8 +126,8 @@ function useAccordionContext() {
 // Context for sharing item state
 interface AccordionItemContextValue {
   value: string
-  disabled?: boolean
-  variant?: "default" | "borderless" | "child"
+  disabled?: boolean | undefined
+  variant?: "default" | "borderless" | "child" | undefined
 }
 
 const AccordionItemContext = createContext<AccordionItemContextValue | null>(
@@ -145,17 +146,18 @@ function useAccordionItemContext() {
 
 // Root component
 export interface AccordionProps
-  extends VariantProps<typeof accordionVariants>,
+  extends
+    VariantProps<typeof accordionVariants>,
     Omit<ComponentPropsWithoutRef<"div">, "onChange"> {
-  id?: string
-  defaultValue?: string[]
-  value?: string[]
-  collapsible?: boolean
-  multiple?: boolean
-  disabled?: boolean
-  dir?: "ltr" | "rtl"
-  onChange?: (value: string[]) => void
-  ref?: Ref<HTMLDivElement>
+  id?: string | undefined
+  defaultValue?: string[] | undefined
+  value?: string[] | undefined
+  collapsible?: boolean | undefined
+  multiple?: boolean | undefined
+  disabled?: boolean | undefined
+  dir?: "ltr" | "rtl" | undefined
+  onChange?: ((value: string[]) => void) | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 export function Accordion({
@@ -212,8 +214,8 @@ export function Accordion({
 // Item component
 interface AccordionItemProps extends ComponentPropsWithoutRef<"div"> {
   value: string
-  disabled?: boolean
-  ref?: Ref<HTMLDivElement>
+  disabled?: boolean | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Accordion.Item = function AccordionItem({
@@ -242,7 +244,7 @@ Accordion.Item = function AccordionItem({
 
 // Header component (trigger wrapper)
 interface AccordionHeaderProps extends ComponentPropsWithoutRef<"header"> {
-  ref?: Ref<HTMLElement>
+  ref?: Ref<HTMLElement> | undefined
 }
 
 Accordion.Header = function AccordionHeader({
@@ -272,7 +274,7 @@ Accordion.Header = function AccordionHeader({
 
 // Content component
 interface AccordionContentProps extends ComponentPropsWithoutRef<"div"> {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Accordion.Content = function AccordionContent({
@@ -299,9 +301,9 @@ Accordion.Content = function AccordionContent({
 
 // Indicator component (for expand/collapse icon)
 type AccordionIndicatorProps = ComponentPropsWithoutRef<"span"> & {
-  icon?: IconType
-  iconSize?: IconProps["size"]
-  ref?: Ref<HTMLSpanElement>
+  icon?: IconType | undefined
+  iconSize?: IconProps["size"] | undefined
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
 Accordion.Indicator = function AccordionIndicator({
@@ -330,7 +332,7 @@ Accordion.Indicator = function AccordionIndicator({
 
 // Title component (optional structured title)
 interface AccordionTitleProps extends ComponentPropsWithoutRef<"span"> {
-  ref?: Ref<HTMLSpanElement>
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
 Accordion.Title = function AccordionTitle({
@@ -350,7 +352,7 @@ Accordion.Title = function AccordionTitle({
 
 // Subtitle component (optional structured subtitle)
 interface AccordionSubtitleProps extends ComponentPropsWithoutRef<"span"> {
-  ref?: Ref<HTMLSpanElement>
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
 Accordion.Subtitle = function AccordionSubtitle({

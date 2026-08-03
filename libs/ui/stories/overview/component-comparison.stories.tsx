@@ -1,54 +1,55 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { type ReactNode, useState } from 'react'
-import { Badge } from '../../src/atoms/badge'
-import { Button } from '../../src/atoms/button'
-import { Checkbox } from '../../src/atoms/checkbox'
-import { Icon } from '../../src/atoms/icon'
-import { Image } from '../../src/atoms/image'
-import { Input } from '../../src/atoms/input'
-import { Label } from '../../src/atoms/label'
-import { Link } from '../../src/atoms/link'
-import { NumericInput } from '../../src/atoms/numeric-input'
-import { Rating } from '../../src/atoms/rating'
-import { Skeleton } from '../../src/atoms/skeleton'
-import { StatusText } from '../../src/atoms/status-text'
-import { Textarea } from '../../src/atoms/textarea'
-import { Tooltip } from '../../src/atoms/tooltip'
-import { Accordion } from '../../src/molecules/accordion'
+import type { Meta, StoryObj } from "@storybook/react"
+import { type ReactNode, useState } from "react"
+
+import { Badge } from "../../src/atoms/badge"
+import { Button } from "../../src/atoms/button"
+import { Checkbox } from "../../src/atoms/checkbox"
+import { Icon } from "../../src/atoms/icon"
+import { Image } from "../../src/atoms/image"
+import { Input } from "../../src/atoms/input"
+import { Label } from "../../src/atoms/label"
+import { Link } from "../../src/atoms/link"
+import { NumericInput } from "../../src/atoms/numeric-input"
+import { Rating } from "../../src/atoms/rating"
+import { Skeleton } from "../../src/atoms/skeleton"
+import { StatusText } from "../../src/atoms/status-text"
+import { Textarea } from "../../src/atoms/textarea"
+import { Tooltip } from "../../src/atoms/tooltip"
+import { Accordion } from "../../src/molecules/accordion"
+import { Carousel } from "../../src/molecules/carousel"
+import { ColorSelect } from "../../src/molecules/color-select"
+import { Combobox, type ComboboxItem } from "../../src/molecules/combobox"
+import { Dialog } from "../../src/molecules/dialog"
+import { FormCheckbox } from "../../src/molecules/form-checkbox"
+import { FormInput } from "../../src/molecules/form-input"
+import { FormNumericInput } from "../../src/molecules/form-numeric-input"
+import { FormTextarea } from "../../src/molecules/form-textarea"
+import { Menu, type MenuItem } from "../../src/molecules/menu"
+import { Pagination } from "../../src/molecules/pagination"
+import { Popover } from "../../src/molecules/popover"
+import { ProductCard } from "../../src/molecules/product-card"
+import { SearchForm } from "../../src/molecules/search-form"
+import { Select, type SelectItem } from "../../src/molecules/select"
+import { Slider } from "../../src/molecules/slider"
+import { Steps } from "../../src/molecules/steps"
+import { Switch } from "../../src/molecules/switch"
+import { Tabs } from "../../src/molecules/tabs"
+import { Toaster, useToast } from "../../src/molecules/toast"
+import { TreeView, type TreeNode } from "../../src/molecules/tree-view"
+import { Footer } from "../../src/organisms/footer"
+import { Header } from "../../src/organisms/header"
+import { Table } from "../../src/organisms/table"
 import {
   BreadcrumbTemplate,
   type BreadcrumbTemplateItem,
-} from '../../src/templates/breadcrumb'
-import { Carousel } from '../../src/molecules/carousel'
-import { ColorSelect } from '../../src/molecules/color-select'
-import { Combobox, type ComboboxItem } from '../../src/molecules/combobox'
-import { Dialog } from '../../src/molecules/dialog'
-import { FormCheckbox } from '../../src/molecules/form-checkbox'
-import { FormInput } from '../../src/molecules/form-input'
-import { FormNumericInput } from '../../src/molecules/form-numeric-input'
-import { FormTextarea } from '../../src/molecules/form-textarea'
-import { Menu, type MenuItem } from '../../src/molecules/menu'
-import { Pagination } from '../../src/molecules/pagination'
-import { Popover } from '../../src/molecules/popover'
-import { ProductCard } from '../../src/molecules/product-card'
-import { SearchForm } from '../../src/molecules/search-form'
-import { Select, type SelectItem } from '../../src/molecules/select'
-import { Slider } from '../../src/molecules/slider'
-import { Steps } from '../../src/molecules/steps'
-import { Switch } from '../../src/molecules/switch'
-import { Tabs } from '../../src/molecules/tabs'
-import { Toaster, useToast } from '../../src/molecules/toast'
-import { TreeView, type TreeNode } from '../../src/molecules/tree-view'
-import { Footer } from '../../src/organisms/footer'
-import { Header } from '../../src/organisms/header'
-import { Table } from '../../src/organisms/table'
+} from "../../src/templates/breadcrumb"
 
 const meta: Meta = {
-  title: 'Overview/Component Comparison',
+  title: "Overview/Component Comparison",
   parameters: {
-    layout: 'fullscreen',
+    layout: "fullscreen",
   },
-  tags: ['comparison'],
+  tags: ["comparison"],
 }
 
 export default meta
@@ -69,10 +70,10 @@ function ComponentCard({
 }: ComponentCardProps) {
   return (
     <div
-      className={`flex min-w-0 flex-col gap-200 rounded-md border border-border p-300 ${className ?? ''}`}
+      className={`flex min-w-0 flex-col gap-200 rounded-md border border-border-primary p-300 ${className ?? ""}`}
     >
       <div className="text-fg-secondary text-sm font-semibold">{title}</div>
-      <div className={bodyClassName ?? 'flex flex-wrap items-center gap-200'}>
+      <div className={bodyClassName ?? "flex flex-wrap items-center gap-200"}>
         {children}
       </div>
     </div>
@@ -102,7 +103,8 @@ function Section({
       </div>
       <div
         className={
-          gridClassName ?? 'grid grid-cols-1 gap-300 md:grid-cols-2 xl:grid-cols-3'
+          gridClassName ??
+          "grid grid-cols-1 gap-300 md:grid-cols-2 xl:grid-cols-3"
         }
       >
         {children}
@@ -112,143 +114,149 @@ function Section({
 }
 
 const breadcrumbItems: BreadcrumbTemplateItem[] = [
-  { label: 'Home', href: '#' },
-  { label: 'Catalog', href: '#' },
-  { label: 'Item', href: '#', isCurrent: true },
+  { label: "Home", href: "#" },
+  { label: "Catalog", href: "#" },
+  { label: "Item", href: "#", isCurrent: true },
 ]
 
 const comboboxItems: ComboboxItem[] = [
-  { label: 'Apple', value: 'apple' },
-  { label: 'Banana', value: 'banana' },
-  { label: 'Cherry', value: 'cherry' },
+  { label: "Apple", value: "apple" },
+  { label: "Banana", value: "banana" },
+  { label: "Cherry", value: "cherry" },
 ]
 
 const selectItems: SelectItem[] = [
-  { label: 'United States', value: 'us' },
-  { label: 'Canada', value: 'ca' },
-  { label: 'Mexico', value: 'mx' },
+  { label: "United States", value: "us" },
+  { label: "Canada", value: "ca" },
+  { label: "Mexico", value: "mx" },
 ]
 
 const menuItems: MenuItem[] = [
   {
-    type: 'action',
-    value: 'edit',
-    label: 'Edit',
-    icon: 'icon-[mdi--pencil]',
+    type: "action",
+    value: "edit",
+    label: "Edit",
+    icon: "icon-[mdi--pencil]",
   },
   {
-    type: 'action',
-    value: 'duplicate',
-    label: 'Duplicate',
-    icon: 'icon-[mdi--content-copy]',
+    type: "action",
+    value: "duplicate",
+    label: "Duplicate",
+    icon: "icon-[mdi--content-copy]",
   },
-  { type: 'separator', id: 'menu-sep-1' },
+  { type: "separator", id: "menu-sep-1" },
   {
-    type: 'action',
-    value: 'archive',
-    label: 'Archive',
-    icon: 'icon-[mdi--archive]',
+    type: "action",
+    value: "archive",
+    label: "Archive",
+    icon: "icon-[mdi--archive]",
   },
 ]
 
 const colorOptions = [
-  { color: 'var(--color-primary)', selected: true, label: 'Primary' },
-  { color: 'var(--color-secondary)', label: 'Secondary' },
-  { color: 'var(--color-tertiary)', label: 'Tertiary' },
+  { color: "var(--color-primary)", selected: true, label: "Primary" },
+  { color: "var(--color-secondary)", label: "Secondary" },
+  { color: "var(--color-tertiary)", label: "Tertiary" },
 ]
 
 const carouselSlides = [
   {
-    id: 'slide-1',
-    src: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
-    alt: 'Beautiful landscape',
-    imageProps: { className: 'h-full w-full', size: 'custom' },
+    id: "slide-1",
+    src: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800",
+    alt: "Beautiful landscape",
+    imageProps: { className: "h-full w-full", size: "custom" },
   },
   {
-    id: 'slide-2',
-    src: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400',
-    alt: 'City skyline',
-    imageProps: { className: 'h-full w-full', size: 'custom' },
+    id: "slide-2",
+    src: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400",
+    alt: "City skyline",
+    imageProps: { className: "h-full w-full", size: "custom" },
   },
   {
-    id: 'slide-3',
-    src: 'https://images.unsplash.com/photo-1747258294931-79af146bd74c?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-    alt: 'Ocean view',
-    imageProps: { className: 'h-full w-full', size: 'custom' },
+    id: "slide-3",
+    src: "https://images.unsplash.com/photo-1747258294931-79af146bd74c?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    alt: "Ocean view",
+    imageProps: { className: "h-full w-full", size: "custom" },
   },
 ]
 
 const stepsItems = [
   {
-    title: 'Account',
-    description: 'Create your account',
-    content: 'Create your account',
+    title: "Account",
+    description: "Create your account",
+    content: "Create your account",
   },
   {
-    title: 'Profile',
-    description: 'Complete your profile',
-    content: 'Complete your profile',
+    title: "Profile",
+    description: "Complete your profile",
+    content: "Complete your profile",
   },
   {
-    title: 'Settings',
-    description: 'Configure settings',
-    content: 'Configure settings',
+    title: "Settings",
+    description: "Configure settings",
+    content: "Configure settings",
   },
   {
-    title: 'Review',
-    description: 'Review and confirm',
-    content: 'Review and confirm',
+    title: "Review",
+    description: "Review and confirm",
+    content: "Review and confirm",
   },
 ]
 
 const tabsItems = [
   {
-    value: 'overview',
-    label: 'Overview',
+    value: "overview",
+    label: "Overview",
     content: <div className="p-200">Overview content.</div>,
   },
   {
-    value: 'details',
-    label: 'Details',
+    value: "details",
+    label: "Details",
     content: <div className="p-200">Details content.</div>,
   },
   {
-    value: 'reviews',
-    label: 'Reviews',
+    value: "reviews",
+    label: "Reviews",
     content: <div className="p-200">Reviews content.</div>,
   },
 ]
 
 const treeData: TreeNode[] = [
   {
-    id: 'src',
-    name: 'src',
+    id: "src",
+    name: "src",
     children: [
       {
-        id: 'atoms',
-        name: 'atoms',
+        id: "atoms",
+        name: "atoms",
         children: [
-          { id: 'button.tsx', name: 'button.tsx' },
-          { id: 'input.tsx', name: 'input.tsx' },
+          { id: "button.tsx", name: "button.tsx" },
+          { id: "input.tsx", name: "input.tsx" },
         ],
       },
       {
-        id: 'molecules',
-        name: 'molecules',
+        id: "molecules",
+        name: "molecules",
         children: [
-          { id: 'dialog.tsx', name: 'dialog.tsx' },
-          { id: 'select.tsx', name: 'select.tsx' },
+          { id: "dialog.tsx", name: "dialog.tsx" },
+          { id: "select.tsx", name: "select.tsx" },
         ],
       },
     ],
   },
-  { id: 'package.json', name: 'package.json' },
+  { id: "package.json", name: "package.json" },
 ]
 
 const tableRows = [
-  { id: 1, name: 'Laptop', category: 'Electronics', price: 999.99, stock: 24 },
-  { id: 2, name: 'Coffee Maker', category: 'Appliances', price: 49.99, stock: 98 },
-  { id: 3, name: 'Desk Chair', category: 'Furniture', price: 150.0, stock: 16 },
+  { id: 1, name: "Laptop", category: "Electronics", price: 999.99, stock: 24 },
+  {
+    id: 2,
+    name: "Coffee Maker",
+    category: "Appliances",
+    price: 49.99,
+    stock: 98,
+  },
+  { id: 3, name: "Desk Chair", category: "Furniture", price: 150.0, stock: 16 },
 ]
 
 function ToastPreview() {
@@ -258,9 +266,9 @@ function ToastPreview() {
       size="md"
       onClick={() =>
         toaster.create({
-          title: 'Saved',
-          description: 'Changes stored successfully.',
-          type: 'success',
+          title: "Saved",
+          description: "Changes stored successfully.",
+          type: "success",
         })
       }
     >
@@ -297,7 +305,10 @@ function ComponentComparison() {
               Secondary
             </Button>
           </ComponentCard>
-          <ComponentCard title="Checkbox" bodyClassName="flex items-center gap-200">
+          <ComponentCard
+            title="Checkbox"
+            bodyClassName="flex items-center gap-200"
+          >
             <Checkbox defaultChecked id="audit-checkbox" />
             <Label htmlFor="audit-checkbox" size="md">
               Subscribe
@@ -306,7 +317,10 @@ function ComponentComparison() {
           <ComponentCard title="Icon">
             <Icon icon="icon-[mdi--check]" size="md" />
           </ComponentCard>
-          <ComponentCard title="Image" bodyClassName="flex items-center gap-200">
+          <ComponentCard
+            title="Image"
+            bodyClassName="flex items-center gap-200"
+          >
             <Image
               alt="Sample"
               className="rounded-md object-cover"
@@ -336,12 +350,12 @@ function ComponentComparison() {
           <ComponentCard title="Rating">
             <Rating defaultValue={4} size="md" />
           </ComponentCard>
-          <ComponentCard title="Skeleton" bodyClassName="flex items-center gap-200">
+          <ComponentCard
+            title="Skeleton"
+            bodyClassName="flex items-center gap-200"
+          >
             <Skeleton.Circle size="md" />
-            <Skeleton.Text
-              containerClassName="w-full max-w-xs"
-              noOfLines={2}
-            />
+            <Skeleton.Text containerClassName="w-full max-w-xs" noOfLines={2} />
           </ComponentCard>
           <ComponentCard title="StatusText">
             <StatusText showIcon size="md" status="success">
@@ -365,7 +379,7 @@ function ComponentComparison() {
           description="All box-style form controls side-by-side with their button counterpart at sm and md sizes. Heights should be visually identical."
           gridClassName="grid grid-cols-1 gap-300"
         >
-          {(['sm', 'md'] as const).map((size) => (
+          {(["sm", "md"] as const).map((size) => (
             <ComponentCard
               key={size}
               title={`Size: ${size}`}
@@ -375,7 +389,7 @@ function ComponentComparison() {
               <Button size={size}>Button</Button>
             </ComponentCard>
           ))}
-          {(['sm', 'md'] as const).map((size) => (
+          {(["sm", "md"] as const).map((size) => (
             <ComponentCard
               key={`numeric-${size}`}
               title={`NumericInput — ${size}`}
@@ -393,19 +407,23 @@ function ComponentComparison() {
               <Button size={size}>Button</Button>
             </ComponentCard>
           ))}
-          {(['sm', 'md'] as const).map((size) => (
+          {(["sm", "md"] as const).map((size) => (
             <ComponentCard
               key={`combobox-${size}`}
               title={`Combobox — ${size}`}
               bodyClassName="flex flex-wrap items-center gap-50"
             >
               <div className="w-48">
-                <Combobox items={comboboxItems} placeholder="Pick fruit" size={size} />
+                <Combobox
+                  items={comboboxItems}
+                  placeholder="Pick fruit"
+                  size={size}
+                />
               </div>
               <Button size={size}>Button</Button>
             </ComponentCard>
           ))}
-          {(['sm', 'md'] as const).map((size) => (
+          {(["sm", "md"] as const).map((size) => (
             <ComponentCard
               key={`select-${size}`}
               title={`Select — ${size}`}
@@ -433,7 +451,7 @@ function ComponentComparison() {
               <Button size={size}>Button</Button>
             </ComponentCard>
           ))}
-          {(['sm', 'md'] as const).map((size) => (
+          {(["sm", "md"] as const).map((size) => (
             <ComponentCard
               key={`textarea-${size}`}
               title={`Textarea — ${size}`}
@@ -443,7 +461,7 @@ function ComponentComparison() {
               <Button size={size}>Button</Button>
             </ComponentCard>
           ))}
-          {(['sm', 'md'] as const).map((size) => (
+          {(["sm", "md"] as const).map((size) => (
             <ComponentCard
               key={`searchform-${size}`}
               title={`SearchForm — ${size}`}
@@ -457,7 +475,7 @@ function ComponentComparison() {
               </SearchForm>
             </ComponentCard>
           ))}
-          {(['sm', 'md'] as const).map((size) => (
+          {(["sm", "md"] as const).map((size) => (
             <ComponentCard
               key={`searchform-gapped-${size}`}
               title={`SearchForm (gapped) — ${size}`}
@@ -478,7 +496,7 @@ function ComponentComparison() {
           gridClassName="grid grid-cols-1 gap-300 md:grid-cols-2 2xl:grid-cols-3"
         >
           <ComponentCard title="Accordion" bodyClassName="w-full max-w-sm">
-            <Accordion defaultValue={['item-1']} size="md">
+            <Accordion defaultValue={["item-1"]} size="md">
               <Accordion.Item value="item-1">
                 <Accordion.Header>
                   <Accordion.Title>First</Accordion.Title>
@@ -510,10 +528,7 @@ function ComponentComparison() {
                 size="md"
                 slideCount={carouselSlides.length}
               >
-                <Carousel.Slides
-                  className="w-md"
-                  slides={carouselSlides}
-                />
+                <Carousel.Slides className="w-md" slides={carouselSlides} />
                 <Carousel.Control
                   className="w-full justify-between"
                   controlPosition="unset"
@@ -530,7 +545,7 @@ function ComponentComparison() {
           </ComponentCard>
           <ComponentCard title="Combobox" bodyClassName="w-full max-w-xs">
             <Combobox
-              defaultValue={['banana']}
+              defaultValue={["banana"]}
               items={comboboxItems}
               label="Fruit"
               placeholder="Pick a fruit"
@@ -580,10 +595,7 @@ function ComponentComparison() {
               </NumericInput.Control>
             </FormNumericInput>
           </ComponentCard>
-          <ComponentCard
-            title="FormTextarea"
-            bodyClassName="w-full max-w-xs"
-          >
+          <ComponentCard title="FormTextarea" bodyClassName="w-full max-w-xs">
             <FormTextarea
               id="audit-form-textarea"
               label="Message"
@@ -594,7 +606,10 @@ function ComponentComparison() {
           <ComponentCard title="Menu">
             <Menu items={menuItems} size="md" triggerText="Actions" />
           </ComponentCard>
-          <ComponentCard title="Pagination" bodyClassName="w-full overflow-x-auto">
+          <ComponentCard
+            title="Pagination"
+            bodyClassName="w-full overflow-x-auto"
+          >
             <Pagination
               compact
               count={12}
@@ -622,17 +637,25 @@ function ComponentComparison() {
               </Popover.Positioner>
             </Popover.Root>
           </ComponentCard>
-          <ComponentCard title="ProductCard" bodyClassName="flex w-full justify-center">
+          <ComponentCard
+            title="ProductCard"
+            bodyClassName="flex w-full justify-center"
+          >
             <div className="w-full max-w-sm">
               <ProductCard layout="column">
-                <ProductCard.Image alt="Sample product" src="https://images.unsplash.com/photo-1540206395-68808572332f?w=600&h=600&fit=crop" className="w-full"/>
+                <ProductCard.Image
+                  as="img"
+                  alt="Sample product"
+                  src="https://images.unsplash.com/photo-1540206395-68808572332f?w=600&h=600&fit=crop"
+                  className="w-full"
+                />
                 <ProductCard.Badges>
                   <Badge variant="secondary">Limited</Badge>
                   <Badge variant="info">New</Badge>
                 </ProductCard.Badges>
                 <ProductCard.Name>Canvas Backpack</ProductCard.Name>
                 <ProductCard.Price>$79.00</ProductCard.Price>
-                <ProductCard.Rating rating={{ defaultValue: 4, size: 'md' }} />
+                <ProductCard.Rating rating={{ defaultValue: 4, size: "md" }} />
                 <ProductCard.Stock status="limited-stock">
                   Limited stock
                 </ProductCard.Stock>
@@ -658,7 +681,7 @@ function ComponentComparison() {
             </SearchForm>
           </ComponentCard>
           <ComponentCard title="Select" bodyClassName="w-full max-w-xs">
-            <Select defaultValue={['us']} items={selectItems} size="md">
+            <Select defaultValue={["us"]} items={selectItems} size="md">
               <Select.Label>Country</Select.Label>
               <Select.Control>
                 <Select.Trigger>
@@ -719,11 +742,15 @@ function ComponentComparison() {
                 <Steps.Panels>
                   {stepsItems.map((item, index) => (
                     <Steps.Content index={index} key={item.title}>
-                      <p className="text-sm text-fg-secondary">{item.content}</p>
+                      <p className="text-sm text-fg-secondary">
+                        {item.content}
+                      </p>
                     </Steps.Content>
                   ))}
                   <Steps.CompletedContent>
-                    <p className="text-sm text-fg-secondary">All steps complete.</p>
+                    <p className="text-sm text-fg-secondary">
+                      All steps complete.
+                    </p>
                   </Steps.CompletedContent>
                   <Steps.Navigation>
                     <Steps.PrevTrigger>Back</Steps.PrevTrigger>
@@ -736,7 +763,11 @@ function ComponentComparison() {
           <ComponentCard title="Switch">
             <Switch defaultChecked>Notifications</Switch>
           </ComponentCard>
-          <ComponentCard title="Tabs" className="md:col-span-2" bodyClassName="w-full">
+          <ComponentCard
+            title="Tabs"
+            className="md:col-span-2"
+            bodyClassName="w-full"
+          >
             <div className="w-full max-w-md">
               <Tabs defaultValue="overview" size="md" variant="line" fitted>
                 <Tabs.List>
@@ -759,11 +790,19 @@ function ComponentComparison() {
             <ToastPreview />
           </ComponentCard>
           <ComponentCard title="TreeView" bodyClassName="w-full">
-            <TreeView className="w-full max-w-sm p-200" data={treeData} size="md">
+            <TreeView
+              className="w-full max-w-sm p-200"
+              data={treeData}
+              size="md"
+            >
               <TreeView.Label>Project Files</TreeView.Label>
               <TreeView.Tree>
                 {treeData.map((node, index) => (
-                  <TreeView.Node indexPath={[index]} key={node.id} node={node} />
+                  <TreeView.Node
+                    indexPath={[index]}
+                    key={node.id}
+                    node={node}
+                  />
                 ))}
               </TreeView.Tree>
             </TreeView>

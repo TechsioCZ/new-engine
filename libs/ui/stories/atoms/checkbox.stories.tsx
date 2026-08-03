@@ -1,40 +1,41 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { Checkbox } from '../../src/atoms/checkbox'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
+
+import { Checkbox } from "../../src/atoms/checkbox"
 
 const meta = {
-  title: 'Atoms/Checkbox',
+  title: "Atoms/Checkbox",
   component: Checkbox,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
     controls: { expanded: true },
   },
   argTypes: {
     checked: {
-      control: 'boolean',
-      description: 'Checked state of the checkbox',
+      control: "boolean",
+      description: "Checked state of the checkbox",
     },
     defaultChecked: {
-      control: 'boolean',
-      description: 'Default checked state (uncontrolled component)',
+      control: "boolean",
+      description: "Default checked state (uncontrolled component)",
     },
     indeterminate: {
-      control: 'boolean',
-      description: 'Indeterminate state (partially checked)',
+      control: "boolean",
+      description: "Indeterminate state (partially checked)",
     },
     disabled: {
-      control: 'boolean',
-      description: 'Disabled state of the checkbox',
+      control: "boolean",
+      description: "Disabled state of the checkbox",
     },
     invalid: {
-      control: 'boolean',
-      description: 'Shows invalid state styling (sets aria-invalid)',
+      control: "boolean",
+      description: "Shows invalid state styling (sets aria-invalid)",
     },
     required: {
-      control: 'boolean',
-      description: 'Marks checkbox as required for form validation',
+      control: "boolean",
+      description: "Marks checkbox as required for form validation",
     },
-    onChange: { action: 'changed' },
+    onChange: { action: "changed" },
   },
   args: {
     invalid: false,
@@ -90,7 +91,6 @@ export const InvalidState: Story = {
     invalid: true,
   },
 }
-
 
 // Advanced stories with custom renders
 export const WithLabel: Story = {
@@ -159,9 +159,9 @@ export const AllStates: Story = {
 export const IndeterminateTest: Story = {
   render: function Render() {
     const [items, setItems] = useState([
-      { id: 1, name: 'Item A', checked: false },
-      { id: 2, name: 'Item B', checked: true },
-      { id: 3, name: 'Item C', checked: true },
+      { id: 1, name: "Item A", checked: false },
+      { id: 2, name: "Item B", checked: true },
+      { id: 3, name: "Item C", checked: true },
     ])
 
     const checkedCount = items.filter((item) => item.checked).length
@@ -174,7 +174,10 @@ export const IndeterminateTest: Story = {
       setItems((prevItems) => prevItems.map((item) => ({ ...item, checked })))
     }
 
-    const handleChildChange = (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChildChange = (
+      id: number,
+      e: React.ChangeEvent<HTMLInputElement>
+    ) => {
       const checked = e.target.checked
       setItems((prevItems) =>
         prevItems.map((item) => (item.id === id ? { ...item, checked } : item))
@@ -203,9 +206,7 @@ export const IndeterminateTest: Story = {
               <Checkbox
                 id={`item-${item.id}`}
                 checked={item.checked}
-                onChange={(e) =>
-                  handleChildChange(item.id, e)
-                }
+                onChange={(e) => handleChildChange(item.id, e)}
               />
               <label htmlFor={`item-${item.id}`}>{item.name}</label>
             </div>

@@ -11,6 +11,7 @@
  */
 import type { HTMLAttributes } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 
 const badgeVariants = tv({
@@ -69,11 +70,11 @@ type BaseBadgeProps = Omit<
   "color" | "children"
 > & {
   children: string
-  size?: BadgeSize
+  size?: BadgeSize | undefined
 }
 
 type DefaultBadgeProps = BaseBadgeProps & {
-  variant?: Exclude<BadgeVariant, "dynamic">
+  variant?: Exclude<BadgeVariant, "dynamic"> | undefined
 }
 
 type DynamicBadgeProps = BaseBadgeProps & {

@@ -1,5 +1,6 @@
 import os from "node:os"
 import path from "node:path"
+
 import { defineConfig, devices } from "@playwright/test"
 
 const baseUrl = new URL(process.env.TEST_BASE_URL ?? "http://127.0.0.1:6006")
@@ -11,8 +12,9 @@ const workersEnv = process.env.PLAYWRIGHT_WORKERS
 const cpuCount = typeof os.cpus === "function" ? os.cpus().length : 2
 const recommendedWorkers = Math.max(1, cpuCount - 1)
 const workersValue = workersEnv ? Number(workersEnv) : recommendedWorkers
-const workers =
-  Number.isFinite(workersValue) ? Math.max(1, Math.floor(workersValue)) : undefined
+const workers = Number.isFinite(workersValue)
+  ? Math.max(1, Math.floor(workersValue))
+  : undefined
 
 // Increased timeouts for Docker (qemu emulation is slow)
 const testTimeout = 120_000
@@ -27,6 +29,9 @@ export default defineConfig({
   expect: {
     timeout: expectTimeout,
     toHaveScreenshot: {
+      maxDiffPixelRatio: 0.01,
+    },
+    toMatchSnapshot: {
       maxDiffPixelRatio: 0.01,
     },
   },

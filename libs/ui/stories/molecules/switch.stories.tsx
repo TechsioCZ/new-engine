@@ -1,56 +1,56 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { Switch } from '../../src/molecules/switch'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
+
+import { Switch } from "../../src/molecules/switch"
 
 const meta: Meta<typeof Switch> = {
-  title: 'Molecules/Switch',
+  title: "Molecules/Switch",
   component: Switch,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     checked: {
-      control: 'boolean',
-      description: 'Checked state of the switch',
+      control: "boolean",
+      description: "Checked state of the switch",
     },
     defaultChecked: {
-      control: 'boolean',
-      description: 'Default checked state (uncontrolled component)',
+      control: "boolean",
+      description: "Default checked state (uncontrolled component)",
     },
     disabled: {
-      control: 'boolean',
-      description: 'Disabled state of the switch',
+      control: "boolean",
+      description: "Disabled state of the switch",
     },
     readOnly: {
-      control: 'boolean',
-      description: 'Read-only state',
+      control: "boolean",
+      description: "Read-only state",
     },
     required: {
-      control: 'boolean',
-      description: 'Marks switch as required',
+      control: "boolean",
+      description: "Marks switch as required",
     },
     validateStatus: {
-      control: { type: 'select' },
-      options: ['default', 'error', 'success', 'warning'],
-      description: 'Validation status of the switch',
+      control: { type: "select" },
+      options: ["default", "error", "success", "warning"],
+      description: "Validation status of the switch",
     },
     helpText: {
-      control: 'text',
-      description: 'Help text displayed below the switch',
+      control: "text",
+      description: "Help text displayed below the switch",
     },
     showHelpTextIcon: {
-      control: 'boolean',
-      description: 'Whether to show an icon with the help text',
+      control: "boolean",
+      description: "Whether to show an icon with the help text",
     },
     children: {
-      control: 'text',
-      description: 'Label text for the switch',
+      control: "text",
+      description: "Label text for the switch",
     },
-    onCheckedChange: { action: 'changed' },
+    onCheckedChange: { action: "changed" },
   },
   args: {
-    checked: undefined,
     defaultChecked: false,
     disabled: false,
     readOnly: false,
@@ -64,15 +64,15 @@ type Story = StoryObj<typeof Switch>
 // Basic stories
 export const Default: Story = {
   args: {
-    children: 'Default switch',
+    children: "Default switch",
   },
 }
 
 // With help text
 export const WithHelpText: Story = {
   args: {
-    children: 'Marketing emails',
-    helpText: 'Receive updates about new products and promotions',
+    children: "Marketing emails",
+    helpText: "Receive updates about new products and promotions",
   },
 }
 
@@ -80,18 +80,26 @@ export const WithHelpText: Story = {
 export const WithValidation: Story = {
   render: () => (
     <div className="space-y-6">
-      <Switch validateStatus="error" helpText="This setting is required for security reasons">
+      <Switch
+        validateStatus="error"
+        helpText="This setting is required for security reasons"
+      >
         Error state
       </Switch>
-      <Switch validateStatus="success" helpText="Two-factor authentication is enabled" defaultChecked>
+      <Switch
+        validateStatus="success"
+        helpText="Two-factor authentication is enabled"
+        defaultChecked
+      >
         Success state
       </Switch>
-      <Switch validateStatus="warning" helpText="Consider enabling this for better security">
+      <Switch
+        validateStatus="warning"
+        helpText="Consider enabling this for better security"
+      >
         Warning state
       </Switch>
-      <Switch helpText="This is a default help text">
-        Default state
-      </Switch>
+      <Switch helpText="This is a default help text">Default state</Switch>
     </div>
   ),
 }
@@ -112,7 +120,9 @@ export const AllStates: Story = {
             Disabled checked
           </Switch>
 
-          <Switch validateStatus="error" helpText="Error state">Error switch</Switch>
+          <Switch validateStatus="error" helpText="Error state">
+            Error switch
+          </Switch>
 
           <Switch required>Required switch</Switch>
 
@@ -148,7 +158,10 @@ export const WithDescriptions: Story = {
           Advanced settings
         </Switch>
 
-        <Switch validateStatus="error" helpText="You must enable this for compliance">
+        <Switch
+          validateStatus="error"
+          helpText="You must enable this for compliance"
+        >
           Data encryption
         </Switch>
       </div>
@@ -171,7 +184,7 @@ export const ControlledSwitch: Story = {
           <Switch checked={isChecked} onCheckedChange={handleChange}>
             Controlled switch
           </Switch>
-          <span className="text-sm">Status: {isChecked ? 'ON' : 'OFF'}</span>
+          <span className="text-sm">Status: {isChecked ? "ON" : "OFF"}</span>
         </div>
         <button
           onClick={() => setIsChecked((prev) => !prev)}
@@ -206,7 +219,7 @@ export const SettingsPanel: Story = {
         <div className="space-y-6">
           <Switch
             checked={settings.notifications}
-            onCheckedChange={handleSettingChange('notifications')}
+            onCheckedChange={handleSettingChange("notifications")}
             helpText="Receive important updates about your account"
           >
             Email notifications
@@ -214,7 +227,7 @@ export const SettingsPanel: Story = {
 
           <Switch
             checked={settings.marketing}
-            onCheckedChange={handleSettingChange('marketing')}
+            onCheckedChange={handleSettingChange("marketing")}
             helpText="Get tips and updates about new features"
           >
             Marketing communications
@@ -222,7 +235,7 @@ export const SettingsPanel: Story = {
 
           <Switch
             checked={settings.analytics}
-            onCheckedChange={handleSettingChange('analytics')}
+            onCheckedChange={handleSettingChange("analytics")}
             helpText="Help us improve by sharing anonymous usage data"
           >
             Usage analytics
@@ -230,12 +243,12 @@ export const SettingsPanel: Story = {
 
           <Switch
             checked={settings.security}
-            onCheckedChange={handleSettingChange('security')}
-            validateStatus={settings.security ? 'success' : 'error'}
+            onCheckedChange={handleSettingChange("security")}
+            validateStatus={settings.security ? "success" : "error"}
             helpText={
               !settings.security
-                ? 'Required for account security'
-                : 'Enhanced security is enabled'
+                ? "Required for account security"
+                : "Enhanced security is enabled"
             }
           >
             Two-factor authentication

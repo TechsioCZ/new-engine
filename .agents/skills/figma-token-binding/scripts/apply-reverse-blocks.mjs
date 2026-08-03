@@ -58,33 +58,6 @@ function assertSafeComponentName(name) {
   }
 }
 
-function findClosingBrace(text, openIdx) {
-  // openIdx points to '{'
-  let depth = 0
-  for (let i = openIdx; i < text.length; i++) {
-    const ch = text[i]
-    if (ch === "{") depth++
-    else if (ch === "}") {
-      depth--
-      if (depth === 0) return i
-    }
-  }
-  return -1
-}
-
-function removeFirstBlock(text, startRegex) {
-  const m = text.match(startRegex)
-  if (!m) return { text, removed: false }
-  const start = m.index
-  const open = text.indexOf("{", start)
-  const close = findClosingBrace(text, open)
-  if (close === -1) return { text, removed: false }
-  // Also gobble the trailing newline(s)
-  let end = close + 1
-  while (end < text.length && text[end] === "\n") end++
-  return { text: text.slice(0, start) + text.slice(end), removed: true }
-}
-
 function stripFragmentHeader(fragText) {
   const closing = fragText.indexOf("*/")
   if (closing === -1) return fragText
@@ -117,15 +90,6 @@ function processComponent(component) {
   ).trim()
 
   let comp = readFileSync(compFile, "utf8")
-
-  // Remove every existing class-based dark block AND any reverse-related
-  // blocks left over from earlier runs; we will reinsert from the fragment.
-  // Order matters: collect insertion point, then strip, then insert.
-  const darkStartRegex =
-    /:is\(\.dark, \.always-dark\)(?:,\s*\n:is\(\.light, \.always-light\) \.reverse)? \{/
-  let insertionIdx = -1
-  const firstDarkMatch = comp.match(darkStartRegex)
-  if (firstDarkMatch) insertionIdx = firstDarkMatch.index
 
   // If a previous FIGMA-GENERATED region exists, REPLACE it (markers and
   // all) with the fresh fragText. Splicing the stripped inner back used

@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from "@storybook/react"
 
 /**
  * Per-component changelog for `@techsio/ui-kit`, rendered in Storybook.
@@ -163,10 +163,10 @@ function Changelog() {
 }
 
 const meta: Meta<typeof Changelog> = {
-  title: 'Guide/Changelog',
+  title: "Guide/Changelog",
   component: Changelog,
-  tags: ['autodocs'],
-  parameters: { layout: 'fullscreen' },
+  tags: ["autodocs"],
+  parameters: { layout: "fullscreen" },
 }
 
 export default meta

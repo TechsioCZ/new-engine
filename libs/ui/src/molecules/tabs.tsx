@@ -19,6 +19,7 @@ import {
   useId,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { Button, type ButtonProps } from "../atoms/button"
 import { tv } from "../utils"
 
@@ -131,10 +132,10 @@ const tabsVariants = tv({
 // Context for sharing state between sub-components
 interface TabsContextValue {
   api: ReturnType<typeof tabs.connect>
-  variant?: "default" | "line" | "solid" | "outline"
-  size?: "sm" | "md" | "lg"
-  fitted?: boolean
-  justify?: "start" | "center" | "end"
+  variant?: "default" | "line" | "solid" | "outline" | undefined
+  size?: "sm" | "md" | "lg" | undefined
+  fitted?: boolean | undefined
+  justify?: "start" | "center" | "end" | undefined
   styles: ReturnType<typeof tabsVariants>
 }
 
@@ -150,17 +151,18 @@ function useTabsContext() {
 
 // Root component
 export interface TabsProps
-  extends VariantProps<typeof tabsVariants>,
+  extends
+    VariantProps<typeof tabsVariants>,
     Omit<ComponentPropsWithoutRef<"div">, "onChange"> {
-  id?: string
-  defaultValue?: string
-  value?: string
-  orientation?: "horizontal" | "vertical"
-  dir?: "ltr" | "rtl"
-  activationMode?: "automatic" | "manual"
-  loopFocus?: boolean
-  onValueChange?: (value: string) => void
-  ref?: Ref<HTMLDivElement>
+  id?: string | undefined
+  defaultValue?: string | undefined
+  value?: string | undefined
+  orientation?: "horizontal" | "vertical" | undefined
+  dir?: "ltr" | "rtl" | undefined
+  activationMode?: "automatic" | "manual" | undefined
+  loopFocus?: boolean | undefined
+  onValueChange?: ((value: string) => void) | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 export function Tabs({
@@ -199,17 +201,13 @@ export function Tabs({
 
   const api = tabs.connect(service, normalizeProps)
   const styles = tabsVariants({ variant, size, fitted, justify })
+  const rootProps = mergeProps(api.getRootProps(), props)
 
   return (
     <TabsContext.Provider
       value={{ api, variant, size, fitted, justify, styles }}
     >
-      <div
-        className={styles.root({ className })}
-        ref={ref}
-        {...api.getRootProps()}
-        {...props}
-      >
+      <div {...rootProps} className={styles.root({ className })} ref={ref}>
         {children}
       </div>
     </TabsContext.Provider>
@@ -218,7 +216,7 @@ export function Tabs({
 
 // List component
 interface TabsListProps extends ComponentPropsWithoutRef<"div"> {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Tabs.List = function TabsList({
@@ -228,14 +226,10 @@ Tabs.List = function TabsList({
   ...props
 }: TabsListProps) {
   const { api, styles } = useTabsContext()
+  const listProps = mergeProps(api.getListProps(), props)
 
   return (
-    <div
-      className={styles.list({ className })}
-      ref={ref}
-      {...api.getListProps()}
-      {...props}
-    >
+    <div {...listProps} className={styles.list({ className })} ref={ref}>
       {children}
     </div>
   )
@@ -244,7 +238,7 @@ Tabs.List = function TabsList({
 // Trigger component
 type TabsTriggerProps = Omit<ButtonProps, "value"> & {
   value: string
-  ref?: Ref<HTMLButtonElement>
+  ref?: Ref<HTMLButtonElement> | undefined
 }
 
 Tabs.Trigger = function TabsTrigger({
@@ -260,8 +254,8 @@ Tabs.Trigger = function TabsTrigger({
 }: TabsTriggerProps) {
   const { api, styles } = useTabsContext()
   const triggerProps = mergeProps(
-    props,
-    api.getTriggerProps({ value, disabled })
+    api.getTriggerProps({ value, disabled }),
+    props
   )
 
   return (
@@ -282,7 +276,7 @@ Tabs.Trigger = function TabsTrigger({
 // Content component
 interface TabsContentProps extends ComponentPropsWithoutRef<"div"> {
   value: string
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Tabs.Content = function TabsContent({
@@ -293,14 +287,10 @@ Tabs.Content = function TabsContent({
   ...props
 }: TabsContentProps) {
   const { api, styles } = useTabsContext()
+  const contentProps = mergeProps(api.getContentProps({ value }), props)
 
   return (
-    <div
-      className={styles.content({ className })}
-      ref={ref}
-      {...api.getContentProps({ value })}
-      {...props}
-    >
+    <div {...contentProps} className={styles.content({ className })} ref={ref}>
       {children}
     </div>
   )
@@ -308,7 +298,7 @@ Tabs.Content = function TabsContent({
 
 // Indicator component
 interface TabsIndicatorProps extends ComponentPropsWithoutRef<"div"> {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Tabs.Indicator = function TabsIndicator({
@@ -317,13 +307,13 @@ Tabs.Indicator = function TabsIndicator({
   ...props
 }: TabsIndicatorProps) {
   const { api, styles } = useTabsContext()
+  const indicatorProps = mergeProps(api.getIndicatorProps(), props)
 
   return (
     <div
+      {...indicatorProps}
       className={styles.indicator({ className })}
       ref={ref}
-      {...api.getIndicatorProps()}
-      {...props}
     />
   )
 }
