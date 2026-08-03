@@ -291,7 +291,7 @@ const CARRIER_MATCHERS: Record<
 > = {
   gls: {
     label: "GLS",
-    tokens: ["gls", "parcelshop"],
+    tokens: ["gls"],
   },
   packeta: {
     label: "Packeta",
