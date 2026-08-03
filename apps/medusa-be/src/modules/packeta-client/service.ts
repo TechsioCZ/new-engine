@@ -1,11 +1,11 @@
 import type { ICachingModuleService, Logger } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
+import { decryptFields, encryptFields } from "../../utils/encryption"
+import { safeResolve } from "../../utils/safe-resolve"
 import {
   INTEGRATION_CONFIG_NAMES,
   retrieveIntegrationConfig,
 } from "../api-store/integration-config"
-import { decryptFields, encryptFields } from "../../utils/encryption"
-import { safeResolve } from "../../utils/safe-resolve"
 import { PacketaClient } from "./client"
 import PacketaConfig from "./models/packeta-config"
 import {

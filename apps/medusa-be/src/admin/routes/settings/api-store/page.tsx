@@ -643,7 +643,9 @@ const ApiStoreTableRows = ({
       </Table.Cell>
       <Table.Cell>
         <Text
-          className={apiStoreConfig.enabled ? "text-ui-fg-base" : "text-ui-fg-subtle"}
+          className={
+            apiStoreConfig.enabled ? "text-ui-fg-base" : "text-ui-fg-subtle"
+          }
           size="small"
         >
           {apiStoreConfig.enabled ? "Enabled" : "Disabled"}
