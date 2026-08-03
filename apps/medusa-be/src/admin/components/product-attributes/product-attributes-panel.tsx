@@ -173,7 +173,7 @@ const AttributeEditorCard = ({
   const inputId = `product-attribute-${item.definition.id}`
 
   return (
-    <Container className="overflow-hidden p-0">
+    <Container className="shrink-0 overflow-hidden p-0">
       <div className="flex items-center gap-3 px-4 py-3">
         <IconButton
           aria-controls={contentId}
