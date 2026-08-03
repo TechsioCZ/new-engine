@@ -23,7 +23,9 @@ export async function handleTriggerZaneDeploy(
       projectSlug: payload.projectSlug,
       environmentName: payload.environmentName,
       targets: payload.targets,
-      gitCommitSha: payload.gitCommitSha,
+      ...(payload.gitCommitSha === undefined
+        ? {}
+        : { gitCommitSha: payload.gitCommitSha }),
     })
 
     return jsonResponse(200, result)

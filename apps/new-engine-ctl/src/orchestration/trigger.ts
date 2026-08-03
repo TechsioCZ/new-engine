@@ -1,45 +1,15 @@
-import { mkdir, writeFile } from "node:fs/promises"
-import { dirname } from "node:path"
-
 import {
   resolveTriggerTargets,
-  type TriggerCommandInput,
   type TriggerResponse,
   triggerResponseSchema,
 } from "../contracts/trigger.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 
-async function writeJsonFile(path: string, value: unknown): Promise<void> {
-  await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
-}
-
-export async function executeTrigger(
-  input: TriggerCommandInput
-): Promise<TriggerResponse> {
-  const targets = await resolveTriggerTargets(input.targetsJsonPath)
-  const response = await executeTriggerPayload({
-    projectSlug: input.projectSlug,
-    environmentName: input.environmentName,
-    targets,
-    gitCommitSha: input.gitCommitSha,
-    baseUrl: input.baseUrl,
-    apiToken: input.apiToken,
-    dryRun: input.dryRun,
-  })
-
-  if (input.outputJson) {
-    await writeJsonFile(input.outputJson, response)
-  }
-
-  return response
-}
-
 export async function executeTriggerPayload(input: {
   projectSlug: string
   environmentName: string
   targets: Awaited<ReturnType<typeof resolveTriggerTargets>>
-  gitCommitSha?: string
+  gitCommitSha?: string | undefined
   baseUrl: string
   apiToken: string
   dryRun: boolean

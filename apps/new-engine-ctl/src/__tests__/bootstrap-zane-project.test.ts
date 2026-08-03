@@ -232,7 +232,7 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
       services: Record<string, { environment: Record<string, unknown> }>
     }
     const composeMedusaEnv = compose.services["medusa-be"]?.environment
-    const composeHerbatikaEnv = compose.services.herbatika?.environment
+    const composeHerbatikaEnv = compose.services["herbatika"]?.environment
     if (!(composeMedusaEnv && composeHerbatikaEnv)) {
       throw new Error("Compose storefront/backend environments are missing.")
     }

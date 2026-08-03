@@ -11,18 +11,20 @@ function parseOptionalNumber(value: unknown): number | undefined {
 
 function buildPrepareInput(options: Record<string, unknown>) {
   return prepareCommandInputSchema.parse({
-    lane: options.lane,
-    projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
-    prNumber: parseOptionalNumber(options.prNumber),
-    requiresPreviewDb: Boolean(options.requiresPreviewDb),
-    outputJson: options.outputJson,
-    baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
-    apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
-    dryRun: Boolean(options.dryRun),
-    stackManifestPath: options.stackManifestPath,
-    stackInputsPath: options.stackInputsPath,
-    previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
-    timeoutSeconds: parseOptionalNumber(options.timeoutSeconds),
+    lane: options["lane"],
+    projectSlug:
+      options["projectSlug"] ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
+    prNumber: parseOptionalNumber(options["prNumber"]),
+    requiresPreviewDb: Boolean(options["requiresPreviewDb"]),
+    outputJson: options["outputJson"],
+    baseUrl: options["baseUrl"] ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
+    apiToken:
+      options["apiToken"] ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
+    dryRun: Boolean(options["dryRun"]),
+    stackManifestPath: options["stackManifestPath"],
+    stackInputsPath: options["stackInputsPath"],
+    previewEnvPrefix: process.env["ZANE_PREVIEW_ENV_PREFIX"] ?? "pr-",
+    timeoutSeconds: parseOptionalNumber(options["timeoutSeconds"]),
   })
 }
 
@@ -59,12 +61,12 @@ export function createPrepareCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath
     )
     .action(async (options) => {
       const input = buildPrepareInput(options)

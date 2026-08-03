@@ -10,7 +10,7 @@ const runtimeProviderOutputPayloadSchema = z.looseObject({
   policy: runtimeProviderPolicySchema,
 })
 
-export const runtimeProviderRunPayloadSchema = z.object({
+const runtimeProviderRunPayloadSchema = z.object({
   project_slug: z.string().min(1),
   environment_name: z.string().min(1),
   provider_id: z.string().min(1),

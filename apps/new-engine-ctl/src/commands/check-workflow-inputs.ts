@@ -35,7 +35,7 @@ function requireAndMaskZaneProjectSlug(): void {
 function validateMode(mode: WorkflowInputMode): void {
   switch (mode) {
     case "preview-prepare":
-      if (process.env.REQUIRES_PREVIEW_DB === "true") {
+      if (process.env["REQUIRES_PREVIEW_DB"] === "true") {
         requireEnv({
           name: "ZANE_OPERATOR_BASE_URL",
           description: "preview DB operator base URL",
@@ -107,7 +107,9 @@ function validateMode(mode: WorkflowInputMode): void {
       return
     default: {
       const exhaustive: never = mode
-      throw new Error(`Unsupported workflow input mode: ${exhaustive}`)
+      throw new Error(
+        `Unsupported workflow input mode: ${JSON.stringify(exhaustive)}`
+      )
     }
   }
 }

@@ -405,7 +405,7 @@ function buildPreviewUrlDomain(
     `^${escapeRegExp(servicePrefix)}(?<affix>[^.]*)\\.(?<root>.+)$`
   ).exec(sourceDomain)
 
-  if (!match?.groups?.root) {
+  if (!match?.groups?.["root"]) {
     throw new UpstreamHttpError(
       409,
       "zane_preview_service_url_contract_invalid",
@@ -413,7 +413,7 @@ function buildPreviewUrlDomain(
     )
   }
 
-  return `${environmentName}-${servicePrefix}${match.groups.affix ?? ""}.${match.groups.root}`
+  return `${environmentName}-${servicePrefix}${match.groups["affix"] ?? ""}.${match.groups["root"]}`
 }
 
 function buildDesiredPreviewUrls(
@@ -802,7 +802,7 @@ export class ZaneEnvironmentManager {
       service_slugs: [...new Set(serviceSlugs)],
     })
 
-    for (const serviceSlug of [...new Set(serviceSlugs)]) {
+    for (const serviceSlug of new Set(serviceSlugs)) {
       let currentDetails: ZaneServiceDetails
       try {
         currentDetails = await this.#deps.getServiceDetails(
@@ -1127,7 +1127,7 @@ export class ZaneEnvironmentManager {
       service_slugs: [...new Set(serviceSlugs)],
     })
 
-    for (const serviceSlug of [...new Set(serviceSlugs)]) {
+    for (const serviceSlug of new Set(serviceSlugs)) {
       const sourceDetails = await this.#deps.getServiceDetails(
         session,
         input.projectSlug,

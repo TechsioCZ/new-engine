@@ -69,10 +69,6 @@ export function normalizeCsvToArray(csv: string): string[] {
   return normalized
 }
 
-export function mergeCsvValues(existing: string, current: string): string {
-  return normalizeCsvToArray(`${existing},${current}`).join(",")
-}
-
 async function loadYamlContract<T>(
   path: string,
   parseContract: (value: unknown) => T

@@ -4,6 +4,7 @@ import { z } from "zod"
 
 import { renderEnvOverridesResponseSchema } from "./render-env-overrides.js"
 import { resolveTargetsResponseSchema } from "./resolve-targets.js"
+import { requireLiveZaneCredentials } from "./zane-credentials.js"
 
 const targetsEnvelopeSchema = z.object({
   services: resolveTargetsResponseSchema.shape.services,
@@ -31,23 +32,7 @@ export const applyEnvOverridesCommandInputSchema = z
     apiToken: z.string().default(""),
     dryRun: z.boolean().default(false),
   })
-  .superRefine((value, ctx) => {
-    if (!(value.dryRun || value.baseUrl)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["baseUrl"],
-        message: "Zane operator base URL is required.",
-      })
-    }
-
-    if (!(value.dryRun || value.apiToken)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["apiToken"],
-        message: "Zane operator API token is required.",
-      })
-    }
-  })
+  .superRefine(requireLiveZaneCredentials)
 
 export const applyEnvOverridesResponseSchema = z.object({
   project_slug: z.string().min(1),

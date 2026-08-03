@@ -159,7 +159,7 @@ function resolveMedusaUrl(baseUrl: string, path: string): string {
   return new URL(path.replace(/^\/+/, ""), serviceUrl).toString()
 }
 
-function sleep(ms: number): Promise<void> {
+function waitForMedusa(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms)
   })
@@ -295,7 +295,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
         return
       }
 
-      await sleep(2000)
+      await waitForMedusa(2000)
     }
 
     throw new UpstreamHttpError(
@@ -344,7 +344,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
     }
 
     const payloadObject = payload as Record<string, unknown>
-    const token = payloadObject.token
+    const token = payloadObject["token"]
     if (typeof token !== "string" || !token.trim()) {
       throw new BadRequestError("medusa admin auth response missing token")
     }
@@ -392,7 +392,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
     }
 
     const payloadObject = payload as Record<string, unknown>
-    const apiKey = payloadObject.api_key
+    const apiKey = payloadObject["api_key"]
     if (!apiKey || typeof apiKey !== "object" || Array.isArray(apiKey)) {
       throw new BadRequestError(
         "medusa publishable key response missing api_key object"
@@ -400,7 +400,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
     }
 
     const apiKeyObject = apiKey as Record<string, unknown>
-    const tokenValue = apiKeyObject.token
+    const tokenValue = apiKeyObject["token"]
     if (typeof tokenValue !== "string" || !tokenValue.trim()) {
       throw new BadRequestError(
         "medusa publishable key response missing api_key.token"
@@ -411,7 +411,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
       api_key: {
         token: tokenValue.trim(),
       },
-      created: payloadObject.created === true,
+      created: payloadObject["created"] === true,
     }
   }
 }

@@ -21,7 +21,7 @@ const requiredSharedEnvSchema = z.object({
   key: z.string().min(1),
 })
 
-export const forbiddenEnvSchema = z.object({
+const forbiddenEnvSchema = z.object({
   service_id: z.string().min(1),
   service_slug: z.string().min(1),
   env_keys: z.array(z.string().min(1)),

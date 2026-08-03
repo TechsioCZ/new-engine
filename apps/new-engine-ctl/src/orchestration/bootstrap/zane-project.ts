@@ -429,8 +429,8 @@ function publicServiceDomain(input: {
 }
 
 function summarizeSource(input: {
-  key?: string
-  envVar?: string
+  key?: string | undefined
+  envVar?: string | undefined
   source: PreviewSharedEnvVariableInput["source"]
 }) {
   return {
@@ -482,7 +482,7 @@ function buildSharedEnvVariables(
           }
         default:
           throw new Error(
-            `Unsupported bootstrap shared env source kind: ${definition.source.kind}`
+            `Unsupported bootstrap shared env source: ${JSON.stringify(definition.source)}`
           )
       }
     }
@@ -527,7 +527,7 @@ function buildZaneProjectServices(
   serviceSlugs: Record<string, string>
 ): Record<string, PlannedBootstrapService> {
   const protectedNamesBase =
-    process.env.DC_ZANE_OPERATOR_DB_PROTECTED_NAMES ??
+    process.env["DC_ZANE_OPERATOR_DB_PROTECTED_NAMES"] ??
     "postgres,template0,template1"
   const protectedNames = protectedNamesBase.includes("template_medusa")
     ? protectedNamesBase
@@ -535,7 +535,7 @@ function buildZaneProjectServices(
   const medusaBeSlug = requiredServiceSlug(serviceSlugs, "medusa-be")
   const payloadSlug = requiredServiceSlug(serviceSlugs, "payload")
   const herbatikaSlug = requiredServiceSlug(serviceSlugs, "herbatika")
-  const n1Slug = serviceSlugs.n1
+  const n1Slug = serviceSlugs["n1"]
   const meilisearchSlug = requiredServiceSlug(
     serviceSlugs,
     "medusa-meilisearch"
@@ -548,7 +548,7 @@ function buildZaneProjectServices(
     publicDomain: context.publicDomain,
   })
   const configuredGoPayWebhookUrl =
-    process.env.DC_GOPAY_WEBHOOK_URL?.trim() ?? ""
+    process.env["DC_GOPAY_WEBHOOK_URL"]?.trim() ?? ""
   const generatedGoPayWebhookUrl = medusaBePublicDomain
     ? `https://${medusaBePublicDomain}/hooks/payment/paykit_gopay`
     : ""
@@ -611,12 +611,12 @@ function buildZaneProjectServices(
       env: [
         {
           envVar: "POSTGRES_USER",
-          source: literalSource(process.env.DC_POSTGRES_SUPERUSER ?? "root"),
+          source: literalSource(process.env["DC_POSTGRES_SUPERUSER"] ?? "root"),
         },
         {
           envVar: "POSTGRES_PASSWORD",
           source: literalSource(
-            process.env.DC_POSTGRES_SUPERUSER_PASSWORD ?? "root"
+            process.env["DC_POSTGRES_SUPERUSER_PASSWORD"] ?? "root"
           ),
         },
         {
@@ -626,27 +626,30 @@ function buildZaneProjectServices(
         {
           envVar: "MEDUSA_DEV_DB_USER",
           source: literalSource(
-            process.env.DC_MEDUSA_DEV_DB_USER ?? "medusa_dev"
+            process.env["DC_MEDUSA_DEV_DB_USER"] ?? "medusa_dev"
           ),
         },
         {
           envVar: "MEDUSA_DEV_DB_PASSWORD",
-          source: literalSource(process.env.DC_MEDUSA_DEV_DB_PASSWORD ?? ""),
+          source: literalSource(process.env["DC_MEDUSA_DEV_DB_PASSWORD"] ?? ""),
         },
         {
           envVar: "MEDUSA_DB_ZANE_OPERATOR_USER",
           source: literalSource(
-            process.env.DC_ZANE_OPERATOR_PGUSER ?? "zane_operator"
+            process.env["DC_ZANE_OPERATOR_PGUSER"] ?? "zane_operator"
           ),
         },
         {
           envVar: "MEDUSA_DB_ZANE_OPERATOR_PASSWORD",
-          source: literalSource(process.env.DC_ZANE_OPERATOR_PGPASSWORD ?? ""),
+          source: literalSource(
+            process.env["DC_ZANE_OPERATOR_PGPASSWORD"] ?? ""
+          ),
         },
         {
           envVar: "MEDUSA_DB_ZANE_OPERATOR_DB_TEMPLATE_NAME",
           source: literalSource(
-            process.env.DC_ZANE_OPERATOR_DB_TEMPLATE_NAME ?? "template_medusa"
+            process.env["DC_ZANE_OPERATOR_DB_TEMPLATE_NAME"] ??
+              "template_medusa"
           ),
         },
       ],
@@ -707,11 +710,11 @@ function buildZaneProjectServices(
       env: [
         {
           envVar: "MINIO_ROOT_USER",
-          source: literalSource(process.env.DC_MINIO_ROOT_USER ?? ""),
+          source: literalSource(process.env["DC_MINIO_ROOT_USER"] ?? ""),
         },
         {
           envVar: "MINIO_ROOT_PASSWORD",
-          source: literalSource(process.env.DC_MINIO_ROOT_PASSWORD ?? ""),
+          source: literalSource(process.env["DC_MINIO_ROOT_PASSWORD"] ?? ""),
         },
       ],
     },
@@ -871,24 +874,26 @@ function buildZaneProjectServices(
       env: [
         {
           envVar: "JWT_SECRET",
-          source: literalSource(process.env.DC_JWT_SECRET ?? ""),
+          source: literalSource(process.env["DC_JWT_SECRET"] ?? ""),
         },
         {
           envVar: "COOKIE_SECRET",
-          source: literalSource(process.env.DC_COOKIE_SECRET ?? ""),
+          source: literalSource(process.env["DC_COOKIE_SECRET"] ?? ""),
         },
         {
           envVar: "MEDUSA_COOKIE_SECURE",
-          source: literalSource(process.env.DC_MEDUSA_COOKIE_SECURE ?? ""),
+          source: literalSource(process.env["DC_MEDUSA_COOKIE_SECURE"] ?? ""),
         },
         {
           envVar: "MEDUSA_COOKIE_SAME_SITE",
-          source: literalSource(process.env.DC_MEDUSA_COOKIE_SAME_SITE ?? ""),
+          source: literalSource(
+            process.env["DC_MEDUSA_COOKIE_SAME_SITE"] ?? ""
+          ),
         },
         {
           envVar: "MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD",
           source: literalSource(
-            process.env.DC_MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD ?? "0"
+            process.env["DC_MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD"] ?? "0"
           ),
         },
         { envVar: "MEDUSA_BACKEND_URL", source: servicePublicOrigins.medusaBe },
@@ -897,171 +902,177 @@ function buildZaneProjectServices(
         { envVar: "AUTH_CORS", source: literalSource(context.authCors) },
         {
           envVar: "SUPERADMIN_EMAIL",
-          source: literalSource(process.env.DC_SUPERADMIN_EMAIL ?? ""),
+          source: literalSource(process.env["DC_SUPERADMIN_EMAIL"] ?? ""),
         },
         {
           envVar: "SUPERADMIN_PASSWORD",
-          source: literalSource(process.env.DC_SUPERADMIN_PASSWORD ?? ""),
+          source: literalSource(process.env["DC_SUPERADMIN_PASSWORD"] ?? ""),
         },
         {
           envVar: "INITIAL_PUBLISHABLE_KEY_NAME",
           source: literalSource(
-            process.env.DC_INITIAL_PUBLISHABLE_KEY_NAME ??
+            process.env["DC_INITIAL_PUBLISHABLE_KEY_NAME"] ??
               "Storefront Publishable Key"
           ),
         },
         {
           envVar: "SETTINGS_ENCRYPTION_KEY",
-          source: literalSource(process.env.DC_SETTINGS_ENCRYPTION_KEY ?? ""),
+          source: literalSource(
+            process.env["DC_SETTINGS_ENCRYPTION_KEY"] ?? ""
+          ),
         },
         {
           envVar: "SENTRY_NAME",
-          source: literalSource(process.env.DC_SENTRY_NAME ?? ""),
+          source: literalSource(process.env["DC_SENTRY_NAME"] ?? ""),
         },
         {
           envVar: "SENTRY_DSN",
-          source: literalSource(process.env.DC_SENTRY_DSN ?? ""),
+          source: literalSource(process.env["DC_SENTRY_DSN"] ?? ""),
         },
         {
           envVar: "SENTRY_TRACES_SAMPLE_RATE",
           source: literalSource(
-            process.env.DC_SENTRY_TRACES_SAMPLE_RATE ?? "0.1"
+            process.env["DC_SENTRY_TRACES_SAMPLE_RATE"] ?? "0.1"
           ),
         },
         {
           envVar: "STOREFRONT_URL",
-          source: process.env.DC_STOREFRONT_URL?.trim()
-            ? literalSource(process.env.DC_STOREFRONT_URL.trim())
+          source: process.env["DC_STOREFRONT_URL"]?.trim()
+            ? literalSource(process.env["DC_STOREFRONT_URL"].trim())
             : servicePublicOrigins.herbatika,
         },
         {
           envVar: "STORE_NAME",
-          source: literalSource(process.env.DC_STORE_NAME ?? "Herbatika"),
+          source: literalSource(process.env["DC_STORE_NAME"] ?? "Herbatika"),
         },
         {
           envVar: "PRODUCT_REVIEW_REQUEST_MESSAGE",
           source: literalSource(
-            process.env.DC_PRODUCT_REVIEW_REQUEST_MESSAGE ??
+            process.env["DC_PRODUCT_REVIEW_REQUEST_MESSAGE"] ??
               "Napiš recenzi produktu"
           ),
         },
         {
           envVar: "PRODUCT_REVIEW_REQUEST_DELAY_MINUTES",
           source: literalSource(
-            process.env.DC_PRODUCT_REVIEW_REQUEST_DELAY_MINUTES ?? "10080"
+            process.env["DC_PRODUCT_REVIEW_REQUEST_DELAY_MINUTES"] ?? "10080"
           ),
         },
         {
           envVar: "PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS",
           source: literalSource(
-            process.env.DC_PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS ?? "90"
+            process.env["DC_PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS"] ?? "90"
           ),
         },
         {
           envVar: "WORKFLOW_QUEUE_RUNNER_BATCH_SIZE",
           source: literalSource(
-            process.env.DC_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE ?? "500"
+            process.env["DC_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE"] ?? "500"
           ),
         },
         {
           envVar: "WORKFLOW_QUEUE_RUNNER_SCHEDULE",
           source: literalSource(
-            process.env.DC_WORKFLOW_QUEUE_RUNNER_SCHEDULE ?? "0 * * * *"
+            process.env["DC_WORKFLOW_QUEUE_RUNNER_SCHEDULE"] ?? "0 * * * *"
           ),
         },
         {
           envVar: "HERBATICA_XML_PATH",
-          source: literalSource(process.env.DC_HERBATICA_XML_PATH ?? ""),
+          source: literalSource(process.env["DC_HERBATICA_XML_PATH"] ?? ""),
         },
         {
           envVar: "HERBATICA_CATEGORIES_XML_PATH",
           source: literalSource(
-            process.env.DC_HERBATICA_CATEGORIES_XML_PATH ?? ""
+            process.env["DC_HERBATICA_CATEGORIES_XML_PATH"] ?? ""
           ),
         },
         {
           envVar: "HERBATICA_MANUFACTURERS_CSV_PATH",
           source: literalSource(
-            process.env.DC_HERBATICA_MANUFACTURERS_CSV_PATH ?? ""
+            process.env["DC_HERBATICA_MANUFACTURERS_CSV_PATH"] ?? ""
           ),
         },
         {
           envVar: "HERBATICA_REVIEWS_XML_PATH",
           source: literalSource(
-            process.env.DC_HERBATICA_REVIEWS_XML_PATH ?? ""
+            process.env["DC_HERBATICA_REVIEWS_XML_PATH"] ?? ""
           ),
         },
         {
           envVar: "FEATURE_PPL_ENABLED",
-          source: literalSource(process.env.DC_FEATURE_PPL_ENABLED ?? "0"),
+          source: literalSource(process.env["DC_FEATURE_PPL_ENABLED"] ?? "0"),
         },
         {
           envVar: "PPL_ENVIRONMENT",
-          source: literalSource(process.env.DC_PPL_ENVIRONMENT ?? "testing"),
+          source: literalSource(process.env["DC_PPL_ENVIRONMENT"] ?? "testing"),
         },
         {
           envVar: "FEATURE_PACKETA_ENABLED",
-          source: literalSource(process.env.DC_FEATURE_PACKETA_ENABLED ?? "0"),
+          source: literalSource(
+            process.env["DC_FEATURE_PACKETA_ENABLED"] ?? "0"
+          ),
         },
         {
           envVar: "PACKETA_ENVIRONMENT",
           source: literalSource(
-            process.env.DC_PACKETA_ENVIRONMENT ?? "testing"
+            process.env["DC_PACKETA_ENVIRONMENT"] ?? "testing"
           ),
         },
         {
           envVar: "PACKETA_PICKUP_POINTS_API_KEY",
           source: literalSource(
-            process.env.DC_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY ?? ""
+            process.env["DC_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY"] ?? ""
           ),
         },
         {
           envVar: "FEATURE_PAYMENT_QR_ENABLED",
           source: literalSource(
-            process.env.DC_FEATURE_PAYMENT_QR_ENABLED ?? "0"
+            process.env["DC_FEATURE_PAYMENT_QR_ENABLED"] ?? "0"
           ),
         },
         {
           envVar: "FEATURE_PAYKIT_ENABLED",
-          source: literalSource(process.env.DC_FEATURE_PAYKIT_ENABLED ?? "0"),
+          source: literalSource(
+            process.env["DC_FEATURE_PAYKIT_ENABLED"] ?? "0"
+          ),
         },
         {
           envVar: "FEATURE_PAYKIT_GOPAY_ENABLED",
           source: literalSource(
-            process.env.DC_FEATURE_PAYKIT_GOPAY_ENABLED ?? ""
+            process.env["DC_FEATURE_PAYKIT_GOPAY_ENABLED"] ?? ""
           ),
         },
         {
           envVar: "FEATURE_PAYKIT_STRIPE_ENABLED",
           source: literalSource(
-            process.env.DC_FEATURE_PAYKIT_STRIPE_ENABLED ?? ""
+            process.env["DC_FEATURE_PAYKIT_STRIPE_ENABLED"] ?? ""
           ),
         },
         {
           envVar: "FEATURE_PAYKIT_COMGATE_ENABLED",
           source: literalSource(
-            process.env.DC_FEATURE_PAYKIT_COMGATE_ENABLED ?? ""
+            process.env["DC_FEATURE_PAYKIT_COMGATE_ENABLED"] ?? ""
           ),
         },
         {
           envVar: "PAYKIT_DEBUG",
-          source: literalSource(process.env.DC_PAYKIT_DEBUG ?? "0"),
+          source: literalSource(process.env["DC_PAYKIT_DEBUG"] ?? "0"),
         },
         {
           envVar: "GOPAY_CLIENT_ID",
-          source: literalSource(process.env.DC_GOPAY_CLIENT_ID ?? ""),
+          source: literalSource(process.env["DC_GOPAY_CLIENT_ID"] ?? ""),
         },
         {
           envVar: "GOPAY_CLIENT_SECRET",
-          source: literalSource(process.env.DC_GOPAY_CLIENT_SECRET ?? ""),
+          source: literalSource(process.env["DC_GOPAY_CLIENT_SECRET"] ?? ""),
         },
         {
           envVar: "GOPAY_GO_ID",
-          source: literalSource(process.env.DC_GOPAY_GO_ID ?? ""),
+          source: literalSource(process.env["DC_GOPAY_GO_ID"] ?? ""),
         },
         {
           envVar: "GOPAY_SANDBOX",
-          source: literalSource(process.env.DC_GOPAY_SANDBOX ?? "true"),
+          source: literalSource(process.env["DC_GOPAY_SANDBOX"] ?? "true"),
         },
         {
           envVar: "GOPAY_WEBHOOK_URL",
@@ -1069,35 +1080,37 @@ function buildZaneProjectServices(
         },
         {
           envVar: "STRIPE_API_KEY",
-          source: literalSource(process.env.DC_STRIPE_API_KEY ?? ""),
+          source: literalSource(process.env["DC_STRIPE_API_KEY"] ?? ""),
         },
         {
           envVar: "STRIPE_WEBHOOK_SECRET",
-          source: literalSource(process.env.DC_STRIPE_WEBHOOK_SECRET ?? ""),
+          source: literalSource(process.env["DC_STRIPE_WEBHOOK_SECRET"] ?? ""),
         },
         {
           envVar: "COMGATE_MERCHANT",
-          source: literalSource(process.env.DC_COMGATE_MERCHANT ?? ""),
+          source: literalSource(process.env["DC_COMGATE_MERCHANT"] ?? ""),
         },
         {
           envVar: "COMGATE_SECRET",
-          source: literalSource(process.env.DC_COMGATE_SECRET ?? ""),
+          source: literalSource(process.env["DC_COMGATE_SECRET"] ?? ""),
         },
         {
           envVar: "COMGATE_SANDBOX",
-          source: literalSource(process.env.DC_COMGATE_SANDBOX ?? "true"),
+          source: literalSource(process.env["DC_COMGATE_SANDBOX"] ?? "true"),
         },
         {
           envVar: "COMGATE_PAYMENT_LABEL",
-          source: literalSource(process.env.DC_COMGATE_PAYMENT_LABEL ?? ""),
+          source: literalSource(process.env["DC_COMGATE_PAYMENT_LABEL"] ?? ""),
         },
         {
           envVar: "FEATURE_PAYLOAD_ENABLED",
-          source: literalSource(process.env.DC_FEATURE_PAYLOAD_ENABLED ?? "0"),
+          source: literalSource(
+            process.env["DC_FEATURE_PAYLOAD_ENABLED"] ?? "0"
+          ),
         },
         {
           envVar: "IS_IFRAME_PAYLOAD",
-          source: literalSource(process.env.DC_IS_IFRAME_PAYLOAD ?? "true"),
+          source: literalSource(process.env["DC_IS_IFRAME_PAYLOAD"] ?? "true"),
         },
         {
           envVar: "PAYLOAD_BASE_URL",
@@ -1109,15 +1122,17 @@ function buildZaneProjectServices(
         { envVar: "PAYLOAD_IFRAME_URL", source: servicePublicOrigins.payload },
         {
           envVar: "CMS_CACHE_TTL",
-          source: literalSource(process.env.DC_CMS_CACHE_TTL ?? "3600"),
+          source: literalSource(process.env["DC_CMS_CACHE_TTL"] ?? "3600"),
         },
         {
           envVar: "CMS_LIST_CACHE_TTL",
-          source: literalSource(process.env.DC_CMS_LIST_CACHE_TTL ?? "600"),
+          source: literalSource(process.env["DC_CMS_LIST_CACHE_TTL"] ?? "600"),
         },
         {
           envVar: "PAYLOAD_SSO_TOKEN_TTL",
-          source: literalSource(process.env.DC_PAYLOAD_SSO_TOKEN_TTL ?? "60"),
+          source: literalSource(
+            process.env["DC_PAYLOAD_SSO_TOKEN_TTL"] ?? "60"
+          ),
         },
         { envVar: "DATABASE_TYPE", source: literalSource("postgres") },
         {
@@ -1148,15 +1163,15 @@ function buildZaneProjectServices(
         {
           envVar: "NOTIFICATION_PROVIDER",
           source: literalSource(
-            process.env.DC_MEDUSA_BE_NOTIFICATION_PROVIDER ?? "resend"
+            process.env["DC_MEDUSA_BE_NOTIFICATION_PROVIDER"] ?? "resend"
           ),
         },
         {
           envVar: "RESEND_API_KEY",
           source: literalSource(
             firstNonEmpty(
-              process.env.DC_MEDUSA_BE_RESEND_API_KEY,
-              process.env.DC_RESEND_API_KEY
+              process.env["DC_MEDUSA_BE_RESEND_API_KEY"],
+              process.env["DC_RESEND_API_KEY"]
             ) ?? ""
           ),
         },
@@ -1164,8 +1179,8 @@ function buildZaneProjectServices(
           envVar: "RESEND_FROM_EMAIL",
           source: literalSource(
             firstNonEmpty(
-              process.env.DC_MEDUSA_BE_RESEND_FROM_EMAIL,
-              process.env.DC_RESEND_FROM_EMAIL
+              process.env["DC_MEDUSA_BE_RESEND_FROM_EMAIL"],
+              process.env["DC_RESEND_FROM_EMAIL"]
             ) ?? ""
           ),
         },
@@ -1173,8 +1188,8 @@ function buildZaneProjectServices(
           envVar: "RESEND_WEBHOOK_SECRET",
           source: literalSource(
             firstNonEmpty(
-              process.env.DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET,
-              process.env.DC_RESEND_WEBHOOK_SECRET
+              process.env["DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET"],
+              process.env["DC_RESEND_WEBHOOK_SECRET"]
             ) ?? ""
           ),
         },
@@ -1249,7 +1264,7 @@ function buildZaneProjectServices(
         {
           envVar: "PAYLOAD_SECRET",
           source: literalSource(
-            process.env.DC_PAYLOAD_SECRET ?? "payload_secret_change_me"
+            process.env["DC_PAYLOAD_SECRET"] ?? "payload_secret_change_me"
           ),
         },
         { envVar: "PAYLOAD_BASE_URL", source: servicePublicOrigins.payload },
@@ -1263,28 +1278,30 @@ function buildZaneProjectServices(
         {
           envVar: "FEATURE_PAYLOAD_ARTICLES_ENABLED",
           source: literalSource(
-            process.env.DC_FEATURE_PAYLOAD_ARTICLES_ENABLED ?? "1"
+            process.env["DC_FEATURE_PAYLOAD_ARTICLES_ENABLED"] ?? "1"
           ),
         },
         {
           envVar: "FEATURE_PAYLOAD_PAGES_ENABLED",
           source: literalSource(
-            process.env.DC_FEATURE_PAYLOAD_PAGES_ENABLED ?? "1"
+            process.env["DC_FEATURE_PAYLOAD_PAGES_ENABLED"] ?? "1"
           ),
         },
         {
           envVar: "FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED",
           source: literalSource(
-            process.env.DC_FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED ?? "1"
+            process.env["DC_FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED"] ?? "1"
           ),
         },
         {
           envVar: "PAYLOAD_LOCALES",
-          source: literalSource(process.env.DC_PAYLOAD_LOCALES ?? "cs,sk,en"),
+          source: literalSource(
+            process.env["DC_PAYLOAD_LOCALES"] ?? "cs,sk,en"
+          ),
         },
         {
           envVar: "PAYLOAD_SSO_PUBLIC_KEY",
-          source: literalSource(process.env.DC_PAYLOAD_SSO_PUBLIC_KEY ?? ""),
+          source: literalSource(process.env["DC_PAYLOAD_SSO_PUBLIC_KEY"] ?? ""),
         },
         {
           envVar: "PAYLOAD_SSO_ALLOWED_ORIGINS",
@@ -1292,7 +1309,7 @@ function buildZaneProjectServices(
         },
         {
           envVar: "OPENAI_API_KEY",
-          source: literalSource(process.env.DC_OPENAI_API_KEY ?? ""),
+          source: literalSource(process.env["DC_OPENAI_API_KEY"] ?? ""),
         },
         {
           envVar: "S3_ENDPOINT",
@@ -1364,27 +1381,27 @@ function buildZaneProjectServices(
         {
           envVar: "NEXT_PUBLIC_STOREFRONT_AUTH_MODE",
           source: literalSource(
-            process.env.DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE ??
+            process.env["DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE"] ??
               "session_proxy"
           ),
         },
         {
           envVar: "NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES",
           source: literalSource(
-            process.env.DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES ??
+            process.env["DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES"] ??
               "sk"
           ),
         },
         {
           envVar: "NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
           source: literalSource(
-            process.env.DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY ?? ""
+            process.env["DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY"] ?? ""
           ),
         },
         {
           envVar: "NEXT_PUBLIC_PPL_WIDGET_API_KEY",
           source: literalSource(
-            process.env.DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY ?? ""
+            process.env["DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY"] ?? ""
           ),
         },
         {
@@ -1473,33 +1490,33 @@ function buildZaneProjectServices(
               {
                 envVar: "NEXT_PUBLIC_META_PIXEL_ID",
                 source: literalSource(
-                  process.env.DC_N1_NEXT_PUBLIC_META_PIXEL_ID ?? ""
+                  process.env["DC_N1_NEXT_PUBLIC_META_PIXEL_ID"] ?? ""
                 ),
               },
               {
                 envVar: "NEXT_PUBLIC_GOOGLE_ADS_ID",
                 source: literalSource(
-                  process.env.DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID ?? ""
+                  process.env["DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID"] ?? ""
                 ),
               },
               {
                 envVar: "NEXT_PUBLIC_HEUREKA_API_KEY",
                 source: literalSource(
-                  process.env.DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY ?? ""
+                  process.env["DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY"] ?? ""
                 ),
               },
               {
                 envVar: "NEXT_PUBLIC_LEADHUB_TRACKING_ID",
                 source: literalSource(
-                  process.env.DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID ?? ""
+                  process.env["DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID"] ?? ""
                 ),
               },
               {
                 envVar: "RESEND_API_KEY",
                 source: literalSource(
                   firstNonEmpty(
-                    process.env.DC_N1_RESEND_API_KEY,
-                    process.env.DC_RESEND_API_KEY
+                    process.env["DC_N1_RESEND_API_KEY"],
+                    process.env["DC_RESEND_API_KEY"]
                   ) ?? ""
                 ),
               },
@@ -1507,8 +1524,8 @@ function buildZaneProjectServices(
                 envVar: "CONTACT_EMAIL",
                 source: literalSource(
                   firstNonEmpty(
-                    process.env.DC_N1_CONTACT_EMAIL,
-                    process.env.DC_CONTACT_EMAIL
+                    process.env["DC_N1_CONTACT_EMAIL"],
+                    process.env["DC_CONTACT_EMAIL"]
                   ) ?? ""
                 ),
               },
@@ -1516,8 +1533,8 @@ function buildZaneProjectServices(
                 envVar: "RESEND_FROM_EMAIL",
                 source: literalSource(
                   firstNonEmpty(
-                    process.env.DC_N1_RESEND_FROM_EMAIL,
-                    process.env.DC_RESEND_FROM_EMAIL
+                    process.env["DC_N1_RESEND_FROM_EMAIL"],
+                    process.env["DC_RESEND_FROM_EMAIL"]
                   ) ?? ""
                 ),
               },
@@ -1578,51 +1595,54 @@ function buildZaneProjectServices(
         {
           envVar: "API_AUTH_TOKEN",
           source: literalSource(
-            process.env.DC_ZANE_OPERATOR_API_AUTH_TOKEN ?? ""
+            process.env["DC_ZANE_OPERATOR_API_AUTH_TOKEN"] ?? ""
           ),
         },
         { envVar: "PGPORT", source: literalSource("5432") },
         {
           envVar: "PGUSER",
           source: literalSource(
-            process.env.DC_ZANE_OPERATOR_PGUSER ?? "zane_operator"
+            process.env["DC_ZANE_OPERATOR_PGUSER"] ?? "zane_operator"
           ),
         },
         {
           envVar: "PGPASSWORD",
-          source: literalSource(process.env.DC_ZANE_OPERATOR_PGPASSWORD ?? ""),
+          source: literalSource(
+            process.env["DC_ZANE_OPERATOR_PGPASSWORD"] ?? ""
+          ),
         },
         { envVar: "PGDATABASE", source: literalSource("postgres") },
         { envVar: "PGSSLMODE", source: literalSource("disable") },
         {
           envVar: "DB_TEMPLATE_NAME",
           source: literalSource(
-            process.env.DC_ZANE_OPERATOR_DB_TEMPLATE_NAME ?? "template_medusa"
+            process.env["DC_ZANE_OPERATOR_DB_TEMPLATE_NAME"] ??
+              "template_medusa"
           ),
         },
         {
           envVar: "DB_PREVIEW_PREFIX",
           source: literalSource(
-            process.env.DC_ZANE_OPERATOR_DB_PREVIEW_PREFIX ?? "medusa_pr_"
+            process.env["DC_ZANE_OPERATOR_DB_PREVIEW_PREFIX"] ?? "medusa_pr_"
           ),
         },
         {
           envVar: "DB_PREVIEW_APP_USER_PREFIX",
           source: literalSource(
-            process.env.DC_ZANE_OPERATOR_DB_PREVIEW_APP_USER_PREFIX ??
+            process.env["DC_ZANE_OPERATOR_DB_PREVIEW_APP_USER_PREFIX"] ??
               "medusa_pr_app_"
           ),
         },
         {
           envVar: "DB_PREVIEW_DEV_ROLE",
           source: literalSource(
-            process.env.DC_MEDUSA_DEV_DB_USER ?? "medusa_dev"
+            process.env["DC_MEDUSA_DEV_DB_USER"] ?? "medusa_dev"
           ),
         },
         {
           envVar: "DB_PREVIEW_APP_PASSWORD_SECRET",
           source: literalSource(
-            process.env.DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET ?? ""
+            process.env["DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET"] ?? ""
           ),
         },
         { envVar: "DB_PROTECTED_NAMES", source: literalSource(protectedNames) },
@@ -1654,8 +1674,8 @@ function buildZaneProjectServices(
 }
 
 function resolveOperatorUpstreamBaseUrl(input: {
-  candidate?: string
-  appDomain?: string | null
+  candidate?: string | undefined
+  appDomain?: string | undefined | null
 }): string | null {
   if (input.candidate && !isLoopbackUrl(input.candidate)) {
     return input.candidate
@@ -1667,8 +1687,8 @@ function resolveOperatorUpstreamBaseUrl(input: {
 function buildContext(input: {
   planInput: BootstrapZaneProjectPlanCommandInput
   settings: {
-    root_domain?: string | null
-    app_domain?: string | null
+    root_domain?: string | undefined | null
+    app_domain?: string | undefined | null
   }
   repositoryUrl: string
   branchName: string
@@ -1678,7 +1698,7 @@ function buildContext(input: {
   const operatorUpstreamBaseUrlCandidate = normalizeOriginUrl(
     firstNonEmpty(
       input.planInput.operatorUpstreamZaneBaseUrl,
-      process.env.DC_ZANE_OPERATOR_ZANE_BASE_URL
+      process.env["DC_ZANE_OPERATOR_ZANE_BASE_URL"]
     )
   )
   const operatorUpstreamBaseUrl = resolveOperatorUpstreamBaseUrl({
@@ -1688,7 +1708,7 @@ function buildContext(input: {
   const connectBaseUrl = normalizeOriginUrl(
     firstNonEmpty(
       input.planInput.operatorUpstreamZaneConnectBaseUrl,
-      process.env.DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL,
+      process.env["DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL"],
       input.settings.root_domain === "127-0-0-1.sslip.io"
         ? "http://zane-app"
         : undefined
@@ -1697,7 +1717,7 @@ function buildContext(input: {
   const connectHostHeader =
     firstNonEmpty(
       input.planInput.operatorUpstreamZaneConnectHostHeader,
-      process.env.DC_ZANE_OPERATOR_ZANE_CONNECT_HOST_HEADER
+      process.env["DC_ZANE_OPERATOR_ZANE_CONNECT_HOST_HEADER"]
     ) ??
     (connectBaseUrl && input.settings.app_domain
       ? input.settings.app_domain
@@ -1715,21 +1735,21 @@ function buildContext(input: {
     minioFileUrlOverride: input.planInput.minioFileUrlOverride?.trim() || null,
     storeCors: preferExplicitOrMergeCsv({
       explicitValue: input.planInput.storeCorsOverride,
-      envValue: process.env.DC_STORE_CORS,
+      envValue: process.env["DC_STORE_CORS"],
       fallbackValue: publicDomain
         ? `https://${input.planInput.projectSlug}-${"herbatika"}${input.planInput.publicUrlAffix}.${publicDomain}`
         : "https://pending-public-domain.invalid",
     }),
     adminCors: preferExplicitOrMergeCsv({
       explicitValue: input.planInput.adminCorsOverride,
-      envValue: process.env.DC_ADMIN_CORS,
+      envValue: process.env["DC_ADMIN_CORS"],
       fallbackValue: publicDomain
         ? `https://${input.planInput.projectSlug}-${"medusa-be"}${input.planInput.publicUrlAffix}.${publicDomain}`
         : "https://pending-public-domain.invalid",
     }),
     authCors: preferExplicitOrMergeCsv({
       explicitValue: input.planInput.authCorsOverride,
-      envValue: process.env.DC_AUTH_CORS,
+      envValue: process.env["DC_AUTH_CORS"],
       fallbackValue: publicDomain
         ? `https://${input.planInput.projectSlug}-${"medusa-be"}${input.planInput.publicUrlAffix}.${publicDomain}`
         : "https://pending-public-domain.invalid",
@@ -1739,11 +1759,11 @@ function buildContext(input: {
     operatorUpstreamConnectHostHeader: connectHostHeader,
     operatorUpstreamUsername:
       input.planInput.operatorUpstreamZaneUsername ??
-      process.env.DC_ZANE_OPERATOR_ZANE_USERNAME ??
+      process.env["DC_ZANE_OPERATOR_ZANE_USERNAME"] ??
       "",
     operatorUpstreamPassword:
       input.planInput.operatorUpstreamZanePassword ??
-      process.env.DC_ZANE_OPERATOR_ZANE_PASSWORD ??
+      process.env["DC_ZANE_OPERATOR_ZANE_PASSWORD"] ??
       "",
   }
 }
@@ -1751,7 +1771,7 @@ function buildContext(input: {
 type BootstrapRequiredValueCheck = {
   label: string
   value: string | null | undefined
-  placeholderValues?: string[]
+  placeholderValues?: string[] | undefined
 }
 
 function buildValueIssueReasons(input: {
@@ -1832,15 +1852,15 @@ function buildBlockingReasons(input: {
         },
         {
           label: "DC_ZANE_OPERATOR_API_AUTH_TOKEN",
-          value: process.env.DC_ZANE_OPERATOR_API_AUTH_TOKEN,
+          value: process.env["DC_ZANE_OPERATOR_API_AUTH_TOKEN"],
         },
         {
           label: "DC_ZANE_OPERATOR_PGPASSWORD",
-          value: process.env.DC_ZANE_OPERATOR_PGPASSWORD,
+          value: process.env["DC_ZANE_OPERATOR_PGPASSWORD"],
         },
         {
           label: "DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET",
-          value: process.env.DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET,
+          value: process.env["DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET"],
         },
       ],
       placeholderMessage:
@@ -1877,96 +1897,96 @@ function buildWarningReasons(): string[] {
     checks: [
       {
         label: "DC_MEDUSA_APP_DB_PASSWORD",
-        value: process.env.DC_MEDUSA_APP_DB_PASSWORD,
+        value: process.env["DC_MEDUSA_APP_DB_PASSWORD"],
         placeholderValues: ["medusa_app_change_me"],
       },
       {
         label: "DC_VALKEY_PASSWORD",
-        value: process.env.DC_VALKEY_PASSWORD,
+        value: process.env["DC_VALKEY_PASSWORD"],
         placeholderValues: ["valkey_dev_change_me"],
       },
       {
         label: "DC_MINIO_ACCESS_KEY",
-        value: process.env.DC_MINIO_ACCESS_KEY,
+        value: process.env["DC_MINIO_ACCESS_KEY"],
         placeholderValues: ["medusaappkey"],
       },
       {
         label: "DC_MINIO_SECRET_KEY",
-        value: process.env.DC_MINIO_SECRET_KEY,
+        value: process.env["DC_MINIO_SECRET_KEY"],
         placeholderValues: ["medusaappsecret_change_me"],
       },
       {
         label: "DC_MEILISEARCH_MASTER_KEY",
-        value: process.env.DC_MEILISEARCH_MASTER_KEY,
+        value: process.env["DC_MEILISEARCH_MASTER_KEY"],
       },
       {
         label: "DC_MEDUSA_DEV_DB_PASSWORD",
-        value: process.env.DC_MEDUSA_DEV_DB_PASSWORD,
+        value: process.env["DC_MEDUSA_DEV_DB_PASSWORD"],
         placeholderValues: ["medusa_dev_change_me"],
       },
       {
         label: "DC_MINIO_ROOT_USER",
-        value: process.env.DC_MINIO_ROOT_USER,
+        value: process.env["DC_MINIO_ROOT_USER"],
         placeholderValues: ["minioadmin"],
       },
       {
         label: "DC_MINIO_ROOT_PASSWORD",
-        value: process.env.DC_MINIO_ROOT_PASSWORD,
+        value: process.env["DC_MINIO_ROOT_PASSWORD"],
         placeholderValues: ["minioadmin"],
       },
       {
         label: "DC_JWT_SECRET",
-        value: process.env.DC_JWT_SECRET,
+        value: process.env["DC_JWT_SECRET"],
         placeholderValues: ["supersecret"],
       },
       {
         label: "DC_COOKIE_SECRET",
-        value: process.env.DC_COOKIE_SECRET,
+        value: process.env["DC_COOKIE_SECRET"],
         placeholderValues: ["supersecret"],
       },
       {
         label: "DC_SUPERADMIN_EMAIL",
-        value: process.env.DC_SUPERADMIN_EMAIL,
+        value: process.env["DC_SUPERADMIN_EMAIL"],
       },
       {
         label: "DC_SUPERADMIN_PASSWORD",
-        value: process.env.DC_SUPERADMIN_PASSWORD,
+        value: process.env["DC_SUPERADMIN_PASSWORD"],
       },
       {
         label: "DC_SETTINGS_ENCRYPTION_KEY",
-        value: process.env.DC_SETTINGS_ENCRYPTION_KEY,
+        value: process.env["DC_SETTINGS_ENCRYPTION_KEY"],
       },
       {
         label: "DC_PAYLOAD_API_KEY",
-        value: process.env.DC_PAYLOAD_API_KEY,
+        value: process.env["DC_PAYLOAD_API_KEY"],
         placeholderValues: ["payload_dev_api_key_change_me"],
       },
       {
         label: "DC_PAYLOAD_WEBHOOK_SECRET",
-        value: process.env.DC_PAYLOAD_WEBHOOK_SECRET,
+        value: process.env["DC_PAYLOAD_WEBHOOK_SECRET"],
         placeholderValues: ["payload_webhook_secret_change_me"],
       },
       {
         label: "DC_PAYLOAD_SECRET",
-        value: process.env.DC_PAYLOAD_SECRET,
+        value: process.env["DC_PAYLOAD_SECRET"],
         placeholderValues: ["payload_secret_change_me"],
       },
       {
         label: "DC_PAYLOAD_DATABASE_PASSWORD",
-        value: process.env.DC_PAYLOAD_DATABASE_PASSWORD,
+        value: process.env["DC_PAYLOAD_DATABASE_PASSWORD"],
         placeholderValues: ["payload"],
       },
       {
         label: "DC_PAYLOAD_SSO_PRIVATE_KEY",
-        value: process.env.DC_PAYLOAD_SSO_PRIVATE_KEY,
+        value: process.env["DC_PAYLOAD_SSO_PRIVATE_KEY"],
       },
       {
         label: "DC_PAYLOAD_SSO_PUBLIC_KEY",
-        value: process.env.DC_PAYLOAD_SSO_PUBLIC_KEY,
+        value: process.env["DC_PAYLOAD_SSO_PUBLIC_KEY"],
       },
       {
         label: "DC_PAYLOAD_SSO_USER_EMAIL",
-        value: process.env.DC_PAYLOAD_SSO_USER_EMAIL,
+        value: process.env["DC_PAYLOAD_SSO_USER_EMAIL"],
       },
     ],
     placeholderMessage:

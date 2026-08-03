@@ -24,7 +24,7 @@ interface ZaneEnvVariable {
 
 interface ZanePendingChange {
   id: string
-  type?: "ADD" | "UPDATE" | "DELETE" | string
+  type?: string
   field?: string
   item_id?: string | null
   new_value?: Record<string, unknown> | null
@@ -37,7 +37,7 @@ interface ZaneServiceCard {
 
 interface ZaneServiceDetails {
   slug: string
-  type: ServiceType | string
+  type: string
   commit_sha?: string | null
   deploy_token: string
   env_variables: ZaneEnvVariable[]
@@ -131,15 +131,15 @@ function coercePendingEnvVariable(
 ): { key: string; value: string } | null {
   if (
     !value ||
-    typeof value.key !== "string" ||
-    typeof value.value !== "string"
+    typeof value["key"] !== "string" ||
+    typeof value["value"] !== "string"
   ) {
     return null
   }
 
   return {
-    key: value.key,
-    value: value.value,
+    key: value["key"],
+    value: value["value"],
   }
 }
 
@@ -199,7 +199,7 @@ function assertServiceType(value: unknown, label: string): ServiceType {
   }
 }
 
-function sleep(ms: number): Promise<void> {
+function waitForDeployment(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms)
   })
@@ -451,7 +451,7 @@ export class ZaneDeployOps {
         }
 
         if (persistedCurrent?.id) {
-          requestBody.item_id = persistedCurrent.id
+          requestBody["item_id"] = persistedCurrent.id
         }
 
         await this.#deps.request(
@@ -643,7 +643,7 @@ export class ZaneDeployOps {
         return triggered
       }
 
-      await sleep(500)
+      await waitForDeployment(500)
     }
 
     throw new UpstreamHttpError(

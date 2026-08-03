@@ -97,8 +97,8 @@ export function normalizeOriginUrl(value?: string): string | undefined {
 }
 
 export function preferExplicitOrMergeCsv(input: {
-  explicitValue?: string
-  envValue?: string
+  explicitValue?: string | undefined
+  envValue?: string | undefined
   fallbackValue: string
 }): string {
   if (input.explicitValue?.trim()) {

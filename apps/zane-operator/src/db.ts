@@ -980,7 +980,7 @@ async function mapWithConcurrency<T, R>(
   }
 
   const safeConcurrency = Math.max(1, Math.min(concurrency, items.length))
-  const results: R[] = new Array(items.length)
+  const results = Array.from<R>({ length: items.length })
   let nextIndex = 0
 
   const runWorker = async (): Promise<void> => {

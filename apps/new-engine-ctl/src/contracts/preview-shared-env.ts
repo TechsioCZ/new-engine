@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-export const previewSharedEnvValueSourceSchema = z.enum([
+const previewSharedEnvValueSourceSchema = z.enum([
   "literal",
   "service_network_alias",
   "service_global_network_alias",
@@ -9,7 +9,7 @@ export const previewSharedEnvValueSourceSchema = z.enum([
   "service_internal_bucket_url",
 ])
 
-export const previewRuntimeSourceInputSchema = z
+const previewRuntimeSourceInputSchema = z
   .object({
     kind: previewSharedEnvValueSourceSchema,
     value: z.string().min(1).optional(),
@@ -65,7 +65,7 @@ export const previewRuntimeSourceInputSchema = z
     }
   })
 
-export const previewSharedEnvVariableInputSchema = z.object({
+const previewSharedEnvVariableInputSchema = z.object({
   key: z.string().min(1),
   source: previewRuntimeSourceInputSchema,
 })
