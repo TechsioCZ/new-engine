@@ -80,7 +80,7 @@ export function createMedusaOrderService(
             limit: params.limit,
             offset: params.offset,
           },
-          signal,
+          signal: signal ?? null,
         }
       )
       return {
@@ -104,7 +104,7 @@ export function createMedusaOrderService(
           query: {
             fields: detailFields,
           },
-          signal,
+          signal: signal ?? null,
         })
 
         return response.order ?? null

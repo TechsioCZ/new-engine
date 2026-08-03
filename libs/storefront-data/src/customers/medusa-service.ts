@@ -260,7 +260,7 @@ export function createMedusaCustomerService(
           await sdk.client.fetch<HttpTypes.StoreCustomerAddressListResponse>(
             "/store/customers/me/addresses",
             {
-              signal,
+              signal: signal ?? null,
             }
           )
         return { addresses: response.addresses ?? [] }

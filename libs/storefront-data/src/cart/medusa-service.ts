@@ -66,17 +66,21 @@ const sanitizeCartWriteParams = <TParams extends MedusaCartWriteParams>(
  * })
  * ```
  */
+export type MedusaCartService = Required<
+  CartService<
+    HttpTypes.StoreCart,
+    MedusaCartCreateParams,
+    MedusaCartUpdateParams,
+    MedusaCartAddItemParams,
+    MedusaCartUpdateItemParams,
+    MedusaCompleteCartResult
+  >
+>
+
 export function createMedusaCartService(
   sdk: Medusa,
   config?: MedusaCartServiceConfig
-): CartService<
-  HttpTypes.StoreCart,
-  MedusaCartCreateParams,
-  MedusaCartUpdateParams,
-  MedusaCartAddItemParams,
-  MedusaCartUpdateItemParams,
-  MedusaCompleteCartResult
-> {
+): MedusaCartService {
   const cartQuery = buildCartSelectParams(config?.cartFields)
   const isNotFoundError = (error: unknown): boolean =>
     defaultIsNotFoundError(error) || Boolean(config?.isNotFoundError?.(error))
@@ -88,8 +92,8 @@ export function createMedusaCartService(
     ): Promise<HttpTypes.StoreCart | null> {
       try {
         const fetchOptions = cartQuery
-          ? { query: cartQuery, signal }
-          : { signal }
+          ? { query: cartQuery, signal: signal ?? null }
+          : { signal: signal ?? null }
         const { cart } = await sdk.client.fetch<HttpTypes.StoreCartResponse>(
           `/store/carts/${cartId}`,
           fetchOptions

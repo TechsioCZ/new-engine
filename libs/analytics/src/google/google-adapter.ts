@@ -141,6 +141,7 @@ export function useGoogleAdapter(
       adapterKey
     ),
 
-    trackCustom: (eventName, params) => trackCustom({ eventName, params }),
+    trackCustom: (eventName, params) =>
+      trackCustom(params === undefined ? { eventName } : { eventName, params }),
   }
 }

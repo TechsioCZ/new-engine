@@ -1,3 +1,5 @@
+import { omitUndefined } from "@techsio/std/object"
+
 import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
@@ -13,7 +15,6 @@ import type {
   CategoryQueryKeys,
   CategoryService,
 } from "./types"
-
 export type CreateCategoryQueryOptionsFactoryConfig<
   TCategory,
   TListInput extends CategoryListInputBase,
@@ -74,14 +75,16 @@ export function createCategoryQueryOptionsFactory<
     queryKeys ??
     createCategoryQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
 
-  return createSimpleListDetailQueryOptionsFactory({
-    getList: service.getCategories,
-    getDetail: service.getCategory,
-    buildListParams,
-    buildDetailParams,
-    queryKeys: resolvedQueryKeys,
-    cacheConfig,
-    defaultCacheStrategy: "static",
-    missingDetailErrorMessage: "Category id is required for category queries",
-  })
+  return createSimpleListDetailQueryOptionsFactory(
+    omitUndefined({
+      getList: service.getCategories,
+      getDetail: service.getCategory,
+      buildListParams,
+      buildDetailParams,
+      queryKeys: resolvedQueryKeys,
+      cacheConfig,
+      defaultCacheStrategy: "static" as const,
+      missingDetailErrorMessage: "Category id is required for category queries",
+    })
+  )
 }

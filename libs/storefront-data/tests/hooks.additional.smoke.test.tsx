@@ -43,7 +43,7 @@ describe("storefront-data missing hook coverage", () => {
           offset?: number
           enabled?: boolean
         }) => void
-        onDetailInput: (input: { id: string; enabled?: boolean }) => void
+        onDetailInput: (input: { id?: string; enabled?: boolean }) => void
       }) => {
         const mappedService = {
           getCategories: async () => {
@@ -87,7 +87,7 @@ describe("storefront-data missing hook coverage", () => {
           offset?: number
           enabled?: boolean
         }) => void
-        onDetailInput: (input: { id: string; enabled?: boolean }) => void
+        onDetailInput: (input: { id?: string; enabled?: boolean }) => void
       }) => {
         const mappedService = {
           getCollections: async () => {
@@ -131,7 +131,7 @@ describe("storefront-data missing hook coverage", () => {
           offset?: number
           enabled?: boolean
         }) => void
-        onDetailInput: (input: { id: string; enabled?: boolean }) => void
+        onDetailInput: (input: { id?: string; enabled?: boolean }) => void
       }) => {
         const mappedService = {
           getRegions: async () => {
@@ -369,7 +369,7 @@ describe("storefront-data missing hook coverage", () => {
     }
 
     type PaymentProvider = { id: string }
-    type PaymentCollection = { id: string }
+    type PaymentCollection = { id: string; payment_sessions?: unknown[] }
 
     const service = {
       listShippingOptions: async () => [
@@ -477,7 +477,7 @@ describe("storefront-data missing hook coverage", () => {
     }
 
     type PaymentProvider = { id: string }
-    type PaymentCollection = { id: string }
+    type PaymentCollection = { id: string; payment_sessions?: unknown[] }
 
     const service = {
       listShippingOptions: async () => [] as ShippingOption[],
@@ -579,7 +579,7 @@ describe("storefront-data missing hook coverage", () => {
     }
 
     type PaymentProvider = { id: string }
-    type PaymentCollection = { id: string }
+    type PaymentCollection = { id: string; payment_sessions?: unknown[] }
 
     const service = {
       listShippingOptions: async () => [] as ShippingOption[],
@@ -661,7 +661,7 @@ describe("storefront-data missing hook coverage", () => {
     }
 
     type PaymentProvider = { id: string }
-    type PaymentCollection = { id: string }
+    type PaymentCollection = { id: string; payment_sessions?: unknown[] }
 
     let receivedCart: Cart | null | undefined = { id: "initial" }
     const service = {
@@ -706,7 +706,6 @@ describe("storefront-data missing hook coverage", () => {
       id: "cart_1",
       region_id: "reg_1",
       shipping_methods: [{ shipping_option_id: "opt_fixed" }],
-      payment_collection: undefined,
     }
 
     const { result } = renderHook(
@@ -784,7 +783,9 @@ describe("storefront-data missing hook coverage", () => {
     })
     const { result: anyResult } = renderHook(
       () => usePrefetchCategories({ skipMode: "any" }),
-      { wrapper }
+      {
+        wrapper,
+      }
     )
     const { result: noSkipResult } = renderHook(
       () => usePrefetchCategories({ skipIfCached: false }),
@@ -861,7 +862,9 @@ describe("storefront-data missing hook coverage", () => {
     })
     const { result: anyResult } = renderHook(
       () => usePrefetchCollections({ skipMode: "any" }),
-      { wrapper }
+      {
+        wrapper,
+      }
     )
     const { result: noSkipResult } = renderHook(
       () => usePrefetchCollections({ skipIfCached: false }),
@@ -908,7 +911,7 @@ describe("storefront-data missing hook coverage", () => {
       return {
         limit,
         offset,
-        region_id: input.region_id,
+        ...(input.region_id ? { region_id: input.region_id } : {}),
       }
     }
 

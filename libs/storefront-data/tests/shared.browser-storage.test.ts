@@ -99,20 +99,16 @@ describe("createLocalStorageValueStore", () => {
   })
 
   it("degrades gracefully when storage read/write/remove throws", () => {
-    const failingStorage = {
-      getItem: vi.fn(() => {
-        throw new Error("read failed")
-      }),
-      setItem: vi.fn(() => {
-        throw new Error("write failed")
-      }),
-      removeItem: vi.fn(() => {
-        throw new Error("remove failed")
-      }),
-      clear: vi.fn(),
-      key: vi.fn(() => null),
-      length: 0,
-    } as unknown as Storage
+    const failingStorage = createMemoryStorage()
+    failingStorage.getItem = vi.fn(() => {
+      throw new Error("read failed")
+    })
+    failingStorage.setItem = vi.fn(() => {
+      throw new Error("write failed")
+    })
+    failingStorage.removeItem = vi.fn(() => {
+      throw new Error("remove failed")
+    })
 
     const storage = createLocalStorageValueStore({
       key,

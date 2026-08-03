@@ -4,6 +4,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+import { omitUndefined } from "@techsio/std/object"
 
 import {
   type CacheConfig,
@@ -105,11 +106,11 @@ export function createProductReviewHooks<
     const limitFromParams = (params as { limit?: number }).limit
     const offsetFromParams = (params as { offset?: number }).offset
     const pagination = resolvePagination(
-      {
+      omitUndefined({
         page: input.page,
         limit: limitFromParams ?? input.limit,
         offset: offsetFromParams,
-      },
+      }),
       defaultPageSize
     )
     const totalCount = data?.count ?? 0
@@ -137,9 +138,10 @@ export function createProductReviewHooks<
     const enabled = input.enabled ?? Boolean(input.productId)
     const listParams = buildList(input)
     const query = useQuery({
-      ...getProductReviewsQueryOptions(input, {
-        queryOptions: options?.queryOptions,
-      }),
+      ...getProductReviewsQueryOptions(
+        input,
+        omitUndefined({ queryOptions: options?.queryOptions })
+      ),
       enabled,
     })
 
@@ -244,15 +246,15 @@ export function createProductReviewHooks<
 
     return useMutation<TReview, unknown, TCreateInput, TContext>({
       mutationFn: service.createProductReview,
-      onMutate: options?.onMutate,
-      onError: options?.onError,
-      onSuccess: (data, variables, context) => {
-        queryClient.invalidateQueries({
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      ...(options?.onError ? { onError: options.onError } : {}),
+      onSuccess: async (data, variables, context) => {
+        await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
         })
         options?.onSuccess?.(data, variables, context)
       },
-      onSettled: options?.onSettled,
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 

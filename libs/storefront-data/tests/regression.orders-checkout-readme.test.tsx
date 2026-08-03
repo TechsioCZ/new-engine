@@ -11,6 +11,12 @@ import { createMedusaCheckoutService } from "../src/checkout/medusa-service"
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createMedusaCustomerService } from "../src/customers/medusa-service"
 import { createMedusaOrderService } from "../src/orders/medusa-service"
+import {
+  createStoreCustomerAddress,
+  createStoreOrder,
+  createStoreShippingOption,
+  createStoreShippingOptionWithServiceZone,
+} from "./medusa-fixtures"
 
 const createWrapper =
   (client: QueryClient) =>
@@ -37,11 +43,13 @@ describe("phase 2 regressions", () => {
     const fetch = vi
       .fn()
       .mockResolvedValueOnce({
-        orders: [{ id: "order_1" }],
+        orders: [createStoreOrder("order_1")],
+        limit: 10,
+        offset: 20,
         count: 1,
       } satisfies HttpTypes.StoreOrderListResponse)
       .mockResolvedValueOnce({
-        order: { id: "order_1" } as HttpTypes.StoreOrder,
+        order: createStoreOrder("order_1"),
       })
 
     const service = createMedusaOrderService({ client: { fetch } } as never, {
@@ -78,7 +86,9 @@ describe("phase 2 regressions", () => {
     const fetch = vi
       .fn()
       .mockResolvedValueOnce({
-        orders: [{ id: "order_1" }],
+        orders: [createStoreOrder("order_1")],
+        limit: 10,
+        offset: 20,
         count: 1,
       } satisfies HttpTypes.StoreOrderListResponse)
       .mockRejectedValueOnce({ response: { status: 404 } })
@@ -134,7 +144,10 @@ describe("phase 2 regressions", () => {
         fetch: vi
           .fn()
           .mockResolvedValueOnce({
-            addresses: [{ id: "addr_1" }],
+            addresses: [createStoreCustomerAddress("addr_1")],
+            limit: 1,
+            offset: 0,
+            count: 1,
           } satisfies HttpTypes.StoreCustomerAddressListResponse)
           .mockRejectedValueOnce({ status: 401 }),
       },
@@ -157,7 +170,9 @@ describe("phase 2 regressions", () => {
     expect(sdk.client.fetch).toHaveBeenNthCalledWith(
       1,
       "/store/customers/me/addresses",
-      { signal: controller.signal }
+      {
+        signal: controller.signal,
+      }
     )
 
     const unauthorized = await service.getAddresses({}, controller.signal)
@@ -168,13 +183,16 @@ describe("phase 2 regressions", () => {
     const fetch = vi
       .fn()
       .mockResolvedValueOnce({
-        shipping_options: [{ id: "opt_1" }],
+        shipping_options: [createStoreShippingOptionWithServiceZone("opt_1")],
       } satisfies HttpTypes.StoreShippingOptionListResponse)
       .mockResolvedValueOnce({
-        shipping_option: { id: "opt_1" } as HttpTypes.StoreCartShippingOption,
+        shipping_option: createStoreShippingOption("opt_1"),
       } satisfies HttpTypes.StoreShippingOptionResponse)
       .mockResolvedValueOnce({
         payment_providers: [{ id: "pp_1" }],
+        limit: 1,
+        offset: 0,
+        count: 1,
       } satisfies HttpTypes.StorePaymentProviderListResponse)
 
     const sdk = {

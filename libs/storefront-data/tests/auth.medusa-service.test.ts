@@ -1,8 +1,8 @@
 import type { HttpTypes } from "@medusajs/types"
 
 import {
-  createMedusaAuthService,
   MedusaRegistrationSignInError,
+  createMedusaAuthService,
 } from "../src/auth/medusa-service"
 
 type SdkLike = {

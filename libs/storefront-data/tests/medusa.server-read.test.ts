@@ -1,4 +1,3 @@
-import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
 import { describe, expect, it, vi } from "vitest"
@@ -12,6 +11,7 @@ import type {
 import { createProductListQueryKeys } from "../src/product-lists/query-keys"
 import { createProductQueryKeys } from "../src/products/query-keys"
 import { createRegionQueryKeys } from "../src/regions/query-keys"
+import { createTestMedusaSdk } from "./medusa-fixtures"
 
 const createSdkMock = () => {
   const clientFetch = vi.fn((path: string): Record<string, unknown> => {
@@ -51,22 +51,19 @@ const createSdkMock = () => {
     return {}
   })
 
+  const sdk = createTestMedusaSdk()
+  Object.defineProperty(sdk.client, "fetch", { value: clientFetch })
+  Object.defineProperty(sdk.store.cart, "retrieve", {
+    value: vi.fn(async () => ({ cart: null })),
+  })
+  Object.defineProperty(sdk.store.payment, "initiatePaymentSession", {
+    value: vi.fn(async () => ({
+      payment_collection: { payment_sessions: [] },
+    })),
+  })
+
   return {
-    sdk: {
-      client: {
-        fetch: clientFetch,
-      },
-      store: {
-        cart: {
-          retrieve: vi.fn(async () => ({ cart: null })),
-        },
-        payment: {
-          initiatePaymentSession: vi.fn(async () => ({
-            payment_collection: { payment_sessions: [] },
-          })),
-        },
-      },
-    } as unknown as Medusa,
+    sdk,
     spies: {
       clientFetch,
     },
