@@ -3,6 +3,7 @@
   "compilerOptions": {
     "lib": ["dom", "dom.iterable", "esnext"],
     "composite": false,
+    "exactOptionalPropertyTypes": true,
     "noEmit": true,
     "module": "esnext",
     "moduleResolution": "bundler",

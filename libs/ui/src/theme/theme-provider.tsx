@@ -18,6 +18,7 @@ import {
   useEffect,
   useState,
 } from "react"
+
 import {
   availableModeSettings,
   BRAND_STORAGE_KEY,
@@ -115,8 +116,8 @@ function BrandProvider({
 }
 
 type AppThemeProviderProps = PropsWithChildren<{
-  defaultBrand?: BrandKey
-  defaultMode?: ModeSetting
+  defaultBrand?: BrandKey | undefined
+  defaultMode?: ModeSetting | undefined
 }>
 
 export function AppThemeProvider({
@@ -196,7 +197,7 @@ export function useAppTheme(): UseAppThemeResult {
 export function BrandThemeScript({
   defaultBrand = DEFAULT_BRAND,
 }: {
-  defaultBrand?: BrandKey
+  defaultBrand?: BrandKey | undefined
 }) {
   const attrByBrand: Record<string, string | undefined> = {}
   for (const key of brandKeys()) {

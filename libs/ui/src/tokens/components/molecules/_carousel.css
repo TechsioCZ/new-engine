@@ -22,6 +22,14 @@
   --aspect-carousel-indicator: var(--aspect-square);
 }
 
+@utility scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @utility token-icon-carousel-prev {
   @apply token-icon-chevron-left;
 }

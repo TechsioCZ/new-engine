@@ -12,8 +12,8 @@
 import {
   type ComponentPropsWithoutRef,
   createContext,
-  type FormEvent,
   type ReactNode,
+  type SubmitEvent,
   type Ref,
   useContext,
   useEffect,
@@ -22,6 +22,7 @@ import {
 } from "react"
 import { createPortal } from "react-dom"
 import type { VariantProps } from "tailwind-variants"
+
 import { ActionIcon, type ActionIconProps } from "../atoms/action-icon"
 import { Button, type ButtonProps } from "../atoms/button"
 import type { IconType } from "../atoms/icon"
@@ -119,13 +120,14 @@ function useSearchFormContext() {
 }
 
 export interface SearchFormProps
-  extends VariantProps<typeof searchFormVariants>,
+  extends
+    VariantProps<typeof searchFormVariants>,
     Omit<ComponentPropsWithoutRef<"form">, "size"> {
   children: ReactNode
-  defaultValue?: string
-  value?: string
-  onValueChange?: (value: string) => void
-  ref?: Ref<HTMLFormElement>
+  defaultValue?: string | undefined
+  value?: string | undefined
+  onValueChange?: ((value: string) => void) | undefined
+  ref?: Ref<HTMLFormElement> | undefined
 }
 
 export function SearchForm({
@@ -159,7 +161,7 @@ export function SearchForm({
     setInputValue("")
   }
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
     onSubmit?.(e)
   }
@@ -213,7 +215,7 @@ SearchForm.Label = function SearchFormLabel({
 }
 
 interface SearchFormControlProps extends ComponentPropsWithoutRef<"div"> {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 SearchForm.Control = function SearchFormControl({
@@ -232,11 +234,10 @@ SearchForm.Control = function SearchFormControl({
   )
 }
 
-interface SearchFormInputProps
-  extends Omit<
-    InputProps,
-    "size" | "value" | "onChange" | "withButtonInside"
-  > {}
+interface SearchFormInputProps extends Omit<
+  InputProps,
+  "size" | "value" | "onChange" | "withButtonInside"
+> {}
 
 SearchForm.Input = function SearchFormInput({
   className,
@@ -276,7 +277,7 @@ SearchForm.Input = function SearchFormInput({
 }
 
 interface SearchFormButtonProps extends Omit<ButtonProps, "size"> {
-  showSearchIcon?: boolean
+  showSearchIcon?: boolean | undefined
 }
 
 SearchForm.Button = function SearchFormButton({
@@ -312,7 +313,7 @@ type SearchFormClearButtonProps = Omit<
   ActionIconProps,
   "size" | "onClick" | "type" | "icon"
 > & {
-  icon?: IconType
+  icon?: IconType | undefined
 }
 
 SearchForm.ClearButton = function SearchFormClearButton({

@@ -2,9 +2,7 @@
 component_version: "1.0.0"
 name: form-textarea-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit FormTextarea
-  for labeled multi-line text fields with Textarea, Label, StatusText,
-  validation status, help text, size, resize, required, and disabled props.
+  Use after component-usage-ux when an app needs @techsio/ui-kit FormTextarea for labeled multi-line text fields with Textarea, Label, StatusText, validation status, help text, size, resize, required, and disabled props.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -21,15 +19,14 @@ sources:
 
 # @techsio/ui-kit FormTextarea Usage
 
-Use FormTextarea for labeled long text fields such as notes, comments, and
-descriptions.
+Use FormTextarea for labeled long text fields such as notes, comments, and descriptions.
 
 ## Setup
 
 ```tsx
 import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea"
 
-<FormTextarea
+;<FormTextarea
   id="description"
   label="Description"
   resize="y"
@@ -74,7 +71,12 @@ Wrong:
 Correct:
 
 ```tsx
-<FormTextarea id="note" label="Note" helpText="Required" validateStatus="error" />
+<FormTextarea
+  id="note"
+  label="Note"
+  helpText="Required"
+  validateStatus="error"
+/>
 ```
 
 Source: libs/ui/src/molecules/form-textarea.tsx

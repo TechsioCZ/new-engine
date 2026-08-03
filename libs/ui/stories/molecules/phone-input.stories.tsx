@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react"
 import type { ComponentProps } from "react"
 import { useState } from "react"
 import { fn } from "storybook/test"
+
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
@@ -330,7 +331,10 @@ export const CountryDisplayVariants: Story = {
             <PhoneInput.Control>
               <PhoneInput.CountrySelect>
                 <PhoneInput.CountryControl>
-                  <PhoneInput.CountryTrigger aria-label="Select country" className="max-w-fit">
+                  <PhoneInput.CountryTrigger
+                    aria-label="Select country"
+                    className="max-w-fit"
+                  >
                     <PhoneInput.CountryValue>
                       <PhoneInput.CountryFlag />
                     </PhoneInput.CountryValue>
@@ -377,8 +381,9 @@ export const FixedCountry: Story = {
 export const Controlled: Story = {
   render: (args) => {
     const [value, setValue] = useState("")
-    const [details, setDetails] =
-      useState<PhoneInputValueChangeDetails | null>(null)
+    const [details, setDetails] = useState<PhoneInputValueChangeDetails | null>(
+      null
+    )
 
     return (
       <div className="grid w-sm max-w-full gap-200">
@@ -514,7 +519,8 @@ export const NativeFormValue: Story = {
         onSubmit={(event) => {
           event.preventDefault()
           const formData = new FormData(event.currentTarget)
-          const phone = String(formData.get("phone") || "None")
+          const phoneValue = formData.get("phone")
+          const phone = typeof phoneValue === "string" ? phoneValue : "None"
           trackNativeFormSubmit(phone)
           setSubmittedValue(phone)
         }}

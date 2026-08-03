@@ -1,9 +1,7 @@
 ---
 name: framework-consumer-integration
 description: >
-  Use when consuming @techsio/ui-kit in framework apps, especially Next.js 16+
-  with React Compiler, NextLink, NextImage, token CSS imports, polymorphic `as`
-  props, adapter prop forwarding, and wrapper-avoidance checks.
+  Use when consuming @techsio/ui-kit in framework apps, especially Next.js 16+ with React Compiler, NextLink, NextImage, token CSS imports, polymorphic `as` props, adapter prop forwarding, and wrapper-avoidance checks.
 type: framework
 framework: react
 library: "@techsio/ui-kit"
@@ -20,8 +18,7 @@ sources:
   - "libs/ui/src/molecules/pagination.tsx"
 ---
 
-This skill builds on `component-usage-ux`. Read it first for component
-selection before applying framework adapters.
+This skill builds on `component-usage-ux`. Read it first for component selection before applying framework adapters.
 
 # @techsio/ui-kit Framework Consumer Integration
 
@@ -40,7 +37,13 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 export function ProductCta() {
   return (
     <>
-      <Image alt="Product" as={NextImage} height={320} src="/product.jpg" width={320} />
+      <Image
+        alt="Product"
+        as={NextImage}
+        height={320}
+        src="/product.jpg"
+        width={320}
+      />
       <LinkButton as={NextLink} href="/products">
         View products
       </LinkButton>
@@ -68,8 +71,7 @@ In Next apps, default to `NextImage` and `NextLink` when rendering app pages.
 </Breadcrumb.Link>
 ```
 
-Molecules should preserve link/image props instead of forcing native anchors or
-images.
+Molecules should preserve link/image props instead of forcing native anchors or images.
 
 ### Avoid memoization cargo-culting
 
@@ -160,8 +162,7 @@ Correct:
 </LinkButton>
 ```
 
-Do not create wrappers until supported adapter props and UI-kit props have been
-checked.
+Do not create wrappers until supported adapter props and UI-kit props have been checked.
 
 Source: libs/ui/src/atoms/link-button.tsx
 
@@ -172,4 +173,3 @@ rg -n '@techsio/ui-kit/atoms/(link|image)|<Link |<Image ' apps/<app>
 rg -n 'as=\\{Next(Link|Image)\\}|from "next/(link|image)"' apps/<app>
 rg -n '@techsio/ui-kit/tokens' apps/<app>
 ```
-

@@ -2,10 +2,7 @@
 component_version: "1.0.0"
 name: slider-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Slider for
-  single or range numeric adjustment with Zag.js slider behavior, label,
-  markers, value text, orientation, min/max/step, validation status, and token
-  styling.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Slider for single or range numeric adjustment with Zag.js slider behavior, label, markers, value text, orientation, min/max/step, validation status, and token styling.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -21,8 +18,7 @@ sources:
 
 # @techsio/ui-kit Slider Usage
 
-Use Slider for bounded numeric adjustment. Use NumericInput when exact typed
-entry is required.
+Use Slider for bounded numeric adjustment. Use NumericInput when exact typed entry is required.
 
 ## Setup
 
@@ -55,8 +51,7 @@ size: sm | md | lg
 
 ### Use array values
 
-Slider values are arrays. A range has two numbers; a single slider can use one
-number.
+Slider values are arrays. A range has two numbers; a single slider can use one number.
 
 ### Use markers for scale cues
 
@@ -64,8 +59,7 @@ Use `showMarkers` and `markerCount`, not custom tick markup.
 
 ### Use NumericInput for precision
 
-If the user must type an exact value, use NumericInput or pair both components
-deliberately.
+If the user must type an exact value, use NumericInput or pair both components deliberately.
 
 ## Common Mistakes
 
@@ -124,4 +118,3 @@ rg -n "<input[^>]*type=\"range\"|<Slider[^>]*value=\\{[0-9]" apps
 rg -n "<Slider[^>]*className=.*(bg-|rounded-|h-|w-|text-)" apps
 rg -n "showMarkers|markerCount|formatRangeText|onChangeEnd" apps
 ```
-

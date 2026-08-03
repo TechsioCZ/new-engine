@@ -14,8 +14,9 @@
   --offset-shadow-3: 1px 1px 20px 0px;
 
   --shadow-primary:
-    var(--offset-shadow-1) var(--color-shadow-1), var(--offset-shadow-2)
-    var(--color-shadow-2), var(--offset-shadow-3) var(--color-shadow-3);
+    var(--offset-shadow-1) var(--color-shadow-1),
+    var(--offset-shadow-2) var(--color-shadow-2),
+    var(--offset-shadow-3) var(--color-shadow-3);
 
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);

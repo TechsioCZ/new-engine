@@ -84,7 +84,7 @@ flowchart TD
 ## Per-token merge rules (merge-figma-themes.mjs)
 
 | Condition | Output | Example |
-|---|---|---|
+| --- | --- | --- |
 | L = D in Figma export (most tokens) | single value | `--color-badge-fg-primary: var(--color-fg-primary);` |
 | L ≠ D in Figma export | `light-dark(L, D)` | `--color-badge-bg-info: light-dark(oklch(0.704…), oklch(0.844…));` |
 | Reference layer chains preserved end-to-end | `var(--ref)` | `--color-accordion-bg: var(--color-fill-surface);` |
@@ -96,7 +96,7 @@ The exporter emits proper `var(--target)` inheritance chains from the Figma vari
 Only declarations that cannot be modelled as static Figma variables:
 
 | Reason kept | Example file | Example declaration |
-|---|---|---|
+| --- | --- | --- |
 | `--alpha()` runtime function | `_textarea.css` | `--color-textarea-placeholder-danger: --alpha(var(--color-textarea-border-danger-base) / var(--opacity-placeholder));` |
 | `calc()` runtime function | `_checkbox.css` | `--spacing-checkbox-indeterminate-icon: 60%;` |
 | Zag.js requires fixed CSS variable name | `_tooltip.css` | `--tooltip-arrow-size: var(--spacing-tooltip-arrow);` |
@@ -156,34 +156,25 @@ The optional housekeeping step (6) is the "strip" pattern: if a per-component CS
 
 ## Token value rules (8-point grid, locked 2026-06-12)
 
-All dimension values in Figma (spacing, padding, gap, size, height, width,
-radius) follow a clean even-number grid so the system stays easy to reason
-about and compute with:
+All dimension values in Figma (spacing, padding, gap, size, height, width, radius) follow a clean even-number grid so the system stays easy to reason about and compute with:
 
 | Rule | Values |
-|---|---|
+| --- | --- |
 | Preferred (8-pt steps) | `2, 4, 8, 16, 24, 32, 40, 48, 56, 64, 72…` (+ 4-pt half-steps `12, 20`) |
 | Allowed fallback | any even number (`6, 10, 14, 18, 22, 28, 34…`) |
 | Forbidden | odd numbers and decimals — round to nearest even (15 → 16, 25 → 24, 35 → 36, 45 → 44) |
 | Exceptions | border widths (1/2/3px valid), `radius/full` (9999), containers (320–672), typography, durations, opacities |
 
-**Consistency rule:** components in one family share input tokens. The form
-family (input, select, combobox, numeric-input, textarea, search-form,
-phone-input) inherits `border-width 2`, `radius sm/md/lg = 4/8/12`, heights
-`32/44/72` from the shared `form-control` collection — never fork these
-per component.
+**Consistency rule:** components in one family share input tokens. The form family (input, select, combobox, numeric-input, textarea, search-form, phone-input) inherits `border-width 2`, `radius sm/md/lg = 4/8/12`, heights `32/44/72` from the shared `form-control` collection — never fork these per component.
 
-**Primitive names are pixel-true** (`dimension/16` = 16px). To change a
-value, re-alias consumers to the correct primitive and delete the wrong
-one; never make a primitive's value disagree with its name.
+**Primitive names are pixel-true** (`dimension/16` = 16px). To change a value, re-alias consumers to the correct primitive and delete the wrong one; never make a primitive's value disagree with its name.
 
-The same rules are enforced for new components by
-`.agents/skills/component-to-figma/SKILL.md` (rule 11).
+The same rules are enforced for new components by `.agents/skills/component-to-figma/SKILL.md` (rule 11).
 
 ## File reference
 
 | Layer | Path |
-|---|---|
+| --- | --- |
 | Raw Figma export (per theme) | `libs/ui/src/tokens/figma/{light,dark}/variables.css` |
 | **Merged Figma source of truth** | `libs/ui/src/tokens/figma/variables.css` |
 | Per-component supplementary tokens | `libs/ui/src/tokens/components/{atoms,molecules,organisms}/_<comp>.css` |
@@ -196,7 +187,7 @@ The same rules are enforced for new components by
 ## Real-world examples in this PR
 
 | Pattern | Where |
-|---|---|
+| --- | --- |
 | `var(--ref)` inheritance from Figma | `figma/variables.css`: `--color-accordion-bg: var(--color-fill-surface);` |
 | `light-dark(L, D)` mode-different | `figma/variables.css`: 92 such tokens |
 | Per-component `--alpha()` derived | `_textarea.css`: `--color-textarea-bg-borderless` |

@@ -1,12 +1,16 @@
+import { slugify as slugifyString } from "@techsio/std/string"
 import type { TV } from "tailwind-variants"
 import { createTV } from "tailwind-variants"
 
 const TEXT_SIZE_REGEX = /-(size|sm|md|lg|\d?x?[sml])$/
-const WHITESPACE_REGEX = /\s+/g
-const NON_WORD_REGEX = /[^\w-]+/g
-const MULTIPLE_DASHES_REGEX = /--+/g
-const LEADING_DASHES_REGEX = /^-+/
-const TRAILING_DASHES_REGEX = /-+$/
+
+// Wrapped with an explicit signature: @techsio/std is a private, bundled
+// devDependency, so the published d.ts must not import from it. Declared
+// under a distinct name because no-local-canonical-helper reserves the
+// canonical one for @techsio/std itself.
+const slugifyValue = (value: string): string => slugifyString(value)
+
+export { slugifyValue as slugify }
 
 export const tv: TV = createTV({
   twMergeConfig: {
@@ -15,14 +19,3 @@ export const tv: TV = createTV({
     },
   },
 })
-
-export function slugify(str: string) {
-  return str
-    .toString()
-    .toLowerCase()
-    .replace(WHITESPACE_REGEX, "-")
-    .replace(NON_WORD_REGEX, "")
-    .replace(MULTIPLE_DASHES_REGEX, "-")
-    .replace(LEADING_DASHES_REGEX, "")
-    .replace(TRAILING_DASHES_REGEX, "")
-}

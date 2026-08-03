@@ -13,13 +13,13 @@
 @theme static {
   --color-select-danger: var(--color-danger);
 
-  --padding-select-item: var(--padding-select-item-y) var(--padding-select-item-x);
+  --padding-select-item: var(--padding-select-item-y)
+    var(--padding-select-item-x);
 
   --spacing-content: var(--spacing-select-content);
 
   --z-content: 50;
 }
-
 
 /* === ICONS === */
 @utility token-icon-select-indicator {

@@ -30,6 +30,14 @@
 
   --padding-color-select-atom: 0 0;
   --size-color-select-icon: 50%;
+
+  /* Figma exports --text-color-select-{size}, but Tailwind's font-size
+   * utility cannot reach any --text-color-* token (that prefix belongs to
+   * the text color namespace), so `text-color-select-{size}` emits no CSS.
+   * Re-expose the same values under a reachable name. */
+  --text-icon-color-select-sm: var(--text-color-select-sm);
+  --text-icon-color-select-md: var(--text-color-select-md);
+  --text-icon-color-select-lg: var(--text-color-select-lg);
 }
 
 @utility token-icon-color-select {

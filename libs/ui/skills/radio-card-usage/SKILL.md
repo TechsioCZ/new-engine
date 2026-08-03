@@ -2,9 +2,7 @@
 component_version: "1.0.0"
 name: radio-card-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit RadioCard for
-  prominent single-choice cards with Zag.js radio behavior, label, item,
-  hidden input, control, text, description, addon, indicator, and status text.
+  Use after component-usage-ux when an app needs @techsio/ui-kit RadioCard for prominent single-choice cards with Zag.js radio behavior, label, item, hidden input, control, text, description, addon, indicator, and status text.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -22,8 +20,7 @@ sources:
 
 # @techsio/ui-kit RadioCard Usage
 
-Use RadioCard for prominent exclusive choices with title, description, or addon
-content. Use RadioGroup for simple text options.
+Use RadioCard for prominent exclusive choices with title, description, or addon content. Use RadioGroup for simple text options.
 
 ## Setup
 
@@ -82,7 +79,9 @@ Wrong:
 Correct:
 
 ```tsx
-<RadioCard.Item value="pro"><RadioCard.ItemHiddenInput /></RadioCard.Item>
+<RadioCard.Item value="pro">
+  <RadioCard.ItemHiddenInput />
+</RadioCard.Item>
 ```
 
 Source: libs/ui/src/molecules/radio-card.tsx
@@ -92,13 +91,18 @@ Source: libs/ui/src/molecules/radio-card.tsx
 Wrong:
 
 ```tsx
-<RadioCard.Item value="pro"><RadioCard.ItemText>Pro</RadioCard.ItemText></RadioCard.Item>
+<RadioCard.Item value="pro">
+  <RadioCard.ItemText>Pro</RadioCard.ItemText>
+</RadioCard.Item>
 ```
 
 Correct:
 
 ```tsx
-<RadioCard.Item value="pro"><RadioCard.ItemHiddenInput /><RadioCard.ItemControl /></RadioCard.Item>
+<RadioCard.Item value="pro">
+  <RadioCard.ItemHiddenInput />
+  <RadioCard.ItemControl />
+</RadioCard.Item>
 ```
 
 Source: https://zagjs.com/components/react/radio-group
@@ -114,7 +118,9 @@ Wrong:
 Correct:
 
 ```tsx
-<RadioCard variant="subtle"><RadioCard.Item value="pro" /></RadioCard>
+<RadioCard variant="subtle">
+  <RadioCard.Item value="pro" />
+</RadioCard>
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_radio-card.css

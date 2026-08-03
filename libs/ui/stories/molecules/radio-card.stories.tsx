@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { fn } from "storybook/test"
+
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Badge } from "../../src/atoms/badge"
 import { Icon, type IconType } from "../../src/atoms/icon"
@@ -100,7 +101,6 @@ function BasicRadioCard({
                       bgColor="#888"
                       fgColor="#fff"
                       borderColor="transparent"
-
                     >
                       {option.badge}
                     </Badge>
@@ -363,7 +363,8 @@ export const WithoutIndicator: Story = {
         ))}
       </div>
       <RadioCard.StatusText>
-        Omitting the indicator still works when the card surface carries the state.
+        Omitting the indicator still works when the card surface carries the
+        state.
       </RadioCard.StatusText>
     </RadioCard>
   ),

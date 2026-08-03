@@ -16,6 +16,7 @@ import {
   type ReactNode,
   type Ref,
 } from "react"
+
 import type { IconProps, IconType } from "../atoms/icon"
 import {
   Breadcrumb,
@@ -28,8 +29,7 @@ export type BreadcrumbTemplateLinkProps<T extends ElementType> = Omit<
   "as" | "href" | "children" | "className"
 >
 
-type BreadcrumbTemplateRenderLinkProps =
-  BreadcrumbLinkProps<ElementType>
+type BreadcrumbTemplateRenderLinkProps = BreadcrumbLinkProps<ElementType>
 
 const BreadcrumbTemplateLink = Breadcrumb.Link as (
   props: BreadcrumbTemplateRenderLinkProps
@@ -37,13 +37,13 @@ const BreadcrumbTemplateLink = Breadcrumb.Link as (
 
 export type BreadcrumbTemplateItem = {
   label: ReactNode
-  href?: string
-  icon?: IconType
-  iconSize?: IconProps["size"]
-  separatorIcon?: IconType
-  separatorIconSize?: IconProps["size"]
-  isCurrent?: boolean
-  value?: string
+  href?: string | undefined
+  icon?: IconType | undefined
+  iconSize?: IconProps["size"] | undefined
+  separatorIcon?: IconType | undefined
+  separatorIconSize?: IconProps["size"] | undefined
+  isCurrent?: boolean | undefined
+  value?: string | undefined
 }
 
 export type BreadcrumbTemplateProps<T extends ElementType = "a"> = Omit<
@@ -51,20 +51,18 @@ export type BreadcrumbTemplateProps<T extends ElementType = "a"> = Omit<
   "children" | "ref"
 > & {
   items: BreadcrumbTemplateItem[]
-  maxItems?: number
-  linkAs?: T
-  linkProps?: BreadcrumbTemplateLinkProps<T>
-  separator?: ReactNode
-  separatorIcon?: IconType
-  iconSize?: IconProps["size"]
-  separatorIconSize?: IconProps["size"]
-  ellipsisIconSize?: IconProps["size"]
-  ref?: Ref<HTMLElement>
+  maxItems?: number | undefined
+  linkAs?: T | undefined
+  linkProps?: BreadcrumbTemplateLinkProps<T> | undefined
+  separator?: ReactNode | undefined
+  separatorIcon?: IconType | undefined
+  iconSize?: IconProps["size"] | undefined
+  separatorIconSize?: IconProps["size"] | undefined
+  ellipsisIconSize?: IconProps["size"] | undefined
+  ref?: Ref<HTMLElement> | undefined
 }
 
-type BreadcrumbDisplayItem =
-  | BreadcrumbTemplateItem
-  | "ellipsis"
+type BreadcrumbDisplayItem = BreadcrumbTemplateItem | "ellipsis"
 
 function getDisplayItems(
   items: BreadcrumbTemplateItem[],
@@ -85,15 +83,12 @@ function getDisplayItems(
     : []
 }
 
-function getItemKey(
-  item: BreadcrumbDisplayItem,
-  index: number
-) {
+function getItemKey(item: BreadcrumbDisplayItem, index: number) {
   if (item === "ellipsis") {
     return `ellipsis-${index}`
   }
 
-  return item.value ?? `${index}-${String(item.label)}`
+  return item.value ?? `breadcrumb-${index}`
 }
 
 export function BreadcrumbTemplate<T extends ElementType = "a">({
@@ -153,9 +148,7 @@ export function BreadcrumbTemplate<T extends ElementType = "a">({
             <Fragment key={getItemKey(item, index)}>
               <Breadcrumb.Item>
                 {isCurrent ? (
-                  <Breadcrumb.CurrentLink>
-                    {itemContent}
-                  </Breadcrumb.CurrentLink>
+                  <Breadcrumb.CurrentLink>{itemContent}</Breadcrumb.CurrentLink>
                 ) : (
                   <BreadcrumbTemplateLink
                     {...(linkProps as

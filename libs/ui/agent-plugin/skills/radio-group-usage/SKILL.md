@@ -2,10 +2,7 @@
 component_version: "1.0.0"
 name: radio-group-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit RadioGroup for
-  simple exclusive choices with Zag.js radio behavior, label, item group,
-  hidden inputs, controls, text, descriptions, validation status, variants, and
-  sizes.
+  Use after component-usage-ux when an app needs @techsio/ui-kit RadioGroup for simple exclusive choices with Zag.js radio behavior, label, item group, hidden inputs, controls, text, descriptions, validation status, variants, and sizes.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -23,8 +20,7 @@ sources:
 
 # @techsio/ui-kit RadioGroup Usage
 
-Use RadioGroup for simple exclusive text choices. Use RadioCard for larger
-card-like choices.
+Use RadioGroup for simple exclusive text choices. Use RadioCard for larger card-like choices.
 
 ## Setup
 
@@ -35,7 +31,9 @@ card-like choices.
     <RadioGroup.Item value="card">
       <RadioGroup.ItemHiddenInput />
       <RadioGroup.ItemControl />
-      <RadioGroup.ItemContent><RadioGroup.ItemText>Card</RadioGroup.ItemText></RadioGroup.ItemContent>
+      <RadioGroup.ItemContent>
+        <RadioGroup.ItemText>Card</RadioGroup.ItemText>
+      </RadioGroup.ItemContent>
     </RadioGroup.Item>
   </RadioGroup.ItemGroup>
 </RadioGroup>
@@ -55,8 +53,7 @@ value/defaultValue, disabled, required, readOnly, onValueChange
 
 ### Use item group for options
 
-Keep options inside `RadioGroup.ItemGroup` and each item as a label with
-hidden input and control.
+Keep options inside `RadioGroup.ItemGroup` and each item as a label with hidden input and control.
 
 ### Use descriptions for explanatory text
 
@@ -79,7 +76,9 @@ Wrong:
 Correct:
 
 ```tsx
-<RadioGroup.Item value="card"><RadioGroup.ItemHiddenInput /></RadioGroup.Item>
+<RadioGroup.Item value="card">
+  <RadioGroup.ItemHiddenInput />
+</RadioGroup.Item>
 ```
 
 Source: libs/ui/src/molecules/radio-group.tsx
@@ -89,13 +88,19 @@ Source: libs/ui/src/molecules/radio-group.tsx
 Wrong:
 
 ```tsx
-<RadioGroup><RadioGroup.Item value="a" /></RadioGroup>
+<RadioGroup>
+  <RadioGroup.Item value="a" />
+</RadioGroup>
 ```
 
 Correct:
 
 ```tsx
-<RadioGroup><RadioGroup.ItemGroup><RadioGroup.Item value="a" /></RadioGroup.ItemGroup></RadioGroup>
+<RadioGroup>
+  <RadioGroup.ItemGroup>
+    <RadioGroup.Item value="a" />
+  </RadioGroup.ItemGroup>
+</RadioGroup>
 ```
 
 Source: libs/ui/src/molecules/radio-group.tsx
@@ -111,7 +116,9 @@ Wrong:
 Correct:
 
 ```tsx
-<RadioGroup variant="solid"><RadioGroup.Item value="a" /></RadioGroup>
+<RadioGroup variant="solid">
+  <RadioGroup.Item value="a" />
+</RadioGroup>
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_radio-group.css

@@ -2,9 +2,7 @@
 component_version: "1.0.0"
 name: dialog-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Dialog for
-  modal dialogs, alert dialogs, drawers, actions, focus management, placement,
-  size, and close behavior backed by Zag.js.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Dialog for modal dialogs, alert dialogs, drawers, actions, focus management, placement, size, and close behavior backed by Zag.js.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -21,8 +19,7 @@ sources:
 
 # @techsio/ui-kit Dialog Usage
 
-Use Dialog for focused overlays and confirmations. Use Popover for lightweight
-anchored content and Tooltip for short supplemental help.
+Use Dialog for focused overlays and confirmations. Use Popover for lightweight anchored content and Tooltip for short supplemental help.
 
 ## Setup
 
@@ -30,7 +27,7 @@ anchored content and Tooltip for short supplemental help.
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import { Button } from "@techsio/ui-kit/atoms/button"
 
-<Dialog
+;<Dialog
   role="alertdialog"
   title="Delete product?"
   description="This action cannot be undone."
@@ -58,13 +55,11 @@ Use `role="alertdialog"` and a danger Button action for irreversible actions.
 
 ### Use placement for drawers
 
-`placement="left" | "right" | "top" | "bottom"` creates drawer behavior with
-size-driven width or height.
+`placement="left" | "right" | "top" | "bottom"` creates drawer behavior with size-driven width or height.
 
 ### Use tokens for visual changes
 
-Do not patch overlay, padding, width, or close button classes in apps. Override
-dialog tokens when the app theme needs changes.
+Do not patch overlay, padding, width, or close button classes in apps. Override dialog tokens when the app theme needs changes.
 
 ## Common Mistakes
 
@@ -73,7 +68,13 @@ dialog tokens when the app theme needs changes.
 Wrong:
 
 ```tsx
-{open && <div className="fixed inset-0"><div role="dialog" /></div>}
+{
+  open && (
+    <div className="fixed inset-0">
+      <div role="dialog" />
+    </div>
+  )
+}
 ```
 
 Correct:
@@ -89,7 +90,9 @@ Source: libs/ui/src/molecules/dialog.tsx
 Wrong:
 
 ```tsx
-<Popover><Button variant="danger">Delete</Button></Popover>
+<Popover>
+  <Button variant="danger">Delete</Button>
+</Popover>
 ```
 
 Correct:

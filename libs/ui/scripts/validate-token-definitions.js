@@ -14,6 +14,7 @@ import fs from "node:fs/promises"
 import path from "node:path"
 import { performance } from "node:perf_hooks"
 import { fileURLToPath, pathToFileURL } from "node:url"
+
 import { globSync } from "glob"
 
 const ROOT = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..")
@@ -292,7 +293,7 @@ async function buildTokenIndices() {
 
         // 2) Index var() usage on non-definition lines as direct CSS usage
         const defLine = new Set()
-        for (const [token, data] of defs) {
+        for (const data of defs.values()) {
           if (data.file === file) defLine.add(data.line)
         }
 
@@ -454,7 +455,8 @@ async function validateTokenDefinitions({
     classToTokens,
     new Set(allTokens)
   )
-  if (profile) console.log(`⏱️  components: ${p.end("components").toFixed(1)}ms`)
+  if (profile)
+    console.log(`⏱️  components: ${p.end("components").toFixed(1)}ms`)
 
   // 4) Seed used set
   const usedDirect = new Set()
