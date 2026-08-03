@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
+import { CartAddressUpdateError, resolveErrorMessage } from "@/lib/errors"
 import { sdk } from "@/lib/medusa-client"
 import { queryKeys } from "@/lib/query-keys"
 import type { Cart } from "@/services/cart-service"
@@ -61,7 +62,10 @@ export function useUpdateCartAddress(options?: UpdateCartAddressOptions) {
   >({
     mutationFn: async ({ cartId, billingAddress, shippingAddress, email }) => {
       if (!cartId) {
-        throw new Error("Cart ID is required")
+        throw new CartAddressUpdateError(
+          "Cart ID is required",
+          "ADDRESS_UPDATE_REJECTED"
+        )
       }
 
       // Validate billing address
@@ -69,7 +73,10 @@ export function useUpdateCartAddress(options?: UpdateCartAddressOptions) {
         validateAddressForm(billingAddress)
       if (Object.keys(validationErrors).length > 0) {
         const errorMessages = Object.values(validationErrors).join(", ")
-        throw new Error(`Validation failed: ${errorMessages}`)
+        throw new CartAddressUpdateError(
+          `Validation failed: ${errorMessages}`,
+          "BILLING_ADDRESS_INVALID"
+        )
       }
 
       // Clean both addresses
@@ -77,18 +84,29 @@ export function useUpdateCartAddress(options?: UpdateCartAddressOptions) {
       const cleanedShippingAddress = cleanAddress(shippingAddress)
 
       // Update the cart with both addresses
-      const response = await sdk.store.cart.update(cartId, {
-        ...(cleanedBillingAddress
-          ? { billing_address: cleanedBillingAddress }
-          : {}),
-        ...(cleanedShippingAddress
-          ? { shipping_address: cleanedShippingAddress }
-          : {}),
-        ...(email ? { email } : {}),
-      })
+      const response = await sdk.store.cart
+        .update(cartId, {
+          ...(cleanedBillingAddress
+            ? { billing_address: cleanedBillingAddress }
+            : {}),
+          ...(cleanedShippingAddress
+            ? { shipping_address: cleanedShippingAddress }
+            : {}),
+          ...(email ? { email } : {}),
+        })
+        .catch((error: unknown) => {
+          throw new CartAddressUpdateError(
+            resolveErrorMessage(error),
+            "ADDRESS_UPDATE_REJECTED",
+            error
+          )
+        })
 
       if (!response.cart) {
-        throw new Error("Failed to update addresses")
+        throw new CartAddressUpdateError(
+          "Failed to update addresses",
+          "ADDRESS_UPDATE_REJECTED"
+        )
       }
 
       return response.cart

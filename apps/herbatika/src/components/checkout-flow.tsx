@@ -74,7 +74,7 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
       return
     }
 
-    router.push(resolveCheckoutStepHref(targetStep.slug))
+    router.push(appHref(resolveCheckoutStepHref(targetStep.slug)))
   }
 
   useEffect(() => {

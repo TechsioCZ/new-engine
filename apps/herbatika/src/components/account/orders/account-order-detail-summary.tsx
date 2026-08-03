@@ -37,12 +37,21 @@ type OrderAmountSummary = {
 
 type OrderAddress = ReturnType<typeof resolveOrderAddresses>["shipping"]
 
+type OrderAmountField =
+  | "item_total"
+  | "item_subtotal"
+  | "item_tax_total"
+  | "shipping_total"
+  | "shipping_subtotal"
+  | "shipping_tax_total"
+  | "tax_total"
+
 const readOrderAmount = (
   order: HttpTypes.StoreOrder,
-  key: string
+  key: OrderAmountField
 ): number | null => {
-  const value = (order as unknown as Record<string, unknown>)[key]
-  return typeof value === "number" && Number.isFinite(value) ? value : null
+  const value = order[key]
+  return Number.isFinite(value) ? value : null
 }
 
 const resolveOrderAmountSummary = (

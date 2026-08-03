@@ -1,5 +1,6 @@
 "use client"
 
+import { getErrorMessage } from "@techsio/std/object"
 import { type FormEvent, useState } from "react"
 
 type ImportResult = {
@@ -31,13 +32,8 @@ const parseErrorMessage = async (response: Response) => {
   return (payload as { message?: string }).message || "Import failed"
 }
 
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return "Import failed"
-}
+const getImportFailureMessage = (error: unknown) =>
+  error instanceof Error ? getErrorMessage(error) : "Import failed"
 
 const createFormData = ({
   file,
@@ -118,7 +114,7 @@ export default function PayloadImportNav() {
         `Import dokončený: ${data.result.imported} importovaných, ${data.result.skipped} přeskočených z ${data.result.total}.`
       )
     } catch (error_) {
-      setError(getErrorMessage(error_))
+      setError(getImportFailureMessage(error_))
     } finally {
       setIsSubmitting(false)
     }

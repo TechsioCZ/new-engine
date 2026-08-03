@@ -133,23 +133,24 @@ export const resolveOfferState = (
   selectedVariant: HttpTypes.StoreProductVariant | null
 ): ProductOfferState => {
   const metadata = asRecord(product?.metadata)
-  const topOffer = asRecord(metadata?.top_offer)
+  const topOffer = asRecord(metadata?.["top_offer"])
   const variantMetadata = asRecord(selectedVariant?.metadata)
   const source = topOffer ?? variantMetadata
-  const stock = asRecord(source?.stock)
+  const stock = asRecord(source?.["stock"])
   const variantInventory = resolveVariantInventoryState(selectedVariant)
   const stockAmount =
-    variantInventory.availableQuantity ?? asNumber(stock?.amount)
+    variantInventory.availableQuantity ?? asNumber(stock?.["amount"])
   const isInStock = variantInventory.isInStock
 
-  const inStockLabel = asString(source?.availability_in_stock) ?? "Skladom"
+  const inStockLabel = asString(source?.["availability_in_stock"]) ?? "Skladom"
   const outOfStockLabel =
-    asString(source?.availability_out_of_stock) ?? "Momentálne nie je skladom"
+    asString(source?.["availability_out_of_stock"]) ??
+    "Momentálne nie je skladom"
   const currentAmount =
-    asNumber(source?.current_price) ?? asNumber(source?.price_vat)
+    asNumber(source?.["current_price"]) ?? asNumber(source?.["price_vat"])
 
-  const actionAmount = asNumber(source?.action_price)
-  const hasActiveDiscountFlag = asBoolean(source?.has_active_discount)
+  const actionAmount = asNumber(source?.["action_price"])
+  const hasActiveDiscountFlag = asBoolean(source?.["has_active_discount"])
   const hasActiveDiscount =
     hasActiveDiscountFlag ??
     (typeof actionAmount === "number" &&
@@ -157,19 +158,21 @@ export const resolveOfferState = (
       actionAmount < currentAmount)
 
   return {
-    code: asString(source?.code) ?? asString(selectedVariant?.sku),
-    ean: asString(source?.ean) ?? asString(selectedVariant?.ean),
+    code: asString(source?.["code"]) ?? asString(selectedVariant?.sku),
+    ean: asString(source?.["ean"]) ?? asString(selectedVariant?.["ean"]),
     availabilityLabel: isInStock ? inStockLabel : outOfStockLabel,
     deliveryLabel: isInStock ? resolveInStockDeliveryLabel() : "po naskladnení",
     stockAmount,
     isInStock,
     currentAmount,
-    standardAmount: asNumber(source?.standard_price),
+    standardAmount: asNumber(source?.["standard_price"]),
     actionAmount,
     hasActiveDiscount,
-    applyLoyaltyDiscount: asBoolean(source?.apply_loyalty_discount) === true,
-    applyQuantityDiscount: asBoolean(source?.apply_quantity_discount) === true,
-    applyVolumeDiscount: asBoolean(source?.apply_volume_discount) === true,
+    applyLoyaltyDiscount:
+      asBoolean(source?.["apply_loyalty_discount"]) === true,
+    applyQuantityDiscount:
+      asBoolean(source?.["apply_quantity_discount"]) === true,
+    applyVolumeDiscount: asBoolean(source?.["apply_volume_discount"]) === true,
   }
 }
 
@@ -177,9 +180,9 @@ export const resolveProductContentSections = (
   product: Product | null
 ): ProductDetailContentSection[] => {
   const metadata = asRecord(product?.metadata)
-  const sectionMap = asRecord(metadata?.content_sections_map)
-  const sectionsFromList = Array.isArray(metadata?.content_sections)
-    ? metadata.content_sections
+  const sectionMap = asRecord(metadata?.["content_sections_map"])
+  const sectionsFromList = Array.isArray(metadata?.["content_sections"])
+    ? metadata["content_sections"]
     : []
   const productDescriptionHtml = asString(product?.description) ?? ""
 
@@ -190,8 +193,8 @@ export const resolveProductContentSections = (
       continue
     }
 
-    const key = normalizeSectionKey(sectionRecord.key)
-    const html = asString(sectionRecord.html)
+    const key = normalizeSectionKey(sectionRecord["key"])
+    const html = asString(sectionRecord["html"])
     if (!(key && html) || sectionHtmlByKey.has(key)) {
       continue
     }
@@ -223,7 +226,7 @@ export const resolveProductContentSections = (
   return [
     {
       key: "description",
-      title: PRODUCT_DETAIL_SECTION_TITLES.description,
+      title: PRODUCT_DETAIL_SECTION_TITLES["description"] ?? "Popis",
       html: productDescriptionHtml,
     },
   ]
