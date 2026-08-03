@@ -70,16 +70,18 @@ export async function POST(
     orderIds,
     orders as OrderWithFulfillments[]
   )
+  const resolvedLabelOffset = await resolveLabelOffset(glsClient, label_offset)
 
   const labelPdfs = await downloadLabelPdfsInChunks(
     labels,
     glsClient,
-    labelFormat as GLSLabelFormat | undefined
+    labelFormat as GLSLabelFormat | undefined,
+    resolvedLabelOffset
   )
 
   const pdfBytes = await composeGLSLabelsOnA4(
     labelPdfs,
-    label_offset ?? 0,
+    resolvedLabelOffset,
     labelFormat
   )
   const buffer = Buffer.from(pdfBytes)
@@ -162,10 +164,23 @@ function collectPrintableLabels(
   return labels
 }
 
+async function resolveLabelOffset(
+  glsClient: GLSClientModuleService,
+  requestLabelOffset: number | undefined
+): Promise<number> {
+  if (requestLabelOffset !== undefined) {
+    return requestLabelOffset
+  }
+
+  const config = await glsClient.getConfig()
+  return config?.default_label_offset ?? 0
+}
+
 async function downloadLabelPdfsInChunks(
   labels: PrintableGLSLabel[],
   glsClient: GLSClientModuleService,
-  labelFormat: GLSLabelFormat | undefined
+  labelFormat: GLSLabelFormat | undefined,
+  labelOffset: number
 ): Promise<Buffer[]> {
   const labelPdfs: Buffer[] = []
 
@@ -177,7 +192,7 @@ async function downloadLabelPdfsInChunks(
     const chunk = labels.slice(index, index + GLS_LABEL_DOWNLOAD_CHUNK_SIZE)
     const chunkPdfs = await Promise.all(
       chunk.map((label) =>
-        glsClient.downloadLabelPdf(label.packet_id, labelFormat, 0)
+        glsClient.downloadLabelPdf(label.packet_id, labelFormat, labelOffset)
       )
     )
 
