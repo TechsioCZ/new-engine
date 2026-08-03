@@ -39,7 +39,7 @@ export const NumberFilter = ({
   const { removeFilter } = useDataTableFilterContext()
   const selectedParams = useSelectedParams({
     param: key,
-    prefix,
+    ...(prefix ? { prefix } : {}),
     multiple: false,
   })
 
@@ -147,13 +147,13 @@ export const NumberFilter = ({
   const previousDisplayValue = parseDisplayValue(previousValue, t)
 
   return (
-    <PopoverRoot modal onOpenChange={handleOpenChange} open={open}>
+    <PopoverRoot modal onOpenChange={handleOpenChange} open={open ?? false}>
       <FilterChip
         hadPreviousValue={!!previousDisplayValue}
         hasOperator
         label={label}
         onRemove={handleRemove}
-        readonly={readonly}
+        readonly={readonly ?? false}
         value={displayValue}
       />
       {!readonly && (
@@ -182,7 +182,7 @@ export const NumberFilter = ({
                 className="flex flex-col items-start"
                 onValueChange={(val) => setOperator(val as Comparison)}
                 orientation="vertical"
-                value={operator}
+                value={operator ?? null}
               >
                 {operators.map((o) => (
                   <RadioGroupItem

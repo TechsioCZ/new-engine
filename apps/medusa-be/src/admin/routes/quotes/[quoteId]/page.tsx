@@ -14,7 +14,6 @@ import {
   Link,
   type LoaderFunctionArgs,
   type UIMatch,
-  useNavigate,
   useParams,
 } from "react-router-dom"
 
@@ -38,7 +37,7 @@ import {
 } from "../components"
 
 export async function loader({ params }: LoaderFunctionArgs) {
-  const quoteId = params.quoteId
+  const quoteId = params["quoteId"]
 
   if (!quoteId) {
     return { quote: undefined }
@@ -62,7 +61,6 @@ const QuoteDetails = () => {
   const [showRejectQuote, setShowRejectQuote] = useState(false)
   const prompt = usePrompt()
   const { t } = useTranslation("quotes")
-  const navigate = useNavigate()
   const resolvedQuoteId = quoteId ?? ""
   const { quote, isLoading } = useQuote(
     resolvedQuoteId,
@@ -179,11 +177,10 @@ const QuoteDetails = () => {
                   {t("toasts.quoteAcceptedReady")}
                 </Text>
 
-                <Button
-                  onClick={() => navigate(`/orders/${quote.draft_order_id}`)}
-                  size="small"
-                >
-                  {t("actions.viewOrder")}
+                <Button asChild size="small">
+                  <Link to={`/orders/${quote.draft_order_id}`}>
+                    {t("actions.viewOrder")}
+                  </Link>
                 </Button>
               </div>
             </Container>

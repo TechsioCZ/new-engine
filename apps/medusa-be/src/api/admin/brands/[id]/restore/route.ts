@@ -14,7 +14,7 @@ export async function POST(
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) {
-  const id = req.params.id ?? ""
+  const id = req.params["id"] ?? ""
 
   await restoreBrandsWorkflow(req.scope).run({
     input: {

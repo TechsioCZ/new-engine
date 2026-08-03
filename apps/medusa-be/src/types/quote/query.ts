@@ -17,7 +17,7 @@ export type QueryQuote = ModuleQuote & {
   messages: QueryQuoteMessage[]
 }
 
-export type QueryQuoteMessage = ModuleQuoteMessage & {
+type QueryQuoteMessage = ModuleQuoteMessage & {
   customer: AdminCustomer
   admin: AdminUser
 }

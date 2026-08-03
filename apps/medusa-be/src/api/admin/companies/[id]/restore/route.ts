@@ -12,7 +12,7 @@ export const POST = async (
   res: MedusaResponse
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const id = requirePathParam(req.params.id, "Company id")
+  const id = requirePathParam(req.params["id"], "Company id")
 
   await restoreCompaniesWorkflow(req.scope).run({
     input: {

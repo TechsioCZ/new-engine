@@ -106,7 +106,7 @@ export const htmlToMarkdown = (html: string) => {
       const [headerCells, ...contentRows] = renderedRows
 
       return `${[
-        renderTableLine(headerCells, columnCount),
+        renderTableLine(headerCells ?? [], columnCount),
         renderTableLine(
           Array.from({ length: columnCount }, () => "---"),
           columnCount

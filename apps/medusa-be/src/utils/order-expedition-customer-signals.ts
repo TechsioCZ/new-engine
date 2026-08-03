@@ -6,8 +6,6 @@ import {
   type OrderExpeditionRawOrder,
 } from "./order-expedition"
 
-export type { OrderExpeditionCustomerSignals } from "./order-expedition"
-
 export type OrderExpeditionCustomerSignalCounts = {
   note: number
   returning_customer: number

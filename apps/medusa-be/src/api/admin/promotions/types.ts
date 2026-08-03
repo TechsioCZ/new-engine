@@ -13,7 +13,7 @@ export type ProductVariantInput = {
   id: string
   title: string
   sku: string | null
-  product?: { title: string } | null
+  product?: { title: string } | null | undefined
 }
 
 /**

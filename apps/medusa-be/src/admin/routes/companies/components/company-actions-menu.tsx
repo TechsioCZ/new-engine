@@ -48,8 +48,8 @@ export const CompanyActionsMenu = ({ company }: { company: QueryCompany }) => {
     toast.success(t("toasts.companyDeleted", { name: company.name }))
   }
 
-  const handleRestore = () => {
-    mutateRestore(undefined, {
+  const handleRestore = async () => {
+    await mutateRestore(undefined, {
       onSuccess: () => {
         toast.success(t("toasts.companyRestored", { name: company.name }))
       },

@@ -25,8 +25,8 @@ export const syncMeilisearchBrandsStep = createStep(
     const meilisearchService: MeiliSearchService =
       container.resolve(MEILISEARCH)
 
-    const brandFields = await meilisearchService.getFieldsForType(BRANDS)
-    const brandIndexes = await meilisearchService.getIndexesByType(BRANDS)
+    const brandFields = meilisearchService.getFieldsForType(BRANDS)
+    const brandIndexes = meilisearchService.getIndexesByType(BRANDS)
 
     // Fetch ALL brands in batches to avoid pagination corruption
     // (pagination would cause deletion of brands not in the current page)
@@ -70,7 +70,7 @@ export const syncMeilisearchBrandsStep = createStep(
         })
 
         for (const hit of result.hits) {
-          existingBrandIds.add(hit.id)
+          existingBrandIds.add(hit["id"])
         }
 
         if (result.hits.length < batchSize) {
@@ -80,15 +80,18 @@ export const syncMeilisearchBrandsStep = createStep(
       }
     }
 
-    const currentBrandIds = new Set(allBrands.map((brand) => brand.id))
+    const currentBrandIds = new Set(allBrands.map((brand) => brand["id"]))
     const brandsToDelete = Array.from(existingBrandIds).filter(
       (id) => !currentBrandIds.has(id)
     )
 
-    const transformedBrands = allBrands.map((brand) => ({
-      ...brand,
-      handle: `/store/brands/${brand.handle}/products`,
-    }))
+    const transformedBrands = allBrands.map((brand) => {
+      const handle = typeof brand["handle"] === "string" ? brand["handle"] : ""
+      return {
+        ...brand,
+        handle: `/store/brands/${handle}/products`,
+      }
+    })
 
     await Promise.all(
       brandIndexes.map((index) =>

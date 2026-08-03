@@ -4,10 +4,10 @@ import {
 } from "./data-table-filter/data-table-filter"
 
 export type DataTableQueryProps = {
-  search?: boolean | "autofocus"
-  orderBy?: (string | number)[]
-  filters?: Filter[]
-  prefix?: string
+  search?: boolean | "autofocus" | undefined
+  orderBy?: (string | number)[] | undefined
+  filters?: Filter[] | undefined
+  prefix?: string | undefined
 }
 
 export const DataTableQuery = ({
@@ -20,7 +20,7 @@ export const DataTableQuery = ({
     <div className="flex items-start justify-between gap-x-4 px-6 py-4">
       <div className="w-full max-w-[60%]">
         {filters && filters.length > 0 && (
-          <DataTableFilter filters={filters} prefix={prefix} />
+          <DataTableFilter filters={filters} {...(prefix ? { prefix } : {})} />
         )}
       </div>
       <div className="flex shrink-0 items-center gap-x-2" />

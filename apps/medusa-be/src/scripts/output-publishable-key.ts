@@ -11,10 +11,11 @@ export default async function myScript({ container, args }: ExecArgs) {
   const apiKeyService = container.resolve<IApiKeyModuleService>(Modules.API_KEY)
   const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
 
+  const title = args?.[0]
   const { apiKey } = await provisionPublishableKey({
     apiKeyService,
     lockingModule,
-    title: args?.[0],
+    ...(title ? { title } : {}),
   })
 
   process.stdout.write(`<PK_TOKEN>${apiKey.token}</PK_TOKEN>`)

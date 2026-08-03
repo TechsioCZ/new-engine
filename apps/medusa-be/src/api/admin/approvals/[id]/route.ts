@@ -15,7 +15,7 @@ export const POST = async (
     user_id: string
   }
 
-  const approvalId = requirePathParam(req.params.id, "Approval id")
+  const approvalId = requirePathParam(req.params["id"], "Approval id")
   const { status } = req.validatedBody
 
   const { result: approval, errors } = await updateApprovalsWorkflow(

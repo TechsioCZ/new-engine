@@ -48,7 +48,7 @@ const AssignedProductRows = ({
   onOpen: (productId: string) => void
   onRemove: (product: MeasurementUnitAssignedProduct) => void
   products: MeasurementUnitAssignedProduct[]
-  removeProductId?: string
+  removeProductId?: string | undefined
 }) => {
   const { t } = useTranslation("measurementUnits")
 

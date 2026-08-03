@@ -1,5 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 
+import { requireIdentifierField } from "../../refine-identifier"
+
 const TRACKING_BATCH_MAX = 500
 
 const TrackingItemSchema = z.object({
@@ -19,29 +21,7 @@ const ShipmentInputSchema = z
     send_notification: z.boolean().default(true),
     items: z.array(TrackingItemSchema).optional(),
   })
-  .superRefine((value, ctx) => {
-    if (value.identifier_type === "display_id" && !value.display_id) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "display_id is required when identifier_type is 'display_id'",
-        path: ["display_id"],
-      })
-    }
-    if (value.identifier_type === "order_id" && !value.order_id) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "order_id is required when identifier_type is 'order_id'",
-        path: ["order_id"],
-      })
-    }
-    if (value.identifier_type === "erp_id" && !value.erp_id) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "erp_id is required when identifier_type is 'erp_id'",
-        path: ["erp_id"],
-      })
-    }
-  })
+  .superRefine(requireIdentifierField)
 
 export const AddTrackingBatchSchema = z.object({
   shipments: z.array(ShipmentInputSchema).min(1).max(TRACKING_BATCH_MAX),

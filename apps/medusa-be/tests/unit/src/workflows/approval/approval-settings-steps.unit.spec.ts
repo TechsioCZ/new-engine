@@ -49,6 +49,25 @@ type MockStep<TInput> = {
   ) => Promise<void>
 }
 
+const asMockStep = <TInput>(candidate: unknown): MockStep<TInput> => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  if (
+    !("compensate" in candidate) ||
+    typeof candidate.compensate !== "function"
+  ) {
+    throw new TypeError(
+      "Expected the mocked workflow step to expose a compensate function"
+    )
+  }
+
+  return candidate as MockStep<TInput>
+}
+
 const makeApprovalService = (
   overrides: Partial<ApprovalService> = {}
 ): ApprovalService => ({
@@ -114,8 +133,8 @@ describe("approval settings steps", () => {
     })
     const container = makeContainer({ approvalService })
 
-    const result = await (
-      deleteApprovalSettingsStep as MockStep<{ companyIds: string[] }>
+    const result = await asMockStep<{ companyIds: string[] }>(
+      deleteApprovalSettingsStep
     )({ companyIds: ["comp_1"] }, { container })
 
     expect(approvalService.softDeleteApprovalSettings).toHaveBeenCalledWith([
@@ -123,8 +142,8 @@ describe("approval settings steps", () => {
     ])
     expect(approvalService.deleteApprovalSettings).not.toHaveBeenCalled()
 
-    await (
-      deleteApprovalSettingsStep as MockStep<{ companyIds: string[] }>
+    await asMockStep<{ companyIds: string[] }>(
+      deleteApprovalSettingsStep
     ).compensate(result.compensateInput, {
       container,
     })
@@ -166,7 +185,7 @@ describe("approval settings steps", () => {
     })
     const container = makeContainer({ approvalService })
 
-    const result = await (ensureApprovalSettingsStep as MockStep<string[]>)(
+    const result = await asMockStep<string[]>(ensureApprovalSettingsStep)(
       ["comp_1", "comp_2", "comp_3"],
       { container }
     )
@@ -198,7 +217,7 @@ describe("approval settings steps", () => {
       restored_ids: ["apprset_deleted"],
     })
 
-    await (ensureApprovalSettingsStep as MockStep<string[]>).compensate(
+    await asMockStep<string[]>(ensureApprovalSettingsStep).compensate(
       result.compensateInput,
       {
         container,
@@ -232,8 +251,8 @@ describe("approval settings steps", () => {
     const linkService = makeLinkService()
     const container = makeContainer({ approvalService, graph, linkService })
 
-    const result = await (
-      dismissCompanyApprovalSettingsLinksStep as MockStep<string[]>
+    const result = await asMockStep<string[]>(
+      dismissCompanyApprovalSettingsLinksStep
     )(["comp_1"], { container })
 
     expect(graph).toHaveBeenCalledWith({
@@ -245,8 +264,8 @@ describe("approval settings steps", () => {
     })
     expect(linkService.dismiss).toHaveBeenCalledWith([staleLink])
 
-    await (
-      dismissCompanyApprovalSettingsLinksStep as MockStep<string[]>
+    await asMockStep<string[]>(
+      dismissCompanyApprovalSettingsLinksStep
     ).compensate(result.compensateInput, { container })
 
     expect(linkService.create).toHaveBeenCalledWith([staleLink])

@@ -23,5 +23,3 @@ export const seedShoptetImportWorkflow = createWorkflow(
   SeedShoptetImportWorkflowId,
   seedShoptetImportWorkflowComposer
 )
-
-export default seedShoptetImportWorkflow

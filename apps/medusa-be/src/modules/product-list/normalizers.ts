@@ -7,6 +7,27 @@ import {
   type ProductListType,
 } from "./constants"
 
+const formatInvalidValue = (value: unknown): string => {
+  if (value === null) {
+    return "null"
+  }
+
+  if (value === undefined) {
+    return "undefined"
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint"
+  ) {
+    return String(value)
+  }
+
+  return JSON.stringify(value) ?? "unserializable value"
+}
+
 const isProductListAccessType = (
   value: unknown
 ): value is ProductListAccessType =>
@@ -24,7 +45,7 @@ export const normalizeProductListAccessType = (value: unknown) => {
 
   throw new MedusaError(
     MedusaError.Types.INVALID_DATA,
-    `Unsupported product list access type: ${String(value)}`
+    `Unsupported product list access type: ${formatInvalidValue(value)}`
   )
 }
 
@@ -32,7 +53,7 @@ export const normalizeProductListType = (value: unknown): ProductListType => {
   if (typeof value !== "string") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Unsupported product list type: ${String(value)}`
+      `Unsupported product list type: ${formatInvalidValue(value)}`
     )
   }
 

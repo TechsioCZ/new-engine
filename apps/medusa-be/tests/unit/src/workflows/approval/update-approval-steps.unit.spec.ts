@@ -41,6 +41,25 @@ type MockStep<TInput> = {
   ) => Promise<void>
 }
 
+const asMockStep = <TInput>(candidate: unknown): MockStep<TInput> => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  if (
+    !("compensate" in candidate) ||
+    typeof candidate.compensate !== "function"
+  ) {
+    throw new TypeError(
+      "Expected the mocked workflow step to expose a compensate function"
+    )
+  }
+
+  return candidate as MockStep<TInput>
+}
+
 const makeApprovalService = (
   overrides: Partial<MockApprovalService> = {}
 ): MockApprovalService => ({
@@ -83,13 +102,11 @@ describe("approval update steps", () => {
     const container = makeContainer({ approvalService, graph })
 
     await expect(
-      (
-        updateApprovalStep as MockStep<{
-          handled_by: string
-          id: string
-          status: "approved"
-        }>
-      )(
+      asMockStep<{
+        handled_by: string
+        id: string
+        status: "approved"
+      }>(updateApprovalStep)(
         { handled_by: "cus_1", id: "appr_missing", status: "approved" },
         { container }
       )
@@ -108,16 +125,14 @@ describe("approval update steps", () => {
     const container = makeContainer({ approvalService, graph })
 
     await expect(
-      (
-        updateApprovalStatusStep as MockStep<{
-          cart_id: string
-          created_by: string
-          handled_by: string
-          id: string
-          status: "approved"
-          type: "admin"
-        }>
-      )(
+      asMockStep<{
+        cart_id: string
+        created_by: string
+        handled_by: string
+        id: string
+        status: "approved"
+        type: "admin"
+      }>(updateApprovalStatusStep)(
         {
           cart_id: "cart_missing",
           created_by: "cus_1",

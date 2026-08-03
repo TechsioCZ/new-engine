@@ -1,6 +1,7 @@
 import type { ProviderWebhookPayload } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
 import type { PayKit, PayKitProvider } from "@paykit-sdk/core"
+import { getErrorMessage, isRecord } from "@techsio/std/object"
 
 import type {
   PaykitAdapterOptions,
@@ -32,26 +33,20 @@ type CreatedPaykitClient = {
 // Keep this explicit so dependency updates cannot silently change payment behavior.
 const PAYKIT_STRIPE_API_VERSION = "2026-06-24.dahlia" as const
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
 const isPaykitProviderRuntime = (
   provider: unknown
 ): provider is PaykitProviderRuntime =>
-  isRecord(provider) && typeof provider.handleWebhook === "function"
+  isRecord(provider) && typeof provider["handleWebhook"] === "function"
 
-const dynamicImport = new Function("specifier", "return import(specifier)") as (
+const dynamicImport = async (
   specifier: string
-) => Promise<Record<string, unknown>>
-
-const getErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error)
+): Promise<Record<string, unknown>> => import(specifier)
 
 const isMissingPackageImportError = (
   packageName: string,
   error: unknown
 ): boolean => {
-  if (!isRecord(error) || error.code !== "ERR_MODULE_NOT_FOUND") {
+  if (!isRecord(error) || error["code"] !== "ERR_MODULE_NOT_FOUND") {
     return false
   }
 
@@ -182,18 +177,18 @@ export const resolveConfiguredClient = async (
 export const getGopayProviderOptions = (
   options: PaykitGopayOptions
 ): PaykitGopayProviderOptions => ({
-  clientId: options.clientId,
-  clientSecret: options.clientSecret,
-  goId: options.goId,
+  ...(options.clientId ? { clientId: options.clientId } : {}),
+  ...(options.clientSecret ? { clientSecret: options.clientSecret } : {}),
+  ...(options.goId ? { goId: options.goId } : {}),
   isSandbox: options.isSandbox ?? true,
-  webhookUrl: options.webhookUrl,
+  ...(options.webhookUrl ? { webhookUrl: options.webhookUrl } : {}),
   debug: options.debug ?? false,
 })
 
 export const getStripeProviderOptions = (
   options: PaykitStripeOptions
 ): PaykitStripeProviderOptions => ({
-  apiKey: options.apiKey,
+  ...(options.apiKey ? { apiKey: options.apiKey } : {}),
   apiVersion: PAYKIT_STRIPE_API_VERSION,
   debug: options.debug ?? false,
 })
@@ -207,8 +202,8 @@ export const getStripeWebhookOptions = (
 export const getComgateProviderOptions = (
   options: PaykitComgateOptions
 ): PaykitComgateProviderOptions => ({
-  merchant: options.merchant,
-  secret: options.secret,
+  ...(options.merchant ? { merchant: options.merchant } : {}),
+  ...(options.secret ? { secret: options.secret } : {}),
   isSandbox: options.isSandbox ?? true,
   debug: options.debug ?? false,
 })
@@ -224,8 +219,8 @@ const toPaykitWebhookPayload = (
 const getWebhookSecret = (
   providerOptions: Record<string, unknown>
 ): string | null =>
-  typeof providerOptions.webhookSecret === "string"
-    ? providerOptions.webhookSecret
+  typeof providerOptions["webhookSecret"] === "string"
+    ? providerOptions["webhookSecret"]
     : null
 
 const rawBodyToString = (
@@ -253,7 +248,9 @@ const toHeadersAsObject = (
       continue
     }
 
-    if (value !== undefined) {
+    if (typeof value === "string") {
+      result[key] = value
+    } else if (typeof value === "number" || typeof value === "boolean") {
       result[key] = String(value)
     }
   }
@@ -267,14 +264,14 @@ const getWebhookFullUrl = (
   const rawData = payload.data
   const data = isRecord(rawData) ? rawData : undefined
 
-  for (const value of [data?.fullUrl, data?.full_url]) {
+  for (const value of [data?.["fullUrl"], data?.["full_url"]]) {
     if (typeof value === "string" && value.length > 0) {
       return value
     }
   }
 
-  const host = getFirstHeaderValue(payload.headers?.host)
-  const path = data?.url
+  const host = getFirstHeaderValue(payload.headers?.["host"])
+  const path = data?.["url"]
 
   if (
     typeof path === "string" &&
@@ -306,7 +303,7 @@ const getWebhookProtocol = (
   const forwardedProto = getFirstHeaderValue(headers?.["x-forwarded-proto"])
     ?.split(",")[0]
     ?.trim()
-  const protocol = getFirstHeaderValue(headers?.protocol)
+  const protocol = getFirstHeaderValue(headers?.["protocol"])
 
   if (forwardedProto === "http" || forwardedProto === "https") {
     return forwardedProto
@@ -317,10 +314,10 @@ const getWebhookProtocol = (
   }
 
   if (
-    process.env.PAYKIT_WEBHOOK_PROTOCOL === "http" ||
-    process.env.PAYKIT_WEBHOOK_PROTOCOL === "https"
+    process.env["PAYKIT_WEBHOOK_PROTOCOL"] === "http" ||
+    process.env["PAYKIT_WEBHOOK_PROTOCOL"] === "https"
   ) {
-    return process.env.PAYKIT_WEBHOOK_PROTOCOL
+    return process.env["PAYKIT_WEBHOOK_PROTOCOL"]
   }
 
   return isLocalHost(host) ? "http" : "https"

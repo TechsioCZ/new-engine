@@ -6,6 +6,7 @@ import {
   Modules,
   PaymentWebhookEvents,
 } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 type EmitPaykitPaymentWebhookEventInput = {
   data: Record<string, unknown>
@@ -13,9 +14,6 @@ type EmitPaykitPaymentWebhookEventInput = {
   rawData?: string | Buffer
   req: MedusaRequest
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
 
 const getPaymentModuleOptions = (
   paymentModule: unknown
@@ -27,8 +25,8 @@ const getPaymentModuleOptions = (
     )
   }
 
-  return isRecord(paymentModule.options)
-    ? (paymentModule.options as PaymentModuleOptions)
+  return isRecord(paymentModule["options"])
+    ? (paymentModule["options"] as PaymentModuleOptions)
     : {}
 }
 

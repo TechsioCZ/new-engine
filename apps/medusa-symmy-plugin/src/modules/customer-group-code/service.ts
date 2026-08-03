@@ -12,8 +12,8 @@ export type SymmyCustomerGroupCodeDTO = {
 }
 
 export type UpsertSymmyCustomerGroupCodeInput = {
-  code?: string
-  erpCode?: string
+  code?: string | undefined
+  erpCode?: string | undefined
   customerGroupId: string
 }
 
@@ -33,8 +33,8 @@ export class SymmyCustomerGroupCodeModuleService extends MedusaService({
 
     const byId = new Map<string, SymmyCustomerGroupCodeDTO>()
     for (const mapping of [
-      ...(byCode as unknown as SymmyCustomerGroupCodeDTO[]),
-      ...(byErpCode as unknown as SymmyCustomerGroupCodeDTO[]),
+      ...(byCode as SymmyCustomerGroupCodeDTO[]),
+      ...(byErpCode as SymmyCustomerGroupCodeDTO[]),
     ]) {
       byId.set(mapping.id, mapping)
     }
@@ -59,15 +59,13 @@ export class SymmyCustomerGroupCodeModuleService extends MedusaService({
     }
 
     if (existing) {
-      return (await this.updateSymmyCustomerGroupCodes({
+      return await this.updateSymmyCustomerGroupCodes({
         id: existing.id,
         ...payload,
-      })) as unknown as SymmyCustomerGroupCodeDTO
+      })
     }
 
-    return (await this.createSymmyCustomerGroupCodes(
-      payload
-    )) as unknown as SymmyCustomerGroupCodeDTO
+    return await this.createSymmyCustomerGroupCodes(payload)
   }
 
   private async findExistingMapping({
@@ -80,7 +78,7 @@ export class SymmyCustomerGroupCodeModuleService extends MedusaService({
         { customer_group_id: customerGroupId },
         { take: 1 }
       )
-    )[0] as unknown as SymmyCustomerGroupCodeDTO | undefined
+    )[0] as SymmyCustomerGroupCodeDTO | undefined
     if (byGroupId) {
       return byGroupId
     }
@@ -88,7 +86,7 @@ export class SymmyCustomerGroupCodeModuleService extends MedusaService({
     if (code) {
       const byCode = (
         await this.listSymmyCustomerGroupCodes({ code }, { take: 1 })
-      )[0] as unknown as SymmyCustomerGroupCodeDTO | undefined
+      )[0] as SymmyCustomerGroupCodeDTO | undefined
       if (byCode) {
         return byCode
       }
@@ -100,7 +98,9 @@ export class SymmyCustomerGroupCodeModuleService extends MedusaService({
           { erp_code: erpCode },
           { take: 1 }
         )
-      )[0] as unknown as SymmyCustomerGroupCodeDTO | undefined
+      )[0] as SymmyCustomerGroupCodeDTO | undefined
     }
+
+    return undefined
   }
 }

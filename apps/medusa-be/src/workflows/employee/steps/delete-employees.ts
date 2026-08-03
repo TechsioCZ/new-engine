@@ -107,8 +107,12 @@ export const deleteEmployeesStep = createStep(
     const adminCandidates = employees
       .filter((employee) => employee.is_admin)
       .map((employee) => ({
-        customer_id: employee.customer?.id,
-        email: employee.customer?.email,
+        ...(employee.customer?.id !== undefined
+          ? { customer_id: employee.customer?.id }
+          : {}),
+        ...(employee.customer?.email !== undefined
+          ? { email: employee.customer?.email }
+          : {}),
       }))
     const providerIdentityIds =
       await getProviderIdentityIdsWithoutActiveAdminRole({

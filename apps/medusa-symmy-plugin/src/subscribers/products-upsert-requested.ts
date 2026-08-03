@@ -24,7 +24,7 @@ export default async function productsUpsertRequestedHandler({
       const { result } = await upsertProductsBatchWorkflow(container).run({
         input,
       })
-      return result as UpsertProductsBatchOutput
+      return result
     },
     getCompletionStats: (output) => ({
       processed: output.processed,

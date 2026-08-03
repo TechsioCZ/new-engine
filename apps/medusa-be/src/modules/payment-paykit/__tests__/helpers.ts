@@ -5,7 +5,7 @@ import type { PaykitPaymentClient } from "../types"
 
 type MockPaykitClientOverrides = Omit<
   Partial<PaykitPaymentClient>,
-  "payments" | "refunds"
+  "payments" | "refunds" | "customers"
 > & {
   payments?: Partial<PaykitPaymentClient["payments"]>
   refunds?: Partial<NonNullable<PaykitPaymentClient["refunds"]>>
@@ -73,6 +73,10 @@ export const createMockPaykitClient = (
     delete: vi.fn().mockResolvedValue(null),
     ...overrides.customers,
   },
-  handleWebhook: overrides.handleWebhook,
-  stripeCheckoutSessions: overrides.stripeCheckoutSessions,
+  ...(overrides.handleWebhook
+    ? { handleWebhook: overrides.handleWebhook }
+    : {}),
+  ...(overrides.stripeCheckoutSessions
+    ? { stripeCheckoutSessions: overrides.stripeCheckoutSessions }
+    : {}),
 })

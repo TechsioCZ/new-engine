@@ -13,7 +13,7 @@ export default async function resetPasswordHandler({
   event: { data },
   container,
 }: SubscriberArgs<ResetPasswordEvent>) {
-  const storefrontUrl = process.env.STOREFRONT_URL
+  const storefrontUrl = process.env["STOREFRONT_URL"]
   if (!storefrontUrl) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,

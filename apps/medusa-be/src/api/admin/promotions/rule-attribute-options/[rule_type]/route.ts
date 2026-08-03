@@ -20,7 +20,7 @@ export async function GET(
   req: MedusaRequest<unknown, RuleAttributeOptionsQuerySchemaType>,
   res: MedusaResponse
 ) {
-  const ruleType = req.params.rule_type
+  const ruleType = req.params["rule_type"]
 
   if (!ruleType) {
     throw new MedusaError(
@@ -38,9 +38,15 @@ export async function GET(
   } = req.validatedQuery
   const attributes =
     getExtendedRuleAttributesMap({
-      promotionType: promotion_type,
-      applicationMethodType: application_method_type,
-      applicationMethodTargetType: application_method_target_type,
+      ...(promotion_type !== undefined
+        ? { promotionType: promotion_type }
+        : {}),
+      ...(application_method_type !== undefined
+        ? { applicationMethodType: application_method_type }
+        : {}),
+      ...(application_method_target_type !== undefined
+        ? { applicationMethodTargetType: application_method_target_type }
+        : {}),
     })[ruleType] || []
 
   res.json({ attributes })

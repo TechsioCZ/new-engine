@@ -29,7 +29,7 @@ const getCustomerId = (req: AuthenticatedMedusaRequest) => {
 
 const findRouteCompany = async (req: AuthenticatedMedusaRequest) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const companyId = req.params.id
+  const companyId = req.params["id"]
 
   if (!companyId) {
     return
@@ -92,7 +92,7 @@ export const ensureRole =
     }
 
     const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-    const companyId = req.params.id
+    const companyId = req.params["id"]
 
     if (!companyId) {
       const {

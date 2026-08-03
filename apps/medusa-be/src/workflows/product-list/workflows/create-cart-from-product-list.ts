@@ -29,10 +29,16 @@ export const createCartFromProductListWorkflow = createWorkflow(
       ({ cartItems: items, input: workflowInput }) => ({
         country_code: workflowInput.country_code,
         customer_id: workflowInput.customer_id,
-        email: workflowInput.email,
+        ...(workflowInput.email !== undefined
+          ? { email: workflowInput.email }
+          : {}),
         items,
-        region_id: workflowInput.region_id,
-        sales_channel_id: workflowInput.sales_channel_id,
+        ...(workflowInput.region_id !== undefined
+          ? { region_id: workflowInput.region_id }
+          : {}),
+        ...(workflowInput.sales_channel_id !== undefined
+          ? { sales_channel_id: workflowInput.sales_channel_id }
+          : {}),
       })
     )
     const cart = createCartWorkflow.runAsStep({

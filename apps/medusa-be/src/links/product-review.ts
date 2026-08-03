@@ -8,7 +8,7 @@ export const ProductReviewLink = defineLink(
     linkable: ProductReviewModule.linkable.review,
     field: "product_id",
   },
-  ProductModule.linkable.product,
+  ProductModule.linkable["product"],
   {
     readOnly: true,
   }

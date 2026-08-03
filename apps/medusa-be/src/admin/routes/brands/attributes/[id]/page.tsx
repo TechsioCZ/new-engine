@@ -4,6 +4,7 @@ import {
   Button,
   Container,
   createDataTableColumnHelper,
+  type DataTableColumnDef,
   Heading,
   IconButton,
   Input,
@@ -38,7 +39,7 @@ import { useDebouncedValue } from "../../../../lib/use-debounced-value"
 const PAGE_SIZE = 20
 
 export async function loader({ params }: LoaderFunctionArgs) {
-  const id = params.id
+  const id = params["id"]
 
   if (!id) {
     return { attribute_type: undefined }
@@ -142,7 +143,7 @@ const BrandAttributeDetailPage = () => {
   const brands = data?.brands ?? []
   const count = data?.count ?? 0
   const locale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
-  const columns = [
+  const columns: DataTableColumnDef<BrandAttributeTypeBrand>[] = [
     brandColumnHelper.accessor("title", {
       header: t("columns.brand"),
       cell: ({ row }) => (

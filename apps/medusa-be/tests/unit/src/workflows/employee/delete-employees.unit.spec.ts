@@ -120,6 +120,25 @@ type MockStep = {
   ) => Promise<void>
 }
 
+const asMockStep = (candidate: unknown): MockStep => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  if (
+    !("compensate" in candidate) ||
+    typeof candidate.compensate !== "function"
+  ) {
+    throw new TypeError(
+      "Expected the mocked workflow step to expose a compensate function"
+    )
+  }
+
+  return candidate as MockStep
+}
+
 const makeCompanyService = (
   overrides: Partial<CompanyService> = {}
 ): CompanyService => ({
@@ -242,7 +261,7 @@ describe("deleteEmployeesStep", () => {
       linkService,
     })
 
-    const result = await (deleteEmployeesStep as MockStep)(
+    const result = await asMockStep(deleteEmployeesStep)(
       {
         company_id: "comp_1",
         id: ["emp_1", "emp_2"],
@@ -375,7 +394,7 @@ describe("deleteEmployeesStep", () => {
       linkService,
     })
 
-    const result = await (deleteEmployeesStep as MockStep)(
+    const result = await asMockStep(deleteEmployeesStep)(
       {
         company_id: "comp_1",
         id: "emp_1",
@@ -403,7 +422,7 @@ describe("deleteEmployeesStep", () => {
       linkService,
     })
 
-    await (deleteEmployeesStep as MockStep).compensate(
+    await asMockStep(deleteEmployeesStep).compensate(
       {
         employee_link_delete_input: {
           company: {
@@ -459,7 +478,7 @@ describe("deleteEmployeesStep", () => {
     })
 
     await expect(
-      (deleteEmployeesStep as MockStep)(
+      asMockStep(deleteEmployeesStep)(
         {
           company_id: "comp_1",
           id: "emp_2",

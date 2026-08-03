@@ -59,14 +59,14 @@ const isPaykitProviderEnabledForEnv = (
     return false
   }
 
-  return env.FEATURE_PAYKIT_ENABLED === "1"
+  return env["FEATURE_PAYKIT_ENABLED"] === "1"
 }
 
 export const buildPaykitPaymentProviders = (
   env: PaykitConfigEnv = process.env
 ): PaykitPaymentProviderConfig[] => {
   const providers: PaykitPaymentProviderConfig[] = []
-  const debug = env.PAYKIT_DEBUG === "1"
+  const debug = env["PAYKIT_DEBUG"] === "1"
 
   if (isPaykitProviderEnabledForEnv(env, "GOPAY")) {
     requirePaykitEnv(env, "PayKit GoPay", [
@@ -80,11 +80,11 @@ export const buildPaykitPaymentProviders = (
       resolve: "./src/modules/payment-paykit/services/gopay",
       id: PAYKIT_GOPAY_PROVIDER_ID,
       options: {
-        clientId: env.GOPAY_CLIENT_ID,
-        clientSecret: env.GOPAY_CLIENT_SECRET,
-        goId: env.GOPAY_GO_ID,
-        isSandbox: parseBooleanEnv(env.GOPAY_SANDBOX, true),
-        webhookUrl: env.GOPAY_WEBHOOK_URL,
+        clientId: env["GOPAY_CLIENT_ID"],
+        clientSecret: env["GOPAY_CLIENT_SECRET"],
+        goId: env["GOPAY_GO_ID"],
+        isSandbox: parseBooleanEnv(env["GOPAY_SANDBOX"], true),
+        webhookUrl: env["GOPAY_WEBHOOK_URL"],
         debug,
       },
     })
@@ -100,8 +100,8 @@ export const buildPaykitPaymentProviders = (
       resolve: "./src/modules/payment-paykit/services/stripe",
       id: PAYKIT_STRIPE_PROVIDER_ID,
       options: {
-        apiKey: env.STRIPE_API_KEY,
-        webhookSecret: env.STRIPE_WEBHOOK_SECRET,
+        apiKey: env["STRIPE_API_KEY"],
+        webhookSecret: env["STRIPE_WEBHOOK_SECRET"],
         debug,
       },
     })
@@ -117,10 +117,10 @@ export const buildPaykitPaymentProviders = (
       resolve: "./src/modules/payment-paykit/services/comgate",
       id: PAYKIT_COMGATE_PROVIDER_ID,
       options: {
-        merchant: env.COMGATE_MERCHANT,
-        secret: env.COMGATE_SECRET,
-        isSandbox: parseBooleanEnv(env.COMGATE_SANDBOX, true),
-        paymentLabel: env.COMGATE_PAYMENT_LABEL,
+        merchant: env["COMGATE_MERCHANT"],
+        secret: env["COMGATE_SECRET"],
+        isSandbox: parseBooleanEnv(env["COMGATE_SANDBOX"], true),
+        paymentLabel: env["COMGATE_PAYMENT_LABEL"],
         debug,
       },
     })

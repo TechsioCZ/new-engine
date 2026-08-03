@@ -45,17 +45,17 @@ const getErrorStatus = (error: unknown) => {
   }
 
   const record = error as Record<string, unknown>
-  const status = record.status ?? record.statusCode
+  const status = record["status"] ?? record["statusCode"]
 
   return typeof status === "number" ? status : 500
 }
 
-const getErrorMessage = (error: unknown) =>
+const describeSymmyError = (error: unknown) =>
   error instanceof Error ? error.message : "An unexpected error occurred"
 
 const getSymmyError = (error: unknown) => {
   const status = getErrorStatus(error)
-  const message = getErrorMessage(error)
+  const message = describeSymmyError(error)
 
   if (status === 400) {
     return {

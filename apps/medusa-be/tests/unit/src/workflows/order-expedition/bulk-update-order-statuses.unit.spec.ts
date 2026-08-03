@@ -1,5 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import type { OrderExpeditionDirectUpdateStatus } from "../../../../../src/workflows/order-expedition/bulk-update-order-statuses"
+
+type BulkUpdateOrderStatusesWorkflowInput = {
+  order_ids: string[]
+  target_status: OrderExpeditionDirectUpdateStatus
+}
+
+const asMockedWorkflowComposer = <TInput>(
+  workflow: unknown
+): ((input: TInput) => void) => {
+  if (typeof workflow !== "function") {
+    throw new TypeError("mocked workflow composer must be a function")
+  }
+
+  return workflow as (input: TInput) => void
+}
+
 const { mockEmitEventStep, mockUpdateOrdersStep } = vi.hoisted(() => ({
   mockEmitEventStep: vi.fn(),
   mockUpdateOrdersStep: vi.fn((input) => input),
@@ -37,7 +54,9 @@ describe("bulkUpdateOrderStatusesWorkflow", () => {
     const { bulkUpdateOrderStatusesWorkflow } =
       await import("../../../../../src/workflows/order-expedition/bulk-update-order-statuses")
 
-    bulkUpdateOrderStatusesWorkflow({
+    asMockedWorkflowComposer<BulkUpdateOrderStatusesWorkflowInput>(
+      bulkUpdateOrderStatusesWorkflow
+    )({
       order_ids: ["order_1", "order_2"],
       target_status: "draft",
     })
@@ -61,7 +80,9 @@ describe("bulkUpdateOrderStatusesWorkflow", () => {
     const { bulkUpdateOrderStatusesWorkflow } =
       await import("../../../../../src/workflows/order-expedition/bulk-update-order-statuses")
 
-    bulkUpdateOrderStatusesWorkflow({
+    asMockedWorkflowComposer<BulkUpdateOrderStatusesWorkflowInput>(
+      bulkUpdateOrderStatusesWorkflow
+    )({
       order_ids: ["order_1"],
       target_status: "requires_action",
     })

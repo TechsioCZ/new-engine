@@ -12,7 +12,7 @@ import {
   Tooltip,
   toast,
 } from "@medusajs/ui"
-import { type FormEvent, useEffect, useState } from "react"
+import { type ChangeEvent, useEffect, useState } from "react"
 
 type SymmyWebhookEndpoint = {
   url: string
@@ -35,12 +35,12 @@ const fetchJson = async <T,>(
   options?: RequestInit
 ): Promise<T> => {
   const response = await fetch(path, {
-    credentials: "include",
-    headers: {
-      "content-type": "application/json",
-      ...(options?.headers ?? {}),
-    },
     ...options,
+    credentials: "include",
+    headers: new Headers({
+      "content-type": "application/json",
+      ...Object.fromEntries(new Headers(options?.headers).entries()),
+    }),
   })
 
   if (!response.ok) {
@@ -87,7 +87,7 @@ const SymmyWebhooksSettingsPage = () => {
       }
     }
 
-    loadConfig()
+    void loadConfig()
   }, [])
 
   const updateEndpoint = (
@@ -118,9 +118,7 @@ const SymmyWebhooksSettingsPage = () => {
     }))
   }
 
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault()
-
+  const saveConfig = async () => {
     const payload = {
       is_enabled: formData.is_enabled,
       endpoints: formData.endpoints
@@ -194,7 +192,12 @@ const SymmyWebhooksSettingsPage = () => {
         </Text>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault()
+          void saveConfig()
+        }}
+      >
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -255,9 +258,15 @@ const SymmyWebhooksSettingsPage = () => {
                     <Label htmlFor={inputId}>Webhook URL</Label>
                     <Input
                       id={inputId}
-                      onChange={(event) =>
-                        updateEndpoint(index, { url: event.target.value })
-                      }
+                      onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                        const { currentTarget } = event
+                        const url =
+                          "value" in currentTarget &&
+                          typeof currentTarget.value === "string"
+                            ? currentTarget.value
+                            : ""
+                        updateEndpoint(index, { url })
+                      }}
                       placeholder="https://example.com/webhooks/symmy"
                       type="url"
                       value={endpoint.url}

@@ -36,7 +36,7 @@ export type UpsertCustomersBatchInput = {
 }
 
 export type UpsertCustomersBatchResult = {
-  email?: string
+  email?: string | undefined
   status: "created" | "updated" | "failed"
   customer_id?: string
   error?: string

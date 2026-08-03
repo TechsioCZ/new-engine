@@ -127,7 +127,7 @@ const Companies = () => {
           <Table.Cell className="h-6 w-6 items-center justify-center">
             <Avatar
               fallback={displayName.charAt(0)}
-              src={company.logo_url || undefined}
+              src={company.logo_url ?? ""}
             />
           </Table.Cell>
           <Table.Cell>{displayName}</Table.Cell>

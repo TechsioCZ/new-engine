@@ -23,7 +23,7 @@ type PaymentStatus = "not_paid" | "awaiting" | "requires_action"
 const BATCH_SIZE = 100
 const DEFAULT_MAX_ORDERS = 500
 const TRAILING_SLASH_REGEX = /\/$/
-export const PAYMENT_REMINDER_MIN_ORDER_AGE_MS = 24 * 60 * 60 * 1000
+const PAYMENT_REMINDER_MIN_ORDER_AGE_MS = 24 * 60 * 60 * 1000
 
 const UNPAID_PAYMENT_STATUS_VALUES: PaymentStatus[] = [
   "not_paid",
@@ -53,7 +53,7 @@ const ORDER_FIELDS = [
 ]
 
 export function getStorefrontUrl() {
-  return process.env.STOREFRONT_URL ?? "http://localhost:8000"
+  return process.env["STOREFRONT_URL"] ?? "http://localhost:8000"
 }
 
 export function getOrderDisplayId(order: PaymentReminderOrder) {
@@ -88,7 +88,7 @@ export function formatTotal(order: PaymentReminderOrder) {
   }).format(normalizedTotal)
 }
 
-export function isUnpaidOrder(order: PaymentReminderOrder) {
+function isUnpaidOrder(order: PaymentReminderOrder) {
   if (!order.email) {
     return false
   }
@@ -127,7 +127,10 @@ export function isPaymentReminderReadyOrder(
   )
 }
 
-export async function fetchOrderById(query: Query, id: string) {
+export async function fetchOrderById(
+  query: Query,
+  id: string
+): Promise<PaymentReminderOrder | undefined> {
   const { data } = await query.graph({
     entity: "order",
     fields: ORDER_FIELDS,

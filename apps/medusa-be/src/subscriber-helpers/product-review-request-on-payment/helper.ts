@@ -55,13 +55,13 @@ function isOrderPaymentCollectionQueryResult(
   }
 
   return (
-    typeof value.order_id === "string" ||
-    (isRecord(value.order) && typeof value.order.id === "string")
+    typeof value["order_id"] === "string" ||
+    (isRecord(value["order"]) && typeof value["order"]["id"] === "string")
   )
 }
 
 function isPaymentQueryResult(value: unknown): value is PaymentQueryResult {
-  return isRecord(value) && typeof value.payment_collection_id === "string"
+  return isRecord(value) && typeof value["payment_collection_id"] === "string"
 }
 
 function getOrderIdFromEventData(data: PaymentPaidEvent): string | undefined {

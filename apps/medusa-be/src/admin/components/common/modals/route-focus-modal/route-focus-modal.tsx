@@ -67,13 +67,13 @@ const Content = ({ stackedModalOpen, children }: ContentProps) => {
       className={clx({
         "!bg-ui-bg-disabled !inset-x-5 !inset-y-3": stackedModalOpen,
       })}
-      onEscapeKeyDown={
-        shouldPreventClose
-          ? (e) => {
+      {...(shouldPreventClose
+        ? {
+            onEscapeKeyDown: (e: globalThis.KeyboardEvent) => {
               e.preventDefault()
-            }
-          : undefined
-      }
+            },
+          }
+        : {})}
     >
       {children}
     </FocusModal.Content>

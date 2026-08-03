@@ -65,6 +65,16 @@ type MockStep<TInput> = (
   payload: unknown
 }>
 
+const asMockStep = <TInput>(candidate: unknown): MockStep<TInput> => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  return candidate as MockStep<TInput>
+}
+
 const makeCustomerService = (
   overrides: Partial<CustomerService> = {}
 ): CustomerService => ({
@@ -164,12 +174,13 @@ describe("customer-group sync steps", () => {
       })
     const container = makeContainer({ customerService, graph })
 
-    const result = await (
-      addEmployeeToCustomerGroupStep as MockStep<{
-        customer_id: string
-        employee_id: string
-      }>
-    )({ customer_id: "cus_1", employee_id: "emp_1" }, { container })
+    const result = await asMockStep<{
+      customer_id: string
+      employee_id: string
+    }>(addEmployeeToCustomerGroupStep)(
+      { customer_id: "cus_1", employee_id: "emp_1" },
+      { container }
+    )
 
     expect(customerService.addCustomerToGroup).toHaveBeenCalledWith({
       customer_group_id: "cgrp_1",
@@ -202,12 +213,13 @@ describe("customer-group sync steps", () => {
       .mockResolvedValueOnce({ data: [] })
     const container = makeContainer({ customerService, linkService, graph })
 
-    const result = await (
-      setCompanyCustomerGroupStep as MockStep<{
-        company_id: string
-        group_id: string
-      }>
-    )({ company_id: "comp_1", group_id: "cgrp_new" }, { container })
+    const result = await asMockStep<{
+      company_id: string
+      group_id: string
+    }>(setCompanyCustomerGroupStep)(
+      { company_id: "comp_1", group_id: "cgrp_new" },
+      { container }
+    )
 
     expect(linkService.dismiss).toHaveBeenCalledWith({
       company: { company_id: "comp_1" },
@@ -267,12 +279,13 @@ describe("customer-group sync steps", () => {
       graph,
     })
 
-    await (
-      setCompanyCustomerGroupStep as MockStep<{
-        company_id: string
-        group_id: string
-      }>
-    )({ company_id: "comp_1", group_id: "cgrp_new" }, { container })
+    await asMockStep<{
+      company_id: string
+      group_id: string
+    }>(setCompanyCustomerGroupStep)(
+      { company_id: "comp_1", group_id: "cgrp_new" },
+      { container }
+    )
 
     expect(graph).toHaveBeenNthCalledWith(2, {
       entity: COMPANY_CUSTOMER_GROUP_ENTRY_POINT,
@@ -327,12 +340,13 @@ describe("customer-group sync steps", () => {
     })
 
     await expect(
-      (
-        setCompanyCustomerGroupStep as MockStep<{
-          company_id: string
-          group_id: string
-        }>
-      )({ company_id: "comp_1", group_id: "cgrp_new" }, { container })
+      asMockStep<{
+        company_id: string
+        group_id: string
+      }>(setCompanyCustomerGroupStep)(
+        { company_id: "comp_1", group_id: "cgrp_new" },
+        { container }
+      )
     ).rejects.toThrow(MedusaError)
 
     expect(linkService.create).not.toHaveBeenCalled()
@@ -356,9 +370,10 @@ describe("customer-group sync steps", () => {
     })
     const container = makeContainer({ customerService, linkService, graph })
 
-    const result = await (
-      removeCompanyCustomerGroupLinkStep as MockStep<string>
-    )("comp_1", { container })
+    const result = await asMockStep<string>(removeCompanyCustomerGroupLinkStep)(
+      "comp_1",
+      { container }
+    )
 
     expect(customerService.removeCustomerFromGroup).toHaveBeenCalledWith([
       { customer_group_id: "cgrp_1", customer_id: "cus_1" },
@@ -394,12 +409,13 @@ describe("customer-group sync steps", () => {
     })
     const container = makeContainer({ customerService, linkService, graph })
 
-    const result = await (
-      removeCompanyCustomerGroupLinkStep as MockStep<{
-        company_id: string
-        preserve_link: boolean
-      }>
-    )({ company_id: "comp_1", preserve_link: true }, { container })
+    const result = await asMockStep<{
+      company_id: string
+      preserve_link: boolean
+    }>(removeCompanyCustomerGroupLinkStep)(
+      { company_id: "comp_1", preserve_link: true },
+      { container }
+    )
 
     expect(customerService.removeCustomerFromGroup).toHaveBeenCalledWith([
       { customer_group_id: "cgrp_1", customer_id: "cus_1" },
@@ -430,12 +446,10 @@ describe("customer-group sync steps", () => {
     const container = makeContainer({ customerService, linkService, graph })
 
     await expect(
-      (
-        removeCompanyCustomerGroupLinkStep as MockStep<{
-          company_id: string
-          expected_group_id: string
-        }>
-      )(
+      asMockStep<{
+        company_id: string
+        expected_group_id: string
+      }>(removeCompanyCustomerGroupLinkStep)(
         { company_id: "comp_1", expected_group_id: "cgrp_requested" },
         { container }
       )
@@ -458,7 +472,7 @@ describe("customer-group sync steps", () => {
     const container = makeContainer({ companyService, graph })
 
     await expect(
-      (validateCompanyActiveStep as MockStep<string>)("comp_deleted", {
+      asMockStep<string>(validateCompanyActiveStep)("comp_deleted", {
         container,
       })
     ).rejects.toThrow(MedusaError)
@@ -534,12 +548,13 @@ describe("customer-group sync steps", () => {
       linkService,
     })
 
-    const result = await (
-      prepareEmployeeCustomerLinkStep as MockStep<{
-        company_id: string
-        customer_id: string
-      }>
-    )({ company_id: "comp_1", customer_id: "cus_1" }, { container })
+    const result = await asMockStep<{
+      company_id: string
+      customer_id: string
+    }>(prepareEmployeeCustomerLinkStep)(
+      { company_id: "comp_1", customer_id: "cus_1" },
+      { container }
+    )
 
     expect(graph).toHaveBeenNthCalledWith(1, {
       entity: "employee_customer",
@@ -632,12 +647,13 @@ describe("customer-group sync steps", () => {
     })
 
     await expect(
-      (
-        prepareEmployeeCustomerLinkStep as MockStep<{
-          company_id: string
-          customer_id: string
-        }>
-      )({ company_id: "comp_1", customer_id: "cus_1" }, { container })
+      asMockStep<{
+        company_id: string
+        customer_id: string
+      }>(prepareEmployeeCustomerLinkStep)(
+        { company_id: "comp_1", customer_id: "cus_1" },
+        { container }
+      )
     ).rejects.toThrow(MedusaError)
 
     expect(linkService.dismiss).not.toHaveBeenCalled()
@@ -715,12 +731,13 @@ describe("customer-group sync steps", () => {
       linkService,
     })
 
-    await (
-      prepareEmployeeCustomerLinkStep as MockStep<{
-        company_id: string
-        customer_id: string
-      }>
-    )({ company_id: "comp_1", customer_id: "cus_1" }, { container })
+    await asMockStep<{
+      company_id: string
+      customer_id: string
+    }>(prepareEmployeeCustomerLinkStep)(
+      { company_id: "comp_1", customer_id: "cus_1" },
+      { container }
+    )
 
     expect(linkService.dismiss).toHaveBeenCalledWith({
       company: { employee_id: "emp_deleted" },
@@ -788,12 +805,13 @@ describe("customer-group sync steps", () => {
       linkService,
     })
 
-    await (
-      prepareEmployeeCustomerLinkStep as MockStep<{
-        company_id: string
-        customer_id: string
-      }>
-    )({ company_id: "comp_1", customer_id: "cus_1" }, { container })
+    await asMockStep<{
+      company_id: string
+      customer_id: string
+    }>(prepareEmployeeCustomerLinkStep)(
+      { company_id: "comp_1", customer_id: "cus_1" },
+      { container }
+    )
 
     expect(linkService.dismiss).not.toHaveBeenCalled()
     expect(customerService.removeCustomerFromGroup).not.toHaveBeenCalled()
@@ -840,14 +858,12 @@ describe("customer-group sync steps", () => {
       linkService,
     })
 
-    const result = await (
-      createOrRestoreEmployeeStep as MockStep<{
-        company_id: string
-        customer_id: string
-        is_admin: boolean
-        spending_limit: number
-      }>
-    )(
+    const result = await asMockStep<{
+      company_id: string
+      customer_id: string
+      is_admin: boolean
+      spending_limit: number
+    }>(createOrRestoreEmployeeStep)(
       {
         company_id: "comp_1",
         customer_id: "cus_1",
@@ -935,14 +951,12 @@ describe("customer-group sync steps", () => {
       linkService,
     })
 
-    const result = await (
-      createOrRestoreEmployeeStep as MockStep<{
-        company_id: string
-        customer_id: string
-        is_admin: boolean
-        spending_limit: number
-      }>
-    )(
+    const result = await asMockStep<{
+      company_id: string
+      customer_id: string
+      is_admin: boolean
+      spending_limit: number
+    }>(createOrRestoreEmployeeStep)(
       {
         company_id: "comp_1",
         customer_id: "cus_1",
@@ -1007,14 +1021,12 @@ describe("customer-group sync steps", () => {
       linkService,
     })
 
-    const result = await (
-      createOrRestoreEmployeeStep as MockStep<{
-        company_id: string
-        customer_id: string
-        is_admin: boolean
-        spending_limit: number
-      }>
-    )(
+    const result = await asMockStep<{
+      company_id: string
+      customer_id: string
+      is_admin: boolean
+      spending_limit: number
+    }>(createOrRestoreEmployeeStep)(
       {
         company_id: "comp_1",
         customer_id: "cus_1",

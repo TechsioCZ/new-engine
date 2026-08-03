@@ -9,7 +9,7 @@ import {
 } from "./utils"
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const id = requireCommercialValuesOrderId(req.params.id)
+  const id = requireCommercialValuesOrderId(req.params["id"])
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { activeOrderChange, order } = await fetchCommercialValuesSnapshotOrder(
     req.scope,

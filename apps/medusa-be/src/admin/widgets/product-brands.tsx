@@ -7,6 +7,7 @@ import {
   Button,
   Container,
   createDataTableColumnHelper,
+  type DataTableColumnDef,
   Drawer,
   Heading,
   Input,
@@ -254,7 +255,7 @@ const BrandAssignmentDrawer = ({
   open,
   productId,
 }: {
-  currentBrand?: Brand
+  currentBrand?: Brand | undefined
   onOpenChange: (open: boolean) => void
   open: boolean
   productId: string
@@ -358,7 +359,7 @@ const BrandAssignmentDrawer = ({
 
     mutation.mutate(selectedId)
   }
-  const columns = [
+  const columns: DataTableColumnDef<Brand>[] = [
     brandColumnHelper.accessor("title", {
       header: t("columns.brand"),
       cell: ({ row }) => (

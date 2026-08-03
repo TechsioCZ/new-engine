@@ -29,6 +29,8 @@ const createMockRequest = ({
         if (key === ContainerRegistrationKeys.QUERY) {
           return { graph }
         }
+
+        throw new Error(`Unexpected container key: ${key}`)
       }),
     },
     validatedBody,

@@ -29,7 +29,7 @@ export async function GET(
     return
   }
 
-  if (process.env.FEATURE_PPL_ENABLED !== "1") {
+  if (process.env["FEATURE_PPL_ENABLED"] !== "1") {
     res.status(503).json({
       error: "PPL service is not enabled",
     })

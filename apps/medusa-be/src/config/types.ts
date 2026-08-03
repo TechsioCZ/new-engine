@@ -18,6 +18,6 @@ export type MedusaProjectConfig = NonNullable<
   InputConfigWithArrayModules["projectConfig"]
 >
 
-export function assertNever(value: never): never {
-  throw new Error(`Unhandled config value: ${value}`)
+export function assertUnhandledConfigValue(value: never): never {
+  throw new Error("Unhandled config value", { cause: value })
 }

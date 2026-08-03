@@ -3,6 +3,7 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 
+import { definedProperties } from "../../../../../utils/defined-properties"
 import { createProductListItemWorkflow } from "../../../../../workflows/product-list/workflows/create-product-list-item"
 import {
   toProductListItemResponse,
@@ -19,16 +20,11 @@ export async function POST(
 ) {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   const { result: item } = await createProductListItemWorkflow(req.scope).run({
-    input: {
+    input: definedProperties({
+      ...req.validatedBody,
       customer_id: req.auth_context.actor_id,
       list_id: listId,
-      metadata: req.validatedBody.metadata,
-      note: req.validatedBody.note,
-      product_id: req.validatedBody.product_id,
-      quantity: req.validatedBody.quantity,
-      sort_order: req.validatedBody.sort_order,
-      variant_id: req.validatedBody.variant_id,
-    },
+    }),
   })
   const [itemWithSelection] = await withProductListItemSelections(req.scope, [
     item,

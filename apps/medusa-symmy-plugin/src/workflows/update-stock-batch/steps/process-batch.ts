@@ -17,7 +17,9 @@ export const symmyProcessStockBatchStep = createStep(
     const mapper = stockBatchClientMapperHelper
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
-    const results: UpdateStockBatchResult[] = new Array(input.updates.length)
+    const results = Array.from<UpdateStockBatchResult>({
+      length: input.updates.length,
+    })
     const maps = await client.preload(input)
     const resolved = mapper.resolveUpdates(input.updates, maps, results)
     const existingLevels = await client.loadExistingLevels(resolved)

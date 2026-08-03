@@ -127,7 +127,7 @@ export const JsonViewSection = ({ data }: JsonViewSectionProps) => {
                   </Primitive.Colon>
                   <Primitive.Copied
                     render={({ style }, { value }) => (
-                      <Copied style={style} value={value} />
+                      <Copied {...(style ? { style } : {})} value={value} />
                     )}
                   />
                 </Primitive>
@@ -148,15 +148,15 @@ type CopiedProps = {
 const Copied = ({ style, value }: CopiedProps) => {
   const [copied, setCopied] = useState(false)
 
-  const handler = (e: MouseEvent<HTMLButtonElement>) => {
+  const handler = async (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation()
     setCopied(true)
 
     if (typeof value === "string") {
-      navigator.clipboard.writeText(value)
+      await navigator.clipboard.writeText(value)
     } else {
       const json = JSON.stringify(value, null, 2)
-      navigator.clipboard.writeText(json)
+      await navigator.clipboard.writeText(json)
     }
 
     setTimeout(() => {

@@ -4,6 +4,7 @@ import type {
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
+import { definedProperties } from "../../../../utils/defined-properties"
 import { requirePathParam } from "../../../../utils/path-params"
 import {
   deleteCompaniesWorkflow,
@@ -19,7 +20,7 @@ export const GET = async (
   res: MedusaResponse
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const id = requirePathParam(req.params.id, "Company id")
+  const id = requirePathParam(req.params["id"], "Company id")
 
   const { data } = await query.graph(
     {
@@ -37,17 +38,17 @@ export const POST = async (
   req: AuthenticatedMedusaRequest<StoreUpdateCompanyType>,
   res: MedusaResponse
 ) => {
-  const id = requirePathParam(req.params.id, "Company id")
+  const id = requirePathParam(req.params["id"], "Company id")
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   await updateCompaniesWorkflow(req.scope).run({
     input: {
       id,
-      update: {
+      update: definedProperties({
         ...req.validatedBody,
         spending_limit_reset_frequency:
           req.validatedBody.spending_limit_reset_frequency ?? undefined,
-      },
+      }),
     },
   })
 
@@ -69,7 +70,7 @@ export const DELETE = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) => {
-  const id = requirePathParam(req.params.id, "Company id")
+  const id = requirePathParam(req.params["id"], "Company id")
 
   await deleteCompaniesWorkflow(req.scope).run({
     input: { id },

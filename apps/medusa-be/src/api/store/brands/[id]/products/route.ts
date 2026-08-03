@@ -15,7 +15,7 @@ export async function GET(
 ) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
-  const brandId = req.params.id ?? "-1"
+  const brandId = req.params["id"] ?? "-1"
   const { data: brands } = await query.graph({
     entity: "brand",
     fields: ["id"],

@@ -4,6 +4,7 @@ import type {
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
+import { definedProperties } from "../../../utils/defined-properties"
 import { createCompaniesWorkflow } from "../../../workflows/company/workflows"
 import type {
   AdminCreateCompanyType,
@@ -51,7 +52,7 @@ const buildCompanyListFilters = (
   if (searchTerm) {
     const escapedSearchTerm = escapeLikePattern(searchTerm)
 
-    filters.$or = [
+    filters["$or"] = [
       { name: { $ilike: `%${escapedSearchTerm}%` } },
       { email: { $ilike: `%${escapedSearchTerm}%` } },
       { phone: { $ilike: `%${escapedSearchTerm}%` } },
@@ -59,7 +60,7 @@ const buildCompanyListFilters = (
   }
 
   if (status === "deleted") {
-    filters.deleted_at = { $ne: null }
+    filters["deleted_at"] = { $ne: null }
   }
 
   return {
@@ -111,8 +112,8 @@ export const POST = async (
     req.scope
   ).run({
     input: Array.isArray(req.validatedBody)
-      ? req.validatedBody.map((company) => ({ ...company }))
-      : [{ ...req.validatedBody }],
+      ? req.validatedBody.map((company) => definedProperties(company))
+      : [definedProperties(req.validatedBody)],
   })
 
   const { data: companies } = await query.graph(

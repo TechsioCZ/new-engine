@@ -3,6 +3,7 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 
+import { definedProperties } from "../../../../utils/defined-properties"
 import { createCustomerProductListWorkflow } from "../../../../workflows/product-list/workflows/create-customer-product-list"
 import { toProductListResponse } from "../utils"
 import type { StoreCreateFavoriteProductListSchemaType } from "../validators"
@@ -14,7 +15,7 @@ export async function POST(
   const { result } = await createCustomerProductListWorkflow(req.scope).run({
     input: {
       customer_id: req.auth_context.actor_id,
-      data: req.validatedBody,
+      data: definedProperties(req.validatedBody),
       type: "favorite",
     },
   })

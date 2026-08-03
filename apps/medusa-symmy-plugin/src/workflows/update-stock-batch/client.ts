@@ -94,8 +94,8 @@ export class StockBatchClient {
       },
     })
     return {
-      created: (result?.created ?? []) as LevelDTO[],
-      updated: (result?.updated ?? []) as LevelDTO[],
+      created: result?.created ?? [],
+      updated: result?.updated ?? [],
     }
   }
 

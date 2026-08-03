@@ -29,7 +29,7 @@ export default async function priceListPricesUpdateRequestedHandler({
       ).run({
         input,
       })
-      return result as UpdatePriceListPricesBatchOutput
+      return result
     },
     getCompletionStats: (output) => ({
       processed: output.results.length,

@@ -39,6 +39,16 @@ type MockStep = (
   payload: unknown
 }>
 
+const asMockStep = (candidate: unknown): MockStep => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  return candidate as MockStep
+}
+
 const makeContainer = (companyService: MockCompanyService) => ({
   resolve: vi.fn((key: string) => {
     if (key === ContainerRegistrationKeys.LOGGER) {
@@ -75,7 +85,7 @@ describe("updateCompaniesStep", () => {
     }
     const container = makeContainer(companyService)
 
-    const result = await (updateCompaniesStep as MockStep)(
+    const result = await asMockStep(updateCompaniesStep)(
       {
         id: "comp_route",
         update: {

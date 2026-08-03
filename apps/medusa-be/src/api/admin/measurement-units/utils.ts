@@ -213,9 +213,9 @@ const listMeasurementUnitAssignments = async ({
   }
 
   if (status === "active") {
-    filters.deleted_at = null
+    filters["deleted_at"] = null
   } else if (status === "deleted") {
-    filters.deleted_at = { $ne: null }
+    filters["deleted_at"] = { $ne: null }
   }
 
   const service = getMeasurementUnitService(scope)
@@ -273,8 +273,8 @@ export const listMeasurementUnitAssignedProducts = async ({
 }: {
   limit: number
   offset: number
-  orderBy?: string
-  q?: string
+  orderBy?: string | undefined
+  q?: string | undefined
   scope: MedusaContainer
   status: MeasurementUnitProductListStatus
   unitId: string

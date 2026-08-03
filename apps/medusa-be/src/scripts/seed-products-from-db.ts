@@ -368,9 +368,9 @@ async function ensureCategoryMap(
     handle: category.slug,
     is_active: true,
     is_internal: false,
-    metadata: category.image_url
-      ? { image_url: category.image_url }
-      : undefined,
+    ...(category.image_url
+      ? { metadata: { image_url: category.image_url } }
+      : {}),
   }))
 
   let categoryResult: ProductCategoryDTO[] = []

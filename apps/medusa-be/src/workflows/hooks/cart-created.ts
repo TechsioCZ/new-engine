@@ -18,13 +18,13 @@ createCartWorkflow.hooks.cartCreated(
 
     const cartInputdata = cart as CartDTO
 
-    if (!cartInputdata.metadata?.company_id) {
+    if (!cartInputdata.metadata?.["company_id"]) {
       return new StepResponse(undefined, null)
     }
 
     await link.create({
       [COMPANY_MODULE]: {
-        company_id: cartInputdata.metadata?.company_id,
+        company_id: cartInputdata.metadata?.["company_id"],
       },
       [Modules.CART]: {
         cart_id: cartInputdata.id,
@@ -33,7 +33,7 @@ createCartWorkflow.hooks.cartCreated(
 
     return new StepResponse(undefined, {
       cart_id: cartInputdata.id,
-      company_id: cartInputdata.metadata?.company_id as string,
+      company_id: cartInputdata.metadata?.["company_id"] as string,
     })
   },
   async (

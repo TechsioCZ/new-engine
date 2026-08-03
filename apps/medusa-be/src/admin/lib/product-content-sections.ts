@@ -34,13 +34,15 @@ export const PRODUCT_CONTENT_SECTIONS: ProductContentSection[] = [
 export const CONTENT_SECTIONS_METADATA_KEY = "content_sections"
 export const CONTENT_SECTIONS_MAP_METADATA_KEY = "content_sections_map"
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isProductMetadataRecord = (
+  value: unknown
+): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
 const getMetadataValue = (
   metadata: AdminProduct["metadata"] | undefined,
   key: string
-) => (isRecord(metadata) ? metadata[key] : undefined)
+) => (isProductMetadataRecord(metadata) ? metadata[key] : undefined)
 
 const getMetadataRecord = (
   metadata: AdminProduct["metadata"] | undefined,
@@ -48,7 +50,7 @@ const getMetadataRecord = (
 ) => {
   const value = getMetadataValue(metadata, key)
 
-  return isRecord(value) ? value : null
+  return isProductMetadataRecord(value) ? value : null
 }
 
 const getContentSectionsListHtml = (
@@ -62,16 +64,16 @@ const getContentSectionsListHtml = (
   }
 
   const section = value.find((item) => {
-    const sectionRecord = isRecord(item) ? item : null
+    const sectionRecord = isProductMetadataRecord(item) ? item : null
 
-    return sectionRecord?.key === key
+    return sectionRecord?.["key"] === key
   })
 
-  if (!isRecord(section)) {
+  if (!isProductMetadataRecord(section)) {
     return ""
   }
 
-  const html = section.html
+  const html = section["html"]
 
   return typeof html === "string" ? html : ""
 }

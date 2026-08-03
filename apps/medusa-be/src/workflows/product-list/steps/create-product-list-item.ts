@@ -53,10 +53,12 @@ export const createProductListItemStep = createStep(
     const item = await service.createProductListItemForList({
       list_id: input.list_id,
       list_type: listType,
-      metadata: input.metadata,
-      note: input.note,
-      quantity: input.quantity,
-      sort_order: input.sort_order,
+      ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
+      ...(input.note !== undefined ? { note: input.note } : {}),
+      ...(input.quantity !== undefined ? { quantity: input.quantity } : {}),
+      ...(input.sort_order !== undefined
+        ? { sort_order: input.sort_order }
+        : {}),
     })
 
     return new StepResponse<CreatedProductListItemResult, CompensationInput>(

@@ -22,7 +22,7 @@ export interface ModuleApprovalSettingsFilters extends BaseFilterable<ModuleAppr
   company_id?: string | string[]
 }
 
-export interface ModuleApprovalFilters extends BaseFilterable<ModuleApprovalFilters> {
+interface ModuleApprovalFilters extends BaseFilterable<ModuleApprovalFilters> {
   id?: string | string[]
   cart_id?: string | string[]
 }

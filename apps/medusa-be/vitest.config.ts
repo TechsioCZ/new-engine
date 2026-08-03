@@ -9,7 +9,7 @@ import { defineConfig } from "vitest/config"
 // import.meta.dirname is not valid here even though Biome can suggest it.
 // biome-ignore lint/correctness/noGlobalDirnameFilename: backend tsconfig emits this file as CommonJS.
 const projectRoot = __dirname
-const testType = process.env.TEST_TYPE ?? "unit"
+const testType = process.env["TEST_TYPE"] ?? "unit"
 const isHttpIntegration = testType === "integration:http"
 const isModuleIntegration = testType === "integration:modules"
 const isHttpE2E = testType === "e2e:http"

@@ -81,7 +81,3 @@ export type ModuleCreateEmployee = {
 export interface ModuleUpdateEmployee extends Partial<ModuleEmployee> {
   id: string
 }
-
-export type ModuleDeleteEmployee = {
-  id: string
-}

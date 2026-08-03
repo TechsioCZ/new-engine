@@ -25,7 +25,10 @@ export const StringFilter = ({
   const { key, label } = filter
 
   const { removeFilter } = useDataTableFilterContext()
-  const selectedParams = useSelectedParams({ param: key, prefix })
+  const selectedParams = useSelectedParams({
+    param: key,
+    ...(prefix ? { prefix } : {}),
+  })
 
   const query = selectedParams.get()
 
@@ -75,14 +78,14 @@ export const StringFilter = ({
   }
 
   return (
-    <PopoverRoot modal onOpenChange={handleOpenChange} open={open}>
+    <PopoverRoot modal onOpenChange={handleOpenChange} open={open ?? false}>
       <FilterChip
         hadPreviousValue={!!previousValue}
         hasOperator
         label={label}
         onRemove={handleRemove}
-        readonly={readonly}
-        value={query?.[0]}
+        readonly={readonly ?? false}
+        value={query?.[0] ?? ""}
       />
       {!readonly && (
         <PopoverPortal>

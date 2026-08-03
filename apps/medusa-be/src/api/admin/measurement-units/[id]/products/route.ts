@@ -10,7 +10,7 @@ export async function GET(
   req: MedusaRequest<unknown, AdminGetMeasurementUnitProductsSchemaType>,
   res: MedusaResponse
 ) {
-  const unitId = req.params.id ?? ""
+  const unitId = req.params["id"] ?? ""
 
   await retrieveMeasurementUnitOrThrow(req.scope, unitId, { withDeleted: true })
 

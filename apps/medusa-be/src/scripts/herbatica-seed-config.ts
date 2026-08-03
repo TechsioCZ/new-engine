@@ -143,14 +143,12 @@ export const HERBATICA_DEFAULT_REGIONS = [
     name: "Czechia",
     currencyCode: "czk",
     countries: ["cz"],
-    paymentProviders: undefined,
     isTaxInclusive: true,
   },
   {
     name: "Europe",
     currencyCode: "eur",
     countries: HERBATICA_COUNTRIES.filter((country) => country !== "cz"),
-    paymentProviders: undefined,
     isTaxInclusive: true,
   },
 ] satisfies SeedDatabaseWorkflowInput["regions"]

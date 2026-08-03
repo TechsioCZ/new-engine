@@ -74,7 +74,9 @@ function isReviewRequestOrder(value: unknown): value is ReviewRequestOrder {
 
   const record = value as Record<string, unknown>
 
-  return typeof record.id === "string" && typeof record.display_id === "number"
+  return (
+    typeof record["id"] === "string" && typeof record["display_id"] === "number"
+  )
 }
 
 async function retrieveOrderForReviewRequest(

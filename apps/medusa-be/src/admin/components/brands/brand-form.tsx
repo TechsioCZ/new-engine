@@ -54,7 +54,7 @@ export type BrandFormState = {
   title: string
 }
 
-type BrandFormErrors = Partial<Record<keyof BrandFormState, string>>
+type BrandFormErrors = Partial<Record<keyof BrandFormState, string | undefined>>
 
 const emptyAttribute = (
   attributeTypes: BrandAttributeType[] = [],

@@ -37,6 +37,6 @@ describe("store company middlewares", () => {
 
     expect(deleteEmployeeRoute).toBeDefined()
     expect(deleteEmployeeRoute?.middlewares).toHaveLength(1)
-    expect(deleteEmployeeRoute?.middlewares[0]).toBeTypeOf("function")
+    expect(deleteEmployeeRoute?.middlewares?.[0]).toBeTypeOf("function")
   })
 })

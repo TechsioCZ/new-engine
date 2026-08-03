@@ -152,22 +152,8 @@ export class OrderPaymentQr {
 
 export const orderPaymentQr = new OrderPaymentQr()
 
-export function buildOrderPaymentQrSpayd(
-  order: OrderPaymentQrOrder,
-  iban: string | null | undefined
-) {
-  return orderPaymentQr.buildSpayd(order, iban)
-}
-
 export function buildPaymentQrSpayd(payment: PaymentQrPaymentData) {
   return orderPaymentQr.buildPaymentSpayd(payment)
-}
-
-export function buildOrderPaymentQrPdfCommands(
-  spayd: string | null | undefined,
-  options: PaymentQrPdfCommandOptions
-): PaymentQrPdfCommand[] {
-  return orderPaymentQr.buildPdfCommands(spayd, options)
 }
 
 function formatSpaydAmount(value: OrderPaymentQrOrder["total"]) {
@@ -219,8 +205,10 @@ function escapeSpaydValue(value: string) {
     .slice(0, 60)
 }
 
-function ascii(value: unknown) {
-  return String(value ?? "")
+function ascii(value: boolean | number | string | null | undefined) {
+  const text = value === null || value === undefined ? "" : String(value)
+
+  return text
     .replace(/\u00a0/g, " ")
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")

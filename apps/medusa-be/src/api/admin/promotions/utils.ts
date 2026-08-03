@@ -11,7 +11,11 @@ import type {
   RuleValueOption,
 } from "./types"
 
-export const validateRuleType = medusaValidateRuleType
+export function validateRuleType(
+  ruleType: string
+): asserts ruleType is RuleType {
+  medusaValidateRuleType(ruleType)
+}
 
 export const escapeLikePattern = (str: string) =>
   str.replace(/[%_\\]/g, (char) => `\\${char}`)

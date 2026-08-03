@@ -51,7 +51,7 @@ const retrieveAttributeType = async (req: AuthenticatedMedusaRequest) => {
   const [attributeType] = await getBrandService(
     req.scope
   ).listBrandAttributeTypes(
-    { id: req.params.id ?? "" },
+    { id: req.params["id"] ?? "" },
     {
       take: 1,
       withDeleted: true,
@@ -61,7 +61,7 @@ const retrieveAttributeType = async (req: AuthenticatedMedusaRequest) => {
   if (!attributeType) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Brand attribute type with id "${req.params.id}" was not found`
+      `Brand attribute type with id "${req.params["id"]}" was not found`
     )
   }
 
@@ -72,7 +72,7 @@ export async function DELETE(
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) {
-  const id = req.params.id ?? ""
+  const id = req.params["id"] ?? ""
   await deleteBrandAttributeTypesWorkflow(req.scope).run({
     input: {
       ids: [id],
@@ -167,7 +167,7 @@ export async function POST(
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) {
-  const id = req.params.id ?? ""
+  const id = req.params["id"] ?? ""
   await restoreBrandAttributeTypesWorkflow(req.scope).run({
     input: {
       ids: [id],

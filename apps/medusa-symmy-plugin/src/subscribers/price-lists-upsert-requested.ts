@@ -24,7 +24,7 @@ export default async function priceListsUpsertRequestedHandler({
       const { result } = await upsertPriceListsBatchWorkflow(container).run({
         input,
       })
-      return result as UpsertPriceListsBatchOutput
+      return result
     },
     getCompletionStats: (output) => ({
       processed: output.processed,

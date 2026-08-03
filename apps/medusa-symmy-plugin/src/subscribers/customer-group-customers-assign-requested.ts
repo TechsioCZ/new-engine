@@ -29,7 +29,7 @@ export default async function customerGroupCustomersAssignRequestedHandler({
       ).run({
         input,
       })
-      return result as AssignCustomersToGroupBatchOutput
+      return result
     },
     getCompletionStats: (output) => ({
       processed: output.assigned,

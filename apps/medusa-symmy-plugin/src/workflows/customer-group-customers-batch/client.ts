@@ -143,7 +143,7 @@ export class CustomerGroupCustomersBatchClient {
     }
     const { data } = await this.query.graph({
       entity: "customer",
-      fields: CUSTOMER_FIELDS as unknown as string[],
+      fields: Array.from(CUSTOMER_FIELDS),
       filters,
     })
     return (data ?? []) as ExistingCustomer[]

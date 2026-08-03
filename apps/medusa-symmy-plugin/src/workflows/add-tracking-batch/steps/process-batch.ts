@@ -32,7 +32,7 @@ const processShipmentForBatch = async ({
   shipment,
 }: {
   client: TrackingBatchClient
-  createdBy?: string
+  createdBy?: string | undefined
   logger: Logger
   orderIndex: TrackingOrderIndex
   shipment: TrackingShipmentInput

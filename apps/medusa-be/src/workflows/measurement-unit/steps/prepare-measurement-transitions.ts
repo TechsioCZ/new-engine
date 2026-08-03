@@ -43,10 +43,10 @@ type ProductVariantMeasurementLinkRecord = ProductVariantMeasurementLinkIds & {
 }
 
 const hasValidDeletedAt = (record: Record<string, unknown>) =>
-  record.deleted_at === undefined ||
-  record.deleted_at === null ||
-  typeof record.deleted_at === "string" ||
-  record.deleted_at instanceof Date
+  record["deleted_at"] === undefined ||
+  record["deleted_at"] === null ||
+  typeof record["deleted_at"] === "string" ||
+  record["deleted_at"] instanceof Date
 
 const isProductMeasurementLinkRecord = (
   value: unknown
@@ -58,8 +58,8 @@ const isProductMeasurementLinkRecord = (
   const record = value as Record<string, unknown>
 
   return (
-    typeof record.product_id === "string" &&
-    typeof record.product_measurement_id === "string" &&
+    typeof record["product_id"] === "string" &&
+    typeof record["product_measurement_id"] === "string" &&
     hasValidDeletedAt(record)
   )
 }
@@ -74,8 +74,8 @@ const isProductVariantMeasurementLinkRecord = (
   const record = value as Record<string, unknown>
 
   return (
-    typeof record.product_variant_id === "string" &&
-    typeof record.product_variant_measurement_id === "string" &&
+    typeof record["product_variant_id"] === "string" &&
+    typeof record["product_variant_measurement_id"] === "string" &&
     hasValidDeletedAt(record)
   )
 }
@@ -107,8 +107,8 @@ const parseProductVariantMeasurementLinks = (value: unknown) => {
 }
 
 export type ProductMeasurementTransitionPlan = {
-  existing_target?: ProductMeasurementRecord
-  previous?: ProductMeasurementRecord
+  existing_target?: ProductMeasurementRecord | undefined
+  previous?: ProductMeasurementRecord | undefined
   previous_variant_measurements: ProductVariantMeasurementRecord[]
   source_target_same: boolean
 }
@@ -143,12 +143,14 @@ export type ProductVariantMeasurementLinkPlan = {
 }
 
 export type SetVariantMeasurementPlan = {
-  create?: {
-    product_measurement_id: string
-    product_unit_quantity: number
-    product_variant_id: string
-  }
-  existing?: ProductVariantMeasurementRecord
+  create?:
+    | {
+        product_measurement_id: string
+        product_unit_quantity: number
+        product_variant_id: string
+      }
+    | undefined
+  existing?: ProductVariantMeasurementRecord | undefined
   product_measurement: ProductMeasurementRecord
   restore: ProductVariantMeasurementRecord[]
   update: Array<{
@@ -160,12 +162,12 @@ export type SetVariantMeasurementPlan = {
 }
 
 export type DeleteProductMeasurementPlan = {
-  current?: ProductMeasurementRecord
+  current?: ProductMeasurementRecord | undefined
   variant_measurements: ProductVariantMeasurementRecord[]
 }
 
 export type DeleteProductVariantMeasurementPlan = {
-  current?: ProductVariantMeasurementRecord
+  current?: ProductVariantMeasurementRecord | undefined
 }
 
 const emptyVariantMeasurementMigrationPlan = (

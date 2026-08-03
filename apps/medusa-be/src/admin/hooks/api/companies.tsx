@@ -87,16 +87,16 @@ export const useCreateCompany = (
         },
         body: company,
       }),
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
       for (const company of data.companies) {
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: companyQueryKey.detail(company.id),
         })
       }
-      options?.onSuccess?.(data, variables, context)
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })
@@ -121,17 +121,17 @@ export const useUpdateCompany = (
         },
         body: company,
       }),
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.details(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: customerQueryKey.lists(),
       })
-      options?.onSuccess?.(data, variables, context)
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })
@@ -147,17 +147,17 @@ export const useDeleteCompany = (
       sdk.client.fetch<void>(`/admin/companies/${companyId}`, {
         method: "DELETE",
       }),
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.details(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: customerQueryKey.lists(),
       })
-      options?.onSuccess?.(data, variables, context)
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })
@@ -177,17 +177,17 @@ export const useRestoreCompany = (
           method: "POST",
         }
       ),
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.details(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: customerQueryKey.lists(),
       })
-      options?.onSuccess?.(data, variables, context)
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })
@@ -209,17 +209,17 @@ export const useAddCompanyToCustomerGroup = (
         body: { group_id: groupId },
       })
     },
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.details(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: customerQueryKey.lists(),
       })
-      options?.onSuccess?.(data, variables, context)
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })
@@ -243,17 +243,17 @@ export const useRemoveCompanyFromCustomerGroup = (
         }
       )
     },
-    onSuccess: (_, variables, context) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (_, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.details(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: customerQueryKey.lists(),
       })
-      options?.onSuccess?.(undefined, variables, context)
+      await options?.onSuccess?.(undefined, variables, context)
     },
     ...options,
   })

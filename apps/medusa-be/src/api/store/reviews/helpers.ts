@@ -8,6 +8,11 @@ import {
 import { PRODUCT_REVIEW_MODULE } from "../../../modules/product-review"
 import type ProductReviewModuleService from "../../../modules/product-review/service"
 
+const isEntityRecord = (
+  value: unknown
+): value is Record<string, unknown> & object =>
+  typeof value === "object" && value !== null
+
 type AuthContext = {
   actor_id?: string
   actor_type?: string
@@ -50,17 +55,14 @@ export type ReviewTokenDTO = {
   used_at?: Date | string | null
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
 const isCustomerRecord = (value: unknown): value is CustomerRecord =>
-  isRecord(value) && typeof value.id === "string"
+  isEntityRecord(value) && typeof value["id"] === "string"
 
 const isProductRecord = (value: unknown): value is ProductRecord =>
-  isRecord(value) && typeof value.id === "string"
+  isEntityRecord(value) && typeof value["id"] === "string"
 
 const isOrderRecord = (value: unknown): value is OrderRecord =>
-  isRecord(value) && typeof value.id === "string"
+  isEntityRecord(value) && typeof value["id"] === "string"
 
 const isPaymentCaptured = (payment: PaymentRecord) =>
   Boolean(payment.captured_at)
