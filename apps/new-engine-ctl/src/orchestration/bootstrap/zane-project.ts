@@ -1417,7 +1417,10 @@ function buildZaneProjectServices(
         },
         {
           envVar: "PAYLOAD_BASE_URL_INTERNAL",
-          source: serviceInternalOriginSource("payload", 3000),
+          source: serviceInternalOriginSource({
+            serviceSlug: payloadSlug,
+            port: 3000,
+          }),
         },
         {
           envVar: "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED",
