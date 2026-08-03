@@ -22,8 +22,7 @@ export function resolveCarrierPickupAddress(
   const city = readString(data.access_point_city) ?? ""
   const postalCode = readString(data.access_point_zip) ?? ""
   const countryCode = (
-    readString(data.access_point_country) ??
-    fallbackCountryCode
+    readString(data.access_point_country) ?? fallbackCountryCode
   ).toUpperCase()
 
   return {

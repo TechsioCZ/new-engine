@@ -90,9 +90,7 @@ export const LoginForm = ({
               <field.TextField
                 autoComplete="current-password"
                 id="login-password"
-                label={
-                  <span className="sr-only">{tAuth("password")}</span>
-                }
+                label={<span className="sr-only">{tAuth("password")}</span>}
                 type="password"
                 validationMode="blur"
               />

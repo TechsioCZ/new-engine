@@ -108,10 +108,7 @@ export function AccountOrderDetailItems({
                   </p>
                   <p className="text-end text-fg-secondary">
                     {tAuth("account.orders.unit_price_value", {
-                      amount: formatOrderAmount(
-                        unitPrice,
-                        order.currency_code
-                      ),
+                      amount: formatOrderAmount(unitPrice, order.currency_code),
                     })}
                   </p>
                 </div>

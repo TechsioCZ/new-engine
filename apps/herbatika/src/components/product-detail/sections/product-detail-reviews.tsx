@@ -106,10 +106,7 @@ function ProductDetailReviewsHeader({
           <h2 className="font-semibold text-3xl text-fg-primary leading-tight">
             {tCatalog("reviews.product_title")}{" "}
             <span className="whitespace-nowrap">
-              -{" "}
-              <span className="text-primary">
-                {formattedAverageRating}
-              </span>
+              - <span className="text-primary">{formattedAverageRating}</span>
             </span>
           </h2>
           <FractionalRating

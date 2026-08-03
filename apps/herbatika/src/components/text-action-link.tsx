@@ -6,10 +6,7 @@ type TextActionLinkProps = {
   text?: string
 }
 
-export function TextActionLink({
-  href,
-  text,
-}: TextActionLinkProps) {
+export function TextActionLink({ href, text }: TextActionLinkProps) {
   const tContent = useTranslations("content")
 
   return (

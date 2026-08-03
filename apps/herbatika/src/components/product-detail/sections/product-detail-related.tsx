@@ -1,7 +1,7 @@
 "use client"
 
-import { ProductCollectionSection } from "@/components/product/product-collection-section"
 import { useTranslations } from "next-intl"
+import { ProductCollectionSection } from "@/components/product/product-collection-section"
 import type {
   Product,
   RelatedProductsSection,

@@ -122,9 +122,7 @@ export function CheckoutPacketaPickupSelector({
             })}
           </p>
           {selectedPointAddress ? (
-            <p className="text-fg-secondary text-xs">
-              {selectedPointAddress}
-            </p>
+            <p className="text-fg-secondary text-xs">{selectedPointAddress}</p>
           ) : null}
         </div>
       ) : null}

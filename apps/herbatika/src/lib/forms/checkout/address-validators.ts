@@ -1,7 +1,7 @@
 import type { CheckoutDetailsValues } from "@/lib/forms/checkout/address.form"
 import {
-  createAddressFieldValidators,
   type AddressValidationMessages,
+  createAddressFieldValidators,
 } from "@/lib/forms/validators/address"
 import { createChangeBlurSubmitScopedFieldValidators } from "@/lib/forms/validators/field-validator-factories"
 

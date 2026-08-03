@@ -1,8 +1,6 @@
 import NextImage, { type StaticImageData } from "next/image"
 import { useTranslations } from "next-intl"
-import type {
-  HomepageBenefitTranslationKey,
-} from "@/components/homepage/homepage.data.types"
+import type { HomepageBenefitTranslationKey } from "@/components/homepage/homepage.data.types"
 
 type BenefitItem = {
   id: number

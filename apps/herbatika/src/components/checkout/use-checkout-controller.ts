@@ -31,6 +31,7 @@ import {
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import {
   REGION_LIST_FIELDS,
   REGION_LIST_LIMIT,
@@ -38,7 +39,6 @@ import {
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { useRegions } from "@/lib/storefront/regions"
 import { storefront } from "@/lib/storefront/storefront"
-import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import {
   buildAccountSetupRequestedMetadata,
   isRecord,
@@ -384,10 +384,7 @@ export function useCheckoutController() {
       return true
     } catch (error) {
       setCheckoutError(
-        resolveErrorMessage(
-          error,
-          tCheckout("registration_update_failed")
-        )
+        resolveErrorMessage(error, tCheckout("registration_update_failed"))
       )
       return false
     }

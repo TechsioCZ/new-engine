@@ -2,8 +2,8 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { useTranslations } from "next-intl"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { type FormEvent, useEffect, useState } from "react"
 import { useAppToast } from "@/hooks/use-app-toast"
 import { useAuth } from "@/lib/storefront/auth"
@@ -339,9 +339,7 @@ export function useAccountProductLists() {
       showPartialListCartResult({
         failedCount: addResult.failedCount,
         messages: {
-          addListFailed: tAuth(
-            "product_lists.errors.add_list_to_cart_failed"
-          ),
+          addListFailed: tAuth("product_lists.errors.add_list_to_cart_failed"),
           allAvailableFailed: tAuth(
             "product_lists.errors.add_available_all_failed"
           ),
@@ -356,9 +354,7 @@ export function useAccountProductLists() {
     } catch (error) {
       toast.error({
         title: resolveListCartErrorMessage(error, {
-          addListFailed: tAuth(
-            "product_lists.errors.add_list_to_cart_failed"
-          ),
+          addListFailed: tAuth("product_lists.errors.add_list_to_cart_failed"),
           allAvailableFailed: tAuth(
             "product_lists.errors.add_available_all_failed"
           ),

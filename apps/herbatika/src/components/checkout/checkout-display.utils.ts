@@ -118,9 +118,7 @@ export const resolvePaymentDisplayTextKeys = (
   providerId: string
 ): PaymentDisplayTextKeys => {
   const providerKind = resolvePaymentProviderKind(providerId)
-  return providerKind === "other"
-    ? {}
-    : PAYMENT_DISPLAY_TEXT_KEYS[providerKind]
+  return providerKind === "other" ? {} : PAYMENT_DISPLAY_TEXT_KEYS[providerKind]
 }
 
 export const formatProviderLabel = (providerId: string) =>

@@ -41,8 +41,7 @@ const isInsufficientInventoryError = (message: string) =>
 export const resolveAddProductToCartErrorMessage = (
   error: unknown,
   fallbackMessage: string
-) =>
-  error instanceof AddProductToCartError ? error.message : fallbackMessage
+) => (error instanceof AddProductToCartError ? error.message : fallbackMessage)
 
 const resolveInsufficientQuantityMessage = ({
   availableQuantity,

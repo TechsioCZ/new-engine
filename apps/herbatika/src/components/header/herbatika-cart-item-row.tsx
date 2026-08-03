@@ -4,8 +4,8 @@ import type { HttpTypes } from "@medusajs/types"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import Image from "next/image"
-import { useTranslations } from "next-intl"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { CartLineItemQuantityInput } from "@/components/cart/cart-line-item-quantity-input"
 import {
   resolveCartItemName,

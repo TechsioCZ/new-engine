@@ -34,8 +34,7 @@ export function ProductReviewCreateDialog({
 }: ProductReviewCreateDialogProps) {
   const tAuth = useTranslations("auth")
   const tCatalog = useTranslations("catalog")
-  const resolvedTriggerLabel =
-    triggerLabel ?? tCatalog("reviews.write_action")
+  const resolvedTriggerLabel = triggerLabel ?? tCatalog("reviews.write_action")
   const reviewErrorMessages = translateProductReviewErrorMessages(tCatalog)
   const authQuery = useAuth()
   const pathname = usePathname()

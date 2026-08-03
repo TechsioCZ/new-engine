@@ -1,8 +1,5 @@
 import { Icon } from "@techsio/ui-kit/atoms/icon"
-import {
-  Select,
-  type SelectItem,
-} from "@techsio/ui-kit/molecules/select"
+import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select"
 import { useTranslations } from "next-intl"
 
 const BENEFIT_ITEMS: SelectItem[] = []

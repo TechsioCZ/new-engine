@@ -45,9 +45,7 @@ export const ResetPasswordForm = ({
   const resetPasswordValidators = useMemo(
     () =>
       createResetPasswordValidators({
-        confirmPasswordRequired: tAuth(
-          "validation.confirm_password_required"
-        ),
+        confirmPasswordRequired: tAuth("validation.confirm_password_required"),
         passwordMinLength: tAuth("validation.password_min_length"),
         passwordMismatch: tAuth("validation.password_mismatch"),
         passwordNumber: tAuth("validation.password_number"),

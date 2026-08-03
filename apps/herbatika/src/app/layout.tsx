@@ -6,12 +6,9 @@ import {
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import type { Metadata } from "next"
 import { Inter, Open_Sans, Roboto, Rubik } from "next/font/google"
-import {
-  type AbstractIntlMessages,
-  NextIntlClientProvider,
-} from "next-intl"
-import { getMessages } from "next-intl/server"
 import localFont from "next/font/local"
+import { type AbstractIntlMessages, NextIntlClientProvider } from "next-intl"
+import { getMessages } from "next-intl/server"
 import { Suspense } from "react"
 import { AppShell } from "@/components/app-shell"
 import {

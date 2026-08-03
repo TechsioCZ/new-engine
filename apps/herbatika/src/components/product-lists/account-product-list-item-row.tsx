@@ -6,8 +6,8 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import Image from "next/image"
-import { useTranslations } from "next-intl"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { useCallback, useEffect, useId, useRef, useState } from "react"
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants"
 import { resolvePriceState } from "@/components/product-card/product-card.pricing"
@@ -30,6 +30,32 @@ type AccountProductListItemRowProps = {
   onDelete: (item: StoreProductListItem) => void
   onQuantitySet: (item: StoreProductListItem, quantity: number) => void
   product: HttpTypes.StoreProduct | null
+}
+
+type AuthTranslator = ReturnType<typeof useTranslations<"auth">>
+
+const resolveAvailabilityLabel = (
+  availability: ReturnType<typeof resolveProductListItemAvailability>,
+  translate: AuthTranslator
+) => {
+  if (availability.status === "product_unavailable") {
+    return translate("product_lists.availability.product_unavailable")
+  }
+
+  if (availability.status === "out_of_stock") {
+    return translate("product_lists.availability.out_of_stock")
+  }
+
+  if (
+    availability.status === "limited_stock" &&
+    availability.availableQuantity !== null
+  ) {
+    return translate("product_lists.availability.limited_stock", {
+      quantity: availability.availableQuantity,
+    })
+  }
+
+  return null
 }
 
 export function AccountProductListItemRow({
@@ -60,17 +86,7 @@ export function AccountProductListItemRow({
     : null
   const quantity = resolveProductListItemQuantity(item)
   const availability = resolveProductListItemAvailability(item, itemProduct)
-  const availabilityLabel =
-    availability.status === "product_unavailable"
-      ? tAuth("product_lists.availability.product_unavailable")
-      : availability.status === "out_of_stock"
-        ? tAuth("product_lists.availability.out_of_stock")
-        : availability.status === "limited_stock" &&
-            availability.availableQuantity !== null
-          ? tAuth("product_lists.availability.limited_stock", {
-              quantity: availability.availableQuantity,
-            })
-          : null
+  const availabilityLabel = resolveAvailabilityLabel(availability, tAuth)
   const canAddToCart = availability.canAddToCart
   const availabilityBadgeId = useId()
   const [localQuantity, setLocalQuantity] = useState(quantity)
@@ -183,9 +199,7 @@ export function AccountProductListItemRow({
           </NumericInput>
         ) : null}
         <Button
-          aria-describedby={
-            availabilityLabel ? availabilityBadgeId : undefined
-          }
+          aria-describedby={availabilityLabel ? availabilityBadgeId : undefined}
           disabled={!canAddToCart}
           icon="token-icon-cart"
           isLoading={isAddingToCart}

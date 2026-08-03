@@ -19,16 +19,22 @@ export const resolveDisplayOriginalLabel = (
     ? formatCurrencyAmount(displayOriginalAmount, currentCurrencyCode)
     : null
 
-export const resolveProductVolumeDiscountOptions = (
-  currentAmount: number | null,
-  currentCurrencyCode: string,
-  offerState: ReturnType<typeof resolveOfferState>,
-  availableQuantity: number | null,
+export const resolveProductVolumeDiscountOptions = ({
+  availableQuantity,
+  currentAmount,
+  currentCurrencyCode,
+  labels,
+  offerState,
+}: {
+  availableQuantity: number | null
+  currentAmount: number | null
+  currentCurrencyCode: string
   labels: {
     title: (quantity: number) => string
     perUnit: (price: string) => string
   }
-) => {
+  offerState: ReturnType<typeof resolveOfferState>
+}) => {
   const discountOptions = resolveVolumeDiscountOptions(
     currentAmount,
     currentCurrencyCode,

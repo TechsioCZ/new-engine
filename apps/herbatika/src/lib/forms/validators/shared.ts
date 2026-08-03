@@ -7,17 +7,14 @@ const validateCustomerNameWithMessage = (
   minLengthMessage: string
 ) => (value.trim().length < 2 ? minLengthMessage : undefined)
 
-export const createCustomerNameValidator = (minLengthMessage: string) =>
-  (value: string) => validateCustomerNameWithMessage(value, minLengthMessage)
+export const createCustomerNameValidator =
+  (minLengthMessage: string) => (value: string) =>
+    validateCustomerNameWithMessage(value, minLengthMessage)
 
 export const validateCustomerName = (
   value: string,
   label: "Meno" | "Priezvisko"
-) =>
-  validateCustomerNameWithMessage(
-    value,
-    `${label} musí mať aspoň 2 znaky.`
-  )
+) => validateCustomerNameWithMessage(value, `${label} musí mať aspoň 2 znaky.`)
 
 type EmailValidationMessages = {
   invalid: string
@@ -113,11 +110,10 @@ export const createOptionalPhoneNumberValidator =
     return
   }
 
-export const validateOptionalPhoneNumber =
-  createOptionalPhoneNumberValidator({
-    invalid: "Zadajte platné telefónne číslo.",
-    minDigits: "Telefónne číslo musí obsahovať aspoň 7 číslic.",
-  })
+export const validateOptionalPhoneNumber = createOptionalPhoneNumberValidator({
+  invalid: "Zadajte platné telefónne číslo.",
+  minDigits: "Telefónne číslo musí obsahovať aspoň 7 číslic.",
+})
 
 export const passwordHasNumber = (password: string) =>
   PASSWORD_NUMBER_REGEX.test(password)

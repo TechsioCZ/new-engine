@@ -1,8 +1,6 @@
-import { useEffect } from "react"
 import { useTranslations } from "next-intl"
-import {
-  resolveCarrierPickupRequirement,
-} from "@/components/checkout/carrier-pickup.utils"
+import { useEffect } from "react"
+import { resolveCarrierPickupRequirement } from "@/components/checkout/carrier-pickup.utils"
 import { resolveShippingIcon } from "@/components/checkout/checkout-display.utils"
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"

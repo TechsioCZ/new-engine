@@ -82,11 +82,12 @@ function ProductListSummary({
   const isAddingListToCart =
     accountLists.createListCartMutation.isPending ||
     accountLists.isAddingListToCart
-  const addToCartLabel = availabilitySummary.canAddWholeList
-    ? tAuth("product_lists.availability.add_all")
-    : availabilitySummary.canAddAnyToCart
-      ? tAuth("product_lists.availability.add_available")
-      : tAuth("product_lists.availability.none_available")
+  let addToCartLabel = tAuth("product_lists.availability.none_available")
+  if (availabilitySummary.canAddWholeList) {
+    addToCartLabel = tAuth("product_lists.availability.add_all")
+  } else if (availabilitySummary.canAddAnyToCart) {
+    addToCartLabel = tAuth("product_lists.availability.add_available")
+  }
   const unavailablePriceLabel = tAuth("product_lists.price_unavailable")
 
   return (

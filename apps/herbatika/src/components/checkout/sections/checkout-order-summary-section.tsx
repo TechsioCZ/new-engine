@@ -140,9 +140,7 @@ export function CheckoutOrderSummarySection({
           </p>
         </div>
         <div className="flex items-center justify-between border-border-primary border-b py-200">
-          <span className="text-fg-secondary">
-            {shippingExclTaxLabel}
-          </span>
+          <span className="text-fg-secondary">{shippingExclTaxLabel}</span>
           <p className="font-medium text-fg-primary text-md">
             {formatCurrencyAmount(shippingAmount, currencyCode)}
           </p>

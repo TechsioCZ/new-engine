@@ -154,20 +154,20 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const maxQuantity = selectedVariantInventory.maxPurchaseQuantity
 
   const availableQuantity = selectedVariantInventory.availableQuantity
-  const volumeDiscountOptions = resolveProductVolumeDiscountOptions(
+  const volumeDiscountOptions = resolveProductVolumeDiscountOptions({
+    availableQuantity,
     currentAmount,
     currentCurrencyCode,
-    offerState,
-    availableQuantity,
-    {
+    labels: {
       perUnit: (price) =>
         tCatalog("product_detail.bulk_discount.per_unit", { price }),
       title: (optionQuantity) =>
         tCatalog("product_detail.bulk_discount.option_title", {
           quantity: optionQuantity,
         }),
-    }
-  )
+    },
+    offerState,
+  })
   const selectedVolumeDiscountOption = resolveSelectedVolumeDiscountOption(
     volumeDiscountOptions,
     selectedVolumeDiscountId

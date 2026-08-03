@@ -3,8 +3,8 @@
 import { useQuery } from "@tanstack/react-query"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import { useTranslations } from "next-intl"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { SupportingText } from "@/components/text/supporting-text"
 import {

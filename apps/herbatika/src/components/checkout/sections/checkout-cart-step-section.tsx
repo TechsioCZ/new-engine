@@ -65,16 +65,14 @@ export function CheckoutCartStepSection({
       {freeShippingThresholdAmount !== null ? (
         <div className="min-h-900 rounded-sm border border-border-primary bg-surface px-400 pt-400 pb-650 md:px-550">
           <p className="text-center font-light text-fg-primary text-sm leading-relaxed">
-            {missingAmount > 0 ? (
-              tCheckout.rich("free_shipping_remaining", {
-                missingAmount: missingAmountLabel ?? "",
-                strong: (chunks) => (
-                  <span className="font-semibold">{chunks}</span>
-                ),
-              })
-            ) : (
-              tCheckout("free_shipping_qualified")
-            )}
+            {missingAmount > 0
+              ? tCheckout.rich("free_shipping_remaining", {
+                  missingAmount: missingAmountLabel ?? "",
+                  strong: (chunks) => (
+                    <span className="font-semibold">{chunks}</span>
+                  ),
+                })
+              : tCheckout("free_shipping_qualified")}
           </p>
 
           <div className="relative mt-400 flex items-start">

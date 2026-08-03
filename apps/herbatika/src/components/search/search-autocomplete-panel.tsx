@@ -33,10 +33,60 @@ const PANEL_CLASS_NAME =
 const joinClassNames = (...classNames: Array<string | false | undefined>) =>
   classNames.filter(Boolean).join(" ")
 
+type SearchTranslator = ReturnType<typeof useTranslations<"search">>
+
 export const getSearchAutocompleteOptionId = (
   panelId: string,
   item: SearchAutocompleteSuggestion
 ) => `${panelId}-${item.type}-${item.id}`
+
+const resolveSearchAutocompleteSubtitle = (
+  item: SearchAutocompleteSuggestion,
+  translate: SearchTranslator
+) => {
+  if (item.subtitle) {
+    return item.subtitle
+  }
+
+  if (item.type === "category") {
+    return translate("autocomplete.types.category")
+  }
+
+  if (item.type === "brand") {
+    return translate("autocomplete.types.brand")
+  }
+
+  return
+}
+
+function SearchAutocompleteMeta({
+  inStockLabel,
+  item,
+  outOfStockLabel,
+}: {
+  inStockLabel: string
+  item: SearchAutocompleteSuggestion
+  outOfStockLabel: string
+}) {
+  const hasAvailability = typeof item.inStock === "boolean"
+
+  if (!(item.priceLabel || hasAvailability)) {
+    return null
+  }
+
+  return (
+    <span className="shrink-0 text-right text-xs leading-snug">
+      {item.priceLabel ? (
+        <span className="block font-bold text-primary">{item.priceLabel}</span>
+      ) : null}
+      {hasAvailability ? (
+        <span className={item.inStock ? "text-success" : "text-fg-secondary"}>
+          {item.inStock ? inStockLabel : outOfStockLabel}
+        </span>
+      ) : null}
+    </span>
+  )
+}
 
 function SearchAutocompleteRow({
   activeItemId,
@@ -54,13 +104,7 @@ function SearchAutocompleteRow({
   const t = useTranslations("search")
   const optionId = getSearchAutocompleteOptionId(panelId, item)
   const isActive = activeItemId === optionId
-  let subtitle = item.subtitle
-
-  if (!subtitle && item.type === "category") {
-    subtitle = t("autocomplete.types.category")
-  } else if (!subtitle && item.type === "brand") {
-    subtitle = t("autocomplete.types.brand")
-  }
+  const subtitle = resolveSearchAutocompleteSubtitle(item, t)
 
   return (
     <li role="presentation">
@@ -87,24 +131,11 @@ function SearchAutocompleteRow({
             </span>
           ) : null}
         </span>
-        {item.priceLabel || typeof item.inStock === "boolean" ? (
-          <span className="shrink-0 text-right text-xs leading-snug">
-            {item.priceLabel ? (
-              <span className="block font-bold text-primary">
-                {item.priceLabel}
-              </span>
-            ) : null}
-            {typeof item.inStock === "boolean" ? (
-              <span
-                className={item.inStock ? "text-success" : "text-fg-secondary"}
-              >
-                {item.inStock
-                  ? t("availability.in_stock")
-                  : t("availability.out_of_stock")}
-              </span>
-            ) : null}
-          </span>
-        ) : null}
+        <SearchAutocompleteMeta
+          inStockLabel={t("availability.in_stock")}
+          item={item}
+          outOfStockLabel={t("availability.out_of_stock")}
+        />
       </NextLink>
     </li>
   )

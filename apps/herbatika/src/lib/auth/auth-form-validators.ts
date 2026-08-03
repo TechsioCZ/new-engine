@@ -1,6 +1,6 @@
 import {
-  createAddressFieldValidators,
   type AddressValidationMessages,
+  createAddressFieldValidators,
 } from "@/lib/forms/validators/address"
 import {
   createChangeBlurContextualFieldValidators,
@@ -83,8 +83,7 @@ type RegisterSubmitErrorMessages = {
 const createWholesaleFieldValidators = <TFormValues>(
   validator: (value: string) => string | undefined,
   isWholesale: (values: TFormValues) => boolean
-) =>
-  createChangeBlurSubmitScopedFieldValidators(validator, isWholesale)
+) => createChangeBlurSubmitScopedFieldValidators(validator, isWholesale)
 
 const createPasswordValidator =
   (messages: PasswordValidationMessages) => (value: string) => {
@@ -144,17 +143,14 @@ export const PASSWORD_REQUIREMENTS = [
   },
 ] as const
 
-export const createRegisterValidators = (
-  messages: AuthValidationMessages
-) => {
+export const createRegisterValidators = (messages: AuthValidationMessages) => {
   const addressValidators = createAddressFieldValidators(messages)
   const validatePassword = createPasswordValidator(messages)
   const validatePasswordConfirmation =
     createPasswordConfirmationValidator(messages)
   const createWholesaleValidator = (
     validator: (value: string) => string | undefined
-  ) =>
-    createWholesaleFieldValidators(validator, isWholesaleRegistration)
+  ) => createWholesaleFieldValidators(validator, isWholesaleRegistration)
 
   return {
     account_type: createChangeBlurFieldValidators((value: string) =>
@@ -191,18 +187,14 @@ export const createRegisterValidators = (
     company_identifier: createWholesaleValidator(addressValidators.companyId),
     billing_address_1: createWholesaleValidator(addressValidators.address1),
     billing_city: createWholesaleValidator(addressValidators.city),
-    billing_postal_code: createWholesaleValidator(
-      addressValidators.postalCode
-    ),
+    billing_postal_code: createWholesaleValidator(addressValidators.postalCode),
     billing_country_code: createWholesaleValidator(
       addressValidators.countryCode
     ),
   }
 }
 
-export type RegisterFormValidators = ReturnType<
-  typeof createRegisterValidators
->
+export type RegisterFormValidators = ReturnType<typeof createRegisterValidators>
 
 type ResetPasswordConfirmFieldApi = {
   form: {

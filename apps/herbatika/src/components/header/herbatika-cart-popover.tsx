@@ -5,8 +5,8 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
-import { useTranslations } from "next-intl"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { useEffect, useRef, useState } from "react"
 import {
   asFiniteNumber,
@@ -56,9 +56,7 @@ function CartTotals({
 
       {shippingAmount !== null && shippingAmount > 0 ? (
         <div className="flex items-center justify-between gap-200">
-          <span className="text-fg-secondary">
-            {t("shipping_excl_tax")}:
-          </span>
+          <span className="text-fg-secondary">{t("shipping_excl_tax")}:</span>
           <span>{formatCurrencyAmount(shippingAmount, currencyCode)}</span>
         </div>
       ) : null}
@@ -94,12 +92,8 @@ function EmptyCartPreview() {
         <Icon className="text-icon-cart" icon="token-icon-cart" />
       </span>
       <div className="space-y-50">
-        <p className="font-semibold text-fg-primary">
-          {t("empty_title")}
-        </p>
-        <p className="text-fg-secondary text-sm">
-          {t("empty_description")}
-        </p>
+        <p className="font-semibold text-fg-primary">{t("empty_title")}</p>
+        <p className="text-fg-secondary text-sm">{t("empty_description")}</p>
       </div>
     </output>
   )

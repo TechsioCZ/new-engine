@@ -78,9 +78,7 @@ export function AsideFilterChipSection({
                 type="button"
                 variant="secondary"
               >
-                {isExpanded
-                  ? t("filters.show_less")
-                  : t("filters.show_more")}
+                {isExpanded ? t("filters.show_less") : t("filters.show_more")}
               </Button>
             )}
         </>

@@ -91,7 +91,7 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
     const nextRegion = regions.find(
       (candidateRegion) => candidateRegion.id === regionId
     )
-    if (!nextRegion || !regionMatchesMarket(nextRegion, marketContext)) {
+    if (!(nextRegion && regionMatchesMarket(nextRegion, marketContext))) {
       return
     }
 

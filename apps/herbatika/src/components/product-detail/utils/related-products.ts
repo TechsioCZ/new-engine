@@ -135,13 +135,11 @@ export const resolveRelatedSections = (
   products: Product[],
   sectionTitles: readonly string[]
 ): RelatedProductsSection[] => {
-  const recommendationSections = sectionTitles.map(
-    (title, sectionIndex) => ({
-      id: `related-${sectionIndex}`,
-      title,
-      products: fillSectionProducts(products, sectionIndex),
-    })
-  )
+  const recommendationSections = sectionTitles.map((title, sectionIndex) => ({
+    id: `related-${sectionIndex}`,
+    title,
+    products: fillSectionProducts(products, sectionIndex),
+  }))
 
   return recommendationSections.filter((section) => section.products.length > 0)
 }

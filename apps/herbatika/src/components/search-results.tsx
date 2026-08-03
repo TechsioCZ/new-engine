@@ -20,9 +20,7 @@ export function SearchResults() {
         <h1 className="font-bold text-4xl text-fg-primary leading-snug">
           {t("results.title")}
         </h1>
-        <p className="text-fg-secondary text-sm">
-          {t("results.description")}
-        </p>
+        <p className="text-fg-secondary text-sm">{t("results.description")}</p>
       </section>
 
       {controller.query ? (

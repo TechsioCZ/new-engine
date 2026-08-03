@@ -4,6 +4,7 @@ import type { QueryClient } from "@tanstack/react-query"
 import { getServerQueryClient } from "@techsio/storefront-data/server/get-query-client"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import { cookies } from "next/headers"
+import { getMarketServerContext } from "../market-context.server"
 import {
   REGION_COUNTRY_CODE_STORAGE_KEY,
   REGION_STORAGE_KEY,
@@ -11,7 +12,6 @@ import {
 } from "../region-preferences"
 import { REGION_LIST_FIELDS, REGION_LIST_LIMIT } from "../region-query-config"
 import { resolveRegionForMarket, toRegionInfo } from "../region-selection"
-import { getMarketServerContext } from "../market-context.server"
 import {
   fetchServerProduct,
   fetchServerRegions,

@@ -88,10 +88,9 @@ export const resolveCountryItemsForRegion = ({
   locale,
   regionId,
   regions,
-}: Pick<
-  CountryRegionInput,
-  "activeCountryCode" | "regionId" | "regions"
-> & { locale: string }): SelectItem[] => {
+}: Pick<CountryRegionInput, "activeCountryCode" | "regionId" | "regions"> & {
+  locale: string
+}): SelectItem[] => {
   const countryCodes = resolveCountryCodes({
     activeCountryCode,
     regionId,

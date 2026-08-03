@@ -25,12 +25,9 @@ export const resolveGalleryItems = (
   }))
 }
 
-export const resolveProductHighlights = (
-  summaryText: string
-): string[] => {
-  return summaryText
+export const resolveProductHighlights = (summaryText: string): string[] =>
+  summaryText
     .split(SENTENCE_SEPARATOR_PATTERN)
     .map((sentence) => sentence.trim())
     .filter((sentence) => sentence.length >= 24)
     .slice(0, 3)
-}

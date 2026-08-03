@@ -17,10 +17,7 @@ const resolveReviewDate = (value?: string) => {
   return date
 }
 
-const resolveReviewAuthor = (
-  review: ProductReview,
-  anonymousLabel: string
-) => {
+const resolveReviewAuthor = (review: ProductReview, anonymousLabel: string) => {
   const firstName = review.customer?.first_name?.trim()
   const lastName = review.customer?.last_name?.trim()
   const author = [firstName, lastName].filter(Boolean).join(" ")

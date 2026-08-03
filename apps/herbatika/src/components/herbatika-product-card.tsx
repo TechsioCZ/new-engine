@@ -3,8 +3,8 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
 import NextImage from "next/image"
-import { useTranslations } from "next-intl"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import {
   type HerbatikaProductCardBaseProps,
   useHerbatikaProductCardState,

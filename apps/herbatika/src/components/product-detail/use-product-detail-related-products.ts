@@ -9,14 +9,14 @@ import {
 } from "@/components/product-detail/utils/related-products"
 import { resolveRelatedCategoryIds } from "@/lib/storefront/category-tree"
 import {
-  RELATED_PRODUCTS_LIMIT,
-  RELATED_PRODUCT_SECTION_MESSAGE_KEYS,
-} from "@/lib/storefront/related-products-config"
-import {
   PRODUCT_CARD_FIELDS,
   RELATED_PRODUCT_FIELDS,
   useProducts,
 } from "@/lib/storefront/products"
+import {
+  RELATED_PRODUCT_SECTION_MESSAGE_KEYS,
+  RELATED_PRODUCTS_LIMIT,
+} from "@/lib/storefront/related-products-config"
 
 type UseProductDetailRelatedProductsProps = {
   product: Product | null

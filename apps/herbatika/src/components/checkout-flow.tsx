@@ -9,15 +9,13 @@ import {
   type CheckoutStepSlug,
 } from "@/components/checkout/checkout.constants"
 import {
-  canNavigateToCheckoutStep,
-} from "@/components/checkout/checkout-step-navigation"
-import {
   canAccessCheckoutStep,
   resolveCheckoutStepHref,
   resolveCheckoutStepIndexBySlug,
   resolveRequiredCheckoutStepSlug,
 } from "@/components/checkout/checkout-route.utils"
 import { CheckoutStepContent } from "@/components/checkout/checkout-step-content"
+import { canNavigateToCheckoutStep } from "@/components/checkout/checkout-step-navigation"
 import { CheckoutCompletedOrderSection } from "@/components/checkout/sections/checkout-completed-order-section"
 import { CheckoutEmptyCartSection } from "@/components/checkout/sections/checkout-empty-cart-section"
 import { CheckoutFeedbackSection } from "@/components/checkout/sections/checkout-feedback-section"

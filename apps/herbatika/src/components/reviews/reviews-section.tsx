@@ -135,9 +135,7 @@ export function ReviewsSection({
       ? tCatalog("reviews.homepage_title")
       : tCatalog("reviews.product_title"))
   const defaultLinkHref = isHomepage ? null : "#reviews"
-  const defaultLinkLabel = isHomepage
-    ? null
-    : tCatalog("reviews.all_reviews")
+  const defaultLinkLabel = isHomepage ? null : tCatalog("reviews.all_reviews")
   const resolvedLinkHref = linkHref === undefined ? defaultLinkHref : linkHref
   const resolvedLinkLabel =
     linkLabel === undefined ? defaultLinkLabel : linkLabel
@@ -203,13 +201,9 @@ export function ReviewsSection({
             key={review.id}
             review={review}
             sourceBadge={sourceBadge}
-            sourceBadgeAlt={tCatalog(
-              "reviews.verified_customer_badge_alt"
-            )}
+            sourceBadgeAlt={tCatalog("reviews.verified_customer_badge_alt")}
             variant={variant}
-            verifiedPurchaseLabel={tCatalog(
-              "reviews.verified_purchase"
-            )}
+            verifiedPurchaseLabel={tCatalog("reviews.verified_purchase")}
           />
         ))}
       </div>

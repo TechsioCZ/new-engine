@@ -176,10 +176,7 @@ export function AccountOrderDetailSummary({
           </h3>
           <p className="text-fg-secondary text-sm">
             {tCart("products_subtotal_excl_tax")}:{" "}
-            {formatOrderAmount(
-              amountSummary.itemSubtotal,
-              order.currency_code
-            )}
+            {formatOrderAmount(amountSummary.itemSubtotal, order.currency_code)}
           </p>
           <p className="text-fg-secondary text-sm">
             {tCart("shipping_excl_tax")}:{" "}
@@ -225,16 +222,12 @@ export function AccountOrderDetailSummary({
         <OrderAddressBlock
           address={addresses.shipping}
           title={tAuth("account.orders.detail.shipping_address")}
-          unavailableText={tAuth(
-            "account.orders.detail.address_unavailable"
-          )}
+          unavailableText={tAuth("account.orders.detail.address_unavailable")}
         />
         <OrderAddressBlock
           address={addresses.billing}
           title={tAuth("account.orders.detail.billing_address")}
-          unavailableText={tAuth(
-            "account.orders.detail.address_unavailable"
-          )}
+          unavailableText={tAuth("account.orders.detail.address_unavailable")}
         />
       </div>
 

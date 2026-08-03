@@ -82,10 +82,9 @@ export function ProductReviewForm({
     event.preventDefault()
 
     const nextErrors = validateReviewForm(values, {
-      contentMinLength: tCatalog(
-        "reviews.form.content_min_length_validation",
-        { min: REVIEW_CONTENT_MIN_LENGTH }
-      ),
+      contentMinLength: tCatalog("reviews.form.content_min_length_validation", {
+        min: REVIEW_CONTENT_MIN_LENGTH,
+      }),
       ratingRequired: tCatalog("reviews.form.rating_validation"),
     })
     setErrors(nextErrors)

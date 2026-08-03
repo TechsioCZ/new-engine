@@ -13,6 +13,8 @@ type PaymentProvider = {
   id?: string | null
 }
 
+type CheckoutTranslator = ReturnType<typeof useTranslations<"checkout">>
+
 type CheckoutPaymentSectionProps = {
   canInitiatePayment: boolean
   isBusy: boolean
@@ -29,6 +31,69 @@ const resolveProviderId = (provider: PaymentProvider) => {
   }
 
   return ""
+}
+
+const translatePaymentText = ({
+  key,
+  providerName,
+  translate,
+}: {
+  key?: string
+  providerName?: string
+  translate: CheckoutTranslator
+}) => {
+  if (!key) {
+    return
+  }
+
+  return providerName ? translate(key, { providerName }) : translate(key)
+}
+
+const createPaymentProviderOption = ({
+  canInitiatePayment,
+  index,
+  isBusy,
+  isInitiatingPayment,
+  provider,
+  translate,
+}: {
+  canInitiatePayment: boolean
+  index: number
+  isBusy: boolean
+  isInitiatingPayment: boolean
+  provider: PaymentProvider
+  translate: CheckoutTranslator
+}) => {
+  const providerId = resolveProviderId(provider)
+  const displayTextKeys = resolvePaymentDisplayTextKeys(providerId)
+  const providerLabel =
+    translatePaymentText({
+      key: displayTextKeys.labelKey,
+      providerName: displayTextKeys.providerName,
+      translate,
+    }) ??
+    displayTextKeys.providerName ??
+    formatProviderLabel(providerId)
+  const paymentDescription = translatePaymentText({
+    key: displayTextKeys.descriptionKey,
+    providerName: displayTextKeys.providerName,
+    translate,
+  })
+  const paymentHint = displayTextKeys.hintKey
+    ? translate(displayTextKeys.hintKey)
+    : displayTextKeys.hintValue
+  const isProviderSelectable = Boolean(providerId && canInitiatePayment)
+
+  return {
+    bodyText: paymentDescription,
+    disabled: isBusy || isInitiatingPayment || !isProviderSelectable,
+    hint: paymentHint,
+    icon: resolvePaymentIcon(providerId),
+    priceLabel: translate("free"),
+    priceTone: "success" as const,
+    title: providerLabel,
+    value: providerId || `${providerLabel}-${index}`,
+  }
 }
 
 export function CheckoutPaymentSection({
@@ -56,48 +121,16 @@ export function CheckoutPaymentSection({
             onValueChange={(value) => {
               runDetachedPromise(onSelectPaymentProvider(value))
             }}
-            options={paymentProviders.map((provider, index) => {
-              const providerId = resolveProviderId(provider)
-              const displayTextKeys =
-                resolvePaymentDisplayTextKeys(providerId)
-              let providerLabel =
-                displayTextKeys.providerName ?? formatProviderLabel(providerId)
-              if (displayTextKeys.labelKey) {
-                providerLabel = displayTextKeys.providerName
-                  ? tCheckout(displayTextKeys.labelKey, {
-                      providerName: displayTextKeys.providerName,
-                    })
-                  : tCheckout(displayTextKeys.labelKey)
-              }
-
-              let paymentDescription: string | undefined
-              if (displayTextKeys.descriptionKey) {
-                paymentDescription = displayTextKeys.providerName
-                  ? tCheckout(displayTextKeys.descriptionKey, {
-                      providerName: displayTextKeys.providerName,
-                    })
-                  : tCheckout(displayTextKeys.descriptionKey)
-              }
-
-              const paymentHint = displayTextKeys.hintKey
-                ? tCheckout(displayTextKeys.hintKey)
-                : displayTextKeys.hintValue
-              const isProviderSelectable = Boolean(
-                providerId && canInitiatePayment
-              )
-
-              return {
-                disabled:
-                  isBusy || isInitiatingPayment || !isProviderSelectable,
-                bodyText: paymentDescription,
-                hint: paymentHint,
-                icon: resolvePaymentIcon(providerId),
-                priceLabel: tCheckout("free"),
-                priceTone: "success" as const,
-                title: providerLabel,
-                value: providerId || `${providerLabel}-${index}`,
-              }
-            })}
+            options={paymentProviders.map((provider, index) =>
+              createPaymentProviderOption({
+                canInitiatePayment,
+                index,
+                isBusy,
+                isInitiatingPayment,
+                provider,
+                translate: tCheckout,
+              })
+            )}
             value={selectedPaymentProviderId ?? null}
           />
         ) : (

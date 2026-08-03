@@ -1,5 +1,5 @@
 import { normalizeCountryCode } from "@/lib/forms/country-options"
-import type { AddressValidationMessages } from "@/lib/forms/validators/address-validation-messages"
+import type { AddressValidationMessages as AddressValidationMessageSet } from "@/lib/forms/validators/address-validation-messages"
 import {
   createCustomerNameValidator,
   createEmailAddressValidator,
@@ -8,15 +8,16 @@ import {
 
 type AddressFieldValidator = (value: string) => string | undefined
 
-export type { AddressValidationMessages }
+export type { AddressValidationMessages } from "@/lib/forms/validators/address-validation-messages"
 
 const POSTAL_CODE_ALLOWED_REGEX = /^[0-9\s-]+$/
 
-const createRequiredTextValidator = (
-  requiredMessage: string,
-  minLengthMessage: string,
-  minLength = 2
-): AddressFieldValidator =>
+const createRequiredTextValidator =
+  (
+    requiredMessage: string,
+    minLengthMessage: string,
+    minLength = 2
+  ): AddressFieldValidator =>
   (value) => {
     const normalized = value.trim()
 
@@ -29,7 +30,7 @@ const createRequiredTextValidator = (
 
 const createRequiredPhoneNumberValidator = (
   messages: Pick<
-    AddressValidationMessages,
+    AddressValidationMessageSet,
     "phoneInvalid" | "phoneMinDigits" | "phoneRequired"
   >
 ): AddressFieldValidator => {
@@ -42,12 +43,13 @@ const createRequiredPhoneNumberValidator = (
     value.trim() ? validateOptionalPhoneNumber(value) : messages.phoneRequired
 }
 
-const createPostalCodeValidator = (
-  messages: Pick<
-    AddressValidationMessages,
-    "postalCodeInvalid" | "postalCodeMinDigits" | "postalCodeRequired"
-  >
-): AddressFieldValidator =>
+const createPostalCodeValidator =
+  (
+    messages: Pick<
+      AddressValidationMessageSet,
+      "postalCodeInvalid" | "postalCodeMinDigits" | "postalCodeRequired"
+    >
+  ): AddressFieldValidator =>
   (value) => {
     const normalized = value.trim()
 
@@ -64,12 +66,13 @@ const createPostalCodeValidator = (
       : undefined
   }
 
-const createCountryCodeValidator = (
-  messages: Pick<
-    AddressValidationMessages,
-    "countryInvalid" | "countryRequired"
-  >
-): AddressFieldValidator =>
+const createCountryCodeValidator =
+  (
+    messages: Pick<
+      AddressValidationMessageSet,
+      "countryInvalid" | "countryRequired"
+    >
+  ): AddressFieldValidator =>
   (value) => {
     if (!value.trim()) {
       return messages.countryRequired
@@ -79,7 +82,7 @@ const createCountryCodeValidator = (
   }
 
 export const createAddressFieldValidators = (
-  messages: AddressValidationMessages
+  messages: AddressValidationMessageSet
 ) => ({
   address1: createRequiredTextValidator(
     messages.addressRequired,

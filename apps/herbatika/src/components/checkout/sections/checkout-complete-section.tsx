@@ -12,8 +12,8 @@ import {
 } from "@/components/checkout/checkout-display.utils"
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
-import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 
 type CheckoutCompleteSectionProps = {
   canCompleteOrder: boolean
@@ -84,7 +84,11 @@ const resolveAddressRows = (
     { id: "last-name", label: labels.lastName, value: form.lastName },
     ...(hasCompanyDetails
       ? [
-          { id: "company-name", label: labels.companyName, value: form.company },
+          {
+            id: "company-name",
+            label: labels.companyName,
+            value: form.company,
+          },
           { id: "company-id", label: labels.companyId, value: form.companyId },
           { id: "tax-id", label: labels.taxId, value: form.taxId },
           { id: "vat-id", label: labels.vatId, value: form.vatId },

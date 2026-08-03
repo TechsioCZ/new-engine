@@ -111,11 +111,7 @@ export const ForgotPasswordForm = ({
           {tAuth("forgot.submit")}
         </Button>
       </div>
-      <AuthFooter
-        href={loginHref}
-        linkText={tAuth("back_to_login")}
-        text=""
-      />
+      <AuthFooter href={loginHref} linkText={tAuth("back_to_login")} text="" />
     </form>
   )
 }

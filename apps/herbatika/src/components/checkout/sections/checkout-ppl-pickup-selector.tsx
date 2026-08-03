@@ -48,11 +48,7 @@ export function CheckoutPplPickupSelector({
       defaultLang: resolveCarrierPickupWidgetLanguage(marketContext.locale),
       viewMode: "modal" as const,
     }),
-    [
-      marketContext.countryCode,
-      marketContext.locale,
-      selectedPoint?.code,
-    ]
+    [marketContext.countryCode, marketContext.locale, selectedPoint?.code]
   )
 
   if (!PPL_WIDGET_API_KEY) {
@@ -101,9 +97,7 @@ export function CheckoutPplPickupSelector({
             })}
           </p>
           {selectedPointAddress ? (
-            <p className="text-fg-secondary text-xs">
-              {selectedPointAddress}
-            </p>
+            <p className="text-fg-secondary text-xs">{selectedPointAddress}</p>
           ) : null}
         </div>
       ) : null}

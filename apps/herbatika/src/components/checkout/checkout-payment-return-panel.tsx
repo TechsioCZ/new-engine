@@ -4,9 +4,9 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import type { Route } from "next"
-import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { useSearchParams } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { type ReactNode, useEffect, useRef, useState } from "react"
 import { readAccountSetupRequested } from "@/components/checkout/account-setup-metadata"
 import {
@@ -37,9 +37,7 @@ export function CheckoutPaymentReturnPanel() {
   const verificationFailedMessage = tCheckout(
     "payment_return_verification_failed"
   )
-  const paymentNotCompletedMessage = tCheckout(
-    "payment_return_not_completed"
-  )
+  const paymentNotCompletedMessage = tCheckout("payment_return_not_completed")
   const searchParams = useSearchParams()
   const cartId = normalizeSearchParam(searchParams.get("cart_id"))
   const isCancelled = resolvePaymentCancelled(searchParams)
@@ -284,9 +282,7 @@ function PaymentReturnStatusCard({
       <StatusText aria-live="polite" showIcon status={status}>
         {children}
       </StatusText>
-      <SupportingText>
-        {tCheckout("payment_return_help")}
-      </SupportingText>
+      <SupportingText>{tCheckout("payment_return_help")}</SupportingText>
       {actions ? <div className="flex flex-wrap gap-200">{actions}</div> : null}
     </section>
   )

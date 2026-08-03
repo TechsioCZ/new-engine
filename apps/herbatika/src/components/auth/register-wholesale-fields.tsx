@@ -108,10 +108,7 @@ export function RegisterWholesaleFields({
         </form.AppField>
       </div>
 
-      <form.AppField
-        name="billing_city"
-        validators={validators.billing_city}
-      >
+      <form.AppField name="billing_city" validators={validators.billing_city}>
         {(field) => (
           <field.TextField
             autoComplete="billing address-level2"
