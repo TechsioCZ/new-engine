@@ -9,7 +9,7 @@ export const validateEmail = (email: string): boolean => {
 /**
  * Password validation rules
  */
-export interface PasswordRequirements {
+interface PasswordRequirements {
   length: boolean
   uppercase: boolean
   lowercase: boolean

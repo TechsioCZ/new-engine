@@ -26,7 +26,7 @@ export function usePrefetchOnHover(): UsePrefetchOnHoverReturn {
     timeoutRef.current = setTimeout(() => {
       const categoryIds = ALL_CATEGORIES_MAP[categoryHandle]
 
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.log(
           "[usePrefetchOnHover] Prefetch:",
           categoryHandle,
@@ -36,7 +36,7 @@ export function usePrefetchOnHover(): UsePrefetchOnHoverReturn {
 
       if (categoryIds?.length) {
         // Use categoryHandle as scopedBy for potential cancellation
-        prefetchCategoryProducts(categoryIds, categoryHandle)
+        void prefetchCategoryProducts(categoryIds, categoryHandle)
       }
     }, PREFETCH_DELAYS.CATEGORY_HOVER)
   }

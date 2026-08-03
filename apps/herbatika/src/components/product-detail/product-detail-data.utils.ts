@@ -59,7 +59,7 @@ export const resolveVariantItems = (
 
 export const resolveShortDescriptionHtml = (product: Product | null) => {
   const metadata = asRecord(product?.metadata)
-  return asString(metadata?.short_description) ?? ""
+  return asString(metadata?.["short_description"]) ?? ""
 }
 
 export const resolveProductSummaryText = (

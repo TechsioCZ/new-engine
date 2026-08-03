@@ -1,7 +1,7 @@
 "use client"
 
 import { useStore } from "@tanstack/react-form"
-import { Button } from "@ui/atoms/button"
+import { Button } from "@techsio/ui-kit/atoms/button"
 import { useState } from "react"
 
 import { useCreateAddress, useUpdateAddress } from "@/hooks/use-addresses"

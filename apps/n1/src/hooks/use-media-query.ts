@@ -9,9 +9,9 @@ const breakpoints = {
   "2xl": "(min-width: 1536px)",
 } as const
 
-export type Breakpoint = keyof typeof breakpoints
+type Breakpoint = keyof typeof breakpoints
 
-export function useMediaQuery(query: Breakpoint | string): boolean {
+export function useMediaQuery(query: string): boolean {
   // Resolve breakpoint key to actual media query
   const mediaQuery =
     query in breakpoints ? breakpoints[query as Breakpoint] : query

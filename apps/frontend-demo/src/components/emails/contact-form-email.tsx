@@ -1,16 +1,4 @@
-import {
-  Body,
-  Container,
-  Head,
-  Heading,
-  Hr,
-  Html,
-  Link,
-  Preview,
-  Section,
-  Tailwind,
-  Text,
-} from "@react-email/components"
+import type { CSSProperties, ReactNode } from "react"
 
 interface ContactFormEmailProps {
   firstName: string
@@ -32,75 +20,34 @@ export const ContactFormEmail = ({
   const previewText = `Nová zpráva od ${firstName} ${lastName}`
 
   return (
-    <Html>
-      <Head />
-      <Preview>{previewText}</Preview>
-      <Tailwind>
-        <Body className="font-sans">
-          <Container className="mx-auto my-1 flex w-layout-md flex-col rounded-lg bg-gray-50 p-8 shadow-lg">
-            <Heading className="mb-8 text-center font-bold text-2xl text-email-fg-primary">
-              Nová zpráva z kontaktního formuláře
-            </Heading>
-            <Section className="mb-1">
-              <Text className="mb-0 font-semibold text-email-fg-secondary text-sm">
-                Jméno:
-              </Text>
-              <Text className="m-0 text-email-fg-primary text-md">
-                {firstName} {lastName}
-              </Text>
-            </Section>
-
-            <Section className="mb-1">
-              <Text className="mb-0 font-semibold text-email-fg-secondary text-sm">
-                Email:
-              </Text>
-              <Link
-                className="text-email-link underline"
-                href={`mailto:${email}`}
-              >
-                {email}
-              </Link>
-            </Section>
-
-            {phone && (
-              <Section className="mb-1">
-                <Text className="mb-0 font-semibold text-gray-600 text-sm">
-                  Telefon:
-                </Text>
-                <Text className="m-0 text-gray-800 text-md">{phone}</Text>
-              </Section>
-            )}
-
-            <Section className="mb-1">
-              <Text className="mb-0 font-semibold text-gray-600 text-sm">
-                Téma:
-              </Text>
-              <Text className="m-0 text-gray-800 text-md">
-                {getSubjectLabel(subject)}
-              </Text>
-            </Section>
-
-            <Hr className="my-6 border-gray-200" />
-
-            <Section className="mb-6">
-              <Text className="mb-2 font-semibold text-gray-600 text-sm">
-                Zpráva:
-              </Text>
-              <Text className="m-0 whitespace-pre-wrap text-gray-800 text-md leading-relaxed">
-                {message}
-              </Text>
-            </Section>
-
-            <Hr className="my-6 border-gray-200" />
-
-            <Text className="mt-8 text-center text-gray-500 text-xs">
-              Tato zpráva byla odeslána prostřednictvím kontaktního formuláře na
-              webu.
-            </Text>
-          </Container>
-        </Body>
-      </Tailwind>
-    </Html>
+    <html lang="cs">
+      <body style={styles.body}>
+        <div style={styles.preview}>{previewText}</div>
+        <main style={styles.container}>
+          <h1 style={styles.heading}>Nová zpráva z kontaktního formuláře</h1>
+          <EmailField label="Jméno">
+            {firstName} {lastName}
+          </EmailField>
+          <EmailField label="Email">
+            <a href={`mailto:${email}`} style={styles.link}>
+              {email}
+            </a>
+          </EmailField>
+          {phone ? <EmailField label="Telefon">{phone}</EmailField> : null}
+          <EmailField label="Téma">{getSubjectLabel(subject)}</EmailField>
+          <hr style={styles.divider} />
+          <section style={styles.section}>
+            <p style={styles.label}>Zpráva:</p>
+            <p style={styles.message}>{message}</p>
+          </section>
+          <hr style={styles.divider} />
+          <p style={styles.footer}>
+            Tato zpráva byla odeslána prostřednictvím kontaktního formuláře na
+            webu.
+          </p>
+        </main>
+      </body>
+    </html>
   )
 }
 
@@ -111,9 +58,23 @@ ContactFormEmail.PreviewProps = {
   phone: "+420 123 456 789",
   subject: "general",
   message: "Dobrý den, rád bych se zeptal na dostupnost vašich produktů.",
-} as ContactFormEmailProps
+} satisfies ContactFormEmailProps
 
-// Helper function to get subject label
+function EmailField({
+  label,
+  children,
+}: {
+  label: string
+  children: ReactNode
+}) {
+  return (
+    <section style={styles.section}>
+      <p style={styles.label}>{label}:</p>
+      <p style={styles.value}>{children}</p>
+    </section>
+  )
+}
+
 function getSubjectLabel(subject: string): string {
   const subjects: Record<string, string> = {
     general: "Obecný dotaz",
@@ -124,3 +85,68 @@ function getSubjectLabel(subject: string): string {
   }
   return subjects[subject] || subject
 }
+
+const styles = {
+  body: {
+    backgroundColor: "#f3f4f6",
+    color: "#1f2937",
+    fontFamily: "Arial, sans-serif",
+    margin: 0,
+    padding: "24px",
+  },
+  container: {
+    backgroundColor: "#ffffff",
+    borderRadius: "8px",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+    margin: "0 auto",
+    maxWidth: "640px",
+    padding: "32px",
+  },
+  divider: {
+    border: 0,
+    borderTop: "1px solid #e5e7eb",
+    margin: "24px 0",
+  },
+  footer: {
+    color: "#6b7280",
+    fontSize: "12px",
+    margin: "32px 0 0",
+    textAlign: "center",
+  },
+  heading: {
+    color: "#111827",
+    fontSize: "24px",
+    margin: "0 0 32px",
+    textAlign: "center",
+  },
+  label: {
+    color: "#4b5563",
+    fontSize: "14px",
+    fontWeight: 600,
+    margin: "0 0 4px",
+  },
+  link: {
+    color: "#2563eb",
+    textDecoration: "underline",
+  },
+  message: {
+    fontSize: "16px",
+    lineHeight: 1.6,
+    margin: 0,
+    whiteSpace: "pre-wrap",
+  },
+  preview: {
+    display: "none",
+    maxHeight: 0,
+    maxWidth: 0,
+    opacity: 0,
+    overflow: "hidden",
+  },
+  section: {
+    margin: "0 0 16px",
+  },
+  value: {
+    fontSize: "16px",
+    margin: 0,
+  },
+} satisfies Record<string, CSSProperties>

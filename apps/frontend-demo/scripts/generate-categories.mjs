@@ -256,12 +256,7 @@ function buildCategoryTree(categories) {
 }
 
 // Function to check if category or any of its descendants has products
-function categoryHasProducts(
-  categoryId,
-  categoriesWithProducts,
-  categoryTree,
-  categoryMap
-) {
+function categoryHasProducts(categoryId, categoriesWithProducts, categoryTree) {
   // Direct check - if this category has products
   if (categoriesWithProducts.has(categoryId)) {
     return true
@@ -314,12 +309,7 @@ function filterCategoriesWithProducts(
   // First, mark all categories that have products or whose descendants have products
   categories.forEach((category) => {
     if (
-      categoryHasProducts(
-        category.id,
-        categoriesWithProducts,
-        categoryTree,
-        categoryMap
-      )
+      categoryHasProducts(category.id, categoriesWithProducts, categoryTree)
     ) {
       categoriesToKeep.add(category.id)
 
@@ -553,7 +543,7 @@ async function generateCategories() {
     const tsOutputPath = getStaticCategoryModulePath()
     const moduleExists = fs.existsSync(tsOutputPath)
 
-    if (!moduleExists && !process.env.CI) {
+    if (!moduleExists) {
       const fallbackData = createFallbackCategoryData(new Date().toISOString())
       const writtenPath = writeStaticCategoryModule(fallbackData)
       console.warn(
@@ -562,15 +552,11 @@ async function generateCategories() {
       return
     }
 
-    if (moduleExists) {
-      console.warn(
-        `ℹ️ Keeping existing module at ${tsOutputPath}; not overwriting it with an empty fallback.`
-      )
-    }
-
-    process.exitCode = 1
+    console.warn(
+      `ℹ️ Keeping existing module at ${tsOutputPath}; not overwriting it with an empty fallback.`
+    )
   }
 }
 
 // Run the script
-generateCategories()
+await generateCategories()

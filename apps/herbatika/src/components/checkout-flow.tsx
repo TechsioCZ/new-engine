@@ -20,6 +20,7 @@ import { CheckoutEmptyCartSection } from "@/components/checkout/sections/checkou
 import { CheckoutFeedbackSection } from "@/components/checkout/sections/checkout-feedback-section"
 import { CheckoutStepsSection } from "@/components/checkout/sections/checkout-steps-section"
 import { useCheckoutController } from "@/components/checkout/use-checkout-controller"
+import { appHref } from "@/lib/routing"
 
 type CheckoutFlowProps = {
   activeStep: CheckoutStepSlug
@@ -81,7 +82,7 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
       return
     }
 
-    router.replace(resolveCheckoutStepHref(redirectStep))
+    router.replace(appHref(resolveCheckoutStepHref(redirectStep)))
   }, [redirectStep, router, shouldRedirectStep])
 
   if (shouldRedirectStep) {

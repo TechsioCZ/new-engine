@@ -4,6 +4,13 @@ import fs from "node:fs"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
 
+import {
+  globToRegExp,
+  normalizePath,
+  parseGuardrailArgs,
+} from "./guardrail-utils.mjs"
+import defaultConfig from "./token-usage.config.mjs"
+
 const DEFAULT_CONFIG_PATH = "scripts/token-usage.config.mjs"
 const BASE_EXCLUDE_PATTERNS = [
   "**/node_modules/**",
@@ -18,49 +25,6 @@ const CSS_TOKEN_SHORTHAND_REGEX = /\(--[\w-]+\)/
 const CSS_VAR_TOKEN_REGEX = /var\(--[\w-]+\)/
 const OPACITY_SUFFIX_REGEX = /\/\d+$/
 const NUMERIC_SCALE_VALUE_REGEX = /^\d+(?:\.\d+)?$/
-
-function parseArgs(argv) {
-  const args = { configPath: DEFAULT_CONFIG_PATH, json: false }
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index]
-    if (arg === "--json") {
-      args.json = true
-      continue
-    }
-
-    if (arg === "--config") {
-      const nextValue = argv[index + 1]
-      if (nextValue) {
-        args.configPath = nextValue
-        index += 1
-      }
-      continue
-    }
-
-    if (arg.startsWith("--config=")) {
-      args.configPath = arg.slice("--config=".length)
-    }
-  }
-
-  return args
-}
-
-function normalizePath(value) {
-  return value.replaceAll(path.sep, "/")
-}
-
-function globToRegExp(globPattern) {
-  const normalized = normalizePath(globPattern)
-  const withMarkers = normalized
-    .replaceAll("**", "__DOUBLE_STAR__")
-    .replaceAll("*", "__SINGLE_STAR__")
-  const escaped = withMarkers
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-    .replaceAll("__DOUBLE_STAR__", ".*")
-    .replaceAll("__SINGLE_STAR__", "[^/]*")
-  return new RegExp(`^${escaped}$`)
-}
 
 function buildLineStarts(content) {
   const starts = [0]
@@ -483,7 +447,7 @@ function printSummary(findings, scannedFileCount) {
 }
 
 async function main() {
-  const args = parseArgs(process.argv.slice(2))
+  const args = parseGuardrailArgs(process.argv.slice(2), DEFAULT_CONFIG_PATH)
   const rootDir = process.cwd()
   const configPath = path.resolve(rootDir, args.configPath)
 
@@ -492,8 +456,11 @@ async function main() {
     process.exit(2)
   }
 
-  const configModule = await import(pathToFileURL(configPath).href)
-  const config = configModule.default ?? configModule
+  let config = defaultConfig
+  if (args.configPath !== DEFAULT_CONFIG_PATH) {
+    const configModule = await import(pathToFileURL(configPath).href)
+    config = configModule.default ?? configModule
+  }
   const rulesConfig = resolveRuleConfigMap(config)
   const sourceFiles = listSourceFiles(rootDir, config)
 

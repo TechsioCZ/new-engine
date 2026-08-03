@@ -50,7 +50,7 @@ export function ProductDetailMediaColumn({
             }
           },
         }}
-        className="min-w-0 md:grid-cols-[auto_minmax(0,1fr)]"
+        className="min-w-0 md:product-detail-media-layout"
         hideThumbnailsWhenSingle={false}
         items={galleryItemsWithFallback}
         onValueChange={({ value }) => setSelectedImageIndex(value)}
@@ -73,7 +73,7 @@ export function ProductDetailMediaColumn({
           ) : null}
 
           <Gallery.Carousel className="min-w-0 px-gallery-carousel">
-            <Gallery.Slides className="mx-auto h-full max-h-[408px] w-full max-w-full md:max-w-[408px]" />
+            <Gallery.Slides className="mx-auto h-full max-h-product-gallery w-full max-w-full md:max-w-product-gallery" />
           </Gallery.Carousel>
 
           {mediaFacts.length > 0 ? (

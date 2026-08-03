@@ -134,8 +134,12 @@ const createSeedMedia = async (payload: SeedPayload) => {
       pagination: false,
       overrideAccess: true,
     })
+    const existingMedia = result.docs[0]
+    if (!existingMedia) {
+      throw new Error("Seed media lookup returned no documents")
+    }
     payload.logger.info("Seed media already exists")
-    return result.docs[0]
+    return existingMedia
   }
 
   payload.logger.info("Creating seed media")
@@ -159,7 +163,7 @@ const createArticleSeed = async (
   userId: PayloadId,
   mediaId: PayloadId
 ) => {
-  if (!isEnabled(process.env.FEATURE_PAYLOAD_ARTICLES_ENABLED)) {
+  if (!isEnabled(process.env["FEATURE_PAYLOAD_ARTICLES_ENABLED"])) {
     return
   }
 
@@ -221,7 +225,7 @@ const createArticleSeed = async (
 }
 
 const createPageSeed = async (payload: SeedPayload) => {
-  if (!isEnabled(process.env.FEATURE_PAYLOAD_PAGES_ENABLED)) {
+  if (!isEnabled(process.env["FEATURE_PAYLOAD_PAGES_ENABLED"])) {
     return
   }
 
@@ -283,7 +287,7 @@ const createHeroCarouselSeed = async (
   payload: SeedPayload,
   mediaId: PayloadId
 ) => {
-  if (!isEnabled(process.env.FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED)) {
+  if (!isEnabled(process.env["FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED"])) {
     return
   }
 

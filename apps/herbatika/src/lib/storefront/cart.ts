@@ -21,18 +21,10 @@ export const cartReadQueryOptions = {
   refetchOnReconnect: true,
 } as const
 
-export const {
-  useCart,
-  useSuspenseCart,
-  useCreateCart,
-  useUpdateCart,
-  useUpdateCartAddress,
-  useTransferCart,
-  usePrefetchCart,
-} = cartHooks
+export const { useCart, useUpdateCart, useUpdateCartAddress, useTransferCart } =
+  cartHooks
 
 export const useAddLineItem = cartFlow.useAddToCart
-export const useCompleteCart = cartFlow.useCompleteCart
 
 const createEmptyCartResetSuccessHandler =
   (queryClient: QueryClient, onSuccess?: (cart: HttpTypes.StoreCart) => void) =>

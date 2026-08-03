@@ -25,7 +25,7 @@ const getErrorStatus = (error: unknown): number | undefined => {
   return err.status ?? err.response?.status
 }
 
-const getErrorMessage = (error: unknown): string | undefined => {
+const resolveErrorMessage = (error: unknown): string | undefined => {
   if (!error || typeof error !== "object") return undefined
   const err = error as ErrorResponse
   return err.message ?? err.response?.data?.message
@@ -134,11 +134,11 @@ export function useCart() {
         type: "success",
       })
     },
-    onError: (error) => {
+    onError: async (error) => {
       console.error("[Cart Hook] Add item error:", error)
 
       // Parse error message for specific inventory issue
-      const errorMessage = getErrorMessage(error) || "Unknown error"
+      const errorMessage = resolveErrorMessage(error) || "Unknown error"
 
       if (errorMessage.toLowerCase().includes("inventory")) {
         toast.create({
@@ -161,7 +161,7 @@ export function useCart() {
           type: "error",
         })
         // Invalidate cart query to trigger recreation
-        queryClient.invalidateQueries({ queryKey: queryKeys.cart() })
+        await queryClient.invalidateQueries({ queryKey: queryKeys.cart() })
       } else {
         toast.create({
           title: "Nepodařilo se přidat položku",
@@ -298,7 +298,10 @@ export function useCart() {
 
     // Actions
     addItem: (variantId: string, quantity?: number) =>
-      addItemMutation.mutate({ variantId, quantity }),
+      addItemMutation.mutate({
+        variantId,
+        ...(quantity !== undefined && { quantity }),
+      }),
     updateQuantity: (lineItemId: string, quantity: number) =>
       updateQuantityMutation.mutate({ lineItemId, quantity }),
     removeItem: (lineItemId: string) => removeItemMutation.mutate(lineItemId),

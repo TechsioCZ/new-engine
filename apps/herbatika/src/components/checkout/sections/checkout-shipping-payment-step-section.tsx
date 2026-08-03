@@ -1,8 +1,8 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
 import { type ComponentProps, useState } from "react"
 
+import NextLink from "@/components/app-link"
 import { resolveCarrierPickupRequirement } from "@/components/checkout/carrier-pickup.utils"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
 
@@ -61,9 +61,13 @@ export function CheckoutShippingPaymentStepSection({
         onPendingPickupOptionIdChange={setPendingPickupOptionId}
         onSelectShipping={controller.handleSelectShipping}
         pendingPickupOptionId={pendingPickupOptionId}
-        selectedShippingMethodId={
-          controller.checkoutShippingQuery.selectedShippingMethodId
-        }
+        {...(controller.checkoutShippingQuery.selectedShippingMethodId ===
+        undefined
+          ? {}
+          : {
+              selectedShippingMethodId:
+                controller.checkoutShippingQuery.selectedShippingMethodId,
+            })}
         shippingOptions={controller.checkoutShippingQuery.shippingOptions}
         shippingPrices={controller.checkoutShippingQuery.shippingPrices}
       />
@@ -75,7 +79,9 @@ export function CheckoutShippingPaymentStepSection({
         }
         onSelectPaymentProvider={controller.handleSelectPaymentProvider}
         paymentProviders={controller.checkoutPaymentQuery.paymentProviders}
-        selectedPaymentProviderId={selectedPaymentProviderId}
+        {...(selectedPaymentProviderId === undefined
+          ? {}
+          : { selectedPaymentProviderId: selectedPaymentProviderId })}
         selectionMessage={paymentSelectionMessage}
       />
 

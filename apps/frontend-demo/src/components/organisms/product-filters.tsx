@@ -33,13 +33,10 @@ export function ProductFilters({
   hideCategories = false,
 }: ProductFiltersProps) {
   const { selectedRegion } = useRegions()
-  const [categoryIds, setCategoryIds] = useState<string[]>([])
-
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
 
   const handleCategoryChange = (newCategoryIds: string[]) => {
-    setCategoryIds(newCategoryIds)
     updateFilters({ categories: new Set(newCategoryIds) })
   }
 
@@ -69,7 +66,7 @@ export function ProductFilters({
 
     // Only prefetch if data is not in cache or is stale
     if (!cachedData || queryState?.isInvalidated) {
-      queryClient.prefetchQuery({
+      void queryClient.prefetchQuery({
         queryKey,
         queryFn: () =>
           getProducts({

@@ -2,16 +2,8 @@ import "server-only"
 import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
 import type { CatalogFacets } from "@techsio/storefront-data/catalog/types"
-import type {
-  MedusaCategoryDetailInput,
-  MedusaCategoryListInput,
-} from "@techsio/storefront-data/categories/medusa-service"
 import { createMedusaStorefrontServerReadPreset } from "@techsio/storefront-data/medusa/server-read"
 import type { MedusaProductAttributesInput } from "@techsio/storefront-data/product-attributes/medusa-service"
-import type {
-  MedusaProductDetailInput,
-  MedusaProductListInput,
-} from "@techsio/storefront-data/products/medusa-service"
 import type { MedusaProductReviewListInput } from "@techsio/storefront-data/reviews/medusa-service"
 
 import { storefrontSdk } from "./sdk"
@@ -37,14 +29,9 @@ const storefrontServerRead = createMedusaStorefrontServerReadPreset<
   products: {
     serviceConfig: storefrontCoreDefinition.products.serviceConfig,
     hooks: {
-      buildListParams: storefrontCoreDefinition.products.hooks
-        .buildListParams as (
-        input: MedusaProductListInput
-      ) => ProductListParams,
-      buildDetailParams: storefrontCoreDefinition.products.hooks
-        .buildDetailParams as (
-        input: MedusaProductDetailInput
-      ) => ProductDetailParams,
+      buildListParams: storefrontCoreDefinition.products.hooks.buildListParams,
+      buildDetailParams:
+        storefrontCoreDefinition.products.hooks.buildDetailParams,
     },
     queryKeys: storefrontCoreDefinition.queryKeys.products,
   },
@@ -68,14 +55,10 @@ const storefrontServerRead = createMedusaStorefrontServerReadPreset<
   categories: {
     serviceConfig: storefrontCoreDefinition.categories.serviceConfig,
     hooks: {
-      buildListParams: storefrontCoreDefinition.categories.hooks
-        .buildListParams as (
-        input: MedusaCategoryListInput
-      ) => CategoryListParams,
-      buildDetailParams: storefrontCoreDefinition.categories.hooks
-        .buildDetailParams as (
-        input: MedusaCategoryDetailInput
-      ) => MedusaCategoryDetailInput,
+      buildListParams:
+        storefrontCoreDefinition.categories.hooks.buildListParams,
+      buildDetailParams:
+        storefrontCoreDefinition.categories.hooks.buildDetailParams,
     },
     queryKeys: storefrontCoreDefinition.queryKeys.categories,
   },

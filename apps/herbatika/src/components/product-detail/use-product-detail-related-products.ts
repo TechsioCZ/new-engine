@@ -29,8 +29,9 @@ export function useProductDetailRelatedProducts({
   const referencedProductsQuery = useProducts({
     page: 1,
     limit: RELATED_PRODUCTS_LIMIT,
-    handle:
-      relatedReferenceHandles.length > 0 ? relatedReferenceHandles : undefined,
+    ...(relatedReferenceHandles.length > 0
+      ? { handle: relatedReferenceHandles }
+      : {}),
     fields: RELATED_PRODUCT_FIELDS,
     enabled: Boolean(product?.id && relatedReferenceHandles.length > 0),
   })
@@ -38,7 +39,9 @@ export function useProductDetailRelatedProducts({
   const fallbackProductsQuery = useProducts({
     page: 1,
     limit: RELATED_PRODUCTS_LIMIT,
-    category_id: relatedCategoryIds.length > 0 ? relatedCategoryIds : undefined,
+    ...(relatedCategoryIds.length > 0
+      ? { category_id: relatedCategoryIds }
+      : {}),
     order: "-created_at",
     fields: PRODUCT_CARD_FIELDS,
     enabled: Boolean(product?.id),

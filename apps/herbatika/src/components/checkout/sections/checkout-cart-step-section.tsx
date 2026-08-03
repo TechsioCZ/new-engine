@@ -147,23 +147,26 @@ export function CheckoutCartStepSection({
       ) : null}
 
       <div className="overflow-hidden rounded-sm border border-border-primary bg-surface p-400 md:px-550 md:pt-550 md:pb-500">
-        {cartItems.map((item, index) => (
-          <div
-            className={`py-250 ${index > 0 ? "border-border-secondary border-t" : ""}`}
-            key={item.id}
-          >
-            <CheckoutCartItemRow
-              currencyCode={supportedCurrencyCode}
-              isPending={isPending}
-              item={item}
-              onRemove={handleRemove}
-              onUpdateQuantity={handleUpdateQuantity}
-              product={cartProductsByHandle.get(
-                resolveLineItemProductHandle(item) ?? ""
-              )}
-            />
-          </div>
-        ))}
+        {cartItems.map((item, index) => {
+          const product = cartProductsByHandle.get(
+            resolveLineItemProductHandle(item) ?? ""
+          )
+          return (
+            <div
+              className={`py-250 ${index > 0 ? "border-border-secondary border-t" : ""}`}
+              key={item.id}
+            >
+              <CheckoutCartItemRow
+                currencyCode={supportedCurrencyCode}
+                isPending={isPending}
+                item={item}
+                onRemove={handleRemove}
+                onUpdateQuantity={handleUpdateQuantity}
+                {...(product === undefined ? {} : { product })}
+              />
+            </div>
+          )
+        })}
       </div>
     </section>
   )

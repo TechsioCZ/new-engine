@@ -33,4 +33,4 @@ export const SSR_FETCH_OPTIONS: Record<
 export const MEDUSA_BACKEND_URL = resolveMedusaBackendUrl()
 
 export const MEDUSA_PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
+  process.env["NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"] ?? ""

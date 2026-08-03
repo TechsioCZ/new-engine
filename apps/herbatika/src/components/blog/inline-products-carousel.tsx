@@ -69,8 +69,10 @@ export function InlineProductsCarousel({
 }: InlineProductsCarouselProps) {
   const region = useRegionContext()
   const addToCart = useAddProductToCart({
-    regionId: region?.region_id,
-    countryCode: region?.country_code,
+    ...(region?.region_id === undefined ? {} : { regionId: region?.region_id }),
+    ...(region?.country_code === undefined
+      ? {}
+      : { countryCode: region?.country_code }),
   })
   const toast = useAppToast()
 
@@ -92,8 +94,12 @@ export function InlineProductsCarousel({
       <HerbatikaProductCard
         isAdding={Boolean(product.id) && addToCart.isProductAdding(product.id)}
         onAddToCart={handleAddToCart}
-        onProductHoverEnd={onProductHoverEnd}
-        onProductHoverStart={onProductHoverStart}
+        {...(onProductHoverEnd === undefined
+          ? {}
+          : { onProductHoverEnd: onProductHoverEnd })}
+        {...(onProductHoverStart === undefined
+          ? {}
+          : { onProductHoverStart: onProductHoverStart })}
         product={product}
       />
     ),

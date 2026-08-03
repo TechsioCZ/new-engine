@@ -46,9 +46,13 @@ export function CheckoutStepContent({
       cartTotalAmount={controller.cartTotalAmount}
       currencyCode={controller.currencyCode}
       detailsFont={orderSummaryDetailsFont}
-      paymentLabel={selectedPaymentLabel}
+      {...(selectedPaymentLabel === undefined
+        ? {}
+        : { paymentLabel: selectedPaymentLabel })}
       shippingAmount={controller.cartShippingSubtotalAmount}
-      shippingLabel={selectedShippingLabel}
+      {...(selectedShippingLabel === undefined
+        ? {}
+        : { shippingLabel: selectedShippingLabel })}
     />
   )
 
@@ -65,7 +69,9 @@ export function CheckoutStepContent({
               hasShipping={controller.hasShipping}
               nextStepHref={shippingStepHref}
               shippingAmount={controller.cartShippingSubtotalAmount}
-              shippingLabel={selectedShippingLabel}
+              {...(selectedShippingLabel === undefined
+                ? {}
+                : { shippingLabel: selectedShippingLabel })}
             />
           }
           cartItems={controller.cartItems}
@@ -76,7 +82,9 @@ export function CheckoutStepContent({
           }
         >
           <CheckoutCartStepSection
-            cartId={controller.cartQuery.cart?.id}
+            {...(controller.cartQuery.cart?.id === undefined
+              ? {}
+              : { cartId: controller.cartQuery.cart?.id })}
             cartItems={controller.cartItems}
             cartItemsTotalAmount={controller.cartItemsTotalAmount}
             currencyCode={controller.currencyCode}
@@ -104,7 +112,7 @@ export function CheckoutStepContent({
           />
         </CheckoutStepLayout>
       )
-    default:
+    case "suhrn":
       return (
         <CheckoutStepLayout aside={orderSummaryAside}>
           <CheckoutCompleteSection
@@ -126,15 +134,27 @@ export function CheckoutStepContent({
             onCompleteOrder={controller.handleCompleteOrder}
             onHeurekaConsentChange={controller.setHeurekaConsent}
             onMarketingConsentChange={controller.setMarketingConsent}
-            paymentLabel={selectedPaymentLabel}
-            paymentProviderId={selectedPaymentProviderId ?? undefined}
+            {...(selectedPaymentLabel === undefined
+              ? {}
+              : { paymentLabel: selectedPaymentLabel })}
+            {...(selectedPaymentProviderId === undefined
+              ? {}
+              : { paymentProviderId: selectedPaymentProviderId ?? undefined })}
             shippingAddressForm={controller.shippingAddressForm}
-            shippingLabel={selectedShippingLabel}
-            shippingOptionId={selectedShippingOptionId}
+            {...(selectedShippingLabel === undefined
+              ? {}
+              : { shippingLabel: selectedShippingLabel })}
+            {...(selectedShippingOptionId === undefined
+              ? {}
+              : { shippingOptionId: selectedShippingOptionId })}
             shippingStepHref={shippingStepHref}
           />
         </CheckoutStepLayout>
       )
+    default: {
+      const unhandledStep: never = activeStep
+      throw new Error(`Unhandled checkout step: ${String(unhandledStep)}`)
+    }
   }
 }
 

@@ -46,7 +46,7 @@ export function HeaderSearch() {
 
     // Set new timer
     debounceTimerRef.current = setTimeout(() => {
-      searchProducts(value)
+      void searchProducts(value)
     }, 300)
   }
 

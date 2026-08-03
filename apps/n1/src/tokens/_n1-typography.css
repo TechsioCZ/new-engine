@@ -1,4 +1,5 @@
 @theme static {
+  --decoration-dotted: dotted;
   --icon-sm: 0.5355rem;
   --badge-text-sm: 0.6rem;
   --badge-text-md: 0.9rem;

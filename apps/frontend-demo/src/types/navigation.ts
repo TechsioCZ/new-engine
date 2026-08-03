@@ -1,5 +1,7 @@
-export interface NavLink {
-  href: string
+import type { Route } from "next"
+
+interface NavLink {
+  href: Route
   label: string
 }
 

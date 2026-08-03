@@ -89,8 +89,8 @@ export function useCatalogListingInteractions({
   setQueryState,
 }: UseCatalogListingInteractionsInput) {
   const addToCart = useAddProductToCart({
-    regionId,
-    countryCode,
+    ...(regionId === undefined ? {} : { regionId }),
+    ...(countryCode === undefined ? {} : { countryCode }),
   })
   const toast = useAppToast()
   const prefetchProduct = usePrefetchProduct({

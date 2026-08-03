@@ -34,8 +34,8 @@ export const ItemCard = ({ item }: { item: StoreOrderLineItem }) => {
           </div>
         )}
         {/* Quantity badge */}
-        <ProductCard.Badges className="absolute top-1 right-1">
-          <Badge className="h-8 w-8 rounded-full" variant="secondary">
+        <ProductCard.Badges className="absolute top-100 right-100">
+          <Badge className="h-650 w-650 rounded-full" variant="secondary">
             {`${item.quantity}x`}
           </Badge>
         </ProductCard.Badges>

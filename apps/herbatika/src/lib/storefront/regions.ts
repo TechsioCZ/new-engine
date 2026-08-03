@@ -13,14 +13,7 @@ import { storefront } from "./storefront"
 
 const regionHooks = storefront.hooks.regions
 
-export const {
-  useRegions,
-  useSuspenseRegions,
-  useRegion,
-  useSuspenseRegion,
-  usePrefetchRegions,
-  usePrefetchRegion,
-} = regionHooks
+export const { useRegions } = regionHooks
 
 type UseRegionBootstrapOptions = {
   initialRegion?: RegionInfo | null

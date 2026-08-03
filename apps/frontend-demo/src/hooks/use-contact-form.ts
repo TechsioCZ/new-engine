@@ -49,7 +49,7 @@ export function useContactForm({ onSuccess }: UseContactFormProps = {}) {
 
   const mutation = useMutation({
     mutationFn: sendContactForm,
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.create({
         title: "Zpráva odeslána",
         description:

@@ -63,7 +63,9 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
   }
 
   if (!cart?.items || cart.items.length === 0) {
-    return <CartEmptyState onContinueShopping={onClose} />
+    return (
+      <CartEmptyState {...(onClose ? { onContinueShopping: onClose } : {})} />
+    )
   }
 
   const isPending = isUpdating || isRemoving
@@ -136,7 +138,7 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
           className="w-full justify-center"
           disabled={isPending}
           href="/pokladna"
-          onClick={onClose}
+          {...(onClose ? { onClick: onClose } : {})}
           size="md"
           theme="solid"
           variant="primary"
@@ -146,7 +148,7 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
 
         <Button
           className="w-full justify-center"
-          onClick={onClose}
+          {...(onClose ? { onClick: onClose } : {})}
           size="sm"
           theme="outlined"
           variant="secondary"

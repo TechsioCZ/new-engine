@@ -11,7 +11,7 @@ export type CmsCategory = {
   title?: string | null
 }
 
-export type CmsArticleSummary = {
+type CmsArticleSummary = {
   excerpt?: string | null
   featuredImage?: CmsMedia | string | null
   slug?: string | null

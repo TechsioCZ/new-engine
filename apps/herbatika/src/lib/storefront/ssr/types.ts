@@ -24,23 +24,3 @@ export type ProductDetailParams = {
   locale?: string
   fields?: string
 }
-
-type QueryParamPrimitive = string | number | boolean
-export type QueryParamValue =
-  | QueryParamPrimitive
-  | null
-  | undefined
-  | QueryParamPrimitive[]
-  | null[]
-  | undefined[]
-
-export type QueryInput = Record<string, QueryParamValue>
-
-export type CatalogStoreResponse = {
-  products?: HttpTypes.StoreProduct[]
-  count?: number
-  page?: number
-  limit?: number
-  totalPages?: number
-  facets?: unknown
-}

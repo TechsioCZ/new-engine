@@ -21,7 +21,7 @@ describe("readingTime utilities", () => {
     })
 
     it("calculates reading time based on word count", () => {
-      const words = new Array(200).fill("word").join(" ")
+      const words = Array.from({ length: 200 }, () => "word").join(" ")
       convertLexicalToPlaintextMock.mockReturnValue(words)
 
       const content = { root: { children: [] } } as any
@@ -29,7 +29,7 @@ describe("readingTime utilities", () => {
     })
 
     it("uses default 200 words per minute", () => {
-      const words = new Array(400).fill("word").join(" ")
+      const words = Array.from({ length: 400 }, () => "word").join(" ")
       convertLexicalToPlaintextMock.mockReturnValue(words)
 
       const content = { root: { children: [] } } as any
@@ -37,7 +37,7 @@ describe("readingTime utilities", () => {
     })
 
     it("accepts custom words per minute", () => {
-      const words = new Array(300).fill("word").join(" ")
+      const words = Array.from({ length: 300 }, () => "word").join(" ")
       convertLexicalToPlaintextMock.mockReturnValue(words)
 
       const content = { root: { children: [] } } as any
@@ -45,7 +45,7 @@ describe("readingTime utilities", () => {
     })
 
     it("rounds up to nearest minute", () => {
-      const words = new Array(201).fill("word").join(" ")
+      const words = Array.from({ length: 201 }, () => "word").join(" ")
       convertLexicalToPlaintextMock.mockReturnValue(words)
 
       const content = { root: { children: [] } } as any
@@ -67,7 +67,7 @@ describe("readingTime utilities", () => {
     })
 
     it("returns 0 when wordsPerMinute is 0", () => {
-      const words = new Array(200).fill("word").join(" ")
+      const words = Array.from({ length: 200 }, () => "word").join(" ")
       convertLexicalToPlaintextMock.mockReturnValue(words)
 
       const content = { root: { children: [] } } as any
@@ -75,7 +75,7 @@ describe("readingTime utilities", () => {
     })
 
     it("returns 0 when wordsPerMinute is negative", () => {
-      const words = new Array(200).fill("word").join(" ")
+      const words = Array.from({ length: 200 }, () => "word").join(" ")
       convertLexicalToPlaintextMock.mockReturnValue(words)
 
       const content = { root: { children: [] } } as any
@@ -110,7 +110,7 @@ describe("readingTime utilities", () => {
     })
 
     it("handles large content efficiently", () => {
-      const words = new Array(10_000).fill("word").join(" ")
+      const words = Array.from({ length: 10_000 }, () => "word").join(" ")
       convertLexicalToPlaintextMock.mockReturnValue(words)
 
       const content = { root: { children: [] } } as any

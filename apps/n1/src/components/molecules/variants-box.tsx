@@ -44,7 +44,7 @@ export const VariantsBox = ({ variants, limit = 3 }: VariantsBoxProps) => {
         {visibleVariants.map((variant) => (
           <ProductCard.Button
             buttonVariant="custom"
-            className="h-7 min-w-7 items-center border border-border-secondary bg-surface px-50 py-50"
+            className="h-650 min-w-650 items-center border border-border-secondary bg-surface px-50 py-50"
             key={slugify(variant)}
           >
             <span className="font-normal text-2xs text-fg-primary">
@@ -63,7 +63,7 @@ export const VariantsBox = ({ variants, limit = 3 }: VariantsBoxProps) => {
           {variants.map((variant) => (
             <ProductCard.Button
               buttonVariant="custom"
-              className="h-7 min-w-7 items-center border border-border-secondary bg-surface px-50 py-50"
+              className="h-650 min-w-650 items-center border border-border-secondary bg-surface px-50 py-50"
               key={slugify(variant)}
             >
               <span className="font-normal text-2xs text-fg-primary">

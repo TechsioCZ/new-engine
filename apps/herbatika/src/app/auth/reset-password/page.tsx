@@ -16,10 +16,10 @@ export default async function ResetPasswordPage({
   searchParams,
 }: ResetPasswordPageProps) {
   const resolvedSearchParams = await searchParams
-  const token = resolveStringParam(resolvedSearchParams.token)
-  const email = resolveStringParam(resolvedSearchParams.email)
+  const token = resolveStringParam(resolvedSearchParams["token"])
+  const email = resolveStringParam(resolvedSearchParams["email"])
   const flow =
-    resolveStringParam(resolvedSearchParams.flow) === "account-setup"
+    resolveStringParam(resolvedSearchParams["flow"]) === "account-setup"
       ? "account-setup"
       : "reset-password"
 

@@ -124,9 +124,9 @@ const resolveDailyCapsuleDose = (texts: string[]): number | null => {
 
 const collectParameterTexts = (product: Product | null): string[] => {
   const metadata = asRecord(product?.metadata)
-  const topOffer = asRecord(metadata?.top_offer)
-  const parameters = Array.isArray(topOffer?.parameters)
-    ? topOffer.parameters
+  const topOffer = asRecord(metadata?.["top_offer"])
+  const parameters = Array.isArray(topOffer?.["parameters"])
+    ? topOffer["parameters"]
     : []
 
   return parameters
@@ -135,8 +135,8 @@ const collectParameterTexts = (product: Product | null): string[] => {
       Boolean(parameter)
     )
     .flatMap((parameter) => [
-      asString(parameter.name),
-      asString(parameter.value),
+      asString(parameter["name"]),
+      asString(parameter["value"]),
     ])
     .filter((value): value is string => Boolean(value))
 }
@@ -150,7 +150,9 @@ const collectTexts = (
   }
 
   const metadata = asRecord(product.metadata)
-  const shortDescriptionText = stripHtml(asString(metadata?.short_description))
+  const shortDescriptionText = stripHtml(
+    asString(metadata?.["short_description"])
+  )
   const sectionTexts = sections
     .map((section) => stripHtml(section.html))
     .filter(Boolean)

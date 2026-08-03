@@ -8,8 +8,7 @@ const POSTAL_CODE_REGEX = /^\d{3}\s\d{2}$/
 
 type ConfirmPasswordFieldApi = {
   form: {
-    // biome-ignore lint/suspicious/noExplicitAny: TanStack Form field names are generic
-    getFieldValue: (...args: any[]) => unknown
+    getFieldValue: (fieldName: RegisterFieldName) => unknown
   }
 }
 
@@ -146,7 +145,7 @@ export const PASSWORD_REQUIREMENTS = [
   },
 ]
 
-export const isPasswordValid = (password: string): boolean =>
+const isPasswordValid = (password: string): boolean =>
   PASSWORD_REQUIREMENTS.every((req) => req.test(password))
 
 // ============================================================================

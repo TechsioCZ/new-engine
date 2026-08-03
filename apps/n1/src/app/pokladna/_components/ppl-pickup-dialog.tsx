@@ -34,7 +34,7 @@ export function PplPickupDialog({
   address,
 }: PplPickupDialogProps) {
   const handleSelect = (data: PplAccessPointData) => {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env["NODE_ENV"] === "development") {
       console.log("[PplPickupDialog] Access point selected:", data)
     }
     onSelect(data)

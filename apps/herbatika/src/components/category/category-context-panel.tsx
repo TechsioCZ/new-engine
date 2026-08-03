@@ -94,7 +94,7 @@ export function CategoryContextPanel({
   return (
     <section className="space-y-350">
       <CategoryIntro
-        introText={introText}
+        {...(introText === undefined ? {} : { introText: introText })}
         isExpanded={isExpanded}
         onExpandedChange={setIsExpanded}
         sanitizedIntroHtml={sanitizedIntroHtml}

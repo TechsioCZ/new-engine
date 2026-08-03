@@ -44,9 +44,9 @@ export function RecentlyVisitedProductsSection({
   visibleCount = DEFAULT_VISIBLE_COUNT,
 }: RecentlyVisitedProductsSectionProps) {
   const region = useRegionContext()
-  const recentlyVisitedHandles = useRecentlyVisitedProductHandles({
-    excludeHandle,
-  })
+  const recentlyVisitedHandles = useRecentlyVisitedProductHandles(
+    excludeHandle === undefined ? {} : { excludeHandle }
+  )
   const productHandles = recentlyVisitedHandles.slice(0, visibleCount)
   const [productsWithImageError, setProductsWithImageError] = useState<
     string[]
@@ -55,7 +55,7 @@ export function RecentlyVisitedProductsSection({
   const recentProductsQuery = useProducts({
     page: 1,
     limit: productHandles.length,
-    handle: productHandles.length > 0 ? productHandles : undefined,
+    ...(productHandles.length > 0 ? { handle: productHandles } : {}),
     fields: PRODUCT_CARD_FIELDS,
     enabled: Boolean(region?.region_id && productHandles.length > 0),
   })

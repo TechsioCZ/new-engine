@@ -43,7 +43,9 @@ export function useCheckoutInlineProducts(
   const relatedProductsQuery = useProducts({
     page: 1,
     limit: CHECKOUT_INLINE_PRODUCTS_CANDIDATE_LIMIT,
-    category_id: relatedCategoryIds.length > 0 ? relatedCategoryIds : undefined,
+    ...(relatedCategoryIds.length > 0
+      ? { category_id: relatedCategoryIds }
+      : {}),
     order: "-created_at",
     fields: PRODUCT_CARD_FIELDS,
     enabled: relatedCategoryIds.length > 0,

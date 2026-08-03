@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
 
 import { BrandListing } from "@/components/brands/brand-listing"
+import { appHref } from "@/lib/routing"
 import { createBrandHref, resolveBrandBySlug } from "@/lib/storefront/brands"
 import { fetchStorefrontBrands } from "@/lib/storefront/brands.server"
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state"
@@ -76,7 +77,9 @@ export default async function BrandPage({
 
   if (slug !== brand.slug) {
     redirect(
-      `${createBrandHref(brand)}${createSearchParamsSuffix(resolvedSearchParams)}`
+      appHref(
+        `${createBrandHref(brand)}${createSearchParamsSuffix(resolvedSearchParams)}`
+      )
     )
   }
 

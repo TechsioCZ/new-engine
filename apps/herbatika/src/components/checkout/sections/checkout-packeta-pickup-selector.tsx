@@ -18,10 +18,10 @@ type CheckoutPacketaPickupSelectorProps = {
 }
 
 const PACKETA_WIDGET_API_KEY =
-  process.env.NEXT_PUBLIC_PACKETA_WIDGET_API_KEY?.trim() ?? ""
+  process.env["NEXT_PUBLIC_PACKETA_WIDGET_API_KEY"]?.trim() ?? ""
 const DEFAULT_PACKETA_COUNTRY = "sk"
 const PACKETA_WIDGET_COUNTRIES =
-  process.env.NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES?.trim() ??
+  process.env["NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES"]?.trim() ??
   DEFAULT_PACKETA_COUNTRY
 
 export function CheckoutPacketaPickupSelector({
@@ -45,8 +45,9 @@ export function CheckoutPacketaPickupSelector({
         { country, group: "", selected: index === 0 },
         { country, group: "zbox" },
       ]),
-      webUrl:
-        typeof window === "undefined" ? undefined : window.location.origin,
+      ...(typeof window === "undefined"
+        ? {}
+        : { webUrl: window.location.origin }),
     }
   }, [])
 
@@ -136,7 +137,9 @@ function buildPacketaShippingData(point: PacketaPickupPoint) {
   }
 
   return Object.fromEntries(
-    Object.entries(payload).filter(([, value]) => value != null && value !== "")
+    Object.entries(payload).filter(
+      ([, value]) => value !== null && value !== ""
+    )
   )
 }
 

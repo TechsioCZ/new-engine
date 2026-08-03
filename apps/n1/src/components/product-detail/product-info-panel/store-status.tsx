@@ -14,7 +14,7 @@ export const StoreStatus = ({ quantity }: { quantity: number }) => (
     offset={{ mainAxis: 4, crossAxis: 4 }}
     placement="bottom-start"
   >
-    <span className="cursor-help font-bold text-lg text-success underline decoration-1 decoration-dotted underline-offset-4">
+    <span className="cursor-help font-bold text-lg text-success underline decoration-dotted underline-offset-4">
       Skladem {quantity} ks
     </span>
   </Tooltip>

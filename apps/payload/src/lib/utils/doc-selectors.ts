@@ -12,15 +12,15 @@ export const getCategoryDoc = (category: unknown): CategoryDoc | null => {
   }
 
   const record = category as Record<string, unknown>
-  const id = record.id
+  const id = record["id"]
   if (typeof id !== "number") {
     return null
   }
 
   return {
     id,
-    title: typeof record.title === "string" ? record.title : null,
-    slug: typeof record.slug === "string" ? record.slug : null,
+    title: typeof record["title"] === "string" ? record["title"] : null,
+    slug: typeof record["slug"] === "string" ? record["slug"] : null,
   }
 }
 
@@ -31,6 +31,6 @@ export const getMediaUrl = (featuredImage: unknown): string | null => {
   }
 
   const record = featuredImage as Record<string, unknown>
-  const url = record.url
+  const url = record["url"]
   return typeof url === "string" ? url : null
 }

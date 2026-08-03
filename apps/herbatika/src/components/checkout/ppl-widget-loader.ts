@@ -21,7 +21,7 @@ export function loadPplWidgetLoader() {
     )
 
     if (existingScript) {
-      customElements
+      void customElements
         .whenDefined("ppl-access-point-widget")
         .then(() => resolve())
       return
@@ -31,7 +31,7 @@ export function loadPplWidgetLoader() {
     script.async = true
     script.src = PPL_WIDGET_LOADER_URL
     script.onload = () => {
-      customElements
+      void customElements
         .whenDefined("ppl-access-point-widget")
         .then(() => resolve())
     }

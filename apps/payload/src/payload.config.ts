@@ -42,8 +42,26 @@ import { migrations } from "./migrations"
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
-const secret = getEnv("PAYLOAD_SECRET", true)
-const databaseUrl = getEnv("DATABASE_URL", true)
+const isProductionBuild = getEnv("PAYLOAD_PRODUCTION_BUILD") === "1"
+const getRuntimeEnv = (name: string, buildFallback: string): string => {
+  const value = getEnv(name)
+  if (value?.trim()) {
+    return value
+  }
+  if (isProductionBuild) {
+    return buildFallback
+  }
+  throw new Error(`Missing required environment variable: ${name}`)
+}
+
+const secret = getRuntimeEnv(
+  "PAYLOAD_SECRET",
+  "payload-production-build-placeholder-secret"
+)
+const databaseUrl = getRuntimeEnv(
+  "DATABASE_URL",
+  "postgresql://payload:payload@127.0.0.1:5432/payload"
+)
 const { locales, defaultLocale } = resolveEnvLocales("PAYLOAD_LOCALES", ["en"])
 const isArticlesEnabled = isEnabled("FEATURE_PAYLOAD_ARTICLES_ENABLED")
 const isPagesEnabled = isEnabled("FEATURE_PAYLOAD_PAGES_ENABLED")
@@ -52,11 +70,14 @@ const isHeroCarouselsEnabled = isEnabled(
 )
 const isAutoTranslateConfigured = Boolean(getEnv("OPENAI_API_KEY"))
 
-const s3Bucket = getEnv("S3_BUCKET", true)
-const s3Endpoint = getEnv("S3_ENDPOINT", true)
-const s3Region = getEnv("S3_REGION", true)
-const s3AccessKeyId = getEnv("S3_ACCESS_KEY_ID", true)
-const s3SecretAccessKey = getEnv("S3_SECRET_ACCESS_KEY", true)
+const s3Bucket = getRuntimeEnv("S3_BUCKET", "payload-build")
+const s3Endpoint = getRuntimeEnv("S3_ENDPOINT", "http://127.0.0.1:9000")
+const s3Region = getRuntimeEnv("S3_REGION", "us-east-1")
+const s3AccessKeyId = getRuntimeEnv("S3_ACCESS_KEY_ID", "payload-build")
+const s3SecretAccessKey = getRuntimeEnv(
+  "S3_SECRET_ACCESS_KEY",
+  "payload-build-secret"
+)
 
 /** Payload CMS configuration for the Medusa integration. */
 export default buildConfig({
@@ -108,7 +129,9 @@ export default buildConfig({
     pool: {
       connectionString: databaseUrl,
     },
-    schemaName: process.env.PAYLOAD_SCHEMA_NAME,
+    ...(process.env["PAYLOAD_SCHEMA_NAME"]
+      ? { schemaName: process.env["PAYLOAD_SCHEMA_NAME"] }
+      : {}),
     push: false,
     prodMigrations: migrations,
   }),

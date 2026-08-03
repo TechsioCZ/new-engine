@@ -31,11 +31,11 @@ export function useSuspenseProduct({ handle, fields }: UseProductParams) {
         handle,
         region_id: regionId,
         country_code: countryCode,
-        fields,
+        ...(fields ? { fields } : {}),
       })
       const duration = performance.now() - start
 
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         fetchLogger.current(handle, duration)
       }
 

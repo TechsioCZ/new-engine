@@ -13,7 +13,7 @@ export type AddressFormData = {
   phone?: string
 }
 
-export type AddressFieldKey = keyof AddressFormData
+type AddressFieldKey = keyof AddressFormData
 export type AddressErrors = Partial<Record<AddressFieldKey, string>>
 
 const ADDRESS_VALIDATION_RULES = {

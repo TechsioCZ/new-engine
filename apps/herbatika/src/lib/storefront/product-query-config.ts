@@ -9,7 +9,7 @@ export const VARIANT_DEFAULT_STOCK_INVENTORY_FIELD_SUFFIXES = [
   "inventory_items.inventory.location_levels.stock_locations.name",
 ] as const
 
-export const PRODUCT_VARIANT_INVENTORY_FIELDS = [
+const PRODUCT_VARIANT_INVENTORY_FIELDS = [
   "+variants.inventory_quantity",
   "+variants.manage_inventory",
   "+variants.allow_backorder",
@@ -19,8 +19,6 @@ export const PRODUCT_VARIANT_INVENTORY_FIELDS = [
 ].join(",")
 
 export const PRODUCT_CARD_FIELDS = `id,title,handle,thumbnail,*variants.calculated_price,${PRODUCT_VARIANT_INVENTORY_FIELDS},+metadata.flags,+metadata.top_offer,+metadata.short_description,+metadata.content_sections_map`
-
-export const SEARCH_PRODUCT_CARD_FIELDS = PRODUCT_CARD_FIELDS
 
 export const RELATED_PRODUCT_FIELDS = `${PRODUCT_CARD_FIELDS},+metadata.source_shopitem_id`
 
@@ -47,18 +45,18 @@ export const buildProductListParams = (
       typeof offset === "number" ? offset : (resolvedPage - 1) * resolvedLimit,
   }
 
-  const categoryIds = params.category_id
+  const categoryIds = params["category_id"]
   if (Array.isArray(categoryIds) && categoryIds.length > 0) {
     // Medusa Store parser accepts multi-value `category_id[]` as CSV.
     params["category_id[]"] = categoryIds.join(",")
-    params.category_id = undefined
+    params["category_id"] = undefined
   }
 
-  const handles = params.handle
+  const handles = params["handle"]
   if (Array.isArray(handles) && handles.length > 0) {
     params["handle[]"] = handles.join(",")
-    params.handle = undefined
+    params["handle"] = undefined
   }
 
-  return params as HttpTypes.StoreProductListParams
+  return params
 }

@@ -23,7 +23,7 @@ export type CompleteCartResult =
     }
 
 const CART_ID_KEY = "n1_cart_id"
-export const cartStorage = {
+const cartStorage = {
   getCartId(): string | null {
     if (typeof window === "undefined") {
       return null
@@ -51,7 +51,7 @@ export async function getCart(): Promise<Cart | null> {
     const cartId = cartStorage.getCartId()
 
     if (!cartId) {
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.log("[CartService] No cart ID found")
       }
       return null
@@ -70,7 +70,7 @@ export async function getCart(): Promise<Cart | null> {
   } catch (error) {
     // 404 is expected - cart was deleted or expired
     if (isNotFoundError(error)) {
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.log("[CartService] Cart not found, clearing stored ID")
       }
       cartStorage.clearCartId()
@@ -102,8 +102,10 @@ export async function createCart(
 
     const response = await sdk.store.cart.create({
       region_id: regionId,
-      email: options?.email,
-      sales_channel_id: options?.salesChannelId,
+      ...(options?.email ? { email: options.email } : {}),
+      ...(options?.salesChannelId
+        ? { sales_channel_id: options.salesChannelId }
+        : {}),
     })
 
     if (!response.cart) {
@@ -115,7 +117,7 @@ export async function createCart(
 
     cartStorage.setCartId(response.cart.id)
 
-    if (process.env.NODE_ENV === "development") {
+    if (process.env["NODE_ENV"] === "development") {
       console.log("[CartService] Cart created:", response.cart.id)
     }
 
@@ -152,7 +154,7 @@ export async function addToCart(
     const response = await sdk.store.cart.createLineItem(cartId, {
       variant_id: variantId,
       quantity,
-      metadata,
+      ...(metadata ? { metadata } : {}),
     })
 
     if (!response.cart) {
@@ -162,7 +164,7 @@ export async function addToCart(
       )
     }
 
-    if (process.env.NODE_ENV === "development") {
+    if (process.env["NODE_ENV"] === "development") {
       console.log("[CartService] Item added to cart:", {
         variantId,
         quantity,
@@ -262,7 +264,7 @@ export async function getShippingOptions(
       cart_id: cartId,
     })
 
-    if (process.env.NODE_ENV === "development") {
+    if (process.env["NODE_ENV"] === "development") {
       console.log("[CartService] Shipping options:", response.shipping_options)
     }
 
@@ -285,7 +287,7 @@ export async function getPaymentProviders(regionId: string) {
       region_id: regionId,
     })
 
-    if (process.env.NODE_ENV === "development") {
+    if (process.env["NODE_ENV"] === "development") {
       console.log(
         "[CartService] Payment providers:",
         response.payment_providers
@@ -331,7 +333,8 @@ export async function setShippingMethod(
       data && Object.keys(data).length > 0
         ? Object.fromEntries(
             Object.entries(data).filter(
-              ([, value]) => value != null && value !== ""
+              ([, value]) =>
+                value !== null && value !== undefined && value !== ""
             )
           )
         : {}
@@ -348,7 +351,7 @@ export async function setShippingMethod(
       )
     }
 
-    if (process.env.NODE_ENV === "development") {
+    if (process.env["NODE_ENV"] === "development") {
       console.log("[CartService] Shipping method set:", optionId)
     }
 
@@ -386,7 +389,7 @@ export async function createPaymentCollection(
 
     // Check if payment sessions already exist (early return optimization)
     if (cart.payment_collection?.payment_sessions?.length) {
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.log("[CartService] Payment sessions already exist:", {
           collectionId: cart.payment_collection?.id,
           sessionCount: cart.payment_collection?.payment_sessions?.length || 0,
@@ -412,7 +415,7 @@ export async function createPaymentCollection(
       )
     }
 
-    if (process.env.NODE_ENV === "development") {
+    if (process.env["NODE_ENV"] === "development") {
       console.log("[CartService] Payment session initialized:", {
         collectionId: response.payment_collection.id,
         sessionCount: response.payment_collection.payment_sessions?.length || 0,
@@ -430,7 +433,7 @@ export async function createPaymentCollection(
       throw error
     }
 
-    if (process.env.NODE_ENV === "development") {
+    if (process.env["NODE_ENV"] === "development") {
       console.error("[CartService] Payment initialization error:", error)
     }
     throw CartServiceError.fromMedusaError(error, "PAYMENT_INIT_FAILED")
@@ -446,7 +449,7 @@ export async function completeCart(
     }
 
     // Debug: Check cart state before completing
-    if (process.env.NODE_ENV === "development") {
+    if (process.env["NODE_ENV"] === "development") {
       const { cart: currentCart } = await sdk.store.cart.retrieve(cartId)
       console.log("[CartService] Cart state before complete:", {
         hasPaymentCollection: !!currentCart.payment_collection,
@@ -472,7 +475,7 @@ export async function completeCart(
       // Clear cart ID from storage ONLY on success
       cartStorage.clearCartId()
 
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.log(
           "[CartService] Cart completed, order created:",
           response.order.id
@@ -486,7 +489,7 @@ export async function completeCart(
     }
 
     // Failure case - SDK returned cart with validation/payment error
-    if (process.env.NODE_ENV === "development") {
+    if (process.env["NODE_ENV"] === "development") {
       console.warn("[CartService] Cart completion failed:", response.error)
     }
 

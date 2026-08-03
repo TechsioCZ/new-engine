@@ -17,7 +17,7 @@ type CheckoutPplPickupSelectorProps = {
 }
 
 const PPL_WIDGET_API_KEY =
-  process.env.NEXT_PUBLIC_PPL_WIDGET_API_KEY?.trim() ?? ""
+  process.env["NEXT_PUBLIC_PPL_WIDGET_API_KEY"]?.trim() ?? ""
 
 export function CheckoutPplPickupSelector({
   disabled,
@@ -31,7 +31,9 @@ export function CheckoutPplPickupSelector({
 
   const widgetConfig = useMemo(
     () => ({
-      accessPointCode: selectedPoint?.code ?? undefined,
+      ...(selectedPoint?.code == null
+        ? {}
+        : { accessPointCode: selectedPoint.code }),
       viewMode: "modal" as const,
     }),
     [selectedPoint?.code]
@@ -120,7 +122,9 @@ function buildPplShippingData(accessPoint: PplAccessPoint) {
   }
 
   return Object.fromEntries(
-    Object.entries(payload).filter(([, value]) => value != null && value !== "")
+    Object.entries(payload).filter(
+      ([, value]) => value !== null && value !== ""
+    )
   )
 }
 

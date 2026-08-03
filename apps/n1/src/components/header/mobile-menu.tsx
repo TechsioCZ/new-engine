@@ -26,7 +26,7 @@ export const MobileMenu = () => {
   return (
     <Header.Mobile position="left">
       <Dialog
-        className="top-[7rem] max-w-xs overflow-hidden px-0 py-0"
+        className="top-mobile-menu max-w-xs overflow-hidden px-0 py-0"
         closeOnInteractOutside={true}
         customTrigger
         hideCloseButton

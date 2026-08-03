@@ -53,12 +53,12 @@ import {
 } from "./product-query-config"
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys"
 
-export const CATEGORY_FIELDS =
+const CATEGORY_FIELDS =
   "id,name,handle,parent_category_id,rank,is_active,category_children"
 
 export const CATALOG_DEFAULT_LIMIT = 24
-export const CATALOG_DEFAULT_SORT = "recommended"
-export const ORDER_DEFAULT_SORT = "-created_at"
+const CATALOG_DEFAULT_SORT = "recommended"
+const ORDER_DEFAULT_SORT = "-created_at"
 
 const CART_ITEM_VARIANT_INVENTORY_FIELDS = [
   "items.variant.id",
@@ -70,7 +70,7 @@ const CART_ITEM_VARIANT_INVENTORY_FIELDS = [
   ),
 ]
 
-export const CART_FIELDS = [
+const CART_FIELDS = [
   "id",
   "region_id",
   "customer_id",
@@ -118,7 +118,7 @@ export const CART_FIELDS = [
   "shipping_methods.adjustments.*",
 ].join(",")
 
-export const ORDER_LIST_FIELDS = [
+const ORDER_LIST_FIELDS = [
   "id",
   "display_id",
   "status",
@@ -133,7 +133,7 @@ export const ORDER_LIST_FIELDS = [
   "items.quantity",
 ].join(",")
 
-export const ORDER_DETAIL_FIELDS = [
+const ORDER_DETAIL_FIELDS = [
   "id",
   "display_id",
   "status",

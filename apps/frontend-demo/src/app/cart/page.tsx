@@ -1,8 +1,8 @@
 "use client"
 
-import { Button } from "@ui/atoms/button"
-import { BreadcrumbTemplate } from "@ui/templates/breadcrumb"
-import { NumericInputTemplate } from "@ui/templates/numeric-input"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { BreadcrumbTemplate } from "@techsio/ui-kit/templates/breadcrumb"
+import { NumericInputTemplate } from "@techsio/ui-kit/templates/numeric-input"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -137,7 +137,7 @@ export default function CartPage() {
             </div>
 
             <CartSummary
-              currencyCode={currencyCode}
+              {...(currencyCode !== undefined && { currencyCode })}
               shipping={shipping}
               subtotal={subtotal}
               tax={tax}

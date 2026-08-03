@@ -29,7 +29,7 @@ type CartMutationError = {
 }
 
 type CartMutationContext = {
-  previousCart?: Cart
+  previousCart: Cart | undefined
 }
 
 type UseCartReturn = {
@@ -185,7 +185,7 @@ export function useAddToCart(options?: UseAddToCartOptions) {
       // Update with real cart from server
       queryClient.setQueryData(queryKeys.cart.active(), cart)
 
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.log("[useAddToCart] Item added successfully")
       }
 
@@ -197,15 +197,15 @@ export function useAddToCart(options?: UseAddToCartOptions) {
         queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
       }
 
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.error("[useAddToCart] Failed to add item:", error)
       }
 
       options?.onError?.(error)
     },
-    onSettled: () => {
+    onSettled: async () => {
       // Always refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
     },
   })
 }
@@ -253,7 +253,7 @@ export function useUpdateLineItem() {
     onSuccess: (cart) => {
       queryClient.setQueryData(queryKeys.cart.active(), cart)
 
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.log("[useUpdateLineItem] Quantity updated successfully")
       }
     },
@@ -261,12 +261,12 @@ export function useUpdateLineItem() {
       if (context?.previousCart) {
         queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
       }
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.error("[useUpdateLineItem] Failed to update quantity:", error)
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
     },
   })
 }
@@ -307,7 +307,7 @@ export function useRemoveLineItem() {
     onSuccess: (cart) => {
       queryClient.setQueryData(queryKeys.cart.active(), cart)
 
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.log("[useRemoveLineItem] Item removed successfully")
       }
     },
@@ -315,12 +315,12 @@ export function useRemoveLineItem() {
       if (context?.previousCart) {
         queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
       }
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.error("[useRemoveLineItem] Failed to remove item:", error)
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
     },
   })
 }
@@ -343,26 +343,30 @@ export function useCompleteCart(options?: UseCompleteCartOptions) {
     CartMutationContext
   >({
     mutationFn: ({ cartId }) => completeCart(cartId),
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       if (result.success) {
         const order = result.order
 
         // Clear cart cache
         queryClient.setQueryData(queryKeys.cart.active(), null)
-        queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.cart.active(),
+        })
 
         queryClient.setQueryData(queryKeys.orders.detail(order.id), order)
 
-        queryClient.invalidateQueries({ queryKey: queryKeys.orders.all() })
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.orders.all(),
+        })
 
-        if (process.env.NODE_ENV === "development") {
+        if (process.env["NODE_ENV"] === "development") {
           console.log("[useCompleteCart] Order created successfully:", order.id)
         }
 
         options?.onSuccess?.(order)
       } else {
         // FAILURE PATH: Validation or payment error
-        if (process.env.NODE_ENV === "development") {
+        if (process.env["NODE_ENV"] === "development") {
           console.warn(
             "[useCompleteCart] Cart completion failed:",
             result.error
@@ -376,7 +380,7 @@ export function useCompleteCart(options?: UseCompleteCartOptions) {
       }
     },
     onError: (error) => {
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.error("[useCompleteCart] Failed to complete cart:", error)
       }
     },

@@ -1,23 +1,9 @@
-import {
-  CHECKOUT_STEPS,
-  type CheckoutStepSlug,
-  DEFAULT_CHECKOUT_STEP_SLUG,
-} from "./checkout.constants"
+import { CHECKOUT_STEPS, type CheckoutStepSlug } from "./checkout.constants"
 
 const CHECKOUT_STEP_SLUGS = CHECKOUT_STEPS.map((step) => step.slug)
 
 export const isCheckoutStepSlug = (value: string): value is CheckoutStepSlug =>
   CHECKOUT_STEP_SLUGS.includes(value as CheckoutStepSlug)
-
-export const resolveCheckoutStepSlug = (
-  value: string | undefined
-): CheckoutStepSlug => {
-  if (!value) {
-    return DEFAULT_CHECKOUT_STEP_SLUG
-  }
-
-  return isCheckoutStepSlug(value) ? value : DEFAULT_CHECKOUT_STEP_SLUG
-}
 
 export const resolveCheckoutStepHref = (step: CheckoutStepSlug) =>
   `/checkout/${step}`

@@ -29,7 +29,7 @@ interface HeaderProps extends ComponentPropsWithoutRef<"header"> {
 }
 
 export function Header({
-  logo = { text: "Logo", href: "/" },
+  logo: _logo = { text: "Logo", href: "/" },
   navigationItems = [],
   actions,
   showMobileMenu = true,

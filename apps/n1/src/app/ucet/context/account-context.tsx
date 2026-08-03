@@ -32,7 +32,7 @@ export const AccountProvider = ({ children }: { children: ReactNode }) => {
       return
     }
     // Prefetch orders for order-list
-    queryClient.prefetchQuery({
+    void queryClient.prefetchQuery({
       queryKey: queryKeys.orders.list({ limit: 20, offset: 0 }),
       queryFn: () => getOrders({ limit: 20, offset: 0 }),
       ...cacheConfig.userData,

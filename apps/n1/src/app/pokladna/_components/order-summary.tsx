@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
-import { Button } from "@ui/atoms/button"
+import { Button } from "@techsio/ui-kit/atoms/button"
 
 import type { Cart } from "@/services/cart-service"
 import { formatAmount } from "@/utils/format/format-product"
@@ -9,7 +9,7 @@ import { PriceSummaryRow } from "./price-summary-row"
 
 type OrderSummaryProps = {
   cart: Cart
-  selectedShipping?: HttpTypes.StoreCartShippingOption
+  selectedShipping?: HttpTypes.StoreCartShippingOption | undefined
   errorMessage?: string
   isReady: boolean
   isCompletingCart: boolean
@@ -33,7 +33,7 @@ export function OrderSummary({
   const total = formatAmount(cart.total)
 
   return (
-    <div className="rounded border border-border-secondary bg-surface p-400 lg:sticky lg:top-4">
+    <div className="rounded border border-border-secondary bg-surface p-400 lg:sticky lg:top-400">
       <h2 className="mb-400 font-semibold text-fg-primary text-lg">
         Shrnutí objednávky
       </h2>

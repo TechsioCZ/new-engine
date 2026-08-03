@@ -72,6 +72,3 @@ export const resolveDiscountLabel = (
   const discountAmount = price.originalAmount - price.currentAmount
   return `-${formatCurrencyAmount(discountAmount, price.currencyCode)}`
 }
-
-export const getProductPriceLabel = (product: HttpTypes.StoreProduct): string =>
-  resolvePriceState(product).currentLabel

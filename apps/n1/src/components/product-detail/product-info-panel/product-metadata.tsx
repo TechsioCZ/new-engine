@@ -1,6 +1,6 @@
 type MetadataRows = {
   label: string
-  value?: string | number
+  value?: string | number | undefined
 }
 
 export const ProductMetadata = ({ rows }: { rows: MetadataRows[] }) => (

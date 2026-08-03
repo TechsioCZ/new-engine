@@ -97,23 +97,27 @@ export function CheckoutShippingSection({
               )
 
               return {
-                addon: pickupRequirement ? (
-                  <CheckoutCarrierPickupDetails
-                    disabled={isBusy}
-                    onConfirm={(data) => {
-                      onPendingPickupOptionIdChange(null)
-                      runDetachedPromise(onSelectShipping(option.id, data))
-                    }}
-                    requirement={pickupRequirement}
-                  />
-                ) : undefined,
+                ...(pickupRequirement
+                  ? {
+                      addon: (
+                        <CheckoutCarrierPickupDetails
+                          disabled={isBusy}
+                          onConfirm={(data) => {
+                            onPendingPickupOptionIdChange(null)
+                            runDetachedPromise(
+                              onSelectShipping(option.id, data)
+                            )
+                          }}
+                          requirement={pickupRequirement}
+                        />
+                      ),
+                      hint: resolveCarrierPickupHint(pickupRequirement),
+                    }
+                  : {}),
                 disabled: isBusy,
-                bodyText: isAwaitingPickupSelection
-                  ? PICKUP_SELECTION_REQUIRED_TEXT
-                  : undefined,
-                hint: pickupRequirement
-                  ? resolveCarrierPickupHint(pickupRequirement)
-                  : undefined,
+                ...(isAwaitingPickupSelection
+                  ? { bodyText: PICKUP_SELECTION_REQUIRED_TEXT }
+                  : {}),
                 icon: resolveShippingIcon(option),
                 priceLabel: resolveShippingPriceLabel(optionPrice),
                 priceTone: optionPrice > 0 ? "default" : "success",

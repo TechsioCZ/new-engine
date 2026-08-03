@@ -134,12 +134,13 @@ export const createMedusaCacheHook = (
     const isDelete = op === "delete"
     const locale = isDelete ? undefined : (req?.locale ?? undefined)
     const cmsDoc = doc as CmsDoc | undefined
+    const slug = resolveSlug(cmsDoc, locale)
     const payload: MedusaInvalidatePayload = {
       collection,
       doc: {
-        id: cmsDoc?.id ? String(cmsDoc.id) : undefined,
-        slug: resolveSlug(cmsDoc, locale),
-        locale,
+        ...(cmsDoc?.id ? { id: String(cmsDoc.id) } : {}),
+        ...(slug ? { slug } : {}),
+        ...(locale ? { locale } : {}),
       },
     }
 

@@ -12,8 +12,8 @@ import { transformToTree } from "@/utils/transform/transform-to-tree"
 type N1AsideProps = {
   categories: CategoryTreeNode[]
   categoryMap: Record<string, Category>
-  label?: string
-  currentCategory?: Category
+  label?: string | undefined
+  currentCategory?: Category | undefined
 }
 
 export function N1Aside({
@@ -59,7 +59,7 @@ export function N1Aside({
               key={node.id}
               node={node}
               onNodeHover={(hoveredNode) =>
-                prefetchOnHover(hoveredNode.handle as string)
+                prefetchOnHover(hoveredNode["handle"] as string)
               }
               onNodeLeave={() => cancelHover()}
               showNodeIcons={false}

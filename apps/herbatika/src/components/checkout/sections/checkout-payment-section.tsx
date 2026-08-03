@@ -60,12 +60,14 @@ export function CheckoutPaymentSection({
               const isProviderSelectable = Boolean(
                 providerId && canInitiatePayment
               )
+              const bodyText = resolvePaymentDescription(providerId)
+              const hint = resolvePaymentHint(providerId)
 
               return {
                 disabled:
                   isBusy || isInitiatingPayment || !isProviderSelectable,
-                bodyText: resolvePaymentDescription(providerId),
-                hint: resolvePaymentHint(providerId),
+                ...(bodyText === undefined ? {} : { bodyText }),
+                ...(hint === undefined ? {} : { hint }),
                 icon: resolvePaymentIcon(providerId),
                 priceLabel: "Zadarmo",
                 priceTone: "success" as const,

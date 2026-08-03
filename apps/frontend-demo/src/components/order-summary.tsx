@@ -12,7 +12,7 @@ import type {
 } from "@/types/checkout"
 
 interface OrderSummaryProps {
-  addressData?: CheckoutAddressData
+  addressData?: CheckoutAddressData | undefined
   selectedShipping: ReducedShippingMethod | undefined
   selectedPayment: PaymentMethod | undefined
   onCompleteClick: () => void
@@ -202,7 +202,7 @@ export function OrderSummary({
                   <br />
                 </>
               )}
-              {addressData.shipping.phone && addressData.shipping.phone}
+              {addressData.shipping.phone}
             </p>
           </div>
 

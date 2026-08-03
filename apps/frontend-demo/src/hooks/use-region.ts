@@ -49,12 +49,14 @@ export function useRegions() {
 
   const selectedRegion = regions.find((r) => r.id === selectedRegionId) || null
 
-  const setSelectedRegion = (region: StoreRegion) => {
+  const setSelectedRegion = async (region: StoreRegion) => {
     if (region?.id && region.id !== selectedRegionId) {
       setSelectedRegionId(region.id)
       // Invalidate queries that depend on region
-      queryClient.invalidateQueries({ queryKey: queryKeys.products.all() })
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart() })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.products.all() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.cart() }),
+      ])
     }
   }
 

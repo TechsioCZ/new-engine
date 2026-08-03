@@ -12,12 +12,7 @@ import type {
   PacketaWidgetOptions,
 } from "./packeta-widget.types"
 
-export type {
-  PacketaPickupPoint,
-  PacketaWidgetError,
-  PacketaWidgetHandle,
-  PacketaWidgetOptions,
-} from "./packeta-widget.types"
+export type { PacketaWidgetHandle } from "./packeta-widget.types"
 
 type PacketaPickupWidgetProps = {
   apiKey: string
@@ -80,7 +75,7 @@ export const PacketaPickupWidget = function PacketaPickupWidget({
             })
           }
         })
-        .catch((error) => {
+        .catch((error: unknown) => {
           onErrorRef.current?.({
             code: "loader_failed",
             message:

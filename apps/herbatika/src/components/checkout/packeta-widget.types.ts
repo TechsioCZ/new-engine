@@ -1,4 +1,4 @@
-export type PacketaWidgetLanguage =
+type PacketaWidgetLanguage =
   | "bg"
   | "cs"
   | "da"
@@ -24,7 +24,7 @@ export type PacketaWidgetLanguage =
   | "sv"
   | "uk"
 
-export type PacketaWidgetVendor = {
+type PacketaWidgetVendor = {
   carrierId?: string
   country?: string
   currency?: string

@@ -4,7 +4,7 @@ import { resolveMedusaBackendUrl } from "@/lib/storefront/runtime-env"
 
 const MEDUSA_BACKEND_URL = resolveMedusaBackendUrl()
 const MEDUSA_PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
+  process.env["NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"] ?? ""
 const AUTH_SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 14
 
 type ErrorPayload = {
@@ -12,7 +12,7 @@ type ErrorPayload = {
   details?: unknown
 }
 
-export const AUTH_SESSION_COOKIE_NAME = "herbatika_auth_session_token"
+const AUTH_SESSION_COOKIE_NAME = "herbatika_auth_session_token"
 
 export const buildMedusaUrl = (path: string) =>
   new URL(path, MEDUSA_BACKEND_URL).toString()
@@ -40,7 +40,9 @@ const fallbackErrorMessage = (status: number) => {
 export const buildErrorResponse = async (response: Response) => {
   const payload = await parseResponseJson(response)
   const messageFromPayload =
-    payload && typeof payload.message === "string" ? payload.message : null
+    payload && typeof payload["message"] === "string"
+      ? payload["message"]
+      : null
 
   return NextResponse.json<ErrorPayload>(
     {

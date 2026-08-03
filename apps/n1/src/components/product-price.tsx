@@ -1,6 +1,6 @@
 type ProductPriceProps = {
   priceWithTax: string
-  priceWithoutTax?: string
+  priceWithoutTax?: string | undefined
   size?: "sm" | "md" | "lg"
   className?: string
 }

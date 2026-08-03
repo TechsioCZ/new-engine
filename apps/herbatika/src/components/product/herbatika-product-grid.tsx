@@ -48,8 +48,12 @@ export function HerbatikaProductGrid({
           isAdding={isProductAdding?.(product) ?? false}
           key={`${keyPrefix ?? layout}-${product.id}-${index}`}
           onAddToCart={onAddToCart}
-          onProductHoverEnd={onProductHoverEnd}
-          onProductHoverStart={onProductHoverStart}
+          {...(onProductHoverEnd === undefined
+            ? {}
+            : { onProductHoverEnd: onProductHoverEnd })}
+          {...(onProductHoverStart === undefined
+            ? {}
+            : { onProductHoverStart: onProductHoverStart })}
           product={product}
         />
       ))}

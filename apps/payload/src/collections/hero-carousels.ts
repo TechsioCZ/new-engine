@@ -1,3 +1,4 @@
+import { isRecord } from "@techsio/std/object"
 import type { CollectionConfig } from "payload"
 
 import { requireAuth } from "../lib/access/require-auth"
@@ -17,9 +18,6 @@ const DEFAULT_INTERNAL_TITLE = "Hero banner"
 const cleanString = (value: unknown) =>
   typeof value === "string" ? value.trim() : ""
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
 const resolveLocalizedString = (value: unknown, locale: string | undefined) => {
   if (typeof value === "string") {
     return cleanString(value)
@@ -31,9 +29,9 @@ const resolveLocalizedString = (value: unknown, locale: string | undefined) => {
 
   return (
     cleanString(locale ? value[locale] : undefined) ||
-    cleanString(value.en) ||
-    cleanString(value.sk) ||
-    cleanString(value.cs) ||
+    cleanString(value["en"]) ||
+    cleanString(value["sk"]) ||
+    cleanString(value["cs"]) ||
     cleanString(Object.values(value).find((entry) => cleanString(entry)))
   )
 }
@@ -42,10 +40,10 @@ const resolveInternalTitle = (
   data: Record<string, unknown>,
   locale: string | undefined
 ) =>
-  cleanString(data.internalTitle) ||
-  resolveLocalizedString(data.heading, locale) ||
-  resolveLocalizedString(data.button, locale) ||
-  cleanString(data.buttonHref) ||
+  cleanString(data["internalTitle"]) ||
+  resolveLocalizedString(data["heading"], locale) ||
+  resolveLocalizedString(data["button"], locale) ||
+  cleanString(data["buttonHref"]) ||
   DEFAULT_INTERNAL_TITLE
 
 /** Payload collection config for hero carousels. */
@@ -112,11 +110,11 @@ export const HeroCarousels: CollectionConfig = {
           return data
         }
 
-        if (operation === "update" && data.internalTitle === undefined) {
+        if (operation === "update" && data["internalTitle"] === undefined) {
           return data
         }
 
-        data.internalTitle = resolveInternalTitle(
+        data["internalTitle"] = resolveInternalTitle(
           operation === "update" && originalDoc
             ? { ...originalDoc, ...data }
             : data,

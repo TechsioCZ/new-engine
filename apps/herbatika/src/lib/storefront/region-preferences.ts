@@ -6,7 +6,7 @@ import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 
 export const REGION_STORAGE_KEY = "herbatika_region_id"
 export const REGION_COUNTRY_CODE_STORAGE_KEY = "herbatika_region_country_code"
-export const REGION_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
+const REGION_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 
 const REGION_ID_PATTERN = /^reg_[a-z0-9]+$/i
 const COUNTRY_CODE_PATTERN = /^[a-z]{2}$/i
@@ -38,7 +38,7 @@ const normalizeRegionId = (value: string | null | undefined): string | null => {
   return normalized
 }
 
-export const normalizeCountryCode = (
+const normalizeCountryCode = (
   value: string | null | undefined
 ): string | null => {
   if (typeof value !== "string") {

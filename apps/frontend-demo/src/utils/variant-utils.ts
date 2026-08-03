@@ -6,12 +6,14 @@ export function sortVariantsBySize(
   variants: ProductVariant[]
 ): ProductVariant[] {
   return [...variants].sort((a, b) => {
-    const aIndex = SIZE_ORDER.indexOf(a.title.toLowerCase())
-    const bIndex = SIZE_ORDER.indexOf(b.title.toLowerCase())
+    const aTitle = a.title ?? ""
+    const bTitle = b.title ?? ""
+    const aIndex = SIZE_ORDER.indexOf(aTitle.toLowerCase())
+    const bIndex = SIZE_ORDER.indexOf(bTitle.toLowerCase())
 
     // Pokud není v seznamu velikostí, dát na konec a řadit alfabeticky
     if (aIndex === -1 && bIndex === -1) {
-      return a.title.localeCompare(b.title)
+      return aTitle.localeCompare(bTitle)
     }
     if (aIndex === -1) return 1
     if (bIndex === -1) return -1

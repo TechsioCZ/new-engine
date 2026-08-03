@@ -2,8 +2,8 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Label } from "@techsio/ui-kit/atoms/label"
-import NextLink from "next/link"
 
+import NextLink from "@/components/app-link"
 import { useAppToast } from "@/hooks/use-app-toast"
 import {
   type LoginFormValues,

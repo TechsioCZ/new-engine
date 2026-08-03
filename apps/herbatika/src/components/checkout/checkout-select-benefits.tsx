@@ -9,7 +9,7 @@ export const CheckoutSelectBenefits = () => {
       <Select.Label className="font-medium text-sm">Benefity</Select.Label>
       <Select.Control>
         <Select.Trigger
-          className="min-h-12 bg-surface-secondary px-400"
+          className="min-h-form-control-lg bg-surface-secondary px-400"
           iconSize="lg"
         >
           <Icon icon="token-icon-shopping-basket-in" size="lg" />
