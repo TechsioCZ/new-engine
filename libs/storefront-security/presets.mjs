@@ -15,7 +15,7 @@ import { DEFAULT_PERMISSIONS_POLICY_DIRECTIVES } from "./headers.mjs"
 /**
  * @param {{
  *   isProduction?: boolean
- *   publicBackendOrigin: string
+ *   publicBackendOrigin?: string | undefined
  *   allowedDevOrigins?: string[]
  *   devPort?: number
  * }} context
@@ -28,7 +28,7 @@ function createMedusaStorefrontPreset(context) {
   }
 }
 
-export const storefrontSecurityPresets = {
+const storefrontSecurityPresets = {
   medusaStorefront: createMedusaStorefrontPreset,
 }
 
@@ -36,7 +36,7 @@ export const storefrontSecurityPresets = {
  * @param {{
  *   preset?: keyof typeof storefrontSecurityPresets | null
  *   isProduction?: boolean
- *   publicBackendOrigin: string
+ *   publicBackendOrigin?: string | undefined
  *   allowedDevOrigins?: string[]
  *   devPort?: number
  * }} options

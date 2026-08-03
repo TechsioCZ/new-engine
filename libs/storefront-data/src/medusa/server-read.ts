@@ -689,7 +689,7 @@ export function createMedusaStorefrontServerReadPreset<
       queryKeys: queryKeys.productAttributes,
       queryKeyNamespace: namespace,
       cacheConfig,
-      ...(config.productAttributes?.hooks ?? {}),
+      ...config.productAttributes?.hooks,
     }),
     productLocationAvailability:
       createProductLocationAvailabilityQueryOptionsFactory({

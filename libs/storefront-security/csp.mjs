@@ -121,7 +121,7 @@ export function buildDevHmrOrigins(options = {}) {
 /**
  * @param {{
  *   isProduction?: boolean
- *   publicBackendOrigin: string
+ *   publicBackendOrigin?: string | undefined
  *   allowedDevOrigins?: string[]
  *   devPort?: number
  * }} options

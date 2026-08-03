@@ -65,7 +65,7 @@ export function createProductAttributeHooks<
     queryKeys ?? createProductAttributeQueryKeys<TParams>(queryKeyNamespace)
   const { getDetailQueryOptions } = createProductAttributeQueryOptionsFactory({
     service,
-    buildDetailParams,
+    ...(buildDetailParams === undefined ? {} : { buildDetailParams }),
     queryKeys: resolvedQueryKeys,
     cacheConfig: resolvedCacheConfig,
   })
@@ -78,9 +78,12 @@ export function createProductAttributeHooks<
   ): UseProductAttributesResult<TAttribute> {
     const enabled = input.enabled ?? Boolean(input.productId)
     const query = useQuery({
-      ...getDetailQueryOptions(input, {
-        queryOptions: options?.queryOptions,
-      }),
+      ...getDetailQueryOptions(
+        input,
+        options?.queryOptions === undefined
+          ? {}
+          : { queryOptions: options.queryOptions }
+      ),
       enabled,
     })
 

@@ -1108,7 +1108,7 @@ export function createMedusaStorefrontPreset<
       isActiveCartQueryKey: resolvedCheckoutActiveCartQueryKey,
     }),
     productAttributes: createProductAttributeHooks({
-      ...(config.productAttributes?.hooks ?? {}),
+      ...config.productAttributes?.hooks,
       service: services.productAttributes,
       queryKeys: queryKeys.productAttributes,
       queryKeyNamespace: namespace,

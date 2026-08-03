@@ -211,3 +211,21 @@ await test("legacy additional* options still extend the preset", () => {
 
   assert.match(cspHeader?.value ?? "", /https:\/\/www\.google-analytics\.com/)
 })
+
+await test("suppressing the CSP does not require a production backend URL", () => {
+  const securityConfig = createStorefrontSecurityConfig({
+    isProduction: true,
+    publicBackendUrl: undefined,
+    replace: {
+      headers: [{ key: "Content-Security-Policy", value: null }],
+    },
+  })
+
+  const headers = securityConfig.headers()[0].headers
+
+  assert.equal(
+    headers.find((header) => header.key === "Content-Security-Policy"),
+    undefined
+  )
+  assert.ok(headers.some((header) => header.key === "Permissions-Policy"))
+})
