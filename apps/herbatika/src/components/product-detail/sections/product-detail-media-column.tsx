@@ -139,16 +139,6 @@ export function ProductDetailMediaColumn({
             +421 2/321 123 45
           </Link>
         </div>
-        <LinkButton
-          as={NextLink}
-          className="min-h-chat-button shrink-0 px-350 py-150"
-          href="/"
-          size="sm"
-          theme="outlined"
-          variant="primary"
-        >
-          Spustiť chat
-        </LinkButton>
       </div>
     </div>
   )
