@@ -115,16 +115,18 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     product?.handle?.trim() || product?.id || handle
   )
   const productHighlights = resolveProductHighlights(productSummaryText)
+  const otherSectionTitle = tCatalog("product_detail.sections.other")
   const productContentSections = mergeWarrantyIntoProductContentSections(
     resolveProductContentSections(product, {
       composition: tCatalog("product_detail.sections.composition"),
       content: tCatalog("product_detail.sections.content"),
       description: tCatalog("product_detail.sections.description"),
-      other: tCatalog("product_detail.sections.other"),
+      other: otherSectionTitle,
       usage: tCatalog("product_detail.sections.usage"),
       warning: tCatalog("product_detail.sections.warning"),
     }),
-    resolveProductWarranty(productAttributesQuery.productAttributes)
+    resolveProductWarranty(productAttributesQuery.productAttributes),
+    otherSectionTitle
   )
   const mediaFacts = resolveProductMediaFacts(product, productContentSections, {
     dailyCapsules: (count) =>

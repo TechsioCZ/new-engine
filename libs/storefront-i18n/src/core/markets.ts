@@ -44,9 +44,7 @@ const getAcceptedLanguages = (acceptLanguage?: string | null) => {
         quality: Number.isFinite(quality) ? quality : 1,
       }
     })
-    .filter(
-      (item) => item.language && item.quality > 0 && item.quality <= 1
-    )
+    .filter((item) => item.language && item.quality > 0 && item.quality <= 1)
     .sort(
       (left, right) => right.quality - left.quality || left.index - right.index
     )

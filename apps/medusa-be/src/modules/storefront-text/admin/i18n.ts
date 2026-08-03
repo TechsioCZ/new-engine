@@ -5,13 +5,7 @@ import type {
 
 export type StorefrontTextAdminI18nNamespace = {
   actions: Record<
-    | "cancel"
-    | "edit"
-    | "export"
-    | "import"
-    | "resetDefault"
-    | "save"
-    | "sync",
+    "cancel" | "edit" | "export" | "import" | "resetDefault" | "save" | "sync",
     string
   >
   catalog: Record<"description" | "file" | "title", string>
@@ -235,8 +229,7 @@ export const storefrontTextAdminI18n = {
         "Catalog imported: updated: {{updated}}, unchanged: {{unchanged}}.",
       reset: "Text restored to its default value.",
       saved: "Text saved.",
-      synchronized:
-        "Synchronized: new: {{created}}, updated: {{updated}}.",
+      synchronized: "Synchronized: new: {{created}}, updated: {{updated}}.",
     },
   },
 } satisfies Record<"cs" | "en", StorefrontTextAdminI18nNamespace>

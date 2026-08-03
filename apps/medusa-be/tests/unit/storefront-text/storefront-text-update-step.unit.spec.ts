@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { STOREFRONT_TEXT_MODULE } from "../../../src/modules/storefront-text"
 import {
-  getStorefrontTextDefaultMessages,
-  getStorefrontTextSeedRows,
-} from "../../../src/modules/storefront-text/registry"
-import {
   nestStorefrontTextMessages,
   STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
 } from "../../../src/modules/storefront-text/catalog"
+import {
+  getStorefrontTextDefaultMessages,
+  getStorefrontTextSeedRows,
+} from "../../../src/modules/storefront-text/registry"
 
 vi.mock("@medusajs/framework/workflows-sdk", () => ({
   createStep: vi.fn((_name, invoke, compensate) =>
@@ -108,8 +108,7 @@ describe("updateStorefrontTextStep", () => {
         {
           id: "sftxt_01",
           update: {
-            override_value:
-              "{quantity, plural, =0 {Filtr} other {Filtr (#)}}",
+            override_value: "{quantity, plural, =0 {Filtr} other {Filtr (#)}}",
             status: "draft",
           },
         },
@@ -142,8 +141,7 @@ describe("updateStorefrontTextStep", () => {
       "../../../src/workflows/storefront-text/steps/update-storefront-text"
     )
     const service = createService()
-    const overrideValue =
-      "{count, plural, =0 {Szűr} other {Szűr (#)}}"
+    const overrideValue = "{count, plural, =0 {Szűr} other {Szűr (#)}}"
 
     const result = await (updateStorefrontTextStep as MockStep)(
       {
@@ -200,8 +198,7 @@ describe("updateStorefrontTextStep", () => {
       key: "catalog.filters.toggle",
       locale: "cs-CZ",
       market: "cz",
-      override_value:
-        "{quantity, plural, =0 {Filtr} other {Filtr (#)}}",
+      override_value: "{quantity, plural, =0 {Filtr} other {Filtr (#)}}",
       status: "draft",
     })
 
@@ -271,9 +268,12 @@ describe("syncStorefrontTextsStep", () => {
     }
 
     await expect(
-      (syncStorefrontTextsStep as MockSyncStep)({}, {
-        container: createContainer(service),
-      })
+      (syncStorefrontTextsStep as MockSyncStep)(
+        {},
+        {
+          container: createContainer(service),
+        }
+      )
     ).rejects.toThrow("must preserve the default ICU arguments")
     expect(service.createStorefrontTexts).not.toHaveBeenCalled()
     expect(service.updateStorefrontTexts).not.toHaveBeenCalled()
@@ -284,9 +284,11 @@ describe("syncStorefrontTextsStep", () => {
       "../../../src/workflows/storefront-text/steps/sync-storefront-texts"
     )
     const service = {
-      createStorefrontTexts: vi.fn().mockImplementation(async (rows) =>
-        rows.map((row, index) => ({ ...row, id: `sftxt_new_${index}` }))
-      ),
+      createStorefrontTexts: vi
+        .fn()
+        .mockImplementation(async (rows) =>
+          rows.map((row, index) => ({ ...row, id: `sftxt_new_${index}` }))
+        ),
       deleteStorefrontTexts: vi.fn().mockResolvedValue(undefined),
       listStorefrontTexts: vi.fn().mockResolvedValue([]),
       updateStorefrontTexts: vi.fn(),
@@ -310,9 +312,11 @@ describe("syncStorefrontTextsStep", () => {
       "../../../src/workflows/storefront-text/steps/sync-storefront-texts"
     )
     const service = {
-      createStorefrontTexts: vi.fn().mockImplementation(async (rows) =>
-        rows.map((row, index) => ({ ...row, id: `sftxt_${index}` }))
-      ),
+      createStorefrontTexts: vi
+        .fn()
+        .mockImplementation(async (rows) =>
+          rows.map((row, index) => ({ ...row, id: `sftxt_${index}` }))
+        ),
       deleteStorefrontTexts: vi.fn(),
       listStorefrontTexts: vi.fn().mockResolvedValue([]),
       updateStorefrontTexts: vi.fn(),
@@ -400,8 +404,7 @@ describe("importStorefrontTextCatalogStep", () => {
     const service = createImportService()
     const messages = {
       ...getStorefrontTextDefaultMessages({ market: "cz" }),
-      "cart.insufficient_quantity_available":
-        "Nedostatečné množství produktu.",
+      "cart.insufficient_quantity_available": "Nedostatečné množství produktu.",
     } as Record<string, string>
 
     await expect(

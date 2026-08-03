@@ -29,4 +29,3 @@ export class Migration20260709120000 extends Migration {
     this.addSql(`drop table if exists "storefront_text" cascade;`)
   }
 }
-

@@ -1,7 +1,8 @@
 import {
   isStructurallySame,
-  parse,
+  type MessageFormatElement,
   type ParserOptions,
+  parse,
 } from "@formatjs/icu-messageformat-parser"
 import { isObjectRecord } from "../../utils/guards"
 
@@ -16,7 +17,7 @@ type StorefrontTextMessageValidationResult =
   | { success: true }
 
 const getErrorLocation = (error: Error) => {
-  if (!("location" in error) || !isObjectRecord(error.location)) {
+  if (!("location" in error && isObjectRecord(error.location))) {
     return null
   }
 
@@ -72,7 +73,7 @@ export const validateStorefrontTextOverride = ({
     }
   }
 
-  let defaultMessage
+  let defaultMessage: MessageFormatElement[]
 
   try {
     defaultMessage = parse(defaultValue, parserOptions)
@@ -84,7 +85,7 @@ export const validateStorefrontTextOverride = ({
     }
   }
 
-  let overrideMessage
+  let overrideMessage: MessageFormatElement[]
 
   try {
     overrideMessage = parse(overrideValue, parserOptions)

@@ -25,6 +25,28 @@ const getMessageKeySegments = (key: string) => {
   return segments
 }
 
+const getOrCreateMessageNamespace = (
+  target: NestedStorefrontMessages,
+  segment: string,
+  key: string
+): NestedStorefrontMessages => {
+  const existingValue = Object.hasOwn(target, segment)
+    ? target[segment]
+    : undefined
+
+  if (typeof existingValue === "string") {
+    throw new Error(`Conflicting storefront message key: ${key}`)
+  }
+
+  if (existingValue) {
+    return existingValue
+  }
+
+  const namespace: NestedStorefrontMessages = {}
+  target[segment] = namespace
+  return namespace
+}
+
 export const nestStorefrontMessages = (
   messages: FlatStorefrontMessages
 ): NestedStorefrontMessages => {
@@ -34,34 +56,16 @@ export const nestStorefrontMessages = (
     const segments = getMessageKeySegments(key)
     let target = nestedMessages
 
-    segments.forEach((segment, index) => {
-      const isLastSegment = index === segments.length - 1
-      const existingValue = Object.hasOwn(target, segment)
-        ? target[segment]
-        : undefined
+    for (const segment of segments.slice(0, -1)) {
+      target = getOrCreateMessageNamespace(target, segment, key)
+    }
 
-      if (isLastSegment) {
-        if (existingValue !== undefined) {
-          throw new Error(`Conflicting storefront message key: ${key}`)
-        }
+    const lastSegment = segments.at(-1) as string
+    if (Object.hasOwn(target, lastSegment)) {
+      throw new Error(`Conflicting storefront message key: ${key}`)
+    }
 
-        target[segment] = value
-        return
-      }
-
-      if (typeof existingValue === "string") {
-        throw new Error(`Conflicting storefront message key: ${key}`)
-      }
-
-      if (!existingValue) {
-        const namespace: NestedStorefrontMessages = {}
-        target[segment] = namespace
-        target = namespace
-        return
-      }
-
-      target = existingValue
-    })
+    target[lastSegment] = value
   }
 
   return nestedMessages

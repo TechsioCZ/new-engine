@@ -1,21 +1,21 @@
 import type { Context } from "@medusajs/framework/types"
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { MedusaError } from "@medusajs/framework/utils"
+import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { STOREFRONT_TEXT_MODULE } from "../../../modules/storefront-text"
 import { validateStorefrontTextOverride } from "../../../modules/storefront-text/message-validation"
 import type { StorefrontTextRecord } from "../../../modules/storefront-text/models/storefront-text"
 import {
-  STOREFRONT_TEXT_DEFINITIONS,
   getStorefrontTextDefaultMessages,
   parseStorefrontTextCatalogEnvelope,
+  STOREFRONT_TEXT_DEFINITIONS,
 } from "../../../modules/storefront-text/registry"
 import type StorefrontTextModuleService from "../../../modules/storefront-text/service"
 import { getEffectiveStorefrontTextValue } from "../../../modules/storefront-text/value"
 import type { ImportStorefrontTextCatalogWorkflowInput } from "../types"
 import {
   restoreSynchronizedStorefrontTexts,
-  synchronizeStorefrontTexts,
   type StorefrontTextSyncCompensation,
+  synchronizeStorefrontTexts,
 } from "./sync-storefront-texts"
 
 type PreviousStorefrontTextValue = Pick<
@@ -26,6 +26,12 @@ type PreviousStorefrontTextValue = Pick<
 type StorefrontTextCatalogImportCompensation = {
   importedPreviousValues: PreviousStorefrontTextValue[]
   sync: StorefrontTextSyncCompensation
+}
+
+type StorefrontTextUpdateInput = {
+  id: string
+  override_value: null | string
+  status: "active"
 }
 
 const parseImportCatalog = (
@@ -39,9 +45,7 @@ const parseImportCatalog = (
   } catch (error) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      error instanceof Error
-        ? error.message
-        : "Invalid storefront text catalog"
+      error instanceof Error ? error.message : "Invalid storefront text catalog"
     )
   }
 }
@@ -65,128 +69,163 @@ const restoreImportedCatalog = async (
   )
 }
 
+const resolveImportedStorefrontTextUpdate = ({
+  defaultValue,
+  definition,
+  locale,
+  record,
+  value,
+}: {
+  defaultValue: string | undefined
+  definition: (typeof STOREFRONT_TEXT_DEFINITIONS)[number]
+  locale: string
+  record: StorefrontTextRecord | undefined
+  value: string
+}): {
+  previousValue: PreviousStorefrontTextValue
+  updateInput: StorefrontTextUpdateInput
+} | null => {
+  if (!record) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Storefront text "${definition.key}" is missing after synchronization`
+    )
+  }
+
+  const importedValue = value.trim()
+
+  if (!importedValue) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `${definition.key}: Imported value cannot be blank`
+    )
+  }
+
+  if (defaultValue === undefined) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `${definition.key}: Default value is missing`
+    )
+  }
+
+  const validation = validateStorefrontTextOverride({
+    defaultValue,
+    locale,
+    overrideValue: importedValue,
+  })
+
+  if (!validation.success) {
+    throw new MedusaError(
+      validation.code === "invalid_default"
+        ? MedusaError.Types.UNEXPECTED_STATE
+        : MedusaError.Types.INVALID_DATA,
+      `${definition.key}: ${validation.message}`
+    )
+  }
+
+  if (importedValue === getEffectiveStorefrontTextValue(record)) {
+    return null
+  }
+
+  const overrideValue = importedValue === defaultValue ? null : importedValue
+
+  if (record.override_value === overrideValue && record.status === "active") {
+    return null
+  }
+
+  return {
+    previousValue: {
+      id: record.id,
+      override_value: record.override_value,
+      status: record.status,
+    },
+    updateInput: {
+      id: record.id,
+      override_value: overrideValue,
+      status: "active",
+    },
+  }
+}
+
+const importStorefrontTextCatalogInTransaction = async ({
+  catalog,
+  input,
+  service,
+  sharedContext,
+}: {
+  catalog: ReturnType<typeof parseImportCatalog>
+  input: ImportStorefrontTextCatalogWorkflowInput
+  service: StorefrontTextModuleService
+  sharedContext: Context
+}) => {
+  const sync = await synchronizeStorefrontTexts(
+    service,
+    { market: input.market },
+    sharedContext
+  )
+  const records = await service.listStorefrontTexts(
+    {
+      locale: catalog.locale,
+      market: catalog.market,
+    },
+    {},
+    sharedContext
+  )
+  const recordsByKey = new Map(records.map((record) => [record.key, record]))
+  const defaultMessages = getStorefrontTextDefaultMessages({
+    market: input.market,
+  })
+  const updateInputs: StorefrontTextUpdateInput[] = []
+  const importedPreviousValues: PreviousStorefrontTextValue[] = []
+
+  for (const definition of STOREFRONT_TEXT_DEFINITIONS) {
+    const update = resolveImportedStorefrontTextUpdate({
+      defaultValue: defaultMessages[definition.key],
+      definition,
+      locale: catalog.locale,
+      record: recordsByKey.get(definition.key),
+      value: catalog.messages[definition.key],
+    })
+
+    if (!update) {
+      continue
+    }
+
+    importedPreviousValues.push(update.previousValue)
+    updateInputs.push(update.updateInput)
+  }
+
+  if (updateInputs.length) {
+    await service.updateStorefrontTexts(updateInputs, sharedContext)
+  }
+
+  return {
+    compensation: {
+      importedPreviousValues,
+      sync: sync.compensation,
+    },
+    result: {
+      unchanged_count: STOREFRONT_TEXT_DEFINITIONS.length - updateInputs.length,
+      updated_count: updateInputs.length,
+    },
+  }
+}
+
 export const importStorefrontTextCatalogStep = createStep(
   "import-storefront-text-catalog",
-  async (
-    input: ImportStorefrontTextCatalogWorkflowInput,
-    { container }
-  ) => {
+  async (input: ImportStorefrontTextCatalogWorkflowInput, { container }) => {
     const catalog = parseImportCatalog(input)
     const service = container.resolve<StorefrontTextModuleService>(
       STOREFRONT_TEXT_MODULE
     )
     const { compensation, result } = await service.runInTransaction(
-      async (sharedContext) => {
-        const sync = await synchronizeStorefrontTexts(
+      (sharedContext) =>
+        importStorefrontTextCatalogInTransaction({
+          catalog,
+          input,
           service,
-          { market: input.market },
-          sharedContext
-        )
-        const records = await service.listStorefrontTexts(
-          {
-            locale: catalog.locale,
-            market: catalog.market,
-          },
-          {},
-          sharedContext
-        )
-        const recordsByKey = new Map(
-          records.map((record) => [record.key, record])
-        )
-        const defaultMessages = getStorefrontTextDefaultMessages({
-          market: input.market,
+          sharedContext,
         })
-        const updateInputs: Array<{
-          id: string
-          override_value: null | string
-          status: "active"
-        }> = []
-        const importedPreviousValues: PreviousStorefrontTextValue[] = []
-
-        for (const definition of STOREFRONT_TEXT_DEFINITIONS) {
-          const record = recordsByKey.get(definition.key)
-
-          if (!record) {
-            throw new MedusaError(
-              MedusaError.Types.UNEXPECTED_STATE,
-              `Storefront text "${definition.key}" is missing after synchronization`
-            )
-          }
-
-          const value = catalog.messages[definition.key].trim()
-
-          if (!value) {
-            throw new MedusaError(
-              MedusaError.Types.INVALID_DATA,
-              `${definition.key}: Imported value cannot be blank`
-            )
-          }
-
-          const defaultValue = defaultMessages[definition.key]
-
-          if (defaultValue === undefined) {
-            throw new MedusaError(
-              MedusaError.Types.UNEXPECTED_STATE,
-              `${definition.key}: Default value is missing`
-            )
-          }
-
-          const validation = validateStorefrontTextOverride({
-            defaultValue,
-            locale: catalog.locale,
-            overrideValue: value,
-          })
-
-          if (!validation.success) {
-            throw new MedusaError(
-              validation.code === "invalid_default"
-                ? MedusaError.Types.UNEXPECTED_STATE
-                : MedusaError.Types.INVALID_DATA,
-              `${definition.key}: ${validation.message}`
-            )
-          }
-
-          if (value === getEffectiveStorefrontTextValue(record)) {
-            continue
-          }
-
-          const overrideValue = value === defaultValue ? null : value
-
-          if (
-            record.override_value === overrideValue &&
-            record.status === "active"
-          ) {
-            continue
-          }
-
-          importedPreviousValues.push({
-            id: record.id,
-            override_value: record.override_value,
-            status: record.status,
-          })
-          updateInputs.push({
-            id: record.id,
-            override_value: overrideValue,
-            status: "active",
-          })
-        }
-
-        if (updateInputs.length) {
-          await service.updateStorefrontTexts(updateInputs, sharedContext)
-        }
-
-        return {
-          compensation: {
-            importedPreviousValues,
-            sync: sync.compensation,
-          },
-          result: {
-            unchanged_count:
-              STOREFRONT_TEXT_DEFINITIONS.length - updateInputs.length,
-            updated_count: updateInputs.length,
-          },
-        }
-      }
     )
 
     return new StepResponse(result, compensation)

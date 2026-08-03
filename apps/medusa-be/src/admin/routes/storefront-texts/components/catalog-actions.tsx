@@ -1,12 +1,5 @@
 import { ArrowDownTray, ArrowUpTray } from "@medusajs/icons"
-import {
-  Button,
-  FocusModal,
-  Input,
-  Label,
-  Text,
-  toast,
-} from "@medusajs/ui"
+import { Button, FocusModal, Input, Label, Text, toast } from "@medusajs/ui"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -163,9 +156,7 @@ export const StorefrontTextCatalogActions = ({
                   accept=".json,application/json"
                   disabled={importMutation.isPending}
                   id="storefront-text-catalog"
-                  onChange={(event) =>
-                    setFile(event.target.files?.[0] ?? null)
-                  }
+                  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                   type="file"
                 />
               </div>

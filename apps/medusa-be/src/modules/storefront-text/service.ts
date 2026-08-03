@@ -30,16 +30,16 @@ class StorefrontTextModuleService extends MedusaService({
   }
 
   async runInTransaction<Result>(
-    task: (sharedContext: Context) => Promise<Result>,
+    taskWithContext: (context: Context) => Promise<Result>,
     sharedContext: Context = {}
   ): Promise<Result> {
     if (sharedContext.transactionManager) {
-      return await task(sharedContext)
+      return await taskWithContext(sharedContext)
     }
 
     return await this.transactionRepository_.transaction(
       async (transactionManager) =>
-        await task({
+        await taskWithContext({
           ...sharedContext,
           transactionManager,
         }),

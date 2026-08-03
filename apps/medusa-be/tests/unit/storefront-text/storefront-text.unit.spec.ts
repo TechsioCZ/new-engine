@@ -1,33 +1,31 @@
 import { describe, expect, it, vi } from "vitest"
 import { GET as getAdminStorefrontTextCatalog } from "../../../src/api/admin/storefront-texts/catalog/route"
 import { GET as getAdminStorefrontTexts } from "../../../src/api/admin/storefront-texts/route"
-import { GET } from "../../../src/api/store/storefront-texts/route"
 import {
   AdminGetStorefrontTextCatalogSchema,
   AdminGetStorefrontTextsSchema,
   AdminImportStorefrontTextCatalogSchema,
   AdminUpdateStorefrontTextSchema,
 } from "../../../src/api/admin/storefront-texts/validators"
+import { GET } from "../../../src/api/store/storefront-texts/route"
 import {
   flattenStorefrontTextCatalog,
   getPublishedStorefrontTextMessages,
   nestStorefrontTextMessages,
   STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
 } from "../../../src/modules/storefront-text/catalog"
+import { validateStorefrontTextOverride } from "../../../src/modules/storefront-text/message-validation"
 import {
-  STOREFRONT_TEXT_DEFINITIONS,
-  STOREFRONT_TEXT_MARKETS,
   getStorefrontTextDefaultMessages,
   getStorefrontTextSeedRows,
   isStorefrontTextMarketLocalePair,
   parseStorefrontTextCatalog,
   parseStorefrontTextCatalogEnvelope,
+  STOREFRONT_TEXT_DEFINITIONS,
+  STOREFRONT_TEXT_MARKETS,
 } from "../../../src/modules/storefront-text/registry"
-import { validateStorefrontTextOverride } from "../../../src/modules/storefront-text/message-validation"
 import { getEffectiveStorefrontTextValue } from "../../../src/modules/storefront-text/value"
-import {
-  STOREFRONT_TEXT_LOCK_KEY,
-} from "../../../src/workflows/storefront-text/lock"
+import { STOREFRONT_TEXT_LOCK_KEY } from "../../../src/workflows/storefront-text/lock"
 
 describe("storefront text registry", () => {
   it("accepts only configured market and locale pairs", () => {
@@ -150,9 +148,7 @@ describe("storefront text registry", () => {
       nestStorefrontTextMessages({
         "__proto__.polluted": "yes",
       })
-    ).toThrow(
-      'Invalid storefront text message key "__proto__.polluted"'
-    )
+    ).toThrow('Invalid storefront text message key "__proto__.polluted"')
   })
 
   it("keeps definition keys unique and aligned with their namespace", () => {
@@ -182,8 +178,7 @@ describe("storefront text registry", () => {
 
       for (const market of STOREFRONT_TEXT_MARKETS) {
         const localizedValue = seedRows.find(
-          (row) =>
-            row.key === definition.key && row.market === market.market
+          (row) => row.key === definition.key && row.market === market.market
         )?.default_value
 
         expect(localizedValue).toBeTypeOf("string")
@@ -358,9 +353,7 @@ describe("storefront text registry", () => {
     )
 
     expect(
-      Object.fromEntries(
-        homeRows.map((row) => [row.market, row.default_value])
-      )
+      Object.fromEntries(homeRows.map((row) => [row.market, row.default_value]))
     ).toEqual({
       cz: "Domů",
       hu: "Főoldal",
@@ -437,16 +430,14 @@ describe("storefront text values", () => {
 })
 
 describe("storefront text ICU validation", () => {
-  const defaultValue =
-    "{count, plural, =0 {Filtr} other {Filtr (#)}}"
+  const defaultValue = "{count, plural, =0 {Filtr} other {Filtr (#)}}"
 
   it("accepts a translated value with the same ICU contract", () => {
     expect(
       validateStorefrontTextOverride({
         defaultValue,
         locale: "hu-HU",
-        overrideValue:
-          "{count, plural, =0 {Szűrő} other {Szűrő (#)}}",
+        overrideValue: "{count, plural, =0 {Szűrő} other {Szűrő (#)}}",
       })
     ).toEqual({ success: true })
   })
@@ -466,8 +457,7 @@ describe("storefront text ICU validation", () => {
       validateStorefrontTextOverride({
         defaultValue,
         locale: "cs-CZ",
-        overrideValue:
-          "{quantity, plural, =0 {Filtr} other {Filtr (#)}}",
+        overrideValue: "{quantity, plural, =0 {Filtr} other {Filtr (#)}}",
       })
     ).toMatchObject({ code: "incompatible_override", success: false })
     expect(
@@ -564,12 +554,9 @@ describe("storefront text admin validation", () => {
 
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(
-        Object.prototype.hasOwnProperty.call(
-          result.data.catalog.messages,
-          "__proto__"
-        )
-      ).toBe(true)
+      expect(Object.hasOwn(result.data.catalog.messages, "__proto__")).toBe(
+        true
+      )
     }
   })
 })
@@ -609,10 +596,7 @@ describe("storefront text admin catalog", () => {
     }
     const response = { json: vi.fn() }
 
-    await getAdminStorefrontTextCatalog(
-      request as never,
-      response as never
-    )
+    await getAdminStorefrontTextCatalog(request as never, response as never)
 
     expect(response.json).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -638,9 +622,7 @@ describe("storefront text admin search", () => {
   const createResponse = () => ({ json: vi.fn() })
 
   const search = async (searchScope: "all" | "value") => {
-    const listAndCountStorefrontTexts = vi
-      .fn()
-      .mockResolvedValue([[], 0])
+    const listAndCountStorefrontTexts = vi.fn().mockResolvedValue([[], 0])
     const request = {
       scope: {
         resolve: vi.fn(() => ({ listAndCountStorefrontTexts })),
@@ -653,10 +635,7 @@ describe("storefront text admin search", () => {
       },
     }
 
-    await getAdminStorefrontTexts(
-      request as never,
-      createResponse() as never
-    )
+    await getAdminStorefrontTexts(request as never, createResponse() as never)
 
     return listAndCountStorefrontTexts
   }
@@ -756,9 +735,9 @@ describe("storefront text store route", () => {
       validatedQuery: { market: "cz" },
     }
 
-    await expect(GET(request as never, createResponse() as never)).rejects.toThrow(
-      'Locale "sk-SK" does not belong to market "cz"'
-    )
+    await expect(
+      GET(request as never, createResponse() as never)
+    ).rejects.toThrow('Locale "sk-SK" does not belong to market "cz"')
     expect(resolve).not.toHaveBeenCalled()
   })
 

@@ -4,7 +4,9 @@ import StorefrontTextModuleService from "../../../src/modules/storefront-text/se
 describe("StorefrontTextModuleService transactions", () => {
   it("preserves the Medusa context when opening a transaction", async () => {
     const transactionManager = { id: "transaction-manager" }
-    const transaction = vi.fn(async (task) => task(transactionManager))
+    const transaction = vi.fn(async (transactionTask) =>
+      transactionTask(transactionManager)
+    )
     const service = new StorefrontTextModuleService({
       baseRepository: { transaction },
     })

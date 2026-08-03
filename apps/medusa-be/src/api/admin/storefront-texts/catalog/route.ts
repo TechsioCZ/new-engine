@@ -6,9 +6,7 @@ import {
   nestStorefrontTextMessages,
   STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
 } from "../../../../modules/storefront-text/catalog"
-import {
-  getStorefrontTextMarketConfiguration,
-} from "../../../../modules/storefront-text/configuration"
+import { getStorefrontTextMarketConfiguration } from "../../../../modules/storefront-text/configuration"
 import { getStorefrontTextDefaultMessages } from "../../../../modules/storefront-text/registry"
 import type StorefrontTextModuleService from "../../../../modules/storefront-text/service"
 import { importStorefrontTextCatalogWorkflow } from "../../../../workflows/storefront-text/workflows/import-storefront-text-catalog"

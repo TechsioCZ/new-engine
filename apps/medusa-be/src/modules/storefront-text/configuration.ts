@@ -125,6 +125,5 @@ export const isStorefrontTextMarketLocalePair = (
   locale: StorefrontTextLocale
 ) =>
   STOREFRONT_TEXT_MARKETS.some(
-    (candidate) =>
-      candidate.market === market && candidate.locale === locale
+    (candidate) => candidate.market === market && candidate.locale === locale
   )

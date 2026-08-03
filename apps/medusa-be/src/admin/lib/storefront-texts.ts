@@ -1,9 +1,9 @@
+import type { StorefrontTextCatalogEnvelope } from "../../modules/storefront-text/catalog"
 import type {
   StorefrontTextMarket as RegistryStorefrontTextMarket,
   StorefrontTextNamespace as RegistryStorefrontTextNamespace,
   StorefrontTextStatus as RegistryStorefrontTextStatus,
 } from "../../modules/storefront-text/configuration"
-import type { StorefrontTextCatalogEnvelope } from "../../modules/storefront-text/catalog"
 import { queryKeysFactory } from "./query-key-factory"
 import { sdk } from "./sdk"
 

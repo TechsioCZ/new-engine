@@ -1,12 +1,12 @@
-import csCZ from "./messages/cs-CZ.json"
-import huHU from "./messages/hu-HU.json"
-import roRO from "./messages/ro-RO.json"
-import skSK from "./messages/sk-SK.json"
 import type {
   StorefrontTextLocale,
   StorefrontTextMarket,
 } from "./configuration"
 import { validateStorefrontTextOverride } from "./message-validation"
+import csCZ from "./messages/cs-CZ.json"
+import huHU from "./messages/hu-HU.json"
+import roRO from "./messages/ro-RO.json"
+import skSK from "./messages/sk-SK.json"
 
 export type StorefrontTextCatalog = {
   [key: string]: StorefrontTextCatalog | string
@@ -31,15 +31,12 @@ const isCatalogGroup = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
 const isValidCatalogSegment = (segment: string) =>
-  !!segment &&
-  !segment.includes(".") &&
-  !RESERVED_CATALOG_SEGMENTS.has(segment)
+  !!segment && !segment.includes(".") && !RESERVED_CATALOG_SEGMENTS.has(segment)
 
 const createCatalogGroup = (): StorefrontTextCatalog =>
   Object.create(null) as StorefrontTextCatalog
 
-const hasOwn = (value: object, key: PropertyKey) =>
-  Object.prototype.hasOwnProperty.call(value, key)
+const hasOwn = (value: object, key: PropertyKey) => Object.hasOwn(value, key)
 
 const flattenCatalogGroup = (
   catalog: unknown,
@@ -90,8 +87,7 @@ export const nestStorefrontTextMessages = (
     const leaf = segments.pop()
 
     if (
-      !leaf ||
-      !isValidCatalogSegment(leaf) ||
+      !(leaf && isValidCatalogSegment(leaf)) ||
       segments.some((segment) => !isValidCatalogSegment(segment))
     ) {
       throw new Error(`Invalid storefront text message key "${messageKey}"`)

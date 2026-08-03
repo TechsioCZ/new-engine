@@ -37,7 +37,8 @@ export const STOREFRONT_CATALOG_TEXT_DEFINITIONS = [
     namespace: "catalog",
   },
   {
-    description: "Label ovládání katalogových filtrů s počtem aktivních filtrů.",
+    description:
+      "Label ovládání katalogových filtrů s počtem aktivních filtrů.",
     key: "catalog.filters.toggle",
     namespace: "catalog",
   },

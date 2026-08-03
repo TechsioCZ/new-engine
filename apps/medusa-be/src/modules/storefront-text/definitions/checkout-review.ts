@@ -2,12 +2,14 @@ import type { StorefrontTextDefinition } from "../configuration"
 
 export const STOREFRONT_CHECKOUT_REVIEW_TEXT_DEFINITIONS = [
   {
-    description: "Krátký popisek zákaznické poznámky v rekapitulaci objednávky.",
+    description:
+      "Krátký popisek zákaznické poznámky v rekapitulaci objednávky.",
     key: "checkout.review_customer_note",
     namespace: "checkout",
   },
   {
-    description: "Souhlas se zasíláním marketingových sdělení v rekapitulaci objednávky.",
+    description:
+      "Souhlas se zasíláním marketingových sdělení v rekapitulaci objednávky.",
     key: "checkout.review_marketing_consent",
     namespace: "checkout",
   },
@@ -17,12 +19,14 @@ export const STOREFRONT_CHECKOUT_REVIEW_TEXT_DEFINITIONS = [
     namespace: "checkout",
   },
   {
-    description: "Potvrzení obchodních podmínek a zásad ochrany osobních údajů s odkazy.",
+    description:
+      "Potvrzení obchodních podmínek a zásad ochrany osobních údajů s odkazy.",
     key: "checkout.review_legal_confirmation",
     namespace: "checkout",
   },
   {
-    description: "Upozornění na neuložené povinné údaje v rekapitulaci objednávky.",
+    description:
+      "Upozornění na neuložené povinné údaje v rekapitulaci objednávky.",
     key: "checkout.review_missing_required_details",
     namespace: "checkout",
   },

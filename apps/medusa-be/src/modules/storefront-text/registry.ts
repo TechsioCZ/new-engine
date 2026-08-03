@@ -1,22 +1,3 @@
-import { STOREFRONT_ACCOUNT_ORDERS_TEXT_DEFINITIONS } from "./definitions/account-orders"
-import { STOREFRONT_AUTH_TEXT_DEFINITIONS } from "./definitions/auth"
-import { STOREFRONT_CATALOG_PRODUCT_TEXT_DEFINITIONS } from "./definitions/catalog-product"
-import { STOREFRONT_CATALOG_TEXT_DEFINITIONS } from "./definitions/catalog"
-import { STOREFRONT_CHECKOUT_CART_TEXT_DEFINITIONS } from "./definitions/checkout-cart"
-import { STOREFRONT_CHECKOUT_COMPLETED_ORDER_TEXT_DEFINITIONS } from "./definitions/checkout-completed-order"
-import { STOREFRONT_CHECKOUT_ENTRY_TEXT_DEFINITIONS } from "./definitions/checkout-entry"
-import { STOREFRONT_CHECKOUT_DETAILS_TEXT_DEFINITIONS } from "./definitions/checkout-details"
-import { STOREFRONT_CHECKOUT_PAYMENT_TEXT_DEFINITIONS } from "./definitions/checkout-payment"
-import { STOREFRONT_CHECKOUT_PAYMENT_RETURN_TEXT_DEFINITIONS } from "./definitions/checkout-payment-return"
-import { STOREFRONT_CHECKOUT_PICKUP_TEXT_DEFINITIONS } from "./definitions/checkout-pickup"
-import { STOREFRONT_CHECKOUT_REVIEW_TEXT_DEFINITIONS } from "./definitions/checkout-review"
-import { STOREFRONT_CHECKOUT_SIDEBAR_TEXT_DEFINITIONS } from "./definitions/checkout-sidebar"
-import { STOREFRONT_CONTENT_TEXT_DEFINITIONS } from "./definitions/content"
-import { STOREFRONT_FORM_TEXT_DEFINITIONS } from "./definitions/form"
-import { STOREFRONT_NAVIGATION_TEXT_DEFINITIONS } from "./definitions/navigation"
-import { STOREFRONT_PRODUCT_LIST_TEXT_DEFINITIONS } from "./definitions/product-lists"
-import { STOREFRONT_SEARCH_TEXT_DEFINITIONS } from "./definitions/search"
-import { STOREFRONT_SEARCH_RESULTS_TEXT_DEFINITIONS } from "./definitions/search-results"
 import {
   flattenStorefrontTextCatalog,
   getFlatStorefrontTextCatalog,
@@ -34,6 +15,25 @@ import {
   type StorefrontTextNamespace,
   type StorefrontTextStatus,
 } from "./configuration"
+import { STOREFRONT_ACCOUNT_ORDERS_TEXT_DEFINITIONS } from "./definitions/account-orders"
+import { STOREFRONT_AUTH_TEXT_DEFINITIONS } from "./definitions/auth"
+import { STOREFRONT_CATALOG_TEXT_DEFINITIONS } from "./definitions/catalog"
+import { STOREFRONT_CATALOG_PRODUCT_TEXT_DEFINITIONS } from "./definitions/catalog-product"
+import { STOREFRONT_CHECKOUT_CART_TEXT_DEFINITIONS } from "./definitions/checkout-cart"
+import { STOREFRONT_CHECKOUT_COMPLETED_ORDER_TEXT_DEFINITIONS } from "./definitions/checkout-completed-order"
+import { STOREFRONT_CHECKOUT_DETAILS_TEXT_DEFINITIONS } from "./definitions/checkout-details"
+import { STOREFRONT_CHECKOUT_ENTRY_TEXT_DEFINITIONS } from "./definitions/checkout-entry"
+import { STOREFRONT_CHECKOUT_PAYMENT_TEXT_DEFINITIONS } from "./definitions/checkout-payment"
+import { STOREFRONT_CHECKOUT_PAYMENT_RETURN_TEXT_DEFINITIONS } from "./definitions/checkout-payment-return"
+import { STOREFRONT_CHECKOUT_PICKUP_TEXT_DEFINITIONS } from "./definitions/checkout-pickup"
+import { STOREFRONT_CHECKOUT_REVIEW_TEXT_DEFINITIONS } from "./definitions/checkout-review"
+import { STOREFRONT_CHECKOUT_SIDEBAR_TEXT_DEFINITIONS } from "./definitions/checkout-sidebar"
+import { STOREFRONT_CONTENT_TEXT_DEFINITIONS } from "./definitions/content"
+import { STOREFRONT_FORM_TEXT_DEFINITIONS } from "./definitions/form"
+import { STOREFRONT_NAVIGATION_TEXT_DEFINITIONS } from "./definitions/navigation"
+import { STOREFRONT_PRODUCT_LIST_TEXT_DEFINITIONS } from "./definitions/product-lists"
+import { STOREFRONT_SEARCH_TEXT_DEFINITIONS } from "./definitions/search"
+import { STOREFRONT_SEARCH_RESULTS_TEXT_DEFINITIONS } from "./definitions/search-results"
 
 export * from "./configuration"
 
@@ -390,12 +390,8 @@ const validateCatalogKeys = (
     throw new Error(
       [
         `${label} does not match the storefront text registry.`,
-        missingKeys.length
-          ? `Missing keys: ${missingKeys.join(", ")}.`
-          : "",
-        unknownKeys.length
-          ? `Unknown keys: ${unknownKeys.join(", ")}.`
-          : "",
+        missingKeys.length ? `Missing keys: ${missingKeys.join(", ")}.` : "",
+        unknownKeys.length ? `Unknown keys: ${unknownKeys.join(", ")}.` : "",
       ]
         .filter(Boolean)
         .join(" ")
@@ -418,10 +414,7 @@ const STOREFRONT_TEXT_DEFAULT_MESSAGES = Object.fromEntries(
 export const parseStorefrontTextCatalog = (
   catalog: unknown
 ): Record<StorefrontTextKey, string> =>
-  validateCatalogKeys(
-    flattenStorefrontTextCatalog(catalog),
-    "Imported catalog"
-  )
+  validateCatalogKeys(flattenStorefrontTextCatalog(catalog), "Imported catalog")
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
@@ -502,9 +495,11 @@ export type StorefrontTextSeedRow = {
   status: StorefrontTextStatus
 }
 
-export const getStorefrontTextSeedRows = (
-  { market }: { market?: StorefrontTextMarket } = {}
-): StorefrontTextSeedRow[] =>
+export const getStorefrontTextSeedRows = ({
+  market,
+}: {
+  market?: StorefrontTextMarket
+} = {}): StorefrontTextSeedRow[] =>
   STOREFRONT_TEXT_DEFINITIONS.flatMap((definition) =>
     STOREFRONT_TEXT_MARKETS.filter(
       (configuration) => !market || configuration.market === market
@@ -554,10 +549,12 @@ export const findStorefrontTextDefault = ({
   market: unknown
 }) => {
   if (
-    !isStorefrontTextMarket(market) ||
-    !isStorefrontTextLocale(locale) ||
-    !isStorefrontTextMarketLocalePair(market, locale) ||
-    !STOREFRONT_TEXT_KEYS.has(key)
+    !(
+      isStorefrontTextMarket(market) &&
+      isStorefrontTextLocale(locale) &&
+      isStorefrontTextMarketLocalePair(market, locale) &&
+      STOREFRONT_TEXT_KEYS.has(key)
+    )
   ) {
     return
   }

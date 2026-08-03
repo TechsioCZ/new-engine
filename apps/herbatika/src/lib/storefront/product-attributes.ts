@@ -1,5 +1,4 @@
 import type { ProductAttribute } from "@techsio/storefront-data/product-attributes/types"
-import { PRODUCT_DETAIL_SECTION_TITLES } from "@/components/product-detail/product-detail.constants"
 import type { ProductDetailContentSection } from "@/components/product-detail/product-detail.types"
 
 const WARRANTY_DEFINITION_KEY = "warranty"
@@ -28,7 +27,8 @@ export const resolveProductWarranty = (
 
 export const mergeWarrantyIntoProductContentSections = (
   sections: ProductDetailContentSection[],
-  warranty: string | null
+  warranty: string | null,
+  otherSectionTitle: string
 ): ProductDetailContentSection[] => {
   if (!warranty) {
     return sections
@@ -44,9 +44,7 @@ export const mergeWarrantyIntoProductContentSections = (
       ...sections,
       {
         key: OTHER_SECTION_KEY,
-        title:
-          PRODUCT_DETAIL_SECTION_TITLES[OTHER_SECTION_KEY] ??
-          "Ostatné informácie",
+        title: otherSectionTitle,
         html: warrantyHtml,
       },
     ]

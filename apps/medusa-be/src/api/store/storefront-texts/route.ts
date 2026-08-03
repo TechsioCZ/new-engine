@@ -1,9 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { STOREFRONT_TEXT_MODULE } from "../../../modules/storefront-text"
-import {
-  getPublishedStorefrontTextMessages,
-} from "../../../modules/storefront-text/catalog"
+import { getPublishedStorefrontTextMessages } from "../../../modules/storefront-text/catalog"
 import {
   isStorefrontTextLocale,
   isStorefrontTextMarketLocalePair,

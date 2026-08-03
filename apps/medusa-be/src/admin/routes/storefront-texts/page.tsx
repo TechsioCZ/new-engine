@@ -30,6 +30,7 @@ import {
   type StorefrontTextNamespace,
   type StorefrontTextStatus,
 } from "../../../modules/storefront-text/configuration"
+import { translateBreadcrumb } from "../../lib/breadcrumb"
 import {
   listStorefrontTexts,
   type StorefrontText,
@@ -39,7 +40,6 @@ import {
   syncStorefrontTexts,
   updateStorefrontText,
 } from "../../lib/storefront-texts"
-import { translateBreadcrumb } from "../../lib/breadcrumb"
 import { useDebouncedValue } from "../../lib/use-debounced-value"
 import { StorefrontTextCatalogActions } from "./components/catalog-actions"
 
@@ -193,9 +193,7 @@ const StorefrontTextEditDrawer = ({
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error
-          ? error.message
-          : t("errors.saveFailed")
+        error instanceof Error ? error.message : t("errors.saveFailed")
       )
     },
     onSuccess: async (_, input) => {
@@ -203,9 +201,7 @@ const StorefrontTextEditDrawer = ({
         queryKey: storefrontTextQueryKeys.lists(),
       })
       toast.success(
-        input.override_value === null
-          ? t("toasts.reset")
-          : t("toasts.saved")
+        input.override_value === null ? t("toasts.reset") : t("toasts.saved")
       )
       onOpenChange(false)
     },
@@ -248,7 +244,9 @@ const StorefrontTextEditDrawer = ({
                   </Text>
                   <Text size="small" weight="plus">
                     {t(`markets.${storefrontText.market}`, {
-                      defaultValue: getMarketFallbackLabel(storefrontText.market),
+                      defaultValue: getMarketFallbackLabel(
+                        storefrontText.market
+                      ),
                     })}
                   </Text>
                 </div>
@@ -312,7 +310,8 @@ const StorefrontTextEditDrawer = ({
             <Button
               disabled={mutation.isPending || !storefrontText?.has_override}
               isLoading={
-                mutation.isPending && mutation.variables?.override_value === null
+                mutation.isPending &&
+                mutation.variables?.override_value === null
               }
               onClick={() => mutation.mutate({ override_value: null })}
               size="small"
@@ -330,7 +329,8 @@ const StorefrontTextEditDrawer = ({
               <Button
                 disabled={mutation.isPending || !overrideValue.trim()}
                 isLoading={
-                  mutation.isPending && mutation.variables?.override_value !== null
+                  mutation.isPending &&
+                  mutation.variables?.override_value !== null
                 }
                 onClick={() =>
                   mutation.mutate({
@@ -382,9 +382,7 @@ const StorefrontTextsPage = () => {
     mutationFn: syncStorefrontTexts,
     onError: (error) => {
       toast.error(
-        error instanceof Error
-          ? error.message
-          : t("errors.syncFailed")
+        error instanceof Error ? error.message : t("errors.syncFailed")
       )
     },
     onSuccess: async (response) => {

@@ -2,16 +2,16 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { STOREFRONT_TEXT_MODULE } from "../../../modules/storefront-text"
 import { getPublishedStorefrontTextValue } from "../../../modules/storefront-text/catalog"
-import type { StorefrontTextRecord } from "../../../modules/storefront-text/models/storefront-text"
 import type {
   StorefrontTextLocale,
   StorefrontTextMarket,
   StorefrontTextNamespace,
   StorefrontTextStatus,
 } from "../../../modules/storefront-text/configuration"
+import type { StorefrontTextRecord } from "../../../modules/storefront-text/models/storefront-text"
 import {
-  STOREFRONT_TEXT_DEFINITIONS,
   findStorefrontTextDefault,
+  STOREFRONT_TEXT_DEFINITIONS,
   type StorefrontTextKey,
 } from "../../../modules/storefront-text/registry"
 import type StorefrontTextModuleService from "../../../modules/storefront-text/service"
@@ -165,7 +165,9 @@ export async function GET(
     count,
     limit,
     offset,
-    storefront_texts: storefrontTexts.map(serializeStorefrontText) satisfies (StorefrontTextRecord & {
+    storefront_texts: storefrontTexts.map(
+      serializeStorefrontText
+    ) satisfies (StorefrontTextRecord & {
       effective_value: string
       has_override: boolean
     })[],

@@ -49,7 +49,8 @@ export const STOREFRONT_CONTENT_TEXT_DEFINITIONS = [
     namespace: "content",
   },
   {
-    description: "Claim garance spokojenosti v benefitní liště domovské stránky.",
+    description:
+      "Claim garance spokojenosti v benefitní liště domovské stránky.",
     key: "content.home.benefits.satisfaction_guarantee",
     namespace: "content",
   },

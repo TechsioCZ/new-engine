@@ -3,11 +3,11 @@ import { describe, expect, it } from "vitest"
 import { loadMedusaStorefrontMessages } from "../src/medusa/messages"
 
 const createClient = (response: unknown) => {
-  const calls: Array<[FetchInput, FetchArgs | undefined]> = []
+  const calls: [FetchInput, FetchArgs | undefined][] = []
   const client = {
-    async fetch<T>(input: FetchInput, init?: FetchArgs): Promise<T> {
+    fetch<T>(input: FetchInput, init?: FetchArgs): Promise<T> {
       calls.push([input, init])
-      return response as T
+      return Promise.resolve(response as T)
     },
   } satisfies Pick<Client, "fetch">
 

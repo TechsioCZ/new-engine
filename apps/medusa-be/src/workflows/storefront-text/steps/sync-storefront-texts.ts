@@ -1,6 +1,6 @@
 import type { Context } from "@medusajs/framework/types"
-import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { MedusaError } from "@medusajs/framework/utils"
+import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { STOREFRONT_TEXT_MODULE } from "../../../modules/storefront-text"
 import { validateStorefrontTextOverride } from "../../../modules/storefront-text/message-validation"
 import type { StorefrontTextRecord } from "../../../modules/storefront-text/models/storefront-text"
@@ -180,10 +180,7 @@ export const restoreSynchronizedStorefrontTexts = async (
 
 export const syncStorefrontTextsStep = createStep(
   "sync-storefront-texts",
-  async (
-    input: SyncStorefrontTextsWorkflowInput = {},
-    { container }
-  ) => {
+  async (input: SyncStorefrontTextsWorkflowInput, { container }) => {
     const service = container.resolve<StorefrontTextModuleService>(
       STOREFRONT_TEXT_MODULE
     )
@@ -204,11 +201,7 @@ export const syncStorefrontTextsStep = createStep(
     )
 
     await service.runInTransaction((sharedContext) =>
-      restoreSynchronizedStorefrontTexts(
-        service,
-        compensation,
-        sharedContext
-      )
+      restoreSynchronizedStorefrontTexts(service, compensation, sharedContext)
     )
   }
 )

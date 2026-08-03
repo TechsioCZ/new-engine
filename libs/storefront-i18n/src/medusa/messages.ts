@@ -36,9 +36,7 @@ const isStorefrontMessagesResponse = (
     return false
   }
 
-  return Object.values(messages).every(
-    (message) => typeof message === "string"
-  )
+  return Object.values(messages).every((message) => typeof message === "string")
 }
 
 export const loadMedusaStorefrontMessages = async (
