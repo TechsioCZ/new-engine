@@ -8,7 +8,7 @@ interface CartSummaryProps {
   total: number
   tax: number
   shipping: number
-  currencyCode?: string
+  currencyCode?: string | undefined
 }
 
 export function CartSummary({

@@ -56,7 +56,7 @@ const writeRecentlyVisitedProductHandles = (handles: string[]) => {
   }
 }
 
-export const addRecentlyVisitedProductHandle = (handle: string) => {
+const addRecentlyVisitedProductHandle = (handle: string) => {
   const normalizedHandle = handle.trim()
   if (!normalizedHandle) {
     return

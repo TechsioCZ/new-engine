@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { useMemo } from "react"
 
+import NextLink from "@/components/app-link"
 import { useAppToast } from "@/hooks/use-app-toast"
 import {
   createLoginValidators,

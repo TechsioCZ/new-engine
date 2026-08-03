@@ -5,6 +5,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 
+import NextLink from "@/components/app-link"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 
 import { CheckoutSelectBenefits } from "../checkout-select-benefits"

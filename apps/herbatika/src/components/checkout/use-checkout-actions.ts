@@ -113,7 +113,11 @@ export function useCheckoutActions({
 
     try {
       if (data) {
-        writeStoredCarrierPickupSelection({ cartId, data, optionId })
+        writeStoredCarrierPickupSelection({
+          ...(cartId == null ? {} : { cartId }),
+          data,
+          optionId,
+        })
       } else {
         clearStoredCarrierPickupSelection(cartId)
       }
@@ -146,7 +150,7 @@ export function useCheckoutActions({
     resetFeedback()
 
     const blockerMessage = resolveOrderCompletionBlocker({
-      cartId,
+      ...(cartId == null ? {} : { cartId }),
       itemCount,
       selectedPaymentProviderId,
       selectedShippingMethodId,
@@ -176,7 +180,7 @@ export function useCheckoutActions({
     try {
       const latestCart = (await refreshCart?.()) ?? cart
       const reusablePaymentCollection = resolveReusablePaymentCollection({
-        cart: latestCart,
+        ...(latestCart === undefined ? {} : { cart: latestCart }),
         selectedPaymentProviderId,
       })
 

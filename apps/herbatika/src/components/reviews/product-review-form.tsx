@@ -133,7 +133,7 @@ export function ProductReviewForm({
               ...current,
               rating: rating > 0 ? rating : null,
             }))
-            setErrors((current) => ({ ...current, rating: undefined }))
+            setErrors(({ rating: _rating, ...current }) => current)
           }}
           size="lg"
           value={values.rating ?? undefined}
@@ -161,7 +161,7 @@ export function ProductReviewForm({
             ...current,
             content: event.target.value,
           }))
-          setErrors((current) => ({ ...current, content: undefined }))
+          setErrors(({ content: _content, ...current }) => current)
         }}
         required
         resize="y"

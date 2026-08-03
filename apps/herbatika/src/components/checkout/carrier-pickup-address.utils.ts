@@ -13,7 +13,7 @@ export function resolveCarrierPickupAddress(
   fallbackCountryCode: string,
   fallbackLabel: string
 ): CarrierPickupAddress | null {
-  if (!(isRecord(data) && readString(data.access_point_id))) {
+  if (!(isRecord(data) && readString(data["access_point_id"]))) {
     return null
   }
 

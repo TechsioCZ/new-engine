@@ -13,7 +13,7 @@ type UpdateCartAddressOptions = {
 }
 
 type MutationContext = {
-  previousCart?: Cart
+  previousCart: Cart | undefined
 }
 
 /** Helper to clean address data for Medusa API */
@@ -78,9 +78,13 @@ export function useUpdateCartAddress(options?: UpdateCartAddressOptions) {
 
       // Update the cart with both addresses
       const response = await sdk.store.cart.update(cartId, {
-        billing_address: cleanedBillingAddress,
-        shipping_address: cleanedShippingAddress,
-        email: email || undefined,
+        ...(cleanedBillingAddress
+          ? { billing_address: cleanedBillingAddress }
+          : {}),
+        ...(cleanedShippingAddress
+          ? { shipping_address: cleanedShippingAddress }
+          : {}),
+        ...(email ? { email } : {}),
       })
 
       if (!response.cart) {
@@ -115,9 +119,11 @@ export function useUpdateCartAddress(options?: UpdateCartAddressOptions) {
 
       options?.onError?.(error)
     },
-    onSettled: () => {
+    onSettled: async () => {
       // Always refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.cart.active(),
+      })
     },
   })
 }

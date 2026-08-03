@@ -38,7 +38,7 @@ export function usePrefetchRootCategories({
 
       for (const [handle, categoryIds] of Object.entries(CATEGORY_MAP)) {
         if (handle !== currentHandle) {
-          prefetchRootCategories(categoryIds)
+          void prefetchRootCategories(categoryIds)
         }
       }
     }, delay)

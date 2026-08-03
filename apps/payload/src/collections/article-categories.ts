@@ -38,12 +38,13 @@ export const ArticleCategories: CollectionConfig = {
         if (!data) {
           return data
         }
-        if (data?.title && !data?.slug) {
-          const slug = generateSlugFromTitle(data.title, {
-            locale: req?.locale,
-          })
+        if (data?.["title"] && !data?.["slug"]) {
+          const slug = generateSlugFromTitle(
+            data["title"],
+            req?.locale ? { locale: req.locale } : {}
+          )
           if (slug) {
-            data.slug = slug
+            data["slug"] = slug
           }
         }
 

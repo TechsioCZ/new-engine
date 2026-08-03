@@ -1,32 +1,9 @@
-export type OrderStatus =
+type OrderStatus =
   | "pending"
   | "completed"
   | "canceled"
   | "archived"
   | "requires_action"
-
-export type PaymentStatus =
-  | "not_paid"
-  | "awaiting"
-  | "authorized"
-  | "captured"
-  | "partially_captured"
-  | "refunded"
-  | "partially_refunded"
-  | "partially_returned"
-  | "canceled"
-
-export type FulfillmentStatus =
-  | "not_fulfilled"
-  | "partially_fulfilled"
-  | "fulfilled"
-  | "partially_shipped"
-  | "shipped"
-  | "partially_delivered"
-  | "delivered"
-  | "partially_returned"
-  | "returned"
-  | "canceled"
 
 const orderStatusMap: Record<OrderStatus, string> = {
   pending: "Čeká na zpracování",

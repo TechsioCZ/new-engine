@@ -6,7 +6,9 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { useMemo, useState } from "react"
+import { useState } from "react"
 
+import NextLink from "@/components/app-link"
 import {
   createForgotPasswordValidators,
   type ForgotPasswordFormValues,

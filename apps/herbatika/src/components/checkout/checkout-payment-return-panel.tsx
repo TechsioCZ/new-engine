@@ -2,13 +2,13 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import type { Route } from "next"
 import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { useSearchParams } from "next/navigation"
-import { type ReactNode, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
+import NextLink from "@/components/app-link"
 import { readAccountSetupRequested } from "@/components/checkout/account-setup-metadata"
 import {
   logCheckoutAccountSetupDebug,
@@ -18,10 +18,15 @@ import {
   resolveCompleteCartFailure,
   resolveOrderId,
 } from "@/components/checkout/checkout-completion.utils"
+import {
+  normalizePaymentReturnSearchParam,
+  resolvePaymentCancelled,
+  resolvePaymentReturnFailureMessage,
+} from "@/components/checkout/checkout-payment-return.utils"
 import { clearStoredPaymentProviderSelection } from "@/components/checkout/checkout-payment-selection-storage"
 import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils"
+import { PaymentReturnStatusCard } from "@/components/checkout/payment-return-status-card"
 import { CheckoutCompletedOrderSection } from "@/components/checkout/sections/checkout-completed-order-section"
-import { SupportingText } from "@/components/text/supporting-text"
 import { useCart } from "@/lib/storefront/cart"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
@@ -40,15 +45,14 @@ export function CheckoutPaymentReturnPanel() {
   )
   const paymentNotCompletedMessage = tCheckout("payment_return_not_completed")
   const searchParams = useSearchParams()
-  const cartId = normalizeSearchParam(searchParams.get("cart_id"))
+  const cartId = normalizePaymentReturnSearchParam(searchParams.get("cart_id"))
   const isCancelled = resolvePaymentCancelled(searchParams)
-  const _retryRequestKey = normalizeSearchParam(searchParams.get("retry"))
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null)
   const [returnError, setReturnError] = useState<string | null>(null)
   const isAccountSetupDebugEnabled = useCheckoutAccountSetupDebugEnabled()
   const debugCartQuery = useCart({
     autoCreate: false,
-    cartId: cartId ?? undefined,
+    ...(cartId == null ? {} : { cartId }),
     enabled: Boolean(cartId && isAccountSetupDebugEnabled),
   })
   const debugCartMetadata = debugCartQuery.cart?.metadata

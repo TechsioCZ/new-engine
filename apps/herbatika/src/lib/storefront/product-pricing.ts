@@ -1,105 +1,22 @@
 import {
-  type HerbatikaCurrencyCode as BaseHerbatikaCurrencyCode,
   normalizeSupportedCurrencyCode,
+  type HerbatikaCurrencyCode as BaseHerbatikaCurrencyCode,
 } from "./currency"
+import {
+  asStorefrontBoolean,
+  asStorefrontNumber,
+  asStorefrontRecord,
+} from "./product-pricing-parsers"
 
-export type HerbatikaCurrencyCode = BaseHerbatikaCurrencyCode
+type HerbatikaCurrencyCode = BaseHerbatikaCurrencyCode
 
-export const asStorefrontRecord = (
-  value: unknown
-): Record<string, unknown> | null => {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return value as Record<string, unknown>
-  }
-
-  return null
-}
-
-export const asStorefrontString = (value: unknown): string | null => {
-  if (typeof value !== "string") {
-    return null
-  }
-
-  const normalized = value.trim()
-  return normalized.length > 0 ? normalized : null
-}
-
-export const asStorefrontNumber = (value: unknown): number | null => {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value
-  }
-
-  if (typeof value !== "string") {
-    return null
-  }
-
-  const normalized = value.trim().replace(",", ".")
-  if (!normalized) {
-    return null
-  }
-
-  const parsed = Number(normalized)
-  return Number.isFinite(parsed) ? parsed : null
-}
-
-export const asStorefrontBoolean = (value: unknown): boolean | null => {
-  if (typeof value === "boolean") {
-    return value
-  }
-
-  if (typeof value === "number") {
-    if (value === 1) {
-      return true
-    }
-
-    if (value === 0) {
-      return false
-    }
-
-    return null
-  }
-
-  if (typeof value !== "string") {
-    return null
-  }
-
-  const normalized = value.trim().toLowerCase()
-  if (["1", "true", "yes"].includes(normalized)) {
-    return true
-  }
-
-  if (["0", "false", "no"].includes(normalized)) {
-    return false
-  }
-
-  return null
-}
-
-export const resolveAmountWithoutTax = (params: {
-  amountWithTax: number | null
-  amountWithoutTax: number | null
-  vatRate: number | null
-}): number | null => {
-  const { amountWithTax, amountWithoutTax, vatRate } = params
-
-  if (
-    typeof amountWithoutTax === "number" &&
-    amountWithoutTax > 0 &&
-    (typeof amountWithTax !== "number" || amountWithoutTax <= amountWithTax)
-  ) {
-    return amountWithoutTax
-  }
-
-  if (
-    typeof amountWithTax === "number" &&
-    typeof vatRate === "number" &&
-    vatRate > 0
-  ) {
-    return amountWithTax / (1 + vatRate / 100)
-  }
-
-  return null
-}
+export {
+  asStorefrontBoolean,
+  asStorefrontNumber,
+  asStorefrontRecord,
+  asStorefrontString,
+  resolveAmountWithoutTax,
+} from "./product-pricing-parsers"
 
 type StorefrontMetadataSource = {
   metadata?: unknown
@@ -109,21 +26,21 @@ export const resolveProductTopOffer = (
   product?: StorefrontMetadataSource | null
 ) => {
   const metadata = asStorefrontRecord(product?.metadata)
-  return asStorefrontRecord(metadata?.top_offer)
+  return asStorefrontRecord(metadata?.["top_offer"])
 }
 
-export const resolveTopOfferCurrentAmount = (
+const resolveTopOfferCurrentAmount = (
   topOffer: Record<string, unknown> | null
 ) =>
-  asStorefrontNumber(topOffer?.current_price) ??
-  asStorefrontNumber(topOffer?.action_price) ??
-  asStorefrontNumber(topOffer?.price_vat)
+  asStorefrontNumber(topOffer?.["current_price"]) ??
+  asStorefrontNumber(topOffer?.["action_price"]) ??
+  asStorefrontNumber(topOffer?.["price_vat"])
 
-export const resolveTopOfferStockAmount = (
+const resolveTopOfferStockAmount = (
   topOffer: Record<string, unknown> | null
 ): number | null => {
-  const stock = asStorefrontRecord(topOffer?.stock)
-  return asStorefrontNumber(stock?.amount)
+  const stock = asStorefrontRecord(topOffer?.["stock"])
+  return asStorefrontNumber(stock?.["amount"])
 }
 
 export const resolveTopOfferInStock = (
@@ -147,17 +64,17 @@ export const resolveTopOfferOriginalAmount = (params: {
   const hasExplicitOriginalAmount = explicitCandidate !== null
   const candidate =
     explicitCandidate ??
-    asStorefrontNumber(topOffer?.compare_at_price) ??
-    asStorefrontNumber(topOffer?.standard_price) ??
-    asStorefrontNumber(topOffer?.price_vat)
+    asStorefrontNumber(topOffer?.["compare_at_price"]) ??
+    asStorefrontNumber(topOffer?.["standard_price"]) ??
+    asStorefrontNumber(topOffer?.["price_vat"])
 
   if (typeof currentAmount !== "number" || typeof candidate !== "number") {
     return null
   }
 
   const hasActiveDiscount =
-    asStorefrontBoolean(topOffer?.has_active_discount) === true
-  const actionAmount = asStorefrontNumber(topOffer?.action_price)
+    asStorefrontBoolean(topOffer?.["has_active_discount"]) === true
+  const actionAmount = asStorefrontNumber(topOffer?.["action_price"])
   const hasActionPriceDiscount =
     typeof actionAmount === "number" && candidate > actionAmount
 
@@ -171,7 +88,7 @@ export const resolveTopOfferOriginalAmount = (params: {
   return null
 }
 
-export type StorefrontPriceSource = "calculated_price" | "top_offer"
+type StorefrontPriceSource = "calculated_price" | "top_offer"
 
 type StorefrontPriceInput = {
   calculatedAmount: unknown
@@ -210,7 +127,7 @@ const resolveMatchingTopOfferOriginalAmount = ({
   topOffer: Record<string, unknown> | null
 }) => {
   const topOfferCurrencyCode = normalizeSupportedCurrencyCode(
-    topOffer?.currency
+    topOffer?.["currency"]
   )
 
   if (topOfferCurrencyCode !== currencyCode) {
@@ -260,7 +177,7 @@ export const resolveStorefrontPrice = ({
 
   const resolvedTopOfferAmount = resolveTopOfferCurrentAmount(topOffer)
   const resolvedTopOfferCurrency = normalizeSupportedCurrencyCode(
-    topOffer?.currency
+    topOffer?.["currency"]
   )
 
   if (

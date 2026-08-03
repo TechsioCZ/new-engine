@@ -6,6 +6,8 @@ import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { type ComponentPropsWithoutRef, Fragment } from "react"
 
+import NextLink from "@/components/app-link"
+
 type NextLinkProps = ComponentPropsWithoutRef<typeof NextLink>
 
 export type HerbatikaBreadcrumbItem = {
@@ -25,7 +27,7 @@ export type HerbatikaBreadcrumbProps = Omit<
 }
 
 function getBreadcrumbItemKey(item: HerbatikaBreadcrumbItem, index: number) {
-  return `${item.href?.toString() ?? "current"}-${item.label}-${index}`
+  return `${item.label}-${index}`
 }
 
 function BreadcrumbItemContent({ item }: { item: HerbatikaBreadcrumbItem }) {

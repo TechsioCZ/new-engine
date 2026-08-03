@@ -38,7 +38,7 @@ export const resolveCheckoutAddressFieldName = <
 >(
   scope: TScope,
   field: K
-) => `${scope}.${field}` as CheckoutAddressFieldPath<TScope, K>
+): CheckoutAddressFieldPath<TScope, K> => `${scope}.${field}`
 
 const createCheckoutAddressFieldPaths = <TScope extends CheckoutAddressScope>(
   scope: TScope,

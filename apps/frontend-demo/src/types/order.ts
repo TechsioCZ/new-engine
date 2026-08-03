@@ -1,4 +1,4 @@
-export interface OrderItem {
+interface OrderItem {
   id: string
   title: string
   subtitle: string | null
@@ -42,7 +42,7 @@ export interface OrderItem {
   write_off_total: number
 }
 
-export interface OrderSummary {
+interface OrderSummary {
   paid_total: number
   refunded_total: number
   accounting_total: number
@@ -53,7 +53,7 @@ export interface OrderSummary {
   original_order_total: number
 }
 
-export interface Address {
+interface Address {
   id: string
   customer_id: string | null
   company: string | null
@@ -69,7 +69,7 @@ export interface Address {
   metadata: Record<string, unknown> | null
 }
 
-export interface ShippingMethod {
+interface ShippingMethod {
   id: string
   name: string
   amount: number
@@ -80,7 +80,7 @@ export interface ShippingMethod {
   provider_id: string
 }
 
-export interface PaymentCollection {
+interface PaymentCollection {
   id: string
   currency_code: string
   amount: number
@@ -95,7 +95,7 @@ export interface PaymentCollection {
     | "paid"
 }
 
-export interface Fulfillment {
+interface Fulfillment {
   id: string
   location_id: string
   packed_at: string | null
@@ -112,7 +112,7 @@ export type OrderStatus =
   | "archived"
   | "canceled"
   | "requires_action"
-export type PaymentStatus =
+type PaymentStatus =
   | "not_paid"
   | "awaiting"
   | "authorized"
@@ -122,7 +122,7 @@ export type PaymentStatus =
   | "partially_refunded"
   | "refunded"
   | "canceled"
-export type FulfillmentStatus =
+type FulfillmentStatus =
   | "not_fulfilled"
   | "partially_fulfilled"
   | "fulfilled"

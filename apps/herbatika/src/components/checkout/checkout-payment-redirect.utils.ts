@@ -23,7 +23,7 @@ const resolvePaymentUrlFromRecord = (
     }
   }
 
-  const data = record.data
+  const data = record["data"]
   if (isObject(data)) {
     return resolvePaymentUrlFromRecord(data)
   }
@@ -35,7 +35,7 @@ const resolveSelectedSession = (sessions: unknown[]) =>
   sessions.find(
     (session) =>
       isObject(session) &&
-      (session.is_selected === true || session.selected === true)
+      (session["is_selected"] === true || session["selected"] === true)
   ) ?? sessions[0]
 
 const resolvePaymentUrlFromSessions = (
@@ -81,13 +81,13 @@ export const resolvePaymentRedirectUrl = (value: unknown): string | null => {
   }
 
   const sessionPaymentUrl = resolvePaymentUrlFromSessions(
-    value.payment_sessions
+    value["payment_sessions"]
   )
   if (sessionPaymentUrl) {
     return sessionPaymentUrl
   }
 
-  return resolvePaymentUrlFromPayments(value.payments)
+  return resolvePaymentUrlFromPayments(value["payments"])
 }
 
 function isRedirectUrl(value: string) {

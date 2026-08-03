@@ -21,7 +21,7 @@ export async function getCmsPage(
   slug: string,
   locale = DEFAULT_CMS_LOCALE
 ): Promise<CmsPage | null> {
-  const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+  const publishableKey = process.env["NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"]
 
   if (!publishableKey) {
     return null

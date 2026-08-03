@@ -59,7 +59,7 @@ export function RecentlyVisitedProductsSection({
   const recentProductsQuery = useProducts({
     page: 1,
     limit: productHandles.length,
-    handle: productHandles.length > 0 ? productHandles : undefined,
+    ...(productHandles.length > 0 ? { handle: productHandles } : {}),
     fields: PRODUCT_CARD_FIELDS,
     enabled: Boolean(region?.region_id && productHandles.length > 0),
   })

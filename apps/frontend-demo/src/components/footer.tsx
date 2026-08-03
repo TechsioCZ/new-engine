@@ -12,7 +12,7 @@ const footerSections: NavSection[] = [
     title: "Rychlé odkazy",
     links: [
       { href: "/products", label: "Všechny produkty" },
-      { href: "/categories", label: "Kategorie" },
+      { href: "/products", label: "Kategorie" },
       { href: "/about", label: "O nás" },
       { href: "/contact", label: "Kontakt" },
     ],
@@ -20,10 +20,10 @@ const footerSections: NavSection[] = [
   {
     title: "Zákaznický servis",
     links: [
-      { href: "/shipping", label: "Informace o dopravě" },
-      { href: "/returns", label: "Reklamace" },
+      { href: "/faq", label: "Informace o dopravě" },
+      { href: "/contact", label: "Reklamace" },
       { href: "/faq", label: "Časté dotazy" },
-      { href: "/support", label: "Podpora" },
+      { href: "/contact", label: "Podpora" },
     ],
   },
 ]

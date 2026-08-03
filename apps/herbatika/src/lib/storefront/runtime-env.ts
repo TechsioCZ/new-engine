@@ -10,11 +10,11 @@ const isServerRuntime = () => typeof window === "undefined"
 
 export const resolveMedusaBackendUrl = () =>
   (isServerRuntime()
-    ? trimEnv(process.env.MEDUSA_BACKEND_URL_INTERNAL)
+    ? trimEnv(process.env["MEDUSA_BACKEND_URL_INTERNAL"])
     : null) ??
-  trimEnv(process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL) ??
+  trimEnv(process.env["NEXT_PUBLIC_MEDUSA_BACKEND_URL"]) ??
   DEFAULT_MEDUSA_BACKEND_URL
 
 /** Resolve the browser-reachable origin used in rendered Payload media URLs. */
 export const resolvePublicPayloadBaseUrl = () =>
-  trimEnv(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL)
+  trimEnv(process.env["NEXT_PUBLIC_PAYLOAD_BASE_URL"])

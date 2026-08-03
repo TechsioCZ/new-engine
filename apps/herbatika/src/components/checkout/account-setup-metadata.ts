@@ -1,7 +1,8 @@
+import { isRecord } from "@techsio/std/object"
+
 const ACCOUNT_SETUP_REQUESTED_METADATA_KEY = "account_setup_requested"
 
-export const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
+export { isRecord }
 
 export const readAccountSetupRequested = (metadata: unknown): boolean => {
   if (!isRecord(metadata)) {

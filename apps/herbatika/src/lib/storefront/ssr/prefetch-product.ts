@@ -27,8 +27,12 @@ export const prefetchProductDetailPageStorefrontData = async (
     const detailParams: ProductDetailParams = {
       handle,
       fields: PRODUCT_DETAIL_FIELDS,
-      region_id: region.region_id,
-      country_code: region.country_code,
+      ...(region.region_id === undefined
+        ? {}
+        : { region_id: region.region_id }),
+      ...(region.country_code === undefined
+        ? {}
+        : { country_code: region.country_code }),
     }
 
     const product = await prefetchProductDetail(queryClient, detailParams)
@@ -52,8 +56,12 @@ export const prefetchProductDetailPageStorefrontData = async (
         category_id: relatedCategoryIds,
         order: "-created_at",
         fields: PRODUCT_CARD_FIELDS,
-        region_id: region.region_id,
-        country_code: region.country_code,
+        ...(region.region_id === undefined
+          ? {}
+          : { region_id: region.region_id }),
+        ...(region.country_code === undefined
+          ? {}
+          : { country_code: region.country_code }),
       })
 
       await prefetchProductList(queryClient, relatedProductsListParams)

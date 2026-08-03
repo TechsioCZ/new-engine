@@ -4,14 +4,15 @@ import type { HttpTypes } from "@medusajs/types"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 
+import {
+  assertAddProductToCartVariant,
+  type AddProductToCartInput,
+  resolveExistingCartVariantQuantity,
+  resolveLineItemMetadata,
+  resolveProductVariantId,
+} from "./add-product-to-cart-validation"
 import { cartReadQueryOptions, useAddLineItem, useCart } from "./cart"
 import { resolveErrorMessage } from "./error-utils"
-import { resolveVariantInventoryState } from "./product-availability"
-import {
-  asStorefrontNumber,
-  asStorefrontRecord,
-  resolveProductTopOffer,
-} from "./product-pricing"
 
 export type UseAddProductToCartProps = {
   regionId?: string
@@ -35,7 +36,6 @@ type CartTranslator = ReturnType<typeof useTranslations<"cart">>
 
 const INSUFFICIENT_INVENTORY_ERROR_PATTERN =
   /insufficient_inventory|required inventory|does not have the required inventory/i
-
 const isInsufficientInventoryError = (message: string) =>
   INSUFFICIENT_INVENTORY_ERROR_PATTERN.test(message)
 
@@ -190,8 +190,8 @@ export function useAddProductToCart({
     {
       autoCreate: false,
       autoUpdateRegion: false,
-      country_code: countryCode,
-      region_id: regionId,
+      ...(countryCode === undefined ? {} : { country_code: countryCode }),
+      ...(regionId === undefined ? {} : { region_id: regionId }),
     },
     {
       queryOptions: cartReadQueryOptions,
@@ -216,19 +216,20 @@ export function useAddProductToCart({
       translateCart,
       product,
       quantity,
-      variantId,
+      ...(variantId === undefined ? {} : { variantId }),
     })
 
     setActiveProductId(product.id)
 
     try {
+      const metadata = resolveLineItemMetadata(product)
       await addLineItemMutation.mutateAsync({
         variantId: resolvedVariantId,
         quantity,
-        metadata: resolveLineItemMetadata(product),
+        ...(metadata === undefined ? {} : { metadata }),
         autoCreate: true,
         region_id: regionId,
-        country_code: countryCode,
+        ...(countryCode === undefined ? {} : { country_code: countryCode }),
       })
     } catch (error) {
       const errorMessage = resolveErrorMessage(error, translateCart("failed"))

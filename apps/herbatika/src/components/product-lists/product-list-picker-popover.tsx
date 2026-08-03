@@ -10,6 +10,7 @@ import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import type { ReactNode } from "react"
 
+import NextLink from "@/components/app-link"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 

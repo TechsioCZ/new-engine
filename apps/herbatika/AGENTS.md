@@ -50,7 +50,7 @@
 - From the repo root, prefer `pnpm -C apps/herbatika <script>` for app scripts.
 - Do not use the root frontend-demo `localhost:3000` assumption for this app.
 - `pnpm build` builds production output; `pnpm start` serves the production build.
-- Run `pnpm -C apps/herbatika lint` before handoff to match the Nx/CI Biome check.
+- Run advisory `pnpm exec ultracite check <changed-paths>`, then typecheck `scripts/typescript/projects/apps/herbatika/tsconfig.json` with both `pnpm exec tsc --noEmit -p ...` and native `pnpm exec tsgo --noEmit -p ...`.
 
 ## Testing Workflow
 - For manual QA, use skill `local-web-testing`.

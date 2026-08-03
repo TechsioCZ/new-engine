@@ -3,7 +3,7 @@ import type {
   ProductSectionDefinition,
 } from "./homepage.data.types"
 
-export const PRODUCT_SECTIONS: ProductSectionDefinition[] = [
+export const PRODUCT_SECTIONS = [
   {
     id: "najoblubenejsie-produkty",
     titleKey: "home.product_sections.bestsellers",
@@ -19,7 +19,7 @@ export const PRODUCT_SECTIONS: ProductSectionDefinition[] = [
     titleKey: "home.product_sections.sale",
     viewAllHref: "/c/vypredaj-zlavy-a-akcie",
   },
-]
+] as const satisfies readonly ProductSectionDefinition[]
 
 export const BLOG_POSTS: BlogTeaserItem[] = [
   {

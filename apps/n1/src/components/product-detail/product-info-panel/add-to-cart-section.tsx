@@ -43,7 +43,9 @@ export const AddToCartSection = ({
       cart,
       variantId: selectedVariant.id,
       quantity,
-      inventoryQuantity: selectedVariant.inventory_quantity,
+      ...(selectedVariant.inventory_quantity !== undefined
+        ? { inventoryQuantity: selectedVariant.inventory_quantity }
+        : {}),
     })
 
     if (!validation.valid) {
@@ -128,7 +130,7 @@ export const AddToCartSection = ({
         value={quantity}
       >
         <NumericInput.DecrementTrigger />
-        <NumericInput.Control className="w-12">
+        <NumericInput.Control className="w-900">
           <NumericInput.Input />
         </NumericInput.Control>
         <NumericInput.IncrementTrigger />

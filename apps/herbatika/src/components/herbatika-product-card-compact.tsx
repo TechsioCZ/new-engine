@@ -3,8 +3,8 @@
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
 import { useTranslations } from "next-intl"
 import NextImage from "next/image"
-import NextLink from "next/link"
 
+import NextLink from "@/components/app-link"
 import {
   type HerbatikaProductCardBaseProps,
   useHerbatikaProductCardState,

@@ -1,10 +1,10 @@
 "use client"
 
-import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useTranslations } from "next-intl"
 import { useRouter, useSearchParams } from "next/navigation"
 import { type FormEvent, useEffect, useState } from "react"
+import { type FormEvent, useState } from "react"
 
 import { useAppToast } from "@/hooks/use-app-toast"
 import { useAuth } from "@/lib/storefront/auth"
@@ -12,20 +12,12 @@ import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
   getProductListItems,
   isFavoriteProductList,
-  type StoreProductListItem,
   useCreateCustomProductList,
-  useCreateProductListCart,
   useDeleteProductList,
-  useDeleteProductListItem,
   useProductList,
   useProductLists,
-  useUpdateProductListItem,
 } from "@/lib/storefront/product-lists"
-import {
-  PRODUCT_CARD_FIELDS,
-  type ProductListInput,
-  useProducts,
-} from "@/lib/storefront/products"
+import { PRODUCT_CARD_FIELDS, useProducts } from "@/lib/storefront/products"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import {
   resolveAddProductToCartErrorMessage,
@@ -35,7 +27,6 @@ import {
 import {
   buildProductMap,
   resolveProductListAvailabilitySummary,
-  resolveProductListItemQuantity,
   resolveProductListPriceSummary,
   sortProductLists,
   uniqueProductIds,
@@ -95,21 +86,9 @@ export function useAccountProductLists() {
   const tCart = useTranslations("cart")
   const authQuery = useAuth()
   const region = useRegionContext()
-  const router = useRouter()
-  const searchParams = useSearchParams()
   const toast = useAppToast()
-  const [activeListId, setActiveListId] = useState<string | null>(null)
   const [showCreateListDialog, setShowCreateListDialog] = useState(false)
   const [newListTitle, setNewListTitle] = useState("")
-  const [activeProductId, setActiveProductId] = useState<string | null>(null)
-  const [isAddingListToCart, setIsAddingListToCart] = useState(false)
-  const [activeQuantitySetItemId, setActiveQuantitySetItemId] = useState<
-    string | null
-  >(null)
-  const [activeDeleteItemId, setActiveDeleteItemId] = useState<string | null>(
-    null
-  )
-  const [deleteListId, setDeleteListId] = useState<string | null>(null)
 
   const customerId = authQuery.customer?.id ?? null
   const listsQuery = useProductLists({
@@ -137,12 +116,12 @@ export function useAccountProductLists() {
   const activeItems = getProductListItems(activeList)
   const productIds = uniqueProductIds(activeItems)
   const productsQuery = useProducts({
-    id: productIds.length > 0 ? productIds : undefined,
+    ...(productIds.length > 0 ? { id: productIds } : {}),
     page: 1,
     limit: Math.max(productIds.length, 1),
     fields: PRODUCT_CARD_FIELDS,
     enabled: Boolean(region?.region_id && activeListId && productIds.length),
-  } as ProductListInput)
+  })
   const productsById = buildProductMap(activeItems, productsQuery.products)
   const activeProductsAreLoading =
     productsQuery.isLoading &&
@@ -158,51 +137,45 @@ export function useAccountProductLists() {
     productsById,
   })
   const createListMutation = useCreateCustomProductList()
-  const createListCartMutation = useCreateProductListCart()
   const deleteListMutation = useDeleteProductList()
-  const updateItemMutation = useUpdateProductListItem()
-  const deleteItemMutation = useDeleteProductListItem()
-  const addToCart = useAddProductToCart({
-    regionId: region?.region_id,
-    countryCode: region?.country_code,
+  const {
+    activeDeleteItemId,
+    activeProductId,
+    activeQuantitySetItemId,
+    addToCart,
+    handleAddToCart,
+    handleDeleteItem,
+    handleQuantitySet,
+    setActiveProductId,
+  } = useProductListItemActions({
+    activeListId: activeList?.id,
+    activeListSupportsQuantity,
+    ...(region?.region_id === undefined ? {} : { regionId: region.region_id }),
+    ...(region?.country_code === undefined
+      ? {}
+      : { countryCode: region.country_code }),
   })
+  const { createListCartMutation, handleAddListToCart, isAddingListToCart } =
+    useProductListCartAction({
+      activeList,
+      availability: activeListAvailabilitySummary,
+      addToCart,
+      setActiveProductId,
+      ...(region?.region_id === undefined
+        ? {}
+        : { regionId: region.region_id }),
+      ...(region?.country_code === undefined
+        ? {}
+        : { countryCode: region.country_code }),
+      ...(authQuery.customer?.email === undefined
+        ? {}
+        : { customerEmail: authQuery.customer.email }),
+    })
   const activeListCanCreateCart = Boolean(
     activeList?.id &&
     activeListAvailabilitySummary.canAddAnyToCart &&
     (region?.region_id || region?.country_code)
   )
-
-  useEffect(() => {
-    if (sortedLists.length === 0) {
-      setActiveListId(null)
-      return
-    }
-
-    const requestedListId = searchParams.get("list")
-    const requestedListExists = sortedLists.some(
-      (list) => list.id === requestedListId
-    )
-    const activeListExists = sortedLists.some(
-      (list) => list.id === activeListId
-    )
-    let nextActiveListId = sortedLists[0].id
-    if (requestedListId && requestedListExists) {
-      nextActiveListId = requestedListId
-    } else if (activeListExists && activeListId) {
-      nextActiveListId = activeListId
-    }
-
-    if (nextActiveListId !== activeListId) {
-      setActiveListId(nextActiveListId)
-    }
-  }, [activeListId, searchParams, sortedLists])
-
-  const selectList = (listId: string) => {
-    setActiveListId(listId)
-    router.replace(`/account/lists?list=${encodeURIComponent(listId)}`, {
-      scroll: false,
-    })
-  }
 
   const openCreateListDialog = () => {
     setShowCreateListDialog(true)
@@ -211,19 +184,6 @@ export function useAccountProductLists() {
   const closeCreateListDialog = () => {
     setShowCreateListDialog(false)
     setNewListTitle("")
-  }
-
-  const openDeleteListDialog = (listId: string) => {
-    const list = sortedLists.find((candidate) => candidate.id === listId)
-    if (!list || isFavoriteProductList(list)) {
-      return
-    }
-
-    setDeleteListId(listId)
-  }
-
-  const closeDeleteListDialog = () => {
-    setDeleteListId(null)
   }
 
   const handleCreateList = async (event: FormEvent<HTMLFormElement>) => {
@@ -419,27 +379,10 @@ export function useAccountProductLists() {
     }
 
     const deletedListId = deleteList.id
-    const deletedListIndex = sortedLists.findIndex(
-      (list) => list.id === deletedListId
-    )
-    const nextList =
-      sortedLists[deletedListIndex - 1] ??
-      sortedLists.find((list) => list.id !== deletedListId) ??
-      null
-
     try {
       await deleteListMutation.mutateAsync({ listId: deletedListId })
-
-      if (activeListId === deletedListId) {
-        if (nextList?.id) {
-          selectList(nextList.id)
-        } else {
-          setActiveListId(null)
-          router.replace("/account/lists", { scroll: false })
-        }
-      }
-
-      setDeleteListId(null)
+      handleSelectedListDeleted(deletedListId)
+      closeDeleteListDialog()
     } catch (error) {
       toast.error({
         title: resolveErrorMessage(

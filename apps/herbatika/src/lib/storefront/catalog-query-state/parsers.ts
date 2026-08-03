@@ -49,7 +49,7 @@ export const CATALOG_PAGE_RESET_KEYS: ReadonlyArray<keyof CatalogQueryState> = [
 ]
 
 export type SearchParamValue = string | string[] | undefined
-export type CatalogPageResetMode = "auto" | "always" | "never"
+type CatalogPageResetMode = "auto" | "always" | "never"
 
 export type ResolveCatalogQueryStatePatchOptions = {
   resetPage?: CatalogPageResetMode

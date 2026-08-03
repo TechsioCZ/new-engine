@@ -6,8 +6,8 @@ export type SearchAutocompleteSuggestion = {
   title: string
   href: string
   subtitle?: string
-  imageUrl?: string
-  priceLabel?: string
+  imageUrl?: string | undefined
+  priceLabel?: string | undefined
   inStock?: boolean
 }
 
@@ -38,7 +38,7 @@ export type RawSearchAutocompleteBrandRef = {
   handle?: unknown
 }
 
-export type RawSearchAutocompleteCalculatedPrice = {
+type RawSearchAutocompleteCalculatedPrice = {
   calculated_amount?: unknown
   currency_code?: unknown
 }

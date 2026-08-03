@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { useEffect, useState } from "react"
 
+import NextLink from "@/components/app-link"
 import { LoginForm } from "@/components/auth/login-form"
 import { useAuthController } from "@/components/auth/use-auth-controller"
 
@@ -56,7 +57,7 @@ export function HerbatikaAccountPopover() {
       </Popover.Trigger>
 
       <Popover.Positioner>
-        <Popover.Content className="w-[22rem] max-w-[calc(100vw-2rem)]">
+        <Popover.Content className="w-account-popover max-w-popover-viewport">
           <Popover.Arrow />
           <Popover.Title>{tAuth("login.short_title")}</Popover.Title>
           <LoginForm

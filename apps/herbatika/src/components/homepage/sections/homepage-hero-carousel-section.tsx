@@ -5,10 +5,10 @@ import {
 } from "@techsio/ui-kit/molecules/carousel"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
-import NextLink from "next/link"
 import type { MouseEventHandler, PointerEventHandler } from "react"
 import { useEffect, useRef, useState } from "react"
 
+import NextLink from "@/components/app-link"
 import type { HeroBannerItem } from "@/components/homepage/homepage.data"
 
 const HERO_SLIDE_SPACING = "var(--spacing-400)"
@@ -57,7 +57,7 @@ function HeroBannerCard({
       <div className="absolute inset-0 bg-gradient-to-t from-fg-primary/85 via-fg-primary/35 to-transparent" />
       {banner.title && (
         <div className="absolute inset-x-0 bottom-0 flex flex-col items-start p-600 text-fg-reverse">
-          <p className="line-clamp-2 font-bold text-2xl leading-[26px]">
+          <p className="line-clamp-2 font-bold text-2xl hero-title-leading">
             {banner.title}
           </p>
           {banner.subtitle && (

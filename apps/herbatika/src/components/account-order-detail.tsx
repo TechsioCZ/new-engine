@@ -8,6 +8,7 @@ import NextLink from "next/link"
 import { AccountSurface } from "@/components/account/account-surface"
 import { AccountOrderDetailItems } from "@/components/account/orders/account-order-detail-items"
 import { AccountOrderDetailSummary } from "@/components/account/orders/account-order-detail-summary"
+import NextLink from "@/components/app-link"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import { OrderSkeleton } from "@/components/loading/order-skeleton"
 import { useAuth } from "@/lib/storefront/auth"
@@ -87,7 +88,9 @@ export function AccountOrderDetail({ orderId }: AccountOrderDetailProps) {
       />
 
       <AccountOrderDetailSummary
-        customerEmail={authQuery.customer?.email}
+        {...(authQuery.customer?.email === undefined
+          ? {}
+          : { customerEmail: authQuery.customer?.email })}
         order={order}
       />
 

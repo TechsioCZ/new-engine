@@ -65,6 +65,9 @@ const resolveBreadcrumbItems = (
 
   for (let index = 0; index < trail.length; index += 1) {
     const category = trail[index]
+    if (!category) {
+      continue
+    }
     const label = normalizeCategoryName(category.name)
     const isLast = index === trail.length - 1
     const href =
@@ -72,7 +75,7 @@ const resolveBreadcrumbItems = (
 
     items.push({
       label,
-      href,
+      ...(href === undefined ? {} : { href }),
     })
   }
 

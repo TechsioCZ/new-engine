@@ -31,7 +31,7 @@ export const resolveFlags = (
   labels: ProductFlagLabels
 ): ProductFlagState[] => {
   const metadata = asRecord(product.metadata)
-  const flags = metadata?.flags
+  const flags = metadata?.["flags"]
 
   if (!Array.isArray(flags)) {
     return hasDiscount ? [buildActionFlag(labels)] : []
@@ -46,8 +46,8 @@ export const resolveFlags = (
       continue
     }
 
-    const code = resolveSupportedFlagCode(flagRecord.code)
-    const active = asBoolean(flagRecord.active)
+    const code = resolveSupportedFlagCode(flagRecord["code"])
+    const active = asBoolean(flagRecord["active"])
 
     if (!(code && isFlagActive(code, active, hasDiscount))) {
       continue

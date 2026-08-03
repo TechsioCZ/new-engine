@@ -1,8 +1,6 @@
 "use client"
 
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { Rating } from "@techsio/ui-kit/atoms/rating"
-import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
 import { useFormatter, useTranslations } from "next-intl"
@@ -11,27 +9,26 @@ import { usePathname, useSearchParams } from "next/navigation"
 import { createParser, createSerializer, useQueryState } from "nuqs"
 import { useEffect } from "react"
 
+import NextLink from "@/components/app-link"
 import { ProductReviewCreateDialog } from "@/components/product-detail/sections/product-detail-review-dialog"
 import {
   PRODUCT_DETAIL_REVIEWS_SECTION_ID,
   toReviewItem,
 } from "@/components/product-detail/sections/product-detail-review-utils"
-import { FractionalRating } from "@/components/reviews/fractional-rating"
-import type { ReviewItem } from "@/components/reviews/reviews.types"
 import {
   PRODUCT_REVIEWS_PAGE_SIZE,
   useProductReviews,
 } from "@/lib/storefront/reviews"
 
-type ProductDetailReviewsProps = {
-  productId?: string | null
-}
+import {
+  ProductDetailReviewsHeader,
+  ProductDetailReviewsSkeleton,
+  ProductReviewListItem,
+} from "./product-detail-review-parts"
+
+type ProductDetailReviewsProps = { productId?: string | null }
 
 const REVIEW_PAGE_PARAM = "reviews_page"
-
-const resolveReviewInitial = (author: string) =>
-  author.trim().charAt(0).toUpperCase() || "A"
-
 const reviewPageParser = createParser({
   parse: (value) => {
     const page = Number(value)
@@ -39,7 +36,6 @@ const reviewPageParser = createParser({
   },
   serialize: String,
 }).withDefault(1)
-
 const serializeReviewPage = createSerializer({
   [REVIEW_PAGE_PARAM]: reviewPageParser,
 })
@@ -189,7 +185,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
   }
 
   const reviewsQuery = useProductReviews({
-    productId: productId ?? undefined,
+    ...(productId == null ? {} : { productId }),
     limit: PRODUCT_REVIEWS_PAGE_SIZE,
     page: currentPage,
     enabled: Boolean(productId),
@@ -221,7 +217,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
       return
     }
 
-    setCurrentPage(reviewsQuery.totalPages, { history: "replace" })
+    void setCurrentPage(reviewsQuery.totalPages, { history: "replace" })
   }, [isPageOutOfRange, reviewsQuery.totalPages, setCurrentPage])
 
   if (!productId) {
@@ -248,7 +244,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
         </StatusText>
         <Button
           onClick={() => {
-            reviewsQuery.query.refetch()
+            void reviewsQuery.query.refetch()
           }}
           size="sm"
           variant="secondary"

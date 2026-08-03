@@ -42,8 +42,9 @@ export function RegisterAccountTypeField({
           id="auth-register-account-type"
           items={accountTypeItems}
           label={tAuth("register.account_type")}
-          onValueChange={onValueChange}
-          orientation="horizontal"
+          {...(onValueChange === undefined
+          ? {}
+          : { onValueChange: onValueChange })}          orientation="horizontal"
           required
           size="sm"
           validationMode="blur"

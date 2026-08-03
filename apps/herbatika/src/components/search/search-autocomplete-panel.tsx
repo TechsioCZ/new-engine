@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import type { MouseEvent } from "react"
 
+import NextLink from "@/components/app-link"
 import type {
   SearchAutocompleteStatus,
   SearchAutocompleteSuggestion,
@@ -198,7 +199,9 @@ export function SearchAutocompletePanel({
             <ul aria-label={section.title}>
               {section.items.map((item) => (
                 <SearchAutocompleteRow
-                  activeItemId={activeItemId}
+                  {...(activeItemId === undefined
+                    ? {}
+                    : { activeItemId: activeItemId })}
                   item={item}
                   key={`${item.type}-${item.id}`}
                   onItemClick={onItemClick}

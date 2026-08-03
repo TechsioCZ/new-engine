@@ -21,7 +21,7 @@ const openSans = Open_Sans({
   display: "swap",
 })
 
-const analyticsDebug = process.env.NODE_ENV === "development"
+const analyticsDebug = process.env["NODE_ENV"] === "development"
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -40,15 +40,15 @@ export default function RootLayout({
       >
         <MetaPixel
           debug={analyticsDebug}
-          pixelId={process.env.NEXT_PUBLIC_META_PIXEL_ID ?? ""}
+          pixelId={process.env["NEXT_PUBLIC_META_PIXEL_ID"] ?? ""}
         />
         <GoogleTag
-          adsId={process.env.NEXT_PUBLIC_GOOGLE_ADS_ID ?? ""}
+          adsId={process.env["NEXT_PUBLIC_GOOGLE_ADS_ID"] ?? ""}
           debug={analyticsDebug}
         />
         <LeadhubPixel
           debug={analyticsDebug}
-          trackingId={process.env.NEXT_PUBLIC_LEADHUB_TRACKING_ID ?? ""}
+          trackingId={process.env["NEXT_PUBLIC_LEADHUB_TRACKING_ID"] ?? ""}
         />
         <Providers>
           <AnalyticsProvider>

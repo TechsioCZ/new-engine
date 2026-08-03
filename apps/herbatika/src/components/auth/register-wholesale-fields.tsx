@@ -36,8 +36,9 @@ export function RegisterWholesaleFields({
               autoComplete="organization"
               id="auth-register-company-name"
               label={tForm("company_name")}
-              onValueChange={onValueChange}
-              required
+              {...(onValueChange === undefined
+              ? {}
+              : { onValueChange: onValueChange })}              required
               validationMode="blur"
             />
           )}
@@ -53,8 +54,9 @@ export function RegisterWholesaleFields({
             autoComplete="off"
             id="auth-register-company-identifier"
             label={tForm("company_id")}
-            onValueChange={onValueChange}
-            required
+            {...(onValueChange === undefined
+            ? {}
+            : { onValueChange: onValueChange })}            required
             validationMode="blur"
           />
         )}
@@ -69,7 +71,9 @@ export function RegisterWholesaleFields({
             id="auth-register-billing-country"
             items={countryItems}
             label={tForm("country")}
-            onValueChange={onValueChange}
+            {...(onValueChange === undefined
+            ? {}
+            : { onValueChange: onValueChange })}
             placeholder={tForm("country_placeholder")}
             readOnly
             required
@@ -88,8 +92,9 @@ export function RegisterWholesaleFields({
               autoComplete="billing street-address"
               id="auth-register-billing-address-1"
               label={tForm("address")}
-              onValueChange={onValueChange}
-              required
+              {...(onValueChange === undefined
+              ? {}
+              : { onValueChange: onValueChange })}              required
               validationMode="blur"
             />
           )}
@@ -103,8 +108,9 @@ export function RegisterWholesaleFields({
               autoComplete="billing address-line2"
               id="auth-register-billing-address-2"
               label={tForm("address_line_2")}
-              onValueChange={onValueChange}
-              validationMode="blur"
+              {...(onValueChange === undefined
+              ? {}
+              : { onValueChange: onValueChange })}              validationMode="blur"
             />
           )}
         </form.AppField>
@@ -116,8 +122,9 @@ export function RegisterWholesaleFields({
             autoComplete="billing address-level2"
             id="auth-register-billing-city"
             label={tForm("city")}
-            onValueChange={onValueChange}
-            required
+            {...(onValueChange === undefined
+            ? {}
+            : { onValueChange: onValueChange })}            required
             validationMode="blur"
           />
         )}
@@ -132,8 +139,9 @@ export function RegisterWholesaleFields({
             autoComplete="billing postal-code"
             id="auth-register-billing-postal-code"
             label={tForm("postal_code")}
-            onValueChange={onValueChange}
-            required
+            {...(onValueChange === undefined
+            ? {}
+            : { onValueChange: onValueChange })}            required
             validationMode="blur"
           />
         )}

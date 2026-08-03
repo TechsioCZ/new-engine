@@ -2,7 +2,7 @@ import type { StoreProductVariant } from "@medusajs/types"
 
 import type { ProductVariant } from "@/types/product"
 
-export type StockStatus = "in-stock" | "low-stock" | "out-of-stock"
+type StockStatus = "in-stock" | "low-stock" | "out-of-stock"
 
 export interface InventoryInfo {
   status: StockStatus

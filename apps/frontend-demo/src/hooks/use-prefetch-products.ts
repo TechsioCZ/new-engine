@@ -29,7 +29,7 @@ export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
       region_id: selectedRegion.id,
     }
 
-    queryClient.prefetchQuery({
+    void queryClient.prefetchQuery({
       queryKey: queryKeys.products.list({
         page: params?.offset
           ? Math.floor(params.offset / (params.limit || DEFAULT_LIMIT)) + 1

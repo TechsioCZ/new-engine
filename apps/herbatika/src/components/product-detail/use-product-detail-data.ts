@@ -63,7 +63,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     fields: PRODUCT_DETAIL_FIELDS,
   })
 
-  const product = (productQuery.product ?? null) as Product | null
+  const product = productQuery.product ?? null
   const variants = product?.variants ?? []
   const productCategories = product?.categories ?? []
 

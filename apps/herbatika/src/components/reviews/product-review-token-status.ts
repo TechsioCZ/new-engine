@@ -5,6 +5,11 @@ export type ProductReviewTokenProductStatus =
   | "not-found"
   | "ready"
 
+export type ProductReviewTokenStatusMessage = {
+  status: "default" | "warning"
+  text: string
+}
+
 export const resolveProductStatusMessage = (
   status: ProductReviewTokenProductStatus,
   messages: {
@@ -26,7 +31,8 @@ export const resolveProductStatusMessage = (
         status: "warning" as const,
         text: messages.notFound,
       }
-    default:
+    case "missing-product-id":
+    case "ready":
       return null
   }
 }

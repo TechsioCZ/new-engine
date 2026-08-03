@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import { isRecord } from "@techsio/std/object"
 
 type OrderRecord = Record<string, unknown>
 
@@ -7,9 +8,6 @@ export type OrderAddressSummary = {
   company: string | null
   lines: string[]
 }
-
-const isRecord = (value: unknown): value is OrderRecord =>
-  typeof value === "object" && value !== null
 
 const readString = (value: unknown) => {
   if (typeof value !== "string") {
@@ -98,12 +96,12 @@ const readMethodLabel = (candidate: unknown) => {
   }
 
   const nestedCandidates = [
-    candidate.option,
-    candidate.shipping_option,
-    candidate.shippingOption,
-    candidate.provider,
-    candidate.payment_provider,
-    candidate.paymentProvider,
+    candidate["option"],
+    candidate["shipping_option"],
+    candidate["shippingOption"],
+    candidate["provider"],
+    candidate["payment_provider"],
+    candidate["paymentProvider"],
   ]
 
   for (const nestedCandidate of nestedCandidates) {

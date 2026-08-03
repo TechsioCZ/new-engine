@@ -27,10 +27,10 @@ export function SearchAutocomplete({
   const t = useTranslations("search")
   const isMobile = variant === "mobile"
   const controller = useSearchAutocompleteController({
-    countryCode,
+    ...(countryCode === undefined ? {} : { countryCode }),
     currencyCode,
     onSubmit,
-    regionId,
+    ...(regionId === undefined ? {} : { regionId }),
   })
 
   return (
@@ -73,7 +73,9 @@ export function SearchAutocomplete({
 
         {controller.shouldShowPanel ? (
           <SearchAutocompletePanel
-            activeItemId={controller.activeItemId}
+            {...(controller.activeItemId === undefined
+              ? {}
+              : { activeItemId: controller.activeItemId })}
             id={controller.panelId}
             onItemClick={controller.closePanel}
             onItemMouseEnter={controller.handleItemMouseEnter}

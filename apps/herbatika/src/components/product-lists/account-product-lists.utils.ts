@@ -1,21 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 
-import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
-import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
-import {
-  getProductListTitle,
-  isFavoriteProductList,
-  type StoreProductList,
-  type StoreProductListItem,
-} from "@/lib/storefront/product-lists"
-import {
-  asStorefrontNumber,
-  asStorefrontRecord,
-  resolveAmountWithoutTax,
-  resolveProductTopOffer,
-  resolveStorefrontPrice,
-} from "@/lib/storefront/product-pricing"
+import type { StoreProductListItem } from "@/lib/storefront/product-lists"
 
 export type ProductListPriceSummary = {
   totalWithTaxLabel: string | null
@@ -29,7 +15,7 @@ export type ProductListItemAvailability = {
   status: "limited_stock" | "out_of_stock" | "product_unavailable" | null
 }
 
-export type ProductListAvailableItem = {
+type ProductListAvailableItem = {
   item: StoreProductListItem
   product: HttpTypes.StoreProduct
 }
@@ -130,9 +116,10 @@ export const resolveProductListItemAvailability = (
     }
   }
 
-  const quantity = resolveProductListItemQuantity(item)
-  const variant = resolveProductListItemVariant(item, product)
-  const inventory = resolveVariantInventoryState(variant, quantity)
+  const inventory = resolveVariantInventoryState(
+    resolveProductListItemVariant(item, product),
+    resolveProductListItemQuantity(item)
+  )
 
   if (!(inventory.hasVariant && inventory.hasPrice)) {
     return {
@@ -142,7 +129,6 @@ export const resolveProductListItemAvailability = (
       status: "product_unavailable",
     }
   }
-
   if (!inventory.isInStock) {
     return {
       availableQuantity: inventory.availableQuantity,
@@ -151,7 +137,6 @@ export const resolveProductListItemAvailability = (
       status: "out_of_stock",
     }
   }
-
   if (!inventory.isPurchasable) {
     return {
       availableQuantity: inventory.availableQuantity,
@@ -180,7 +165,6 @@ export const resolveProductListAvailabilitySummary = (params: {
   for (const item of params.items) {
     const product = resolveProductListItemProduct(item, params.productsById)
     const availability = resolveProductListItemAvailability(item, product)
-
     if (availability.canAddToCart && product) {
       purchasableItems.push({ item, product })
     } else {

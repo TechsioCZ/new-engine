@@ -68,7 +68,7 @@ export const createBrandSlug = (value: string): string =>
 export const createBrandHref = (brand: Pick<StorefrontBrand, "slug">) =>
   `/znacka/${brand.slug}`
 
-export const createBrandFacetId = (value: string) =>
+const createBrandFacetId = (value: string) =>
   `${BRAND_FACET_PREFIX}${createBrandSlug(value)}`
 
 export const normalizeStorefrontBrand = (

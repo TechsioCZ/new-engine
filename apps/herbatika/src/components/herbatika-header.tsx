@@ -8,11 +8,12 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Header } from "@techsio/ui-kit/organisms/header"
 import { useTranslations } from "next-intl"
 import NextImage from "next/image"
-import NextLink from "next/link"
 import { useRouter } from "next/navigation"
 import type { FocusEvent, FormEvent } from "react"
 import { useState } from "react"
 
+import NextLink from "@/components/app-link"
+import { appHref } from "@/lib/routing"
 import { cartReadQueryOptions, useCart } from "@/lib/storefront/cart"
 import { resolveCartTotalAmount } from "@/lib/storefront/cart-calculations"
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
@@ -54,8 +55,12 @@ export function HerbatikaHeader() {
   const { cart, itemCount } = useCart(
     {
       autoCreate: true,
-      region_id: region?.region_id,
-      country_code: region?.country_code,
+      ...(region?.region_id === undefined
+        ? {}
+        : { region_id: region?.region_id }),
+      ...(region?.country_code === undefined
+        ? {}
+        : { country_code: region?.country_code }),
       enabled: Boolean(region?.region_id),
     },
     {
@@ -75,7 +80,7 @@ export function HerbatikaHeader() {
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     const formData = new FormData(event.currentTarget)
-    router.push(resolveSearchHref(formData.get("q")))
+    router.push(appHref(resolveSearchHref(formData.get("q"))))
   }
 
   const handleActivateDesktopItem = (href: string) => {
@@ -110,10 +115,14 @@ export function HerbatikaHeader() {
 
         <div className="@header-desktop:block hidden w-full max-w-search-form flex-1">
           <SearchAutocomplete
-            countryCode={region?.country_code}
+            {...(region?.country_code === undefined
+              ? {}
+              : { countryCode: region?.country_code })}
             currencyCode={regionCurrency}
             onSubmit={handleSearchSubmit}
-            regionId={region?.region_id}
+            {...(region?.region_id === undefined
+              ? {}
+              : { regionId: region?.region_id })}
             variant="desktop"
           />
         </div>
@@ -181,10 +190,14 @@ export function HerbatikaHeader() {
 
       <div className="mx-auto @header-desktop:hidden w-full max-w-max-w px-header-lg pb-300 2xl:px-header-2xl">
         <SearchAutocomplete
-          countryCode={region?.country_code}
+          {...(region?.country_code === undefined
+            ? {}
+            : { countryCode: region?.country_code })}
           currencyCode={regionCurrency}
           onSubmit={handleSearchSubmit}
-          regionId={region?.region_id}
+          {...(region?.region_id === undefined
+            ? {}
+            : { regionId: region?.region_id })}
           variant="mobile"
         />
       </div>

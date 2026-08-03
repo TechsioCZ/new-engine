@@ -42,7 +42,7 @@ export function ProductDetailMetrics({
     enabled: Boolean(productId),
     limit: PRODUCT_REVIEWS_PAGE_SIZE,
     offset: 0,
-    productId: productId ?? undefined,
+    ...(productId == null ? {} : { productId }),
   })
   const reviews = reviewsQuery.reviews
     .slice(0, PRODUCT_REVIEW_TEASER_LIMIT)

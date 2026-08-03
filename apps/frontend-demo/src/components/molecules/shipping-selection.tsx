@@ -91,6 +91,7 @@ export function ShippingSelection({
   return (
     <div className="w-full space-y-250 py-2 sm:py-4">
       <div
+        aria-busy={isLoading}
         aria-label="Vyberte způsob dopravy"
         className="grid grid-cols-1 gap-3 sm:gap-4"
         role="radiogroup"

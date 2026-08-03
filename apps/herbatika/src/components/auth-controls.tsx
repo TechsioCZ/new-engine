@@ -16,7 +16,7 @@ type AuthControlsProps = {
 export function AuthControls({ mode, afterAuthHref }: AuthControlsProps) {
   const controller = useAuthController({
     mode,
-    afterAuthHref,
+    ...(afterAuthHref === undefined ? {} : { afterAuthHref }),
   })
 
   return (

@@ -6,8 +6,10 @@ import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { useRouter } from "next/navigation"
 
+import NextLink from "@/components/app-link"
 import { resolveAddressFormsMatch } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
+import { appHref } from "@/lib/routing"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
 import { CheckoutAddressSection } from "./checkout-address-section"
@@ -63,7 +65,7 @@ export function CheckoutDetailsStepSection({
             (async () => {
               const didSaveAddress = await controller.handleSaveAddress()
               if (didSaveAddress) {
-                router.push(nextStepHref)
+                router.push(appHref(nextStepHref))
               }
             })()
           )

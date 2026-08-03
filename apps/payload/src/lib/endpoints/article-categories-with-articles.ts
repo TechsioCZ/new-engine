@@ -40,7 +40,7 @@ export const articleCategoriesWithArticlesEndpoint: Endpoint = {
       depth: 1,
       pagination: true,
       limit: MAX_ARTICLES,
-      locale,
+      ...(locale ? { locale } : {}),
       where: {
         status: { equals: "published" },
         ...(categorySlug

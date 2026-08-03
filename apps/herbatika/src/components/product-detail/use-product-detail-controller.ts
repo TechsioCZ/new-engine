@@ -27,7 +27,3 @@ export function useProductDetailController({
     handleSelectVolumeDiscount: data.setSelectedVolumeDiscountId,
   }
 }
-
-export type ProductDetailController = ReturnType<
-  typeof useProductDetailController
->

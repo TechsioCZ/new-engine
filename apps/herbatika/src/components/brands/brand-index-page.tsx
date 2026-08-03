@@ -1,6 +1,5 @@
 import { getTranslations } from "next-intl/server"
-import NextLink from "next/link"
-
+import NextLink from "@/components/app-link"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import {
   createBrandHref,

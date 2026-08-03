@@ -35,7 +35,7 @@ export function usePrefetchProduct() {
             handle,
             region_id: regionId,
             country_code: countryCode,
-            fields,
+            ...(fields ? { fields } : {}),
           }),
         ...cacheConfig.semiStatic,
       })
@@ -53,7 +53,7 @@ export function usePrefetchProduct() {
     }
 
     const timeoutId = setTimeout(() => {
-      prefetchProduct(handle, fields)
+      void prefetchProduct(handle, fields)
       timeoutsRef.current.delete(handle)
     }, delay)
 

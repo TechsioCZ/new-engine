@@ -60,12 +60,12 @@ export function usePrefetchPages({
         `${categoryName}: ${pageLabels} (${priority})`
       )
 
-      Promise.all(
+      void Promise.all(
         pages.map((page) => {
           const queryParams = buildProductQueryParams({
             category_id,
             region_id: regionId,
-            country_code: countryCode,
+            ...(countryCode ? { country_code: countryCode } : {}),
             page,
             limit: pageSize,
           })

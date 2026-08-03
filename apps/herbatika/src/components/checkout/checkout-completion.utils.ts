@@ -7,15 +7,15 @@ export const resolveOrderId = (result: unknown) => {
   }
 
   if (
-    result.type === "order" &&
-    isObject(result.order) &&
-    typeof result.order.id === "string"
+    result["type"] === "order" &&
+    isObject(result["order"]) &&
+    typeof result["order"]["id"] === "string"
   ) {
-    return result.order.id
+    return result["order"]["id"]
   }
 
-  if (isObject(result.order) && typeof result.order.id === "string") {
-    return result.order.id
+  if (isObject(result["order"]) && typeof result["order"]["id"] === "string") {
+    return result["order"]["id"]
   }
 
   return null
@@ -27,11 +27,11 @@ export const resolveCompleteCartFailure = (result: unknown) => {
   }
 
   if (
-    result.type === "cart" &&
-    isObject(result.error) &&
-    typeof result.error.message === "string"
+    result["type"] === "cart" &&
+    isObject(result["error"]) &&
+    typeof result["error"]["message"] === "string"
   ) {
-    return result.error.message
+    return result["error"]["message"]
   }
 
   return null

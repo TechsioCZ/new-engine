@@ -10,24 +10,34 @@ import {
   CHECKOUT_BILLING_COMPANY_FIELD_NAMES,
   CHECKOUT_SHIPPING_COMPANY_FIELD_NAMES,
   type CheckoutScopedFieldName,
-  resolveAddressFormsMatch,
 } from "@/components/checkout/checkout-address.utils"
 import {
   CHECKOUT_ADDRESS_FIELDS,
-  type CheckoutAddressDetailsValues,
-  type CheckoutAddressValues,
   type CheckoutDetailsValues,
-  DEFAULT_CHECKOUT_ADDRESS_VALUES,
   resolveEffectiveCheckoutAddressDetails,
 } from "@/lib/forms/checkout/address.form"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { mapHerbatikaAddressFormStateFromMedusaAddress } from "@/lib/storefront/cart/address-adapter"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 
-import { readAccountSetupRequested } from "./account-setup-metadata"
-import type { CarrierPickupAddress } from "./carrier-pickup-address.utils"
 import { resolveCarrierPickupAddress } from "./carrier-pickup-address.utils"
 import { readStoredCarrierPickupSelection } from "./carrier-pickup-selection-storage"
+import {
+  syncCarrierPickupBillingFields,
+  syncCarrierPickupShippingFields,
+} from "./checkout-carrier-pickup-sync"
+import {
+  createCheckoutStorageKey,
+  readStoredCheckoutState,
+  resolveHydratedValuesWithStoredState,
+  resolveStoredCheckoutStateFromValues,
+  resolveStoredCheckoutTogglePreferences,
+  writeStoredCheckoutState,
+} from "./checkout-details-storage"
+import {
+  mergeCheckoutAddressValues,
+  resolveCheckoutHydratedValues,
+} from "./checkout-details-values"
 
 type UseCheckoutDetailsFormProps = {
   cart: HttpTypes.StoreCart | null | undefined
@@ -508,8 +518,10 @@ export function useCheckoutDetailsForm({
   const storedCarrierPickupSelection = useMemo(
     () =>
       readStoredCarrierPickupSelection({
-        cartId: cart?.id,
-        optionId: selectedShippingMethod?.shipping_option_id,
+        ...(cart?.id === undefined ? {} : { cartId: cart.id }),
+        ...(selectedShippingMethod?.shipping_option_id === undefined
+          ? {}
+          : { optionId: selectedShippingMethod.shipping_option_id }),
       }),
     [cart?.id, selectedShippingMethod?.shipping_option_id]
   )
@@ -539,18 +551,18 @@ export function useCheckoutDetailsForm({
         carrierPickupAddress,
         cart,
         customer,
-        regionCountryCode,
+        ...(regionCountryCode === undefined ? {} : { regionCountryCode }),
       }),
     [carrierPickupAddress, cart, customer, regionCountryCode]
   )
-  const toggleStorageKey = useMemo(
-    () => createCheckoutToggleStorageKey(cart?.id),
+  const storageKey = useMemo(
+    () => createCheckoutStorageKey(cart?.id),
     [cart?.id]
   )
-  const [storedState, setStoredState] = useState<CheckoutStoredState>(() =>
-    readStoredCheckoutState(toggleStorageKey)
+  const [storedState, setStoredState] = useState(() =>
+    readStoredCheckoutState(storageKey)
   )
-  const hydratedValuesWithTogglePreferences = useMemo(() => {
+  const hydratedValuesWithStoredState = useMemo(() => {
     const nextValues = resolveHydratedValuesWithStoredState({
       hydratedValues,
       storedState,
@@ -561,16 +573,12 @@ export function useCheckoutDetailsForm({
       : nextValues
   }, [hasCarrierPickupShipping, hydratedValues, storedState])
   const form = useHerbatikaForm({
-    defaultValues: hydratedValuesWithTogglePreferences,
+    defaultValues: hydratedValuesWithStoredState,
     onSubmit: async ({ value }) => {
       await onSubmit(value)
     },
   })
-
-  const values = useStore(
-    form.store,
-    (state) => state.values as CheckoutDetailsValues
-  )
+  const values = useStore(form.store, (state) => state.values)
   const isDirty = useStore(form.store, (state) => state.isDirty)
   const effectiveValues = useMemo(
     () => resolveEffectiveCheckoutAddressDetails(values),
@@ -579,25 +587,24 @@ export function useCheckoutDetailsForm({
   const lastHydratedKeyRef = useRef<string | null>(null)
 
   useEffect(() => {
-    setStoredState(readStoredCheckoutState(toggleStorageKey))
-  }, [toggleStorageKey])
+    setStoredState(readStoredCheckoutState(storageKey))
+  }, [storageKey])
 
   useEffect(() => {
     if (isCartLoading || isCustomerLoading || isDirty) {
       return
     }
 
-    const nextHydratedKey = JSON.stringify(hydratedValuesWithTogglePreferences)
-
+    const nextHydratedKey = JSON.stringify(hydratedValuesWithStoredState)
     if (lastHydratedKeyRef.current === nextHydratedKey) {
       return
     }
 
-    form.reset(hydratedValuesWithTogglePreferences)
+    form.reset(hydratedValuesWithStoredState)
     lastHydratedKeyRef.current = nextHydratedKey
   }, [
     form,
-    hydratedValuesWithTogglePreferences,
+    hydratedValuesWithStoredState,
     isCartLoading,
     isCustomerLoading,
     isDirty,
@@ -616,24 +623,24 @@ export function useCheckoutDetailsForm({
     syncCarrierPickupBillingFields(form, values)
   }, [carrierPickupAddress, form, hasCarrierPickupShipping, values])
 
-  const resetToValues = (nextValues: CheckoutDetailsValues) => {
-    const nextStoredState = resolveStoredCheckoutStateFromValues({
-      currentState: storedState,
-      values: nextValues,
-    })
+  const storeState = (nextState: typeof storedState) => {
+    setStoredState(nextState)
+    writeStoredCheckoutState({ nextState, storageKey })
+  }
 
-    setStoredState(nextStoredState)
-    writeStoredCheckoutState({
-      nextState: nextStoredState,
-      storageKey: toggleStorageKey,
-    })
+  const resetToValues = (nextValues: CheckoutDetailsValues) => {
+    storeState(
+      resolveStoredCheckoutStateFromValues({
+        currentState: storedState,
+        values: nextValues,
+      })
+    )
     form.reset(nextValues)
     lastHydratedKeyRef.current = JSON.stringify(nextValues)
   }
 
   const copyShippingIntoBilling = () => {
     const nextBillingValues = mergeCheckoutAddressValues(values.shipping)
-
     for (const field of CHECKOUT_ADDRESS_FIELDS) {
       form.setFieldValue(`billing.${field}`, nextBillingValues[field])
     }
@@ -659,49 +666,34 @@ export function useCheckoutDetailsForm({
       return
     }
 
-    const nextTogglePreferences = resolveStoredCheckoutTogglePreferences({
-      currentPreferences: storedState,
-      nextUseSameAddress: nextValue,
-    })
-
-    setStoredState(nextTogglePreferences)
-    writeStoredCheckoutState({
-      nextState: nextTogglePreferences,
-      storageKey: toggleStorageKey,
-    })
-
+    storeState(
+      resolveStoredCheckoutTogglePreferences({
+        currentPreferences: storedState,
+        nextUseSameAddress: nextValue,
+      })
+    )
     if (nextValue) {
       clearFieldValidationState(CHECKOUT_BILLING_ACTIVE_FIELD_NAMES)
-      return
-    }
-
-    if (values.isCompanyPurchase) {
+    } else if (values.isCompanyPurchase) {
       clearFieldValidationState(CHECKOUT_SHIPPING_COMPANY_FIELD_NAMES)
     }
   }
 
   const setCompanyPurchase = (nextValue: boolean) => {
-    const nextTogglePreferences = resolveStoredCheckoutTogglePreferences({
-      currentPreferences: storedState,
-      nextIsCompanyPurchase: nextValue,
-    })
-
-    setStoredState(nextTogglePreferences)
-    writeStoredCheckoutState({
-      nextState: nextTogglePreferences,
-      storageKey: toggleStorageKey,
-    })
-    form.setFieldValue("isCompanyPurchase", nextValue)
-
-    if (nextValue) {
-      return
-    }
-
-    clearFieldValidationState(
-      values.useSameAddress
-        ? CHECKOUT_SHIPPING_COMPANY_FIELD_NAMES
-        : CHECKOUT_BILLING_COMPANY_FIELD_NAMES
+    storeState(
+      resolveStoredCheckoutTogglePreferences({
+        currentPreferences: storedState,
+        nextIsCompanyPurchase: nextValue,
+      })
     )
+    form.setFieldValue("isCompanyPurchase", nextValue)
+    if (!nextValue) {
+      clearFieldValidationState(
+        values.useSameAddress
+          ? CHECKOUT_SHIPPING_COMPANY_FIELD_NAMES
+          : CHECKOUT_BILLING_COMPANY_FIELD_NAMES
+      )
+    }
   }
 
   return {

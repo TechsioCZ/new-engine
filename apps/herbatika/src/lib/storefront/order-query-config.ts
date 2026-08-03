@@ -1,16 +1,9 @@
-import type {
-  MedusaOrderDetailInput,
-  MedusaOrderListInput,
-} from "@techsio/storefront-data/orders/medusa-service"
+import type { MedusaOrderListInput } from "@techsio/storefront-data/orders/medusa-service"
 
-export const HERBATIKA_ORDER_PAGE_SIZE = 10
+const HERBATIKA_ORDER_PAGE_SIZE = 10
 
 export type HerbatikaOrderListInput = MedusaOrderListInput & {
   page?: number
-  enabled?: boolean
-}
-
-export type HerbatikaOrderDetailInput = MedusaOrderDetailInput & {
   enabled?: boolean
 }
 

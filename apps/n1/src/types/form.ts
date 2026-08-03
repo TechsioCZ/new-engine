@@ -9,6 +9,10 @@
  * This type extracts only the properties used by field components,
  * avoiding variance issues with generic parameters.
  */
+type BivariantChangeHandler = {
+  bivarianceHack(value: unknown): void
+}["bivarianceHack"]
+
 export type AnyFieldApiCompat = {
   name: string
   state: {
@@ -18,12 +22,10 @@ export type AnyFieldApiCompat = {
       isBlurred: boolean
       isDirty: boolean
       isValidating: boolean
-      errors: readonly unknown[] // More permissive to accept TanStack Form's complex error types
+      errors: readonly unknown[]
       errorMap: Record<string, unknown>
     }
   }
-  // biome-ignore lint/suspicious/noExplicitAny: TanStack FieldApi uses generic updater signature
-  handleChange: (value: any) => void
+  handleChange: BivariantChangeHandler
   handleBlur: () => void
-  // Add other methods/properties as needed by field components
 }

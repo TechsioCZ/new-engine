@@ -4,6 +4,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { useLocale, useTranslations } from "next-intl"
 import NextLink from "next/link"
 
+import NextLink from "@/components/app-link"
 import {
   resolveOrderAddresses,
   resolveOrderContactEmail,

@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import type { ReactNode } from "react"
 
+import NextLink from "@/components/app-link"
 import {
   HerbatikaProductGrid,
   type HerbatikaProductGridLayout,

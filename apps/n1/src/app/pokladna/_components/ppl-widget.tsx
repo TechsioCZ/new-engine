@@ -50,8 +50,8 @@ type PplWidgetProps = {
   lat?: number
   lng?: number
   country?: string
-  address?: string
-  selectedCode?: string
+  address?: string | undefined
+  selectedCode?: string | undefined
   mode?: "default" | "static" | "catalog"
   initialFilters?: string
   /** Language for widget UI. Auto-detected from <html lang> if not provided */
@@ -115,7 +115,7 @@ export function PplWidget({
       if (cancelled) {
         return
       }
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.log("[PplWidget] Geolocation success:", {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
@@ -134,7 +134,7 @@ export function PplWidget({
       if (cancelled) {
         return
       }
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         const errorMessages: Record<number, string> = {
           1: "PERMISSION_DENIED",
           2: "POSITION_UNAVAILABLE",
@@ -168,7 +168,7 @@ export function PplWidget({
             return
           }
 
-          if (process.env.NODE_ENV === "development") {
+          if (process.env["NODE_ENV"] === "development") {
             console.log("[PplWidget] Geolocation permission:", status.state)
           }
 
@@ -187,7 +187,7 @@ export function PplWidget({
         }
       }
 
-      checkPermission()
+      void checkPermission()
     } else {
       navigator.geolocation.getCurrentPosition(
         handleSuccess,
@@ -231,7 +231,7 @@ export function PplWidget({
       const customEvent = event as CustomEvent<PplEventDetail>
       const detail = customEvent.detail
 
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.log("[PplWidget] Selection event received:", detail)
       }
 
@@ -241,10 +241,10 @@ export function PplWidget({
           name: detail.name || "",
           type: detail.accessPointType || "ParcelShop",
           address: {
-            street: detail.street,
-            city: detail.city,
-            zipCode: detail.zipCode,
-            country: detail.country,
+            ...(detail.street ? { street: detail.street } : {}),
+            ...(detail.city ? { city: detail.city } : {}),
+            ...(detail.zipCode ? { zipCode: detail.zipCode } : {}),
+            ...(detail.country ? { country: detail.country } : {}),
           },
         })
       }
@@ -269,7 +269,7 @@ export function PplWidget({
       if (currentMountId !== mountIdRef.current) {
         return
       }
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.log("[PplWidget] Script loaded, widget should initialize")
       }
     }

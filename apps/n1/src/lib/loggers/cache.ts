@@ -3,6 +3,8 @@
  * Simplified logging for React Query cache operations
  */
 
+import { formatLogValue } from "./format-log-value"
+
 type LogLevel = "info" | "success" | "warning" | "error"
 type CacheStatus = "fresh" | "stale" | "miss"
 
@@ -29,7 +31,7 @@ class CacheLogger {
   private readonly enabled: boolean
 
   constructor() {
-    this.enabled = process.env.NODE_ENV === "development"
+    this.enabled = process.env["NODE_ENV"] === "development"
   }
 
   /**
@@ -62,7 +64,7 @@ class CacheLogger {
     } else {
       const detailsStr = details
         ? Object.entries(details)
-            .map(([k, v]) => `${k}:${v}`)
+            .map(([key, value]) => `${key}:${formatLogValue(value)}`)
             .join(" | ")
         : ""
 

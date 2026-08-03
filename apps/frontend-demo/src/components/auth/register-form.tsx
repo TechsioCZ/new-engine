@@ -55,7 +55,7 @@ export function RegisterForm() {
     if (!passwordValidation.isValid) {
       errors.push({
         field: "password",
-        message: passwordValidation.errors[0], // Show first error
+        message: passwordValidation.errors[0] ?? AUTH_ERRORS.PASSWORD_REQUIRED,
       })
     }
 

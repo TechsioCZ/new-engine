@@ -13,6 +13,7 @@ import { useEffect, useTransition } from "react"
 
 import { AccountSurface } from "@/components/account/account-surface"
 import { AccountOrderGroup } from "@/components/account/orders/account-order-group"
+import NextLink from "@/components/app-link"
 import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton"
 import { useAuth } from "@/lib/storefront/auth"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"

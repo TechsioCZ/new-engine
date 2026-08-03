@@ -93,6 +93,7 @@ All endpoints are mounted under the Payload API base (default: `/api`):
 ## Scripts
 
 - `pnpm dev`, `pnpm devsafe`, `pnpm build`, `pnpm start`
+- `pnpm build:verify` runs the production build with explicit non-runtime verifier values; Nx and CI use this deterministic target. Deployments must provide the required runtime environment listed above.
 - `pnpm generate:types` after schema changes
 - `pnpm generate:importmap` after admin component changes
 - `pnpm test:int`, `pnpm test:e2e`, `pnpm test`

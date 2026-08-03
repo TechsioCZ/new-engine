@@ -39,7 +39,7 @@ export function AddListDialog({ accountLists }: AddListDialogProps) {
           </Button>
         </>
       }
-      className="w-sm max-w-full shadow-md"
+      className="w-product-list-dialog max-w-full shadow-md"
       customTrigger
       hideCloseButton
       onOpenChange={({ open }) => {

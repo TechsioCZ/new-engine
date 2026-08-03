@@ -101,10 +101,10 @@ const fetchCatalogCandidates = async ({
   try {
     const response = await fetch(
       createCatalogAutocompleteUrl({
-        countryCode,
+        ...(countryCode === undefined ? {} : { countryCode }),
         currencyCode,
         query,
-        regionId,
+        ...(regionId === undefined ? {} : { regionId }),
       }),
       {
         cache: "no-store",
@@ -144,10 +144,10 @@ export const fetchSearchAutocomplete = async ({
 
   const safeCurrencyCode = resolveSupportedCurrencyCode(currencyCode)
   const catalogResponse = await fetchCatalogCandidates({
-    countryCode,
+    ...(countryCode === undefined ? {} : { countryCode }),
     currencyCode: safeCurrencyCode,
     query: normalizedQuery,
-    regionId,
+    ...(regionId === undefined ? {} : { regionId }),
   })
   const productHits = catalogResponse.products ?? []
 

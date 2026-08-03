@@ -1,29 +1,9 @@
 "use client"
 
-import type { HttpTypes } from "@medusajs/types"
 import type { MedusaProductListListHookInput } from "@techsio/storefront-data/product-lists/medusa-service"
 import type {
-  ProductListAccessType,
   ProductListBase,
   ProductListItemBase,
-  ProductListType,
-  AddFavoriteProductListItemInput as SharedAddFavoriteProductListItemInput,
-  AddProductListItemInput as SharedAddProductListItemInput,
-  ChangeProductListItemQuantityInput as SharedChangeProductListItemQuantityInput,
-  CreateCustomProductListInput as SharedCreateCustomProductListInput,
-  CreateFavoriteProductListInput as SharedCreateFavoriteProductListInput,
-  CreateProductListCartInput as SharedCreateProductListCartInput,
-  DeleteProductListInput as SharedDeleteProductListInput,
-  DeleteProductListItemInput as SharedDeleteProductListItemInput,
-  IncrementProductListItemInput as SharedIncrementProductListItemInput,
-  ProductListCartResponse as SharedProductListCartResponse,
-  ProductListDeleteResponse as SharedProductListDeleteResponse,
-  ProductListItemResponse as SharedProductListItemResponse,
-  ProductListListResponse as SharedProductListListResponse,
-  ProductListListResult as SharedProductListListResult,
-  ProductListResponse as SharedProductListResponse,
-  UpdateProductListInput as SharedUpdateProductListInput,
-  UpdateProductListItemInput as SharedUpdateProductListItemInput,
 } from "@techsio/storefront-data/product-lists/types"
 import {
   findProductListItem as findSharedProductListItem,
@@ -31,7 +11,6 @@ import {
   getProductListItems as getSharedProductListItems,
   isFavoriteProductList as isSharedFavoriteProductList,
   isProductInProductList as isSharedProductInProductList,
-  resolveProductListItemQuantity as resolveSharedProductListItemQuantity,
 } from "@techsio/storefront-data/product-lists/utils"
 import { useTranslations } from "next-intl"
 
@@ -40,40 +19,9 @@ import { storefront } from "./storefront"
 
 const productListHooks = storefront.hooks.productLists
 
-export type StoreProductListType = ProductListType
-export type StoreProductListAccessType = ProductListAccessType
 export type StoreProductListItem = ProductListItemBase
 export type StoreProductList = ProductListBase<StoreProductListItem>
 export type ProductListListInput = MedusaProductListListHookInput
-export type ProductListListResult =
-  SharedProductListListResult<StoreProductList>
-export type ProductListListResponse =
-  SharedProductListListResponse<StoreProductList>
-export type ProductListResponse = SharedProductListResponse<StoreProductList>
-export type ProductListItemResponse = SharedProductListItemResponse<
-  StoreProductList,
-  StoreProductListItem
->
-export type ProductListCartResponse =
-  SharedProductListCartResponse<HttpTypes.StoreCart>
-
-export type AddFavoriteProductListItemInput =
-  SharedAddFavoriteProductListItemInput
-export type AddProductListItemInput = SharedAddProductListItemInput
-export type ChangeProductListItemQuantityInput =
-  SharedChangeProductListItemQuantityInput
-export type CreateCustomProductListInput = SharedCreateCustomProductListInput
-export type CreateFavoriteProductListInput =
-  SharedCreateFavoriteProductListInput
-export type CreateProductListCartInput = SharedCreateProductListCartInput
-export type DeleteProductListInput = SharedDeleteProductListInput
-export type DeleteProductListItemInput = SharedDeleteProductListItemInput
-export type IncrementProductListItemInput = SharedIncrementProductListItemInput
-export type ProductListDeleteResponse = SharedProductListDeleteResponse
-export type UpdateProductListInput = SharedUpdateProductListInput
-export type UpdateProductListItemInput = SharedUpdateProductListItemInput
-
-export const productListQueryKeys = storefront.queryKeys.productLists
 
 export const getProductListItems = (
   list?: StoreProductList | null
@@ -146,9 +94,11 @@ export function useProductList(
 ) {
   const tAuth = useTranslations("auth")
   const result = productListHooks.useProductList({
-    customerId: options?.customerId,
-    enabled: options?.enabled,
-    id,
+    ...(options?.customerId === undefined
+      ? {}
+      : { customerId: options?.customerId }),
+    ...(options?.enabled === undefined ? {} : { enabled: options?.enabled }),
+    ...(id === undefined ? {} : { id }),
   })
 
   return {
@@ -168,31 +118,24 @@ export function useProductListDetails(
 ) {
   return productListHooks.useProductListDetails(
     ids.map((id) => ({
-      customerId: options?.customerId,
+      ...(options?.customerId === undefined
+        ? {}
+        : { customerId: options.customerId }),
       id,
     })),
-    {
-      enabled: options?.enabled,
-    }
+    options?.enabled === undefined ? {} : { enabled: options.enabled }
   )
 }
 
-export const useCreateFavoriteProductList =
-  productListHooks.useCreateFavoriteProductList
 export const useCreateCustomProductList =
   productListHooks.useCreateCustomProductList
 export const useCreateProductListCart =
   productListHooks.useCreateProductListCart
-export const useUpdateProductList = productListHooks.useUpdateProductList
 export const useDeleteProductList = productListHooks.useDeleteProductList
 export const useAddProductListItem = productListHooks.useAddProductListItem
 export const useAddFavoriteProductListItem =
   productListHooks.useAddFavoriteProductListItem
-export const useChangeProductListItemQuantity =
-  productListHooks.useChangeProductListItemQuantity
 export const useUpdateProductListItem =
   productListHooks.useUpdateProductListItem
 export const useDeleteProductListItem =
   productListHooks.useDeleteProductListItem
-export const useIncrementProductListItem =
-  productListHooks.useIncrementProductListItem

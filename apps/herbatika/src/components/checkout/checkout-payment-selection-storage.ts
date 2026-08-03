@@ -11,7 +11,7 @@ const emitPaymentProviderSelectionChange = () => {
   }
 }
 
-export function readStoredPaymentProviderSelection(cartId?: string | null) {
+function readStoredPaymentProviderSelection(cartId?: string | null) {
   if (!cartId || typeof window === "undefined") {
     return null
   }

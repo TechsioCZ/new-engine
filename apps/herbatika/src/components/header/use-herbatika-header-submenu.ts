@@ -92,25 +92,28 @@ export function useHerbatikaHeaderSubmenu() {
       const rootHandle = rootConfig.rootHandle
       const rootCategory = categoryByHandle.get(rootHandle) ?? null
       const featuredItems = rootCategory
-        ? (childrenByParentId.get(rootCategory.id) ?? []).map((category) => ({
-            id: category.id,
-            handle: category.handle ?? category.id,
-            label: normalizeCategoryName(category.name),
-            src: resolveCategoryImage({
+        ? (childrenByParentId.get(rootCategory.id) ?? []).map((category) => {
+            const src = resolveCategoryImage({
               categoryById,
               handle: category.handle,
               label: category.name,
               parentCategoryId: category.parent_category_id,
-            }),
-            href: category.handle ? `/c/${category.handle}` : "#",
-            childItems: (childrenByParentId.get(category.id) ?? []).map(
-              (child) => ({
-                id: child.id,
-                label: normalizeCategoryName(child.name),
-                href: child.handle ? `/c/${child.handle}` : "#",
-              })
-            ),
-          }))
+            })
+            return {
+              id: category.id,
+              handle: category.handle ?? category.id,
+              label: normalizeCategoryName(category.name),
+              ...(src === undefined ? {} : { src }),
+              href: category.handle ? `/c/${category.handle}` : "#",
+              childItems: (childrenByParentId.get(category.id) ?? []).map(
+                (child) => ({
+                  id: child.id,
+                  label: normalizeCategoryName(child.name),
+                  href: child.handle ? `/c/${child.handle}` : "#",
+                })
+              ),
+            }
+          })
         : []
 
       return [

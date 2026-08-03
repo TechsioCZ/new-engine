@@ -3,7 +3,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import type {
   CatalogFacets,
-  CatalogListResponse,
   UseCatalogProductsResult,
 } from "@techsio/storefront-data/catalog/types"
 
@@ -21,12 +20,6 @@ export type CatalogProductsInput = CatalogProductsParams & {
   enabled?: boolean
 }
 
-export type CatalogProductsResponse = CatalogListResponse<
-  HttpTypes.StoreProduct,
-  CatalogFacets
->
-
-const catalogService = storefront.services.catalog
 const catalogHooks = storefront.hooks.catalog
 
 type UseCatalogProductsOptions = Parameters<
@@ -75,16 +68,15 @@ const mergeProductInventorySnapshot = (
     variants:
       product.variants?.map((variant) => {
         const inventoryVariant = inventoryVariantById.get(variant.id)
-        const inventoryVariantRecord = inventoryVariant as
-          | (HttpTypes.StoreProductVariant & { inventory_items?: unknown })
-          | undefined
 
         return inventoryVariant
           ? {
+              ...inventoryVariant,
               ...variant,
               allow_backorder: inventoryVariant.allow_backorder,
-              inventory_items: inventoryVariantRecord?.inventory_items,
-              inventory_quantity: inventoryVariant.inventory_quantity,
+              ...(inventoryVariant.inventory_quantity === undefined
+                ? {}
+                : { inventory_quantity: inventoryVariant.inventory_quantity }),
               manage_inventory: inventoryVariant.manage_inventory,
             }
           : variant
@@ -136,14 +128,3 @@ export const useCatalogProducts = (
     error: catalogQuery.error ?? inventorySnapshotsQuery.error,
   }
 }
-
-export const useSuspenseCatalogProducts =
-  catalogHooks.useSuspenseCatalogProducts
-export const usePrefetchCatalogProducts =
-  catalogHooks.usePrefetchCatalogProducts
-export const prefetchCatalogProducts = catalogHooks.prefetchCatalogProducts
-
-export const fetchCatalogProducts = (
-  input: CatalogProductsInput,
-  signal?: AbortSignal
-) => catalogService.getCatalogProducts(input, signal)

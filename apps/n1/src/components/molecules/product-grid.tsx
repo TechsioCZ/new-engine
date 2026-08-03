@@ -69,12 +69,12 @@ export const ProductGrid = ({
             {index !== 0 &&
               index % 4 === 0 &&
               index + 1 !== products.length && (
-                <div className="col-span-full h-[1px] bg-border-secondary md:hidden lg:flex" />
+                <div className="col-span-full h-px bg-border-secondary md:hidden lg:flex" />
               )}
             {index !== 0 &&
               index % 3 === 0 &&
               index + 1 !== products.length && (
-                <div className="col-span-full hidden h-[1px] bg-border-secondary md:flex lg:hidden" />
+                <div className="col-span-full hidden h-px bg-border-secondary md:flex lg:hidden" />
               )}
             <Link
               className="contents"

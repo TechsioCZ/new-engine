@@ -13,11 +13,7 @@ import {
   formContext,
 } from "@/lib/forms/core/herbatika-form-context"
 
-export const {
-  useAppForm: useHerbatikaForm,
-  withFieldGroup: withHerbatikaFieldGroup,
-  withForm: withHerbatikaForm,
-} = createFormHook({
+export const { useAppForm: useHerbatikaForm } = createFormHook({
   fieldComponents: {
     CheckboxField: FormCheckboxField,
     PhoneField: FormPhoneField,

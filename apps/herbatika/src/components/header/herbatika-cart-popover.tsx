@@ -6,9 +6,10 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
 import { useTranslations } from "next-intl"
-import NextLink from "next/link"
 import { useEffect, useRef, useState } from "react"
-
+import NextLink from "@/components/app-link"
+import { useAppToast } from "@/hooks/use-app-toast"
+import { useRemoveLineItem, useUpdateLineItem } from "@/lib/storefront/cart"
 import {
   asFiniteNumber,
   resolveCartItemsSubtotalAmount,
@@ -20,6 +21,7 @@ import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { useCartLineItemActions } from "@/lib/storefront/use-cart-line-item-actions"
 
 import { CartItemRow } from "./herbatika-cart-item-row"
+import { CartTotals, EmptyCartPreview } from "./herbatika-cart-popover-content"
 
 type HerbatikaCartPopoverProps = {
   cart: HttpTypes.StoreCart | null | undefined
@@ -178,7 +180,7 @@ export function HerbatikaCartPopover({
           <LinkButton
             {...api.getAnchorProps()}
             as={NextLink}
-            className="relative inline-flex items-center gap-250 py-550 text-xl data-[state=open]:bg-button-bg-primary-hover sm:w-36"
+            className="relative inline-flex items-center gap-250 py-550 text-xl data-[state=open]:bg-button-bg-primary-hover sm:w-cart-trigger"
             data-state={isPopoverOpen ? "open" : "closed"}
             href="/checkout/kosik"
             onClick={handleClose}
@@ -191,7 +193,7 @@ export function HerbatikaCartPopover({
             <div className="relative">
               <Icon icon="token-icon-cart" size="2xl" />
               <Badge
-                className="-top-[7px] -right-200 absolute min-w-500 justify-center rounded-full bg-surface px-100 py-50 text-[11px] text-primary"
+                className="-top-cart-badge-offset -right-200 absolute min-w-500 justify-center rounded-full bg-surface px-100 py-50 text-cart-badge text-primary"
                 variant="success"
               >
                 {itemCount > 99 ? "99+" : String(itemCount)}
@@ -206,7 +208,7 @@ export function HerbatikaCartPopover({
 
       <Popover.Positioner>
         <Popover.Content
-          className="w-[27rem] max-w-[calc(100vw-2rem)] space-y-300"
+          className="w-cart-popover max-w-popover-viewport space-y-300"
           onMouseEnter={handlePreviewOpen}
           onMouseLeave={schedulePreviewClose}
         >

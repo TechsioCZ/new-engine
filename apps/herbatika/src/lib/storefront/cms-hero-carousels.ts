@@ -34,7 +34,7 @@ const resolveSafeHeroHref = (value: string | null | undefined) => {
   }
 }
 
-export const mapCmsHeroCarouselToHeroBanner = (
+const mapCmsHeroCarouselToHeroBanner = (
   item: CmsHeroCarousel
 ): HeroBannerItem | null => {
   const imageSrc = resolveCmsMediaUrl(item.image)

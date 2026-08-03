@@ -6,6 +6,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 
+import NextLink from "@/components/app-link"
 import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel"
 import { SupportingText } from "@/components/text/supporting-text"
 import { useCategories } from "@/lib/storefront/categories"
@@ -49,10 +50,9 @@ export function CheckoutEmptyCartSection() {
     limit: EMPTY_CART_RECOMMENDATIONS_CANDIDATE_LIMIT,
     order: "-created_at",
     fields: RELATED_PRODUCT_FIELDS,
-    category_id:
-      recommendationCategoryIds.length > 0
-        ? recommendationCategoryIds
-        : undefined,
+    ...(recommendationCategoryIds.length > 0
+      ? { category_id: recommendationCategoryIds }
+      : {}),
     enabled: Boolean(region?.region_id && recommendationCategoryIds.length > 0),
   })
   const recommendedProducts = selectRecommendedProductRepresentatives(

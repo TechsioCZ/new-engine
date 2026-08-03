@@ -14,7 +14,6 @@ export function CategoryGrid({
   subtitle,
   categories,
 }: CategoryGridProps) {
-  const leaves = categories.map((category) => category.leaves)
   const CategoryCard = ({ category }: { category: HomeCategory }) => {
     const param = category.leaves?.join(",")
     const content = (

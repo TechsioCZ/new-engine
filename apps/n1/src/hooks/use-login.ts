@@ -13,9 +13,11 @@ export function useLogin(options?: UseLoginOptions) {
 
   return useMutation({
     mutationFn: (credentials: LoginCredentials) => login(credentials),
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate auth cache to refetch customer data
-      queryClient.invalidateQueries({ queryKey: queryKeys.customer.profile() })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.customer.profile(),
+      })
       options?.onSuccess?.()
     },
     onError: (error: Error) => {

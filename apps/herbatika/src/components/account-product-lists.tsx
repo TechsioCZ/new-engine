@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 
 import { AccountSurface } from "@/components/account/account-surface"
+import NextLink from "@/components/app-link"
 import { AddListDialog } from "@/components/product-lists/add-list-dialog"
 import { ProductListTabs } from "@/components/product-lists/product-list-tabs"
 import { RemoveListDialog } from "@/components/product-lists/remove-list-dialog"

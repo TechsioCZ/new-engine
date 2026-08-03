@@ -6,6 +6,7 @@ import path from "node:path"
 import { APIError, type Endpoint } from "payload"
 
 import {
+  ArticleImportError,
   type ArticleImportOptions,
   type ImportStatus,
   runImportFromFile,
@@ -69,9 +70,9 @@ const parseFormData = (formData: FormData): ImportFormData => {
 
   return {
     file,
-    locale,
-    sheetName,
-    status: statusRaw,
+    ...(locale ? { locale } : {}),
+    ...(sheetName ? { sheetName } : {}),
+    ...(statusRaw ? { status: statusRaw } : {}),
     dryRun,
     translate,
     overwrite,
@@ -125,18 +126,12 @@ const isAuthorized = (req: ArticleImportRequest) => {
     return true
   }
 
-  const apiKey = process.env.PAYLOAD_API_KEY
+  const apiKey = process.env["PAYLOAD_API_KEY"]
   return Boolean(apiKey && req.headers.get("x-payload-api-key") === apiKey)
 }
 
-const isImportInputError = (error: Error) =>
-  error.message === "XLSX file does not contain any sheets" ||
-  error.message === "No rows found in XLSX file" ||
-  error.message.startsWith("Sheet not found:") ||
-  error.message.startsWith("Missing required columns:")
-
-const isImportAbortError = (error: Error) =>
-  error.message === "Article import aborted"
+const isImportInputError = (error: ArticleImportError) =>
+  error.code !== "ABORTED"
 
 const getAbortSignal = (req: ArticleImportRequest) =>
   req.signal instanceof AbortSignal ? req.signal : undefined
@@ -179,15 +174,20 @@ export const articleImportEndpoint: Endpoint = {
     const payload = await readImportFormData(req)
     const locale = resolveImportLocale(req, payload.locale)
     const status = parseImportStatus(payload.status)
+    const abortSignal = getAbortSignal(req)
     const importOptions: ArticleImportOptions = {
       filePath: "",
-      sheetName: payload.sheetName,
-      dryRun: payload.dryRun,
-      locale,
-      status,
-      translate: payload.translate,
-      overwrite: payload.overwrite,
-      signal: getAbortSignal(req),
+      ...(payload.sheetName ? { sheetName: payload.sheetName } : {}),
+      ...(payload.dryRun !== undefined ? { dryRun: payload.dryRun } : {}),
+      ...(locale ? { locale } : {}),
+      ...(status ? { status } : {}),
+      ...(payload.translate !== undefined
+        ? { translate: payload.translate }
+        : {}),
+      ...(payload.overwrite !== undefined
+        ? { overwrite: payload.overwrite }
+        : {}),
+      ...(abortSignal ? { signal: abortSignal } : {}),
       payload: req.payload,
     }
 
@@ -212,12 +212,12 @@ export const articleImportEndpoint: Endpoint = {
         throw error
       }
 
-      if (error instanceof Error && isImportInputError(error)) {
-        throw new APIError(error.message, 400)
+      if (error instanceof ArticleImportError && error.code === "ABORTED") {
+        throw new APIError("Import aborted", 499)
       }
 
-      if (error instanceof Error && isImportAbortError(error)) {
-        throw new APIError("Import aborted", 499)
+      if (error instanceof ArticleImportError && isImportInputError(error)) {
+        throw new APIError(error.message, 400)
       }
 
       if (error instanceof Error) {

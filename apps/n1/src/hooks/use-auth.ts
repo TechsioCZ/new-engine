@@ -70,7 +70,7 @@ export function useAuth(): UseAuthReturn {
 }
 
 export function useSuspenseAuth(): UseSuspenseAuthReturn {
-  const { data: customer = null } = useSuspenseQuery({
+  const { data: customer } = useSuspenseQuery({
     queryKey: queryKeys.customer.profile(),
     queryFn: () => {
       const token = getTokenFromStorage()

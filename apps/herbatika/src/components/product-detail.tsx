@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { useEffect, useState } from "react"
 
+import NextLink from "@/components/app-link"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import type { ProductDetailProps } from "@/components/product-detail/product-detail.types"
 import { ProductDetailHero } from "@/components/product-detail/sections/product-detail-hero"
@@ -150,7 +151,9 @@ export function ProductDetail({ handle }: ProductDetailProps) {
           />
 
           <ProductDetailTabs
-            activeSectionValue={activeInfoSection}
+            {...(activeInfoSection === undefined
+              ? {}
+              : { activeSectionValue: activeInfoSection })}
             defaultSectionValue={controller.defaultInfoSectionValue}
             onSectionValueChange={setActiveInfoSection}
             productId={controller.product.id}

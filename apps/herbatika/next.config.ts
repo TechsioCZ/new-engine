@@ -33,10 +33,10 @@ const resolveImageRemotePattern = (baseUrl: string | undefined) => {
 }
 
 const resolveMedusaImageRemotePattern = () =>
-  resolveImageRemotePattern(process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL)
+  resolveImageRemotePattern(process.env["NEXT_PUBLIC_MEDUSA_BACKEND_URL"])
 
 const resolvePayloadImageRemotePattern = () =>
-  resolveImageRemotePattern(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL)
+  resolveImageRemotePattern(process.env["NEXT_PUBLIC_PAYLOAD_BASE_URL"])
 
 const imageRemotePatterns: ImageRemotePattern[] = [
   {
@@ -63,6 +63,7 @@ const nextConfig: NextConfig = {
     "herbatica.ro",
   ],
   reactStrictMode: true,
+  typedRoutes: true,
   output: "standalone",
   transpilePackages: [
     "@techsio/ui-kit",

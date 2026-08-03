@@ -105,24 +105,34 @@ export function ProductCollectionSection(props: ProductCollectionSectionProps) {
   } else if (isCarousel) {
     productContent = (
       <InlineProductsCarousel
-        keyPrefix={keyPrefix}
-        onProductHoverEnd={onProductHoverEnd}
-        onProductHoverStart={onProductHoverStart}
+        {...(keyPrefix === undefined ? {} : { keyPrefix: keyPrefix })}
+        {...(onProductHoverEnd === undefined
+          ? {}
+          : { onProductHoverEnd: onProductHoverEnd })}
+        {...(onProductHoverStart === undefined
+          ? {}
+          : { onProductHoverStart: onProductHoverStart })}
         products={products}
-        slidesLg={props.slidesLg}
-        slidesMd={props.slidesMd}
-        slidesSm={props.slidesSm}
+        {...(props.slidesLg === undefined ? {} : { slidesLg: props.slidesLg })}
+        {...(props.slidesMd === undefined ? {} : { slidesMd: props.slidesMd })}
+        {...(props.slidesSm === undefined ? {} : { slidesSm: props.slidesSm })}
       />
     )
   } else {
     productContent = (
       <HerbatikaProductGrid
-        isProductAdding={props.isProductAdding}
-        keyPrefix={keyPrefix}
+        {...(props.isProductAdding === undefined
+          ? {}
+          : { isProductAdding: props.isProductAdding })}
+        {...(keyPrefix === undefined ? {} : { keyPrefix: keyPrefix })}
         layout={props.layout}
         onAddToCart={props.onAddToCart}
-        onProductHoverEnd={onProductHoverEnd}
-        onProductHoverStart={onProductHoverStart}
+        {...(onProductHoverEnd === undefined
+          ? {}
+          : { onProductHoverEnd: onProductHoverEnd })}
+        {...(onProductHoverStart === undefined
+          ? {}
+          : { onProductHoverStart: onProductHoverStart })}
         products={products}
       />
     )

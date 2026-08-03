@@ -95,16 +95,23 @@ export function CheckoutShippingSection({
               )
 
               return {
-                addon: pickupRequirement ? (
-                  <CheckoutCarrierPickupDetails
-                    disabled={isBusy}
-                    onConfirm={(data) => {
-                      onPendingPickupOptionIdChange(null)
-                      runDetachedPromise(onSelectShipping(option.id, data))
-                    }}
-                    requirement={pickupRequirement}
-                  />
-                ) : undefined,
+                ...(pickupRequirement
+                  ? {
+                      addon: (
+                        <CheckoutCarrierPickupDetails
+                          disabled={isBusy}
+                          onConfirm={(data) => {
+                            onPendingPickupOptionIdChange(null)
+                            runDetachedPromise(
+                              onSelectShipping(option.id, data)
+                            )
+                          }}
+                          requirement={pickupRequirement}
+                        />
+                      ),
+                      hint: resolveCarrierPickupHint(pickupRequirement),
+                    }
+                  : {}),
                 disabled: isBusy,
                 bodyText: isAwaitingPickupSelection
                   ? tCheckout("pickup_selection_required")

@@ -10,6 +10,7 @@ import { usePathname, useRouter } from "next/navigation"
 import type { ReactNode } from "react"
 import { useEffect, useState } from "react"
 
+import NextLink from "@/components/app-link"
 import { AccountLayoutSkeleton } from "@/components/loading/account-layout-skeleton"
 import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton"
 import { OrderSkeleton } from "@/components/loading/order-skeleton"
@@ -150,7 +151,7 @@ export function AccountShell({ children }: AccountShellProps) {
 
   return (
     <main className="mx-auto w-full max-w-max-w p-account-page 2xl:p-account-page-lg">
-      <div className="grid gap-account-page-gap lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-start">
+      <div className="grid gap-account-page-gap lg:account-shell-layout lg:items-start">
         <aside className="space-y-400 rounded-lg border border-border-secondary bg-surface p-400">
           <header className="leading-none">
             <h1 className="font-semibold text-xl">

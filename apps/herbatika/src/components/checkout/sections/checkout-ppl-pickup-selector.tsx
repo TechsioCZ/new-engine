@@ -25,7 +25,7 @@ type CheckoutPplPickupSelectorProps = {
 }
 
 const PPL_WIDGET_API_KEY =
-  process.env.NEXT_PUBLIC_PPL_WIDGET_API_KEY?.trim() ?? ""
+  process.env["NEXT_PUBLIC_PPL_WIDGET_API_KEY"]?.trim() ?? ""
 
 export function CheckoutPplPickupSelector({
   disabled,
@@ -150,7 +150,9 @@ function buildPplShippingData(
   }
 
   return Object.fromEntries(
-    Object.entries(payload).filter(([, value]) => value != null && value !== "")
+    Object.entries(payload).filter(
+      ([, value]) => value !== null && value !== ""
+    )
   )
 }
 

@@ -51,7 +51,7 @@ export function usePrefetchProducts() {
         queryKey,
         queryFn: ({ signal }) => getProducts(queryParams, signal),
         ...cacheConfig.semiStatic,
-        meta: prefetchedBy ? { prefetchedBy } : undefined,
+        ...(prefetchedBy ? { meta: { prefetchedBy } } : {}),
       })
 
       const duration = performance.now() - start
@@ -108,7 +108,7 @@ export function usePrefetchProducts() {
     }
 
     const timeoutId = setTimeout(() => {
-      prefetchCategoryProducts(categoryId)
+      void prefetchCategoryProducts(categoryId)
       timeoutsRef.current.delete(id)
     }, delay)
 

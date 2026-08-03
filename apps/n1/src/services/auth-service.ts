@@ -106,7 +106,7 @@ export async function getCustomer(): Promise<StoreCustomer | null> {
       )
     }
     return customer
-  } catch (_err) {
+  } catch {
     // Not authenticated or session expired
     return null
   }

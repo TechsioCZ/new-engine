@@ -1,7 +1,6 @@
 "use client"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
-import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Image from "next/image"
@@ -132,13 +131,14 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
           <p className="mb-6 text-orders-fg-secondary">
             Objednávka nebyla nalezena nebo k ní nemáte přístup
           </p>
-          <Button
-            onClick={() => router.push("/account/orders")}
+          <LinkButton
+            as={Link}
+            href="/account/orders"
             theme="solid"
             variant="secondary"
           >
             Zpět na seznam objednávek
-          </Button>
+          </LinkButton>
         </div>
       ) : orderLoading || !order ? (
         <div className="space-y-6">

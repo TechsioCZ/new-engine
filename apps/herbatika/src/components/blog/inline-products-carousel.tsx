@@ -81,8 +81,12 @@ export function InlineProductsCarousel({
       <HerbatikaProductCard
         isAdding={Boolean(product.id) && addToCart.isProductAdding(product.id)}
         onAddToCart={handleAddToCart}
-        onProductHoverEnd={onProductHoverEnd}
-        onProductHoverStart={onProductHoverStart}
+        {...(onProductHoverEnd === undefined
+          ? {}
+          : { onProductHoverEnd: onProductHoverEnd })}
+        {...(onProductHoverStart === undefined
+          ? {}
+          : { onProductHoverStart: onProductHoverStart })}
         product={product}
       />
     ),
