@@ -109,7 +109,6 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     productPrice,
     regionCurrencyCode,
     offerState,
-    mediaFacts,
   })
   const canAddToCart =
     Boolean(selectedVariant?.id) &&

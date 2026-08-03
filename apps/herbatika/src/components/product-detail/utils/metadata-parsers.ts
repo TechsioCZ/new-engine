@@ -162,8 +162,6 @@ export const resolveOfferState = (
     deliveryLabel: isInStock ? resolveInStockDeliveryLabel() : "po naskladnení",
     stockAmount,
     isInStock,
-    offerSource: source,
-    unitLabel: asString(source?.unit),
     currentAmount,
     standardAmount: asNumber(source?.standard_price),
     actionAmount,
