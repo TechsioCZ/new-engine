@@ -18,7 +18,6 @@ import {
   resolveProductVolumeDiscountOptions,
   resolveSelectedVolumeDiscountOption,
 } from "@/components/product-detail/product-detail-pricing-data.utils"
-import type { Product } from "@/components/product-detail/product-detail.types"
 import { useProductDetailDebugLog } from "@/components/product-detail/use-product-detail-debug-log"
 import { useProductDetailRelatedProducts } from "@/components/product-detail/use-product-detail-related-products"
 import {
