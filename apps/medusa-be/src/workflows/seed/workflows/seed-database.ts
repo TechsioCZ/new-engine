@@ -234,6 +234,8 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
   const reconcileProductAttributesResult = Steps.reconcileProductAttributesStep(
     reconcileProductAttributesInput
   )
+  const reconcileProductMeasurementsResult =
+    Steps.reconcileProductMeasurementsStep(reconcileProductAttributesInput)
   const cleanupProductBrandAttributesInput: Steps.CleanupProductBrandAttributesStepInput =
     transform(
       {
@@ -319,6 +321,7 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     reconcileProductVariantEansResult,
     createProductsResult,
     reconcileProductAttributesResult,
+    reconcileProductMeasurementsResult,
     cleanupProductBrandAttributesResult,
     syncPriceListsResult,
     createTaxRatesResult,

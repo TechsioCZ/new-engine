@@ -11,6 +11,7 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
+import { normalizeUnitCode } from "../workflows/measurement-unit/steps/helpers"
 import type { SeedDatabaseWorkflowInput } from "../workflows/seed/workflows/seed-database"
 import seedShoptetImportWorkflow from "../workflows/seed/workflows/seed-shoptet-import"
 import {
@@ -342,6 +343,11 @@ type BuildVariantSeedOptions = {
   usedSkus: Set<string>
   variant: ParsedOfferData
 }
+
+type HerbaticaOfferMeasurementSource = Pick<
+  ParsedOfferData,
+  "measureAmount" | "measureAmountUnit" | "packageAmount" | "packageAmountUnit"
+>
 
 const DEFAULT_STOCK_LOCATION_NAME = HERBATICA_DEFAULT_STOCK_LOCATION.name
 const FALLBACK_SHOPTET_WAREHOUSE_NAME =
@@ -2668,6 +2674,110 @@ function buildProductMetadata({
   }
 }
 
+function normalizeMeasurementSourceUnit(value?: string) {
+  return normalizeInlineText(value)
+}
+
+function getMeasurementConfigurationKey(
+  measurement: NonNullable<ProductSeedInput["measurement"]>
+) {
+  return `${measurement.unit.symbol.toLowerCase()}:${measurement.unit.base_quantity}`
+}
+
+export function resolveHerbaticaOfferMeasurement(
+  offer: HerbaticaOfferMeasurementSource,
+  sourceLabel: string
+): {
+  product: NonNullable<ProductSeedInput["measurement"]>
+  variant: NonNullable<VariantSeedInput["measurement"]>
+} | null {
+  const packageUnit = normalizeMeasurementSourceUnit(offer.packageAmountUnit)
+  const measureUnit = normalizeMeasurementSourceUnit(offer.measureAmountUnit)
+  const values = [
+    offer.packageAmount,
+    packageUnit,
+    offer.measureAmount,
+    measureUnit,
+  ]
+  const populatedCount = values.filter(
+    (value) => value !== undefined && value !== null
+  ).length
+
+  if (populatedCount === 0) {
+    return null
+  }
+  if (populatedCount !== values.length) {
+    throw new Error(
+      `Incomplete UNIT_OF_MEASURE configuration for ${sourceLabel}`
+    )
+  }
+
+  const packageAmount = offer.packageAmount as number
+  const measureAmount = offer.measureAmount as number
+  if (
+    !(
+      Number.isFinite(packageAmount) &&
+      packageAmount > 0 &&
+      Number.isFinite(measureAmount) &&
+      measureAmount > 0
+    )
+  ) {
+    throw new Error(
+      `UNIT_OF_MEASURE amounts must be positive for ${sourceLabel}`
+    )
+  }
+  if (packageUnit?.toLowerCase() !== measureUnit?.toLowerCase()) {
+    throw new Error(
+      `UNIT_OF_MEASURE package unit "${packageUnit}" does not match comparison unit "${measureUnit}" for ${sourceLabel}`
+    )
+  }
+
+  const symbol = measureUnit as string
+  return {
+    product: {
+      unit: {
+        base_quantity: measureAmount,
+        code: normalizeUnitCode(`${symbol}_${measureAmount}`),
+        name: symbol,
+        symbol,
+      },
+    },
+    variant: {
+      product_unit_quantity: packageAmount,
+    },
+  }
+}
+
+function resolveHerbaticaProductMeasurement(item: ParsedShopItem) {
+  const offers = item.variants.length ? item.variants : [item.topOffer]
+  const configured = offers.flatMap((offer, index) => {
+    const sourceLabel = item.variants.length
+      ? `Product "${item.id}" Variant "${offer.variantId ?? index + 1}"`
+      : `Product "${item.id}"`
+    const offerMeasurement = resolveHerbaticaOfferMeasurement(
+      offer,
+      sourceLabel
+    )
+    return offerMeasurement ? [offerMeasurement.product] : []
+  })
+  const [measurement] = configured
+  if (!measurement) {
+    return null
+  }
+
+  const expectedKey = getMeasurementConfigurationKey(measurement)
+  const conflicting = configured.find(
+    (current) => getMeasurementConfigurationKey(current) !== expectedKey
+  )
+  if (conflicting) {
+    throw new Error(
+      `Product "${item.id}" contains conflicting UNIT_OF_MEASURE comparison configurations`
+    )
+  }
+
+  return measurement
+}
+
 function buildDefaultVariantForProduct({
   handle,
   item,
@@ -2690,6 +2800,10 @@ function buildDefaultVariantForProduct({
   const currencyCode = (topOffer.currency ?? "EUR").toLowerCase()
   const quantities = buildOfferInventoryQuantities(topOffer)
   const thumbnail = topOffer.imageRef
+  const measurement = resolveHerbaticaOfferMeasurement(
+    topOffer,
+    `Product "${item.id}"`
+  )
 
   return {
     options: [
@@ -2715,6 +2829,7 @@ function buildDefaultVariantForProduct({
         images: thumbnail ? [{ url: thumbnail }] : undefined,
         thumbnail,
         metadata: buildVariantMetadata(topOffer, undefined, referenceDate),
+        measurement: measurement?.variant ?? null,
         quantities,
       },
     ],
@@ -2763,6 +2878,10 @@ function buildVariantSeed({
   const quantities = buildOfferInventoryQuantities(variant)
   const thumbnail = variant.imageRef
   const ean = normalizeInlineText(variant.ean)
+  const measurement = resolveHerbaticaOfferMeasurement(
+    variant,
+    `Product "${item.id}" Variant "${variant.variantId ?? index + 1}"`
+  )
 
   return {
     title,
@@ -2778,6 +2897,7 @@ function buildVariantSeed({
     images: thumbnail ? [{ url: thumbnail }] : undefined,
     thumbnail,
     metadata: buildVariantMetadata(variant, item.topOffer, referenceDate),
+    measurement: measurement?.variant ?? null,
     quantities,
   }
 }
@@ -2972,6 +3092,7 @@ function buildProducts(params: {
       images: imageUrls.map((url) => ({ url })),
       options,
       brand: buildBrand(item, manufacturersLookup),
+      measurement: resolveHerbaticaProductMeasurement(item),
       productAttributes: buildHerbaticaProductAttributes(item),
       variants,
       salesChannelNames: visibility.salesChannelNames,

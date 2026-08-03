@@ -45,6 +45,22 @@ export type SeedProductAttributeInput = {
   text_value?: string | null
 }
 
+export type SeedMeasurementUnitInput = {
+  base_quantity: number
+  code: string
+  description?: null | string
+  name: string
+  symbol: string
+}
+
+export type SeedVariantMeasurementInput = {
+  product_unit_quantity: number
+}
+
+export type SeedProductMeasurementInput = {
+  unit: SeedMeasurementUnitInput
+}
+
 export type ProductInput = {
   title: string
   categories: {
@@ -111,8 +127,10 @@ export type ProductInput = {
       amount: number
       currency_code: string
     }[]
+    measurement?: SeedVariantMeasurementInput | null
   }[]
   salesChannelNames: string[]
+  measurement?: SeedProductMeasurementInput | null
   productAttributes?: SeedProductAttributeInput[]
 }
 
