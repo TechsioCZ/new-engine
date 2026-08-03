@@ -1,4 +1,4 @@
-export const DEFAULT_STRICT_TRANSPORT_SECURITY_VALUE = [
+const DEFAULT_STRICT_TRANSPORT_SECURITY_VALUE = [
   "max-age=31536000",
   "includeSubDomains",
 ].join("; ")

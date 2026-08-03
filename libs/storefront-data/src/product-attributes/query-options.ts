@@ -56,7 +56,7 @@ export function createProductAttributeQueryOptionsFactory<
   const resolvedQueryKeys =
     queryKeys ?? createProductAttributeQueryKeys<TParams>(queryKeyNamespace)
   const buildDetail =
-    buildDetailParams ?? ((input: TInput) => input as unknown as TParams)
+    buildDetailParams ?? ((input: TInput) => ({ ...input }) as TInput & TParams)
 
   return {
     getDetailQueryOptions: (
@@ -76,7 +76,7 @@ export function createProductAttributeQueryOptionsFactory<
           return service.getProductAttributes(detailParams, signal)
         },
         ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
+        ...options?.queryOptions,
       }
     },
   }

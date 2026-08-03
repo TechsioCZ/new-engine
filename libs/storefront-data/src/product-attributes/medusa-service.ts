@@ -54,7 +54,7 @@ export function createMedusaProductAttributeService(
               limit: pageSize,
               offset,
             },
-            signal,
+            ...(signal === undefined ? {} : { signal }),
           }
         )
 

@@ -144,12 +144,26 @@ export function createStorefrontSecurityConfig(options = {}) {
     replace,
   } = options
 
-  const publicBackendOrigin = resolvePublicBackendOrigin({
-    isProduction,
-    publicBackendUrl,
-    envVarName,
-    defaultDevelopmentBackendUrl,
-  })
+  const legacyExtend = normalizeLegacyOverrides(options)
+  const normalizedExtend = normalizeExtend(extend)
+  const normalizedReplace = normalizeReplace(replace)
+
+  const isCspSuppressed = normalizedReplace.headers.some(
+    (header) =>
+      header.key === "Content-Security-Policy" && header.value === null
+  )
+
+  // Only the CSP consumes the backend origin, and resolving it throws when the
+  // public backend env var is missing in production. A consumer that suppresses
+  // the CSP header must not be forced to configure a URL nothing emits.
+  const publicBackendOrigin = isCspSuppressed
+    ? undefined
+    : resolvePublicBackendOrigin({
+        isProduction,
+        publicBackendUrl,
+        envVarName,
+        defaultDevelopmentBackendUrl,
+      })
 
   const presetConfig = resolveStorefrontSecurityPreset({
     preset,
@@ -158,10 +172,6 @@ export function createStorefrontSecurityConfig(options = {}) {
     allowedDevOrigins,
     devPort,
   })
-
-  const legacyExtend = normalizeLegacyOverrides(options)
-  const normalizedExtend = normalizeExtend(extend)
-  const normalizedReplace = normalizeReplace(replace)
 
   const csp = mergeStorefrontCsp({
     base: presetConfig.csp,
