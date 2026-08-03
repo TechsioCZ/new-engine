@@ -1,6 +1,7 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+
 import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel"
 import { useCheckoutInlineProducts } from "@/components/checkout/use-checkout-inline-products"
 

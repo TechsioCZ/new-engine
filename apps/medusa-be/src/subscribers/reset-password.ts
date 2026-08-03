@@ -1,5 +1,6 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import { sendForgotPasswordWorkflow } from "../workflows/send-forgot-password"
 
 type ResetPasswordEvent = {

@@ -2,6 +2,7 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
+
 import { type PplAccessPointData, PplWidget } from "./ppl-widget"
 
 type PplPickupDialogProps = {

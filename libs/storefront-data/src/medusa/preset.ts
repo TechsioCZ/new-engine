@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+
 import {
   type AuthHooks,
   type CreateAuthHooksConfig,
@@ -477,10 +478,10 @@ type CreateMedusaStorefrontPresetConfigBase<
   TCollection = HttpTypes.StoreCollection,
   TCartAddressInput = Record<string, unknown>,
   TCartAddressPayload = Record<string, unknown>,
-  TCustomerAddressCreateInput extends
-    CustomerAddressCreateInputBase = MedusaCustomerAddressCreateInput,
-  TCustomerAddressUpdateInput extends
-    CustomerAddressUpdateInputBase = MedusaCustomerAddressUpdateHookInput,
+  TCustomerAddressCreateInput extends CustomerAddressCreateInputBase =
+    MedusaCustomerAddressCreateInput,
+  TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase =
+    MedusaCustomerAddressUpdateHookInput,
 > = {
   sdk: Medusa
   queryKeyNamespace?: QueryNamespace
@@ -597,10 +598,10 @@ export type CreateMedusaStorefrontPresetConfig<
   TCatalogFacets = CatalogFacets,
   TCartAddressInput = Record<string, unknown>,
   TCartAddressPayload = Record<string, unknown>,
-  TCustomerAddressCreateInput extends
-    CustomerAddressCreateInputBase = MedusaCustomerAddressCreateInput,
-  TCustomerAddressUpdateInput extends
-    CustomerAddressUpdateInputBase = MedusaCustomerAddressUpdateHookInput,
+  TCustomerAddressCreateInput extends CustomerAddressCreateInputBase =
+    MedusaCustomerAddressCreateInput,
+  TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase =
+    MedusaCustomerAddressUpdateHookInput,
 > = CreateMedusaStorefrontPresetConfigBase<
   TProduct,
   TCategory,
@@ -839,10 +840,10 @@ export function createMedusaStorefrontPreset<
   TCatalogFacets = CatalogFacets,
   TCartAddressInput = Record<string, unknown>,
   TCartAddressPayload = Record<string, unknown>,
-  TCustomerAddressCreateInput extends
-    CustomerAddressCreateInputBase = MedusaCustomerAddressCreateInput,
-  TCustomerAddressUpdateInput extends
-    CustomerAddressUpdateInputBase = MedusaCustomerAddressUpdateHookInput,
+  TCustomerAddressCreateInput extends CustomerAddressCreateInputBase =
+    MedusaCustomerAddressCreateInput,
+  TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase =
+    MedusaCustomerAddressUpdateHookInput,
 >(
   config: CreateMedusaStorefrontPresetConfig<
     TProduct,

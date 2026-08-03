@@ -5,12 +5,14 @@ Next.js 16 e-commerce frontend for Medusa.js v2 backend.
 ## CRITICAL RULES
 
 **ALWAYS:**
+
 - Assume dev server running on `localhost:3000` - NEVER ask to start it
 - Use spacing tokens `50-950` (NEVER `sm`/`md`/`lg`)
 - Use semantic color tokens (NEVER `bg-gray-100`, `text-blue-500`)
 - Read `local/docs/user/*.md` before cart/auth/checkout work
 
 **NEVER:**
+
 - Edit `package.json` manually - use `pnpm add <pkg>`
 - Use `forwardRef` or `useCallback` (React 19)
 - Create `tailwind.config.js` (Tailwind v4 uses CSS)
@@ -48,37 +50,37 @@ pnpm add -D <pkg>                # Add dev dependency
 
 ```typescript
 // ✅ CORRECT
-className="p-400 gap-600 m-200"
+className = "p-400 gap-600 m-200"
 
 // ❌ WRONG - DOES NOT EXIST
-className="p-md gap-lg m-sm"
+className = "p-md gap-lg m-sm"
 ```
 
-| Token | Value | Use |
-|-------|-------|-----|
-| `200` | 8px | Tight |
-| `400` | 16px | Standard |
-| `600` | 24px | Section |
-| `800` | 40px | Large |
+| Token | Value | Use      |
+| ----- | ----- | -------- |
+| `200` | 8px   | Tight    |
+| `400` | 16px  | Standard |
+| `600` | 24px  | Section  |
+| `800` | 40px  | Large    |
 
 ### Colors (Semantic only)
 
 ```typescript
 // ✅ CORRECT
-className="bg-primary text-fg-primary"
-className="bg-surface border-border-secondary"
+className = "bg-primary text-fg-primary"
+className = "bg-surface border-border-secondary"
 
 // ❌ WRONG - DOES NOT EXIST
-className="bg-gray-100 text-blue-500"
+className = "bg-gray-100 text-blue-500"
 ```
 
-| Type | Tokens |
-|------|--------|
-| Brand | `primary`, `secondary`, `tertiary` |
-| Status | `success`, `warning`, `danger`, `info` |
-| Text | `fg-primary`, `fg-secondary`, `fg-reverse` |
-| Background | `base`, `surface`, `overlay` |
-| Border | `border-primary`, `border-secondary` |
+| Type       | Tokens                                     |
+| ---------- | ------------------------------------------ |
+| Brand      | `primary`, `secondary`, `tertiary`         |
+| Status     | `success`, `warning`, `danger`, `info`     |
+| Text       | `fg-primary`, `fg-secondary`, `fg-reverse` |
+| Background | `base`, `surface`, `overlay`               |
+| Border     | `border-primary`, `border-secondary`       |
 
 @./.claude/instructions/01-tokens.md
 
@@ -99,15 +101,15 @@ function Button({ ref, onClick }: Props) {
 
 ```typescript
 // UI Library
-import { Button } from '@libs/ui/atoms/button'
-import { Dialog } from '@libs/ui/molecules/dialog'
+import { Button } from "@libs/ui/atoms/button"
+import { Dialog } from "@libs/ui/molecules/dialog"
 
 // Hooks
-import { useCart } from '@/hooks/use-cart'
-import { useAuth } from '@/hooks/use-auth'
+import { useCart } from "@/hooks/use-cart"
+import { useAuth } from "@/hooks/use-auth"
 
 // Services
-import { getProducts } from '@/services/product-service'
+import { getProducts } from "@/services/product-service"
 ```
 
 @./.claude/instructions/02-code-patterns.md
@@ -118,16 +120,16 @@ import { getProducts } from '@/services/product-service'
 
 **REQUIRED READING before working on user features:**
 
-| Feature | Documentation |
-|---------|---------------|
-| **Start here** | `local/docs/user/index.md` |
-| Cart operations | `local/docs/user/cart.md` |
-| Checkout flow | `local/docs/user/checkout.md` |
-| Auth (login/register) | `local/docs/user/auth.md` |
-| Orders | `local/docs/user/orders.md` |
-| Addresses | `local/docs/user/addresses.md` |
-| Cache/prefetch | `local/docs/user/provider.md` |
-| Error handling | `local/docs/user/utilities.md` |
+| Feature               | Documentation                  |
+| --------------------- | ------------------------------ |
+| **Start here**        | `local/docs/user/index.md`     |
+| Cart operations       | `local/docs/user/cart.md`      |
+| Checkout flow         | `local/docs/user/checkout.md`  |
+| Auth (login/register) | `local/docs/user/auth.md`      |
+| Orders                | `local/docs/user/orders.md`    |
+| Addresses             | `local/docs/user/addresses.md` |
+| Cache/prefetch        | `local/docs/user/provider.md`  |
+| Error handling        | `local/docs/user/utilities.md` |
 
 **Key hooks:** `useCart`, `useAuth`, `useOrders`, `useAddresses`, `useCheckout`
 
@@ -149,16 +151,14 @@ src/
 
 ## DO / DON'T
 
-| DO | DON'T |
-|----|-------|
-| `p-400`, `gap-600` | `p-md`, `gap-lg` |
+| DO                              | DON'T                          |
+| ------------------------------- | ------------------------------ |
+| `p-400`, `gap-600`              | `p-md`, `gap-lg`               |
 | `bg-primary`, `text-fg-primary` | `bg-gray-100`, `text-blue-500` |
-| Read `local/docs/user/*` first | Guess user data patterns |
-| `pnpm add <pkg>` | Edit package.json |
-| ref as prop (React 19) | forwardRef, useCallback |
+| Read `local/docs/user/*` first  | Guess user data patterns       |
+| `pnpm add <pkg>`                | Edit package.json              |
+| ref as prop (React 19)          | forwardRef, useCallback        |
 
 ---
 
-**Token files:** `src/tokens/_n1-*.css`
-**UI Library:** `../../libs/ui/CLAUDE.md`
-**Last Updated:** 2025-01-25
+**Token files:** `src/tokens/_n1-*.css` **UI Library:** `../../libs/ui/CLAUDE.md` **Last Updated:** 2025-01-25

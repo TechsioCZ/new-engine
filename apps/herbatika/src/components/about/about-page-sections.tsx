@@ -1,5 +1,6 @@
 import NextLink from "next/link"
 import { Fragment } from "react"
+
 import { ABOUT_PAGE, type AboutParagraph } from "./about-page.data"
 import {
   AboutImageFrame,

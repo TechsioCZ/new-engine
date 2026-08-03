@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { FindParams, HttpTypes, SelectParams } from "@medusajs/types"
+
 import type { RegionListResponse, RegionService } from "./types"
 
 export type MedusaRegionListInput = FindParams &

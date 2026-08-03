@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook } from "@testing-library/react"
 import type { ReactNode } from "react"
+
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createProductListHooks } from "../src/product-lists/hooks"
 import { createProductListQueryKeys } from "../src/product-lists/query-keys"
@@ -27,7 +28,8 @@ type Service = ProductListService<
   DetailParams
 >
 
-const createWrapper = (client: QueryClient) =>
+const createWrapper =
+  (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )

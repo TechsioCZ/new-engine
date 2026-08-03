@@ -1,4 +1,5 @@
 import { vi } from "vitest"
+
 import type { PaykitInjectedDependencies } from "../core/base"
 import type { PaykitPaymentClient } from "../types"
 

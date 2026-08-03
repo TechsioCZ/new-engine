@@ -1,14 +1,16 @@
 "use client"
 
 import { type RefObject, useCallback, useImperativeHandle, useRef } from "react"
+
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+
+import { loadPacketaWidget } from "./packeta-widget-loader"
 import type {
   PacketaPickupPoint,
   PacketaWidgetError,
   PacketaWidgetHandle,
   PacketaWidgetOptions,
 } from "./packeta-widget.types"
-import { loadPacketaWidget } from "./packeta-widget-loader"
 
 export type {
   PacketaPickupPoint,

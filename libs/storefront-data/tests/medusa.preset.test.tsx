@@ -3,14 +3,15 @@ import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
-import type { CatalogFacets } from "../src/catalog/types"
+
 import type {
   MedusaAuthCredentials,
   MedusaRegisterData,
   MedusaUpdateCustomerData,
 } from "../src/auth/medusa-service"
 import type { AuthService } from "../src/auth/types"
-import { StorefrontDataProvider } from "../src/client/provider"
+import type { CartQueryKeys } from "../src/cart/types"
+import type { CatalogFacets } from "../src/catalog/types"
 import {
   createCheckoutCartAddressAdapter,
   createCheckoutCustomerAddressAdapter,
@@ -18,6 +19,7 @@ import {
   type MedusaCartAddressPayload,
   type CheckoutCustomerAddressUpdateInput,
 } from "../src/checkout/address"
+import { StorefrontDataProvider } from "../src/client/provider"
 import type { MedusaCustomerListInput } from "../src/customers/medusa-service"
 import type { CustomerQueryKeys } from "../src/customers/types"
 import {
@@ -34,10 +36,10 @@ import type {
   MedusaProductListListKeyInput,
 } from "../src/product-lists/medusa-service"
 import type { ProductListQueryKeys } from "../src/product-lists/types"
-import type { CartQueryKeys } from "../src/cart/types"
 import { createQueryKey } from "../src/shared/query-keys"
 
-const createWrapper = (client: QueryClient) =>
+const createWrapper =
+  (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
@@ -107,9 +109,9 @@ const createSdkMock = () => {
           retrieve: vi.fn(async () => ({ cart: null })),
         },
         payment: {
-          initiatePaymentSession: vi.fn(
-            async () => ({ payment_collection: { payment_sessions: [] } })
-          ),
+          initiatePaymentSession: vi.fn(async () => ({
+            payment_collection: { payment_sessions: [] },
+          })),
         },
       },
     } as unknown as Medusa,
@@ -399,22 +401,24 @@ describe("createMedusaStorefrontPreset", () => {
       login: async () => "token",
       logout: async () => {},
       register: async () => "token",
-      updateCustomer: async () => ({ id: "cus_1" } as HttpTypes.StoreCustomer),
+      updateCustomer: async () => ({ id: "cus_1" }) as HttpTypes.StoreCustomer,
     }
     const customCustomerNamespace = ["custom", "customers"] as const
-    const customCustomerQueryKeys: CustomerQueryKeys<MedusaCustomerListInput> = {
-      all: () => createQueryKey(customCustomerNamespace),
-      profile: () => createQueryKey(customCustomerNamespace, "profile"),
-      addresses: (params) =>
-        createQueryKey(customCustomerNamespace, "addresses", params ?? {}),
-    }
+    const customCustomerQueryKeys: CustomerQueryKeys<MedusaCustomerListInput> =
+      {
+        all: () => createQueryKey(customCustomerNamespace),
+        profile: () => createQueryKey(customCustomerNamespace, "profile"),
+        addresses: (params) =>
+          createQueryKey(customCustomerNamespace, "addresses", params ?? {}),
+      }
     const customOrderNamespace = ["custom", "orders"] as const
     const customOrderQueryKeys: OrderQueryKeys<
       MedusaOrderListInput,
       MedusaOrderDetailInput
     > = {
       all: () => createQueryKey(customOrderNamespace),
-      list: (params) => createQueryKey(customOrderNamespace, "list", params ?? {}),
+      list: (params) =>
+        createQueryKey(customOrderNamespace, "list", params ?? {}),
       detail: (params) =>
         createQueryKey(customOrderNamespace, "detail", params ?? {}),
     }
@@ -452,11 +456,15 @@ describe("createMedusaStorefrontPreset", () => {
         mutations: { retry: false },
       },
     })
-    queryClient.setQueryData(customCustomerQueryKeys.profile(), { id: "cus_old" })
+    queryClient.setQueryData(customCustomerQueryKeys.profile(), {
+      id: "cus_old",
+    })
     queryClient.setQueryData(customCustomerQueryKeys.addresses({}), [
       { id: "addr_old" },
     ])
-    queryClient.setQueryData(customOrderQueryKeys.list({}), [{ id: "order_old" }])
+    queryClient.setQueryData(customOrderQueryKeys.list({}), [
+      { id: "order_old" },
+    ])
     queryClient.setQueryData(
       customProductListQueryKeys.list({
         customerId: "cus_old",
@@ -477,14 +485,16 @@ describe("createMedusaStorefrontPreset", () => {
     })
 
     expect(
-      queryClient.getQueryState(customCustomerQueryKeys.profile())?.isInvalidated
+      queryClient.getQueryState(customCustomerQueryKeys.profile())
+        ?.isInvalidated
     ).toBe(true)
     expect(
-      queryClient.getQueryState(customCustomerQueryKeys.addresses({}))?.isInvalidated
+      queryClient.getQueryState(customCustomerQueryKeys.addresses({}))
+        ?.isInvalidated
     ).toBe(true)
-    expect(queryClient.getQueryState(customOrderQueryKeys.list({}))?.isInvalidated).toBe(
-      true
-    )
+    expect(
+      queryClient.getQueryState(customOrderQueryKeys.list({}))?.isInvalidated
+    ).toBe(true)
     expect(
       queryClient.getQueryState(
         customProductListQueryKeys.list({
@@ -579,7 +589,10 @@ describe("createMedusaStorefrontPreset", () => {
 
     const customOrderService = {
       getOrders: vi.fn(
-        async (): Promise<{ orders: HttpTypes.StoreOrder[]; count: number }> => ({
+        async (): Promise<{
+          orders: HttpTypes.StoreOrder[]
+          count: number
+        }> => ({
           orders: [],
           count: 0,
         })

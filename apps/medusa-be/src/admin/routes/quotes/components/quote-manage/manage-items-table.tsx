@@ -1,5 +1,6 @@
 import type { OnChangeFn, RowSelectionState } from "@tanstack/react-table"
 import { useState } from "react"
+
 import { DataTable } from "../../../../components"
 import { useVariants } from "../../../../hooks/api"
 import { useDataTable } from "../../../../hooks/use-data-table"

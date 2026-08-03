@@ -16,7 +16,8 @@ function coercePendingUrl(
         : "/",
     strip_prefix:
       typeof value.strip_prefix === "boolean" ? value.strip_prefix : true,
-    redirect_to: typeof value.redirect_to === "string" ? value.redirect_to : null,
+    redirect_to:
+      typeof value.redirect_to === "string" ? value.redirect_to : null,
     associated_port:
       typeof value.associated_port === "number" ? value.associated_port : null,
   }

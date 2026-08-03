@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import { asRecord } from "./product-card.parsers"
 
 const SENTENCE_BOUNDARY_PATTERN = /(?<=[.!?])\s+/

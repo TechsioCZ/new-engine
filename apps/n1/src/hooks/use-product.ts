@@ -1,10 +1,12 @@
 "use client"
 
 import { useSuspenseQuery } from "@tanstack/react-query"
+
 import { cacheConfig } from "@/lib/cache-config"
 import { fetchLogger } from "@/lib/loggers/fetch"
 import { queryKeys } from "@/lib/query-keys"
 import { getProductByHandle } from "@/services/product-service"
+
 import { useSuspenseRegion } from "./use-region"
 
 type UseProductParams = {

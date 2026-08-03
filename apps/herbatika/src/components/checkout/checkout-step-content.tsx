@@ -1,8 +1,9 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { ReactNode } from "react"
-import type { CheckoutStepSlug } from "@/components/checkout/checkout.constants"
+
 import { resolvePaymentSummaryLabel } from "@/components/checkout/checkout-display.utils"
 import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils"
+import type { CheckoutStepSlug } from "@/components/checkout/checkout.constants"
 import { CheckoutCartSidebarSection } from "@/components/checkout/sections/checkout-cart-sidebar-section"
 import { CheckoutCartStepSection } from "@/components/checkout/sections/checkout-cart-step-section"
 import { CheckoutCompleteSection } from "@/components/checkout/sections/checkout-complete-section"
@@ -10,6 +11,7 @@ import { CheckoutDetailsStepSection } from "@/components/checkout/sections/check
 import { CheckoutOrderSummarySection } from "@/components/checkout/sections/checkout-order-summary-section"
 import { CheckoutShippingPaymentStepSection } from "@/components/checkout/sections/checkout-shipping-payment-step-section"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
+
 import { CheckoutInlineProductsSection } from "./sections/checkout-inline-products-section"
 
 type CheckoutStepContentProps = {

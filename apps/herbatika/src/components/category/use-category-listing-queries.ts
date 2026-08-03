@@ -2,6 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
+
 import {
   resolveCategoryBottomHtml,
   resolveCategoryContextImageTiles,

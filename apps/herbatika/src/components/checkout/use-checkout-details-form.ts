@@ -3,6 +3,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useStore } from "@tanstack/react-form"
 import { useEffect, useMemo, useRef, useState } from "react"
+
 import {
   CHECKOUT_BILLING_ACTIVE_FIELD_NAMES,
   CHECKOUT_BILLING_COMPANY_FIELD_NAMES,
@@ -20,6 +21,7 @@ import {
 } from "@/lib/forms/checkout/address.form"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { mapHerbatikaAddressFormStateFromMedusaAddress } from "@/lib/storefront/cart/address-adapter"
+
 import { readAccountSetupRequested } from "./account-setup-metadata"
 import type { CarrierPickupAddress } from "./carrier-pickup-address.utils"
 import { resolveCarrierPickupAddress } from "./carrier-pickup-address.utils"
@@ -369,7 +371,7 @@ const resolveCheckoutHydratedValues = ({
     useSameAddress,
     isCompanyPurchase: Boolean(
       billingAddress?.company ??
-        (hasCarrierPickupAddress ? undefined : shippingAddress?.company)
+      (hasCarrierPickupAddress ? undefined : shippingAddress?.company)
     ),
     accountSetupRequested: readAccountSetupRequested(cart?.metadata),
     marketingConsent: false,

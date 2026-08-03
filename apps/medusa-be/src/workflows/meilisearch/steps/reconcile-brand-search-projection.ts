@@ -5,8 +5,9 @@ import {
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
-import { isMeilisearchEnabled } from "../../../modules/meilisearch/env"
+
 import { BRANDS, MEILISEARCH } from "../"
+import { isMeilisearchEnabled } from "../../../modules/meilisearch/env"
 import type { BrandSearchProjectionTargets } from "./resolve-brand-search-projection-targets"
 
 type SearchDocument = Record<string, unknown> & {

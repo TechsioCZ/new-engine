@@ -1,7 +1,9 @@
 "use client"
 
 import { useQueryStates } from "nuqs"
+
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+
 import { normalizePage, searchQueryParsers } from "./search-query-config"
 
 type SearchQueryStateHistoryMode = "replace" | "push"

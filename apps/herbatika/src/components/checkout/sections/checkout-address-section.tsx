@@ -1,10 +1,12 @@
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
+
 import {
   type CheckoutAddressScope,
   resolveCheckoutAddressFieldName,
 } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
 import { checkoutFieldValidators } from "@/lib/forms/checkout/address-validators"
+
 import { CheckoutLoginPrompt } from "./checkout-login-prompt"
 import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle"
 

@@ -2,6 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
+
 import { requirePathParam } from "../../../../../../utils/path-params"
 import { removeCompanyFromCustomerGroupWorkflow } from "../../../../../../workflows/company/workflows/remove-company-from-customer-group"
 import type { AdminRemoveCompanyFromCustomerGroupType } from "../../../validators"

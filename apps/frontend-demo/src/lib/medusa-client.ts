@@ -1,4 +1,5 @@
 import Medusa from "@medusajs/js-sdk"
+
 import { STORAGE_KEYS } from "./constants"
 
 // Environment validation

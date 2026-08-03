@@ -2,6 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+
 import { createProductListItemWorkflow } from "../../../../../workflows/product-list/workflows/create-product-list-item"
 import {
   toProductListItemResponse,

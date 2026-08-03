@@ -5,6 +5,7 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+
 import type { PostSymmyAuthUserEmailPassSchemaType } from "./validators"
 
 const JWT_TTL_SECONDS = 24 * 60 * 60

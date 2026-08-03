@@ -1,6 +1,7 @@
 "use client"
 
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
+
 import { Header } from "@/components/header"
 import type { NavItem } from "@/components/molecules/navigation"
 import { getCategoryIdsByHandles } from "@/utils/category-helpers"

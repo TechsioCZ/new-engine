@@ -2,6 +2,7 @@
 
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
 import NextLink from "next/link"
+
 import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-builder"
 
 type SearchPaginationProps = {

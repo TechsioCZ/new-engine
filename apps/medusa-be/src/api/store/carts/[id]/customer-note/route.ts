@@ -8,6 +8,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { updateCartWorkflow } from "@medusajs/medusa/core-flows"
+
 import type { StoreSetCartCustomerNoteType } from "../../validators"
 
 type CartRecord = {

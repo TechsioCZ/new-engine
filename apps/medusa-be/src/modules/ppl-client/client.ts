@@ -1,5 +1,6 @@
 import { OAuth2Client } from "@badgateway/oauth2-client"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import type {
   PplAccessPoint,
   PplAccessPointsQuery,

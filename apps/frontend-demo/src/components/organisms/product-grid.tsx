@@ -6,6 +6,7 @@ import {
 } from "@techsio/ui-kit/molecules/pagination"
 import Link from "next/link"
 import { useState } from "react"
+
 import { AddToCartDialog } from "@/components/molecules/add-to-cart-dialog"
 import { DemoProductCard } from "@/components/molecules/demo-product-card"
 import { usePrefetchProduct } from "@/hooks/use-prefetch-product"

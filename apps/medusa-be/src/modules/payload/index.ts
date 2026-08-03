@@ -1,4 +1,5 @@
 import { Module } from "@medusajs/framework/utils"
+
 import PayloadModuleService from "./service"
 
 /** Module registration key for the Payload integration. */

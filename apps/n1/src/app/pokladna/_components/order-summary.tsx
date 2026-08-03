@@ -1,7 +1,9 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Button } from "@ui/atoms/button"
+
 import type { Cart } from "@/services/cart-service"
 import { formatAmount } from "@/utils/format/format-product"
+
 import { CartItemRow } from "./cart-item-row"
 import { PriceSummaryRow } from "./price-summary-row"
 

@@ -1,6 +1,7 @@
 "use client"
 
 import { registerValidators } from "@/lib/auth/auth-form-validators"
+
 import type {
   RegisterFieldChangeHandler,
   RegisterFormController,

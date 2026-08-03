@@ -1,6 +1,7 @@
 import type { ExecArgs, Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
+
 import { isMeilisearchEnabled } from "../modules/meilisearch/env"
 
 const BATCH_SIZE = 1000

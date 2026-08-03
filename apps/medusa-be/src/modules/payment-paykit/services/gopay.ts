@@ -3,6 +3,7 @@ import type {
   InitiatePaymentInput,
 } from "@medusajs/framework/types"
 import { ModuleProvider, Modules } from "@medusajs/framework/utils"
+
 import { PAYKIT_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
 import {
   type PaykitInjectedDependencies,

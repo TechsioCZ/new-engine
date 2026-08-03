@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import { type FormEvent, useEffect, useState } from "react"
+
 import type { Product } from "@/components/product-detail/product-detail.types"
 import { useAppToast } from "@/hooks/use-app-toast"
 import { useAuth } from "@/lib/storefront/auth"

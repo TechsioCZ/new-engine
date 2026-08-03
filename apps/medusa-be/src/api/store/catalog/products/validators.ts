@@ -1,5 +1,6 @@
 import { z } from "@medusajs/framework/zod"
 import { listProductQueryConfig } from "@medusajs/medusa/api/store/products/query-config"
+
 import { CATALOG_SORT_VALUES } from "./utils"
 
 const multiValueParamSchema = z.union([z.string(), z.array(z.string())])

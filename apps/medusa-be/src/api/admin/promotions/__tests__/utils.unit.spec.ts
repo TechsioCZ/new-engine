@@ -1,6 +1,7 @@
 import { ApplicationMethodTargetType } from "@medusajs/framework/utils"
 import { areRulesValidForContext } from "@medusajs/promotion/dist/utils/validations/promotion-rule"
 import { describe, expect, it, vi } from "vitest"
+
 import { BRAND_MODULE } from "../../../../modules/brand"
 import { buildBrandPromotionContext } from "../../../../workflows/utils/promotion-brand-context"
 import { brandRuleAttribute } from "../const"
@@ -183,18 +184,14 @@ describe("validateRuleType", () => {
   })
 
   describe("invalid rule types", () => {
-    it.each([
-      "invalid",
-      "RULES",
-      "",
-      "rule",
-      "target",
-      "buy",
-    ])('throws for invalid rule type "%s"', (invalidType) => {
-      expect(() => validateRuleType(invalidType)).toThrow(
-        `Invalid param rule_type (${invalidType})`
-      )
-    })
+    it.each(["invalid", "RULES", "", "rule", "target", "buy"])(
+      'throws for invalid rule type "%s"',
+      (invalidType) => {
+        expect(() => validateRuleType(invalidType)).toThrow(
+          `Invalid param rule_type (${invalidType})`
+        )
+      }
+    )
   })
 
   it("narrows type after assertion", () => {

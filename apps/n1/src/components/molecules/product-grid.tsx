@@ -7,8 +7,10 @@ import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
 import Image from "next/image"
 import Link from "next/link"
 import { Fragment } from "react"
+
 import { usePrefetchProduct } from "@/hooks/use-prefetch-product"
 import type { Product } from "@/types/product"
+
 import { ProductCardSkeleton } from "../skeletons/product-card-skeleton"
 import { VariantsBox } from "./variants-box"
 

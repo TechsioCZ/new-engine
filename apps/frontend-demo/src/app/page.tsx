@@ -1,5 +1,6 @@
 "use client"
 import { useEffect } from "react"
+
 import { ProductGridSkeleton } from "@/components/molecules/product-grid-skeleton"
 import { SaleBanner } from "@/components/molecules/sale-banner"
 import { CategoryGrid } from "@/components/organisms/category-grid"
@@ -10,6 +11,7 @@ import { usePrefetchProducts } from "@/hooks/use-prefetch-products"
 import { useProducts } from "@/hooks/use-products"
 import { useRegions } from "@/hooks/use-region"
 import { getCategoryIdByHandle } from "@/utils/category-helpers"
+
 import homeImage from "../../assets/hero/home.webp"
 
 export default function Home() {

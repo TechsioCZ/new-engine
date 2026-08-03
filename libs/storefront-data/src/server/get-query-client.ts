@@ -1,4 +1,5 @@
 import { cache } from "react"
+
 import { makeQueryClient } from "../shared/query-client"
 
 const ensureServerEnvironment = () => {

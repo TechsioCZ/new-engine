@@ -5,6 +5,7 @@ import type {
 } from "@medusajs/framework/types"
 import { Badge, Copy, Text } from "@medusajs/ui"
 import { useTranslation } from "react-i18next"
+
 import { AmountCell, Thumbnail } from "../../../../components/common"
 
 export const QuoteItems = ({

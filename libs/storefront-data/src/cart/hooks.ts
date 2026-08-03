@@ -5,6 +5,7 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query"
 import { useEffect, useSyncExternalStore } from "react"
+
 import { assertStorefrontAddressValidation } from "../shared/address"
 import {
   type CacheConfig,

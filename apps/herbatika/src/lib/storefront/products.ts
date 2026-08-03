@@ -1,6 +1,7 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+
 import type { StorefrontProductListInput as BaseStorefrontProductListInput } from "./product-query-config"
 import {
   buildProductListParams as buildStorefrontProductListParams,

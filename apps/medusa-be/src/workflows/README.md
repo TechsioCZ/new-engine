@@ -7,7 +7,7 @@ The workflow is created in a TypeScript or JavaScript file under the `src/workfl
 For example:
 
 ```ts
-import { 
+import {
   createStep,
   createWorkflow,
   StepResponse,
@@ -21,29 +21,26 @@ type WorkflowInput = {
   name: string
 }
 
-const step2 = createStep(
-  "step-2",
-  async ({ name }: WorkflowInput) => {
-    return new StepResponse(`Hello ${name} from step two!`)
-  }
-)
+const step2 = createStep("step-2", async ({ name }: WorkflowInput) => {
+  return new StepResponse(`Hello ${name} from step two!`)
+})
 
 type WorkflowOutput = {
   message: string
 }
 
-const myWorkflow = createWorkflow<
-  WorkflowInput,
-  WorkflowOutput
->("hello-world", function (input) {
-  const str1 = step1()
-  // to pass input
-  step2(input)
+const myWorkflow = createWorkflow<WorkflowInput, WorkflowOutput>(
+  "hello-world",
+  function (input) {
+    const str1 = step1()
+    // to pass input
+    step2(input)
 
-  return {
-    message: str1,
+    return {
+      message: str1,
+    }
   }
-})
+)
 
 export default myWorkflow
 ```
@@ -55,22 +52,15 @@ You can execute the workflow from other resources, such as API routes, scheduled
 For example, to execute the workflow in an API route:
 
 ```ts
-import type {
-  MedusaRequest,
-  MedusaResponse,
-} from "@medusajs/framework"
+import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
 import myWorkflow from "../../../workflows/hello-world"
 
-export async function GET(
-  req: MedusaRequest,
-  res: MedusaResponse
-) {
-  const { result } = await myWorkflow(req.scope)
-    .run({
-      input: {
-        name: req.query.name as string,
-      },
-    })
+export async function GET(req: MedusaRequest, res: MedusaResponse) {
+  const { result } = await myWorkflow(req.scope).run({
+    input: {
+      name: req.query.name as string,
+    },
+  })
 
   res.send(result)
 }

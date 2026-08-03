@@ -3,6 +3,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+
 import { ProductListItemProductLink } from "../../../links/product-list-item-product"
 import { ProductListItemVariantLink } from "../../../links/product-list-item-variant"
 import {

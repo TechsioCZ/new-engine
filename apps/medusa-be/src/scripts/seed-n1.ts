@@ -4,6 +4,7 @@ import type {
   Logger,
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+
 import { DATABASE_MODULE } from "../modules/database"
 import type DatabaseModuleService from "../modules/database/service"
 import seedN1Workflow, {

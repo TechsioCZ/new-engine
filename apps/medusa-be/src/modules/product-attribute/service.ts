@@ -7,6 +7,7 @@ import {
   MedusaError,
   MedusaService,
 } from "@medusajs/framework/utils"
+
 import ProductAttribute from "./models/product-attribute"
 import ProductAttributeDefinition from "./models/product-attribute-definition"
 import ProductAttributeOption from "./models/product-attribute-option"

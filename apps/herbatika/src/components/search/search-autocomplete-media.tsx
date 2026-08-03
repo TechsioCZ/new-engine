@@ -1,6 +1,7 @@
 "use client"
 
 import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
+
 import { FallbackImage } from "@/components/fallback-image"
 import type {
   SearchAutocompleteSuggestion,

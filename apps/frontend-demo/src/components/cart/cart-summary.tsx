@@ -1,5 +1,6 @@
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Link from "next/link"
+
 import { formatPrice } from "@/utils/price-utils"
 
 interface CartSummaryProps {

@@ -1,4 +1,5 @@
 import type { Endpoint } from "payload"
+
 import {
   type CategoryDoc,
   getCategoryDoc,

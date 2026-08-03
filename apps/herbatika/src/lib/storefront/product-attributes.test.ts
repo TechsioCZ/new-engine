@@ -1,5 +1,6 @@
 import type { ProductAttribute } from "@techsio/storefront-data/product-attributes/types"
 import { describe, expect, it } from "vitest"
+
 import {
   mergeWarrantyIntoProductContentSections,
   resolveProductWarranty,

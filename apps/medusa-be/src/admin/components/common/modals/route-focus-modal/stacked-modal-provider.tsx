@@ -1,4 +1,5 @@
 import { type PropsWithChildren, useState } from "react"
+
 import { StackedModalContext } from "./stacked-modal-context"
 
 type StackedModalProviderProps = PropsWithChildren<{

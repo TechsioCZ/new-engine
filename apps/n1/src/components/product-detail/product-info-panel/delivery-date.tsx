@@ -1,5 +1,6 @@
 import { Tooltip } from "@techsio/ui-kit/atoms/tooltip"
 import Link from "next/link"
+
 import { addDays, formatDateShort, formatDay } from "@/utils/format/format-date"
 
 export const DeliveryDate = () => {

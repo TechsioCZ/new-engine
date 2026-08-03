@@ -5,6 +5,7 @@ import { Toaster } from "@techsio/ui-kit/molecules/toast"
 import { AppThemeProvider } from "@techsio/ui-kit/theme/theme-provider"
 import type { PropsWithChildren } from "react"
 import { useState } from "react"
+
 import { CartPrefetch } from "./cart-prefetch"
 
 function makeQueryClient() {

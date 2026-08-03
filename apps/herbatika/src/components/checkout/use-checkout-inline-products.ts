@@ -1,6 +1,7 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+
 import { resolveRelatedCategoryIds } from "@/lib/storefront/category-tree"
 import { asStorefrontString } from "@/lib/storefront/product-pricing"
 import {
@@ -12,6 +13,7 @@ import {
   resolveRecommendedProductFamilyKey,
   selectRecommendedProductRepresentatives,
 } from "@/lib/storefront/recommended-product-families"
+
 import { useCartProductsByHandle } from "./use-cart-products-by-handle"
 
 const CHECKOUT_INLINE_PRODUCTS_LIMIT = 10

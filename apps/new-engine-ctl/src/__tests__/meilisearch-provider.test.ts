@@ -1,5 +1,7 @@
 import { fileURLToPath } from "node:url"
+
 import { afterEach, describe, expect, test, vi } from "vitest"
+
 import {
   getRuntimeProviderMeiliKeyPolicy,
   type StackInputs,

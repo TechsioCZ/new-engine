@@ -2,6 +2,7 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { useEffect, useState } from "react"
+
 import { Disclaimer } from "./disclaimer"
 
 export function DisclaimerWrapper() {

@@ -5,6 +5,7 @@ import type {
   MedusaContainer,
 } from "@medusajs/framework/types"
 import { MedusaError, toHandle } from "@medusajs/framework/utils"
+
 import { PRODUCT_ATTRIBUTE_MODULE } from "../modules/product-attribute"
 import type ProductAttribute from "../modules/product-attribute/models/product-attribute"
 import type ProductAttributeDefinition from "../modules/product-attribute/models/product-attribute-definition"

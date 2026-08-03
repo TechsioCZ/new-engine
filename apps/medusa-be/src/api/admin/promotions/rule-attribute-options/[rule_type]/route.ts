@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import type { RuleAttributeOptionsQuerySchemaType } from "../../schema"
 import type { RuleType } from "../../types"
 import { getExtendedRuleAttributesMap, validateRuleType } from "../../utils"

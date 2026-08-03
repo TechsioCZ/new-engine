@@ -1,6 +1,7 @@
 import { HydrationBoundary } from "@tanstack/react-query"
 import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
+
 import { BrandListing } from "@/components/brands/brand-listing"
 import { createBrandHref, resolveBrandBySlug } from "@/lib/storefront/brands"
 import { fetchStorefrontBrands } from "@/lib/storefront/brands.server"

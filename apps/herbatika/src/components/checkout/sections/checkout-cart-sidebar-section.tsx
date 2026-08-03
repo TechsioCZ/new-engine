@@ -3,7 +3,9 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Label } from "@techsio/ui-kit/atoms/label"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import NextLink from "next/link"
+
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+
 import { CheckoutSelectBenefits } from "../checkout-select-benefits"
 import { CheckoutSelectPromoCode } from "../checkout-select-promo-code"
 

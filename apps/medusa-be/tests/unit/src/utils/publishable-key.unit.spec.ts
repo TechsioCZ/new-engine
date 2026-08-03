@@ -4,6 +4,7 @@ import type {
 } from "@medusajs/framework/types"
 import type { Mocked } from "vitest"
 import { afterEach, describe, expect, it, vi } from "vitest"
+
 import {
   getActivePublishableKey,
   provisionPublishableKey,

@@ -2,8 +2,9 @@ import type { Query } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
-import { isMeilisearchEnabled } from "../../../modules/meilisearch/env"
+
 import { BRANDS, MEILISEARCH } from "../"
+import { isMeilisearchEnabled } from "../../../modules/meilisearch/env"
 
 export type SyncMeilisearchBrandsStepInput = {
   filters?: Record<string, unknown>

@@ -3,6 +3,7 @@ import type {
   MedusaContainer,
 } from "@medusajs/framework/types"
 import { MedusaError, Modules } from "@medusajs/framework/utils"
+
 import {
   getProductAttributeService,
   type ProductAttributeAssignmentRecord,

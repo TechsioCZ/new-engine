@@ -6,6 +6,7 @@ import type {
   CatalogListResponse,
   UseCatalogProductsResult,
 } from "@techsio/storefront-data/catalog/types"
+
 import type {
   CatalogProductsParams,
   CatalogQueryState,

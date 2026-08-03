@@ -3,6 +3,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
+
 import ts from "typescript"
 
 const DEFAULT_CONFIG_PATH = "scripts/ui-primitives.config.mjs"

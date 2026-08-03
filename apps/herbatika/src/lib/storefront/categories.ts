@@ -1,6 +1,7 @@
 "use client"
 
 import type { FindParams, HttpTypes } from "@medusajs/types"
+
 import type { CategoryListInput as StorefrontCategoryListInput } from "./category-query-config"
 import {
   buildCategoryListParams as buildStorefrontCategoryListParams,

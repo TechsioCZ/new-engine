@@ -1,16 +1,19 @@
+import { readFileSync } from "node:fs"
+import { fileURLToPath } from "node:url"
+
 import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
-import { readFileSync } from "node:fs"
-import { fileURLToPath } from "node:url"
 import type { ReactNode } from "react"
+
 import { createCheckoutHooks } from "../src/checkout/hooks"
 import { createMedusaCheckoutService } from "../src/checkout/medusa-service"
+import { StorefrontDataProvider } from "../src/client/provider"
 import { createMedusaCustomerService } from "../src/customers/medusa-service"
 import { createMedusaOrderService } from "../src/orders/medusa-service"
-import { StorefrontDataProvider } from "../src/client/provider"
 
-const createWrapper = (client: QueryClient) =>
+const createWrapper =
+  (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
@@ -41,10 +44,9 @@ describe("phase 2 regressions", () => {
         order: { id: "order_1" } as HttpTypes.StoreOrder,
       })
 
-    const service = createMedusaOrderService(
-      { client: { fetch } } as never,
-      { defaultFields: "id,status" }
-    )
+    const service = createMedusaOrderService({ client: { fetch } } as never, {
+      defaultFields: "id,status",
+    })
     const controller = new AbortController()
 
     const list = await service.getOrders(
@@ -81,15 +83,12 @@ describe("phase 2 regressions", () => {
       } satisfies HttpTypes.StoreOrderListResponse)
       .mockRejectedValueOnce({ response: { status: 404 } })
 
-    const service = createMedusaOrderService(
-      { client: { fetch } } as never,
-      {
-        defaultListFields: "id,display_id",
-        defaultDetailFields: "id,*items",
-        defaultOrder: "-created_at",
-        returnNullOnNotFound: true,
-      }
-    )
+    const service = createMedusaOrderService({ client: { fetch } } as never, {
+      defaultListFields: "id,display_id",
+      defaultDetailFields: "id,*items",
+      defaultOrder: "-created_at",
+      returnNullOnNotFound: true,
+    })
     const controller = new AbortController()
 
     const list = await service.getOrders(
@@ -121,10 +120,9 @@ describe("phase 2 regressions", () => {
 
   it("skips order detail fetch when id is missing", async () => {
     const fetch = vi.fn()
-    const service = createMedusaOrderService(
-      { client: { fetch } } as never,
-      { defaultFields: "id,status" }
-    )
+    const service = createMedusaOrderService({ client: { fetch } } as never, {
+      defaultFields: "id,status",
+    })
 
     await expect(service.getOrder({})).resolves.toBeNull()
     expect(fetch).not.toHaveBeenCalled()
@@ -259,7 +257,8 @@ describe("phase 2 regressions", () => {
           shipping_methods: [{ shipping_option_id: optionId }],
         }) as Cart,
       listPaymentProviders: async () => [{ id: "pay_1" }] as PaymentProvider[],
-      initiatePaymentSession: async () => ({ id: "pay_col_1" }) as PaymentCollection,
+      initiatePaymentSession: async () =>
+        ({ id: "pay_col_1" }) as PaymentCollection,
     }
 
     const { useCheckoutShipping } = createCheckoutHooks<
@@ -274,7 +273,10 @@ describe("phase 2 regressions", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     })
     const wrapper = createWrapper(queryClient)
 
@@ -297,10 +299,7 @@ describe("phase 2 regressions", () => {
   })
 
   it("documents preset-first SSR prefetch without hardcoded query keys", () => {
-    const readme = readFileSync(
-      resolveTestRelativePath("../README.md"),
-      "utf8"
-    )
+    const readme = readFileSync(resolveTestRelativePath("../README.md"), "utf8")
 
     expect(readme).toContain("createMedusaStorefrontPreset")
     expect(readme).toContain("productHooks.getListQueryOptions")

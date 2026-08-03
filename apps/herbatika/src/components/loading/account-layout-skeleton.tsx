@@ -2,6 +2,7 @@
 
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import type { ReactNode } from "react"
+
 import { AccountSkeletonSurface } from "@/components/account/account-surface"
 
 type AccountLayoutSkeletonProps = {

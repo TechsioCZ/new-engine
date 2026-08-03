@@ -1,4 +1,5 @@
 import Medusa from "@medusajs/js-sdk"
+
 import { getMedusaBackendUrl } from "@/lib/medusa-backend-url"
 
 // Environment validation

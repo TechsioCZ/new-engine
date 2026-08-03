@@ -1,5 +1,6 @@
 import type { CollectionBeforeValidateHook } from "payload"
 import { describe, expect, it } from "vitest"
+
 import { HeroCarousels } from "@/collections/hero-carousels"
 
 const beforeValidate = HeroCarousels.hooks
@@ -10,9 +11,7 @@ type TestBeforeValidateArgs = Omit<Partial<BeforeValidateArgs>, "req"> & {
   req?: { locale?: string }
 }
 
-const runBeforeValidate = async (
-  args: TestBeforeValidateArgs
-) =>
+const runBeforeValidate = async (args: TestBeforeValidateArgs) =>
   beforeValidate(args as unknown as BeforeValidateArgs)
 
 describe("hero carousel internal title", () => {

@@ -3,6 +3,7 @@ import {
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import type { ModuleUpdateApprovalSettings } from "../../../types"
 import { validateCompanyActiveStep } from "../../company/steps"
 import { updateApprovalSettingsStep } from "../steps"

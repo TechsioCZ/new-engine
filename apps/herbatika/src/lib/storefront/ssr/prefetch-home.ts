@@ -1,8 +1,8 @@
 import "server-only"
-
 import type { QueryClient } from "@tanstack/react-query"
 import { dehydrate } from "@tanstack/react-query"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
+
 import {
   buildCatalogProductsParams,
   type CatalogQueryState,

@@ -5,7 +5,6 @@ import {
   resolveCatalogPriceBounds as resolveCatalogPriceBoundsValue,
 } from "./catalog-query-state/params"
 import { parseCatalogQueryStateFromSearchParams as parseCatalogQueryStateFromSearchParamsValue } from "./catalog-query-state/parse"
-
 import {
   type CatalogPageResetMode as CatalogPageResetModeValue,
   type CatalogQueryStatePatch as CatalogQueryStatePatchValue,

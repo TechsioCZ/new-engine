@@ -6,7 +6,9 @@ import type {
 import { errorHandler } from "@medusajs/framework/http"
 import { defineMiddlewares } from "@medusajs/medusa"
 import { captureException } from "@sentry/node"
+
 import { normalizeError, shouldCaptureException } from "../utils/errors"
+import { serveAdminAppStatic } from "./admin-app-static"
 import { adminBrandRoutesMiddlewares } from "./admin/brands/middlewares"
 import { adminMeasurementUnitRoutesMiddlewares } from "./admin/measurement-units/middlewares"
 import { adminMiddlewares } from "./admin/middlewares"
@@ -24,7 +26,6 @@ import { adminPromotionsExtensionMiddlewares } from "./admin/promotions/middlewa
 import { adminPublishableKeyRoutesMiddlewares } from "./admin/provisioning/publishable-key/middlewares"
 import { adminQrPaymentConfigRoutesMiddlewares } from "./admin/qr-payment-config/middlewares"
 import { adminReviewRoutesMiddlewares } from "./admin/reviews/middlewares"
-import { serveAdminAppStatic } from "./admin-app-static"
 import { storeBrandsRoutesMiddlewares } from "./store/brands/middlewares"
 import { storeCatalogProductsRoutesMiddlewares } from "./store/catalog/products/middlewares"
 import { storeCmsRoutesMiddlewares } from "./store/cms/middlewares"

@@ -1,4 +1,5 @@
 import type Medusa from "@medusajs/js-sdk"
+
 import type {
   ProductAttribute,
   ProductAttributeListResponse,

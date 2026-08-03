@@ -2,11 +2,13 @@
 
 import NextLink from "next/link"
 import type { MouseEvent } from "react"
+
 import type {
   SearchAutocompleteStatus,
   SearchAutocompleteSuggestion,
   SearchAutocompleteSuggestionType,
 } from "@/lib/search-autocomplete/search-autocomplete-types"
+
 import { SearchAutocompleteMedia } from "./search-autocomplete-media"
 
 export type SearchAutocompletePanelSection = {

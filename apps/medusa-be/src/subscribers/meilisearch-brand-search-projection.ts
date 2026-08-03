@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
+
 import {
   BRAND_SEARCH_PROJECTION_CHANGED,
   type BrandSearchProjectionChangedEventData,

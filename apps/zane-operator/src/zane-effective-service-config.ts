@@ -35,15 +35,11 @@ function getLastPendingFieldChange(
   return matchingChanges[matchingChanges.length - 1] ?? null
 }
 
-function normalizeString(
-  value: unknown
-): string | null {
+function normalizeString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null
 }
 
-function normalizeHealthcheck(
-  value: unknown
-): ZaneServiceHealthcheck | null {
+function normalizeHealthcheck(value: unknown): ZaneServiceHealthcheck | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null
   }
@@ -66,7 +62,9 @@ function normalizeHealthcheck(
     timeout_seconds: timeoutSeconds,
     interval_seconds: intervalSeconds,
     associated_port:
-      typeof record.associated_port === "number" ? record.associated_port : null,
+      typeof record.associated_port === "number"
+        ? record.associated_port
+        : null,
   }
 }
 
@@ -79,7 +77,9 @@ function normalizeResourceLimits(
 
   const record = value as Record<string, unknown>
   const memory =
-    record.memory && typeof record.memory === "object" && !Array.isArray(record.memory)
+    record.memory &&
+    typeof record.memory === "object" &&
+    !Array.isArray(record.memory)
       ? (record.memory as { unit?: string; value?: number | string | null })
       : null
 
@@ -103,7 +103,11 @@ function normalizeResourceLimits(
 export function computeEffectiveGitSource(
   serviceDetails: Pick<
     ZaneServiceDetails,
-    "repository_url" | "branch_name" | "commit_sha" | "git_app" | "unapplied_changes"
+    | "repository_url"
+    | "branch_name"
+    | "commit_sha"
+    | "git_app"
+    | "unapplied_changes"
   >
 ): EffectiveGitSource {
   const pending = getLastPendingFieldChange(serviceDetails, "git_source")
@@ -168,7 +172,10 @@ export function computeEffectiveHealthcheck(
 }
 
 export function computeEffectiveResourceLimits(
-  serviceDetails: Pick<ZaneServiceDetails, "resource_limits" | "unapplied_changes">
+  serviceDetails: Pick<
+    ZaneServiceDetails,
+    "resource_limits" | "unapplied_changes"
+  >
 ): ZaneServiceResourceLimits | null {
   const pending = getLastPendingFieldChange(serviceDetails, "resource_limits")
   return pending?.new_value

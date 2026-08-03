@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import type { PostAdminOrderExpeditionPdfSchemaType } from "../validators"
 import { createOrderExpeditionPdfResponse } from "./pdf-service"
 

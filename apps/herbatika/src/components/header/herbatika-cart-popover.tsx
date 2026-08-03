@@ -7,6 +7,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
 import NextLink from "next/link"
 import { useEffect, useRef, useState } from "react"
+
 import { useAppToast } from "@/hooks/use-app-toast"
 import { useRemoveLineItem, useUpdateLineItem } from "@/lib/storefront/cart"
 import {
@@ -17,6 +18,7 @@ import {
 import { resolveCartShippingSubtotalAmount } from "@/lib/storefront/cart-tax-calculations"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+
 import { CartItemRow } from "./herbatika-cart-item-row"
 
 type HerbatikaCartPopoverProps = {

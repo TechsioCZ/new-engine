@@ -81,9 +81,8 @@ describe("setAdminRoleStep", () => {
   })
 
   it("does nothing when the customer has no emailpass provider identity", async () => {
-    const { setAdminRoleStep } = await import(
-      "../../../../../src/workflows/employee/steps/set-admin-role"
-    )
+    const { setAdminRoleStep } =
+      await import("../../../../../src/workflows/employee/steps/set-admin-role")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -104,9 +103,8 @@ describe("setAdminRoleStep", () => {
   })
 
   it("sets the company admin role and returns compensation input", async () => {
-    const { setAdminRoleStep } = await import(
-      "../../../../../src/workflows/employee/steps/set-admin-role"
-    )
+    const { setAdminRoleStep } =
+      await import("../../../../../src/workflows/employee/steps/set-admin-role")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -139,9 +137,8 @@ describe("setAdminRoleStep", () => {
   })
 
   it("clears the company admin role on compensation when no other active admin role remains", async () => {
-    const { setAdminRoleStep } = await import(
-      "../../../../../src/workflows/employee/steps/set-admin-role"
-    )
+    const { setAdminRoleStep } =
+      await import("../../../../../src/workflows/employee/steps/set-admin-role")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -183,9 +180,8 @@ describe("setAdminRoleStep", () => {
   })
 
   it("keeps the company admin role on compensation when another active admin role remains", async () => {
-    const { setAdminRoleStep } = await import(
-      "../../../../../src/workflows/employee/steps/set-admin-role"
-    )
+    const { setAdminRoleStep } =
+      await import("../../../../../src/workflows/employee/steps/set-admin-role")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({

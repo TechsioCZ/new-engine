@@ -1,7 +1,9 @@
 import { useSuspenseQuery } from "@tanstack/react-query"
+
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
 import { getOrderById, getOrders } from "@/services/order-service"
+
 import { useSuspenseAuth } from "./use-auth"
 
 export type UseOrdersOptions = {

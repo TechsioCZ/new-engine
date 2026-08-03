@@ -1,4 +1,5 @@
 import type Medusa from "@medusajs/js-sdk"
+
 import { createMedusaProductListService } from "../src/product-lists/medusa-service"
 
 const createSdkMock = (response: unknown = {}) =>

@@ -1,6 +1,7 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { linkCustomerGroupsToCustomerWorkflow } from "@medusajs/medusa/core-flows"
+
 import {
   SYMMY_CUSTOMER_GROUP_CODE_MODULE,
   type SymmyCustomerGroupCodeModuleService,

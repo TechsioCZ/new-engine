@@ -62,9 +62,9 @@ const DEFAULT_PREVIEW_DB_APP_USER_PREFIX = "medusa_pr_app_"
 function supportsPrettyLogs(): boolean {
   return Boolean(
     process.stderr.isTTY &&
-      !process.env.GITHUB_ACTIONS &&
-      !process.env.NO_COLOR &&
-      process.env.TERM !== "dumb"
+    !process.env.GITHUB_ACTIONS &&
+    !process.env.NO_COLOR &&
+    process.env.TERM !== "dumb"
   )
 }
 

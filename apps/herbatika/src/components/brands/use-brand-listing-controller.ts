@@ -3,6 +3,7 @@
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useQueryStates } from "nuqs"
 import { useEffect } from "react"
+
 import { useCategoryFacetItems } from "@/components/category/use-category-facet-items"
 import { useCatalogProducts } from "@/lib/storefront/catalog-products"
 import {

@@ -1,5 +1,6 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { describe, expect, it, vi } from "vitest"
+
 import { BRAND_MODULE } from "../../../modules/brand"
 import { getActiveBrandIds } from "../brand-activity"
 

@@ -2,11 +2,13 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Link from "next/link"
+
 import { useRemoveLineItem, useUpdateLineItem } from "@/hooks/use-cart"
 import { useCartToast } from "@/hooks/use-toast"
 import type { Cart } from "@/services/cart-service"
 import { getOptimisticFlag } from "@/utils/cart/cart-helpers"
 import { formatAmount } from "@/utils/format/format-product"
+
 import { CartEmptyState } from "./cart-empty-state"
 import { CartItem } from "./cart-item"
 

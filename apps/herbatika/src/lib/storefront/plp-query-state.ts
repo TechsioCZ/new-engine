@@ -1,4 +1,5 @@
 import type { inferParserType } from "nuqs/server"
+
 import { parseCatalogQueryStateFromSearchParams } from "./catalog-query-state/parse"
 import {
   type CatalogQueryStatePatch as CatalogQueryStatePatchValue,

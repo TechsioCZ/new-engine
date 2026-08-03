@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"

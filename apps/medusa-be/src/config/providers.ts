@@ -1,4 +1,5 @@
 import { Modules } from "@medusajs/framework/utils"
+
 import { type MedusaConfigEnv, requireRedisUrl } from "./env"
 import { assertNever, type MedusaModuleConfig } from "./types"
 

@@ -1,4 +1,5 @@
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
+
 import {
   type CarrierPickupAddress,
   formatCarrierPickupAddress,
@@ -7,6 +8,7 @@ import { resolveCheckoutAddressFieldName } from "@/components/checkout/checkout-
 import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
 import { SupportingText } from "@/components/text/supporting-text"
 import { checkoutFieldValidators } from "@/lib/forms/checkout/address-validators"
+
 import { CheckoutLoginPrompt } from "./checkout-login-prompt"
 import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle"
 

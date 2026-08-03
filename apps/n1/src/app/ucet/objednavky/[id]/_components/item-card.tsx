@@ -4,6 +4,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
 import Image from "next/image"
 import Link from "next/link"
+
 import { formatAmount } from "@/utils/format/format-product"
 import { truncateText } from "@/utils/truncate-text"
 

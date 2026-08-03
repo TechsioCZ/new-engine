@@ -142,10 +142,10 @@ function isHealthyCurrentCommitMatch(
 ): boolean {
   return Boolean(
     target.current_production_deployment &&
-      target.current_production_deployment.status.toUpperCase() === "HEALTHY" &&
-      (target.current_production_deployment.commit_sha ?? "") ===
-        desiredCommitSha &&
-      currentEnvMatches(target.current_production_deployment.env, expectedEnv)
+    target.current_production_deployment.status.toUpperCase() === "HEALTHY" &&
+    (target.current_production_deployment.commit_sha ?? "") ===
+      desiredCommitSha &&
+    currentEnvMatches(target.current_production_deployment.env, expectedEnv)
   )
 }
 
@@ -156,8 +156,8 @@ function isReusableActiveDeployment(
 ): boolean {
   return Boolean(
     target.active_deployment &&
-      (target.active_deployment.commit_sha ?? "") === desiredCommitSha &&
-      currentEnvMatches(target.active_deployment.env, expectedEnv)
+    (target.active_deployment.commit_sha ?? "") === desiredCommitSha &&
+    currentEnvMatches(target.active_deployment.env, expectedEnv)
   )
 }
 

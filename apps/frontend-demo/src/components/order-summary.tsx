@@ -3,6 +3,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Link from "next/link"
+
 import { formatPrice } from "@/lib/format-price"
 import type {
   CheckoutAddressData,

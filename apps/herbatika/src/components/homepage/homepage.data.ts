@@ -1,4 +1,5 @@
 import { HOMEPAGE_PRODUCTS_PER_SECTION } from "@/lib/storefront/homepage-catalog-config"
+
 import {
   BLOG_POSTS as BLOG_POSTS_DATA,
   PRODUCT_SECTIONS as PRODUCT_SECTION_DATA,

@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation"
 import { connection } from "next/server"
 import { Suspense } from "react"
-import { DEFAULT_CHECKOUT_STEP_SLUG } from "@/components/checkout/checkout.constants"
+
+import { CheckoutFlow } from "@/components/checkout-flow"
 import {
   isCheckoutStepSlug,
   resolveCheckoutStepHref,
 } from "@/components/checkout/checkout-route.utils"
-import { CheckoutFlow } from "@/components/checkout-flow"
+import { DEFAULT_CHECKOUT_STEP_SLUG } from "@/components/checkout/checkout.constants"
 
 type CheckoutStepPageProps = {
   params: Promise<{

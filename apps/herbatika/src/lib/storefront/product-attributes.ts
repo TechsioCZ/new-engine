@@ -1,4 +1,5 @@
 import type { ProductAttribute } from "@techsio/storefront-data/product-attributes/types"
+
 import { PRODUCT_DETAIL_SECTION_TITLES } from "@/components/product-detail/product-detail.constants"
 import type { ProductDetailContentSection } from "@/components/product-detail/product-detail.types"
 

@@ -98,7 +98,7 @@ jobs:
       storybook-static-dir: storybook-static
       storybook-config-dir: .storybook
       themes: '["light","dark"]'
-      globals-template: 'theme:{{theme}}'
+      globals-template: "theme:{{theme}}"
       a11y-output-dir: a11y-report
       fail-on-violations: ${{ fromJSON(github.event.inputs.failOnViolations || vars.A11Y_REPORT_FAIL_ON_VIOLATIONS || 'false') }}
       write-junit: true

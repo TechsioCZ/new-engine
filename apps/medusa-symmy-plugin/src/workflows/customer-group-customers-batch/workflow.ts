@@ -2,6 +2,7 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import { symmyProcessCustomerGroupCustomersBatchStep } from "./steps/process-batch"
 import type {
   AssignCustomersToGroupBatchInput,
@@ -16,6 +17,4 @@ const symmyAssignCustomersToGroupBatchWorkflow = createWorkflow(
   }
 )
 
-export {
-  symmyAssignCustomersToGroupBatchWorkflow as assignCustomersToGroupBatchWorkflow,
-}
+export { symmyAssignCustomersToGroupBatchWorkflow as assignCustomersToGroupBatchWorkflow }

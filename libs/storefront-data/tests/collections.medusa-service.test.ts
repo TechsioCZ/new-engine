@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import {
   createMedusaCollectionService,
   type MedusaCollectionDetailInput,
@@ -16,9 +17,11 @@ const createCollection = (
   title = "Collection",
   handle = id
 ): HttpTypes.StoreCollection =>
-  ({ id, title, handle } as HttpTypes.StoreCollection)
+  ({ id, title, handle }) as HttpTypes.StoreCollection
 
-function createSdkMock(response?: Partial<HttpTypes.StoreCollectionListResponse>): SdkLike {
+function createSdkMock(
+  response?: Partial<HttpTypes.StoreCollectionListResponse>
+): SdkLike {
   return {
     client: {
       fetch: vi.fn().mockResolvedValue({
@@ -91,7 +94,9 @@ describe("createMedusaCollectionService", () => {
       },
       signal: undefined,
     })
-    expect(result.collections).toEqual([{ id: "pcol_2", label: "Summer Picks" }])
+    expect(result.collections).toEqual([
+      { id: "pcol_2", label: "Summer Picks" },
+    ])
     expect(result.count).toBe(1)
   })
 

@@ -1,10 +1,12 @@
 "use client"
 
 import { useInfiniteQuery } from "@tanstack/react-query"
+
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
 import { getProducts, type ProductListParams } from "@/services/product-service"
 import type { Product } from "@/types/product"
+
 import type { PageRange } from "./use-url-filters"
 
 interface UseInfiniteProductsParams extends Omit<ProductListParams, "offset"> {

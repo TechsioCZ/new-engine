@@ -1,5 +1,6 @@
 "use client"
 import { Suspense } from "react"
+
 import { FeatureBlock } from "@/components/atoms/feature-block"
 import { HeroCarousel } from "@/components/hero-carousel"
 import { ProductGrid } from "@/components/molecules/product-grid"

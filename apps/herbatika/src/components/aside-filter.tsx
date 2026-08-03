@@ -3,6 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Slider } from "@techsio/ui-kit/molecules/slider"
 import { useEffect, useState } from "react"
+
 import {
   type AsideFilterChipItem,
   AsideFilterChipSection,

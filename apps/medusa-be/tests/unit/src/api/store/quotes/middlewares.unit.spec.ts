@@ -37,9 +37,8 @@ describe("store quote middlewares", () => {
   })
 
   it("registers quote ownership checks on customer quote detail and action routes", async () => {
-    const { ensureQuoteCustomer, storeQuotesMiddlewares } = await import(
-      "../../../../../../src/api/store/quotes/middlewares"
-    )
+    const { ensureQuoteCustomer, storeQuotesMiddlewares } =
+      await import("../../../../../../src/api/store/quotes/middlewares")
 
     const ownerScopedRoutes = [
       { matcher: "/store/quotes/:id", method: "GET" },
@@ -62,9 +61,8 @@ describe("store quote middlewares", () => {
   })
 
   it("allows the customer that owns the route quote", async () => {
-    const { ensureQuoteCustomer } = await import(
-      "../../../../../../src/api/store/quotes/middlewares"
-    )
+    const { ensureQuoteCustomer } =
+      await import("../../../../../../src/api/store/quotes/middlewares")
     const graph = vi.fn().mockResolvedValue({
       data: [{ customer_id: "cus_1", id: "quote_1" }],
     })
@@ -84,9 +82,8 @@ describe("store quote middlewares", () => {
   })
 
   it("rejects customers that do not own the route quote", async () => {
-    const { ensureQuoteCustomer } = await import(
-      "../../../../../../src/api/store/quotes/middlewares"
-    )
+    const { ensureQuoteCustomer } =
+      await import("../../../../../../src/api/store/quotes/middlewares")
     const graph = vi.fn().mockResolvedValue({
       data: [{ customer_id: "cus_2", id: "quote_1" }],
     })
@@ -102,9 +99,8 @@ describe("store quote middlewares", () => {
   })
 
   it("returns not found when the route quote does not exist", async () => {
-    const { ensureQuoteCustomer } = await import(
-      "../../../../../../src/api/store/quotes/middlewares"
-    )
+    const { ensureQuoteCustomer } =
+      await import("../../../../../../src/api/store/quotes/middlewares")
     const graph = vi.fn().mockResolvedValue({ data: [] })
     const req = createRequest({ graph })
     const res = createResponse()

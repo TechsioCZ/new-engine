@@ -3,6 +3,7 @@ import otelApi from "@opentelemetry/api"
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc"
 import Sentry from "@sentry/node"
 import { SentryPropagator, SentrySpanProcessor } from "@sentry/opentelemetry"
+
 import { shouldCaptureException } from "./src/utils/errors"
 
 Sentry.init({

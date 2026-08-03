@@ -10,6 +10,7 @@ import {
   wrapProductsWithTaxPrices,
 } from "@medusajs/medusa/api/store/products/helpers"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
+
 import { isMeilisearchEnabled } from "../../../../modules/meilisearch/env"
 import {
   extractBrandHandleFromFacetId,

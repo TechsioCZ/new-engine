@@ -4,6 +4,7 @@ import {
   Modules,
 } from "@medusajs/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
 import { COMPANY_MODULE } from "../../../../src/modules/company"
 
 const COMPANY_CUSTOMER_GROUP_ENTRY_POINT = "company_customer_group"
@@ -150,9 +151,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("adds a newly linked employee customer to the company's customer group by known customer id", async () => {
-    const { addEmployeeToCustomerGroupStep } = await import(
-      "../../../../src/workflows/employee/steps/add-employee-to-customer-group"
-    )
+    const { addEmployeeToCustomerGroupStep } =
+      await import("../../../../src/workflows/employee/steps/add-employee-to-customer-group")
     const customerService = makeCustomerService()
     const graph = vi
       .fn()
@@ -182,9 +182,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("replaces an existing company customer group link before creating the new link", async () => {
-    const { setCompanyCustomerGroupStep } = await import(
-      "../../../../src/workflows/company/steps/set-company-customer-group"
-    )
+    const { setCompanyCustomerGroupStep } =
+      await import("../../../../src/workflows/company/steps/set-company-customer-group")
     const customerService = makeCustomerService()
     const linkService = makeLinkService()
     const graph = vi
@@ -236,9 +235,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("dismisses a stale soft-deleted company owner before linking a customer group", async () => {
-    const { setCompanyCustomerGroupStep } = await import(
-      "../../../../src/workflows/company/steps/set-company-customer-group"
-    )
+    const { setCompanyCustomerGroupStep } =
+      await import("../../../../src/workflows/company/steps/set-company-customer-group")
     const companyService = makeCompanyService({
       listCompanies: vi
         .fn()
@@ -296,9 +294,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("rejects linking a customer group owned by another active company", async () => {
-    const { setCompanyCustomerGroupStep } = await import(
-      "../../../../src/workflows/company/steps/set-company-customer-group"
-    )
+    const { setCompanyCustomerGroupStep } =
+      await import("../../../../src/workflows/company/steps/set-company-customer-group")
     const companyService = makeCompanyService({
       listCompanies: vi
         .fn()
@@ -342,9 +339,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("removes the company customer group link and employee group memberships when explicitly removed", async () => {
-    const { removeCompanyCustomerGroupLinkStep } = await import(
-      "../../../../src/workflows/company/steps/remove-company-customer-group-link"
-    )
+    const { removeCompanyCustomerGroupLinkStep } =
+      await import("../../../../src/workflows/company/steps/remove-company-customer-group-link")
     const customerService = makeCustomerService()
     const linkService = makeLinkService()
     const graph = vi.fn().mockResolvedValue({
@@ -381,9 +377,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("preserves the company customer group link while removing memberships before company deletion", async () => {
-    const { removeCompanyCustomerGroupLinkStep } = await import(
-      "../../../../src/workflows/company/steps/remove-company-customer-group-link"
-    )
+    const { removeCompanyCustomerGroupLinkStep } =
+      await import("../../../../src/workflows/company/steps/remove-company-customer-group-link")
     const customerService = makeCustomerService()
     const linkService = makeLinkService()
     const graph = vi.fn().mockResolvedValue({
@@ -420,9 +415,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("does not remove a company customer group link when the expected group does not match", async () => {
-    const { removeCompanyCustomerGroupLinkStep } = await import(
-      "../../../../src/workflows/company/steps/remove-company-customer-group-link"
-    )
+    const { removeCompanyCustomerGroupLinkStep } =
+      await import("../../../../src/workflows/company/steps/remove-company-customer-group-link")
     const customerService = makeCustomerService()
     const linkService = makeLinkService()
     const graph = vi.fn().mockResolvedValue({
@@ -452,9 +446,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("rejects employee mutations for a soft-deleted company", async () => {
-    const { validateCompanyActiveStep } = await import(
-      "../../../../src/workflows/company/steps/validate-company-active"
-    )
+    const { validateCompanyActiveStep } =
+      await import("../../../../src/workflows/company/steps/validate-company-active")
     const companyService = makeCompanyService({
       retrieveCompany: vi.fn().mockResolvedValue({
         deleted_at: new Date(),
@@ -472,9 +465,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("cleans stale employee state owned by a soft-deleted company", async () => {
-    const { prepareEmployeeCustomerLinkStep } = await import(
-      "../../../../src/workflows/employee/steps/prepare-employee-customer-link"
-    )
+    const { prepareEmployeeCustomerLinkStep } =
+      await import("../../../../src/workflows/employee/steps/prepare-employee-customer-link")
     const authService = makeAuthService()
     const companyService = makeCompanyService()
     const customerService = makeCustomerService()
@@ -606,9 +598,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("rejects an employee customer link owned by an active company", async () => {
-    const { prepareEmployeeCustomerLinkStep } = await import(
-      "../../../../src/workflows/employee/steps/prepare-employee-customer-link"
-    )
+    const { prepareEmployeeCustomerLinkStep } =
+      await import("../../../../src/workflows/employee/steps/prepare-employee-customer-link")
     const companyService = makeCompanyService()
     const linkService = makeLinkService()
     const graph = vi
@@ -654,9 +645,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("cleans stale employee state when the employee is deleted but its company is active", async () => {
-    const { prepareEmployeeCustomerLinkStep } = await import(
-      "../../../../src/workflows/employee/steps/prepare-employee-customer-link"
-    )
+    const { prepareEmployeeCustomerLinkStep } =
+      await import("../../../../src/workflows/employee/steps/prepare-employee-customer-link")
     const authService = makeAuthService()
     const companyService = makeCompanyService()
     const customerService = makeCustomerService()
@@ -756,9 +746,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("keeps a same-company soft-deleted employee available for restore", async () => {
-    const { prepareEmployeeCustomerLinkStep } = await import(
-      "../../../../src/workflows/employee/steps/prepare-employee-customer-link"
-    )
+    const { prepareEmployeeCustomerLinkStep } =
+      await import("../../../../src/workflows/employee/steps/prepare-employee-customer-link")
     const companyService = makeCompanyService()
     const customerService = makeCustomerService()
     const linkService = makeLinkService()
@@ -813,9 +802,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("restores a same-company soft-deleted employee instead of creating a duplicate", async () => {
-    const { createOrRestoreEmployeeStep } = await import(
-      "../../../../src/workflows/employee/steps/create-or-restore-employee"
-    )
+    const { createOrRestoreEmployeeStep } =
+      await import("../../../../src/workflows/employee/steps/create-or-restore-employee")
     const companyService = makeCompanyService({
       restoreEmployees: vi.fn(),
       updateEmployees: vi.fn().mockResolvedValue({ id: "emp_deleted" }),
@@ -897,9 +885,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("does not restore a same-company deleted employee when another active company owns the customer", async () => {
-    const { createOrRestoreEmployeeStep } = await import(
-      "../../../../src/workflows/employee/steps/create-or-restore-employee"
-    )
+    const { createOrRestoreEmployeeStep } =
+      await import("../../../../src/workflows/employee/steps/create-or-restore-employee")
     const companyService = makeCompanyService({
       createEmployees: vi.fn().mockResolvedValue({ id: "emp_new" }),
       restoreEmployees: vi.fn(),
@@ -985,9 +972,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("creates a new employee when only another company's soft-deleted employee exists", async () => {
-    const { createOrRestoreEmployeeStep } = await import(
-      "../../../../src/workflows/employee/steps/create-or-restore-employee"
-    )
+    const { createOrRestoreEmployeeStep } =
+      await import("../../../../src/workflows/employee/steps/create-or-restore-employee")
     const companyService = makeCompanyService({
       createEmployees: vi.fn().mockResolvedValue({ id: "emp_new" }),
     })

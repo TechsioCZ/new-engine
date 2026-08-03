@@ -3,18 +3,19 @@
 TanStack Query + Medusa.js data fetching library with factory pattern hooks.
 
 NOTE: `libs/storefront-data/AGENTS.md` is the canonical source of truth.
+
 - `libs/storefront-data/CLAUDE.md` is a symlink to this file.
 - Edit only `AGENTS.md`.
 - Windows: enable Developer Mode and set `git config core.symlinks true` so symlinks work.
 
 ## Stack
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| TanStack Query | 5+ | Data fetching, caching, SSR hydration |
-| Medusa.js SDK | 2.12+ | E-commerce backend API |
-| React | 19+ | UI framework |
-| TypeScript | 5+ | Type safety with generics |
+| Technology     | Version | Purpose                               |
+| -------------- | ------- | ------------------------------------- |
+| TanStack Query | 5+      | Data fetching, caching, SSR hydration |
+| Medusa.js SDK  | 2.12+   | E-commerce backend API                |
+| React          | 19+     | UI framework                          |
+| TypeScript     | 5+      | Type safety with generics             |
 
 ## Structure
 
@@ -37,13 +38,14 @@ src/
 
 ## Commands
 
-- `pnpm -C libs/storefront-data build`   # Build (tsc)
-- `pnpm -C libs/storefront-data dev`     # Watch mode
-- `pnpm -C libs/storefront-data lint`    # Biome lint
+- `pnpm -C libs/storefront-data build` # Build (tsc)
+- `pnpm -C libs/storefront-data dev` # Watch mode
+- `pnpm -C libs/storefront-data lint` # Biome lint
 
 ## Critical Rules (Do not break these)
 
 **NEVER:**
+
 - Import from `./dist/` paths - use source
 - Use `any` type - use proper generics
 - Hardcode query keys - use `createQueryKey()` utility
@@ -51,6 +53,7 @@ src/
 - Create barrel files (`index.ts` re-exports)
 
 **ALWAYS:**
+
 - Use factory pattern (`createProductHooks`, etc.)
 - Type service interfaces with generics
 - Use cache strategies from `CacheConfig` (static, semiStatic, realtime, userData)
@@ -79,18 +82,21 @@ export const {
 } = createProductHooks({
   service: productService,
   queryKeyNamespace: "my-app",
-  buildListParams: (input) => ({ ...input, offset: (input.page - 1) * input.limit }),
+  buildListParams: (input) => ({
+    ...input,
+    offset: (input.page - 1) * input.limit,
+  }),
 })
 ```
 
 ## Cache Strategies
 
-| Strategy | Stale Time | Use Case |
-|----------|------------|----------|
-| `static` | 24h | Regions, rarely-changing data |
-| `semiStatic` | 1h | Products, collections (default) |
-| `realtime` | 30s | Cart, inventory |
-| `userData` | 5 min | User profile, orders |
+| Strategy     | Stale Time | Use Case                        |
+| ------------ | ---------- | ------------------------------- |
+| `static`     | 24h        | Regions, rarely-changing data   |
+| `semiStatic` | 1h         | Products, collections (default) |
+| `realtime`   | 30s        | Cart, inventory                 |
+| `userData`   | 5 min      | User profile, orders            |
 
 ## SSR Hydration
 
@@ -120,7 +126,9 @@ export default async function Page() {
 
 ```javascript
 // next.config.js
-{ transpilePackages: ['@techsio/storefront-data'] }
+{
+  transpilePackages: ["@techsio/storefront-data"]
+}
 ```
 
 ## Research

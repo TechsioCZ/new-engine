@@ -5,6 +5,7 @@ Agent guide for database-role orchestration and preview DB lifecycle.
 ## Scope
 
 This file is the source of truth for AI agents changing:
+
 - `apps/zane-operator/src/*`
 - `docker/development/postgres/postgres-role-bootstrap.sh`
 - `docker/development/postgres/postgres-ready-with-bootstrap.sh`

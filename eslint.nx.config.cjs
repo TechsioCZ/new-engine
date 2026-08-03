@@ -77,10 +77,7 @@ module.exports = [
             },
             {
               sourceTag: "platform:backend",
-              onlyDependOnLibsWithTags: [
-                "platform:backend",
-                "platform:shared",
-              ],
+              onlyDependOnLibsWithTags: ["platform:backend", "platform:shared"],
             },
             {
               sourceTag: "framework:agnostic",

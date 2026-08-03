@@ -1,5 +1,6 @@
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+
 import { postgresAdapter } from "@payloadcms/db-postgres"
 import { seoPlugin } from "@payloadcms/plugin-seo"
 import { lexicalEditor } from "@payloadcms/richtext-lexical"
@@ -17,6 +18,7 @@ import { sl } from "@payloadcms/translations/languages/sl"
 import { autoTranslate } from "@pigment/auto-translate"
 import { buildConfig } from "payload"
 import sharp from "sharp"
+
 import { ArticleCategories } from "./collections/article-categories"
 import { Articles } from "./collections/articles"
 import { HeroCarousels } from "./collections/hero-carousels"
@@ -24,7 +26,6 @@ import { Media } from "./collections/media"
 import { PageCategories } from "./collections/page-categories"
 import { Pages } from "./collections/pages"
 import { Users } from "./collections/users"
-import { migrations } from "./migrations"
 import { articleCategoriesWithArticlesEndpoint } from "./lib/endpoints/article-categories-with-articles"
 import { articleImportEndpoint } from "./lib/endpoints/article-import"
 import { healthEndpoint } from "./lib/endpoints/health"
@@ -36,6 +37,7 @@ import {
   isEnabled,
   resolveEnvLocales,
 } from "./lib/utils/env"
+import { migrations } from "./migrations"
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)

@@ -1,10 +1,10 @@
 import "server-only"
-
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import {
   MEDUSA_BACKEND_URL,
   MEDUSA_PUBLISHABLE_KEY,
 } from "@/lib/storefront/ssr/constants"
+
 import { normalizeString } from "./search-autocomplete-normalizers"
 import { createProductSuggestions } from "./search-autocomplete-product-normalizers"
 import {

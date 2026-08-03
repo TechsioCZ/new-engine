@@ -8,6 +8,7 @@ import type {
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import {
   getProductAttributeProductLockKey,
   getProductAttributeService,

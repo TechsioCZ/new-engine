@@ -7,6 +7,7 @@ import Image from "next/image"
 import NextLink from "next/link"
 import type { MouseEventHandler, PointerEventHandler } from "react"
 import { useEffect, useRef, useState } from "react"
+
 import type { HeroBannerItem } from "@/components/homepage/homepage.data"
 
 const HERO_CTA_LABEL = "Zistiť viac"

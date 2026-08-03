@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
+
 import {
   buildDevHmrOrigins,
   buildStorefrontContentSecurityPolicy,
@@ -170,7 +171,10 @@ test("createStorefrontSecurityConfig supports preset + extend + replace", async 
     cspHeader?.value ?? "",
     /script-src 'self' 'unsafe-inline' 'unsafe-eval' https:\/\/www\.googletagmanager\.com/
   )
-  assert.match(cspHeader?.value ?? "", /frame-src 'self' https:\/\/www\.ppl\.cz/)
+  assert.match(
+    cspHeader?.value ?? "",
+    /frame-src 'self' https:\/\/www\.ppl\.cz/
+  )
   assert.equal(permissionsHeader?.value, "camera=(), microphone=()")
   assert.equal(cacheControlHeader?.value, "public, max-age=60")
 })

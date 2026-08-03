@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { Tabs } from "@techsio/ui-kit/molecules/tabs"
 import { Fragment } from "react"
+
 import { AccountProductListItemRow } from "@/components/product-lists/account-product-list-item-row"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import {
@@ -12,6 +13,7 @@ import {
   getProductListTitle,
   isFavoriteProductList,
 } from "@/lib/storefront/product-lists"
+
 import type { AccountProductListsController } from "./use-account-product-lists"
 
 type ProductListTabsProps = {

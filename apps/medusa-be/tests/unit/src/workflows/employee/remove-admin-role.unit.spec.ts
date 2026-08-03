@@ -73,9 +73,8 @@ describe("removeAdminRoleStep", () => {
   })
 
   it("does nothing when the employee customer has no emailpass provider identity", async () => {
-    const { removeAdminRoleStep } = await import(
-      "../../../../../src/workflows/employee/steps/remove-admin-role"
-    )
+    const { removeAdminRoleStep } =
+      await import("../../../../../src/workflows/employee/steps/remove-admin-role")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -118,9 +117,8 @@ describe("removeAdminRoleStep", () => {
   })
 
   it("clears the company admin role when a provider identity exists", async () => {
-    const { removeAdminRoleStep } = await import(
-      "../../../../../src/workflows/employee/steps/remove-admin-role"
-    )
+    const { removeAdminRoleStep } =
+      await import("../../../../../src/workflows/employee/steps/remove-admin-role")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -164,9 +162,8 @@ describe("removeAdminRoleStep", () => {
   })
 
   it("keeps the company admin role when another active admin employee remains", async () => {
-    const { removeAdminRoleStep } = await import(
-      "../../../../../src/workflows/employee/steps/remove-admin-role"
-    )
+    const { removeAdminRoleStep } =
+      await import("../../../../../src/workflows/employee/steps/remove-admin-role")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({

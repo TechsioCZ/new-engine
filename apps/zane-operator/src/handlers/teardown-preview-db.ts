@@ -9,11 +9,15 @@ interface TeardownPreviewDbDeps {
 
 export async function handleTeardownPreviewDb(
   prNumberParam: string,
-  deps: TeardownPreviewDbDeps,
+  deps: TeardownPreviewDbDeps
 ): Promise<Response> {
   try {
     const prNumber = parsePrNumber(prNumberParam, "pr_number path parameter")
-    const result = await teardownPreviewDatabase(deps.sql, deps.config, prNumber)
+    const result = await teardownPreviewDatabase(
+      deps.sql,
+      deps.config,
+      prNumber
+    )
 
     console.info(
       JSON.stringify({
@@ -27,7 +31,7 @@ export async function handleTeardownPreviewDb(
         noop: result.noop,
         noop_reason: result.noopReason,
         active_connections_at_drop: result.activeConnectionsAtDrop,
-      }),
+      })
     )
 
     return jsonResponse(200, {

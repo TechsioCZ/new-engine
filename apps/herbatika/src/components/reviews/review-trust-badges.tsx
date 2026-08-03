@@ -1,4 +1,5 @@
 import NextImage from "next/image"
+
 import { REVIEW_TRUST_SOURCES } from "@/components/reviews/reviews.data"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 

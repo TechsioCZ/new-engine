@@ -1,4 +1,5 @@
 import { createHmac } from "node:crypto"
+
 import {
   afterAll,
   beforeAll,
@@ -89,9 +90,8 @@ describe("POST /hooks/cms/invalidate", () => {
   let POST: (req: any, res: any) => Promise<any>
 
   beforeAll(async () => {
-    const routeModule = await import(
-      "../../../../../../../src/api/hooks/cms/invalidate/route"
-    )
+    const routeModule =
+      await import("../../../../../../../src/api/hooks/cms/invalidate/route")
     POST = routeModule.POST
   })
 
@@ -233,9 +233,8 @@ describe("POST /hooks/cms/invalidate - missing webhook secret", () => {
     // biome-ignore lint/performance/noDelete: delete required to unset env vars in Node.js
     delete process.env.PAYLOAD_WEBHOOK_SECRET
 
-    const { POST } = await import(
-      "../../../../../../../src/api/hooks/cms/invalidate/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/hooks/cms/invalidate/route")
 
     const body = { collection: "pages" }
     const req = createMockRequest(body, { "x-payload-signature": "any" })

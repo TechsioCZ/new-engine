@@ -3,6 +3,7 @@ import {
   authenticate,
   validateAndTransformBody,
 } from "@medusajs/framework/http"
+
 import { UpsertProductsBatchSchema } from "./validators"
 
 export const symmyProductsBatchRoutes: MiddlewareRoute[] = [

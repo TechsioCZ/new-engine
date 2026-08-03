@@ -9,6 +9,7 @@ import {
 } from "@medusajs/ui"
 import type { MouseEvent } from "react"
 import { useTranslation } from "react-i18next"
+
 import { getPaginationTranslations } from "../../lib/table"
 
 type BrandDataTableProps<TData> = {

@@ -1,6 +1,7 @@
 "use client"
 
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
+
 import { AccountSurface } from "@/components/account/account-surface"
 
 export function AccountOrdersSkeleton() {

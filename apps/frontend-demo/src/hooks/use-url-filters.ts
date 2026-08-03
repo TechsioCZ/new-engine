@@ -2,6 +2,7 @@
 
 import { createPaginationGetPageUrl } from "@techsio/ui-kit/molecules/pagination"
 import { useRouter, useSearchParams } from "next/navigation"
+
 import type { FilterState } from "@/components/organisms/product-filters"
 import type { SortOption } from "@/utils/product-filters"
 

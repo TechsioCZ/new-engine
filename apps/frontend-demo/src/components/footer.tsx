@@ -3,6 +3,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Input } from "@techsio/ui-kit/atoms/input"
 import Link from "next/link"
 import type { FormEvent } from "react"
+
 import type { NavSection } from "@/types/navigation"
 import { handleFormSubmit } from "@/utils/form-utils"
 

@@ -1,8 +1,10 @@
-import Image from "next/image"
-import "../../tokens/app-components/molecules/_payment-selection.css"
 import { Button } from "@techsio/ui-kit/atoms/button"
+
+import "../../tokens/app-components/molecules/_payment-selection.css"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
+import Image from "next/image"
+
 import { PAYMENT_METHODS } from "@/lib/checkout-data"
 
 interface PaymentSelectionProps {

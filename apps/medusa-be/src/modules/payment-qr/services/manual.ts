@@ -28,6 +28,7 @@ import {
   PaymentActions,
 } from "@medusajs/framework/utils"
 import QRCode from "qrcode"
+
 import { buildPaymentQrSpayd } from "../../../utils/order-payment-qr"
 import { QR_PAYMENT_MODULE, QR_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
 import type { QrPaymentModuleService } from "../service"

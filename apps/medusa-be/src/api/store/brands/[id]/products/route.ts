@@ -4,6 +4,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+
 import { ProductBrandLink } from "../../../../../links/product-brand"
 import { normalizeProductSalesChannelFilter } from "../../../../utils/product-filters"
 import type { StoreBrandsDetailProductsSchemaType } from "../../validators"

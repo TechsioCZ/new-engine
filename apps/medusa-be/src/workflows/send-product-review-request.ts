@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto"
+
 import type {
   CreateNotificationDTO,
   Logger,
@@ -14,6 +15,7 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import { EMAIL_LOG_MODULE } from "../modules/email-log"
 import type EmailLogModuleService from "../modules/email-log/service"
 import { PRODUCT_REVIEW_MODULE } from "../modules/product-review"

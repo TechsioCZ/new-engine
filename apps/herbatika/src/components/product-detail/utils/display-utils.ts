@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery"
+
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-detail/product-detail.constants"
 import { normalizeCategoryName } from "@/components/product-detail/utils/metadata-parsers"
 

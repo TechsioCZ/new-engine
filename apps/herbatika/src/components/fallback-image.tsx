@@ -2,6 +2,7 @@
 
 import NextImage, { type ImageProps } from "next/image"
 import { useEffect, useState } from "react"
+
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 
 type FallbackImageProps = Omit<ImageProps, "src"> & {

@@ -94,6 +94,7 @@ Teardown response includes role cleanup result:
 ### 1. Ensure database bootstrap is owned by `medusa-db`
 
 For local Docker Compose environments:
+
 - `medusa_app`, `medusa_dev`, and `zane_operator` are bootstrapped by the Postgres-side role bootstrap script baked into `medusa-db`
 - every `medusa-db` start reruns the same bootstrap through `/usr/local/bin/run-postgres-with-bootstrap.sh`
 
@@ -103,15 +104,16 @@ For existing Postgres volumes (already initialized before bootstrap scripts were
 bash ./scripts/apply-postgres-role-bootstrap.sh
 ```
 
-The Postgres bootstrap migration is idempotent and includes legacy object migration from `public` schema into the configured app schema (`DB_APP_SCHEMA`, default `medusa`).
-If an object with the same name already exists in the target app schema, bootstrap fails explicitly so you can resolve collisions safely.
+The Postgres bootstrap migration is idempotent and includes legacy object migration from `public` schema into the configured app schema (`DB_APP_SCHEMA`, default `medusa`). If an object with the same name already exists in the target app schema, bootstrap fails explicitly so you can resolve collisions safely.
 
 Idempotency verification for existing databases:
 
 ```bash
 bash ./scripts/apply-postgres-role-bootstrap.sh --verify-idempotent
 ```
+
 This bootstrap path is idempotent and enforces role attributes for `zane_operator`:
+
 - `LOGIN`
 - `NOSUPERUSER`
 - `CREATEDB`
@@ -121,6 +123,7 @@ This bootstrap path is idempotent and enforces role attributes for `zane_operato
 - `pg_signal_backend` membership
 
 `zane_operator` must be able to:
+
 - connect to the server (`PGHOST`/`PGPORT`)
 - create preview DBs (`CREATEDB`)
 - create per-preview app login roles (`CREATEROLE`)
@@ -129,15 +132,14 @@ This bootstrap path is idempotent and enforces role attributes for `zane_operato
 - clone from template DB (`template_medusa`)
 
 Preview DB cloning uses:
+
 - `CREATE DATABASE ... STRATEGY=FILE_COPY`
 - startup recommendation: run PostgreSQL with `-c file_copy_method=clone` for fastest file-copy cloning
 - zane-operator logs a startup warning (non-blocking) when `file_copy_method` is not `clone`
 
-`medusa_dev` (or your configured `DB_PREVIEW_DEV_ROLE`) must exist. `ensure` grants it connect+schema/table access on each preview DB.
-Preview app users are scoped to one schema only (configured by `DB_APP_SCHEMA`, default `medusa`).
+`medusa_dev` (or your configured `DB_PREVIEW_DEV_ROLE`) must exist. `ensure` grants it connect+schema/table access on each preview DB. Preview app users are scoped to one schema only (configured by `DB_APP_SCHEMA`, default `medusa`).
 
-For `CREATE DATABASE ... WITH TEMPLATE ...`, the operator must be superuser or own the template DB.
-Preferred setup is ownership transfer of the template DB:
+For `CREATE DATABASE ... WITH TEMPLATE ...`, the operator must be superuser or own the template DB. Preferred setup is ownership transfer of the template DB:
 
 ```sql
 ALTER DATABASE template_medusa OWNER TO zane_operator;
@@ -146,6 +148,7 @@ ALTER DATABASE template_medusa OWNER TO zane_operator;
 The DB-owned bootstrap path on `medusa-db` enforces this ownership transfer automatically whenever the canonical `ZANE_OPERATOR_PG*` / `ZANE_OPERATOR_DB_TEMPLATE_NAME` values are configured and the template DB exists.
 
 Important runtime assumption:
+
 - preview grant/ownership sync expects cloned objects to be owned by the executing role for zane-operator (normally `zane_operator` when following this guide)
 - if template object ownership differs, preview app role ownership transfer may be partial and you may need to normalize template owners before enabling automation
 
@@ -154,6 +157,7 @@ Important runtime assumption:
 Use `apps/zane-operator/.env.example` as baseline.
 
 Required production values:
+
 - `API_AUTH_TOKEN` must be a strong random secret
 - `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`
 - `DB_TEMPLATE_NAME=template_medusa`
@@ -164,6 +168,7 @@ Required production values:
 - `DB_PREVIEW_APP_PASSWORD_SECRET=<long-random-secret>`
 
 Postgres-side bootstrap values now live on `medusa-db`, not on `zane-operator`:
+
 - local compose: `medusa-db` derives its bootstrap target from `DC_ZANE_OPERATOR_PGUSER`, `DC_ZANE_OPERATOR_PGPASSWORD`, and `DC_ZANE_OPERATOR_DB_TEMPLATE_NAME`
 - deployed Zane service: `medusa-db` derives its bootstrap target from `ZANE_OPERATOR_PGUSER`, `ZANE_OPERATOR_PGPASSWORD`, and `ZANE_OPERATOR_DB_TEMPLATE_NAME`
 
@@ -229,6 +234,7 @@ docker run --rm --name zane-operator \
 ```
 
 Required values in `.env` for this container:
+
 - `API_AUTH_TOKEN`
 - `PGHOST`
 - `PGPORT`
@@ -256,6 +262,7 @@ curl -fsS http://localhost:8082/healthz
 Use this guide to create the canonical Zane project that CI and `zane-operator` expect.
 
 Important model constraints:
+
 - `zane-operator` authenticates upstream with username/password session + CSRF login, not a direct Zane token
 - CI resolves services by exact Zane service name from `apps/new-engine-ctl/config/stack-manifest.yaml`
 - preview environments are cloned from the protected `production` environment
@@ -267,6 +274,7 @@ Important model constraints:
 Preferred path: use the public `mise` task instead of calling the raw shell entrypoint or creating the project and service envs by hand.
 
 The helper behind that task:
+
 - creates or reuses the canonical project
 - expects the protected `production` environment and fails if it is missing
 - creates or reuses the required services as Git services with Dockerfile builders
@@ -305,6 +313,7 @@ mise run dev:zane:project:sync -- \
 The helper is intentionally interactive for real runs and asks you to confirm the target host/project before mutating a live Zane stack. Use `--yes` only when you deliberately want to bypass that prompt.
 
 Optional overrides worth knowing:
+
 - `--repository-url https://github.com/<org>/<repo>.git`
 - `--branch <branch>` when you intentionally want a different deployment source than the current checked-out branch
 - `--git-app-id <id>` if the repository is private and Zane must use an installed git app
@@ -341,12 +350,12 @@ node apps/new-engine-ctl/dist/cli.js bootstrap zane-project plan \
 
 That planning surface is fed by shell-owned upstream Zane inspection, and the checked-in helper wrapper now executes only the resulting CTL-owned desired state plus manual transport.
 
-Managed public service URLs are derived from the project slug plus the Zane root-domain route contract. Ambient `.env.zane` frontend URL values do not override those deployed URLs.
-The same CTL-owned bootstrap plan also defines which shared env keys are created and which service env vars consume them via `{{env.VAR}}` references.
+Managed public service URLs are derived from the project slug plus the Zane root-domain route contract. Ambient `.env.zane` frontend URL values do not override those deployed URLs. The same CTL-owned bootstrap plan also defines which shared env keys are created and which service env vars consume them via `{{env.VAR}}` references.
 
 `zane-operator` no longer ships a separate bootstrap CLI. Role/template bootstrap is owned by `medusa-db`, so Zane-targeted maintenance should sync `medusa-db` bootstrap envs and redeploy `medusa-db` before redeploying `zane-operator` when those credentials change.
 
 If your repo is private:
+
 1. install/configure the git app in Zane first
 2. rerun the helper with `--git-app-id <id>`
 
@@ -355,6 +364,7 @@ If you want to inspect or patch values manually, the underlying shell entrypoint
 #### 6.2 Post-bootstrap manual checks
 
 After the helper finishes:
+
 1. Open the `new-engine` project in Zane.
 2. Confirm these exact service names exist:
    - `medusa-db`
@@ -377,18 +387,21 @@ Main-lane deploys now resolve downtime risk once after affected services are fil
 If any selected service is marked `ci.zane.downtime_risk: true`, GitHub Actions expects an environment named `zaneops-main-downtime`.
 
 To require a human approval before downtime-risk deploys:
+
 1. create the `zaneops-main-downtime` environment in GitHub
 2. add required reviewers to that environment
 
 If the environment exists without required reviewers, the job still succeeds but will not pause for manual approval by itself.
 
 Public route follow-up remains manual on purpose:
+
 - add a public route for `medusa-be` if you need browser/API access
 - add a public route for `n1` if you need storefront access
 - add a public route for `medusa-meilisearch` only if the storefront should query Meilisearch directly from the browser
 - add a public route for `medusa-minio` if browser-facing file URLs should be served directly from MinIO
 
 Notes:
+
 - `MINIO_FILE_URL` should eventually be a public URL when browsers need direct asset access
 - `NEXT_PUBLIC_MEILISEARCH_URL` should eventually be a public URL if the storefront searches directly from the browser
 - `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY` is now provisioned through the active runtime-provider contract during deploy orchestration; keep the provider target in `stack-inputs.yaml` aligned with the frontend env contract
@@ -396,6 +409,7 @@ Notes:
 #### 6.3 First deploy notes
 
 Before the first real preview/main smoke:
+
 - set local operator env:
   - `DC_ZANE_OPERATOR_ZANE_BASE_URL`
   - `DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL` only if the deployed operator cannot reach the public Zane hostname directly
@@ -408,11 +422,13 @@ Before the first real preview/main smoke:
   - the local main helper snapshots `HEAD` to the concrete current commit SHA at run start unless `--head-sha <sha>` is passed explicitly
 
 Operational notes:
+
 - preview environments are derived outside Zane as `pr-<number>` by default
 - this repo archives preview environments explicitly during teardown; built-in Zane preview auto-teardown does not cover these cloned environments
 - `n1` consumes `NEXT_PUBLIC_*` variables in the frontend build. If your Zane service builds the image from source, make those values available before the first build. If your Zane service runs a prebuilt image, changing those values later requires rebuilding and redeploying `n1`
 
 Active GitHub Actions contract:
+
 - workflows:
   - `.github/workflows/zaneops-preview-after-ci.yml`
   - `.github/workflows/zaneops-main-after-ci.yml`
@@ -438,13 +454,16 @@ bun run create:dev-user -- --username medusa_dev --password-env DEV_ROLE_PASSWOR
 ```
 
 Required flag:
+
 - `--password-env <VAR>` reads the password from `process.env[VAR]`. Plaintext `--password` is not supported.
 
 Optional flag:
+
 - `--no-grant-connect-all-dbs` skips broad cross-database grant sync and revokes broad database-level grants (`CONNECT`, `TEMPORARY`, `CREATE`) from the target role on all non-template databases.
 - `--allow-prod-broad-grants` allows broad grants when `NODE_ENV=production` (default behavior blocks this)
 
 Behavior:
+
 - creates the role when missing
 - always enforces role attributes: `NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS INHERIT LOGIN`
 - grants explicit read/write privileges on existing objects for all non-system schemas (including schema `CREATE`)
@@ -454,6 +473,7 @@ Behavior:
 - returns idempotent output for existing roles
 
 Required env vars for CLI run:
+
 - `PGHOST`
 - `PGUSER`
 - `PGPASSWORD`
@@ -497,6 +517,7 @@ node apps/new-engine-ctl/dist/cli.js bootstrap preview-template-db plan \
 ```
 
 Prerequisites:
+
 - PostgreSQL client tools available (`pg_dump`, `pg_restore`, `psql`)
 - root-level PostgreSQL role access on the target cluster (role `root` or equivalent)
 - ability to pause preview creation during refresh window
@@ -504,6 +525,7 @@ Prerequisites:
 The commands below assume host-provided PostgreSQL environment defaults are already available (Docker Compose context), especially `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD`.
 
 1. Pause preview DB operations
+
 - temporarily disable zane-operator deployment hooks/workflow calls
 - ensure no new `/v1/preview-db/ensure` requests are running
 
@@ -540,6 +562,7 @@ PGPASSWORD="$POSTGRES_PASSWORD" pg_restore \
 ```
 
 4. Validate staging content
+
 - run critical checks in `${TEMPLATE_STAGING_DB}` (schema, core tables, expected row counts)
 - verify app compatibility (migrations/scripts expected by preview environments)
 
@@ -602,6 +625,7 @@ PGPASSWORD="$POSTGRES_PASSWORD" psql \
 ```
 
 6. Re-enable preview operations and verify
+
 - re-enable workflow/hooks calling zane-operator
 - run one ensure/teardown smoke test against a throwaway PR number:
 

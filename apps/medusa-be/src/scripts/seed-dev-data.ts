@@ -1,5 +1,6 @@
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import seedDatabaseWorkflow, {
   type SeedDatabaseWorkflowInput,
 } from "../workflows/seed/workflows/seed-database"

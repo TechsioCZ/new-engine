@@ -5,28 +5,22 @@
   /* === BASE COLORS === */
   /* Background colors */
   --color-disclaimer-default-bg: --alpha(
-    var(--color-primary) /
-    var(--opacity-disclaimer)
+    var(--color-primary) / var(--opacity-disclaimer)
   );
   --color-disclaimer-info-bg: --alpha(
-    var(--color-info) /
-    var(--opacity-disclaimer)
+    var(--color-info) / var(--opacity-disclaimer)
   );
   --color-disclaimer-warning-bg: --alpha(
-    var(--color-warning) /
-    var(--opacity-disclaimer)
+    var(--color-warning) / var(--opacity-disclaimer)
   );
   --color-disclaimer-error-bg: --alpha(
-    var(--color-danger) /
-    var(--opacity-disclaimer)
+    var(--color-danger) / var(--opacity-disclaimer)
   );
   --color-disclaimer-success-bg: --alpha(
-    var(--color-success) /
-    var(--opacity-disclaimer)
+    var(--color-success) / var(--opacity-disclaimer)
   );
   --color-disclaimer-fg: --alpha(
-    var(--color-fg-reverse) /
-    var(--opacity-disclaimer)
+    var(--color-fg-reverse) / var(--opacity-disclaimer)
   );
 
   /* Text colors */

@@ -8,6 +8,7 @@ import {
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useSearchParams } from "react-router-dom"
+
 import { DataTableFilterContext, useDataTableFilterContext } from "./context"
 import { NumberFilter } from "./number-filter"
 import { SelectFilter } from "./select-filter"

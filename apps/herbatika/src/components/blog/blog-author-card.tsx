@@ -1,4 +1,5 @@
 import NextImage from "next/image"
+
 import type { BlogPost } from "@/lib/storefront/blog-content"
 
 type BlogAuthorCardProps = {

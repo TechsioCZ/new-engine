@@ -2,6 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import type { ReactNode } from "react"
+
 import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel"
 import {
   HerbatikaProductGrid,

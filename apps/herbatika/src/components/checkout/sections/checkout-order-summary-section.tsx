@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import NextImage from "next/image"
+
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 import { SupportingText } from "@/components/text/supporting-text"
 import {
@@ -8,6 +9,7 @@ import {
   resolveLineItemTotalAmount,
 } from "@/lib/storefront/cart-calculations"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+
 import { CheckoutSelectBenefits } from "../checkout-select-benefits"
 import { resolveAvailabilityText } from "../utils/resolve-availability-text"
 

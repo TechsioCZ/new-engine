@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import { describe, expect, it, vi } from "vitest"
+
 import { createMedusaStorefrontPreset } from "../src/medusa/preset"
 import { createMedusaProductLocationAvailabilityService } from "../src/product-location-availability/medusa-service"
 import { createProductLocationAvailabilityQueryKeys } from "../src/product-location-availability/query-keys"

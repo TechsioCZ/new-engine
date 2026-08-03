@@ -1,6 +1,7 @@
 import { tv } from "@techsio/ui-kit/utils"
 import type * as React from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import "../../tokens/app-components/atoms/_skeleton-loader.css"
 
 const skeletonVariants = tv({
@@ -69,7 +70,8 @@ const skeletonVariants = tv({
 })
 
 export interface SkeletonLoaderProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof skeletonVariants> {
   count?: number
   containerClassName?: string

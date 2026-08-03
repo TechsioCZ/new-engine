@@ -12,7 +12,6 @@ export function getOrderStatusLabel(status: string): string {
   return orderStatusMap[status as OrderStatus] || status
 }
 
-
 export function truncateProductTitle(title: string, maxWords = 3): string {
   const words = title.split(" ")
   if (words.length <= maxWords) {

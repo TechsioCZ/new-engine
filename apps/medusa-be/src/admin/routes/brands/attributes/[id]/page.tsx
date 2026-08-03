@@ -22,6 +22,7 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom"
+
 import { BrandDataTable } from "../../../../components/brands/brand-data-table"
 import {
   type BrandAttributeTypeBrand,

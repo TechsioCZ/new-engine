@@ -65,16 +65,16 @@ tags: [payload, queries, local-api, rest, graphql]
 ```typescript
 // Find documents
 const posts = await payload.find({
-  collection: 'posts',
+  collection: "posts",
   where: {
-    status: { equals: 'published' },
-    'author.name': { contains: 'john' },
+    status: { equals: "published" },
+    "author.name": { contains: "john" },
   },
   depth: 2, // Populate relationships
   limit: 10,
   page: 1,
-  sort: '-createdAt',
-  locale: 'en',
+  sort: "-createdAt",
+  locale: "en",
   select: {
     title: true,
     author: true,
@@ -83,40 +83,40 @@ const posts = await payload.find({
 
 // Find by ID
 const post = await payload.findByID({
-  collection: 'posts',
-  id: '123',
+  collection: "posts",
+  id: "123",
   depth: 2,
 })
 
 // Create
 const post = await payload.create({
-  collection: 'posts',
+  collection: "posts",
   data: {
-    title: 'New Post',
-    status: 'draft',
+    title: "New Post",
+    status: "draft",
   },
 })
 
 // Update
 await payload.update({
-  collection: 'posts',
-  id: '123',
+  collection: "posts",
+  id: "123",
   data: {
-    status: 'published',
+    status: "published",
   },
 })
 
 // Delete
 await payload.delete({
-  collection: 'posts',
-  id: '123',
+  collection: "posts",
+  id: "123",
 })
 
 // Count
 const count = await payload.count({
-  collection: 'posts',
+  collection: "posts",
   where: {
-    status: { equals: 'published' },
+    status: { equals: "published" },
   },
 })
 ```
@@ -128,21 +128,21 @@ const count = await payload.count({
 ```typescript
 // ❌ WRONG: User is passed but access control is bypassed
 const posts = await payload.find({
-  collection: 'posts',
+  collection: "posts",
   user: currentUser,
   // Result: Operation runs with ADMIN privileges
 })
 
 // ✅ CORRECT: Respects user's access control permissions
 const posts = await payload.find({
-  collection: 'posts',
+  collection: "posts",
   user: currentUser,
   overrideAccess: false, // Required to enforce access control
 })
 
 // Administrative operation (intentionally bypass access control)
 const allPosts = await payload.find({
-  collection: 'posts',
+  collection: "posts",
   // No user parameter, overrideAccess defaults to true
 })
 ```
@@ -156,10 +156,10 @@ const allPosts = await payload.find({
 ## REST API
 
 ```typescript
-import { stringify } from 'qs-esm'
+import { stringify } from "qs-esm"
 
 const query = {
-  status: { equals: 'published' },
+  status: { equals: "published" },
 }
 
 const queryString = stringify(
@@ -168,7 +168,7 @@ const queryString = stringify(
     depth: 2,
     limit: 10,
   },
-  { addQueryPrefix: true },
+  { addQueryPrefix: true }
 )
 
 const response = await fetch(`https://api.example.com/api/posts${queryString}`)
@@ -193,7 +193,11 @@ POST   /api/globals/{slug}         - Update global
 
 ```graphql
 query {
-  Posts(where: { status: { equals: published } }, limit: 10, sort: "-createdAt") {
+  Posts(
+    where: { status: { equals: published } }
+    limit: 10
+    sort: "-createdAt"
+  ) {
     docs {
       id
       title

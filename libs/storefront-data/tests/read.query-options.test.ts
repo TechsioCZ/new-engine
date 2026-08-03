@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query"
+
 import { createCollectionQueryOptionsFactory } from "../src/collections/query-options"
 import { createOrderQueryOptionsFactory } from "../src/orders/query-options"
 

@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import {
   createMedusaProductService,
   type MedusaProductDetailInput,
@@ -15,8 +16,7 @@ const createProduct = (
   id: string,
   title = "Product",
   handle = id
-): HttpTypes.StoreProduct =>
-  ({ id, title, handle } as HttpTypes.StoreProduct)
+): HttpTypes.StoreProduct => ({ id, title, handle }) as HttpTypes.StoreProduct
 
 function createSdkMock(
   response?: Partial<HttpTypes.StoreProductListResponse>

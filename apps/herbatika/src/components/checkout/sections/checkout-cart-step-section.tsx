@@ -2,6 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
+
 import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart-item.utils"
 import { useAppToast } from "@/hooks/use-app-toast"
 import { useRemoveLineItem, useUpdateLineItem } from "@/lib/storefront/cart"
@@ -10,6 +11,7 @@ import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { PRODUCT_DETAIL_FIELDS } from "@/lib/storefront/products"
+
 import { useCartProductsByHandle } from "../use-cart-products-by-handle"
 import { CheckoutCartItemRow } from "./checkout-cart-item-row"
 

@@ -3,6 +3,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+
 import { CustomerProductListLink } from "../links/customer-product-list"
 import { isObjectRecord } from "./guards"
 

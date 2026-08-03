@@ -5,6 +5,7 @@ import { Icon } from "@ui/atoms/icon"
 import Image from "next/image"
 import Link from "next/link"
 import type { ReactNode } from "react"
+
 import { formatDateString } from "@/utils/format/format-date"
 import {
   getOrderStatusColor,

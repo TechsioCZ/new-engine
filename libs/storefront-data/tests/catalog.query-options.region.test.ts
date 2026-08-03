@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query"
+
 import { createCatalogQueryOptionsFactory } from "../src/catalog/query-options"
 import type { CatalogFacets } from "../src/catalog/types"
 

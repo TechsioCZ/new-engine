@@ -61,9 +61,8 @@ describe("POST /admin/order-expedition/status", () => {
   })
 
   it("prevalidates every selected order and blocks the whole batch when one is missing", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/status/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi.fn().mockResolvedValue({
       data: [{ id: "order_1", display_id: 1001, status: "pending" }],
     })
@@ -98,9 +97,8 @@ describe("POST /admin/order-expedition/status", () => {
   })
 
   it("runs completed as one bulk workflow after prevalidation", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/status/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -138,9 +136,8 @@ describe("POST /admin/order-expedition/status", () => {
   })
 
   it("runs direct Medusa status updates through the custom bulk update workflow", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/status/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -184,9 +181,8 @@ describe("POST /admin/order-expedition/status", () => {
   })
 
   it("blocks cancellation before mutation when a selected order has active fulfillments", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/status/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
@@ -224,9 +220,8 @@ describe("POST /admin/order-expedition/status", () => {
   })
 
   it("blocks direct status updates for final archived orders", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/status/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
@@ -263,9 +258,8 @@ describe("POST /admin/order-expedition/status", () => {
   })
 
   it("blocks archive for mutable orders that must be finalized first", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/status/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
@@ -302,9 +296,8 @@ describe("POST /admin/order-expedition/status", () => {
   })
 
   it("allows canceled orders to be archived", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/status/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -348,9 +341,8 @@ describe("POST /admin/order-expedition/status", () => {
   })
 
   it("runs cancel through the custom bulk cancel workflow after prevalidation", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/status/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({

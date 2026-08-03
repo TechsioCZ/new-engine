@@ -1,6 +1,6 @@
 import "server-only"
-
 import { dehydrate } from "@tanstack/react-query"
+
 import { resolveRelatedCategoryIds } from "../category-tree"
 import {
   buildProductListParams,

@@ -2,7 +2,9 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
 import NextLink from "next/link"
+
 import type { BlogPost } from "@/lib/storefront/blog-content"
+
 import { formatBlogDate, formatTopicFromKey } from "./blog-formatters"
 
 type BlogRelatedCardProps = {

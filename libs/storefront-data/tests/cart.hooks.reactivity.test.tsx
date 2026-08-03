@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { hydrateRoot } from "react-dom/client"
 import { renderToString } from "react-dom/server"
+
 import { createCartHooks } from "../src/cart/hooks"
 import { createCartQueryKeys } from "../src/cart/query-keys"
 import { StorefrontDataProvider } from "../src/client/provider"
@@ -230,7 +231,10 @@ describe("createCartHooks reactive storage and cache sync", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     })
     const wrapper = createWrapper(queryClient)
 

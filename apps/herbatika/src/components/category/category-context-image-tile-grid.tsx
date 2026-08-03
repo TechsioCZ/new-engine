@@ -6,6 +6,7 @@ import { Link } from "@techsio/ui-kit/atoms/link"
 import type { StaticImageData } from "next/image"
 import NextImage from "next/image"
 import NextLink from "next/link"
+
 import { resolveCategoryImage } from "@/lib/category-images"
 
 export type CategoryContextImageTile = {

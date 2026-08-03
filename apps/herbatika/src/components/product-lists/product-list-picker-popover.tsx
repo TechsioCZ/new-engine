@@ -8,8 +8,10 @@ import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
 import NextLink from "next/link"
 import type { ReactNode } from "react"
+
 import type { Product } from "@/components/product-detail/product-detail.types"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+
 import {
   type ProductListPickerRow,
   useProductListPicker,

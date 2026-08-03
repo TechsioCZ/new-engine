@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
+
 import { CmsPageArticle } from "@/components/cms-page-article"
 import { getCmsPage } from "@/services/cms-service"
 

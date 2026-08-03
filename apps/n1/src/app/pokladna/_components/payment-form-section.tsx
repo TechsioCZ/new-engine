@@ -2,6 +2,7 @@
 
 import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"
 import { useState } from "react"
+
 import { useCheckoutPayment } from "@/hooks/use-checkout-payment"
 import { useSuspenseRegion } from "@/hooks/use-region"
 import type { Cart } from "@/services/cart-service"

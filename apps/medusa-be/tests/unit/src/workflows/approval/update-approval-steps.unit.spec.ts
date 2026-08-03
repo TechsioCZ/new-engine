@@ -76,9 +76,8 @@ describe("approval update steps", () => {
   })
 
   it("throws a controlled not-found error when updating a stale approval id", async () => {
-    const { updateApprovalStep } = await import(
-      "../../../../../src/workflows/approval/steps/update-approval"
-    )
+    const { updateApprovalStep } =
+      await import("../../../../../src/workflows/approval/steps/update-approval")
     const approvalService = makeApprovalService()
     const graph = vi.fn().mockResolvedValue({ data: [] })
     const container = makeContainer({ approvalService, graph })
@@ -102,9 +101,8 @@ describe("approval update steps", () => {
   })
 
   it("throws a controlled not-found error when an approval status is missing", async () => {
-    const { updateApprovalStatusStep } = await import(
-      "../../../../../src/workflows/approval/steps/update-approval-statuses"
-    )
+    const { updateApprovalStatusStep } =
+      await import("../../../../../src/workflows/approval/steps/update-approval-statuses")
     const approvalService = makeApprovalService()
     const graph = vi.fn().mockResolvedValue({ data: [] })
     const container = makeContainer({ approvalService, graph })

@@ -7,6 +7,7 @@ import type { Route } from "next"
 import NextLink from "next/link"
 import { useSearchParams } from "next/navigation"
 import { type ReactNode, useEffect, useRef, useState } from "react"
+
 import { readAccountSetupRequested } from "@/components/checkout/account-setup-metadata"
 import {
   logCheckoutAccountSetupDebug,

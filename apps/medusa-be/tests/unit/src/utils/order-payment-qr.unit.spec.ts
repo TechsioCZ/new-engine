@@ -1,5 +1,6 @@
 import QRCode from "qrcode"
 import { describe, expect, it, vi } from "vitest"
+
 import { OrderPaymentQr } from "../../../../src/utils/order-payment-qr"
 
 describe("order payment QR", () => {

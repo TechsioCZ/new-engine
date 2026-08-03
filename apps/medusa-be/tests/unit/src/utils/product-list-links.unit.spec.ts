@@ -3,6 +3,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
+
 import {
   assertCustomerOwnsProductList,
   listCustomerProductListIds,

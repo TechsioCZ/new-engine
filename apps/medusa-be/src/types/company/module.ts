@@ -1,6 +1,7 @@
 /* Entity: Company */
 
 import type { CustomerDTO, CustomerGroupDTO } from "@medusajs/framework/types"
+
 import type { ModuleApprovalSettings } from "../approval"
 
 export const ModuleCompanySpendingLimitResetFrequency = {

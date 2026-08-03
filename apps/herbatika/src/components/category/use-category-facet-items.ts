@@ -1,8 +1,10 @@
 "use client"
 
 import type { CatalogFacets } from "@techsio/storefront-data/catalog/types"
+
 import { isCatalogStatusFilterSupported } from "@/lib/storefront/catalog-query-state/status-filters"
 import type { NuqsPlpQueryState } from "@/lib/storefront/plp-query-state"
+
 import { buildFacetChipItems } from "./category-selection-utils"
 
 type UseCategoryFacetItemsProps = {

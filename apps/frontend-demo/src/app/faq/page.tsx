@@ -3,6 +3,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Accordion } from "@techsio/ui-kit/molecules/accordion"
 import type { ReactNode } from "react"
+
 import { FaqItemHeader } from "@/components/faq/faq-item-header"
 
 interface FaqItem {

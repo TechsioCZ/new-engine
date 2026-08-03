@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+
 import { canNavigateToCheckoutStep } from "./checkout-step-navigation"
 
 describe("canNavigateToCheckoutStep", () => {

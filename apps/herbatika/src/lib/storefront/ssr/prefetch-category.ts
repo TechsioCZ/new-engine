@@ -1,6 +1,6 @@
 import "server-only"
-
 import { dehydrate } from "@tanstack/react-query"
+
 import { buildCatalogProductsParams } from "../catalog-query-state"
 import {
   buildCategoryListParams,

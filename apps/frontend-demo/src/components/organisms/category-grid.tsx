@@ -1,5 +1,6 @@
 import { Image } from "@techsio/ui-kit/atoms/image"
 import Link from "next/link"
+
 import type { HomeCategory } from "@/types/product"
 
 interface CategoryGridProps {

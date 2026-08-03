@@ -2,6 +2,7 @@
 
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import { useEffect, useState } from "react"
+
 import {
   getStoredRegionPreference,
   persistRegionPreference,

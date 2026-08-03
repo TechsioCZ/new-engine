@@ -4,6 +4,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useRouter, useSearchParams } from "next/navigation"
 import { type FormEvent, useEffect, useState } from "react"
+
 import { useAppToast } from "@/hooks/use-app-toast"
 import { useAuth } from "@/lib/storefront/auth"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
@@ -26,6 +27,7 @@ import {
 } from "@/lib/storefront/products"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart"
+
 import {
   buildProductMap,
   resolveProductListAvailabilitySummary,
@@ -148,8 +150,8 @@ export function useAccountProductLists() {
   })
   const activeListCanCreateCart = Boolean(
     activeList?.id &&
-      activeListAvailabilitySummary.canAddAnyToCart &&
-      (region?.region_id || region?.country_code)
+    activeListAvailabilitySummary.canAddAnyToCart &&
+    (region?.region_id || region?.country_code)
   )
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
+
 import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import { stripHtml } from "@/components/product-detail/utils/html-sanitizer"

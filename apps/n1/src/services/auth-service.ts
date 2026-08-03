@@ -1,4 +1,5 @@
 import type { StoreCustomer } from "@medusajs/types"
+
 import { mapAuthError } from "@/lib/auth-messages"
 import { logError } from "@/lib/errors"
 import { sdk } from "@/lib/medusa-client"

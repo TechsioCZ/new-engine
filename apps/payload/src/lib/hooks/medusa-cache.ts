@@ -1,11 +1,12 @@
 import { createHmac } from "node:crypto"
+
 import type {
   CollectionAfterChangeHook,
   CollectionAfterDeleteHook,
   PayloadRequest,
 } from "payload"
-import { getEnvString } from "../utils/env"
 
+import { getEnvString } from "../utils/env"
 import { createRequestTimeout } from "../utils/request"
 
 /** Payload invalidation payload sent to Medusa. */

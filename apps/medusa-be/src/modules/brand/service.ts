@@ -5,6 +5,7 @@ import {
   MedusaContext,
   MedusaService,
 } from "@medusajs/framework/utils"
+
 import Brand from "./models/brand"
 import BrandAttribute from "./models/brand-attribute"
 import BrandAttributeType from "./models/brand-attribute-type"

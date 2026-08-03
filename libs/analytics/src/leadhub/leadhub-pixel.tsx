@@ -2,6 +2,7 @@
 
 import Script from "next/script"
 import { useEffect } from "react"
+
 import type { LeadhubConfig } from "./types"
 
 /** Valid Leadhub tracking ID format (alphanumeric, hyphens, underscores) */

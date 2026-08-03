@@ -1,4 +1,5 @@
 import type { BadgeProps } from "@techsio/ui-kit/atoms/badge"
+
 import type { Product } from "@/types/product"
 
 /**

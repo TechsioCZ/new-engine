@@ -8,6 +8,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { Resend } from "resend"
+
 import {
   getResendTemplateDefinition,
   type ResendEmailTemplate,

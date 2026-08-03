@@ -79,9 +79,8 @@ describe("POST /admin/order-expedition/pdf", () => {
   })
 
   it("fails before generating a PDF when any selected order is missing", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/pdf/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/pdf/route")
     const graph = vi.fn().mockResolvedValue({
       data: [{ id: "order_1", display_id: 1001 }],
     })
@@ -101,9 +100,8 @@ describe("POST /admin/order-expedition/pdf", () => {
   })
 
   it("generates one PDF for exactly the selected orders", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/pdf/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/pdf/route")
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
@@ -132,9 +130,8 @@ describe("POST /admin/order-expedition/pdf", () => {
   })
 
   it("replaces unsupported Helvetica characters before drawing text", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-expedition/pdf/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-expedition/pdf/route")
     const graph = vi.fn().mockResolvedValue({
       data: [
         {

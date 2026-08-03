@@ -1,4 +1,5 @@
 import type { StaticImageData } from "next/image"
+
 import aboutStoreImage from "@/assets/about/1.avif"
 import aboutTeamImage from "@/assets/about/2.avif"
 import aboutProductsImage from "@/assets/about/3.avif"

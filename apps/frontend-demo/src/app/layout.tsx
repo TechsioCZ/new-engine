@@ -1,7 +1,9 @@
-import type { Metadata } from "next"
-import "../tokens/index.css"
 import { BrandThemeScript } from "@techsio/ui-kit/theme/theme-provider"
+
+import "../tokens/index.css"
+import type { Metadata } from "next"
 import type * as React from "react"
+
 import { DisclaimerWrapper } from "@/components/disclaimer-wrapper"
 import { Footer } from "@/components/footer"
 import { HeaderWrapper } from "@/components/header-wrapper"

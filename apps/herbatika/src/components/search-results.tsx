@@ -1,12 +1,14 @@
 "use client"
 
 import { Badge } from "@techsio/ui-kit/atoms/badge"
+
 import { CatalogListingShell } from "@/components/catalog-listing-shell"
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel"
 import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants"
 import { CategoryResultsSection } from "@/components/category/category-results-section"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
+
 import { useSearchListingController } from "./search/use-search-listing-controller"
 
 export function SearchResults() {

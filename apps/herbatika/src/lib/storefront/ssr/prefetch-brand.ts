@@ -1,6 +1,6 @@
 import "server-only"
-
 import { dehydrate } from "@tanstack/react-query"
+
 import { buildCatalogProductsParams } from "../catalog-query-state"
 import { PLP_PAGE_SIZE, type PlpQueryState } from "../plp-query-state"
 import { prefetchServerCatalogProducts } from "../storefront-server"

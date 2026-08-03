@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
+
 import { cacheConfig } from "@/lib/cache-config"
 import { prefetchLogger } from "@/lib/loggers/prefetch"
 import { buildProductQueryParams } from "@/lib/product-query-params"

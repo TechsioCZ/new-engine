@@ -1,5 +1,6 @@
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
 import { GET } from "../../../../../../src/api/store/brands/[id]/products/route"
 import { storeBrandsRoutesMiddlewares } from "../../../../../../src/api/store/brands/middlewares"
 import {

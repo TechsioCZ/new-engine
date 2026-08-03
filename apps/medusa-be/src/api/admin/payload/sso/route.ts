@@ -7,6 +7,7 @@ import { MedusaError } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
 import escapeHtml from "escape-html"
 import { importPKCS8, SignJWT } from "jose"
+
 import { optionalStringParam } from "../../../../utils/query-params"
 
 const DEFAULT_ISSUER = "medusa"

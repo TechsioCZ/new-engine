@@ -38,9 +38,8 @@ describe("POST /admin/measurement-units", () => {
       status: vi.fn(),
     }
     response.status.mockReturnValue(response)
-    const { POST } = await import(
-      "../../../../../../src/api/admin/measurement-units/route"
-    )
+    const { POST } =
+      await import("../../../../../../src/api/admin/measurement-units/route")
 
     await POST(
       {

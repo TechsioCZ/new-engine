@@ -20,9 +20,11 @@ import {
   toolbarPlugin,
   UndoRedo,
 } from "@mdxeditor/editor"
+
 import "@mdxeditor/editor/style.css"
 import { marked } from "marked"
 import { useEffect, useMemo, useRef, useState } from "react"
+
 import "./rich-html-editor.css"
 
 const HEADING_TAG_PATTERN = /^h[1-6]$/

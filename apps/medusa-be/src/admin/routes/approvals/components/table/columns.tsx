@@ -1,6 +1,7 @@
 import { StatusBadge } from "@medusajs/ui"
 import { createColumnHelper } from "@tanstack/react-table"
 import { useTranslation } from "react-i18next"
+
 import type { AdminCartWithApprovals } from "../../../../../types"
 import { ApprovalStatusType } from "../../../../../types"
 import { DateCell } from "../../../../components/common/table/table-cells/date-cell"

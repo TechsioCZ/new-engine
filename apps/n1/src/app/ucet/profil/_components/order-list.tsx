@@ -6,8 +6,10 @@ import {
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Suspense } from "react"
+
 import { ErrorBoundary } from "@/components/error-boundary"
 import { useSuspenseOrders } from "@/hooks/use-orders"
+
 import { DesktopOrderCard } from "./orders/desktop-order-card"
 import { MobileOrderCard } from "./orders/mobile-order-card"
 import { OrdersEmpty } from "./orders/orders-empty"

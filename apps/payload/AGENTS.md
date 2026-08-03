@@ -36,18 +36,18 @@ src/
 ### Minimal Config Pattern
 
 ```typescript
-import { buildConfig } from 'payload'
-import { mongooseAdapter } from '@payloadcms/db-mongodb'
-import { lexicalEditor } from '@payloadcms/richtext-lexical'
-import path from 'path'
-import { fileURLToPath } from 'url'
+import { buildConfig } from "payload"
+import { mongooseAdapter } from "@payloadcms/db-mongodb"
+import { lexicalEditor } from "@payloadcms/richtext-lexical"
+import path from "path"
+import { fileURLToPath } from "url"
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 export default buildConfig({
   admin: {
-    user: 'users',
+    user: "users",
     importMap: {
       baseDir: path.resolve(dirname),
     },
@@ -56,7 +56,7 @@ export default buildConfig({
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET,
   typescript: {
-    outputFile: path.resolve(dirname, 'payload-types.ts'),
+    outputFile: path.resolve(dirname, "payload-types.ts"),
   },
   db: mongooseAdapter({
     url: process.env.DATABASE_URL,
@@ -69,19 +69,19 @@ export default buildConfig({
 ### Basic Collection
 
 ```typescript
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig } from "payload"
 
 export const Posts: CollectionConfig = {
-  slug: 'posts',
+  slug: "posts",
   admin: {
-    useAsTitle: 'title',
-    defaultColumns: ['title', 'author', 'status', 'createdAt'],
+    useAsTitle: "title",
+    defaultColumns: ["title", "author", "status", "createdAt"],
   },
   fields: [
-    { name: 'title', type: 'text', required: true },
-    { name: 'slug', type: 'text', unique: true, index: true },
-    { name: 'content', type: 'richText' },
-    { name: 'author', type: 'relationship', relationTo: 'users' },
+    { name: "title", type: "text", required: true },
+    { name: "slug", type: "text", unique: true, index: true },
+    { name: "content", type: "richText" },
+    { name: "author", type: "relationship", relationTo: "users" },
   ],
   timestamps: true,
 }
@@ -91,19 +91,19 @@ export const Posts: CollectionConfig = {
 
 ```typescript
 export const Users: CollectionConfig = {
-  slug: 'users',
+  slug: "users",
   auth: true,
   fields: [
     {
-      name: 'roles',
-      type: 'select',
+      name: "roles",
+      type: "select",
       hasMany: true,
-      options: ['admin', 'editor', 'user'],
-      defaultValue: ['user'],
+      options: ["admin", "editor", "user"],
+      defaultValue: ["user"],
       required: true,
       saveToJWT: true, // Include in JWT for fast access checks
       access: {
-        update: ({ req: { user } }) => user?.roles?.includes('admin'),
+        update: ({ req: { user } }) => user?.roles?.includes("admin"),
       },
     },
   ],
@@ -155,20 +155,20 @@ slugField({ fieldToUse: 'title' })
 ```typescript
 // ❌ SECURITY BUG: Access control bypassed
 await payload.find({
-  collection: 'posts',
+  collection: "posts",
   user: someUser, // Ignored! Operation runs with ADMIN privileges
 })
 
 // ✅ SECURE: Enforces user permissions
 await payload.find({
-  collection: 'posts',
+  collection: "posts",
   user: someUser,
   overrideAccess: false, // REQUIRED
 })
 
 // ✅ Administrative operation (intentional bypass)
 await payload.find({
-  collection: 'posts',
+  collection: "posts",
   // No user, overrideAccess defaults to true
 })
 ```
@@ -247,7 +247,7 @@ hooks: {
 ### Collection-Level Access
 
 ```typescript
-import type { Access } from 'payload'
+import type { Access } from "payload"
 
 // Boolean return
 const authenticated: Access = ({ req: { user } }) => Boolean(user)
@@ -255,7 +255,7 @@ const authenticated: Access = ({ req: { user } }) => Boolean(user)
 // Query constraint (row-level security)
 const ownPostsOnly: Access = ({ req: { user } }) => {
   if (!user) return false
-  if (user?.roles?.includes('admin')) return true
+  if (user?.roles?.includes("admin")) return true
 
   return {
     author: { equals: user.id },
@@ -267,10 +267,10 @@ const projectMemberAccess: Access = async ({ req, id }) => {
   const { user, payload } = req
 
   if (!user) return false
-  if (user.roles?.includes('admin')) return true
+  if (user.roles?.includes("admin")) return true
 
   const project = await payload.findByID({
-    collection: 'projects',
+    collection: "projects",
     id: id as string,
     depth: 0,
   })
@@ -312,19 +312,19 @@ export const authenticated: Access = ({ req: { user } }) => Boolean(user)
 
 // Admin only
 export const adminOnly: Access = ({ req: { user } }) => {
-  return user?.roles?.includes('admin')
+  return user?.roles?.includes("admin")
 }
 
 // Admin or self
 export const adminOrSelf: Access = ({ req: { user } }) => {
-  if (user?.roles?.includes('admin')) return true
+  if (user?.roles?.includes("admin")) return true
   return { id: { equals: user?.id } }
 }
 
 // Published or authenticated
 export const authenticatedOrPublished: Access = ({ req: { user } }) => {
   if (user) return true
-  return { _status: { equals: 'published' } }
+  return { _status: { equals: "published" } }
 }
 ```
 
@@ -333,15 +333,15 @@ export const authenticatedOrPublished: Access = ({ req: { user } }) => {
 ### Common Hook Patterns
 
 ```typescript
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig } from "payload"
 
 export const Posts: CollectionConfig = {
-  slug: 'posts',
+  slug: "posts",
   hooks: {
     // Before validation - format data
     beforeValidate: [
       async ({ data, operation }) => {
-        if (operation === 'create') {
+        if (operation === "create") {
           data.slug = slugify(data.title)
         }
         return data
@@ -351,7 +351,7 @@ export const Posts: CollectionConfig = {
     // Before save - business logic
     beforeChange: [
       async ({ data, req, operation, originalDoc }) => {
-        if (operation === 'update' && data.status === 'published') {
+        if (operation === "update" && data.status === "published") {
           data.publishedAt = new Date()
         }
         return data
@@ -364,7 +364,7 @@ export const Posts: CollectionConfig = {
         // Check context to prevent loops
         if (context.skipNotification) return
 
-        if (operation === 'create') {
+        if (operation === "create") {
           await sendNotification(doc)
         }
         return doc
@@ -383,7 +383,7 @@ export const Posts: CollectionConfig = {
     beforeDelete: [
       async ({ req, id }) => {
         await req.payload.delete({
-          collection: 'comments',
+          collection: "comments",
           where: { post: { equals: id } },
           req, // Important for transaction
         })
@@ -400,13 +400,16 @@ export const Posts: CollectionConfig = {
 ```typescript
 // Find with complex query
 const posts = await payload.find({
-  collection: 'posts',
+  collection: "posts",
   where: {
-    and: [{ status: { equals: 'published' } }, { 'author.name': { contains: 'john' } }],
+    and: [
+      { status: { equals: "published" } },
+      { "author.name": { contains: "john" } },
+    ],
   },
   depth: 2, // Populate relationships
   limit: 10,
-  sort: '-createdAt',
+  sort: "-createdAt",
   select: {
     title: true,
     author: true,
@@ -415,31 +418,31 @@ const posts = await payload.find({
 
 // Find by ID
 const post = await payload.findByID({
-  collection: 'posts',
-  id: '123',
+  collection: "posts",
+  id: "123",
   depth: 2,
 })
 
 // Create
 const newPost = await payload.create({
-  collection: 'posts',
+  collection: "posts",
   data: {
-    title: 'New Post',
-    status: 'draft',
+    title: "New Post",
+    status: "draft",
   },
 })
 
 // Update
 await payload.update({
-  collection: 'posts',
-  id: '123',
-  data: { status: 'published' },
+  collection: "posts",
+  id: "123",
+  data: { status: "published" },
 })
 
 // Delete
 await payload.delete({
-  collection: 'posts',
-  id: '123',
+  collection: "posts",
+  id: "123",
 })
 ```
 
@@ -535,40 +538,40 @@ Components are defined using **file paths** (not direct imports) in your config:
 - File extensions can be omitted
 
 ```typescript
-import { buildConfig } from 'payload'
+import { buildConfig } from "payload"
 
 export default buildConfig({
   admin: {
     components: {
       // Logo and branding
       graphics: {
-        Logo: '/components/Logo',
-        Icon: '/components/Icon',
+        Logo: "/components/Logo",
+        Icon: "/components/Icon",
       },
 
       // Navigation
-      Nav: '/components/CustomNav',
-      beforeNavLinks: ['/components/CustomNavItem'],
-      afterNavLinks: ['/components/NavFooter'],
+      Nav: "/components/CustomNav",
+      beforeNavLinks: ["/components/CustomNavItem"],
+      afterNavLinks: ["/components/NavFooter"],
 
       // Header
-      header: ['/components/AnnouncementBanner'],
-      actions: ['/components/ClearCache', '/components/Preview'],
+      header: ["/components/AnnouncementBanner"],
+      actions: ["/components/ClearCache", "/components/Preview"],
 
       // Dashboard
-      beforeDashboard: ['/components/WelcomeMessage'],
-      afterDashboard: ['/components/Analytics'],
+      beforeDashboard: ["/components/WelcomeMessage"],
+      afterDashboard: ["/components/Analytics"],
 
       // Auth
-      beforeLogin: ['/components/SSOButtons'],
-      logout: { Button: '/components/LogoutButton' },
+      beforeLogin: ["/components/SSOButtons"],
+      logout: { Button: "/components/LogoutButton" },
 
       // Settings
-      settingsMenu: ['/components/SettingsMenu'],
+      settingsMenu: ["/components/SettingsMenu"],
 
       // Views
       views: {
-        dashboard: { Component: '/components/CustomDashboard' },
+        dashboard: { Component: "/components/CustomDashboard" },
       },
     },
   },
@@ -595,10 +598,10 @@ export default buildConfig({
 
 ```tsx
 // Server Component (default)
-import type { Payload } from 'payload'
+import type { Payload } from "payload"
 
 async function MyServerComponent({ payload }: { payload: Payload }) {
-  const posts = await payload.find({ collection: 'posts' })
+  const posts = await payload.find({ collection: "posts" })
   return <div>{posts.totalDocs} posts</div>
 }
 
@@ -608,9 +611,9 @@ export default MyServerComponent
 **Client Components** need the `'use client'` directive:
 
 ```tsx
-'use client'
-import { useState } from 'react'
-import { useAuth } from '@payloadcms/ui'
+"use client"
+import { useState } from "react"
+import { useAuth } from "@payloadcms/ui"
 
 export function MyClientComponent() {
   const [count, setCount] = useState(0)
@@ -627,7 +630,7 @@ export function MyClientComponent() {
 ### Using Hooks (Client Components Only)
 
 ```tsx
-'use client'
+"use client"
 import {
   useAuth, // Current user
   useConfig, // Payload config (client-safe)
@@ -638,7 +641,7 @@ import {
   useLocale, // Current locale
   useTranslation, // i18n translations
   usePayload, // Local API methods
-} from '@payloadcms/ui'
+} from "@payloadcms/ui"
 
 export function MyComponent() {
   const { user } = useAuth()
@@ -655,22 +658,22 @@ export function MyComponent() {
 
 ```typescript
 export const Posts: CollectionConfig = {
-  slug: 'posts',
+  slug: "posts",
   admin: {
     components: {
       // Edit view
       edit: {
-        PreviewButton: '/components/PostPreview',
-        SaveButton: '/components/CustomSave',
-        SaveDraftButton: '/components/SaveDraft',
-        PublishButton: '/components/Publish',
+        PreviewButton: "/components/PostPreview",
+        SaveButton: "/components/CustomSave",
+        SaveDraftButton: "/components/SaveDraft",
+        PublishButton: "/components/Publish",
       },
 
       // List view
       list: {
-        Header: '/components/ListHeader',
-        beforeList: ['/components/BulkActions'],
-        afterList: ['/components/ListFooter'],
+        Header: "/components/ListHeader",
+        beforeList: ["/components/BulkActions"],
+        afterList: ["/components/ListFooter"],
       },
     },
   },
@@ -744,7 +747,7 @@ export const Posts: CollectionConfig = {
 ### Styling Components
 
 ```tsx
-import './styles.scss'
+import "./styles.scss"
 
 export function MyComponent() {
   return <div className="my-component">Content</div>
@@ -761,7 +764,7 @@ export function MyComponent() {
 }
 
 // Import Payload's SCSS library
-@import '~@payloadcms/ui/scss';
+@import "~@payloadcms/ui/scss";
 
 .my-component {
   @include mid-break {
@@ -779,7 +782,7 @@ import type {
   TextFieldCellComponent,
   SelectFieldServerComponent,
   // ... etc
-} from 'payload'
+} from "payload"
 
 export const MyField: TextFieldClientComponent = (props) => {
   // Fully typed props
@@ -802,8 +805,8 @@ payload generate:importmap
 export default buildConfig({
   admin: {
     importMap: {
-      baseDir: path.resolve(dirname, 'src'),
-      importMapFile: path.resolve(dirname, 'app', 'custom-import-map.js'),
+      baseDir: path.resolve(dirname, "src"),
+      importMapFile: path.resolve(dirname, "app", "custom-import-map.js"),
     },
   },
 })
@@ -812,21 +815,21 @@ export default buildConfig({
 ## Custom Endpoints
 
 ```typescript
-import type { Endpoint } from 'payload'
-import { APIError } from 'payload'
+import type { Endpoint } from "payload"
+import { APIError } from "payload"
 
 // Always check authentication
 export const protectedEndpoint: Endpoint = {
-  path: '/protected',
-  method: 'get',
+  path: "/protected",
+  method: "get",
   handler: async (req) => {
     if (!req.user) {
-      throw new APIError('Unauthorized', 401)
+      throw new APIError("Unauthorized", 401)
     }
 
     // Use req.payload for database operations
     const data = await req.payload.find({
-      collection: 'posts',
+      collection: "posts",
       where: { author: { equals: req.user.id } },
     })
 
@@ -836,15 +839,15 @@ export const protectedEndpoint: Endpoint = {
 
 // Route parameters
 export const trackingEndpoint: Endpoint = {
-  path: '/:id/tracking',
-  method: 'get',
+  path: "/:id/tracking",
+  method: "get",
   handler: async (req) => {
     const { id } = req.routeParams
 
     const tracking = await getTrackingInfo(id)
 
     if (!tracking) {
-      return Response.json({ error: 'not found' }, { status: 404 })
+      return Response.json({ error: "not found" }, { status: 404 })
     }
 
     return Response.json(tracking)
@@ -856,7 +859,7 @@ export const trackingEndpoint: Endpoint = {
 
 ```typescript
 export const Pages: CollectionConfig = {
-  slug: 'pages',
+  slug: "pages",
   versions: {
     drafts: {
       autosave: true,
@@ -868,7 +871,7 @@ export const Pages: CollectionConfig = {
   access: {
     read: ({ req: { user } }) => {
       // Public sees only published
-      if (!user) return { _status: { equals: 'published' } }
+      if (!user) return { _status: { equals: "published" } }
       // Authenticated sees all
       return true
     },
@@ -877,15 +880,15 @@ export const Pages: CollectionConfig = {
 
 // Create draft
 await payload.create({
-  collection: 'pages',
-  data: { title: 'Draft Page' },
+  collection: "pages",
+  data: { title: "Draft Page" },
   draft: true, // Skips required field validation
 })
 
 // Read with drafts
 const page = await payload.findByID({
-  collection: 'pages',
-  id: '123',
+  collection: "pages",
+  id: "123",
   draft: true, // Returns draft if available
 })
 ```
@@ -900,7 +903,7 @@ import {
   fieldIsBlockType,
   fieldSupportsMany,
   fieldHasMaxDepth,
-} from 'payload'
+} from "payload"
 
 function processField(field: Field) {
   // Check if field stores data
@@ -920,7 +923,7 @@ function processField(field: Field) {
 
   // Check capabilities
   if (fieldSupportsMany(field) && field.hasMany) {
-    console.log('Multiple values supported')
+    console.log("Multiple values supported")
   }
 }
 ```
@@ -930,16 +933,16 @@ function processField(field: Field) {
 ### Using Plugins
 
 ```typescript
-import { seoPlugin } from '@payloadcms/plugin-seo'
-import { redirectsPlugin } from '@payloadcms/plugin-redirects'
+import { seoPlugin } from "@payloadcms/plugin-seo"
+import { redirectsPlugin } from "@payloadcms/plugin-redirects"
 
 export default buildConfig({
   plugins: [
     seoPlugin({
-      collections: ['posts', 'pages'],
+      collections: ["posts", "pages"],
     }),
     redirectsPlugin({
-      collections: ['pages'],
+      collections: ["pages"],
     }),
   ],
 })
@@ -948,7 +951,7 @@ export default buildConfig({
 ### Creating Plugins
 
 ```typescript
-import type { Config, Plugin } from 'payload'
+import type { Config, Plugin } from "payload"
 
 interface MyPluginConfig {
   collections?: string[]
@@ -963,7 +966,7 @@ export const myPlugin =
       if (options.collections?.includes(collection.slug)) {
         return {
           ...collection,
-          fields: [...collection.fields, { name: 'pluginField', type: 'text' }],
+          fields: [...collection.fields, { name: "pluginField", type: "text" }],
         }
       }
       return collection

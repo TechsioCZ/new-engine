@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import { FLAG_CONFIG, type SupportedFlagCode } from "./product-card.constants"
 import { asBoolean, asRecord } from "./product-card.parsers"
 import type { ProductFlagState } from "./product-card.types"

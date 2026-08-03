@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+
 import type {
   CatalogFacets,
   CatalogListInputBase,

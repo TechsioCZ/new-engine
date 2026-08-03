@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+
 import { FaqPage } from "@/components/faq/faq-page"
 
 export const metadata: Metadata = {

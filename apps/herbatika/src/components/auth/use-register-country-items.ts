@@ -1,6 +1,7 @@
 "use client"
 
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
+
 import { resolveCountryItemsForRegion } from "@/lib/forms/country-options"
 import {
   REGION_LIST_FIELDS,

@@ -1,4 +1,5 @@
 import { authService } from "./auth/service"
+import { cartStorage } from "./cart-storage"
 import { herbatikaCheckoutCartAddressAdapter } from "./cart/address-adapter"
 import {
   buildAddLineItemParams,
@@ -6,7 +7,6 @@ import {
   buildCreateCartParams,
   buildUpdateCartParams,
 } from "./cart/params"
-import { cartStorage } from "./cart-storage"
 import { storefrontCartServiceConfig } from "./storefront-config"
 import { storefrontCoreDefinition } from "./storefront-core-definition"
 

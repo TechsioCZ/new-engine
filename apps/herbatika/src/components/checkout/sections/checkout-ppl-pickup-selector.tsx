@@ -3,6 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useMemo, useRef, useState } from "react"
+
 import { PplAccessPointWidget } from "../ppl-widget"
 import type {
   PplAccessPoint,

@@ -1,4 +1,5 @@
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
+
 import { COUNTRY_SELECT_ITEMS } from "./checkout.constants"
 
 const normalizeProviderValue = (providerId: string) =>

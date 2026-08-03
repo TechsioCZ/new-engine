@@ -1,5 +1,6 @@
 import { connection } from "next/server"
 import { Suspense } from "react"
+
 import { BlogListingPage } from "@/components/blog/blog-listing-page"
 import {
   type BlogTopicKey,

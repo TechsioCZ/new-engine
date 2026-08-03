@@ -2,8 +2,10 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import NextLink from "next/link"
 import { type ComponentProps, useState } from "react"
+
 import { resolveCarrierPickupRequirement } from "@/components/checkout/carrier-pickup.utils"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
+
 import { CheckoutPaymentSection } from "./checkout-payment-section"
 import { CheckoutShippingSection } from "./checkout-shipping-section"
 

@@ -1,6 +1,7 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import type { ILockingModule, Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+
 import { EMAIL_LOG_MODULE } from "../modules/email-log"
 import type EmailLogModuleService from "../modules/email-log/service"
 import {

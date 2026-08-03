@@ -1,10 +1,10 @@
 "use client"
 
-import { ProductCollectionSection } from "@/components/product/product-collection-section"
 import type {
   Product,
   RelatedProductsSection,
 } from "@/components/product-detail/product-detail.types"
+import { ProductCollectionSection } from "@/components/product/product-collection-section"
 import { SupportingText } from "@/components/text/supporting-text"
 
 type ProductDetailRelatedProps = {

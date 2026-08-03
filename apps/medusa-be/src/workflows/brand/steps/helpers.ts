@@ -4,6 +4,7 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+
 import { ProductBrandLink } from "../../../links/product-brand"
 import { BRAND_MODULE } from "../../../modules/brand"
 import type BrandModuleService from "../../../modules/brand/service"

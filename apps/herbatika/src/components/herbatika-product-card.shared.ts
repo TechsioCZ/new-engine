@@ -3,6 +3,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useEffect, useState } from "react"
+
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants"
 import { resolvePriceState } from "@/components/product-card/product-card.pricing"
 import { resolveThumbnail } from "@/components/product-card/product-card.thumbnail"

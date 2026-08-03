@@ -6,6 +6,7 @@ import type { StaticImageData } from "next/image"
 import NextImage from "next/image"
 import NextLink from "next/link"
 import type { MouseEvent } from "react"
+
 import { FractionalRating } from "@/components/reviews/fractional-rating"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
 import {

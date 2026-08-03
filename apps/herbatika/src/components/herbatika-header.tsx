@@ -11,11 +11,13 @@ import NextLink from "next/link"
 import { useRouter } from "next/navigation"
 import type { FocusEvent, FormEvent } from "react"
 import { useState } from "react"
+
 import { cartReadQueryOptions, useCart } from "@/lib/storefront/cart"
 import { resolveCartTotalAmount } from "@/lib/storefront/cart-calculations"
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
+
 import { HerbatikaAccountPopover } from "./header/herbatika-account-popover"
 import { HerbatikaCartPopover } from "./header/herbatika-cart-popover"
 import { HerbatikaDesktopSubmenu } from "./header/herbatika-desktop-submenu"

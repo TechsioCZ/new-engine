@@ -12,6 +12,7 @@ import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+
 import dotenv from "dotenv"
 
 const __filename = fileURLToPath(import.meta.url)

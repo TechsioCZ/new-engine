@@ -7,7 +7,9 @@ import { Header } from "@techsio/ui-kit/organisms/header"
 import dynamic from "next/dynamic"
 import Image from "next/image"
 import NextLink from "next/link"
+
 import logo from "@/assets/logo-n1.webp"
+
 import { CartPopover } from "./cart-popover"
 import { DesktopSubmenu } from "./desktop-submenu"
 import { LoginPopover } from "./login-popover"

@@ -1,4 +1,5 @@
 import type { Endpoint } from "payload"
+
 import { buildJsonResponse } from "../utils/endpoint"
 
 /** Simple health check endpoint for container probes. */

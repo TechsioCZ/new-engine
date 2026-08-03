@@ -3,6 +3,7 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 import type { ICompanyModuleService } from "../../../types"
 

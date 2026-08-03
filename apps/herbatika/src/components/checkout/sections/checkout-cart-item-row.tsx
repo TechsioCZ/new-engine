@@ -6,6 +6,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
 import NextLink from "next/link"
+
 import { CartLineItemQuantityInput } from "@/components/cart/cart-line-item-quantity-input"
 import {
   FALLBACK_MAX_QUANTITY,
@@ -19,6 +20,7 @@ import {
   resolveLineItemTotalAmount,
 } from "@/lib/storefront/cart-calculations"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+
 import {
   resolveAvailabilityText,
   resolveOriginalLineItemTotalAmount,

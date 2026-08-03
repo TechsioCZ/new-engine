@@ -6,6 +6,7 @@ import { Header, HeaderContext } from "@techsio/ui-kit/organisms/header"
 import NextLink from "next/link"
 import { usePathname } from "next/navigation"
 import { useContext, useEffect } from "react"
+
 import { links, submenuItems } from "@/data/header"
 import { useMediaQuery } from "@/hooks/use-media-query"
 

@@ -1,5 +1,6 @@
 import { Modules } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
+
 import { PRODUCT_ATTRIBUTE_MODULE } from "../../../../modules/product-attribute"
 import {
   getProductAttributeDetail,

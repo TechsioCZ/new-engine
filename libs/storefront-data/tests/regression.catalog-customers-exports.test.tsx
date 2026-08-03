@@ -1,10 +1,12 @@
-import { QueryClient } from "@tanstack/react-query"
-import type { HttpTypes } from "@medusajs/types"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
+
+import type { HttpTypes } from "@medusajs/types"
+import { QueryClient } from "@tanstack/react-query"
+
 import { createCatalogHooks } from "../src/catalog/hooks"
-import { createCatalogQueryKeys } from "../src/catalog/query-keys"
 import { createMedusaCatalogService } from "../src/catalog/medusa-service"
+import { createCatalogQueryKeys } from "../src/catalog/query-keys"
 import { createMedusaCustomerService } from "../src/customers/medusa-service"
 
 type CatalogProduct = { id: string }

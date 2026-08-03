@@ -1,8 +1,9 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { StorefrontDataProvider } from "../src/client/provider"
+
 import { createCartHooks } from "../src/cart/hooks"
+import { StorefrontDataProvider } from "../src/client/provider"
 
 type Cart = {
   id: string
@@ -10,7 +11,8 @@ type Cart = {
   items?: { quantity?: number }[]
 }
 
-const createWrapper = (client: QueryClient) =>
+const createWrapper =
+  (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
@@ -61,7 +63,7 @@ describe("createCartHooks payload normalization", () => {
 
     const service = {
       retrieveCart: async () => null as Cart | null,
-      createCart: async () => ({ id: "cart_1", region_id: "reg_1" } as Cart),
+      createCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
       updateCart: async (cartId: string, params: Record<string, unknown>) => {
         receivedCartId = cartId
         updatePayload = params
@@ -103,8 +105,8 @@ describe("createCartHooks payload normalization", () => {
     let addPayload: Record<string, unknown> | null = null
 
     const service = {
-      retrieveCart: async () => ({ id: "cart_1", region_id: "reg_1" } as Cart),
-      createCart: async () => ({ id: "cart_1", region_id: "reg_1" } as Cart),
+      retrieveCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
+      createCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
       addLineItem: async (cartId: string, params: Record<string, unknown>) => {
         receivedCartId = cartId
         addPayload = params
@@ -152,8 +154,8 @@ describe("createCartHooks payload normalization", () => {
     let updateItemPayload: Record<string, unknown> | null = null
 
     const service = {
-      retrieveCart: async () => ({ id: "cart_1", region_id: "reg_1" } as Cart),
-      createCart: async () => ({ id: "cart_1", region_id: "reg_1" } as Cart),
+      retrieveCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
+      createCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
       updateLineItem: async (
         cartId: string,
         lineItemId: string,

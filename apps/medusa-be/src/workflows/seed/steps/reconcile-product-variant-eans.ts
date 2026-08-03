@@ -1,6 +1,7 @@
 import type { IProductModuleService } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { getSourceVariantId, type ProductInput } from "./create-products"
 
 const RECONCILE_PRODUCT_VARIANT_EANS_STEP_ID =

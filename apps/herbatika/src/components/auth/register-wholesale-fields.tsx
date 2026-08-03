@@ -1,7 +1,9 @@
 "use client"
 
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
+
 import { registerValidators } from "@/lib/auth/auth-form-validators"
+
 import type {
   RegisterFieldChangeHandler,
   RegisterFormController,

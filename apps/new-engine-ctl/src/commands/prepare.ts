@@ -1,4 +1,5 @@
 import { Command } from "commander"
+
 import { prepareCommandInputSchema } from "../contracts/prepare.js"
 import { appendGitHubOutput, maskGitHubValue } from "../github-actions.js"
 import { executePrepare } from "../orchestration/prepare.js"

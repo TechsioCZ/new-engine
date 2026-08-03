@@ -6,6 +6,7 @@ import {
   remapKeysForProduct,
   remapProductResponse,
 } from "@medusajs/medusa/api/admin/products/helpers"
+
 import { normalizeProductSalesChannelFilter } from "../../utils/product-filters"
 
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {

@@ -1,4 +1,5 @@
 import type { StaticImageData } from "next/image"
+
 import cykloBoty from "@/assets/header/cyklo-boty.webp"
 import cykloChranice from "@/assets/header/cyklo-chranice.webp"
 import cykloDoplnky from "@/assets/header/cyklo-doplnky.webp"

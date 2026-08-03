@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import { resolveLineItemInventory } from "@/components/header/herbatika-cart-item.utils"
 import {
   resolveLineItemQuantity,

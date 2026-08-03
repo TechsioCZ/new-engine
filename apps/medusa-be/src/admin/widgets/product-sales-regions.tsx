@@ -3,6 +3,7 @@ import type { AdminProduct, DetailWidgetProps } from "@medusajs/framework/types"
 import { Badge, Container, Text } from "@medusajs/ui"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
+
 import { sdk } from "../lib/sdk"
 import {
   formatPercent,

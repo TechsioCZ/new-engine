@@ -1,4 +1,5 @@
 import type Medusa from "@medusajs/js-sdk"
+
 import type {
   CreateProductReviewInput,
   ProductReviewListResponse,
@@ -61,16 +62,15 @@ const calculateReviewSummary = (reviews: ReviewBase[]) => {
   }
 }
 
-const hasCompleteReviewSet = (response: StoreProductReviewsResponse<ReviewBase>) =>
-  response.count === response.reviews.length
+const hasCompleteReviewSet = (
+  response: StoreProductReviewsResponse<ReviewBase>
+) => response.count === response.reviews.length
 
 const hasInconsistentSummary = (
   response: StoreProductReviewsResponse<ReviewBase>
 ) => response.summary.count !== response.count
 
-export function createMedusaProductReviewService<
-  TReview = ReviewBase,
->(
+export function createMedusaProductReviewService<TReview = ReviewBase>(
   sdk: Medusa,
   config?: MedusaProductReviewServiceConfig<TReview>
 ): ProductReviewService<TReview, MedusaProductReviewListInput> {

@@ -6,6 +6,7 @@ import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import Link from "next/link"
 import { type FormEvent, useState } from "react"
+
 import { useAuth } from "@/hooks/use-auth"
 import { authFormFields, getAuthErrorMessage, withLoading } from "@/lib/auth"
 

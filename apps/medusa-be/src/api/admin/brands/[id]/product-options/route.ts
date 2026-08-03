@@ -4,6 +4,7 @@ import type {
 } from "@medusajs/framework/http"
 import type { MedusaContainer, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { ProductBrandLink } from "../../../../../links/product-brand"
 import {
   getBrandActiveProductCounts,

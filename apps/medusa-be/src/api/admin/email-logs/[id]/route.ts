@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import { EMAIL_LOG_MODULE } from "../../../../modules/email-log"
 import type EmailLogModuleService from "../../../../modules/email-log/service"
 
