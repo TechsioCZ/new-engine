@@ -4,6 +4,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { hasArrayData } from "../../../utils/guards"
 
 type PrepareCustomerAccountDeactivationInput = {
   customer_id: string
@@ -23,18 +24,6 @@ type ProviderIdentityRecord = {
 type PrepareCustomerAccountDeactivationOutput = {
   auth_identity_id?: string
   customer_id: string
-}
-
-const hasArrayData = <T>(
-  value: unknown
-): value is {
-  data: T[]
-} => {
-  if (!(value && typeof value === "object")) {
-    return false
-  }
-
-  return Array.isArray((value as { data?: unknown }).data)
 }
 
 export const prepareCustomerAccountDeactivationStep = createStep(
