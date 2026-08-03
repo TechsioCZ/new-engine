@@ -9,6 +9,7 @@ import {
   PaykitPaymentProviderBase,
 } from "../core/base"
 import { createPaykitClient, getComgateProviderOptions } from "../runtime"
+import { resolveComgateRuntimeOptions } from "../runtime-config"
 import type {
   PaykitComgateOptions,
   PaykitPayment,
@@ -57,7 +58,7 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
   }
 
   static override validateOptions(options: PaykitComgateOptions = {}): void {
-    if (options.client || options.clientFactory) {
+    if (options.client || options.clientFactory || options.apiStoreName) {
       return
     }
 
@@ -65,10 +66,15 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
   }
 
   protected async createDefaultClient(): Promise<PaykitPaymentClient> {
+    const options = await resolveComgateRuntimeOptions(
+      this.container_,
+      this.options_
+    )
+
     return await createPaykitClient(
       "@paykit-sdk/comgate",
       "createComgate",
-      getComgateProviderOptions(this.options_)
+      getComgateProviderOptions(options)
     )
   }
 
@@ -145,9 +151,10 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
     const providerMetadata = super.getProviderMetadata(data)
     const email = this.getComgateCustomerEmail(input, data)
     const paymentLabel = getStringValue(
-      this.options_.paymentLabel,
       providerMetadata.paymentLabel,
-      providerMetadata.label
+      providerMetadata.label,
+      data.session_id,
+      data.cart_id
     )
 
     return {
@@ -155,7 +162,9 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
       email,
       // PayKit Comgate validates paymentLabel as required, so mirror its
       // provider default when no app-level label is configured.
-      paymentLabel: paymentLabel ?? DEFAULT_PAYMENT_LABEL,
+      paymentLabel: paymentLabel
+        ? `Order ${paymentLabel}`
+        : DEFAULT_PAYMENT_LABEL,
     }
   }
 }

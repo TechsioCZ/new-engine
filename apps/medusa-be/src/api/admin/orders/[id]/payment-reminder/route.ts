@@ -11,6 +11,7 @@ import {
   getPaymentUrl,
   toPaymentReminderOrderResponse,
 } from "../../../../../utils/order-payment-reminders"
+import { getMedusaStoreName } from "../../../../../utils/store-name"
 import { sendOrderPaymentReminderWorkflow } from "../../../../../workflows/send-order-payment-reminder"
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
@@ -41,7 +42,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       order_display_id: getOrderDisplayId(order),
       order_id: order.id,
       payment_url: getPaymentUrl(order),
-      store_name: process.env.STORE_NAME,
+      store_name: await getMedusaStoreName(req.scope as Record<string, unknown>),
       total: formatTotal(order),
     },
   })

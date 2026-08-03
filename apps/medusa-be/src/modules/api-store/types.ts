@@ -5,6 +5,7 @@ export type ApiStoreCreateInput = {
   api_url?: string | null
   api_key?: string | null
   credentials?: ApiStoreCredentials | null
+  enabled?: boolean
   is_internal?: boolean
   access_token_expires_at?: Date | string | null
 }
@@ -14,6 +15,7 @@ export type ApiStoreUpdateInput = {
   api_url?: string | null
   api_key?: string | null
   credentials?: ApiStoreCredentials | null
+  enabled?: boolean
   is_internal?: boolean
   access_token_expires_at?: Date | string | null
 }
@@ -24,6 +26,7 @@ export type ApiStoreAdminDTO = {
   api_url: string | null
   has_api_key: boolean
   has_credentials: boolean
+  enabled: boolean
   is_internal: boolean
   access_token_expires_at: Date | string | null
   created_at?: Date | string

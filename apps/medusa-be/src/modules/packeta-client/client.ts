@@ -178,9 +178,7 @@ export class PacketaClient {
   async getBranchList(): Promise<PacketaBranch[]> {
     const url = BRANCH_FEED_URL.replace(
       "{apiKey}",
-      encodeURIComponent(
-        process.env.PACKETA_PICKUP_POINTS_API_KEY ?? this.options.api_password
-      )
+      encodeURIComponent(this.options.pickup_points_api_key ?? this.options.api_password)
     )
 
     const payload = await this.withRetry(

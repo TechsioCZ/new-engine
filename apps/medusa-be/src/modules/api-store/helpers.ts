@@ -33,6 +33,7 @@ export function toApiStoreAdminDTO(record: ApiStoreRecord): ApiStoreAdminDTO {
     api_url: record.api_url ?? null,
     has_api_key: !!record.api_key,
     has_credentials: !!record.credentials,
+    enabled: record.enabled ?? true,
     is_internal: record.is_internal ?? false,
     access_token_expires_at: record.access_token_expires_at ?? null,
     created_at: record.created_at,

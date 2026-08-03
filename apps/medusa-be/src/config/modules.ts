@@ -41,7 +41,7 @@ function buildPaymentProviders(env: MedusaConfigEnv): PaymentProviderConfig[] {
 }
 
 function buildPaymentDependencies(env: MedusaConfigEnv): string[] {
-  const dependencies: string[] = []
+  const dependencies: string[] = [API_STORE_MODULE]
 
   if (env.featurePaymentQrEnabled) {
     dependencies.push(QR_PAYMENT_MODULE)
@@ -90,7 +90,7 @@ function buildFulfillmentClientModules(
   if (env.featurePacketaEnabled) {
     modules.push({
       resolve: "./src/modules/packeta-client",
-      dependencies: [Modules.LOCKING],
+      dependencies: [Modules.LOCKING, API_STORE_MODULE],
       options: {
         environment: env.packetaEnvironment,
       },
@@ -219,6 +219,7 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     },
     {
       resolve: "@medusajs/medusa/notification",
+      dependencies: [API_STORE_MODULE],
       options: {
         providers: buildNotificationProviders(env),
       },

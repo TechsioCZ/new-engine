@@ -27,6 +27,7 @@ type ApiStoreWriteData = {
   api_url?: string | null
   api_key?: string | null
   credentials?: string | null
+  enabled?: boolean
   is_internal?: boolean
   access_token_expires_at?: Date | null
 }
@@ -94,6 +95,7 @@ class ApiStoreModuleService extends MedusaService({
       api_url: normalizeApiUrl(input.api_url) ?? null,
       api_key: input.api_key ?? null,
       credentials: serializeCredentials(input.credentials) ?? null,
+      enabled: input.enabled ?? true,
       is_internal: input.is_internal ?? false,
       access_token_expires_at:
         normalizeAccessTokenExpiresAt(input.access_token_expires_at) ?? null,
@@ -134,6 +136,10 @@ class ApiStoreModuleService extends MedusaService({
 
     if (input.api_key !== undefined) {
       data.api_key = input.api_key
+    }
+
+    if (input.enabled !== undefined) {
+      data.enabled = input.enabled
     }
 
     if (input.is_internal !== undefined) {
