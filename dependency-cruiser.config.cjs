@@ -41,14 +41,22 @@ function readProjects() {
       const projectRoot = `${workspaceFolder}/${entry.name}`
       const packageJson = path.join(absoluteFolder, entry.name, "package.json")
       const projectJson = path.join(absoluteFolder, entry.name, "project.json")
-      if (!(fs.existsSync(packageJson) || fs.existsSync(projectJson))) continue
+      const fallback = fallbackTags[projectRoot]
+      // Manifest-less libraries (plain .mjs sources) still need boundary
+      // enforcement, so an explicit fallback classification is enough to
+      // include them. Skipping on the manifest check alone would silently
+      // exempt them from libraries-do-not-import-applications.
+      if (
+        !(fs.existsSync(packageJson) || fs.existsSync(projectJson)) &&
+        !fallback?.length
+      ) {
+        continue
+      }
 
       const metadata = fs.existsSync(projectJson)
         ? JSON.parse(fs.readFileSync(projectJson, "utf8"))
         : {}
-      const tags = metadata.tags?.length
-        ? metadata.tags
-        : fallbackTags[projectRoot]
+      const tags = metadata.tags?.length ? metadata.tags : fallback
 
       if (!tags?.length) {
         throw new Error(
