@@ -1,3 +1,5 @@
+import { sleep } from "@techsio/std/async"
+
 import { BadRequestError } from "./db"
 import type {
   ProvisionMeiliKeysInput,
@@ -199,11 +201,15 @@ function meiliKeyPermissionsMatch(
   actions: string[],
   indexes: string[]
 ): boolean {
-  const keyActions = Array.isArray(keyObj.actions)
-    ? keyObj.actions.filter((item): item is string => typeof item === "string")
+  const keyActions = Array.isArray(keyObj["actions"])
+    ? keyObj["actions"].filter(
+        (item): item is string => typeof item === "string"
+      )
     : []
-  const keyIndexes = Array.isArray(keyObj.indexes)
-    ? keyObj.indexes.filter((item): item is string => typeof item === "string")
+  const keyIndexes = Array.isArray(keyObj["indexes"])
+    ? keyObj["indexes"].filter(
+        (item): item is string => typeof item === "string"
+      )
     : []
 
   return (
@@ -218,13 +224,7 @@ function meiliKeyDescriptionMatches(
   keyObj: Record<string, unknown>,
   description: string
 ): boolean {
-  return keyObj.description === description
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms)
-  })
+  return keyObj["description"] === description
 }
 
 function resolveMeiliUrl(meiliUrl: string, path: string): string {
@@ -374,7 +374,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
     }
 
     const key =
-      typeof result.keyObject.key === "string" ? result.keyObject.key : ""
+      typeof result.keyObject["key"] === "string" ? result.keyObject["key"] : ""
     if (!key) {
       throw new UpstreamHttpError(
         502,

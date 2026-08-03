@@ -7,43 +7,45 @@ import { defaultStackInputsPath, defaultStackManifestPath } from "../paths.js"
 
 function buildDeployPreviewInput(options: Record<string, unknown>) {
   const parsedPrNumber =
-    typeof options.prNumber === "string" && options.prNumber.trim()
-      ? Number(options.prNumber)
+    typeof options["prNumber"] === "string" && options["prNumber"].trim()
+      ? Number(options["prNumber"])
       : undefined
 
   return deployPreviewCommandInputSchema.parse({
-    projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+    projectSlug:
+      options["projectSlug"] ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
     prNumber: parsedPrNumber,
     targetCommitSha:
-      options.targetCommitSha ?? process.env.TARGET_COMMIT_SHA ?? "",
-    servicesCsv: options.servicesCsv,
+      options["targetCommitSha"] ?? process.env["TARGET_COMMIT_SHA"] ?? "",
+    servicesCsv: options["servicesCsv"],
     sourceEnvironmentName:
-      options.sourceEnvironmentName ??
-      process.env.ZANE_PRODUCTION_ENVIRONMENT_NAME ??
+      options["sourceEnvironmentName"] ??
+      process.env["ZANE_PRODUCTION_ENVIRONMENT_NAME"] ??
       "",
-    previewDbName: options.previewDbName,
-    previewDbUser: options.previewDbUser,
-    previewDbPassword: options.previewDbPassword,
-    outputJson: options.outputJson,
-    baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
-    apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
-    dryRun: Boolean(options.dryRun),
-    dryRunCreated: Boolean(options.dryRunCreated),
+    previewDbName: options["previewDbName"],
+    previewDbUser: options["previewDbUser"],
+    previewDbPassword: options["previewDbPassword"],
+    outputJson: options["outputJson"],
+    baseUrl: options["baseUrl"] ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
+    apiToken:
+      options["apiToken"] ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
+    dryRun: Boolean(options["dryRun"]),
+    dryRunCreated: Boolean(options["dryRunCreated"]),
     pollIntervalSeconds:
-      typeof options.pollIntervalSeconds === "string" &&
-      options.pollIntervalSeconds.trim()
-        ? Number(options.pollIntervalSeconds)
+      typeof options["pollIntervalSeconds"] === "string" &&
+      options["pollIntervalSeconds"].trim()
+        ? Number(options["pollIntervalSeconds"])
         : undefined,
     waitTimeoutSeconds:
-      typeof options.waitTimeoutSeconds === "string" &&
-      options.waitTimeoutSeconds.trim()
-        ? Number(options.waitTimeoutSeconds)
+      typeof options["waitTimeoutSeconds"] === "string" &&
+      options["waitTimeoutSeconds"].trim()
+        ? Number(options["waitTimeoutSeconds"])
         : undefined,
-    stackManifestPath: options.stackManifestPath,
-    stackInputsPath: options.stackInputsPath,
-    previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
+    stackManifestPath: options["stackManifestPath"],
+    stackInputsPath: options["stackInputsPath"],
+    previewEnvPrefix: process.env["ZANE_PREVIEW_ENV_PREFIX"] ?? "pr-",
     meiliApiCredentialsProviderId:
-      process.env.ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID ??
+      process.env["ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID"] ??
       "meili_api_credentials",
   })
 }
@@ -151,12 +153,12 @@ export function createDeployPreviewCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath
     )
     .action(async (options) => {
       const input = buildDeployPreviewInput(options)

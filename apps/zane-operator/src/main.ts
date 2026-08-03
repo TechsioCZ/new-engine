@@ -281,7 +281,7 @@ const handleShutdown = async (signal: string): Promise<void> => {
   let exitCode = 0
 
   try {
-    server.stop(true)
+    await server.stop(true)
     await sql.close({ timeout: 10 })
   } catch (error: unknown) {
     exitCode = 1

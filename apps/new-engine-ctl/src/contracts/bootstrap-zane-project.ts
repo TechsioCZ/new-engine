@@ -133,12 +133,6 @@ export const bootstrapZaneProjectPlanResponseSchema = z.object({
   shared_env_cleanup_keys: z.array(z.string()).default([]),
 })
 
-export type BootstrapZaneProjectInspectResponse = z.infer<
-  typeof bootstrapZaneProjectInspectResponseSchema
->
 export type BootstrapZaneProjectPlanCommandInput = z.infer<
   typeof bootstrapZaneProjectPlanCommandInputSchema
->
-export type BootstrapZaneProjectPlanResponse = z.infer<
-  typeof bootstrapZaneProjectPlanResponseSchema
 >

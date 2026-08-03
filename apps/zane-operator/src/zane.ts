@@ -1,11 +1,13 @@
+import { isRecord } from "@techsio/std/object"
+
 import type { AppConfig } from "./config"
 import { BadRequestError } from "./db"
 import type {
   ArchiveEnvironmentInput,
   EnvOverrideInput,
   Lane,
-  ProvisionMedusaPublishableKeyInput,
   PreviewRuntimeValueSourceInput,
+  ProvisionMedusaPublishableKeyInput,
   ProvisionMeiliKeysInput,
   ReadPreviewCommitStateInput,
   ResolveEnvironmentInput,
@@ -25,6 +27,8 @@ import type {
   ZaneResolvedTarget,
   ZaneServiceCard,
   ZaneServiceDetails,
+  ZaneServiceHealthcheck,
+  ZaneServiceResourceLimits,
 } from "./zane-contract"
 import { ZaneDeployOps } from "./zane-deploy-ops"
 import { ZaneDeployVerifier } from "./zane-deploy-verify"
@@ -43,24 +47,14 @@ import {
 export type {
   ArchiveEnvironmentInput,
   EnvOverrideInput,
-  ForbiddenEnvRequirement,
   Lane,
-  PersistedEnvRequirement,
-  ProvisionMedusaPublishableKeyInput,
-  ProvisionMeiliKeysInput,
   ResolveEnvironmentInput,
   ResolveTargetInput,
-  ServiceType,
   TriggeredDeployment,
   VerifyDeployInput,
-  VerifyDeploymentRef,
-  ZaneEnvironment,
-  ZaneEnvVariable,
-  ZaneResolvedCurrentDeployment,
   ZaneResolvedTarget,
   ZaneServiceCard,
   ZaneServiceDetails,
-  ZaneServiceUrl,
 } from "./zane-contract"
 
 interface ZaneDeployment {
@@ -162,15 +156,15 @@ function assertStringArrayInput(value: unknown, label: string): string[] {
 function toMeiliProvisionOutputInput(
   output: RuntimeProviderOutputInput,
   label: string
-): ProvisionMeiliKeysInput["backendOutput"] {
+): NonNullable<ProvisionMeiliKeysInput["backendOutput"]> {
   if (output.policy.kind !== "meilisearch_key") {
     throw new BadRequestError(
       `${label}.policy.kind must be meilisearch_key for meili_api_credentials`
     )
   }
 
-  const uid = output.policy.uid
-  const description = output.policy.description
+  const uid = output.policy["uid"]
+  const description = output.policy["description"]
   if (typeof uid !== "string" || !uid.trim()) {
     throw new BadRequestError(`${label}.policy.uid must be a non-empty string`)
   }
@@ -186,11 +180,11 @@ function toMeiliProvisionOutputInput(
       uid: uid.trim(),
       description: description.trim(),
       actions: assertStringArrayInput(
-        output.policy.actions,
+        output.policy["actions"],
         `${label}.policy.actions`
       ),
       indexes: assertStringArrayInput(
-        output.policy.indexes,
+        output.policy["indexes"],
         `${label}.policy.indexes`
       ),
     },
@@ -207,8 +201,12 @@ function toMedusaPublishableKeyProvisionOutputInput(
     )
   }
 
-  const title = output.policy.title
-  if (title != null && (typeof title !== "string" || !title.trim())) {
+  const title = output.policy["title"]
+  if (
+    title !== null &&
+    title !== undefined &&
+    (typeof title !== "string" || !title.trim())
+  ) {
     throw new BadRequestError(
       `${label}.policy.title must be a non-empty string when provided`
     )
@@ -216,11 +214,8 @@ function toMedusaPublishableKeyProvisionOutputInput(
 
   return {
     envVar: output.envVar,
-    policy: {
-      ...(typeof title === "string" && title.trim()
-        ? { title: title.trim() }
-        : {}),
-    },
+    policy:
+      typeof title === "string" && title.trim() ? { title: title.trim() } : {},
   }
 }
 
@@ -236,12 +231,113 @@ function normalizeServiceCards(payload: unknown): ZaneServiceCard[] {
   return payload.map((item, index) => {
     const object = assertObject(item, `service_list[${index}]`)
     return {
-      id: assertString(object.id, `service_list[${index}].id`),
-      slug: assertString(object.slug, `service_list[${index}].slug`),
-      type: assertServiceType(object.type, `service_list[${index}].type`),
-      status: typeof object.status === "string" ? object.status : undefined,
+      id: assertString(object["id"], `service_list[${index}].id`),
+      slug: assertString(object["slug"], `service_list[${index}].slug`),
+      type: assertServiceType(object["type"], `service_list[${index}].type`),
+      ...(typeof object["status"] === "string"
+        ? { status: object["status"] }
+        : {}),
     }
   })
+}
+
+function normalizeDockerfileBuilderOptions(
+  value: unknown
+): NonNullable<ZaneServiceDetails["dockerfile_builder_options"]> | undefined {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  return {
+    ...(typeof value["dockerfile_path"] === "string" ||
+    value["dockerfile_path"] === null
+      ? { dockerfile_path: value["dockerfile_path"] }
+      : {}),
+    ...(typeof value["build_context_dir"] === "string" ||
+    value["build_context_dir"] === null
+      ? { build_context_dir: value["build_context_dir"] }
+      : {}),
+    ...(typeof value["build_stage_target"] === "string" ||
+    value["build_stage_target"] === null
+      ? { build_stage_target: value["build_stage_target"] }
+      : {}),
+  }
+}
+
+function normalizeGitAppRef(
+  value: unknown
+): ZaneServiceDetails["git_app"] | undefined {
+  if (value === null) {
+    return null
+  }
+
+  return isRecord(value) && typeof value["id"] === "string"
+    ? { id: value["id"] }
+    : undefined
+}
+
+function normalizeHealthcheck(
+  value: unknown
+): ZaneServiceHealthcheck | null | undefined {
+  if (value === null) {
+    return null
+  }
+  if (
+    !isRecord(value) ||
+    typeof value["type"] !== "string" ||
+    typeof value["value"] !== "string" ||
+    typeof value["timeout_seconds"] !== "number" ||
+    typeof value["interval_seconds"] !== "number"
+  ) {
+    return undefined
+  }
+
+  return {
+    type: value["type"],
+    value: value["value"],
+    timeout_seconds: value["timeout_seconds"],
+    interval_seconds: value["interval_seconds"],
+    ...(typeof value["associated_port"] === "number" ||
+    value["associated_port"] === null
+      ? { associated_port: value["associated_port"] }
+      : {}),
+  }
+}
+
+function normalizeResourceLimits(
+  value: unknown
+): ZaneServiceResourceLimits | null | undefined {
+  if (value === null) {
+    return null
+  }
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  const memory = value["memory"]
+
+  return {
+    ...(typeof value["cpus"] === "number" ||
+    typeof value["cpus"] === "string" ||
+    value["cpus"] === null
+      ? { cpus: value["cpus"] }
+      : {}),
+    ...(memory === null
+      ? { memory: null }
+      : isRecord(memory)
+        ? {
+            memory: {
+              ...(typeof memory["unit"] === "string"
+                ? { unit: memory["unit"] }
+                : {}),
+              ...(typeof memory["value"] === "number" ||
+              typeof memory["value"] === "string"
+                ? { value: memory["value"] }
+                : {}),
+            },
+          }
+        : {}),
+  }
 }
 
 function normalizeServiceDetails(
@@ -249,23 +345,75 @@ function normalizeServiceDetails(
   label: string
 ): ZaneServiceDetails {
   const object = assertObject(payload, label)
+  const dockerfileBuilderOptions = normalizeDockerfileBuilderOptions(
+    object["dockerfile_builder_options"]
+  )
+  const gitApp = normalizeGitAppRef(object["git_app"])
+  const healthcheck = normalizeHealthcheck(object["healthcheck"])
+  const resourceLimits = normalizeResourceLimits(object["resource_limits"])
 
   return {
-    ...(object as unknown as ZaneServiceDetails),
-    id: assertString(object.id, `${label}.id`),
-    slug: assertString(object.slug, `${label}.slug`),
-    type: assertServiceType(object.type, `${label}.type`),
+    id: assertString(object["id"], `${label}.id`),
+    slug: assertString(object["slug"], `${label}.slug`),
+    type: assertServiceType(object["type"], `${label}.type`),
     global_network_alias:
-      typeof object.global_network_alias === "string"
-        ? object.global_network_alias
+      typeof object["global_network_alias"] === "string"
+        ? object["global_network_alias"]
         : null,
-    deploy_token: assertString(object.deploy_token, `${label}.deploy_token`),
-    env_variables: Array.isArray(object.env_variables)
-      ? (object.env_variables as ZaneEnvVariable[])
+    deploy_token: assertString(object["deploy_token"], `${label}.deploy_token`),
+    env_variables: Array.isArray(object["env_variables"])
+      ? (object["env_variables"] as ZaneEnvVariable[])
       : [],
-    urls: Array.isArray(object.urls)
-      ? (object.urls as ZaneServiceDetails["urls"])
+    urls: Array.isArray(object["urls"])
+      ? (object["urls"] as ZaneServiceDetails["urls"])
       : [],
+    ...(typeof object["network_alias"] === "string"
+      ? { network_alias: object["network_alias"] }
+      : {}),
+    ...(typeof object["commit_sha"] === "string"
+      ? { commit_sha: object["commit_sha"] }
+      : {}),
+    ...(typeof object["repository_url"] === "string"
+      ? { repository_url: object["repository_url"] }
+      : {}),
+    ...(typeof object["branch_name"] === "string"
+      ? { branch_name: object["branch_name"] }
+      : {}),
+    ...(typeof object["builder"] === "string"
+      ? { builder: object["builder"] }
+      : {}),
+    ...(typeof object["command"] === "string"
+      ? { command: object["command"] }
+      : {}),
+    ...(Array.isArray(object["system_env_variables"])
+      ? {
+          system_env_variables: object[
+            "system_env_variables"
+          ] as ZaneEnvVariable[],
+        }
+      : {}),
+    ...(Array.isArray(object["volumes"])
+      ? {
+          volumes: object["volumes"] as NonNullable<
+            ZaneServiceDetails["volumes"]
+          >,
+        }
+      : {}),
+    ...(Array.isArray(object["unapplied_changes"])
+      ? {
+          unapplied_changes: object["unapplied_changes"] as NonNullable<
+            ZaneServiceDetails["unapplied_changes"]
+          >,
+        }
+      : {}),
+    ...(dockerfileBuilderOptions === undefined
+      ? {}
+      : { dockerfile_builder_options: dockerfileBuilderOptions }),
+    ...(gitApp === undefined ? {} : { git_app: gitApp }),
+    ...(healthcheck === undefined ? {} : { healthcheck }),
+    ...(resourceLimits === undefined
+      ? {}
+      : { resource_limits: resourceLimits }),
   }
 }
 
@@ -971,7 +1119,7 @@ export class ZaneClient {
           )
         }
 
-        const result = await provider.provisionMeiliKeys({
+        const provisionInput: ProvisionMeiliKeysInput = {
           projectSlug: input.projectSlug,
           environmentName: input.environmentName,
           serviceSlug: input.serviceSlug,
@@ -992,7 +1140,8 @@ export class ZaneClient {
                 ),
               }
             : {}),
-        })
+        }
+        const result = await provider.provisionMeiliKeys(provisionInput)
 
         return {
           project_slug: result.project_slug,
@@ -1128,7 +1277,7 @@ export class ZaneClient {
     key: string
     value: string | undefined
   }): Promise<string | undefined> {
-    if (input.value == null) {
+    if (input.value === null || input.value === undefined) {
       return
     }
 

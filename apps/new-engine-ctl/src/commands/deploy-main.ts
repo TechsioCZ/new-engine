@@ -24,26 +24,28 @@ export function createDeployMainCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath
     )
     .action(async (options) => {
       const input = deployMainCommandInputSchema.parse({
-        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+        projectSlug:
+          options.projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
         environmentName: options.environmentName,
         servicesCsv: options.servicesCsv,
         gitCommitSha: options.gitCommitSha,
         outputJson: options.outputJson,
-        baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
-        apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
+        baseUrl: options.baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
+        apiToken:
+          options.apiToken ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
         dryRun: Boolean(options.dryRun),
         approveDowntimeRisk: Boolean(options.approveDowntimeRisk),
         meiliApiCredentialsProviderId:
-          process.env.ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID ??
+          process.env["ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID"] ??
           "meili_api_credentials",
         pollIntervalSeconds:
           typeof options.pollIntervalSeconds === "string" &&

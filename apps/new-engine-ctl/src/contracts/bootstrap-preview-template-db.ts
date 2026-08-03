@@ -71,12 +71,6 @@ export const bootstrapPreviewTemplateDbPlanResponseSchema = z.object({
   dump_file: z.string().nullable(),
 })
 
-export type BootstrapPreviewTemplateDbInspectResponse = z.infer<
-  typeof bootstrapPreviewTemplateDbInspectResponseSchema
->
 export type BootstrapPreviewTemplateDbPlanCommandInput = z.infer<
   typeof bootstrapPreviewTemplateDbPlanCommandInputSchema
->
-export type BootstrapPreviewTemplateDbPlanResponse = z.infer<
-  typeof bootstrapPreviewTemplateDbPlanResponseSchema
 >

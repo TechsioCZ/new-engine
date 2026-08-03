@@ -1,5 +1,5 @@
-export const IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/
-export const MAX_IDENTIFIER_LENGTH = 63
+const IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/
+const MAX_IDENTIFIER_LENGTH = 63
 
 type ErrorFactory = (message: string) => Error
 

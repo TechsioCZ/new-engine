@@ -3,8 +3,8 @@ import {
   type RuntimeProviderOutputs,
   runtimeProviderOutputKey,
 } from "../contracts/runtime-provider-outputs.js"
-import type { StackInputs } from "../contracts/stack-inputs.js"
 import {
+  type StackInputs,
   getRuntimeProviderLaneBehavior,
   listActiveRuntimeProviderIdsForLane,
   listRuntimeProviderOutputIds,
@@ -101,7 +101,7 @@ function getRuntimeProviderOutputValue(
   return state.outputValues[outputStateKey(providerId, outputId)] ?? ""
 }
 
-export function getRuntimeProviderOutputEnvVar(
+function getRuntimeProviderOutputEnvVar(
   state: RuntimeProviderState,
   providerId: string,
   outputId: string
@@ -169,8 +169,8 @@ function buildRuntimeProviderAdapters(
           targets,
           stackInputs,
           providerId: need.providerId,
-          backendConsumerIds: need.outputConsumerIds.backend_key ?? [],
-          frontendConsumerIds: need.outputConsumerIds.frontend_key ?? [],
+          backendConsumerIds: need.outputConsumerIds["backend_key"] ?? [],
+          frontendConsumerIds: need.outputConsumerIds["frontend_key"] ?? [],
         })
         setRuntimeProviderOutput({
           state,
@@ -254,7 +254,7 @@ function buildRuntimeProviderAdapters(
           targets,
           stackInputs,
           providerId: need.providerId,
-          consumerIds: need.outputConsumerIds.frontend_key ?? [],
+          consumerIds: need.outputConsumerIds["frontend_key"] ?? [],
         })
         setRuntimeProviderOutput({
           state,
@@ -388,7 +388,7 @@ export function createRuntimeProviderState(
   return state
 }
 
-export function buildRuntimeProviderOutputs(
+function buildRuntimeProviderOutputs(
   state: RuntimeProviderState
 ): RuntimeProviderOutputs {
   return Object.fromEntries(
@@ -399,18 +399,6 @@ export function buildRuntimeProviderOutputs(
         env_var: state.outputEnvVars[key] ?? "",
       },
     ])
-  )
-}
-
-export function getRuntimeProviderOutputValueByRef(input: {
-  state: RuntimeProviderState
-  providerId: string
-  outputId: string
-}): string {
-  return getRuntimeProviderOutputValue(
-    input.state,
-    input.providerId,
-    input.outputId
   )
 }
 
@@ -585,7 +573,11 @@ export async function ensureStageRuntimeProviderOutputs(input: {
     const sourceStage = input.fullPlanServices.find(
       (service) => service.id === need.sourceServiceId
     )?.deploy_stage
-    if (sourceStage != null && sourceStage >= input.stage) {
+    if (
+      sourceStage !== null &&
+      sourceStage !== undefined &&
+      sourceStage >= input.stage
+    ) {
       throw new Error(
         `${need.label} source service ${need.sourceServiceId} must be healthy before consumer stage ${input.stage}.`
       )

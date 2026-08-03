@@ -70,28 +70,28 @@ export function parseErrorMessage(payload: unknown, fallback: string): string {
   }
 
   const object = payload as Record<string, unknown>
-  if (typeof object.detail === "string" && object.detail.trim()) {
-    return object.detail
+  if (typeof object["detail"] === "string" && object["detail"].trim()) {
+    return object["detail"]
   }
-  if (typeof object.message === "string" && object.message.trim()) {
-    return object.message
+  if (typeof object["message"] === "string" && object["message"].trim()) {
+    return object["message"]
   }
 
-  if (Array.isArray(object.errors) && object.errors.length > 0) {
-    const firstError = object.errors[0]
+  if (Array.isArray(object["errors"]) && object["errors"].length > 0) {
+    const firstError = object["errors"][0]
     if (firstError && typeof firstError === "object") {
       const firstErrorObject = firstError as Record<string, unknown>
       if (
-        typeof firstErrorObject.detail === "string" &&
-        firstErrorObject.detail.trim()
+        typeof firstErrorObject["detail"] === "string" &&
+        firstErrorObject["detail"].trim()
       ) {
-        return firstErrorObject.detail
+        return firstErrorObject["detail"]
       }
       if (
-        typeof firstErrorObject.message === "string" &&
-        firstErrorObject.message.trim()
+        typeof firstErrorObject["message"] === "string" &&
+        firstErrorObject["message"].trim()
       ) {
-        return firstErrorObject.message
+        return firstErrorObject["message"]
       }
     }
   }
@@ -165,7 +165,7 @@ export class ZaneUpstreamClient {
     if (session) {
       const cookieHeader = buildCookieHeader(session.cookies)
       if (cookieHeader) {
-        headers.Cookie = cookieHeader
+        headers["Cookie"] = cookieHeader
       }
     }
 
@@ -174,7 +174,7 @@ export class ZaneUpstreamClient {
     }
 
     if (this.#connectHostHeader) {
-      headers.Host = this.#connectHostHeader
+      headers["Host"] = this.#connectHostHeader
     }
 
     return headers
@@ -218,7 +218,10 @@ export class ZaneUpstreamClient {
     const response = await fetch(`${this.#baseUrl}${path}`, {
       method,
       headers: this.buildHeaders(session, method),
-      body: payload == null ? undefined : JSON.stringify(payload),
+      body:
+        payload === null || payload === undefined
+          ? undefined
+          : JSON.stringify(payload),
     })
 
     updateCookiesFromHeaders(session.cookies, response.headers)

@@ -52,13 +52,13 @@ function buildBlockingReasons(input: {
   environmentExists: boolean
   dbServiceExists: boolean
   operatorServiceExists: boolean
-  dbHost?: string
-  dbPort?: string
-  dbUser?: string
-  dbPassword?: string
-  templateDbName?: string
-  templateOwner?: string
-  dbAdminName?: string
+  dbHost?: string | undefined
+  dbPort?: string | undefined
+  dbUser?: string | undefined
+  dbPassword?: string | undefined
+  templateDbName?: string | undefined
+  templateOwner?: string | undefined
+  dbAdminName?: string | undefined
 }): string[] {
   const reasons: string[] = []
 

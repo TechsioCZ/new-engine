@@ -1,7 +1,7 @@
 import { randomBytes, randomInt } from "node:crypto"
 
-import type { StackInputs } from "../contracts/stack-inputs.js"
 import {
+  type StackInputs,
   getPreviewRandomOnceSecretDefinitions,
   type PreviewRandomOnceSecretDefinition,
 } from "../contracts/stack-inputs.js"
@@ -9,6 +9,10 @@ import type { PreviewRandomOnceSecretInput } from "../contracts/verify.js"
 
 const alnumChars =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+
+function unsupportedSecretGenerator(value: unknown): never {
+  throw new Error(`Unsupported secret generator kind: ${String(value)}`)
+}
 
 function generateSecretValue(
   definition: PreviewRandomOnceSecretDefinition
@@ -38,7 +42,7 @@ function generateSecretValue(
       return value
     }
     default:
-      throw new Error(`Unsupported secret generator kind: ${kind ?? "<empty>"}`)
+      return unsupportedSecretGenerator(kind)
   }
 }
 

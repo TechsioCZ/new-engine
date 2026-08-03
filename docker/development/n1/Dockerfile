@@ -2,6 +2,10 @@ FROM node:24-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+# The minimumReleaseAge supply-chain check fetches registry metadata per
+# lockfile entry; default fetch budgets abort it on slow networks.
+ENV pnpm_config_fetch_timeout=180000
+ENV pnpm_config_fetch_retries=5
 
 RUN apt-get update && apt-get install -y curl --no-install-recommends && \
     rm -rf /var/lib/apt/lists/* && \
@@ -22,6 +26,7 @@ RUN corepack install && rm -rf /tmp/corepack
 WORKDIR /var/www
 CMD ["sh", "-lc", "\
   [ -x apps/n1/node_modules/.bin/next ] && [ -d node_modules/@zag-js/react ] && [ -d node_modules/tailwind-variants ] || CI=true pnpm install --frozen-lockfile --prefer-offline --filter=n1...; \
+  [ -f libs/std/dist/string.js ] || pnpm --filter=@techsio/std build; \
   [ -f libs/ui/dist/utils.js ] || pnpm --filter=@techsio/ui-kit build; \
   [ -f libs/analytics/dist/index.js ] || pnpm --filter=@techsio/analytics build; \
   [ -f apps/n1/node_modules/@techsio/analytics/dist/index.js ] || (rm -rf apps/n1/node_modules/@techsio/analytics && mkdir -p apps/n1/node_modules/@techsio && ln -s ../../../../libs/analytics apps/n1/node_modules/@techsio/analytics); \
@@ -44,16 +49,18 @@ RUN corepack install
 
 COPY tsconfig.base.json ./
 COPY apps/n1 ./apps/n1
+COPY libs/std ./libs/std
 COPY libs/ui ./libs/ui
 COPY libs/analytics ./libs/analytics
 RUN mkdir -p apps/n1/public
 
 RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
     pnpm_config_store_dir=/pnpm/store \
-    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --filter=n1... && \
+    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --ignore-scripts --filter=n1... && \
+    pnpm --filter=@techsio/std build && \
     pnpm --filter=@techsio/ui-kit build && \
     pnpm --filter=@techsio/analytics build && \
-    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1...
+    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --ignore-scripts --filter=n1...
 
 WORKDIR /var/www/apps/n1
 
@@ -74,12 +81,14 @@ RUN corepack install
 # invalidate the production dependency and build layers.
 COPY tsconfig.base.json ./
 COPY apps/n1 ./apps/n1
+COPY libs/std ./libs/std
 COPY libs/ui ./libs/ui
 COPY libs/analytics ./libs/analytics
 RUN mkdir -p apps/n1/public
 
 RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
-    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --filter=n1... && \
+    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --ignore-scripts --filter=n1... && \
+    pnpm --filter=@techsio/std build && \
     pnpm --filter=@techsio/ui-kit build && \
     pnpm --filter=@techsio/analytics build
 
@@ -105,7 +114,7 @@ ENV NEXT_PUBLIC_HEUREKA_API_KEY=${NEXT_PUBLIC_HEUREKA_API_KEY}
 # Keep this second install: with injectWorkspacePackages enabled, N1 needs a relink
 # after building @techsio/* dist outputs or Next build can resolve stale package state.
 RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
-    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1... && \
+    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --ignore-scripts --filter=n1... && \
     TURBOPACK=1 pnpm --filter=n1 exec next typegen && \
     pnpm --filter=n1 build && \
     test -f apps/n1/.next/BUILD_ID

@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process"
 import { mkdir, writeFile } from "node:fs/promises"
-import { delimiter, dirname, join, matchesGlob } from "node:path"
+import { dirname, matchesGlob } from "node:path"
 import { promisify } from "node:util"
 
 import type { ScopeCommandInput, ScopeResponse } from "../contracts/scope.js"
@@ -16,6 +16,7 @@ import {
   type StackManifest,
 } from "../contracts/stack-manifest.js"
 import { loadDeployContracts, normalizeCsvToArray } from "./deploy-inputs.js"
+import { withWorkspaceBinPath } from "./workspace-bin-path.js"
 
 const execFileAsync = promisify(execFile)
 
@@ -24,29 +25,6 @@ type NxStatus = ScopeResponse["nx_status"]
 type ExecResult = {
   stdout: string
   stderr: string
-}
-
-export function withWorkspaceBinPath(
-  env: NodeJS.ProcessEnv
-): NodeJS.ProcessEnv {
-  const pathKey =
-    Object.keys(env).find((key) => key === "PATH") ??
-    Object.keys(env).find((key) => key.toUpperCase() === "PATH") ??
-    "PATH"
-  const nextEnv = { ...env }
-
-  for (const key of Object.keys(nextEnv)) {
-    if (key !== pathKey && key.toUpperCase() === "PATH") {
-      delete nextEnv[key]
-    }
-  }
-
-  return {
-    ...nextEnv,
-    [pathKey]: [join(process.cwd(), "node_modules", ".bin"), env[pathKey]]
-      .filter(Boolean)
-      .join(delimiter),
-  }
 }
 
 function toCsv(values: string[]): string {

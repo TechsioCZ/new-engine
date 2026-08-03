@@ -12,7 +12,8 @@ import {
 import { loadDeployContracts } from "../orchestration/deploy-inputs.js"
 import { executePlan } from "../orchestration/plan.js"
 import { collectConfiguredRuntimeProviderNeeds } from "../orchestration/runtime-provider-orchestration.js"
-import { executeScope, withWorkspaceBinPath } from "../orchestration/scope.js"
+import { executeScope } from "../orchestration/scope.js"
+import { withWorkspaceBinPath } from "../orchestration/workspace-bin-path.js"
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..")
 const stackManifestPath = join(
@@ -34,11 +35,11 @@ test("scope preserves existing Path casing when prefixing workspace bin", () => 
     OTHER_VALUE: "kept",
   })
 
-  expect(env.Path).toBe(
+  expect(env["Path"]).toBe(
     [workspaceBinPath, "C:\\Windows\\System32"].join(delimiter)
   )
   expect(Object.hasOwn(env, "PATH")).toBe(false)
-  expect(env.OTHER_VALUE).toBe("kept")
+  expect(env["OTHER_VALUE"]).toBe("kept")
 })
 
 test("scope removes duplicate path casing when prefixing workspace bin", () => {
@@ -47,7 +48,7 @@ test("scope removes duplicate path casing when prefixing workspace bin", () => {
     Path: "C:\\Windows\\System32",
   })
 
-  expect(env.PATH).toBe([workspaceBinPath, "/usr/bin"].join(delimiter))
+  expect(env["PATH"]).toBe([workspaceBinPath, "/usr/bin"].join(delimiter))
   expect(Object.hasOwn(env, "Path")).toBe(false)
 })
 

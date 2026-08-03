@@ -5,7 +5,7 @@ interface ZaneEnvVariable {
 }
 
 interface ZaneEnvVariableChange {
-  type?: "ADD" | "UPDATE" | "DELETE" | string
+  type?: string
   field?: string
   item_id?: string | null
   new_value?: Record<string, unknown> | null
@@ -21,16 +21,16 @@ function coercePendingEnvVariable(
 ): ZaneEnvVariable | null {
   if (
     !value ||
-    typeof value.key !== "string" ||
-    typeof value.value !== "string"
+    typeof value["key"] !== "string" ||
+    typeof value["value"] !== "string"
   ) {
     return null
   }
 
   return {
-    id: typeof value.id === "string" ? value.id : "",
-    key: value.key,
-    value: value.value,
+    id: typeof value["id"] === "string" ? value["id"] : "",
+    key: value["key"],
+    value: value["value"],
   }
 }
 
@@ -60,7 +60,7 @@ export function computeEffectiveEnvVariables(
     }
 
     const existingIndexById =
-      change.item_id != null
+      change.item_id !== null && change.item_id !== undefined
         ? envVariables.findIndex((envVar) => envVar.id === change.item_id)
         : -1
     const existingIndexByKey = envVariables.findIndex(

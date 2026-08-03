@@ -33,11 +33,13 @@ export type ServiceReconciliationLane = "preview" | "main"
 export type PreviewServiceSpecSyncService = {
   service_id: string
   service_slug: string
-  git_source?: {
-    sync_from_source: boolean
-    branch_name?: string
-    commit_sha?: string
-  }
+  git_source?:
+    | {
+        sync_from_source: boolean
+        branch_name?: string
+        commit_sha?: string
+      }
+    | undefined
   builder?: {
     sync_from_source: boolean
     build_stage_target?: string | null
