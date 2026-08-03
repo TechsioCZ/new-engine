@@ -1,0 +1,24 @@
+id: no-local-canonical-helper
+language: TypeScript
+severity: error
+message: Import this framework-agnostic micro-helper from the explicit @techsio/std subpath instead of maintaining a local copy.
+note: The rule targets source declarations by canonical helper name. Domain-specific guards with different semantics need a distinct name.
+files:
+  - "apps/**/src/**/*.{ts,tsx,js,jsx}"
+  - "libs/**/src/**/*.{ts,tsx,js,jsx}"
+ignores:
+  - "libs/std/**"
+  - "**/*.figma.{ts,tsx}"
+rule:
+  any:
+    - pattern: "function $HELPER($$$ARGS): $RETURN { $$$BODY }"
+    - pattern: "function $HELPER($$$ARGS) { $$$BODY }"
+    - pattern: const $HELPER = $VALUE
+constraints:
+  HELPER:
+    regex: ^(assertNever|chunk|clamp|compactRecord|debounce|getErrorMessage|hasTrimmedString|isPlainRecord|isRecord|noop|normalizePresentTrimmedString|normalizeTrimmedString|omitKeys|sleep|slugify|toPlainRecord|unique)$
+  VALUE:
+    any:
+      - kind: arrow_function
+      - kind: function_expression
+      - regex: ^(assertNever|chunk|clamp|compactRecord|debounce|getErrorMessage|hasTrimmedString|isPlainRecord|isRecord|noop|normalizePresentTrimmedString|normalizeTrimmedString|omitKeys|sleep|slugify|toPlainRecord|unique)$
