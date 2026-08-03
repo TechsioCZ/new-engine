@@ -26,6 +26,8 @@ const BRANCH_FEED_URL =
 type RequestOptions = {
   /** Body fields placed inside the method element alongside apiPassword */
   params?: Record<string, unknown>
+  /** Set to false for non-idempotent writes such as createPacket. */
+  retryable?: boolean
 }
 
 type GLSResponseEnvelope<T> = {
@@ -93,6 +95,7 @@ export class GLSClient {
 
     const result = await this.request<GLSCreatePacketResult>("createPacket", {
       params,
+      retryable: false,
     })
 
     if (!(result?.id && result?.barcode)) {
@@ -177,12 +180,15 @@ export class GLSClient {
    * caches this (24h TTL) and shouldn't call it on request hot paths.
    */
   async getBranchList(): Promise<GLSBranch[]> {
-    const url = BRANCH_FEED_URL.replace(
-      "{apiKey}",
-      encodeURIComponent(
-        process.env.GLS_PICKUP_POINTS_API_KEY ?? this.options.api_password
+    const apiKey = process.env.GLS_PICKUP_POINTS_API_KEY
+    if (!apiKey) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_ALLOWED,
+        "GLS: GLS_PICKUP_POINTS_API_KEY is not configured for the branch feed"
       )
-    )
+    }
+
+    const url = BRANCH_FEED_URL.replace("{apiKey}", encodeURIComponent(apiKey))
 
     const payload = await this.withRetry(
       () => this.fetchWithTimeout(url, { method: "GET" }),
@@ -201,7 +207,7 @@ export class GLSClient {
             }
           | GLSBranch[]
       },
-      `GLS GET ${url}`
+      "GLS GET branch feed"
     )
 
     if (Array.isArray(payload)) {
@@ -228,7 +234,7 @@ export class GLSClient {
     methodName: string,
     options: RequestOptions = {}
   ): Promise<T> {
-    const { params = {} } = options
+    const { params = {}, retryable = true } = options
 
     const xmlBody = this.xmlBuilder.build({
       [methodName]: {
@@ -287,7 +293,8 @@ export class GLSClient {
 
         return envelope.result as T
       },
-      `GLS ${methodName}`
+      `GLS ${methodName}`,
+      retryable
     )
   }
 
@@ -363,7 +370,8 @@ export class GLSClient {
   private async withRetry<T>(
     operation: () => Promise<Response>,
     handleResponse: (response: Response) => Promise<T>,
-    errorContext: string
+    errorContext: string,
+    retryable = true
   ): Promise<T> {
     let lastError: Error | null = null
 
@@ -378,19 +386,22 @@ export class GLSClient {
         )
         if (result.retry) {
           lastError = result.error
+          if (!retryable) {
+            break
+          }
           continue
         }
 
         return result.value
       } catch (error) {
         lastError = this.normalizeRetryError(error)
-        this.throwIfFinalAttempt(attempt, errorContext, lastError)
+        this.throwIfFinalAttempt(attempt, errorContext, lastError, retryable)
       }
     }
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `${errorContext}: ${lastError?.message || "Unknown error"}`
+      `${errorContext}: ${lastError?.message ?? "Unknown error"}`
     )
   }
 
@@ -433,15 +444,16 @@ export class GLSClient {
   private throwIfFinalAttempt(
     attempt: number,
     errorContext: string,
-    lastError: Error
+    lastError: Error,
+    retryable: boolean
   ): void {
-    if (attempt !== this.MAX_RETRIES) {
+    if (retryable && attempt !== this.MAX_RETRIES) {
       return
     }
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `${errorContext} after ${this.MAX_RETRIES + 1} attempts: ${lastError.message}`
+      `${errorContext} after ${retryable ? this.MAX_RETRIES + 1 : 1} attempts: ${lastError.message}`
     )
   }
 }

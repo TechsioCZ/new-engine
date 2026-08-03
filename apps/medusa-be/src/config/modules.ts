@@ -45,7 +45,7 @@ function buildPaymentDependencies(env: MedusaConfigEnv): string[] {
     dependencies.push(QR_PAYMENT_MODULE)
   }
 
-  return dependencies
+  return [...new Set(dependencies)]
 }
 
 function buildPaymentModule(env: MedusaConfigEnv): MedusaModuleConfig {
@@ -131,7 +131,7 @@ function buildFulfillmentDependencies(env: MedusaConfigEnv): string[] {
     )
   }
 
-  return dependencies
+  return [...new Set(dependencies)]
 }
 
 function buildFulfillmentProviders(

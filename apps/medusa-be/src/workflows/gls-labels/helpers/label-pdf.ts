@@ -5,7 +5,7 @@ const A4_WIDTH = 595.28
 const A4_HEIGHT = 841.89
 const A4_LABEL_COLUMNS = 2
 const A4_LABEL_ROWS = 2
-const A4_LABELS_PER_PAGE = A4_LABEL_COLUMNS * A4_LABEL_ROWS
+export const A4_LABELS_PER_PAGE = A4_LABEL_COLUMNS * A4_LABEL_ROWS
 
 export async function composeGLSLabelsOnA4(
   labelPdfs: Buffer[],
@@ -16,7 +16,7 @@ export async function composeGLSLabelsOnA4(
   const cellWidth = A4_WIDTH / A4_LABEL_COLUMNS
   const cellHeight = A4_HEIGHT / A4_LABEL_ROWS
   let currentPage = mergedPdf.addPage([A4_WIDTH, A4_HEIGHT])
-  let slot = labelOffset
+  let slot = normalizeA4LabelOffset(labelOffset)
 
   for (const labelPdf of labelPdfs) {
     if (slot >= A4_LABELS_PER_PAGE) {
@@ -62,6 +62,14 @@ export async function composeGLSLabelsOnA4(
   }
 
   return mergedPdf.save()
+}
+
+export function normalizeA4LabelOffset(labelOffset: number): number {
+  if (!Number.isInteger(labelOffset)) {
+    return 0
+  }
+
+  return Math.min(Math.max(labelOffset, 0), A4_LABELS_PER_PAGE - 1)
 }
 
 function getSourceLabelBox(

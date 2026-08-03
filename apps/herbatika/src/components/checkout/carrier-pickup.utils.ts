@@ -54,7 +54,7 @@ export function resolveCarrierPickupRequirement(
     optionName.includes("zásielkov")
 
   if (
-    GLS_CODES.has(optionCode) ||
+    (providerId.includes("gls") && GLS_CODES.has(optionCode)) ||
     (providerId.includes("gls") && looksLikePickupOption)
   ) {
     return { carrier: "gls" }

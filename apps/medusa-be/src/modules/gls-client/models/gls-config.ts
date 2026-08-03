@@ -34,6 +34,18 @@ const GLSConfig = model
     sender_phone: model.text().nullable(),
     sender_email: model.text().nullable(),
   })
+  .checks([
+    {
+      name: "gls_config_environment_check",
+      expression: (columns) =>
+        `${columns.environment} in ('testing', 'production')`,
+    },
+    {
+      name: "gls_config_label_format_check",
+      expression: (columns) =>
+        `${columns.default_label_format} in ('A6', 'A7')`,
+    },
+  ])
   .indexes([{ on: ["environment"], unique: true, where: { deleted_at: null } }])
 
 export default GLSConfig

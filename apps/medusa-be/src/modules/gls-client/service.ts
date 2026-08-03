@@ -17,10 +17,14 @@ import {
   type UpdateGLSConfigInput,
 } from "./types"
 
-const CACHE_KEYS = {
-  CONFIG: "gls:config",
-  BRANCHES: "gls:branches",
-} as const
+const computeKey = (scope: string, parts: Record<string, unknown> = {}) =>
+  [
+    "gls",
+    scope,
+    ...Object.entries(parts)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, value]) => `${key}:${String(value)}`),
+  ].join(":")
 
 const CACHE_TAGS = {
   ALL: "gls",
@@ -45,15 +49,100 @@ type DisabledConfigCacheEntry = {
   disabled: true
 }
 
-type CachedConfigEntry = GLSOptions | DisabledConfigCacheEntry
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
 
 const isDisabledConfigCacheEntry = (
   value: unknown
 ): value is DisabledConfigCacheEntry =>
-  typeof value === "object" &&
-  value !== null &&
-  "disabled" in value &&
-  (value as { disabled?: unknown }).disabled === true
+  isRecord(value) && value.disabled === true
+
+const isGLSLabelFormat = (value: unknown): value is GLSLabelFormat =>
+  value === "A6" || value === "A7"
+
+const isGLSEnvironment = (value: unknown): value is GLSEnvironment =>
+  value === "testing" || value === "production"
+
+const isOptionalString = (value: unknown): value is string | undefined =>
+  value === undefined || typeof value === "string"
+
+const isGLSOptions = (value: unknown): value is GLSOptions =>
+  isRecord(value) &&
+  typeof value.api_password === "string" &&
+  isGLSEnvironment(value.environment) &&
+  isGLSLabelFormat(value.default_label_format) &&
+  typeof value.default_label_offset === "number" &&
+  isOptionalString(value.sender_label) &&
+  isOptionalString(value.eshop_id) &&
+  isOptionalString(value.cod_bank_account) &&
+  isOptionalString(value.cod_bank_code) &&
+  isOptionalString(value.cod_iban) &&
+  isOptionalString(value.cod_swift) &&
+  isOptionalString(value.sender_name) &&
+  isOptionalString(value.sender_street) &&
+  isOptionalString(value.sender_city) &&
+  isOptionalString(value.sender_zip_code) &&
+  isOptionalString(value.sender_country) &&
+  isOptionalString(value.sender_phone) &&
+  isOptionalString(value.sender_email)
+
+const nullableString = (value: unknown): string | null =>
+  typeof value === "string" ? value : null
+
+const toDate = (value: unknown): Date =>
+  value instanceof Date ? value : new Date(String(value ?? Date.now()))
+
+const mapGLSConfigDTO = (config: unknown): GLSConfigDTO => {
+  if (!isRecord(config)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "GLS: Invalid config record"
+    )
+  }
+
+  const id: unknown = config.id
+  const environment: unknown = config.environment
+  const isEnabled: unknown = config.is_enabled
+  const defaultLabelFormat: unknown = config.default_label_format
+  const defaultLabelOffset: unknown = config.default_label_offset
+
+  if (
+    typeof id !== "string" ||
+    !isGLSEnvironment(environment) ||
+    typeof isEnabled !== "boolean" ||
+    typeof defaultLabelFormat !== "string" ||
+    typeof defaultLabelOffset !== "number"
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "GLS: Invalid config record"
+    )
+  }
+
+  return {
+    id,
+    environment,
+    is_enabled: isEnabled,
+    api_password: nullableString(config.api_password),
+    sender_label: nullableString(config.sender_label),
+    eshop_id: nullableString(config.eshop_id),
+    default_label_format: defaultLabelFormat,
+    default_label_offset: defaultLabelOffset,
+    cod_bank_account: nullableString(config.cod_bank_account),
+    cod_bank_code: nullableString(config.cod_bank_code),
+    cod_iban: nullableString(config.cod_iban),
+    cod_swift: nullableString(config.cod_swift),
+    sender_name: nullableString(config.sender_name),
+    sender_street: nullableString(config.sender_street),
+    sender_city: nullableString(config.sender_city),
+    sender_zip_code: nullableString(config.sender_zip_code),
+    sender_country: nullableString(config.sender_country),
+    sender_phone: nullableString(config.sender_phone),
+    sender_email: nullableString(config.sender_email),
+    created_at: toDate(config.created_at),
+    updated_at: toDate(config.updated_at),
+  }
+}
 
 /**
  * GLS Client Module Service
@@ -70,6 +159,8 @@ export class GLSClientModuleService extends MedusaService({
   GLSConfig,
 }) {
   private client_: GLSClient | null = null
+  private clientConfigFingerprint_: string | null = null
+  private branchesRefresh_: Promise<GLSBranch[]> | null = null
   protected readonly logger_: Logger
   protected readonly environment_: GLSEnvironment
   protected readonly cacheService_: ICachingModuleService | null
@@ -112,9 +203,7 @@ export class GLSClientModuleService extends MedusaService({
     if (!config) {
       return null
     }
-    return decryptFields(config as unknown as GLSConfigDTO, [
-      ...GLS_SENSITIVE_FIELDS,
-    ])
+    return decryptFields(mapGLSConfigDTO(config), [...GLS_SENSITIVE_FIELDS])
   }
 
   /**
@@ -141,19 +230,29 @@ export class GLSClientModuleService extends MedusaService({
         ...encrypted,
       })
       await this.invalidateConfigCache()
-      return decryptFields(updated as unknown as GLSConfigDTO, [
-        ...GLS_SENSITIVE_FIELDS,
-      ])
+      return decryptFields(mapGLSConfigDTO(updated), [...GLS_SENSITIVE_FIELDS])
     }
 
-    const created = await this.createGLSConfigs({
-      ...encrypted,
-      environment: this.environment_,
-    })
-    await this.invalidateConfigCache()
-    return decryptFields(created as unknown as GLSConfigDTO, [
-      ...GLS_SENSITIVE_FIELDS,
-    ])
+    try {
+      const created = await this.createGLSConfigs({
+        ...encrypted,
+        environment: this.environment_,
+      })
+      await this.invalidateConfigCache()
+      return decryptFields(mapGLSConfigDTO(created), [...GLS_SENSITIVE_FIELDS])
+    } catch (error) {
+      const concurrent = await this.getConfig()
+      if (!concurrent) {
+        throw error
+      }
+
+      const updated = await this.updateGLSConfigs({
+        id: concurrent.id,
+        ...encrypted,
+      })
+      await this.invalidateConfigCache()
+      return decryptFields(mapGLSConfigDTO(updated), [...GLS_SENSITIVE_FIELDS])
+    }
   }
 
   /**
@@ -184,12 +283,15 @@ export class GLSClientModuleService extends MedusaService({
       return
     }
     const cached = (await this.cacheService_.get({
-      key: CACHE_KEYS.CONFIG,
-    })) as CachedConfigEntry | null
+      key: this.getConfigCacheKey(),
+    })) as unknown
     if (isDisabledConfigCacheEntry(cached)) {
       return null
     }
-    return cached ?? undefined
+    if (isGLSOptions(cached)) {
+      return cached
+    }
+    return
   }
 
   private toEffectiveOptions(
@@ -222,7 +324,7 @@ export class GLSClientModuleService extends MedusaService({
       return
     }
     await this.cacheService_.set({
-      key: CACHE_KEYS.CONFIG,
+      key: this.getConfigCacheKey(),
       data: options,
       ttl: CACHE_TTL.CONFIG,
       tags: [CACHE_TAGS.ALL],
@@ -234,7 +336,7 @@ export class GLSClientModuleService extends MedusaService({
       return
     }
     await this.cacheService_.set({
-      key: CACHE_KEYS.CONFIG,
+      key: this.getConfigCacheKey(),
       data: { disabled: true } satisfies DisabledConfigCacheEntry,
       ttl: CACHE_TTL.CONFIG,
       tags: [CACHE_TAGS.ALL],
@@ -243,13 +345,15 @@ export class GLSClientModuleService extends MedusaService({
 
   async invalidateConfigCache(): Promise<void> {
     this.client_ = null
+    this.clientConfigFingerprint_ = null
     if (this.cacheService_) {
-      await this.cacheService_.clear({ key: CACHE_KEYS.CONFIG })
+      await this.cacheService_.clear({ key: this.getConfigCacheKey() })
     }
   }
 
   async invalidateAllCaches(): Promise<void> {
     this.client_ = null
+    this.clientConfigFingerprint_ = null
     if (this.cacheService_) {
       await this.cacheService_.clear({ tags: [CACHE_TAGS.ALL] })
       this.logger_.info("GLS: Invalidated all caches")
@@ -266,11 +370,15 @@ export class GLSClientModuleService extends MedusaService({
   // Lazy Client
   // ============================================
 
-  private async getClient(): Promise<GLSClient> {
-    if (this.client_) {
-      return this.client_
-    }
+  private getConfigCacheKey(): string {
+    return computeKey("config", { environment: this.environment_ })
+  }
 
+  private getBranchesCacheKey(): string {
+    return computeKey("branches")
+  }
+
+  private async getClient(): Promise<GLSClient> {
     const config = await this.getEffectiveConfig()
     if (!config) {
       throw new MedusaError(
@@ -279,7 +387,13 @@ export class GLSClientModuleService extends MedusaService({
       )
     }
 
+    const fingerprint = JSON.stringify(config)
+    if (this.client_ && this.clientConfigFingerprint_ === fingerprint) {
+      return this.client_
+    }
+
     this.client_ = new GLSClient(config)
+    this.clientConfigFingerprint_ = fingerprint
     return this.client_
   }
 
@@ -327,19 +441,32 @@ export class GLSClientModuleService extends MedusaService({
   async getBranches(): Promise<GLSBranch[]> {
     if (this.cacheService_) {
       const cached = (await this.cacheService_.get({
-        key: CACHE_KEYS.BRANCHES,
+        key: this.getBranchesCacheKey(),
       })) as GLSBranch[] | null
       if (cached) {
         return cached
       }
     }
 
+    if (this.branchesRefresh_) {
+      return this.branchesRefresh_
+    }
+
+    this.branchesRefresh_ = this.refreshBranches()
+    try {
+      return await this.branchesRefresh_
+    } finally {
+      this.branchesRefresh_ = null
+    }
+  }
+
+  private async refreshBranches(): Promise<GLSBranch[]> {
     const client = await this.getClient()
     const branches = await client.getBranchList()
 
     if (this.cacheService_ && branches.length > 0) {
       await this.cacheService_.set({
-        key: CACHE_KEYS.BRANCHES,
+        key: this.getBranchesCacheKey(),
         data: branches,
         ttl: CACHE_TTL.BRANCHES,
         tags: [CACHE_TAGS.ALL, CACHE_TAGS.BRANCHES],

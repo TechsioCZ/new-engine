@@ -8,7 +8,8 @@ import type { GLSShipmentState } from "./types"
  * falls back to "unknown" for anything we haven't mapped yet — mappings can be
  * refined once we verify against a real API response.
  *
- * Source: https://docs.packetery.com/03-creating-packets/01-rest-api.html#status-codes
+ * GLS status names vary by account/API. Keep this mapping conservative and
+ * update it from real GLS packetTracking responses when credentials are verified.
  */
 export function mapGLSStatusCode(code: string | number): GLSShipmentState {
   const key = String(code).trim().toLowerCase()

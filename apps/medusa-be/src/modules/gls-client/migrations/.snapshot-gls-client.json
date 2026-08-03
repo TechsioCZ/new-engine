@@ -391,7 +391,18 @@
           "unique": true
         }
       ],
-      "checks": [],
+      "checks": [
+        {
+          "name": "gls_config_environment_check",
+          "expression": "environment in ('testing', 'production')",
+          "definition": "check ((environment in ('testing', 'production')))"
+        },
+        {
+          "name": "gls_config_label_format_check",
+          "expression": "default_label_format in ('A6', 'A7')",
+          "definition": "check ((default_label_format in ('A6', 'A7')))"
+        }
+      ],
       "foreignKeys": {},
       "nativeEnums": {}
     }

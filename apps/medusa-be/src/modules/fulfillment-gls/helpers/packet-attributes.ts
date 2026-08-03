@@ -144,7 +144,7 @@ function getRequiredRecipientName(
 }
 
 function getPacketOrderNumber(order: Partial<FulfillmentOrderDTO>): string {
-  return order.display_id?.toString() || order.id || `fulfillment-${Date.now()}`
+  return order.display_id?.toString() ?? order.id ?? `fulfillment-${Date.now()}`
 }
 
 function getPacketOrderTotal(

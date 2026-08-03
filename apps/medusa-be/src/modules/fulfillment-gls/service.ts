@@ -34,6 +34,42 @@ type InjectedDependencies = {
   [ContainerRegistrationKeys.QUERY]?: QueryService
 } & Record<typeof GLS_CLIENT_MODULE, GLSClientModuleService>
 
+const isGLSShippingOptionData = (
+  value: Record<string, unknown>
+): value is GLSShippingOptionData => {
+  const code: unknown = value.code
+  const requiresAccessPoint: unknown = value.requires_access_point
+  const supportsCod: unknown = value.supports_cod
+  const accessPointId: unknown = value.access_point_id
+
+  return (
+    (code === "parcelshop" || code === "parcelshop_cod") &&
+    requiresAccessPoint === true &&
+    typeof supportsCod === "boolean" &&
+    (accessPointId === undefined || typeof accessPointId === "string")
+  )
+}
+
+const isGLSFulfillmentData = (
+  value: Record<string, unknown>
+): value is GLSFulfillmentData => {
+  const packetId: unknown = value.packet_id
+  const barcode: unknown = value.barcode
+  const accessPointId: unknown = value.access_point_id
+  const supportsCod: unknown = value.supports_cod
+  const status: unknown = value.status
+
+  return (
+    (packetId === undefined ||
+      typeof packetId === "string" ||
+      typeof packetId === "number") &&
+    (barcode === undefined || typeof barcode === "string") &&
+    (accessPointId === undefined || typeof accessPointId === "string") &&
+    (supportsCod === undefined || typeof supportsCod === "boolean") &&
+    (status === undefined || status === "completed" || status === "error")
+  )
+}
+
 /**
  * GLS Fulfillment Provider
  *
@@ -164,7 +200,13 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
     order: Partial<FulfillmentOrderDTO> | undefined,
     fulfillment: Partial<Omit<FulfillmentDTO, "provider_id" | "data" | "items">>
   ): Promise<CreateFulfillmentResult> {
-    const shippingData = data as unknown as GLSShippingOptionData
+    if (!isGLSShippingOptionData(data)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "GLS: Invalid shipping data"
+      )
+    }
+    const shippingData = data
 
     if (!order) {
       throw new MedusaError(
@@ -204,7 +246,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
       logger: this.logger_,
     })
 
-    const fulfillmentId = fulfillment.id || `temp-${Date.now()}`
+    const fulfillmentId = fulfillment.id ?? `temp-${Date.now()}`
     this.logger_.info(
       `GLS: Creating packet for ${fulfillmentId}, access point ${shippingData.access_point_id}`
     )
@@ -256,7 +298,11 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
   override async cancelFulfillment(
     data: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
-    const fulfillmentData = data as unknown as GLSFulfillmentData
+    if (!isGLSFulfillmentData(data)) {
+      this.logger_.warn("GLS: Cannot cancel - invalid fulfillment data")
+      return { cancelled: false, note: "Invalid fulfillment data" }
+    }
+    const fulfillmentData = data
     const packetId = fulfillmentData.packet_id
 
     if (!packetId) {
@@ -305,8 +351,11 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
   override async getFulfillmentDocuments(
     data: Record<string, unknown>
   ): Promise<{ type: string; url: string; format?: string }[]> {
-    const fulfillmentData = data as unknown as GLSFulfillmentData
     const documents: { type: string; url: string; format?: string }[] = []
+    if (!isGLSFulfillmentData(data)) {
+      return documents
+    }
+    const fulfillmentData = data
 
     if (fulfillmentData.label_url) {
       documents.push({
@@ -330,7 +379,10 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
     fulfillmentData: Record<string, unknown>,
     documentType: string
   ): Promise<{ type: string; url: string; format?: string } | null> {
-    const data = fulfillmentData as unknown as GLSFulfillmentData
+    if (!isGLSFulfillmentData(fulfillmentData)) {
+      return null
+    }
+    const data = fulfillmentData
 
     switch (documentType) {
       case "label":

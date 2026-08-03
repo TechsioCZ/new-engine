@@ -32,9 +32,6 @@ const toConfigResponse = (config: GLSConfigDTO): GLSConfigResponse => ({
   sender_email: config.sender_email,
 })
 
-/**
- * GET /admin/gls-config
- */
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const glsService =
     req.scope.resolve<GLSClientModuleService>(GLS_CLIENT_MODULE)

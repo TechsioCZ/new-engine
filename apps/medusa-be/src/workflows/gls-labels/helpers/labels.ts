@@ -3,7 +3,9 @@ import type {
   GLSClientModuleService,
   GLSFulfillmentData,
 } from "../../../modules/gls-client"
+import { GLS_PROVIDER_ID } from "../../../modules/gls-client"
 import type { GLSLabelFormat } from "../../../modules/gls-client/types"
+import { normalizeA4LabelOffset } from "./label-pdf"
 
 type GLSFulfillmentRecord = {
   id: string
@@ -45,7 +47,7 @@ export function collectPrintableGLSLabels(
     }
 
     const orderLabels = (order.fulfillments ?? [])
-      .filter((fulfillment) => fulfillment.provider_id === "gls_gls")
+      .filter((fulfillment) => fulfillment.provider_id === GLS_PROVIDER_ID)
       .filter((fulfillment) => !fulfillment.canceled_at)
       .map((fulfillment) => ({
         fulfillment,
@@ -106,7 +108,7 @@ export async function resolveGLSLabelOffset(
   }
 
   const config = await glsClient.getConfig()
-  return config?.default_label_offset ?? 0
+  return normalizeA4LabelOffset(config?.default_label_offset ?? 0)
 }
 
 export async function downloadGLSLabelPdfsInChunks(
@@ -123,9 +125,20 @@ export async function downloadGLSLabelPdfsInChunks(
   ) {
     const chunk = labels.slice(index, index + GLS_LABEL_DOWNLOAD_CHUNK_SIZE)
     const chunkPdfs = await Promise.all(
-      chunk.map((label) =>
-        glsClient.downloadLabelPdf(label.packet_id, labelFormat, 0)
-      )
+      chunk.map(async (label) => {
+        try {
+          return await glsClient.downloadLabelPdf(
+            label.packet_id,
+            labelFormat,
+            0
+          )
+        } catch (error) {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            `GLS: Failed to download label PDF for packet ${label.packet_id}: ${error instanceof Error ? error.message : String(error)}`
+          )
+        }
+      })
     )
 
     labelPdfs.push(...chunkPdfs)

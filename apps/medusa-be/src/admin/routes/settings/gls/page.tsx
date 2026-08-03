@@ -179,6 +179,7 @@ const GLSSettingsPage = () => {
   const [clearedFields, setClearedFields] = useState<Set<ClearableField>>(
     new Set()
   )
+  const [seededConfigId, setSeededConfigId] = useState<string | null>(null)
 
   const { data, isLoading, error } = useQuery({
     queryFn: () =>
@@ -193,6 +194,7 @@ const GLSSettingsPage = () => {
         body: payload,
       }),
     onSuccess: () => {
+      setSeededConfigId(null)
       queryClient.invalidateQueries({ queryKey: ["gls-config"] })
       toast.success("GLS configuration saved")
     },
@@ -204,7 +206,7 @@ const GLSSettingsPage = () => {
   const glsConfig = data?.config
 
   useEffect(() => {
-    if (glsConfig) {
+    if (glsConfig && glsConfig.id !== seededConfigId) {
       setFormData({
         is_enabled: glsConfig.is_enabled,
         sender_label: glsConfig.sender_label ?? "",
@@ -221,8 +223,9 @@ const GLSSettingsPage = () => {
         sender_email: glsConfig.sender_email ?? "",
       })
       setClearedFields(new Set())
+      setSeededConfigId(glsConfig.id)
     }
-  }, [glsConfig])
+  }, [glsConfig, seededConfigId])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

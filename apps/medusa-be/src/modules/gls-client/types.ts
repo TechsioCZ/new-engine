@@ -1,6 +1,6 @@
 /**
  * GLS REST API v6 TypeScript Definitions
- * @see https://docs.packetery.com/03-creating-packets/01-rest-api.html
+ * @see https://docs.gls.com/docs/getting-started/gls-api
  *
  * Scope: ParcelShop (pickup point) deliveries + COD. No home delivery / no international.
  */

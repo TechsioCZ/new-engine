@@ -13,10 +13,11 @@ import {
 } from "@medusajs/ui"
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
+import { GLS_PROVIDER_ID } from "../../../modules/gls-client/constants"
 import { sdk } from "../../lib/sdk"
 
 type GLSFulfillmentData = {
-  packet_id?: number
+  packet_id?: string | number
   barcode?: string
 }
 
@@ -73,14 +74,16 @@ const LABEL_FORMATS: Array<{ value: LabelFormat; label: string }> = [
 function getGLSLabels(order: AdminOrder): OrderFulfillment[] {
   return (order.fulfillments ?? []).filter(
     (fulfillment) =>
-      fulfillment.provider_id === "gls_gls" &&
+      fulfillment.provider_id === GLS_PROVIDER_ID &&
       !fulfillment.canceled_at &&
-      typeof fulfillment.data?.packet_id === "number"
+      (typeof fulfillment.data?.packet_id === "number" ||
+        typeof fulfillment.data?.packet_id === "string")
   )
 }
 
 function getOrderNumber(order: AdminOrder): string {
-  return order.custom_display_id || `#${order.display_id}`
+  const customDisplayId = order.custom_display_id?.trim()
+  return customDisplayId ? customDisplayId : `#${order.display_id}`
 }
 
 async function downloadLabels(orderIds: string[], labelFormat: LabelFormat) {
@@ -187,6 +190,11 @@ const GLSLabelsPage = () => {
       }
       return next
     })
+  }
+
+  const goToOffset = (nextOffset: number) => {
+    setOffset(nextOffset)
+    setSelectedOrderIds(new Set())
   }
 
   const handlePrint = async () => {
@@ -308,11 +316,11 @@ const GLSLabelsPage = () => {
         canNextPage={offset + PAGE_SIZE < (data?.count ?? 0)}
         canPreviousPage={offset > 0}
         count={data?.count ?? 0}
-        nextPage={() => setOffset((prev) => prev + PAGE_SIZE)}
+        nextPage={() => goToOffset(offset + PAGE_SIZE)}
         pageCount={pageCount}
         pageIndex={pageIndex}
         pageSize={PAGE_SIZE}
-        previousPage={() => setOffset((prev) => Math.max(0, prev - PAGE_SIZE))}
+        previousPage={() => goToOffset(Math.max(0, offset - PAGE_SIZE))}
       />
 
       {isLoading && (

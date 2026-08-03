@@ -10,9 +10,6 @@ type CheckoutGlsPickupSelectorProps = {
   onConfirm: (data: Record<string, unknown>) => void
 }
 
-const DEFAULT_GLS_PICKUP_COUNTRY =
-  process.env.NEXT_PUBLIC_GLS_PICKUP_COUNTRY?.trim().toUpperCase() || "SK"
-
 export function CheckoutGlsPickupSelector({
   disabled,
   onConfirm,
@@ -28,11 +25,16 @@ export function CheckoutGlsPickupSelector({
       return
     }
 
+    const normalizedName = accessPointName.trim()
+
     setErrorMessage(null)
     onConfirm({
       access_point_id: normalizedId,
-      access_point_name: accessPointName.trim() || `GLS ${normalizedId}`,
-      access_point_country: DEFAULT_GLS_PICKUP_COUNTRY,
+      access_point_name: normalizedName
+        ? normalizedName
+        : `GLS ${normalizedId}`,
+      access_point_city: undefined,
+      access_point_zip: undefined,
     })
   }
 
@@ -44,6 +46,10 @@ export function CheckoutGlsPickupSelector({
       </StatusText>
 
       <FormInput
+        aria-describedby={
+          errorMessage ? "checkout-gls-access-point-error" : undefined
+        }
+        aria-invalid={Boolean(errorMessage)}
         disabled={disabled}
         helpText="ID ParcelShopu z GLS systému alebo mapy."
         id="checkout-gls-access-point-id"
@@ -66,7 +72,12 @@ export function CheckoutGlsPickupSelector({
       />
 
       {errorMessage ? (
-        <StatusText showIcon size="sm" status="error">
+        <StatusText
+          id="checkout-gls-access-point-error"
+          showIcon
+          size="sm"
+          status="error"
+        >
           {errorMessage}
         </StatusText>
       ) : null}
