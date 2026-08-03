@@ -5,6 +5,7 @@ import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
 import type { z } from "@medusajs/framework/zod"
 import qs from "qs"
 import { safeResolve } from "../../utils/safe-resolve"
+import { toCmsStoreArticle } from "./article-store-dto"
 import {
   ArticleCategoriesWithArticlesSchema,
   CmsArticlesBulkResultSchema,
@@ -20,6 +21,7 @@ import type {
   CmsListOptions,
   CmsPageCategoryDTO,
   CmsPageDTO,
+  CmsStoreArticleDTO,
   PayloadBulkResult,
   PayloadModuleOptions,
   PayloadQueryOptions,
@@ -34,6 +36,7 @@ const MEDIA = "media"
 const HERO_CAROUSELS = "hero-carousels"
 const PAGE_CATEGORIES = "page-categories"
 const ARTICLE_CATEGORIES = "article-categories"
+const ARTICLE_AUTHORS = "article-authors"
 const PAGE_CATEGORY_GROUPS = "page-categories-with-pages"
 const ARTICLE_CATEGORY_GROUPS = "article-categories-with-articles"
 const RETURN_HTML_HEADER = "X-Payload-Return-Html"
@@ -73,6 +76,36 @@ const DEFAULT_TTLS = {
   LIST: 600,
 } as const
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
+const ARTICLE_STORE_CACHE_VERSION = "v5"
+const ARTICLE_STORE_SELECT = {
+  id: true,
+  slug: true,
+  title: true,
+  excerpt: true,
+  content: true,
+  contentHTML: true,
+  featuredImage: true,
+  category: true,
+  categories: true,
+  primaryCategory: true,
+  articleAuthor: true,
+  meta: true,
+  publishedDate: true,
+  readingTime: true,
+  tags: true,
+  relatedArticles: true,
+} as const
+const RELATED_ARTICLE_POPULATE = {
+  id: true,
+  slug: true,
+  title: true,
+  excerpt: true,
+  featuredImage: true,
+  primaryCategory: true,
+  status: true,
+  publishedDate: true,
+  readingTime: true,
+} as const
 
 /**
  * Medusa module service for reading Payload CMS content with caching support.
@@ -342,6 +375,39 @@ export default class PayloadModuleService extends MedusaService({}) {
     return locale
   }
 
+  private buildArticleStorePopulate(): Record<
+    string,
+    Record<string, boolean>
+  > {
+    return {
+      articles: RELATED_ARTICLE_POPULATE,
+      media: {
+        id: true,
+        alt: true,
+        url: true,
+        filename: true,
+        width: true,
+        height: true,
+      },
+      "article-categories": {
+        id: true,
+        title: true,
+        slug: true,
+      },
+      [ARTICLE_AUTHORS]: {
+        id: true,
+        displayName: true,
+        role: true,
+        bio: true,
+        portrait: true,
+      },
+    }
+  }
+
+  private buildArticleCacheKey(slug: string, locale?: string) {
+    return `${CMS}:${ARTICLES}:${ARTICLE_STORE_CACHE_VERSION}:${slug}:${locale ?? DEFAULT_LOCALE}`
+  }
+
   /**
    * Fetch a published page by slug and optional locale.
    */
@@ -424,18 +490,25 @@ export default class PayloadModuleService extends MedusaService({}) {
   async getPublishedArticle(
     slug: string,
     locale?: string
-  ): Promise<CmsArticleDTO | null> {
-    const cacheKey = `${CMS}:${ARTICLES}:${slug}:${locale ?? DEFAULT_LOCALE}`
-    return this.getCached(
+  ): Promise<CmsStoreArticleDTO | null> {
+    const cacheKey = this.buildArticleCacheKey(slug, locale)
+    return this.getCached<CmsStoreArticleDTO | null>(
       cacheKey,
       async () => {
         const queryString = this.buildQuery({
           where: {
-            slug: { equals: slug },
-            status: { equals: STATUS_PUBLISHED },
+            and: [
+              { slug: { equals: slug } },
+              { title: { exists: true } },
+              { status: { equals: STATUS_PUBLISHED } },
+            ],
           },
           limit: 1,
           locale,
+          "fallback-locale": "false",
+          depth: 2,
+          select: ARTICLE_STORE_SELECT,
+          populate: this.buildArticleStorePopulate(),
         })
         const result = await this.makeRequest<PayloadBulkResult<CmsArticleDTO>>(
           "GET",
@@ -443,17 +516,11 @@ export default class PayloadModuleService extends MedusaService({}) {
           undefined,
           {
             schema: CmsArticlesBulkResultSchema,
-            headers: {
-              [RETURN_HTML_HEADER]: "true",
-            },
           }
         )
 
-        const post = result.docs[0] || null
-        if (!post) {
-          return null
-        }
-        return post
+        const post = result.docs[0]
+        return post ? toCmsStoreArticle(post) : null
       },
       this.contentCacheTtl_,
       [CACHE_TAGS.ALL, CACHE_TAGS.ARTICLES]
@@ -480,6 +547,7 @@ export default class PayloadModuleService extends MedusaService({}) {
       async () => {
         const queryString = this.buildParamsQuery({
           locale: options?.locale,
+          "fallback-locale": "false",
           categorySlug: options?.categorySlug,
         })
         const result = await this.makeRequest<{
@@ -541,7 +609,10 @@ export default class PayloadModuleService extends MedusaService({}) {
     const normalizedLocale = this.normalizeLocale(locale)
     const clearAllLocales = !normalizedLocale
     if (slug && !clearAllLocales) {
-      const key = `${CMS}:${collection}:${slug}:${normalizedLocale ?? DEFAULT_LOCALE}`
+      const key =
+        collection === ARTICLES
+          ? this.buildArticleCacheKey(slug, normalizedLocale)
+          : `${CMS}:${collection}:${slug}:${normalizedLocale ?? DEFAULT_LOCALE}`
       this.logger_.info(`CMS: Clearing cache key ${key}`)
       await this.cacheService_.clear({ key })
     }

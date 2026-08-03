@@ -4,9 +4,11 @@ import type {
   CmsArticleSchema,
   CmsCategoryListOptionsSchema,
   CmsHeroCarouselSchema,
+  CmsLexicalContentSchema,
   CmsListOptionsSchema,
   CmsPageCategorySchema,
   CmsPageSchema,
+  CmsProductReferenceSchema,
   CmsSeoSchema,
   CmsStatusSchema,
   CmsVisibilitySchema,
@@ -28,6 +30,24 @@ export type CmsSeo = z.infer<typeof CmsSeoSchema>
 export type CmsPageDTO = z.infer<typeof CmsPageSchema>
 export type CmsPageCategoryDTO = z.infer<typeof CmsPageCategorySchema>
 export type CmsArticleDTO = z.infer<typeof CmsArticleSchema>
+export type CmsLexicalContentDTO = z.infer<typeof CmsLexicalContentSchema>
+export type CmsProductReferenceDTO = z.infer<
+  typeof CmsProductReferenceSchema
+>
+export type CmsArticleTableOfContentsItem = {
+  id: string
+  level: 2 | 3
+  title: string
+}
+export type CmsArticleContentSegment =
+  | {
+      type: "html"
+      html: string
+    }
+  | {
+      type: "productCarousel"
+      products: CmsProductReferenceDTO[]
+    }
 export type CmsArticleCategoryDTO = z.infer<typeof CmsArticleCategorySchema>
 export type CmsHeroCarouselDTO = z.infer<typeof CmsHeroCarouselSchema>
 export type CmsListOptions = z.infer<typeof CmsListOptionsSchema>
@@ -42,9 +62,66 @@ export type PayloadQueryOptions = {
   where?: Record<string, unknown>
   sort?: string
   select?: Record<string, boolean>
-  populate?: Record<string, boolean>
+  populate?: Record<string, Record<string, boolean>>
   locale?: string
+  "fallback-locale"?: "false"
   depth?: number
+}
+
+export type CmsStoreMediaDTO = {
+  id: number | string
+  alt: string | null
+  url: string
+  width: number | null
+  height: number | null
+}
+
+export type CmsStoreArticleCategoryDTO = {
+  id: number | string
+  title: string
+  slug: string
+}
+
+export type CmsStoreArticleAuthorDTO = {
+  id: number | string
+  displayName: string
+  role: string | null
+  bio: string | null
+  portrait: CmsStoreMediaDTO | null
+}
+
+export type CmsStoreRelatedArticleDTO = {
+  id: number | string
+  slug: string
+  title: string
+  excerpt: string | null
+  featuredImage: CmsStoreMediaDTO | null
+  primaryCategory: CmsStoreArticleCategoryDTO | null
+  publishedDate: string | null
+  readingTime: number | null
+}
+
+export type CmsStoreArticleDTO = {
+  id: number | string
+  slug: string
+  title: string
+  excerpt: string | null
+  featuredImage: CmsStoreMediaDTO | null
+  category: CmsStoreArticleCategoryDTO | null
+  categories: CmsStoreArticleCategoryDTO[]
+  primaryCategory: CmsStoreArticleCategoryDTO | null
+  author: CmsStoreArticleAuthorDTO | null
+  meta: {
+    title: string | null
+    description: string | null
+    image: CmsStoreMediaDTO | null
+  } | null
+  publishedDate: string | null
+  readingTime: number | null
+  tags: string[]
+  contentSegments: CmsArticleContentSegment[]
+  tableOfContents: CmsArticleTableOfContentsItem[]
+  relatedArticles: CmsStoreRelatedArticleDTO[]
 }
 
 /** Response wrapper for single-document Payload API results. */
