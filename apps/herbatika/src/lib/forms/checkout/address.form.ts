@@ -65,7 +65,7 @@ export const DEFAULT_CHECKOUT_ADDRESS_VALUES: CheckoutAddressValues = {
   address2: "",
   city: "",
   postalCode: "",
-  countryCode: "SK",
+  countryCode: "",
   customerNote: "",
 }
 

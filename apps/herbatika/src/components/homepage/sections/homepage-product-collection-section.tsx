@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import { useTranslations } from "next-intl"
 import type { HomepageProductSection } from "@/components/homepage/homepage.types"
 import { ProductCollectionSection } from "@/components/product/product-collection-section"
 import { TextActionLink } from "@/components/text-action-link"
@@ -16,6 +17,8 @@ export function HomepageProductCollectionSection({
   onProductHoverStart,
   onProductHoverEnd,
 }: HomepageProductCollectionSectionProps) {
+  const tContent = useTranslations("content")
+
   return (
     <ProductCollectionSection
       display="carousel"
@@ -27,7 +30,7 @@ export function HomepageProductCollectionSection({
       products={section.products}
       shouldShowSkeleton={shouldShowProductSkeleton}
       slidesLg={4.08}
-      title={section.title}
+      title={tContent(section.titleKey)}
     />
   )
 }

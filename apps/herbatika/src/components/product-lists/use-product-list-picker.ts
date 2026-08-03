@@ -1,6 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { type FormEvent, useEffect, useState } from "react"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import { useAppToast } from "@/hooks/use-app-toast"
@@ -54,6 +55,7 @@ export function useProductListPicker({
   quantity,
   selectedVariantId,
 }: UseProductListPickerInput) {
+  const tAuth = useTranslations("auth")
   const pathname = usePathname()
   const authQuery = useAuth()
   const toast = useAppToast()
@@ -94,7 +96,7 @@ export function useProductListPicker({
   const rows: ProductListPickerRow[] = [
     {
       key: favoriteList?.id ?? "favorite",
-      title: "Obľúbené",
+      title: tAuth("product_lists.favorite_title"),
       count: getProductListItemCount(favoriteList),
       checked: isProductInProductList(
         favoriteList,
@@ -106,7 +108,10 @@ export function useProductListPicker({
     },
     ...customLists.map((list) => ({
       key: list.id,
-      title: getProductListTitle(list),
+      title: getProductListTitle(list, {
+        favorite: tAuth("product_lists.favorite_title"),
+        untitled: tAuth("product_lists.untitled_list"),
+      }),
       count: getProductListItemCount(list),
       checked: isProductInProductList(list, product.id, selectedVariantId),
       isFavorite: false,
@@ -154,7 +159,7 @@ export function useProductListPicker({
       toast.error({
         title: resolveErrorMessage(
           mutationError,
-          "Produkt sa nepodarilo pridať."
+          tAuth("product_lists.errors.add_product_failed")
         ),
       })
     } finally {
@@ -167,7 +172,9 @@ export function useProductListPicker({
 
     const title = newListTitle.trim()
     if (!title) {
-      toast.warning({ title: "Zadajte názov zoznamu." })
+      toast.warning({
+        title: tAuth("product_lists.validation.title_required"),
+      })
       return
     }
 
@@ -180,7 +187,7 @@ export function useProductListPicker({
       })
 
       if (!createdList?.id) {
-        throw new Error("Backend nevrátil ID nového zoznamu.")
+        throw new Error(tAuth("product_lists.errors.create_failed"))
       }
 
       await addItemMutation.mutateAsync({
@@ -196,7 +203,7 @@ export function useProductListPicker({
       toast.error({
         title: resolveErrorMessage(
           mutationError,
-          "Zoznam sa nepodarilo vytvoriť."
+          tAuth("product_lists.errors.create_failed")
         ),
       })
     } finally {
@@ -204,10 +211,18 @@ export function useProductListPicker({
     }
   }
 
+  const retryLists = async () => {
+    await Promise.all([
+      listsQuery.query.refetch(),
+      ...detailQueries.map((query) => query.refetch()),
+    ])
+  }
+
   return {
     activeListKey,
     addProductToList,
     authQuery,
+    detailsHaveError: detailQueries.some((query) => Boolean(query.error)),
     detailsAreLoading:
       listIds.length > 0 && detailQueries.some((query) => query.isLoading),
     handleCreateList,
@@ -216,6 +231,7 @@ export function useProductListPicker({
     listsQuery,
     loginHref: `/auth/login?next=${encodeURIComponent(pathname)}`,
     newListTitle,
+    retryLists,
     rows,
     setIsOpen,
     setNewListTitle,

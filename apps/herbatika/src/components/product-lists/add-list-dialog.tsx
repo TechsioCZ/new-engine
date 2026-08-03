@@ -3,6 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Input } from "@techsio/ui-kit/atoms/input"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
+import { useTranslations } from "next-intl"
 import type { AccountProductListsController } from "./use-account-product-lists"
 
 type AddListDialogProps = {
@@ -10,6 +11,8 @@ type AddListDialogProps = {
 }
 
 export function AddListDialog({ accountLists }: AddListDialogProps) {
+  const tAuth = useTranslations("auth")
+
   return (
     <Dialog
       actions={
@@ -21,7 +24,7 @@ export function AddListDialog({ accountLists }: AddListDialogProps) {
             theme="outlined"
             variant="secondary"
           >
-            Zrušiť
+            {tAuth("product_lists.actions.cancel")}
           </Button>
           <Button
             disabled={accountLists.createListMutation.isPending}
@@ -31,7 +34,7 @@ export function AddListDialog({ accountLists }: AddListDialogProps) {
             type="submit"
             variant="primary"
           >
-            Uložiť
+            {tAuth("product_lists.actions.save")}
           </Button>
         </>
       }
@@ -48,7 +51,7 @@ export function AddListDialog({ accountLists }: AddListDialogProps) {
       }}
       open={accountLists.showCreateListDialog}
       size="sm"
-      title="Ako sa má zoznam volať?"
+      title={tAuth("product_lists.create_dialog_title")}
     >
       <form
         className="space-y-300"
@@ -60,10 +63,10 @@ export function AddListDialog({ accountLists }: AddListDialogProps) {
             className="sr-only"
             htmlFor="account-product-lists-new-list-title"
           >
-            Názov nového zoznamu
+            {tAuth("product_lists.new_list_name")}
           </label>
           <Input
-            aria-label="Názov nového zoznamu"
+            aria-label={tAuth("product_lists.new_list_name")}
             autoFocus
             disabled={accountLists.createListMutation.isPending}
             id="account-product-lists-new-list-title"
@@ -71,7 +74,7 @@ export function AddListDialog({ accountLists }: AddListDialogProps) {
             onChange={(event) => {
               accountLists.setNewListTitle(event.target.value)
             }}
-            placeholder="Názov zoznamu"
+            placeholder={tAuth("product_lists.new_list_placeholder")}
             size="sm"
             value={accountLists.newListTitle}
           />

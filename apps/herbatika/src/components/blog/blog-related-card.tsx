@@ -2,6 +2,7 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
 import NextLink from "next/link"
+import { useLocale } from "next-intl"
 import type { BlogPost } from "@/lib/storefront/blog-content"
 import { formatBlogDate, formatTopicFromKey } from "./blog-formatters"
 
@@ -10,6 +11,8 @@ type BlogRelatedCardProps = {
 }
 
 export function BlogRelatedCard({ post }: BlogRelatedCardProps) {
+  const locale = useLocale()
+
   return (
     <article className="min-h-950 overflow-hidden rounded-2xl border border-border-secondary bg-surface">
       <Link as={NextLink} className="block" href={`/blog/${post.slug}`}>
@@ -27,7 +30,7 @@ export function BlogRelatedCard({ post }: BlogRelatedCardProps) {
       <div className="space-y-200 p-300">
         <div className="flex items-center justify-between gap-200">
           <p className="text-2xs text-fg-secondary leading-normal">
-            {formatBlogDate(post.publishedAt)}
+            {formatBlogDate(post.publishedAt, locale)}
           </p>
           <Badge
             className="rounded-full px-200 py-100 font-medium text-2xs"

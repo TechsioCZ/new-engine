@@ -22,6 +22,10 @@ import {
   type QuoteAdminI18nNamespace,
   quoteAdminI18n,
 } from "../../modules/quote/admin/i18n"
+import {
+  type StorefrontTextAdminI18nNamespace,
+  storefrontTextAdminI18n,
+} from "../../modules/storefront-text/admin/i18n"
 import type { OrderBusinessStatusId } from "../../utils/order-business-status"
 import type { ProductContentSectionKey } from "../lib/product-content-sections"
 
@@ -143,6 +147,7 @@ type AdminI18nResources = Record<
     productAttributes: ProductAttributeAdminI18nNamespace
     brands: BrandAdminI18nNamespace
     quotes: QuoteAdminI18nNamespace
+    storefrontTexts: StorefrontTextAdminI18nNamespace
     translation: AdminDefaultTranslationNamespace
   }
 >
@@ -536,6 +541,7 @@ const resources = {
     productAttributes: productAttributeAdminI18n.cs,
     brands: brandAdminI18n.cs,
     quotes: quoteAdminI18n.cs,
+    storefrontTexts: storefrontTextAdminI18n.cs,
     translation: defaultTranslation.cs,
   },
   en: {
@@ -547,6 +553,7 @@ const resources = {
     productAttributes: productAttributeAdminI18n.en,
     brands: brandAdminI18n.en,
     quotes: quoteAdminI18n.en,
+    storefrontTexts: storefrontTextAdminI18n.en,
     translation: defaultTranslation.en,
   },
 } satisfies AdminI18nResources

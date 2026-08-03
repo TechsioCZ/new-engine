@@ -1,6 +1,7 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel"
 import {
@@ -46,16 +47,15 @@ type ProductCollectionSectionProps =
   | ProductCollectionSectionGridProps
   | ProductCollectionSectionCarouselProps
 
-const EMPTY_PRODUCTS_TEXT = "Produkty sa momentálne načítavajú."
-
 export function ProductCollectionSection(props: ProductCollectionSectionProps) {
+  const tCatalog = useTranslations("catalog")
   const {
     title,
     products,
     id,
     subtitle,
     shouldShowSkeleton = false,
-    emptyText = EMPTY_PRODUCTS_TEXT,
+    emptyText,
     sectionClassName,
     headerClassName,
     titleClassName,
@@ -65,6 +65,8 @@ export function ProductCollectionSection(props: ProductCollectionSectionProps) {
     onProductHoverStart,
     onProductHoverEnd,
   } = props
+  const resolvedEmptyText =
+    emptyText ?? tCatalog("product_card.collection_empty")
   const isCarousel = props.display === "carousel"
   const sectionClassNames = ["space-y-400", sectionClassName]
     .filter(Boolean)
@@ -96,7 +98,7 @@ export function ProductCollectionSection(props: ProductCollectionSectionProps) {
   } else if (products.length === 0) {
     productContent = (
       <SupportingText className="text-fg-secondary text-sm">
-        {emptyText}
+        {resolvedEmptyText}
       </SupportingText>
     )
   } else if (isCarousel) {

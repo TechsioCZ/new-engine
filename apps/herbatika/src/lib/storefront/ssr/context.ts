@@ -4,13 +4,14 @@ import type { QueryClient } from "@tanstack/react-query"
 import { getServerQueryClient } from "@techsio/storefront-data/server/get-query-client"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import { cookies } from "next/headers"
+import { getMarketServerContext } from "../market-context.server"
 import {
   REGION_COUNTRY_CODE_STORAGE_KEY,
   REGION_STORAGE_KEY,
   resolveRegionInfoFromCookieValues,
 } from "../region-preferences"
 import { REGION_LIST_FIELDS, REGION_LIST_LIMIT } from "../region-query-config"
-import { resolveRegionByIdOrDefault, toRegionInfo } from "../region-selection"
+import { resolveRegionForMarket, toRegionInfo } from "../region-selection"
 import {
   fetchServerProduct,
   fetchServerRegions,
@@ -36,7 +37,10 @@ const resolveCookieRegionPreference = async (): Promise<RegionInfo | null> => {
 
 export const getRegionServerContext = async () => {
   const queryClient = getServerQueryClient()
-  const cookieRegionPreference = await resolveCookieRegionPreference()
+  const [cookieRegionPreference, marketContext] = await Promise.all([
+    resolveCookieRegionPreference(),
+    getMarketServerContext(),
+  ])
 
   const listParams: RegionListParams = {
     fields: REGION_LIST_FIELDS,
@@ -45,13 +49,14 @@ export const getRegionServerContext = async () => {
 
   const regionListResponse = await fetchServerRegions(queryClient, listParams)
 
-  const resolvedRegionRecord = resolveRegionByIdOrDefault(
+  const resolvedRegionRecord = resolveRegionForMarket(
     regionListResponse.regions,
+    marketContext,
     cookieRegionPreference?.region_id
   )
   const region = resolvedRegionRecord
-    ? toRegionInfo(resolvedRegionRecord)
-    : cookieRegionPreference
+    ? toRegionInfo(resolvedRegionRecord, marketContext.countryCode)
+    : null
 
   return {
     queryClient,

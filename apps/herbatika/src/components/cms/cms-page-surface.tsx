@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl"
 import { CategoryRichText } from "@/components/category/category-rich-text"
 import {
   HerbatikaBreadcrumb,
@@ -10,14 +11,20 @@ type CmsPageSurfaceProps = {
 }
 
 export function CmsPageSurface({ page }: CmsPageSurfaceProps) {
+  const tNavigation = useTranslations("navigation")
+
+  if (!page.title) {
+    return null
+  }
+
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
-      label: "Informácie",
+      label: tNavigation("breadcrumbs.home"),
       href: "/",
       icon: "token-icon-home",
     },
     {
-      label: page.title ?? "Stránka",
+      label: page.title,
     },
   ]
 

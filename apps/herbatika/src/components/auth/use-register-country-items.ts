@@ -1,22 +1,19 @@
 "use client"
 
-import type { RegionInfo } from "@techsio/storefront-data/shared/region"
+import { useMemo } from "react"
 import { resolveCountryItemsForRegion } from "@/lib/forms/country-options"
-import {
-  REGION_LIST_FIELDS,
-  REGION_LIST_LIMIT,
-} from "@/lib/storefront/region-query-config"
-import { useRegions } from "@/lib/storefront/regions"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 
-export const useRegisterCountryItems = (region?: RegionInfo | null) => {
-  const regionsQuery = useRegions({
-    fields: REGION_LIST_FIELDS,
-    limit: REGION_LIST_LIMIT,
-  })
+export const useRegisterCountryItems = () => {
+  const marketContext = useMarketContext()
 
-  return resolveCountryItemsForRegion({
-    activeCountryCode: region?.country_code,
-    regionId: region?.region_id,
-    regions: regionsQuery.regions,
-  })
+  return useMemo(
+    () =>
+      resolveCountryItemsForRegion({
+        activeCountryCode: marketContext.countryCode,
+        locale: marketContext.locale,
+        regions: [],
+      }),
+    [marketContext.countryCode, marketContext.locale]
+  )
 }

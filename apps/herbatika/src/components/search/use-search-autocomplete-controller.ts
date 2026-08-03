@@ -1,6 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import {
   type FocusEvent,
   type FormEvent,
@@ -34,6 +35,7 @@ export function useSearchAutocompleteController({
   regionId,
 }: UseSearchAutocompleteControllerInput) {
   const router = useRouter()
+  const t = useTranslations("search")
   const panelId = `${useId()}-search-autocomplete`
   const [value, setValue] = useState("")
   const [isFocused, setIsFocused] = useState(false)
@@ -46,7 +48,11 @@ export function useSearchAutocompleteController({
     regionId,
   })
   const normalizedQuery = value.trim()
-  const sections = createSearchAutocompleteSections(autocomplete.data)
+  const sections = createSearchAutocompleteSections(autocomplete.data, {
+    brands: t("autocomplete.sections.brands"),
+    categories: t("autocomplete.sections.categories"),
+    products: t("autocomplete.sections.products"),
+  })
   const flatItems = sections.flatMap((section) => section.items)
   const activeItem = flatItems[activeIndex] ?? null
   const shouldShowPanel =

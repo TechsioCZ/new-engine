@@ -56,7 +56,8 @@ describe("Product Attribute Warranty", () => {
             html: "<p>Existing content</p>",
           },
         ],
-        "24 mesiacov"
+        "24 mesiacov",
+        "Ostatné informácie"
       )
     ).toEqual([
       {
@@ -69,7 +70,11 @@ describe("Product Attribute Warranty", () => {
 
   it("adds a missing other section and escapes option labels", () => {
     expect(
-      mergeWarrantyIntoProductContentSections([], `12 < 24 & "valid"`)
+      mergeWarrantyIntoProductContentSections(
+        [],
+        `12 < 24 & "valid"`,
+        "Ostatné informácie"
+      )
     ).toEqual([
       {
         key: "other",
@@ -88,8 +93,12 @@ describe("Product Attribute Warranty", () => {
       },
     ]
 
-    expect(mergeWarrantyIntoProductContentSections(sections, null)).toBe(
-      sections
-    )
+    expect(
+      mergeWarrantyIntoProductContentSections(
+        sections,
+        null,
+        "Ostatné informácie"
+      )
+    ).toBe(sections)
   })
 })

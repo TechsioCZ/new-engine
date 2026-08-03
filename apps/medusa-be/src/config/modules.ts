@@ -207,6 +207,9 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
       resolve: "./src/modules/product-review",
     },
     {
+      resolve: "./src/modules/storefront-text",
+    },
+    {
       resolve: "./src/modules/company",
     },
     {

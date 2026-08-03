@@ -19,16 +19,27 @@ export const resolveDisplayOriginalLabel = (
     ? formatCurrencyAmount(displayOriginalAmount, currentCurrencyCode)
     : null
 
-export const resolveProductVolumeDiscountOptions = (
-  currentAmount: number | null,
-  currentCurrencyCode: string,
-  offerState: ReturnType<typeof resolveOfferState>,
+export const resolveProductVolumeDiscountOptions = ({
+  availableQuantity,
+  currentAmount,
+  currentCurrencyCode,
+  labels,
+  offerState,
+}: {
   availableQuantity: number | null
-) => {
+  currentAmount: number | null
+  currentCurrencyCode: string
+  labels: {
+    title: (quantity: number) => string
+    perUnit: (price: string) => string
+  }
+  offerState: ReturnType<typeof resolveOfferState>
+}) => {
   const discountOptions = resolveVolumeDiscountOptions(
     currentAmount,
     currentCurrencyCode,
-    offerState.applyQuantityDiscount || offerState.applyVolumeDiscount
+    offerState.applyQuantityDiscount || offerState.applyVolumeDiscount,
+    labels
   )
 
   if (availableQuantity === null) {
@@ -44,13 +55,15 @@ export const resolveProductPricingLabels = ({
   productPrice,
   regionCurrencyCode,
   offerState,
+  priceUnavailableLabel,
 }: {
   productPrice: ReturnType<typeof resolvePriceState> | null
   regionCurrencyCode: string
   offerState: ReturnType<typeof resolveOfferState>
+  priceUnavailableLabel: string
 }) => {
   const currentAmount = productPrice?.currentAmount ?? null
-  const currentAmountLabel = productPrice?.currentLabel ?? "Cena na vyžiadanie"
+  const currentAmountLabel = productPrice?.currentLabel ?? priceUnavailableLabel
   const currentCurrencyCode = productPrice?.currencyCode ?? regionCurrencyCode
   const displayOriginalAmount = resolveDisplayOriginalAmount(productPrice)
   const displayOriginalLabel = resolveDisplayOriginalLabel(

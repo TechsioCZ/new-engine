@@ -1,4 +1,7 @@
+"use client"
+
 import { Icon } from "@techsio/ui-kit/atoms/icon"
+import { useTranslations } from "next-intl"
 import type { CSSProperties } from "react"
 
 type FractionalRatingProps = {
@@ -12,13 +15,20 @@ const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max)
 
 export function FractionalRating({ label, value }: FractionalRatingProps) {
+  const tCatalog = useTranslations("catalog")
   const normalizedValue = Number.isFinite(value)
     ? clamp(value, 0, STAR_COUNT)
     : 0
 
   return (
     <span
-      aria-label={label ?? `${normalizedValue.toFixed(1)} z ${STAR_COUNT}`}
+      aria-label={
+        label ??
+        tCatalog("reviews.rating_aria", {
+          max: STAR_COUNT,
+          rating: normalizedValue.toFixed(1),
+        })
+      }
       className="pointer-events-none relative inline-flex items-center gap-rating-lg text-rating-lg"
       role="img"
     >

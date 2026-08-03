@@ -12,7 +12,8 @@ import type { ProductPriceState } from "./product-card.types"
 
 export const resolvePriceState = (
   product: HttpTypes.StoreProduct,
-  expectedCurrencyCode?: string | null
+  expectedCurrencyCode: string | null | undefined,
+  priceUnavailableLabel: string
 ): ProductPriceState => {
   const calculatedPrice = product.variants?.[0]?.calculated_price
   const topOffer = resolveProductTopOffer(product)
@@ -26,7 +27,7 @@ export const resolvePriceState = (
 
   if (!price) {
     return {
-      currentLabel: "Cena na vyžiadanie",
+      currentLabel: priceUnavailableLabel,
       originalLabel: null,
       currentAmount: null,
       originalAmount: null,
@@ -70,6 +71,3 @@ export const resolveDiscountLabel = (
   const discountAmount = price.originalAmount - price.currentAmount
   return `-${formatCurrencyAmount(discountAmount, price.currencyCode)}`
 }
-
-export const getProductPriceLabel = (product: HttpTypes.StoreProduct): string =>
-  resolvePriceState(product).currentLabel

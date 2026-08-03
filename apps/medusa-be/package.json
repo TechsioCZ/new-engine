@@ -59,6 +59,7 @@
   },
   "dependencies": {
     "@badgateway/oauth2-client": "^3.3.1",
+    "@formatjs/icu-messageformat-parser": "3.5.14",
     "@hookform/resolvers": "^3.4.2",
     "@mdxeditor/editor": "3.54.0",
     "@medusajs/admin-sdk": "^2.18.0",

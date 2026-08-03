@@ -4,6 +4,7 @@ import { Link } from "@techsio/ui-kit/atoms/link"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import NextImage from "next/image"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import {
   type HerbatikaHeaderSubmenuFeaturedItem,
   useHerbatikaHeaderSubmenu,
@@ -30,6 +31,8 @@ export function HerbatikaDesktopSubmenu({
   activeRootHandle,
   onClose,
 }: HerbatikaDesktopSubmenuProps) {
+  const tCatalog = useTranslations("catalog")
+  const tNavigation = useTranslations("navigation")
   const { categoriesQuery, groupsByRootHandle } = useHerbatikaHeaderSubmenu()
 
   const activeGroup = activeRootHandle
@@ -65,13 +68,13 @@ export function HerbatikaDesktopSubmenu({
           <div className="mx-auto w-full max-w-max-w px-550 py-500 xl:px-700">
             {categoriesQuery.isLoading ? (
               <p className="mb-400 text-fg-secondary text-sm leading-snug">
-                Načítavam podkategórie…
+                {tNavigation("submenu.loading")}
               </p>
             ) : null}
 
             {categoriesQuery.error ? (
               <p className="mb-400 text-fg-secondary text-sm leading-snug">
-                Podkategórie sa nepodarilo načítať.
+                {tCatalog("errors.categories_load_failed")}
               </p>
             ) : null}
 

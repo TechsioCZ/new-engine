@@ -3,8 +3,10 @@ import { FLAG_CONFIG, type SupportedFlagCode } from "./product-card.constants"
 import { asBoolean, asRecord } from "./product-card.parsers"
 import type { ProductFlagState } from "./product-card.types"
 
-const buildActionFlag = (): ProductFlagState => ({
-  label: FLAG_CONFIG.action.label,
+export type ProductFlagLabels = Record<SupportedFlagCode, string>
+
+const buildActionFlag = (labels: ProductFlagLabels): ProductFlagState => ({
+  label: labels.action,
   variant: FLAG_CONFIG.action.variant,
 })
 
@@ -24,13 +26,14 @@ const isFlagActive = (
 
 export const resolveFlags = (
   product: HttpTypes.StoreProduct,
-  hasDiscount: boolean
+  hasDiscount: boolean,
+  labels: ProductFlagLabels
 ): ProductFlagState[] => {
   const metadata = asRecord(product.metadata)
   const flags = metadata?.flags
 
   if (!Array.isArray(flags)) {
-    return hasDiscount ? [buildActionFlag()] : []
+    return hasDiscount ? [buildActionFlag(labels)] : []
   }
 
   const resolvedFlags: ProductFlagState[] = []
@@ -57,13 +60,13 @@ export const resolveFlags = (
     const config = FLAG_CONFIG[code]
 
     resolvedFlags.push({
-      label: config.label,
+      label: labels[code],
       variant: config.variant,
     })
   }
 
   if (hasDiscount && !usedCodes.has("action")) {
-    resolvedFlags.push(buildActionFlag())
+    resolvedFlags.push(buildActionFlag(labels))
   }
 
   return resolvedFlags
