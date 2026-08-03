@@ -1,9 +1,6 @@
 import type { StoreProductVariantWithPricePerUnit } from "@techsio/storefront-data/products/types"
 import { describe, expect, it } from "vitest"
-import {
-  formatUnitPriceLabel,
-  resolveVariantPricePerUnit,
-} from "./unit-price"
+import { formatUnitPriceLabel, resolveVariantPricePerUnit } from "./unit-price"
 
 describe("formatUnitPriceLabel", () => {
   it("formats the calculated unit price and reference quantity", () => {
@@ -89,10 +86,68 @@ describe("resolveVariantPricePerUnit", () => {
       calculated_price: { price_per_unit: pricePerUnit },
     } as StoreProductVariantWithPricePerUnit
 
-    expect(resolveVariantPricePerUnit(variant)).toBe(pricePerUnit)
+    expect(
+      resolveVariantPricePerUnit(variant, {
+        currencyCode: "EUR",
+        source: "calculated_price",
+      })
+    ).toBe(pricePerUnit)
   })
 
   it("returns null when the backend did not decorate the price", () => {
-    expect(resolveVariantPricePerUnit(undefined)).toBeNull()
+    expect(
+      resolveVariantPricePerUnit(undefined, {
+        currencyCode: "EUR",
+        source: "calculated_price",
+      })
+    ).toBeNull()
+  })
+
+  it("returns null when the displayed price comes from the top offer", () => {
+    const variant = {
+      calculated_price: {
+        price_per_unit: {
+          calculated_amount: 13.45,
+          currency_code: "eur",
+          product_unit_quantity: 75,
+          unit_base_quantity: 100,
+          unit_code: "ml",
+          unit_id: "unit_ml",
+          unit_name: "millilitre",
+          unit_symbol: "ml",
+        },
+      },
+    } as StoreProductVariantWithPricePerUnit
+
+    expect(
+      resolveVariantPricePerUnit(variant, {
+        currencyCode: "EUR",
+        source: "top_offer",
+      })
+    ).toBeNull()
+  })
+
+  it("returns null when the unit price currency differs from the displayed price", () => {
+    const variant = {
+      calculated_price: {
+        price_per_unit: {
+          calculated_amount: 13.45,
+          currency_code: "czk",
+          product_unit_quantity: 75,
+          unit_base_quantity: 100,
+          unit_code: "ml",
+          unit_id: "unit_ml",
+          unit_name: "millilitre",
+          unit_symbol: "ml",
+        },
+      },
+    } as StoreProductVariantWithPricePerUnit
+
+    expect(
+      resolveVariantPricePerUnit(variant, {
+        currencyCode: "EUR",
+        source: "calculated_price",
+      })
+    ).toBeNull()
   })
 })

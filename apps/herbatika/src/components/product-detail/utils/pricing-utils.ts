@@ -38,7 +38,7 @@ export const resolvePriceState = (
   const currencyCode =
     price?.currencyCode ??
     resolveSupportedCurrencyCode(expectedCurrencyCode, DEFAULT_CURRENCY_CODE)
-  if (typeof resolvedCalculatedAmount !== "number") {
+  if (typeof resolvedCalculatedAmount !== "number" || !price) {
     return {
       currentLabel: "Cena na vyžiadanie",
       originalLabel: null,
@@ -61,7 +61,10 @@ export const resolvePriceState = (
     currentAmount: resolvedCalculatedAmount,
     originalAmount: normalizedOriginalAmount,
     currencyCode: currencyCode.toUpperCase(),
-    pricePerUnit: resolveVariantPricePerUnit(selectedVariant),
+    pricePerUnit: resolveVariantPricePerUnit(selectedVariant, {
+      currencyCode: price.currencyCode,
+      source: price.source,
+    }),
   }
 }
 

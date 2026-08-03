@@ -4,21 +4,49 @@ import type {
   StoreProductVariantWithPricePerUnit,
 } from "@techsio/storefront-data/products/types"
 import { formatCurrencyAmount } from "./price-format"
+import type { StorefrontPriceSource } from "./product-pricing"
+
+type StorefrontPriceContext = {
+  currencyCode: string
+  source: StorefrontPriceSource
+}
+
+const normalizeCurrencyCode = (currencyCode?: string | null): string | null => {
+  const normalizedCurrencyCode = currencyCode?.trim().toUpperCase()
+
+  return normalizedCurrencyCode?.length === 3 ? normalizedCurrencyCode : null
+}
 
 const unitQuantityFormatter = new Intl.NumberFormat("sk-SK", {
   maximumFractionDigits: 6,
 })
 
 export const resolveVariantPricePerUnit = (
-  variant?:
+  variant:
     | HttpTypes.StoreProductVariant
     | StoreProductVariantWithPricePerUnit
     | null
+    | undefined,
+  priceContext: StorefrontPriceContext
 ): StorePricePerUnit | null => {
+  if (priceContext.source !== "calculated_price") {
+    return null
+  }
+
   const variantWithPricePerUnit =
     variant as StoreProductVariantWithPricePerUnit | null
+  const pricePerUnit =
+    variantWithPricePerUnit?.calculated_price?.price_per_unit ?? null
+  const displayedCurrencyCode = normalizeCurrencyCode(priceContext.currencyCode)
+  const unitPriceCurrencyCode = normalizeCurrencyCode(
+    pricePerUnit?.currency_code
+  )
 
-  return variantWithPricePerUnit?.calculated_price?.price_per_unit ?? null
+  return pricePerUnit &&
+    displayedCurrencyCode &&
+    unitPriceCurrencyCode === displayedCurrencyCode
+    ? pricePerUnit
+    : null
 }
 
 export const formatUnitPriceLabel = (
