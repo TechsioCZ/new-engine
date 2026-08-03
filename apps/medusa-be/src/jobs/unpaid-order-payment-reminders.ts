@@ -46,7 +46,9 @@ async function sendReminder(
       order_display_id: getOrderDisplayId(order),
       order_id: order.id,
       payment_url: getPaymentUrl(order),
-      store_name: await getMedusaStoreName(container as Record<string, unknown>),
+      store_name: await getMedusaStoreName(
+        container as Record<string, unknown>
+      ),
       total: formatTotal(order),
     },
   })

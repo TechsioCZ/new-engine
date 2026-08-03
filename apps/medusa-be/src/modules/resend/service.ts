@@ -146,7 +146,7 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
       return
     }
 
-    if (!options.api_key || !options.from) {
+    if (!(options.api_key && options.from)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Options `api_key` and `from` are required unless `apiStoreName` is configured."
@@ -217,7 +217,9 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     return DEFAULT_RESEND_REQUEST_TIMEOUT_MS
   }
 
-  protected async getRuntimeOptions(): Promise<Required<Pick<ResendOptions, "api_key" | "from">>> {
+  protected async getRuntimeOptions(): Promise<
+    Required<Pick<ResendOptions, "api_key" | "from">>
+  > {
     if (this.options.api_key && this.options.from) {
       return { api_key: this.options.api_key, from: this.options.from }
     }
@@ -225,8 +227,14 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     const name = this.options.apiStoreName || INTEGRATION_CONFIG_NAMES.RESEND
     const config = await requireEnabledIntegrationConfig(this.container, name)
     const credentials = requireCredentialObject(config)
-    const apiKey = config.api_key ?? getCredentialString(credentials, "apiKey", "api_key")
-    const from = getCredentialString(credentials, "from", "from_email", "fromEmail")
+    const apiKey =
+      config.api_key ?? getCredentialString(credentials, "apiKey", "api_key")
+    const from = getCredentialString(
+      credentials,
+      "from",
+      "from_email",
+      "fromEmail"
+    )
 
     if (!(apiKey && from)) {
       throw new MedusaError(

@@ -344,7 +344,9 @@ const buildProductReviewRequestNotificationStep = createStep(
         },
       ]
     })
-    const message = await getReviewRequestMessage(container as Record<string, unknown>)
+    const message = await getReviewRequestMessage(
+      container as Record<string, unknown>
+    )
 
     return new StepResponse([
       {

@@ -34,7 +34,9 @@ export default async function orderPlacedHandler({
   await sendOrderReceiptWorkflow(container).run({
     input: {
       order_id: data.id,
-      store_name: await getMedusaStoreName(container as Record<string, unknown>),
+      store_name: await getMedusaStoreName(
+        container as Record<string, unknown>
+      ),
     },
   })
 

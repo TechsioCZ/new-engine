@@ -206,11 +206,7 @@ const getResendWebhookSecret = async (
 
   if (config?.enabled) {
     const credentials = requireCredentialObject(config)
-    return getCredentialString(
-      credentials,
-      "webhookSecret",
-      "webhook_secret"
-    )
+    return getCredentialString(credentials, "webhookSecret", "webhook_secret")
   }
 
   return process.env.RESEND_WEBHOOK_SECRET

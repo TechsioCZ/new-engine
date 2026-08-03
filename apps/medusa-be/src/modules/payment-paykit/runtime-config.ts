@@ -35,7 +35,10 @@ export const resolveGopayRuntimeOptions = async (
   container: PaykitInjectedDependencies,
   options: PaykitGopayOptions
 ): Promise<PaykitGopayOptions> => {
-  const name = configuredName(options.apiStoreName, INTEGRATION_CONFIG_NAMES.GOPAY)
+  const name = configuredName(
+    options.apiStoreName,
+    INTEGRATION_CONFIG_NAMES.GOPAY
+  )
   const config = await requireEnabledIntegrationConfig(container, name)
   const credentials = requireCredentialObject(config)
 
@@ -51,8 +54,16 @@ export const resolveGopayRuntimeOptions = async (
       getCredentialString(credentials, "clientSecret", "client_secret"),
       "client_secret"
     ),
-    goId: requireValue(name, getCredentialString(credentials, "goId", "go_id"), "go_id"),
-    isSandbox: getCredentialBoolean(credentials, "isSandbox", options.isSandbox ?? true),
+    goId: requireValue(
+      name,
+      getCredentialString(credentials, "goId", "go_id"),
+      "go_id"
+    ),
+    isSandbox: getCredentialBoolean(
+      credentials,
+      "isSandbox",
+      options.isSandbox ?? true
+    ),
     webhookUrl: requireValue(
       name,
       getCredentialString(credentials, "webhookUrl", "webhook_url"),
@@ -65,7 +76,10 @@ export const resolveStripeRuntimeOptions = async (
   container: PaykitInjectedDependencies,
   options: PaykitStripeOptions
 ): Promise<PaykitStripeOptions> => {
-  const name = configuredName(options.apiStoreName, INTEGRATION_CONFIG_NAMES.STRIPE)
+  const name = configuredName(
+    options.apiStoreName,
+    INTEGRATION_CONFIG_NAMES.STRIPE
+  )
   const config = await requireEnabledIntegrationConfig(container, name)
   const credentials = requireCredentialObject(config)
 
@@ -88,7 +102,10 @@ export const resolveComgateRuntimeOptions = async (
   container: PaykitInjectedDependencies,
   options: PaykitComgateOptions
 ): Promise<PaykitComgateOptions> => {
-  const name = configuredName(options.apiStoreName, INTEGRATION_CONFIG_NAMES.COMGATE)
+  const name = configuredName(
+    options.apiStoreName,
+    INTEGRATION_CONFIG_NAMES.COMGATE
+  )
   const config = await requireEnabledIntegrationConfig(container, name)
   const credentials = requireCredentialObject(config)
 
@@ -99,7 +116,15 @@ export const resolveComgateRuntimeOptions = async (
       getCredentialString(credentials, "merchant"),
       "merchant"
     ),
-    secret: requireValue(name, config.api_key ?? getCredentialString(credentials, "secret"), "secret"),
-    isSandbox: getCredentialBoolean(credentials, "isSandbox", options.isSandbox ?? true),
+    secret: requireValue(
+      name,
+      config.api_key ?? getCredentialString(credentials, "secret"),
+      "secret"
+    ),
+    isSandbox: getCredentialBoolean(
+      credentials,
+      "isSandbox",
+      options.isSandbox ?? true
+    ),
   }
 }
