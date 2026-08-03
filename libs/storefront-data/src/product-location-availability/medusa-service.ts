@@ -31,7 +31,7 @@ export function createMedusaProductLocationAvailabilityService(
 
       return sdk.client.fetch<ProductLocationAvailabilityResponse>(
         `${productsPath}/${encodeURIComponent(params.productId)}/location-availability`,
-        { signal }
+        signal === undefined ? {} : { signal }
       )
     },
   }

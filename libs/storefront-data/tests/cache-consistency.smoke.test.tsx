@@ -40,7 +40,7 @@ describe("storefront-data cache/query consistency", () => {
       return {
         limit,
         offset,
-        region_id: input.region_id,
+        ...(input.region_id ? { region_id: input.region_id } : {}),
       }
     }
 
@@ -279,9 +279,15 @@ describe("storefront-data cache/query consistency", () => {
       </StorefrontDataProvider>
     )
 
-    const createHook = renderHook(() => useCreateCustomerAddress(), { wrapper })
-    const updateHook = renderHook(() => useUpdateCustomerAddress(), { wrapper })
-    const deleteHook = renderHook(() => useDeleteCustomerAddress(), { wrapper })
+    const createHook = renderHook(() => useCreateCustomerAddress(), {
+      wrapper,
+    })
+    const updateHook = renderHook(() => useUpdateCustomerAddress(), {
+      wrapper,
+    })
+    const deleteHook = renderHook(() => useDeleteCustomerAddress(), {
+      wrapper,
+    })
 
     await act(async () => {
       await createHook.result.current.mutateAsync({ address_1: "Main 1" })
@@ -337,7 +343,6 @@ describe("storefront-data cache/query consistency", () => {
       enabled: true,
       filters: {
         kind: "retail",
-        name: undefined,
       },
     })
 

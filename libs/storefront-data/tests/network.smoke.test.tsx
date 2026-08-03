@@ -35,7 +35,7 @@ const buildListParams = (input: ProductListInputBase): ProductListParams => {
   return {
     limit,
     offset,
-    region_id: input.region_id,
+    ...(input.region_id ? { region_id: input.region_id } : {}),
   }
 }
 

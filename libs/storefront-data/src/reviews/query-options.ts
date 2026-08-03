@@ -81,7 +81,7 @@ export function createProductReviewQueryOptionsFactory<
         queryKey: resolvedQueryKeys.productList(listParams),
         queryFn: ({ signal }) => service.listProductReviews(listParams, signal),
         ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
+        ...options?.queryOptions,
       }
     },
   }

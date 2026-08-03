@@ -60,9 +60,9 @@ describe("customer validation regression", () => {
     type UpdateInput = { addressId?: string; city?: string }
 
     const service = createService()
-    const toUpdateParams = vi.fn((input: UpdateInput) => ({
-      city: input.city,
-    }))
+    const toUpdateParams = vi.fn((input: UpdateInput) =>
+      input.city ? { city: input.city } : {}
+    )
     const { useUpdateCustomerAddress } = createCustomerHooks<
       Customer,
       Address,
@@ -90,7 +90,9 @@ describe("customer validation regression", () => {
       },
     })
     const wrapper = createWrapper(queryClient)
-    const { result } = renderHook(() => useUpdateCustomerAddress(), { wrapper })
+    const { result } = renderHook(() => useUpdateCustomerAddress(), {
+      wrapper,
+    })
 
     await act(async () => {
       await expect(
@@ -161,7 +163,9 @@ describe("customer validation regression", () => {
       },
     })
     const wrapper = createWrapper(queryClient)
-    const { result } = renderHook(() => useCreateCustomerAddress(), { wrapper })
+    const { result } = renderHook(() => useCreateCustomerAddress(), {
+      wrapper,
+    })
 
     await act(async () => {
       await expect(
@@ -201,7 +205,9 @@ describe("customer validation regression", () => {
       },
     })
     const wrapper = createWrapper(queryClient)
-    const { result } = renderHook(() => useCreateCustomerAddress(), { wrapper })
+    const { result } = renderHook(() => useCreateCustomerAddress(), {
+      wrapper,
+    })
 
     await act(async () => {
       const created = await result.current.mutateAsync({
@@ -241,8 +247,8 @@ describe("customer validation regression", () => {
     const updateAddress = vi.fn(
       async (id: string, params: SharedUpdateParams) => ({
         id,
-        address_1: params.address_1,
-        city: params.city,
+        ...(params.address_1 ? { address_1: params.address_1 } : {}),
+        ...(params.city ? { city: params.city } : {}),
       })
     )
     const { useUpdateCustomerAddress } = createCustomerHooks<
@@ -278,7 +284,9 @@ describe("customer validation regression", () => {
       },
     })
     const wrapper = createWrapper(queryClient)
-    const { result } = renderHook(() => useUpdateCustomerAddress(), { wrapper })
+    const { result } = renderHook(() => useUpdateCustomerAddress(), {
+      wrapper,
+    })
 
     await act(async () => {
       await expect(

@@ -1036,7 +1036,7 @@ export function createMedusaStorefrontPreset<
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: flat declarative hook assembly; each domain adds one independent object property.
   const createHooks = () => ({
     auth: createAuthHooks({
-      ...(authHookOverrides ?? {}),
+      ...authHookOverrides,
       service: services.auth,
       queryKeys: queryKeys.auth,
       queryKeyNamespace: namespace,
@@ -1057,7 +1057,7 @@ export function createMedusaStorefrontPreset<
       TCartAddressInput,
       TCartAddressPayload
     >({
-      ...(cartHookOverrides ?? {}),
+      ...cartHookOverrides,
       service: services.cart,
       queryKeys: queryKeys.cart,
       buildAddParams:
@@ -1066,7 +1066,7 @@ export function createMedusaStorefrontPreset<
       cacheConfig: resolvedCacheConfig,
     }),
     checkout: createCheckoutHooks({
-      ...(checkoutHookOverrides ?? {}),
+      ...checkoutHookOverrides,
       isActiveCartQueryKey: resolvedCheckoutActiveCartQueryKey,
       service: services.checkout,
       queryKeys: queryKeys.checkout,
@@ -1081,7 +1081,7 @@ export function createMedusaStorefrontPreset<
       MedusaProductDetailInput,
       MedusaProductDetailInput
     >({
-      ...(config.products?.hooks ?? {}),
+      ...config.products?.hooks,
       service: services.products,
       queryKeys: queryKeys.products,
       queryKeyNamespace: namespace,
@@ -1098,7 +1098,7 @@ export function createMedusaStorefrontPreset<
       MedusaProductListListKeyInput,
       MedusaProductListDetailKeyInput
     >({
-      ...(config.productLists?.hooks ?? {}),
+      ...config.productLists?.hooks,
       service: services.productLists,
       queryKeys: queryKeys.productLists,
       queryKeyNamespace: namespace,
@@ -1115,7 +1115,7 @@ export function createMedusaStorefrontPreset<
       cacheConfig: resolvedCacheConfig,
     }),
     productLocationAvailability: createProductLocationAvailabilityHooks({
-      ...(config.productLocationAvailability?.hooks ?? {}),
+      ...config.productLocationAvailability?.hooks,
       service: services.productLocationAvailability,
       queryKeys: queryKeys.productLocationAvailability,
       queryKeyNamespace: namespace,
@@ -1126,7 +1126,7 @@ export function createMedusaStorefrontPreset<
       MedusaProductReviewListInput,
       MedusaProductReviewListInput
     >({
-      ...(config.reviews?.hooks ?? {}),
+      ...config.reviews?.hooks,
       service: services.reviews,
       queryKeys: queryKeys.reviews,
       queryKeyNamespace: namespace,
@@ -1139,7 +1139,7 @@ export function createMedusaStorefrontPreset<
       MedusaOrderDetailHookInput,
       MedusaOrderDetailInput
     >({
-      ...(config.orders?.hooks ?? {}),
+      ...config.orders?.hooks,
       service: services.orders,
       queryKeys: queryKeys.orders,
       queryKeyNamespace: namespace,
@@ -1157,7 +1157,7 @@ export function createMedusaStorefrontPreset<
       MedusaCustomerProfileUpdateInput,
       MedusaCustomerProfileUpdateInput
     >({
-      ...(customerHookOverrides ?? {}),
+      ...customerHookOverrides,
       service: services.customers,
       queryKeys: queryKeys.customers,
       authQueryKeys: customerHookOverrides?.authQueryKeys ?? queryKeys.auth,
@@ -1165,28 +1165,28 @@ export function createMedusaStorefrontPreset<
       cacheConfig: resolvedCacheConfig,
     }),
     regions: createRegionHooks({
-      ...(config.regions?.hooks ?? {}),
+      ...config.regions?.hooks,
       service: services.regions,
       queryKeys: queryKeys.regions,
       queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
     }),
     categories: createCategoryHooks({
-      ...(config.categories?.hooks ?? {}),
+      ...config.categories?.hooks,
       service: services.categories,
       queryKeys: queryKeys.categories,
       queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
     }),
     collections: createCollectionHooks({
-      ...(config.collections?.hooks ?? {}),
+      ...config.collections?.hooks,
       service: services.collections,
       queryKeys: queryKeys.collections,
       queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
     }),
     catalog: createCatalogHooks({
-      ...(config.catalog?.hooks ?? {}),
+      ...config.catalog?.hooks,
       service: services.catalog,
       queryKeys: queryKeys.catalog,
       fallbackFacets: fallbackCatalogFacets,

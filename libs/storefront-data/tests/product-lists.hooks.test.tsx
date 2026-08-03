@@ -40,9 +40,8 @@ const buildListParams = (input: ProductListListInputBase): ListParams => {
   return { limit, offset: (page - 1) * limit }
 }
 
-const buildDetailParams = (
-  input: ProductListDetailInputBase
-): DetailParams => ({ id: input.id })
+const buildDetailParams = (input: ProductListDetailInputBase): DetailParams =>
+  input.id === undefined ? {} : { id: input.id }
 
 const createService = (overrides: Partial<Service> = {}): Service => ({
   listProductLists: async (params) => ({
@@ -126,7 +125,9 @@ describe("product-list prefetch hooks", () => {
     )
     const { result: anyResult } = renderHook(
       () => usePrefetchProductLists({ skipMode: "any" }),
-      { wrapper }
+      {
+        wrapper,
+      }
     )
     const { result: noSkipResult } = renderHook(
       () => usePrefetchProductLists({ skipIfCached: false }),

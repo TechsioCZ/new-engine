@@ -1,4 +1,3 @@
-import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
@@ -13,18 +12,18 @@ import type { AuthService } from "../src/auth/types"
 import type { CartQueryKeys } from "../src/cart/types"
 import type { CatalogFacets } from "../src/catalog/types"
 import {
+  type CheckoutAddressInput,
+  type CheckoutCustomerAddressUpdateInput,
+  type MedusaCartAddressPayload,
   createCheckoutCartAddressAdapter,
   createCheckoutCustomerAddressAdapter,
-  type CheckoutAddressInput,
-  type MedusaCartAddressPayload,
-  type CheckoutCustomerAddressUpdateInput,
 } from "../src/checkout/address"
 import { StorefrontDataProvider } from "../src/client/provider"
 import type { MedusaCustomerListInput } from "../src/customers/medusa-service"
 import type { CustomerQueryKeys } from "../src/customers/types"
 import {
-  createMedusaStorefrontPreset,
   type CreateMedusaStorefrontPresetConfig,
+  createMedusaStorefrontPreset,
 } from "../src/medusa/preset"
 import type {
   MedusaOrderDetailInput,
@@ -37,6 +36,12 @@ import type {
 } from "../src/product-lists/medusa-service"
 import type { ProductListQueryKeys } from "../src/product-lists/types"
 import { createQueryKey } from "../src/shared/query-keys"
+import {
+  createStoreCart,
+  createStoreCustomer,
+  createTestMedusaSdk,
+  createStoreCustomerAddress,
+} from "./medusa-fixtures"
 
 const createWrapper =
   (client: QueryClient) =>
@@ -98,23 +103,20 @@ const createSdkMock = () => {
     })
   )
 
+  const sdk = createTestMedusaSdk()
+  Object.defineProperty(sdk.client, "fetch", { value: clientFetch })
+  Object.defineProperties(sdk.store.cart, {
+    addShippingMethod: { value: addShippingMethod },
+    retrieve: { value: vi.fn(async () => ({ cart: null })) },
+  })
+  Object.defineProperty(sdk.store.payment, "initiatePaymentSession", {
+    value: vi.fn(async () => ({
+      payment_collection: { payment_sessions: [] },
+    })),
+  })
+
   return {
-    sdk: {
-      client: {
-        fetch: clientFetch,
-      },
-      store: {
-        cart: {
-          addShippingMethod,
-          retrieve: vi.fn(async () => ({ cart: null })),
-        },
-        payment: {
-          initiatePaymentSession: vi.fn(async () => ({
-            payment_collection: { payment_sessions: [] },
-          })),
-        },
-      },
-    } as unknown as Medusa,
+    sdk,
     spies: {
       clientFetch,
       addShippingMethod,
@@ -197,15 +199,13 @@ describe("createMedusaStorefrontPreset", () => {
     }
 
     // @ts-expect-error custom facet shapes must provide catalog.fallbackFacets
-    const invalidConfig = {
-      sdk,
-    } satisfies CreateMedusaStorefrontPresetConfig<
+    const invalidConfig: CreateMedusaStorefrontPresetConfig<
       HttpTypes.StoreProduct,
       HttpTypes.StoreProductCategory,
       HttpTypes.StoreCollection,
       HttpTypes.StoreProduct,
       ExtendedCatalogFacets
-    >
+    > = { sdk }
 
     expect(invalidConfig).toBeDefined()
   })
@@ -355,11 +355,10 @@ describe("createMedusaStorefrontPreset", () => {
       () =>
         preset.hooks.checkout.useCheckoutShipping({
           cartId: "cart_1",
-          cart: {
-            id: "cart_1",
+          cart: createStoreCart("cart_1", {
             region_id: "reg_1",
             shipping_methods: [],
-          },
+          }),
         }),
       { wrapper }
     )
@@ -534,7 +533,9 @@ describe("createMedusaStorefrontPreset", () => {
 
     const { result } = renderHook(
       () => preset.hooks.productLists.useCreateProductListCart(),
-      { wrapper }
+      {
+        wrapper,
+      }
     )
 
     await act(async () => {
@@ -608,10 +609,10 @@ describe("createMedusaStorefrontPreset", () => {
           addresses: [],
         })
       ),
-      createAddress: vi.fn(async () => ({ id: "addr_1" })),
-      updateAddress: vi.fn(async () => ({ id: "addr_1" })),
+      createAddress: vi.fn(async () => createStoreCustomerAddress("addr_1")),
+      updateAddress: vi.fn(async () => createStoreCustomerAddress("addr_1")),
       deleteAddress: vi.fn(async () => {}),
-      updateCustomer: vi.fn(async () => ({ id: "cus_1" })),
+      updateCustomer: vi.fn(async () => createStoreCustomer("cus_1")),
     }
 
     const preset = createMedusaStorefrontPreset({

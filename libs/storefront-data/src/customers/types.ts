@@ -13,16 +13,16 @@ export type CustomerAddressListInputBase = {
 }
 
 export type CustomerAddressInputBase = {
-  first_name?: string
-  last_name?: string
-  company?: string
-  address_1?: string
-  address_2?: string
-  city?: string
-  province?: string
-  postal_code?: string
-  country_code?: string
-  phone?: string
+  first_name?: string | null
+  last_name?: string | null
+  company?: string | null
+  address_1?: string | null
+  address_2?: string | null
+  city?: string | null
+  province?: string | null
+  postal_code?: string | null
+  country_code?: string | null
+  phone?: string | null
   is_default_shipping?: boolean
   is_default_billing?: boolean
   metadata?: Record<string, unknown>

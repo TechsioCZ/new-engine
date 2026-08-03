@@ -45,12 +45,11 @@ describe("read query options factories", () => {
         service,
         queryKeyNamespace: "collection-query-options",
         buildListParams: (input) => ({
-          page: input.page,
-          limit: input.limit,
+          ...(input.page === undefined ? {} : { page: input.page }),
+          ...(input.limit === undefined ? {} : { limit: input.limit }),
         }),
-        buildDetailParams: (input) => ({
-          id: input.id,
-        }),
+        buildDetailParams: (input) =>
+          input.id === undefined ? {} : { id: input.id },
       })
 
     const queryClient = new QueryClient({
@@ -121,12 +120,11 @@ describe("read query options factories", () => {
         service,
         queryKeyNamespace: "order-query-options",
         buildListParams: (input) => ({
-          page: input.page,
-          limit: input.limit,
+          ...(input.page === undefined ? {} : { page: input.page }),
+          ...(input.limit === undefined ? {} : { limit: input.limit }),
         }),
-        buildDetailParams: (input) => ({
-          id: input.id,
-        }),
+        buildDetailParams: (input) =>
+          input.id === undefined ? {} : { id: input.id },
       })
 
     const listQuery = getListQueryOptions({

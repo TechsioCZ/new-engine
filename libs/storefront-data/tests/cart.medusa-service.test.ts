@@ -62,7 +62,7 @@ describe("createMedusaCartService", () => {
 
     expect(result).toEqual({ id: "cart_1" })
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/carts/cart_1", {
-      signal: undefined,
+      signal: null,
     })
   })
 
@@ -79,7 +79,7 @@ describe("createMedusaCartService", () => {
   })
 
   it("returns null when API response has no cart payload", async () => {
-    const sdk = createSdkMock(async () => ({ cart: undefined }))
+    const sdk = createSdkMock(async () => ({}))
     const service = createMedusaCartService(sdk as never)
 
     const result = await service.retrieveCart("cart_empty")
@@ -243,7 +243,7 @@ describe("createMedusaCartService", () => {
 
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/carts/cart_1", {
       query,
-      signal: undefined,
+      signal: null,
     })
     expect(sdk.store.cart.create).toHaveBeenCalledWith({}, query)
     expect(sdk.store.cart.update).toHaveBeenCalledWith("cart_1", {}, query)

@@ -55,6 +55,7 @@ describe("phase 1 regressions", () => {
           count: 1,
           page: params.page,
           limit: params.limit,
+          totalPages: 1,
           facets: { status: [] },
         }
       }),
@@ -73,8 +74,8 @@ describe("phase 1 regressions", () => {
       buildListParams: (input) => ({
         page: input.page ?? 1,
         limit: input.limit ?? 12,
-        region_id: input.region_id,
-        country_code: input.country_code,
+        ...(input.region_id ? { region_id: input.region_id } : {}),
+        ...(input.country_code ? { country_code: input.country_code } : {}),
       }),
       requireRegion: true,
     })
@@ -120,18 +121,14 @@ describe("phase 1 regressions", () => {
 
     const service = createMedusaCatalogService(sdk as never)
 
+    const malformedInput: Record<string, unknown> = {
+      page: 1,
+      limit: 12,
+      status: [" active ", null, 5, "draft", ""],
+    }
+
     await expect(
-      service.getCatalogProducts({
-        page: 1,
-        limit: 12,
-        status: [
-          " active ",
-          null as unknown as string,
-          5 as unknown as string,
-          "draft",
-          "",
-        ],
-      } as never)
+      Reflect.apply(service.getCatalogProducts, service, [malformedInput])
     ).resolves.toBeTruthy()
 
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/catalog/products", {
@@ -140,7 +137,7 @@ describe("phase 1 regressions", () => {
         limit: 12,
         status: "active,draft",
       }),
-      signal: undefined,
+      signal: null,
     })
   })
 

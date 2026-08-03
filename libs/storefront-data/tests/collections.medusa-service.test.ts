@@ -1,9 +1,9 @@
 import type { HttpTypes } from "@medusajs/types"
 
 import {
-  createMedusaCollectionService,
   type MedusaCollectionDetailInput,
   type MedusaCollectionListInput,
+  createMedusaCollectionService,
 } from "../src/collections/medusa-service"
 
 type SdkLike = {
@@ -78,6 +78,10 @@ describe("createMedusaCollectionService", () => {
         id: collection.id,
         label: collection.title,
       }),
+      transformDetailCollection: (collection) => ({
+        id: collection.id,
+        label: collection.title,
+      }),
     })
 
     const result = await service.getCollections({
@@ -92,7 +96,7 @@ describe("createMedusaCollectionService", () => {
         offset: 0,
         search: "summer",
       },
-      signal: undefined,
+      signal: null,
     })
     expect(result.collections).toEqual([
       { id: "pcol_2", label: "Summer Picks" },
@@ -122,6 +126,10 @@ describe("createMedusaCollectionService", () => {
       MedusaCollectionDetailInput
     >(sdk as never, {
       defaultDetailFields: "id,title,handle,metadata",
+      transformListCollection: (collection) => ({
+        slug: collection.handle,
+        title: collection.title,
+      }),
       transformDetailCollection: (collection) => ({
         slug: collection.handle,
         title: collection.title,
@@ -134,7 +142,7 @@ describe("createMedusaCollectionService", () => {
       query: {
         fields: "id,title,handle,metadata",
       },
-      signal: undefined,
+      signal: null,
     })
     expect(result).toEqual({ slug: "winter-gear", title: "Winter Gear" })
   })

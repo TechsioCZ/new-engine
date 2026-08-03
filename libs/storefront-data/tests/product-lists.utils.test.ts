@@ -39,7 +39,7 @@ describe("product list utilities", () => {
     ).toBe(2)
   })
 
-  it("matches products and variants from direct fields or embedded entities", () => {
+  it("matches direct product fields and embedded variants", () => {
     const selectedItem: ProductListItemBase = {
       id: "item_1",
       product_id: "prod_1",
@@ -47,7 +47,7 @@ describe("product list utilities", () => {
     }
     const embeddedItem: ProductListItemBase = {
       id: "item_2",
-      product: { id: "prod_2" } as ProductListItemBase["product"],
+      product_id: "prod_2",
       variant: { id: "var_2" },
     }
     const list: ProductListBase<ProductListItemBase> = {

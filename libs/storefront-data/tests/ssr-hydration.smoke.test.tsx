@@ -1,7 +1,7 @@
 import {
-  dehydrate,
   HydrationBoundary,
   QueryClient,
+  dehydrate,
 } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
@@ -40,7 +40,7 @@ const buildListParams = (input: ProductListInputBase): ProductListParams => {
   return {
     limit,
     offset,
-    region_id: input.region_id,
+    ...(input.region_id ? { region_id: input.region_id } : {}),
   }
 }
 
