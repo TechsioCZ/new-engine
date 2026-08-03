@@ -67,9 +67,20 @@ export async function getProducts(
     }
   } catch (err) {
     const isAbortError = err instanceof Error && err.name === "AbortError"
-    // Request cancellations are expected (navigation and Suspense completion).
-    // Return empty data so the UI can continue and client queries can refetch.
-    if (signal?.aborted || isAbortError) {
+    // Next rejects in-flight fetches once a prerender completes. It tags those
+    // with a stable digest, which is what Next's own
+    // isHangingPromiseRejectionError checks, so classify on that rather than on
+    // the human-readable message.
+    const isPrerenderCompletionError =
+      typeof err === "object" &&
+      err !== null &&
+      "digest" in err &&
+      err.digest === "HANGING_PROMISE_REJECTION"
+
+    // Request cancellations are expected (navigation, Suspense and prerender
+    // completion). Return empty data so the UI can continue and client queries
+    // can refetch.
+    if (signal?.aborted || isAbortError || isPrerenderCompletionError) {
       if (process.env["NODE_ENV"] === "development") {
         const categoryLabel = category_id?.[0]?.slice(-6) || "all"
         fetchLogger.cancelled(categoryLabel, offset)

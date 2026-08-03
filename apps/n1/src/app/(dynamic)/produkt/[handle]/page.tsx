@@ -5,7 +5,7 @@ import { BreadcrumbTemplate } from "@techsio/ui-kit/templates/breadcrumb"
 import { GalleryTemplate } from "@techsio/ui-kit/templates/gallery"
 import Image from "next/image"
 import { useParams, useSearchParams } from "next/navigation"
-import { useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 
 import { Heading } from "@/components/heading"
 import { ProductInfoPanel } from "@/components/product-detail/product-info-panel"
@@ -37,6 +37,18 @@ export default function ProductPage() {
 
   const detail = rawProduct ? transformProductDetail(rawProduct) : null
   const selectedVariant = selectVariant(detail?.variants, variantParam)
+
+  // Transformed items carry only id and src, but the gallery renders each
+  // slide through next/image, which throws without width/height or fill.
+  // The carousel slide is positioned, so fill resolves against it.
+  const galleryImages = useMemo(
+    () =>
+      detail?.images?.map((image) => ({
+        ...image,
+        imageProps: { fill: true, sizes: "(max-width: 448px) 100vw, 448px" },
+      })) ?? [],
+    [detail?.images]
+  )
 
   const title = selectedVariant
     ? `${detail?.title} - ${selectedVariant.title}`
@@ -152,13 +164,13 @@ export default function ProductPage() {
           <Heading as="h1">{title}</Heading>
         </header>
         <div className="mx-auto aspect-square max-w-md">
-          {detail.images && (
+          {galleryImages.length > 0 && (
             <GalleryTemplate
               aspectRatio="square"
               carouselHeight={150}
               carouselWidth={150}
               imageAs={Image}
-              items={detail.images}
+              items={galleryImages}
               objectFit="cover"
               orientation="horizontal"
               size="md"
