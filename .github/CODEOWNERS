@@ -1,0 +1,51 @@
+# Review lanes for the quality-enforced monorepo.
+
+# Infrastructure, package graph, automation, and backend delivery
+/.github/ @RedEyeCZ
+/.github/pull_request_template.md @RedEyeCZ @KaiUweCZE
+/.github/workflows/storybook-a11y*.yml @RedEyeCZ @KaiUweCZE
+/.github/workflows/ui-release.yml @RedEyeCZ @KaiUweCZE
+/package.json @RedEyeCZ
+/pnpm-lock.yaml @RedEyeCZ
+/pnpm-workspace.yaml @RedEyeCZ
+/.npmrc @RedEyeCZ
+/.mise.toml @RedEyeCZ
+/nx.json @RedEyeCZ
+/tsconfig*.json @RedEyeCZ
+/biome.json @RedEyeCZ
+/eslint.config.ts @RedEyeCZ
+/oxfmt.config.ts @RedEyeCZ
+/oxlint.config.ts @RedEyeCZ
+/dependency-cruiser.config.cjs @RedEyeCZ
+/.jscpd.json @RedEyeCZ
+/sgconfig.yml @RedEyeCZ
+/knip.json @RedEyeCZ
+/lefthook.yml @RedEyeCZ
+/dangerfile.ts @RedEyeCZ
+/scripts/ @RedEyeCZ
+/tooling/ @RedEyeCZ
+/docker/ @RedEyeCZ
+/docker-compose*.y*ml @RedEyeCZ
+/apps/medusa-be/ @RedEyeCZ
+/apps/medusa-order-dashboard-plugin/ @RedEyeCZ
+/apps/medusa-symmy-plugin/ @RedEyeCZ
+/apps/new-engine-ctl/ @RedEyeCZ
+/apps/zane-operator/ @RedEyeCZ
+
+# Storefronts, React libraries, design tokens, Storybook, and accessibility
+/apps/frontend-demo/ @KaiUweCZE
+/apps/herbatika/ @KaiUweCZE
+/apps/n1/ @KaiUweCZE
+/apps/payload/ @KaiUweCZE
+/libs/analytics/ @KaiUweCZE
+/libs/storefront-data/ @KaiUweCZE
+/libs/storefront-security/ @KaiUweCZE
+/libs/ui/ @KaiUweCZE
+
+# Shared utilities and cross-cutting policy require both lanes
+/libs/std/ @RedEyeCZ @KaiUweCZE
+/AGENTS.md @RedEyeCZ @KaiUweCZE
+/CLAUDE.md @RedEyeCZ @KaiUweCZE
+/**/AGENTS.md @RedEyeCZ @KaiUweCZE
+/**/CLAUDE.md @RedEyeCZ @KaiUweCZE
+/docs/review-facts.md @RedEyeCZ @KaiUweCZE

@@ -8,6 +8,7 @@
     "emitDeclarationOnly": true,
     "emitDecoratorMetadata": false,
     "esModuleInterop": true,
+    "exactOptionalPropertyTypes": true,
     "experimentalDecorators": false,
     "forceConsistentCasingInFileNames": true,
     "importHelpers": true,
@@ -22,6 +23,7 @@
     "noImplicitOverride": true,
     "noImplicitReturns": true,
     "noUncheckedIndexedAccess": true,
+    "noUncheckedSideEffectImports": true,
     "noUnusedLocals": true,
     "pretty": true,
     "removeComments": false,
@@ -30,10 +32,14 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
+    "strictBindCallApply": true,
+    "strictBuiltinIteratorReturn": true,
+    "strictFunctionTypes": true,
     "strictNullChecks": true,
+    "strictPropertyInitialization": true,
     "target": "esnext",
+    "useUnknownInCatchVariables": true,
     "useDefineForClassFields": true,
-    "verbatimModuleSyntax": true,
-    "paths": {}
+    "verbatimModuleSyntax": true
   }
 }

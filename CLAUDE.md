@@ -1,160 +1,56 @@
-# CLAUDE.md
+# Repository Guide
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Project
 
-## Project Overview
+Nx + pnpm monorepo for Medusa commerce services, Next.js storefronts, Payload, operators, plugins, and shared libraries. Node 24 and pnpm 11.15.1 are required.
 
-This is an Nx monorepo for an e-commerce platform built with Medusa.js. The project uses pnpm for package management and Nx for orchestrating builds and development workflows.
+### Applications
 
-## Architecture
+- Next.js 16.3.0-preview.5: `frontend-demo`, `herbatika`, `n1`, `payload`
+- Medusa: `medusa-be`, `medusa-order-dashboard-plugin`, `medusa-symmy-plugin`
+- Services/tools: `smart-suggest`, `zane-operator`, `new-engine-ctl`
 
-### Monorepo Structure
-- **apps/**: Application projects
-  - `medusa-be`: Medusa.js v2 backend
-  - `medusa-demo`: Next.js demo frontend (reference implementation)
-  - `medusa-fe`: Next.js frontend (reference implementation)
-- **libs/**: Shared libraries
-  - `ui`: Component library built with Zag.js and Tailwind CSS
+### Libraries
 
-### Key Technologies
-- **Monorepo**: Nx
-- **Frontend**: Modern.js, React 19, Tailwind CSS (we prefer Modern.js from Bytedance, but sometimes Next.js 15+ can be used)
-- **Backend**: Medusa.js v2
-- **Component Library**: Zag.js for React UI components using Tailwind
-- **Build Tools**: RSLib for library builds
-- **Testing**: Vitest
-- **Code Quality**: Biome for linting and formatting
+`analytics`, `smart-suggest`, `std`, `storefront-data`, `storefront-security`, `ui`.
 
-## MCP Servers for Enhanced Development
+Read the nearest subtree `AGENTS.md` or `CLAUDE.md`; it overrides this file only for that subtree.
 
-This project includes MCP (Model Context Protocol) servers configuration to enhance Claude Code capabilities. Start Claude Code with: `claude --mcp-config .mcp.json`
+## Commands
 
-### Available MCP Servers
+- Install or change dependencies only through pnpm CLI; never hand-edit manifests or the lockfile.
+- Preserve the Nx wrapper: `./node_modules/.bin/nubx --node nx ...`.
+- Root TypeScript 7 checks: `node scripts/typescript/audit.mjs`, `pnpm typecheck:tsc`, and native `pnpm typecheck:tsgo`.
+- Exact Oxc checks: `pnpm exec oxfmt --check .` and `pnpm exec oxlint . --type-aware`.
+- Optional Ultracite trial: `pnpm exec ultracite check <changed-paths>`; report failures, but do not treat it as the blocking lint command.
+- CI install contract: `pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies`.
+- Run the narrowest relevant typecheck, test, build, token, Storybook, or integration command for changed projects.
+- `quality-gate` is blocking; Ultracite, React Doctor, konsistent, and Danger remain advisory trials.
+- Never weaken a blocking gate or hide a violation with an unexplained suppression.
 
-1. **puppeteer-mcp** - Automated browser testing and screenshots
-   - Use for: E2E testing, visual regression tests, automated screenshots
-   - Example: "Use puppeteer to capture screenshots of all product pages"
+## Anti-Slop Laws
 
-2. **github** - GitHub repository management
-   - Use for: Creating PRs, managing issues, reviewing code
-   - Example: "Create a GitHub issue for refactoring CSS tokens"
+1. Search `@techsio/std` before writing a micro-helper. Import the canonical implementation; no local copies, forwarding wrappers, re-export-only barrels, or alias modules that obscure ownership.
+2. Treat JSON, request bodies, headers, environment variables, storage, SDK responses, and third-party payloads as `unknown`; validate/narrow before use. A cast is not validation.
+3. No `any`, double casts, `@ts-ignore`, broad exclusions, hidden baselines, or weakened strictness.
+4. Use typed domain/framework errors with stable codes and context. No empty catches, swallowed failures, or string matching when a typed discriminator exists.
+5. Product forms use TanStack Form and schema-backed validation, not ad hoc field/touched/validation state.
+6. Centralize minor-unit conversion, rounding, allocation, tax, and totals in the domain's tested money owner. Never scatter floating-point money arithmetic.
+7. Generate migrations with the owning framework CLI. Never edit generated or committed migration history; add a new migration for corrections.
+8. Bound database/API reads, batches, loops, retries, and polling with explicit limits, pagination/chunking, termination, and timeout/cancellation behavior.
+9. Keep user-facing copy in locale resources. Czech text requires correct diacritics; no mojibake, ASCII approximations, or untranslated English in Czech UI.
+10. Follow primitive → semantic → component token grammar and component token classes. No raw colors, arbitrary values, or one-off tokens that bypass the system.
+11. App consumers import explicit `@techsio/ui-kit/...` subpaths, not package roots, `dist`, or unverified aliases. Prefer existing accessible primitives.
+12. Preserve semantics, labels, keyboard behavior, visible focus, states, and ARIA relationships; verify interactive UI changes in a browser.
+13. For Zag components, spread `api.get*Props()` before local presentation overrides and compose handlers instead of replacing machine handlers.
+14. No app-to-app imports; libraries do not import applications. Keep server/client boundaries explicit.
+15. Fix source or generator inputs and regenerate. Never patch `.next`, `dist`, `.medusa`, generated types/import maps, or Storybook output.
 
-3. **tavily-mcp** - Advanced web search
-   - Use for: Researching e-commerce best practices, competitor analysis
-   - Example: "Search for modern e-commerce UI patterns for checkout flow"
+## Review Ownership
 
-4. **sequential-thinking** - Complex problem solving
-   - Use for: Architecture decisions, refactoring planning
-   - Example: "Plan the migration of all CSS files to new naming convention"
+This quality-enforcement change intentionally ships as one big-bang PR. Request both lanes:
 
-5. **desktop-commander** - File system operations
-   - Use for: Batch file operations, asset management
-   - Example: "Rename all product images to follow naming convention"
+- `@RedEyeCZ`: pnpm, lockfile, CI, Docker, scripts, and tooling infrastructure.
+- `@KaiUweCZE`: Next apps, frontend behavior, `libs/ui`, tokens, accessibility, and UI gates.
 
-6. **taskmaster** - Project management
-   - Use for: Sprint planning, task tracking, backlog management
-   - Example: "Create a task list for implementing dark mode"
-
-### Recommended MCP Workflows
-
-**Component Documentation**:
-```
-1. Use puppeteer to screenshot component variations
-2. Use taskmaster to track documentation tasks
-3. Use github to create PR with docs
-```
-
-**CSS Refactoring**:
-```
-1. Use sequential-thinking to plan refactoring strategy
-2. Use desktop-commander for batch file operations
-3. Use github to create refactoring PR
-```
-
-**Feature Implementation**:
-```
-1. Use tavily to research best practices
-2. Use taskmaster to break down into subtasks
-3. Use puppeteer for visual testing
-```
-
-## Development Commands
-
-### Important: Development Server Assumptions
-**NEVER ask to run `pnpm dev` or check if the dev server is running!**
-- Always assume the development server is already running on http://localhost:3000 (for frontend-demo)
-- This saves time and avoids unnecessary communication
-- If you need to interact with the running application, use MCP tools (especially puppeteer-mcp)
-
-### Package Management
-Always use CLI commands to install packages, never edit package.json directly:
-```bash
-pnpm add <package>           # Add dependency
-pnpm add -D <package>        # Add dev dependency
-pnpm add -w <package>        # Add to workspace root
-```
-
-### Running Development Servers
-```bash
-bunx nx run medusa-be:dev      # Start backend dev server
-bunx nx run medusa-fe:dev      # Start frontend dev server
-bunx nx run ui:storybook       # Start Storybook for UI library
-```
-
-### Building Projects
-```bash
-bunx nx run medusa-be:build    # Build backend
-bunx nx run medusa-fe:build    # Build frontend
-bunx nx run ui:build          # Build UI library
-```
-
-### Testing
-We don't have tests much (yet), but it is planned.
-```bash
-bunx nx run medusa-be:test     # Run backend tests with Vitest
-bunx nx run ui:test           # Run UI library tests with Vitest
-```
-
-### Code Quality
-Always run Biome globally over the entire repository:
-```bash
-bunx biome check --write .     # Lint and format entire repository
-```
-
-### Nx Utilities
-```bash
-bunx nx graph                  # View project dependency graph
-bunx nx affected:build         # Build only affected projects
-bunx nx affected:test          # Test only affected projects
-```
-
-## UI Library (`libs/ui`)
-
-The UI library uses Zag.js for React components with custom styling with Tailwind:
-- **Atoms**: Basic components (button, input, badge, etc.)
-- **Molecules**: Composite components (accordion, dialog, form components, etc.)
-- **Tokens**: Design system tokens for colors, spacing, typography
-- **Storybook**: Run `bunx nx run ui:storybook` to view components
-
-Import pattern:
-```typescript
-import { Button } from '@libs/ui/atoms/button'
-import { Dialog } from '@libs/ui/molecules/dialog'
-```
-
-## Medusa Backend Structure
-
-Key directories in `apps/medusa-be/src/`:
-- `api/`: Custom API endpoints
-- `modules/`: Custom Medusa modules
-- `workflows/`: Business logic workflows
-- `admin/`: Admin panel customizations
-- `subscribers/`: Event subscribers
-- `jobs/`: Background jobs
-
-## Configuration Files
-
-- **nx.json**: Nx workspace configuration
-- **biome.json**: Linter and formatter settings (extends ultracite)
-- **tsconfig.base.json**: Shared TypeScript configuration
-- **pnpm-workspace.yaml**: Workspace package definitions
+See `docs/review-facts.md`.

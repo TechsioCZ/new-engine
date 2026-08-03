@@ -1,0 +1,12 @@
+ruleDirs:
+  - rules
+testConfigs:
+  - testDir: rule-tests
+
+languageGlobs:
+  Tsx:
+    - "**/*.tsx"
+    - "**/*.jsx"
+  TypeScript:
+    - "**/*.ts"
+    - "**/*.js"
