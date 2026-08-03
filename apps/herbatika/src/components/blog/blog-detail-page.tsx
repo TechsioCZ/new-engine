@@ -1,31 +1,29 @@
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
 import NextLink from "next/link"
-import { CategoryRichText } from "@/components/category/category-rich-text"
 import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb"
 import type {
-  BlogCardItem,
   BlogCategoryFilter,
   BlogPost,
 } from "@/lib/storefront/blog-content"
+import { BlogArticleContent } from "./blog-article-content"
 import { BlogArticleSidebar } from "./blog-article-sidebar"
 import { BlogAuthorCard } from "./blog-author-card"
 import { formatBlogDate } from "./blog-formatters"
 import { BlogRelatedCard } from "./blog-related-card"
+import { BlogTableOfContents } from "./blog-table-of-contents"
 
 type BlogDetailPageProps = {
   categories: BlogCategoryFilter[]
   post: BlogPost
-  relatedPosts: BlogCardItem[]
 }
 
 export function BlogDetailPage({
   categories,
   post,
-  relatedPosts,
 }: BlogDetailPageProps) {
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
@@ -44,7 +42,7 @@ export function BlogDetailPage({
         <HerbatikaBreadcrumb items={breadcrumbItems} />
 
         <div className="grid gap-blog-detail-columns-gap xl:grid-cols-[minmax(0,1fr)_342px]">
-          <div className="space-y-400">
+          <div className="min-w-0 space-y-400">
             <section className="space-y-300 rounded-2xl border border-border-secondary bg-surface p-400 max-xs:pb-100">
               <div className="flex flex-wrap gap-150">
                 {post.tags.map((tag) => (
@@ -90,16 +88,13 @@ export function BlogDetailPage({
               <BlogPostIntro post={post} />
             </section>
 
-            <article className="rounded-2xl border border-border-secondary bg-surface p-400 md:p-500">
-              <CategoryRichText
-                className="text-md [&_p+p]:mt-300"
-                html={post.contentHtml}
-              />
-            </article>
+            <BlogTableOfContents items={post.tableOfContents} />
+
+            <BlogArticleContent post={post} />
 
             <BlogAuthorCard post={post} />
 
-            {relatedPosts.length > 0 ? (
+            {post.relatedPosts.length > 0 ? (
               <section className="space-y-350">
                 <div className="flex flex-wrap items-center justify-between gap-300">
                   <h2 className="font-bold text-3xl text-fg-primary leading-tight">
@@ -116,7 +111,7 @@ export function BlogDetailPage({
                 </div>
 
                 <div className="grid gap-400 md:grid-cols-2 xl:grid-cols-4">
-                  {relatedPosts.map((relatedPost) => (
+                  {post.relatedPosts.map((relatedPost) => (
                     <BlogRelatedCard key={relatedPost.id} post={relatedPost} />
                   ))}
                 </div>
@@ -137,10 +132,12 @@ function BlogPostIntro({ post }: { post: BlogPost }) {
   return (
     <>
       <div className="flex flex-wrap items-center gap-x-500 gap-y-150 text-fg-secondary text-sm leading-normal">
-        <p>
-          <strong className="font-semibold text-fg-primary">Autor:</strong>{" "}
-          {post.author}
-        </p>
+        {post.author ? (
+          <p>
+            <strong className="font-semibold text-fg-primary">Autor:</strong>{" "}
+            {post.author.name}
+          </p>
+        ) : null}
         <p>
           <strong className="font-semibold text-fg-primary">
             Publikované:

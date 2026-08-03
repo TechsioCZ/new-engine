@@ -1,4 +1,6 @@
-const ALLOWED_HTML_TAGS = new Set([
+import { isBlogHeadingId } from "@/lib/storefront/blog-heading-id"
+
+const DEFAULT_ALLOWED_HTML_TAGS = new Set([
   "a",
   "b",
   "blockquote",
@@ -24,9 +26,27 @@ const ALLOWED_HTML_TAGS = new Set([
   "ul",
 ])
 
-const ALLOWED_GLOBAL_ATTRIBUTES = new Set(["title"])
+const BLOG_ALLOWED_HTML_TAGS = new Set([
+  ...DEFAULT_ALLOWED_HTML_TAGS,
+  "code",
+  "h1",
+  "h5",
+  "h6",
+  "hr",
+  "input",
+  "label",
+  "sub",
+  "sup",
+])
 
-const ALLOWED_TAG_ATTRIBUTES: Record<string, Set<string>> = {
+const DEFAULT_ALLOWED_GLOBAL_ATTRIBUTES = new Set(["title"])
+const BLOG_ALLOWED_GLOBAL_ATTRIBUTES = new Set([
+  ...DEFAULT_ALLOWED_GLOBAL_ATTRIBUTES,
+  "id",
+  "style",
+])
+
+const DEFAULT_ALLOWED_TAG_ATTRIBUTES: Record<string, Set<string>> = {
   a: new Set(["href", "target", "rel", "title"]),
   img: new Set([
     "src",
@@ -41,11 +61,46 @@ const ALLOWED_TAG_ATTRIBUTES: Record<string, Set<string>> = {
   th: new Set(["colspan", "rowspan", "title"]),
 }
 
+const BLOG_ALLOWED_TAG_ATTRIBUTES: Record<string, Set<string>> = {
+  ...DEFAULT_ALLOWED_TAG_ATTRIBUTES,
+  input: new Set(["checked", "type"]),
+  label: new Set(["for", "htmlfor"]),
+  li: new Set(["aria-checked", "role", "tabindex", "value"]),
+  ol: new Set(["reversed", "start", "type"]),
+}
+
+type SanitizerProfile = "blog" | "default"
+
 const SAFE_ANCHOR_HREF_REGEX = /^(https?:|mailto:|tel:|\/|#)/i
 const SAFE_IMAGE_SRC_REGEX = /^(https?:|\/)/i
 const HTTP_URL_REGEX = /^https?:/i
 const SELF_CLOSING_TAG_SUFFIX_REGEX = /\/\s*$/
 const RENDERABLE_IMAGE_TAG_REGEX = /<\s*img\b/i
+const DEFAULT_VOID_TAGS = new Set(["br", "img"])
+const BLOG_VOID_TAGS = new Set([...DEFAULT_VOID_TAGS, "hr", "input"])
+
+const SANITIZER_CONFIG_BY_PROFILE = {
+  blog: {
+    allowedGlobalAttributes: BLOG_ALLOWED_GLOBAL_ATTRIBUTES,
+    allowedTagAttributes: BLOG_ALLOWED_TAG_ATTRIBUTES,
+    allowedTags: BLOG_ALLOWED_HTML_TAGS,
+    voidTags: BLOG_VOID_TAGS,
+  },
+  default: {
+    allowedGlobalAttributes: DEFAULT_ALLOWED_GLOBAL_ATTRIBUTES,
+    allowedTagAttributes: DEFAULT_ALLOWED_TAG_ATTRIBUTES,
+    allowedTags: DEFAULT_ALLOWED_HTML_TAGS,
+    voidTags: DEFAULT_VOID_TAGS,
+  },
+} satisfies Record<
+  SanitizerProfile,
+  {
+    allowedGlobalAttributes: Set<string>
+    allowedTagAttributes: Record<string, Set<string>>
+    allowedTags: Set<string>
+    voidTags: Set<string>
+  }
+>
 
 const isSafeAnchorHref = (value: string): boolean =>
   SAFE_ANCHOR_HREF_REGEX.test(value)
@@ -58,6 +113,53 @@ const isAllowedImageLoading = (value: string): boolean =>
 
 const isAllowedImageDecoding = (value: string): boolean =>
   value === "async" || value === "sync" || value === "auto"
+
+const sanitizeBlogStyle = (value: string): string => {
+  const declarations: string[] = []
+
+  for (const declaration of value.split(";")) {
+    const separator = declaration.indexOf(":")
+    if (separator === -1) {
+      continue
+    }
+
+    const property = declaration.slice(0, separator).trim().toLowerCase()
+    const propertyValue = declaration.slice(separator + 1).trim().toLowerCase()
+
+    if (
+      property === "text-align" &&
+      /^(center|justify|left|right)$/.test(propertyValue)
+    ) {
+      declarations.push(`${property}: ${propertyValue}`)
+      continue
+    }
+
+    if (
+      property === "text-decoration" &&
+      /^(?:(?:line-through|none|underline)\s*)+$/.test(propertyValue)
+    ) {
+      declarations.push(`${property}: ${propertyValue}`)
+      continue
+    }
+
+    if (
+      property === "padding-inline-start" &&
+      /^(?:0|[1-9]\d{0,2}(?:\.\d+)?px)$/.test(propertyValue)
+    ) {
+      declarations.push(`${property}: ${propertyValue}`)
+      continue
+    }
+
+    if (
+      property === "list-style-type" &&
+      /^(decimal|disc|none)$/.test(propertyValue)
+    ) {
+      declarations.push(`${property}: ${propertyValue}`)
+    }
+  }
+
+  return declarations.join("; ")
+}
 
 const escapeHtmlAttribute = (value: string): string =>
   value
@@ -88,8 +190,11 @@ const parseTagAttributes = (rawAttributes: string) => {
 
 const isAttributeAllowed = (
   name: string,
-  allowedAttributesForTag: Set<string>
-) => ALLOWED_GLOBAL_ATTRIBUTES.has(name) || allowedAttributesForTag.has(name)
+  allowedAttributesForTag: Set<string>,
+  profile: SanitizerProfile
+) =>
+  SANITIZER_CONFIG_BY_PROFILE[profile].allowedGlobalAttributes.has(name) ||
+  allowedAttributesForTag.has(name)
 
 type SanitizedAttributeState = {
   attributes: string[]
@@ -165,7 +270,8 @@ const applySanitizedAttribute = (
   state: SanitizedAttributeState,
   tag: string,
   name: string,
-  value: string
+  value: string,
+  profile: SanitizerProfile
 ) => {
   if (tag === "a" && applyAnchorAttribute(state, name, value)) {
     return
@@ -173,6 +279,68 @@ const applySanitizedAttribute = (
 
   if (tag === "img" && applyImageAttribute(state, name, value)) {
     return
+  }
+
+  if (profile === "blog") {
+    if (name === "id") {
+      if (isBlogHeadingId(value)) {
+        state.attributes.push(`id="${escapeHtmlAttribute(value)}"`)
+      }
+      return
+    }
+
+    if (name === "style") {
+      const style = sanitizeBlogStyle(value)
+      if (style) {
+        state.attributes.push(`style="${escapeHtmlAttribute(style)}"`)
+      }
+      return
+    }
+
+    if (tag === "input") {
+      if (name === "type" && value.toLowerCase() === "checkbox") {
+        state.attributes.push('type="checkbox"')
+      } else if (name === "checked") {
+        state.attributes.push("checked")
+      }
+      return
+    }
+
+    if (
+      tag === "li" &&
+      ((name === "aria-checked" && /^(false|true)$/.test(value)) ||
+        (name === "role" && value === "checkbox") ||
+        (name === "tabindex" && /^-?1$/.test(value)) ||
+        (name === "value" && /^\d+$/.test(value)))
+    ) {
+      state.attributes.push(`${name}="${escapeHtmlAttribute(value)}"`)
+      return
+    }
+    if (tag === "li") {
+      return
+    }
+
+    if (tag === "ol") {
+      if (
+        (name === "start" && /^\d+$/.test(value)) ||
+        (name === "type" && /^[1AaIi]$/.test(value))
+      ) {
+        state.attributes.push(`${name}="${escapeHtmlAttribute(value)}"`)
+      } else if (name === "reversed") {
+        state.attributes.push("reversed")
+      }
+      return
+    }
+
+    if (tag === "label") {
+      if (
+        (name === "for" || name === "htmlfor") &&
+        /^[a-z0-9:_.-]+$/i.test(value)
+      ) {
+        state.attributes.push(`for="${escapeHtmlAttribute(value)}"`)
+      }
+      return
+    }
   }
 
   if (value) {
@@ -220,19 +388,36 @@ const appendImageAttributes = (state: SanitizedAttributeState) => {
   return true
 }
 
-const sanitizeOpeningTag = (tag: string, rawAttributes: string) => {
+const sanitizeOpeningTag = (
+  tag: string,
+  rawAttributes: string,
+  profile: SanitizerProfile
+) => {
   const allowedAttributesForTag =
-    ALLOWED_TAG_ATTRIBUTES[tag] ?? new Set<string>()
+    SANITIZER_CONFIG_BY_PROFILE[profile].allowedTagAttributes[tag] ??
+    new Set<string>()
   const state = createAttributeState()
+  const parsedAttributes = parseTagAttributes(rawAttributes ?? "")
 
-  for (const attribute of parseTagAttributes(rawAttributes ?? "")) {
+  if (
+    profile === "blog" &&
+    tag === "input" &&
+    !parsedAttributes.some(
+      ({ name, value }) =>
+        name === "type" && value.toLowerCase() === "checkbox"
+    )
+  ) {
+    return ""
+  }
+
+  for (const attribute of parsedAttributes) {
     const { name, value } = attribute
 
-    if (!isAttributeAllowed(name, allowedAttributesForTag)) {
+    if (!isAttributeAllowed(name, allowedAttributesForTag, profile)) {
       continue
     }
 
-    applySanitizedAttribute(state, tag, name, value)
+    applySanitizedAttribute(state, tag, name, value, profile)
   }
 
   if (tag === "a") {
@@ -243,10 +428,14 @@ const sanitizeOpeningTag = (tag: string, rawAttributes: string) => {
     return ""
   }
 
+  if (profile === "blog" && tag === "input") {
+    state.attributes.push("disabled")
+  }
+
   const attributesString =
     state.attributes.length > 0 ? ` ${state.attributes.join(" ")}` : ""
 
-  if (tag === "br" || tag === "img") {
+  if (SANITIZER_CONFIG_BY_PROFILE[profile].voidTags.has(tag)) {
     return `<${tag}${attributesString}>`
   }
 
@@ -258,22 +447,27 @@ const sanitizeOpeningTag = (tag: string, rawAttributes: string) => {
 const sanitizeHtmlTag = (
   closingSlash: string,
   rawTag: string,
-  rawAttributes: string
+  rawAttributes: string,
+  profile: SanitizerProfile
 ) => {
   const tag = rawTag.toLowerCase()
+  const { allowedTags, voidTags } = SANITIZER_CONFIG_BY_PROFILE[profile]
 
-  if (!ALLOWED_HTML_TAGS.has(tag)) {
+  if (!allowedTags.has(tag)) {
     return ""
   }
 
   if (closingSlash === "/") {
-    return tag === "br" || tag === "img" ? "" : `</${tag}>`
+    return voidTags.has(tag) ? "" : `</${tag}>`
   }
 
-  return sanitizeOpeningTag(tag, rawAttributes)
+  return sanitizeOpeningTag(tag, rawAttributes, profile)
 }
 
-export const sanitizeHtml = (html: string): string => {
+const sanitizeHtmlWithProfile = (
+  html: string,
+  profile: SanitizerProfile
+): string => {
   if (!html) {
     return ""
   }
@@ -289,11 +483,17 @@ export const sanitizeHtml = (html: string): string => {
   const sanitized = cleanedHtml.replace(
     /<\s*(\/?)\s*([a-zA-Z0-9]+)([^>]*)>/g,
     (_, closingSlash: string, rawTag: string, rawAttributes: string) =>
-      sanitizeHtmlTag(closingSlash, rawTag, rawAttributes)
+      sanitizeHtmlTag(closingSlash, rawTag, rawAttributes, profile)
   )
 
   return sanitized.trim()
 }
+
+export const sanitizeHtml = (html: string): string =>
+  sanitizeHtmlWithProfile(html, "default")
+
+export const sanitizeBlogHtml = (html: string): string =>
+  sanitizeHtmlWithProfile(html, "blog")
 
 export const hasRenderableHtmlContent = (
   value: string | null | undefined

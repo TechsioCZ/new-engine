@@ -5,21 +5,46 @@ export type BlogCategory = {
   title: string
 }
 
+export type BlogProductReference = {
+  productExternalId?: string | null
+  productSlug?: string | null
+}
+
+export type BlogArticleContentSegment =
+  | {
+      type: "html"
+      html: string
+    }
+  | {
+      type: "productCarousel"
+      products: BlogProductReference[]
+    }
+
+export type BlogTableOfContentsItem = {
+  id: string
+  level: 2 | 3
+  title: string
+}
+
 export type BlogPost = {
   id: string
   slug: string
   title: string
   excerpt: string
-  contentHtml: string
+  contentSegments: BlogArticleContentSegment[]
+  tableOfContents: BlogTableOfContentsItem[]
   imageSrc: string
   category: BlogCategory
   tags: string[]
   publishedAt: string
-  author: string
-  authorRole: string
-  authorBio: string
-  authorImageSrc?: string
+  author?: {
+    name: string
+    role?: string
+    bio?: string
+    imageSrc?: string
+  }
   readingTime: string
+  relatedPosts: BlogCardItem[]
   lead: string
 }
 

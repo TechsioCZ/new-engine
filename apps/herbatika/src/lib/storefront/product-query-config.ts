@@ -60,5 +60,11 @@ export const buildProductListParams = (
     params.handle = undefined
   }
 
+  const externalIds = params.external_id
+  if (Array.isArray(externalIds) && externalIds.length > 0) {
+    params["external_id[]"] = externalIds.join(",")
+    params.external_id = undefined
+  }
+
   return params as HttpTypes.StoreProductListParams
 }

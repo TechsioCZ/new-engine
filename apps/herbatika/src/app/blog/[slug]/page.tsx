@@ -5,7 +5,6 @@ import { BlogDetailPage } from "@/components/blog/blog-detail-page"
 import {
   fetchCmsBlogCategoryFilters,
   fetchCmsBlogPost,
-  fetchRandomCmsBlogPosts,
 } from "@/lib/storefront/cms"
 
 type BlogDetailRouteProps = {
@@ -27,18 +26,9 @@ async function BlogDetailPageContent({ params }: BlogDetailRouteProps) {
     notFound()
   }
 
-  const [categories, relatedPosts] = await Promise.all([
-    fetchCmsBlogCategoryFilters().catch(() => []),
-    fetchRandomCmsBlogPosts(4, [post.slug]).catch(() => []),
-  ])
+  const categories = await fetchCmsBlogCategoryFilters().catch(() => [])
 
-  return (
-    <BlogDetailPage
-      categories={categories}
-      post={post}
-      relatedPosts={relatedPosts}
-    />
-  )
+  return <BlogDetailPage categories={categories} post={post} />
 }
 
 export default function BlogDetailPageRoute(props: BlogDetailRouteProps) {

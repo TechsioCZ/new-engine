@@ -1,54 +1,12 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
-import type { BlogPost } from "./blog-content"
-import {
-  buildCmsBlogPage,
-  mapBlogPostToCard,
-} from "./cms-blog-index"
+import { buildCmsBlogPage } from "./cms-blog-index"
 import {
   ALL_BLOG_CATEGORIES_KEY,
   resolveBlogListingApiHref,
   resolveBlogListingHref,
 } from "./blog-routing"
 import { blogQueryParsers } from "./blog-query-state"
-
-const post: BlogPost = {
-  id: "cms-1",
-  slug: "test-article",
-  title: "Test article",
-  excerpt: "Short summary",
-  contentHtml: "<p>Large article body</p>",
-  imageSrc: "http://localhost:8083/api/media/file/test.webp",
-  category: {
-    slug: "blog",
-    title: "Blog",
-  },
-  tags: ["Health"],
-  publishedAt: "2026-07-24T00:00:00.000Z",
-  author: "Herbatika redakcia",
-  authorRole: "Article author",
-  authorBio: "Long author biography",
-  readingTime: "4 min",
-  lead: "Article lead",
-}
-
-describe("mapBlogPostToCard", () => {
-  it("keeps only fields rendered by blog cards", () => {
-    assert.deepEqual(mapBlogPostToCard(post), {
-      id: "cms-1",
-      slug: "test-article",
-      title: "Test article",
-      excerpt: "Short summary",
-      imageSrc: "http://localhost:8083/api/media/file/test.webp",
-      category: {
-        slug: "blog",
-        title: "Blog",
-      },
-      publishedAt: "2026-07-24T00:00:00.000Z",
-      readingTime: "4 min",
-    })
-  })
-})
 
 describe("buildCmsBlogPage", () => {
   const categories = [
@@ -102,6 +60,23 @@ describe("buildCmsBlogPage", () => {
         { key: "beauty", count: 1 },
       ]
     )
+  })
+
+  it("includes an article in every category returned by the backend", () => {
+    const sharedArticle = { slug: "shared", title: "Shared" }
+    const page = buildCmsBlogPage({
+      categories: [
+        { id: 1, slug: "health", title: "Health", articles: [sharedArticle] },
+        { id: 2, slug: "beauty", title: "Beauty", articles: [sharedArticle] },
+      ],
+      category: "beauty",
+      page: 1,
+      pageSize: 12,
+    })
+
+    assert.equal(page.totalItems, 1)
+    assert.equal(page.entries[0]?.summary.slug, "shared")
+    assert.equal(page.entries[0]?.category.slug, "beauty")
   })
 })
 

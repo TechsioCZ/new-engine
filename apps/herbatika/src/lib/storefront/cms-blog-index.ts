@@ -1,8 +1,6 @@
 import type {
-  BlogCardItem,
   BlogCategory,
   BlogCategoryFilter,
-  BlogPost,
 } from "@/lib/storefront/blog-content"
 import type {
   CmsArticleCategory,
@@ -30,17 +28,6 @@ type BuildCmsBlogPageInput = {
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0
-
-export const mapBlogPostToCard = (post: BlogPost): BlogCardItem => ({
-  category: post.category,
-  excerpt: post.excerpt,
-  id: post.id,
-  imageSrc: post.imageSrc,
-  publishedAt: post.publishedAt,
-  readingTime: post.readingTime,
-  slug: post.slug,
-  title: post.title,
-})
 
 export const resolveCmsBlogCategory = (
   category: CmsCategory | null | undefined,
@@ -131,8 +118,10 @@ export const buildCmsBlogPage = ({
   const filteredEntries =
     activeCategory === ALL_BLOG_CATEGORIES_KEY
       ? articleIndex
-      : articleIndex.filter(
-          (entry) => entry.category.slug === activeCategory
+      : buildCmsArticleIndex(
+          categories.filter(
+            (cmsCategory) => cmsCategory.slug?.trim() === activeCategory
+          )
         )
   const safePageSize = Math.max(Math.floor(pageSize), 1)
   const totalItems = filteredEntries.length
