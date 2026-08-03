@@ -2,7 +2,6 @@ import type { ILockingModule } from "@medusajs/framework/types"
 
 import {
   getProductAttributeProductLockKey,
-  type getProductAttributeService,
   type ProductAttributeAssignmentRecord,
   partitionProductAttributeRecordIds,
 } from "../../utils/product-attributes"
@@ -11,6 +10,29 @@ export type ProductAttributeDeletionCompensation = {
   assignment_ids: string[]
   product_ids: string[]
 }
+
+// Cleanup only reads deletion state and ids, so the port stays narrow enough to
+// be satisfied by the module service and by fully typed test doubles.
+export type ProductAttributeDeletionRecord = Pick<
+  ProductAttributeAssignmentRecord,
+  "deleted_at" | "id"
+>
+
+export type ProductAttributeDeletionService = {
+  listProductAttributes: (
+    filters: { product_id: { $in: string[] } },
+    config: {
+      order: { id: "ASC" }
+      skip: number
+      take: number
+      withDeleted: boolean
+    }
+  ) => Promise<ProductAttributeDeletionRecord[]>
+  restoreProductAttributes: (ids: string[]) => Promise<unknown>
+  softDeleteProductAttributes: (ids: string[]) => Promise<unknown>
+}
+
+export type ProductAttributeDeletionLock = Pick<ILockingModule, "execute">
 
 const ASSIGNMENT_BATCH_SIZE = 100
 
@@ -24,9 +46,9 @@ export const cleanupDeletedProductAttributes = async ({
   productIds,
   service,
 }: {
-  lockingModule: ILockingModule
+  lockingModule: ProductAttributeDeletionLock
   productIds: string[]
-  service: ReturnType<typeof getProductAttributeService>
+  service: ProductAttributeDeletionService
 }): Promise<ProductAttributeDeletionCompensation> => {
   const lockKeys = getProductLockKeys(productIds)
   if (!lockKeys.length) {
@@ -41,7 +63,7 @@ export const cleanupDeletedProductAttributes = async ({
 
       try {
         while (true) {
-          const assignments = (await service.listProductAttributes(
+          const assignments = await service.listProductAttributes(
             { product_id: { $in: productIds } },
             {
               order: { id: "ASC" },
@@ -49,7 +71,7 @@ export const cleanupDeletedProductAttributes = async ({
               take: ASSIGNMENT_BATCH_SIZE,
               withDeleted: true,
             }
-          )) as ProductAttributeAssignmentRecord[]
+          )
           if (!assignments.length) {
             break
           }
@@ -94,8 +116,8 @@ export const restoreDeletedProductAttributes = async ({
   service,
 }: {
   compensation: ProductAttributeDeletionCompensation
-  lockingModule: ILockingModule
-  service: ReturnType<typeof getProductAttributeService>
+  lockingModule: ProductAttributeDeletionLock
+  service: Pick<ProductAttributeDeletionService, "restoreProductAttributes">
 }) => {
   if (!compensation.assignment_ids.length) {
     return

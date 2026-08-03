@@ -1,4 +1,5 @@
 import { Drawer, type toast as toastType } from "@medusajs/ui"
+import { getErrorMessage } from "@techsio/std/object"
 import { useTranslation } from "react-i18next"
 
 import { EmployeesUpdateForm } from "."
@@ -8,9 +9,6 @@ import type {
   QueryEmployee,
 } from "../../../../../types"
 import { useUpdateEmployee } from "../../../../hooks/api"
-
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error)
 
 export function EmployeesUpdateDrawer({
   company,

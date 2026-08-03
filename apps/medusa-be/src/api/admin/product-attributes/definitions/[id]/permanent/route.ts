@@ -12,7 +12,7 @@ export async function DELETE(
   const { result } = await permanentlyDeleteProductAttributeDefinitionsWorkflow(
     req.scope
   ).run({
-    input: { ids: [req.params.id ?? ""] },
+    input: { ids: [req.params["id"] ?? ""] },
   })
 
   res.json(result)

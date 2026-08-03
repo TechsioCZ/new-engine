@@ -8,6 +8,7 @@ import type {
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { chunk } from "@techsio/std/array"
 
 import {
   getProductAttributeProductLockKey,
@@ -143,14 +144,6 @@ export function collectCanonicalProductAttributeDefinitions(
   }
 
   return definitions
-}
-
-const chunk = <T>(items: T[], size = RECONCILIATION_BATCH_SIZE) => {
-  const chunks: T[][] = []
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size))
-  }
-  return chunks
 }
 
 async function ensureDefinitionsAndOptions(
@@ -312,7 +305,7 @@ function resolveSeedAttribute(
   return {
     ...attribute,
     definition_id: definition.id,
-    option_id: option?.id,
+    ...(option === undefined ? {} : { option_id: option.id }),
   }
 }
 
@@ -481,12 +474,13 @@ async function reconcileProductAssignments({
       definitionByKey,
       optionByDefinitionAndKey
     )
+    const existingAssignment = existingByProductAndDefinition.get(
+      `${product.id}:${attribute.definition_id}`
+    )
     await reconcileAssignment({
       attribute,
       context,
-      existingAssignment: existingByProductAndDefinition.get(
-        `${product.id}:${attribute.definition_id}`
-      ),
+      ...(existingAssignment === undefined ? {} : { existingAssignment }),
       productId: product.id,
       service,
     })
@@ -535,7 +529,7 @@ export const reconcileProductAttributesStep = createStep(
       )
     }
 
-    for (const batch of chunk(input)) {
+    for (const batch of chunk(input, RECONCILIATION_BATCH_SIZE)) {
       const lockKeys = resolveBatchProductIds(batch, productByHandle)
         .map(getProductAttributeProductLockKey)
         .sort()

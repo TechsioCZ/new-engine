@@ -35,7 +35,7 @@ export async function GET(
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) {
-  const productId = req.params.id ?? ""
+  const productId = req.params["id"] ?? ""
   await ensureProductExists(req, productId)
   res.json({
     product_attributes: await getProductAttributeDetail(req.scope, productId),
@@ -46,7 +46,7 @@ export async function POST(
   req: AuthenticatedMedusaRequest<AdminSetProductAttributesSchemaType>,
   res: MedusaResponse
 ) {
-  const productId = req.params.id ?? ""
+  const productId = req.params["id"] ?? ""
   await setProductAttributesWorkflow(req.scope).run({
     input: {
       operations: req.validatedBody.operations,

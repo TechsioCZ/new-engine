@@ -2384,8 +2384,8 @@ function applyPromoOverrides(
 }
 
 export function resolveHerbaticaProductVisibility(item: {
-  topOffer: { visible?: boolean }
-  visibility?: string
+  topOffer: { visible?: boolean | undefined }
+  visibility?: string | undefined
 }): {
   salesChannelNames: string[]
   status: ProductStatus

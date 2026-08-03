@@ -18,7 +18,7 @@ export async function GET(
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) {
-  const optionId = req.params.id ?? ""
+  const optionId = req.params["id"] ?? ""
   const option = await retrieveProductAttributeOptionOrThrow(
     req.scope,
     optionId,
@@ -37,7 +37,7 @@ export async function POST(
   req: AuthenticatedMedusaRequest<AdminUpdateProductAttributeOptionSchemaType>,
   res: MedusaResponse
 ) {
-  const optionId = req.params.id ?? ""
+  const optionId = req.params["id"] ?? ""
   const { result } = await updateProductAttributeOptionWorkflow(req.scope).run({
     input: {
       id: optionId,
@@ -59,7 +59,7 @@ export async function DELETE(
 ) {
   const { result } = await deleteProductAttributeOptionsWorkflow(req.scope).run(
     {
-      input: { ids: [req.params.id ?? ""] },
+      input: { ids: [req.params["id"] ?? ""] },
     }
   )
   res.json({ option: result[0] ?? null })

@@ -150,7 +150,7 @@ export function OrderFulfillmentModal({
           failed.push({
             id: order.id,
             order_display_id: order.order_display_id,
-            reason: getErrorMessage(error, t("toast.requestFailed")),
+            reason: getFailureMessage(error, t("toast.requestFailed")),
           })
         }
       }
@@ -372,7 +372,7 @@ function FulfillmentPreviewContent({
   if (previewError) {
     return (
       <Text className="text-ui-fg-error" leading="compact" size="small">
-        {getErrorMessage(previewError, t("toast.requestFailed"))}
+        {getFailureMessage(previewError, t("toast.requestFailed"))}
       </Text>
     )
   }
@@ -773,6 +773,6 @@ function formatFulfillmentOrderDisplayId(
   return order.display_id ? `#${order.display_id}` : order.id
 }
 
-function getErrorMessage(error: unknown, fallback: string) {
+function getFailureMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback
 }

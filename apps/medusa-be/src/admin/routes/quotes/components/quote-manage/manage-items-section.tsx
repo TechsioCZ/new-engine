@@ -1,5 +1,6 @@
 import type { AdminOrder, AdminOrderPreview } from "@medusajs/framework/types"
 import { Button, Heading, Input, toast } from "@medusajs/ui"
+import { getErrorMessage } from "@techsio/std/object"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -16,9 +17,6 @@ type ManageItemsSectionProps = {
 }
 
 let addedVariants: string[] = []
-
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error)
 
 export const ManageItemsSection = ({
   order,

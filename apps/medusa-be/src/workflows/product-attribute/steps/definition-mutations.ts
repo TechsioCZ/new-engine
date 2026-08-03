@@ -52,7 +52,7 @@ export const createProductAttributeDefinitionStep = createStep(
       { take: 1, withDeleted: true }
     )) as ProductAttributeDefinitionRecord[]
     assertProductAttributeKeyAvailable({
-      collision: matches[0],
+      ...(matches[0] === undefined ? {} : { collision: matches[0] }),
       key,
       kind: "definition",
     })

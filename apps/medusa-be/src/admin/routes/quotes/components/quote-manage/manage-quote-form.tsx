@@ -1,5 +1,6 @@
 import type { AdminOrder } from "@medusajs/framework/types"
 import { Button, Heading, toast } from "@medusajs/ui"
+import { getErrorMessage } from "@techsio/std/object"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
@@ -12,9 +13,6 @@ import { ManageItemsSection } from "./manage-items-section"
 type ReturnCreateFormProps = {
   order: AdminOrder
 }
-
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error)
 
 export const ManageQuoteForm = ({ order }: ReturnCreateFormProps) => {
   const { t } = useTranslation("quotes")

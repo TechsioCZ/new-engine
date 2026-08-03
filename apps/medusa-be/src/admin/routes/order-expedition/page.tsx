@@ -909,7 +909,7 @@ function getSelectedStatusBlockedMessage(
   return `${statusLabel} is blocked for ${blockedOrders.length} selected orders. Open the status menu for details.`
 }
 
-function getErrorMessage(payload: unknown, fallback: string) {
+function getPayloadErrorMessage(payload: unknown, fallback: string) {
   if (typeof payload === "object" && payload !== null && "message" in payload) {
     const message = (payload as { message?: unknown }).message
     if (typeof message === "string") {
@@ -963,7 +963,7 @@ async function downloadPdf(orderIds: string[]) {
   if (!response.ok) {
     const payload: unknown = await response.json().catch(() => null)
     throw new Error(
-      getErrorMessage(payload, "Failed to generate expedition PDF")
+      getPayloadErrorMessage(payload, "Failed to generate expedition PDF")
     )
   }
 
@@ -1002,7 +1002,7 @@ async function updateStatus(
     return {
       blockedOrders: getBlockingOrders(payload),
       ok: false as const,
-      message: getErrorMessage(payload, "Failed to update order status"),
+      message: getPayloadErrorMessage(payload, "Failed to update order status"),
     }
   }
 

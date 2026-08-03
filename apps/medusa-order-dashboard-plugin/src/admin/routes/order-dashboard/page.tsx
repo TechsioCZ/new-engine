@@ -518,7 +518,7 @@ const OrderDashboardPage = () => {
   const orderStatusMutation = useMutation({
     mutationFn: updateOrderDashboardStatuses,
     onError: (error) => {
-      toast.error(getErrorMessage(error, t("toast.requestFailed")))
+      toast.error(getFailureMessage(error, t("toast.requestFailed")))
     },
     onSuccess: (result) => {
       toast.success(t("toast.statusUpdated", { count: result.count }))
@@ -531,7 +531,7 @@ const OrderDashboardPage = () => {
   const manualStatusMutation = useMutation({
     mutationFn: updateOrderDashboardManualStatus,
     onError: (error) => {
-      toast.error(getErrorMessage(error, t("toast.requestFailed")))
+      toast.error(getFailureMessage(error, t("toast.requestFailed")))
     },
     onSuccess: (result) => {
       setBlockingOrders(result.skipped)
@@ -556,7 +556,7 @@ const OrderDashboardPage = () => {
   const expeditionPdfMutation = useMutation({
     mutationFn: downloadOrderDashboardExpeditionPdf,
     onError: (error) => {
-      toast.error(getErrorMessage(error, t("toast.requestFailed")))
+      toast.error(getFailureMessage(error, t("toast.requestFailed")))
     },
     onSuccess: () => {
       toast.success(t("toast.pdfReady"))
@@ -566,7 +566,7 @@ const OrderDashboardPage = () => {
   const packetaLabelsMutation = useMutation({
     mutationFn: downloadOrderDashboardPacketaLabels,
     onError: (error) => {
-      toast.error(getErrorMessage(error, t("toast.requestFailed")))
+      toast.error(getFailureMessage(error, t("toast.requestFailed")))
     },
     onSuccess: () => {
       toast.success(t("toast.packetaLabelsReady"))
@@ -690,7 +690,7 @@ const OrderDashboardPage = () => {
       })
       setIsPacketaLabelPositionPromptOpen(true)
     } catch (error) {
-      toast.error(getErrorMessage(error, t("toast.requestFailed")))
+      toast.error(getFailureMessage(error, t("toast.requestFailed")))
     } finally {
       setIsPreparingPacketaLabels(false)
     }
@@ -745,7 +745,7 @@ const OrderDashboardPage = () => {
   }
 
   const errorMessage = ordersQuery.error
-    ? getErrorMessage(ordersQuery.error, t("toast.requestFailed"))
+    ? getFailureMessage(ordersQuery.error, t("toast.requestFailed"))
     : null
   const pendingUnpaidCount = summaryQuery.data?.pending_unpaid_count ?? 0
 
@@ -1242,7 +1242,7 @@ function ManualStatusControl({
         status: value === "clear" ? null : value,
       }),
     onError: (error) => {
-      toast.error(getErrorMessage(error, t("toast.requestFailed")))
+      toast.error(getFailureMessage(error, t("toast.requestFailed")))
     },
     onSuccess: (result) => {
       if (result.count > 0) {
@@ -1862,7 +1862,7 @@ function formatOptionLabel(value: string) {
     .join(" ")
 }
 
-function getErrorMessage(error: unknown, fallback: string) {
+function getFailureMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback
 }
 

@@ -64,9 +64,9 @@ export const applyProductAttributeStatusFilter = (
   status: ProductAttributeListStatus
 ) => {
   if (status === "active") {
-    filters.deleted_at = null
+    filters["deleted_at"] = null
   } else if (status === "deleted") {
-    filters.deleted_at = { $ne: null }
+    filters["deleted_at"] = { $ne: null }
   }
   return filters
 }

@@ -18,7 +18,7 @@ export async function GET(
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) {
-  const definitionId = req.params.id ?? ""
+  const definitionId = req.params["id"] ?? ""
   const definition = await retrieveProductAttributeDefinitionOrThrow(
     req.scope,
     definitionId,
@@ -39,13 +39,16 @@ export async function POST(
   req: AuthenticatedMedusaRequest<AdminUpdateProductAttributeDefinitionSchemaType>,
   res: MedusaResponse
 ) {
-  const definitionId = req.params.id ?? ""
+  const definitionId = req.params["id"] ?? ""
+  const { input_type, is_public, label } = req.validatedBody
   const { result } = await updateProductAttributeDefinitionWorkflow(
     req.scope
   ).run({
     input: {
       id: definitionId,
-      ...req.validatedBody,
+      ...(input_type === undefined ? {} : { input_type }),
+      ...(is_public === undefined ? {} : { is_public }),
+      ...(label === undefined ? {} : { label }),
     },
   })
   const usageCounts = await getDefinitionUsageCountMap(req.scope, [result.id])
@@ -64,7 +67,7 @@ export async function DELETE(
   const { result } = await deleteProductAttributeDefinitionsWorkflow(
     req.scope
   ).run({
-    input: { ids: [req.params.id ?? ""] },
+    input: { ids: [req.params["id"] ?? ""] },
   })
   res.json({ definition: result[0] ?? null })
 }

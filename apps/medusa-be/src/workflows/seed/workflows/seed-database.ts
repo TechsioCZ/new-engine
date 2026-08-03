@@ -201,7 +201,11 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
       (data) => ({
         salesChannels: data.salesChannelsResult.result,
         publishableApiKey: data.createPublishableKeyResult.publishableApiKey,
-        salesChannelNames: data.input.publishableKey.salesChannelNames,
+        ...(data.input.publishableKey.salesChannelNames === undefined
+          ? {}
+          : {
+              salesChannelNames: data.input.publishableKey.salesChannelNames,
+            }),
       })
     )
 
@@ -249,7 +253,9 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
         input,
       },
       (data) => ({
-        attributeNames: data.input.legacyBrandAttributeNames,
+        ...(data.input.legacyBrandAttributeNames === undefined
+          ? {}
+          : { attributeNames: data.input.legacyBrandAttributeNames }),
         productIds: data.createProductsResult.result,
       })
     )

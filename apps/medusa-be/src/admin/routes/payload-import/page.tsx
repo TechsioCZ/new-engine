@@ -1,6 +1,7 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { DocumentText } from "@medusajs/icons"
 import { Button, Container, Heading, Input, Select, Text } from "@medusajs/ui"
+import { getErrorMessage } from "@techsio/std/object"
 import { type FormEvent, useState } from "react"
 
 export const handle = {
@@ -42,13 +43,8 @@ const appendOptional = (formData: FormData, key: string, value: string) => {
   }
 }
 
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return "Import se nepovedl."
-}
+const getImportFailureMessage = (error: unknown) =>
+  error instanceof Error ? getErrorMessage(error) : "Import se nepovedl."
 
 const PayloadImportPage = () => {
   const [file, setFile] = useState<File | null>(null)
@@ -96,7 +92,7 @@ const PayloadImportPage = () => {
         `Import dokončený: ${data.result.imported} importovaných, ${data.result.skipped} přeskočených z ${data.result.total}.`
       )
     } catch (error_) {
-      setError(getErrorMessage(error_))
+      setError(getImportFailureMessage(error_))
     } finally {
       setIsSubmitting(false)
     }

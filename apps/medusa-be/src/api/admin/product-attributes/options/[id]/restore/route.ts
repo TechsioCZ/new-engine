@@ -16,7 +16,7 @@ export async function POST(
   const { result } = await restoreProductAttributeOptionsWorkflow(
     req.scope
   ).run({
-    input: { ids: [req.params.id ?? ""] },
+    input: { ids: [req.params["id"] ?? ""] },
   })
   const option = result[0]
   const usageCounts = option

@@ -14,6 +14,7 @@ import {
   Text,
   toast,
 } from "@medusajs/ui"
+import { getErrorMessage } from "@techsio/std/object"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -33,9 +34,6 @@ type ManageItemProps = {
   currencyCode: string
   orderId: string
 }
-
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error)
 
 const getCurrencySymbol = (currencyCode: string) =>
   currencySymbolMap[currencyCode as keyof typeof currencySymbolMap] ??

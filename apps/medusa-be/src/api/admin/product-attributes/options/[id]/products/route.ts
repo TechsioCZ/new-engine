@@ -16,15 +16,16 @@ export async function GET(
   >,
   res: MedusaResponse
 ) {
-  const optionId = req.params.id ?? ""
+  const optionId = req.params["id"] ?? ""
   await retrieveProductAttributeOptionOrThrow(req.scope, optionId)
 
+  const { order, q } = req.validatedQuery
   const { count, products } = await listProductAttributeOptionAssignedProducts({
     limit: req.validatedQuery.limit,
     offset: req.validatedQuery.offset,
     optionId,
-    order: req.validatedQuery.order,
-    q: req.validatedQuery.q,
+    ...(order === undefined ? {} : { order }),
+    ...(q === undefined ? {} : { q }),
     scope: req.scope,
   })
 

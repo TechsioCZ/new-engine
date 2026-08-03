@@ -14,7 +14,7 @@ export async function POST(
   req: AuthenticatedMedusaRequest<AdminCreateProductAttributeOptionSchemaType>,
   res: MedusaResponse
 ) {
-  const definitionId = req.params.id ?? ""
+  const definitionId = req.params["id"] ?? ""
   await retrieveProductAttributeDefinitionOrThrow(req.scope, definitionId)
   const { result } = await createProductAttributeOptionWorkflow(req.scope).run({
     input: {
