@@ -82,7 +82,7 @@ export type ProductInput = {
   variants?: {
     title: string
     sku: string
-    ean?: string
+    ean?: null | string
     material?: string
     options?: {
       [key: string]: string
@@ -458,7 +458,7 @@ function toMetadataId(value: unknown): string | undefined {
   return
 }
 
-function getSourceVariantId(variant: {
+export function getSourceVariantId(variant: {
   metadata?: Record<string, unknown> | null
 }): string | undefined {
   const metadata = variant.metadata ?? undefined

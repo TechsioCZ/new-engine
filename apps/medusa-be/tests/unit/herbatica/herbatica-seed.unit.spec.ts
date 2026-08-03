@@ -930,7 +930,7 @@ describe("Herbatica committed feed fixtures", () => {
     ])
     expect(mainProduct?.variants?.map((variant) => variant.ean)).toEqual([
       "1234567890123",
-      undefined,
+      "1234567890123",
     ])
     expect(hiddenProduct?.status).toBe(ProductStatus.DRAFT)
   })

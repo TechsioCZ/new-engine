@@ -329,7 +329,6 @@ type BuildVariantsForProductOptions = {
   item: ParsedShopItem
   handle: string
   usedSkus: Set<string>
-  usedEans: Set<string>
   referenceDate?: Date
 }
 
@@ -340,7 +339,6 @@ type BuildVariantSeedOptions = {
   optionNames: string[]
   optionsForVariant: Map<string, string>
   referenceDate: Date
-  usedEans: Set<string>
   usedSkus: Set<string>
   variant: ParsedOfferData
 }
@@ -353,6 +351,7 @@ const FALLBACK_SHOPTET_WAREHOUSE_ADDRESS =
 const DEFAULT_COUNTRIES = HERBATICA_COUNTRIES
 const MAX_HANDLE_LENGTH = 180
 const DEFAULT_OPTION_TITLE = "Variant"
+const EAN_ISSUE_LOG_LIMIT = 50
 const DEFAULT_OPTION_VALUE = "Default"
 const DEFAULT_PRICELIST_LABEL = HERBATICA_DEFAULT_PRICELIST_LABEL
 const DEFAULT_SHOPTET_PRICELIST_TITLES: ReadonlySet<string> = new Set(
@@ -2673,7 +2672,6 @@ function buildDefaultVariantForProduct({
   handle,
   item,
   referenceDate,
-  usedEans,
   usedSkus,
 }: BuildVariantsForProductOptions & {
   referenceDate: Date
@@ -2687,11 +2685,7 @@ function buildDefaultVariantForProduct({
     `${handle}-DEFAULT`
   )
   const sku = ensureUnique(skuSeed, usedSkus, `${handle}-DEFAULT`)
-  const defaultEan = normalizeInlineText(topOffer.ean)
-  const ean = defaultEan && !usedEans.has(defaultEan) ? defaultEan : undefined
-  if (ean) {
-    usedEans.add(ean)
-  }
+  const ean = normalizeInlineText(topOffer.ean)
   const amount = resolveOfferDefaultPrice(topOffer)
   const currencyCode = (topOffer.currency ?? "EUR").toLowerCase()
   const quantities = buildOfferInventoryQuantities(topOffer)
@@ -2747,7 +2741,6 @@ function buildVariantSeed({
   optionNames,
   optionsForVariant,
   referenceDate,
-  usedEans,
   usedSkus,
   variant,
 }: BuildVariantSeedOptions): VariantSeedInput {
@@ -2769,11 +2762,7 @@ function buildVariantSeed({
   const amount = resolveOfferDefaultPrice(variant, item.topOffer)
   const quantities = buildOfferInventoryQuantities(variant)
   const thumbnail = variant.imageRef
-  const rawEan = normalizeInlineText(variant.ean)
-  const ean = rawEan && !usedEans.has(rawEan) ? rawEan : undefined
-  if (ean) {
-    usedEans.add(ean)
-  }
+  const ean = normalizeInlineText(variant.ean)
 
   return {
     title,
@@ -2797,7 +2786,6 @@ function buildVariantsForProduct({
   item,
   handle,
   usedSkus,
-  usedEans,
   referenceDate = new Date(),
 }: BuildVariantsForProductOptions): {
   options: ProductOptionSeedInput[]
@@ -2808,7 +2796,6 @@ function buildVariantsForProduct({
       item,
       handle,
       usedSkus,
-      usedEans,
       referenceDate,
     })
   }
@@ -2869,7 +2856,6 @@ function buildVariantsForProduct({
       optionNames,
       optionsForVariant: rawVariantOptions[index] ?? new Map<string, string>(),
       referenceDate,
-      usedEans,
       usedSkus,
       variant,
     })
@@ -2897,7 +2883,6 @@ function buildProducts(params: {
   } = params
   const usedHandles = new Set<string>()
   const usedSkus = new Set<string>()
-  const usedEans = new Set<string>()
   const productEntries = items.map((item, index) => {
     const stableHandleSource = item.id
       ? `shopitem-${item.id}`
@@ -2962,7 +2947,6 @@ function buildProducts(params: {
       item,
       handle,
       usedSkus,
-      usedEans,
       referenceDate: buildOptions.referenceDate,
     })
     const thumbnail = item.images[0] ?? item.topOffer.imageRef
@@ -3731,9 +3715,11 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
   })
 
   logger.info("Running Herbatica seed workflow...")
-  const { result } = await seedShoptetImportWorkflow(container).run({
-    input,
-  })
+  const { result: seedResult } = await seedShoptetImportWorkflow(container).run(
+    {
+      input,
+    }
+  )
 
   if (feedPaths.reviewsXmlPath) {
     await importHerbaticaReviews({
@@ -3744,5 +3730,27 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
   }
 
   logger.info("Herbatica seed completed successfully")
-  logger.info(`Result: ${JSON.stringify(result, null, 2)}`)
+  const eanReconciliation = seedResult.reconcileProductVariantEansResult
+  const eanWarnings = eanReconciliation.issues.length
+  logger.info(
+    `Summary: products=${parsed.stats.products}, variants=${parsed.stats.variants}, categories=${parsed.stats.categories}, draft_products=${parsed.stats.hiddenProducts}, stock_locations=${parsed.stats.stockLocations}, price_lists=${parsed.stats.overridePriceLists + parsed.stats.salePriceLists}, price_list_prices=${parsed.stats.priceListPrices}, warnings=${parsed.stats.warnings + eanWarnings}, ean_accepted=${eanReconciliation.summary.accepted}, ean_retained=${eanReconciliation.summary.retained}, ean_transferred=${eanReconciliation.summary.transferred}, ean_suppressed=${eanReconciliation.summary.suppressed}, ean_collisions=${eanReconciliation.summary.collisions}`
+  )
+
+  for (const issue of eanReconciliation.issues.slice(0, EAN_ISSUE_LOG_LIMIT)) {
+    const owner = `${issue.owner.product_handle}/${issue.owner.sku}`
+    const previousOwner = issue.previous_owner
+      ? ` previous_owner=${issue.previous_owner.product_handle}/${issue.previous_owner.sku}`
+      : ""
+    const suppressed = issue.suppressed
+      .map((claimant) => `${claimant.product_handle}/${claimant.sku}`)
+      .join(",")
+    logger.warn(
+      `EAN ${issue.ean}: resolution=${issue.resolution} owner=${owner}${previousOwner} suppressed=${suppressed || "none"}`
+    )
+  }
+  if (eanReconciliation.issues.length > EAN_ISSUE_LOG_LIMIT) {
+    logger.warn(
+      `${eanReconciliation.issues.length - EAN_ISSUE_LOG_LIMIT} additional EAN collision issue(s) omitted from console output`
+    )
+  }
 }
