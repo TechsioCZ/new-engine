@@ -163,6 +163,7 @@ export const resolveShippingIcon = (option: {
     `${option.name ?? ""} ${option.id ?? ""}`.toLowerCase()
 
   if (
+    normalizedValue.includes("gls") ||
     normalizedValue.includes("packeta") ||
     normalizedValue.includes("box") ||
     normalizedValue.includes("pickup") ||

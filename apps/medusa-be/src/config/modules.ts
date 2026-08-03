@@ -95,6 +95,16 @@ function buildFulfillmentClientModules(
     })
   }
 
+  if (env.featureGlsEnabled) {
+    modules.push({
+      resolve: "./src/modules/gls-client",
+      dependencies: [Modules.LOCKING],
+      options: {
+        environment: env.glsEnvironment,
+      },
+    })
+  }
+
   return modules
 }
 
@@ -108,6 +118,14 @@ function buildFulfillmentDependencies(env: MedusaConfigEnv): string[] {
   if (env.featurePacketaEnabled) {
     dependencies.push(
       "packeta_client",
+      Modules.FILE,
+      ContainerRegistrationKeys.QUERY
+    )
+  }
+
+  if (env.featureGlsEnabled) {
+    dependencies.push(
+      "gls_client",
       Modules.FILE,
       ContainerRegistrationKeys.QUERY
     )
@@ -140,13 +158,26 @@ function buildFulfillmentProviders(
     })
   }
 
+  if (env.featureGlsEnabled) {
+    providers.push({
+      resolve: "./src/modules/fulfillment-gls",
+      id: "gls",
+    })
+  }
+
   return providers
 }
 
 function buildFulfillmentModules(env: MedusaConfigEnv): MedusaModuleConfig[] {
   const modules: MedusaModuleConfig[] = []
 
-  if (!(env.featurePplEnabled || env.featurePacketaEnabled)) {
+  if (
+    !(
+      env.featurePplEnabled ||
+      env.featurePacketaEnabled ||
+      env.featureGlsEnabled
+    )
+  ) {
     return modules
   }
 

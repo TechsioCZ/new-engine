@@ -12,6 +12,7 @@ export const ORDER_EXPEDITION_DEFAULT_LIMIT = 50
 export const ORDER_EXPEDITION_MAX_LIMIT = 100
 
 export const ORDER_EXPEDITION_CARRIER_KEYS = [
+  "gls",
   "ppl",
   "packeta",
   "other",
@@ -221,6 +222,7 @@ type OrderExpeditionTransitionOrder = {
 
 export const ORDER_EXPEDITION_CARRIER_OPTIONS: OrderExpeditionCarrierOption[] =
   [
+    { label: "GLS", value: "gls" },
     { label: "PPL", value: "ppl" },
     { label: "Packeta", value: "packeta" },
     { label: "Other", value: "other" },
@@ -287,6 +289,10 @@ const CARRIER_MATCHERS: Record<
   Exclude<OrderExpeditionCarrierKey, "other">,
   { label: string; tokens: string[] }
 > = {
+  gls: {
+    label: "GLS",
+    tokens: ["gls", "parcelshop"],
+  },
   packeta: {
     label: "Packeta",
     tokens: ["packeta", "zasilkovna", "zasielkovna"],
@@ -343,7 +349,7 @@ export function resolveOrderExpeditionCarrier(
       searchable.split(CARRIER_TOKEN_SEPARATOR_REGEX).filter(Boolean)
     )
 
-    for (const key of ["ppl", "packeta"] as const) {
+    for (const key of ["gls", "ppl", "packeta"] as const) {
       const matcher = CARRIER_MATCHERS[key]
       if (matcher.tokens.some((token) => searchableTokens.has(token))) {
         return {

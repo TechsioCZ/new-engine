@@ -1,0 +1,447 @@
+import { MedusaError } from "@medusajs/framework/utils"
+import { XMLBuilder, XMLParser } from "fast-xml-parser"
+import type {
+  GLSBranch,
+  GLSCreatePacketResult,
+  GLSOptions,
+  GLSPacketAttributes,
+  GLSPacketStatusRecord,
+} from "./types"
+import { mapGLSStatusCode } from "./utils"
+
+/**
+ * GLS REST/XML API endpoint. Single URL — environment routing happens via
+ * sender credentials, not URL.
+ * @see https://docs.gls.com/docs/getting-started/gls-api
+ */
+const REST_API_URL = "https://www.gls.cz/api/rest"
+
+/**
+ * Public branch-list feed used for pickup-point discovery. JSON, separate from
+ * the REST/XML API. `{apiKey}` is substituted into the path.
+ */
+const BRANCH_FEED_URL =
+  "https://pickup-point.api.gls.com/v5/{apiKey}/branch.json?lang=cs"
+
+type RequestOptions = {
+  /** Body fields placed inside the method element alongside apiPassword */
+  params?: Record<string, unknown>
+}
+
+type GLSResponseEnvelope<T> = {
+  status: "ok" | "fault"
+  result?: T
+  fault?: string
+  string?: string
+  detail?: unknown
+}
+
+type RetryAttemptResult<T> =
+  | { retry: true; error: Error }
+  | { retry: false; value: T }
+
+/**
+ * GLS REST/XML API Client — pure HTTP layer.
+ *
+ * No caching, no rate limiting, no token management — handled by
+ * GLSClientModuleService. This client only:
+ *
+ * - POSTs XML bodies to https://www.gls.cz/api/rest
+ * - Retries on transient failures (429 / 5xx)
+ * - Translates GLS `<status>fault</status>` envelopes into MedusaErrors
+ * - Decodes base64 label PDFs
+ */
+export class GLSClient {
+  private readonly MAX_RETRIES = 3
+  private readonly INITIAL_RETRY_DELAY_MS = 200
+  private readonly REQUEST_TIMEOUT_MS = 30_000
+
+  private readonly options: GLSOptions
+  private readonly xmlBuilder: XMLBuilder
+  private readonly xmlParser: XMLParser
+
+  constructor(options: GLSOptions) {
+    this.options = options
+    this.xmlBuilder = new XMLBuilder({
+      ignoreAttributes: true,
+      suppressEmptyNode: true,
+    })
+    this.xmlParser = new XMLParser({
+      ignoreAttributes: true,
+      parseTagValue: true,
+      // Force these to always be arrays even when the API returns a single child.
+      isArray: (name) => name === "record",
+    })
+  }
+
+  // ============================================
+  // Shipment Operations
+  // ============================================
+
+  /**
+   * Create a packet (synchronous — returns packet ID + barcode immediately).
+   */
+  async createPacket(
+    attributes: GLSPacketAttributes
+  ): Promise<GLSCreatePacketResult> {
+    const params = {
+      packetAttributes: {
+        ...attributes,
+        eshop: attributes.eshop ?? this.options.sender_label ?? undefined,
+      },
+    }
+
+    const result = await this.request<GLSCreatePacketResult>("createPacket", {
+      params,
+    })
+
+    if (!(result?.id && result?.barcode)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "GLS: createPacket returned no id/barcode"
+      )
+    }
+    return result
+  }
+
+  /**
+   * Cancel a packet (only possible before pickup by carrier).
+   * Returns true on success, false on GLS-side refusal.
+   */
+  async cancelPacket(packetId: string | number): Promise<boolean> {
+    try {
+      await this.request("cancelPacket", { params: { packetId } })
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * Get the normalised status history for a packet.
+   *
+   * Calls GLS's `packetTracking` — `packetStatus` only returns the single
+   * current state, while consumers (tracking-sync job) need the full history.
+   */
+  async packetStatus(
+    packetId: string | number
+  ): Promise<GLSPacketStatusRecord[]> {
+    const raw = await this.request<{
+      record?: Array<{
+        dateTime: string
+        statusCode: string | number
+        statusName?: string
+      }>
+    }>("packetTracking", { params: { packetId } })
+
+    const records = raw?.record ?? []
+    return records.map((r) => ({
+      dateTime: r.dateTime,
+      statusCode: r.statusCode,
+      statusName: r.statusName ?? String(r.statusCode),
+      state: mapGLSStatusCode(r.statusCode),
+    }))
+  }
+
+  /**
+   * Download label PDF for a packet. Returns raw bytes — caller uploads to storage.
+   *
+   * GLS's `format` parameter takes composite values like "A6 on A6" or
+   * "A7 on A4" — we accept the simpler "A6"/"A7" enum from config and translate.
+   */
+  async downloadLabelPdf(
+    packetId: string | number,
+    format: "A6" | "A7" = this.options.default_label_format,
+    offset: number = this.options.default_label_offset
+  ): Promise<Buffer> {
+    const apiFormat = format === "A6" ? "A6 on A6" : "A7 on A4"
+    const result = await this.request<string>("packetLabelPdf", {
+      params: { packetId, format: apiFormat, offset },
+    })
+
+    if (!result || typeof result !== "string") {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `GLS: packetLabelPdf returned no PDF data for packet ${packetId}`
+      )
+    }
+    return Buffer.from(result, "base64")
+  }
+
+  // ============================================
+  // Branch (Pickup Point) Feed
+  // ============================================
+
+  /**
+   * Fetch the full pickup-point feed. Large JSON payload — the service layer
+   * caches this (24h TTL) and shouldn't call it on request hot paths.
+   */
+  async getBranchList(): Promise<GLSBranch[]> {
+    const url = BRANCH_FEED_URL.replace(
+      "{apiKey}",
+      encodeURIComponent(
+        process.env.GLS_PICKUP_POINTS_API_KEY ?? this.options.api_password
+      )
+    )
+
+    const payload = await this.withRetry(
+      () => this.fetchWithTimeout(url, { method: "GET" }),
+      async (response) => {
+        if (!response.ok) {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            `GLS branch feed failed: ${response.status}`
+          )
+        }
+        const text = await response.text()
+        return JSON.parse(text) as
+          | {
+              data?: { branches?: GLSBranch[] }
+              branches?: GLSBranch[]
+            }
+          | GLSBranch[]
+      },
+      `GLS GET ${url}`
+    )
+
+    if (Array.isArray(payload)) {
+      return payload
+    }
+
+    return payload?.data?.branches ?? payload?.branches ?? []
+  }
+
+  // ============================================
+  // Internal: HTTP + Retry + Envelope handling
+  // ============================================
+
+  /**
+   * Builds an XML body of the form
+   *   <methodName>
+   *     <apiPassword>...</apiPassword>
+   *     ...params
+   *   </methodName>
+   * POSTs it to the REST/XML endpoint, parses the `<response>` envelope, and
+   * unwraps the `<result>` payload.
+   */
+  private async request<T>(
+    methodName: string,
+    options: RequestOptions = {}
+  ): Promise<T> {
+    const { params = {} } = options
+
+    const xmlBody = this.xmlBuilder.build({
+      [methodName]: {
+        apiPassword: this.options.api_password,
+        ...params,
+      },
+    })
+
+    return this.withRetry(
+      () =>
+        this.fetchWithTimeout(REST_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/xml; charset=utf-8",
+            Accept: "text/xml",
+          },
+          body: xmlBody,
+        }),
+      async (response) => {
+        if (!response.ok) {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            `GLS request failed: ${response.status} - ${await response.text()}`
+          )
+        }
+
+        const text = await response.text()
+        if (!text) {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            `GLS: empty response body from ${methodName}`
+          )
+        }
+
+        const parsed: unknown = this.xmlParser.parse(text)
+        const envelope = (parsed as { response?: GLSResponseEnvelope<T> })
+          ?.response
+
+        if (!envelope) {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            `GLS ${methodName}: missing <response> element`
+          )
+        }
+
+        if (envelope.status === "fault") {
+          throw this.faultToError(envelope, methodName)
+        }
+
+        if (envelope.status !== "ok") {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            `GLS ${methodName}: unexpected status "${envelope.status}"`
+          )
+        }
+
+        return envelope.result as T
+      },
+      `GLS ${methodName}`
+    )
+  }
+
+  private faultToError(
+    envelope: GLSResponseEnvelope<unknown>,
+    methodName: string
+  ): MedusaError {
+    const message = envelope.string ?? envelope.fault ?? "unknown fault"
+    const detailSuffix = envelope.detail
+      ? ` Detail: ${JSON.stringify(envelope.detail)}`
+      : ""
+    return new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `GLS ${methodName} fault (${envelope.fault}): ${message}${detailSuffix}`
+    )
+  }
+
+  private isRetryable(status: number): boolean {
+    return status === 429 || status >= 500
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
+  private async fetchWithTimeout(
+    url: string,
+    init: RequestInit,
+    timeoutMs: number = this.REQUEST_TIMEOUT_MS
+  ): Promise<Response> {
+    const timeoutController = new AbortController()
+    const controller = new AbortController()
+    const requestSignal = init.signal
+    const abortFromRequestSignal = () => controller.abort()
+    const abortFromTimeout = () => controller.abort()
+
+    if (requestSignal?.aborted) {
+      controller.abort()
+    } else {
+      requestSignal?.addEventListener("abort", abortFromRequestSignal, {
+        once: true,
+      })
+    }
+
+    timeoutController.signal.addEventListener("abort", abortFromTimeout, {
+      once: true,
+    })
+
+    const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs)
+
+    try {
+      return await fetch(url, { ...init, signal: controller.signal })
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.name === "AbortError" &&
+        timeoutController.signal.aborted
+      ) {
+        const abortError = new Error(
+          `GLS request timed out after ${timeoutMs}ms: ${url}`
+        )
+        abortError.name = "AbortError"
+        throw abortError
+      }
+      throw error
+    } finally {
+      clearTimeout(timeoutId)
+      requestSignal?.removeEventListener("abort", abortFromRequestSignal)
+      timeoutController.signal.removeEventListener("abort", abortFromTimeout)
+    }
+  }
+
+  private async withRetry<T>(
+    operation: () => Promise<Response>,
+    handleResponse: (response: Response) => Promise<T>,
+    errorContext: string
+  ): Promise<T> {
+    let lastError: Error | null = null
+
+    for (let attempt = 0; attempt <= this.MAX_RETRIES; attempt++) {
+      await this.waitBeforeRetry(attempt)
+
+      try {
+        const result = await this.runRetryAttempt(
+          operation,
+          handleResponse,
+          attempt
+        )
+        if (result.retry) {
+          lastError = result.error
+          continue
+        }
+
+        return result.value
+      } catch (error) {
+        lastError = this.normalizeRetryError(error)
+        this.throwIfFinalAttempt(attempt, errorContext, lastError)
+      }
+    }
+
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `${errorContext}: ${lastError?.message || "Unknown error"}`
+    )
+  }
+
+  private async waitBeforeRetry(attempt: number): Promise<void> {
+    if (attempt === 0) {
+      return
+    }
+
+    await this.sleep(this.INITIAL_RETRY_DELAY_MS * 2 ** (attempt - 1))
+  }
+
+  private async runRetryAttempt<T>(
+    operation: () => Promise<Response>,
+    handleResponse: (response: Response) => Promise<T>,
+    attempt: number
+  ): Promise<RetryAttemptResult<T>> {
+    const response = await operation()
+
+    if (this.isRetryable(response.status) && attempt < this.MAX_RETRIES) {
+      return {
+        retry: true,
+        error: new Error(`${response.status} - ${await response.text()}`),
+      }
+    }
+
+    return {
+      retry: false,
+      value: await handleResponse(response),
+    }
+  }
+
+  private normalizeRetryError(error: unknown): Error {
+    if (error instanceof MedusaError) {
+      throw error
+    }
+
+    return error instanceof Error ? error : new Error(String(error))
+  }
+
+  private throwIfFinalAttempt(
+    attempt: number,
+    errorContext: string,
+    lastError: Error
+  ): void {
+    if (attempt !== this.MAX_RETRIES) {
+      return
+    }
+
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `${errorContext} after ${this.MAX_RETRIES + 1} attempts: ${lastError.message}`
+    )
+  }
+}
