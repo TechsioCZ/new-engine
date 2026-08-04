@@ -1,6 +1,9 @@
 import NextImage from "next/image"
+import { useEffect, useRef } from "react"
 import type { HomepagePromoContent } from "@/components/homepage/homepage.data.types"
 import { sanitizeHtml } from "@/components/product-detail/utils/html-sanitizer"
+
+const HOMEPAGE_PROMO_SECTION_ID = "homepage-promo"
 
 const DEFAULT_IMAGE = {
   alt: "Predajňa Herbatika",
@@ -12,12 +15,23 @@ type HomepagePromoSectionProps = {
 }
 
 export function HomepagePromoSection({ promo }: HomepagePromoSectionProps) {
+  const sectionRef = useRef<HTMLElement>(null)
   const imageAlt = promo?.imageAlt || DEFAULT_IMAGE.alt
   const imageSrc = promo?.imageSrc || DEFAULT_IMAGE.src
   const contentHtml = sanitizeHtml(promo?.contentHtml ?? "")
 
+  useEffect(() => {
+    if (window.location.hash === `#${HOMEPAGE_PROMO_SECTION_ID}`) {
+      sectionRef.current?.scrollIntoView({ block: "start" })
+    }
+  }, [])
+
   return (
-    <section className="grid gap-400 rounded-2xl border border-border-secondary bg-surface p-400 md:grid-cols-2 md:p-550">
+    <section
+      className="grid scroll-mt-homepage-promo-scroll-offset gap-400 rounded-2xl border border-border-secondary bg-surface p-400 md:grid-cols-2 md:p-550"
+      id={HOMEPAGE_PROMO_SECTION_ID}
+      ref={sectionRef}
+    >
       <div className="overflow-hidden rounded-2xl border border-border-secondary">
         <NextImage
           alt={imageAlt}

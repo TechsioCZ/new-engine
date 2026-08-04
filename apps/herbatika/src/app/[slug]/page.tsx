@@ -1,10 +1,7 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { CmsPageSurface } from "@/components/cms/cms-page-surface"
-import {
-  fetchCmsPageBySlug,
-  HOMEPAGE_PROMO_PAGE_SLUG,
-} from "@/lib/storefront/cms"
+import { fetchCmsPageBySlug } from "@/lib/storefront/cms"
 
 type CmsPageRouteProps = {
   params: Promise<{
@@ -16,16 +13,6 @@ export async function generateMetadata({
   params,
 }: CmsPageRouteProps): Promise<Metadata> {
   const { slug } = await params
-
-  if (slug === HOMEPAGE_PROMO_PAGE_SLUG) {
-    return {
-      robots: {
-        follow: false,
-        index: false,
-      },
-    }
-  }
-
   const page = await fetchCmsPageBySlug(slug)
 
   if (!page) {
@@ -40,11 +27,6 @@ export async function generateMetadata({
 
 export default async function CmsPageRoute({ params }: CmsPageRouteProps) {
   const { slug } = await params
-
-  if (slug === HOMEPAGE_PROMO_PAGE_SLUG) {
-    notFound()
-  }
-
   const page = await fetchCmsPageBySlug(slug)
 
   if (!page) {

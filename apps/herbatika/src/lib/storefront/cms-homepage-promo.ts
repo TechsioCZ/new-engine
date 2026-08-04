@@ -5,7 +5,7 @@ import { resolveCmsMediaUrl } from "./cms-client"
 import { fetchCmsPageBySlug } from "./cms-pages"
 import type { CmsMedia, CmsPage } from "./cms-types"
 
-export const HOMEPAGE_PROMO_PAGE_SLUG = "homepage-promo"
+const HOMEPAGE_PROMO_PAGE_SLUG = "homepage-promo"
 
 const getMediaAlt = (media: CmsMedia | string | null | undefined) =>
   typeof media === "object" ? (media?.alt?.trim() ?? undefined) : undefined
