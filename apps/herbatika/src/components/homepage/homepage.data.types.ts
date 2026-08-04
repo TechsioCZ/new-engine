@@ -36,3 +36,10 @@ export type ProductSectionDefinition = {
   titleKey: HomepageProductSectionTitleKey
   viewAllHref: string
 }
+
+export type HomepagePromoContent = {
+  contentHtml: string
+  heading: string
+  imageAlt?: string
+  imageSrc?: string
+}
