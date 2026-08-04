@@ -37,7 +37,7 @@ const UNPAID_PAYMENT_STATUSES = new Set<PaymentStatus>(
 
 const SKIPPED_ORDER_STATUSES = new Set(["canceled", "archived", "draft"])
 
-const ORDER_FIELDS = [
+export const ORDER_FIELDS = [
   "id",
   "created_at",
   "display_id",
@@ -50,6 +50,11 @@ const ORDER_FIELDS = [
   "summary.*",
   "total",
   "currency_code",
+  // Selecting `total` makes the order module load shipping-method adjustments,
+  // and it only selects the shipping method's `version` alongside them when the
+  // requested fields already reach into the shipping method. Without this entry
+  // the module throws "Shipping method version is required to load adjustments".
+  "shipping_methods.id",
 ]
 
 export function getStorefrontUrl() {

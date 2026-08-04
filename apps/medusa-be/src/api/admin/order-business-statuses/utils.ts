@@ -39,6 +39,11 @@ export const ORDER_BUSINESS_STATUS_ORDER_FIELDS = [
   "fulfillments.shipped_at",
   "fulfillments.delivered_at",
   "fulfillments.canceled_at",
+  // Selecting `total` makes the order module load shipping-method adjustments,
+  // and it only selects the shipping method's `version` alongside them when the
+  // requested fields already reach into the shipping method. Without this entry
+  // the module throws "Shipping method version is required to load adjustments".
+  "shipping_methods.id",
 ]
 
 export async function fetchOrderBusinessStatusOrder(query: Query, id: string) {
