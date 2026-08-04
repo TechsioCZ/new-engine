@@ -34,6 +34,17 @@ const clearToken = () => {
 const fetchCustomer = (signal?: AbortSignal) =>
   authServiceBase.getCustomer(signal)
 
+const cleanupDeactivatedSession = async () => {
+  const cleanupOperations = [authServiceBase.logout()]
+
+  if (isSessionProxyAuthMode) {
+    cleanupOperations.push(requestLogoutProxy())
+  }
+
+  await Promise.allSettled(cleanupOperations)
+  clearToken()
+}
+
 const ensureSessionProxyToken = async (): Promise<string | null> => {
   const existingToken = getStoredToken()
   if (existingToken) {
@@ -63,6 +74,15 @@ const ensureSessionProxyToken = async (): Promise<string | null> => {
 }
 
 export const authService = {
+  async deactivateAccount() {
+    if (!authServiceBase.deactivateAccount) {
+      throw new Error("deactivateAccount service is not configured")
+    }
+
+    const result = await authServiceBase.deactivateAccount()
+    await cleanupDeactivatedSession()
+    return result
+  },
   async getCustomer(
     signal?: AbortSignal
   ): Promise<HttpTypes.StoreCustomer | null> {
