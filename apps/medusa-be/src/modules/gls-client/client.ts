@@ -22,6 +22,8 @@ const COUNTRY_DOMAINS: Record<GLSCountryCode, string> = {
   RS: "rs",
 }
 const DOT_NET_DATE_REGEX = /\/Date\((\d+)(?:[+-]\d+)?\)\//
+const GLS_PARCEL_NUMBER_LENGTH = 10
+const GLS_PARCEL_NUMBER_WITH_CHECK_DIGIT_LENGTH = 11
 const MAX_DELIVERY_POINTS_PAYLOAD_BYTES = 20 * 1024 * 1024
 const gunzipAsync = promisify(gunzip)
 
@@ -494,8 +496,12 @@ export class GLSClient {
   }
 
   private toParcelNumber(value: string | number): number {
-    const normalized =
+    const digits =
       typeof value === "number" ? String(value) : value.replace(/\D/g, "")
+    const normalized =
+      digits.length === GLS_PARCEL_NUMBER_WITH_CHECK_DIGIT_LENGTH
+        ? digits.slice(0, GLS_PARCEL_NUMBER_LENGTH)
+        : digits
     return this.toPositiveInteger(normalized, "ParcelNumber")
   }
 
