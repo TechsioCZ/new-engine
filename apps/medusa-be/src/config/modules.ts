@@ -1,5 +1,6 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { DATABASE_MODULE } from "../modules/database"
+import { GLS_CLIENT_MODULE } from "../modules/gls-client/constants"
 import { buildPaykitPaymentProviders } from "../modules/payment-paykit/medusa-config"
 import {
   QR_PAYMENT_MODULE,
@@ -45,7 +46,7 @@ function buildPaymentDependencies(env: MedusaConfigEnv): string[] {
     dependencies.push(QR_PAYMENT_MODULE)
   }
 
-  return dependencies
+  return [...new Set(dependencies)]
 }
 
 function buildPaymentModule(env: MedusaConfigEnv): MedusaModuleConfig {
@@ -95,6 +96,16 @@ function buildFulfillmentClientModules(
     })
   }
 
+  if (env.featureGlsEnabled) {
+    modules.push({
+      resolve: "./src/modules/gls-client",
+      dependencies: [Modules.LOCKING],
+      options: {
+        environment: env.glsEnvironment,
+      },
+    })
+  }
+
   return modules
 }
 
@@ -113,7 +124,15 @@ function buildFulfillmentDependencies(env: MedusaConfigEnv): string[] {
     )
   }
 
-  return dependencies
+  if (env.featureGlsEnabled) {
+    dependencies.push(
+      GLS_CLIENT_MODULE,
+      Modules.FILE,
+      ContainerRegistrationKeys.QUERY
+    )
+  }
+
+  return [...new Set(dependencies)]
 }
 
 function buildFulfillmentProviders(
@@ -140,13 +159,26 @@ function buildFulfillmentProviders(
     })
   }
 
+  if (env.featureGlsEnabled) {
+    providers.push({
+      resolve: "./src/modules/fulfillment-gls",
+      id: "gls",
+    })
+  }
+
   return providers
 }
 
 function buildFulfillmentModules(env: MedusaConfigEnv): MedusaModuleConfig[] {
   const modules: MedusaModuleConfig[] = []
 
-  if (!(env.featurePplEnabled || env.featurePacketaEnabled)) {
+  if (
+    !(
+      env.featurePplEnabled ||
+      env.featurePacketaEnabled ||
+      env.featureGlsEnabled
+    )
+  ) {
     return modules
   }
 
