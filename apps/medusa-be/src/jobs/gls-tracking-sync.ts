@@ -45,6 +45,7 @@ type TrackingContext = {
 const LOCK_KEY = "gls-tracking-sync-job"
 const LOCK_TIMEOUT_SECONDS = 120
 const CHUNK_SIZE = 25
+const PENDING_FETCH_MULTIPLIER = 4
 
 /**
  * GLS Tracking Sync Job
@@ -154,14 +155,18 @@ async function fetchPendingFulfillments(
       delivered_at: null,
     },
     pagination: {
+      order: {
+        shipped_at: "ASC",
+      },
       skip: 0,
-      take: limit,
+      take: limit * PENDING_FETCH_MULTIPLIER,
     },
   })
 
+  // JSON field filtering (data.delivery_failed) must be done in-memory.
   const rawFulfillments: unknown = fulfillments
   return Array.isArray(rawFulfillments)
-    ? rawFulfillments.filter(isPendingFulfillment)
+    ? rawFulfillments.filter(isPendingFulfillment).slice(0, limit)
     : []
 }
 
@@ -182,12 +187,14 @@ function isPendingFulfillment(value: unknown): value is PendingFulfillment {
   const barcode: unknown = value.data.barcode
   const accessPointId: unknown = value.data.access_point_id
   const supportsCod: unknown = value.data.supports_cod
+  const deliveryFailed: unknown = value.data.delivery_failed
 
   return (
     typeof id === "string" &&
     providerId === GLS_PROVIDER_ID &&
     typeof shippedAt === "string" &&
     deliveredAt === null &&
+    deliveryFailed !== true &&
     (typeof packetId === "number" || typeof packetId === "string") &&
     typeof barcode === "string" &&
     typeof accessPointId === "string" &&
@@ -333,10 +340,28 @@ async function flushPendingEvent(
 
   await emitPendingEvent(ctx, pendingEvent)
   const { gls_pending_event: _pendingEvent, ...updatedData } = fulfillment.data
+  const deliveredAt = getPendingDeliveredAt(pendingEvent)
   await ctx.fulfillmentService.updateFulfillment(fulfillment.id, {
+    ...(deliveredAt ? { delivered_at: deliveredAt } : {}),
     data: updatedData,
   })
   return true
+}
+
+function getPendingDeliveredAt(
+  pendingEvent: GLSPendingEvent
+): Date | undefined {
+  if (pendingEvent.name !== "gls.delivered") {
+    return
+  }
+
+  const deliveredAt: unknown = pendingEvent.data.delivered_at
+  if (typeof deliveredAt !== "string") {
+    return
+  }
+
+  const date = new Date(deliveredAt)
+  return Number.isNaN(date.getTime()) ? undefined : date
 }
 
 function buildPendingEvent(
@@ -380,7 +405,10 @@ async function emitPendingEvent(
 ): Promise<void> {
   await ctx.eventBus.emit({
     name: pendingEvent.name,
-    data: pendingEvent.data,
+    data: {
+      ...pendingEvent.data,
+      idempotency_key: pendingEvent.key,
+    },
   })
 }
 

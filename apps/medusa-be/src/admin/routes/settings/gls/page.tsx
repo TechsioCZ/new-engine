@@ -232,9 +232,9 @@ const GLSSettingsPage = () => {
         method: "POST",
         body: payload,
       }),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["gls-config"] })
       setSeededConfigId(null)
-      queryClient.invalidateQueries({ queryKey: ["gls-config"] })
       toast.success("GLS configuration saved")
     },
     onError: (err) => {

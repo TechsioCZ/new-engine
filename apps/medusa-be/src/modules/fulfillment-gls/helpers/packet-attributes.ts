@@ -36,34 +36,34 @@ type OrderLineItemWithWeight = {
   } | null
 }
 
-type OrderWithEmail = {
-  id?: string
-  email?: unknown
-  customer?: {
-    email?: unknown
-  } | null
-}
-
 type FulfillmentItemWithQuantity = {
   line_item_id?: string | null
   quantity?: unknown
-}
-
-type ShippingAddressRecord = NonNullable<
-  FulfillmentOrderDTO["shipping_address"]
-> & {
-  address_1?: string | null
-  address_2?: string | null
-  city?: string | null
-  postal_code?: string | null
-  country_code?: string | null
-  phone?: string | null
 }
 
 const DEFAULT_PACKET_WEIGHT_KG = 0.5
 const GRAMS_PER_KG = 1000
 const ADDRESS_WITH_HOUSE_NUMBER_REGEX = /^(.+?)\s+(\d+[\w/-]*)$/u
 const HOUSE_NUMBER_REGEX = /^(\d+)(.*)$/u
+
+type PacketOrderTotal = {
+  total: number
+  usedFallback: boolean
+}
+
+type PacketCurrency = {
+  currency: string
+  usedFallback: boolean
+}
+
+type PacketWeight = {
+  weight: number
+  usedFallback: boolean
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
 
 export function toFiniteNumber(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -73,8 +73,9 @@ export function toFiniteNumber(value: unknown): number | undefined {
     const parsed = Number.parseFloat(value)
     return Number.isFinite(parsed) ? parsed : undefined
   }
-  if (value && typeof value === "object" && "value" in value) {
-    return toFiniteNumber((value as { value: unknown }).value)
+  if (isRecord(value)) {
+    const nestedValue: unknown = value.value
+    return toFiniteNumber(nestedValue)
   }
 
   return
@@ -103,30 +104,43 @@ export async function buildGLSPacketAttributes(params: {
 
   const recipient = getRequiredRecipientName(shippingAddress)
   const orderNumber = getPacketOrderNumber(order)
-  const totalNumber = getPacketOrderTotal(order, shippingData)
+  const orderTotal = getPacketOrderTotal(order, shippingData)
   const packetWeight = await getPacketWeight(order, items, shippingData, query)
+  const currency = getPacketCurrency(order, shippingData)
   const email = await getRequiredOrderEmail(order, shippingData, query)
 
-  if (packetWeight === DEFAULT_PACKET_WEIGHT_KG) {
+  if (orderTotal.usedFallback) {
+    logger.warn(
+      `GLS: Falling back to placeholder order total 1 for non-COD order ${orderNumber}. Fill order total or item_total in Medusa to send an exact parcel value.`
+    )
+  }
+
+  if (packetWeight.usedFallback) {
     logger.warn(
       `GLS: Falling back to default packet weight ${DEFAULT_PACKET_WEIGHT_KG}kg for order ${orderNumber}. Fill product or variant weight in Medusa to send an exact parcel weight.`
+    )
+  }
+
+  if (currency.usedFallback) {
+    logger.warn(
+      `GLS: Falling back to placeholder currency CZK for non-COD order ${orderNumber}. Fill order currency_code in Medusa to send the exact parcel currency.`
     )
   }
 
   const attributes = buildBasePacketAttributes({
     accessPointId,
     config,
-    currency: getPacketCurrency(order, shippingData),
+    currency: currency.currency,
     email,
     orderNumber,
-    packetWeight,
+    packetWeight: packetWeight.weight,
     recipient,
     shippingAddress,
-    totalNumber,
+    totalNumber: orderTotal.total,
   })
 
   if (shippingData.supports_cod) {
-    attributes.cod = totalNumber
+    attributes.cod = orderTotal.total
   }
 
   return attributes
@@ -172,17 +186,19 @@ function getPacketOrderNumber(order: Partial<FulfillmentOrderDTO>): string {
 function getPacketOrderTotal(
   order: Partial<FulfillmentOrderDTO>,
   shippingData: GLSShippingOptionData
-): number {
-  const orderTotal =
-    toFiniteNumber(order.total) ??
-    toFiniteNumber((order as { item_total?: unknown }).item_total)
+): PacketOrderTotal {
+  const orderRecord: unknown = order
+  const itemTotal: unknown = isRecord(orderRecord)
+    ? orderRecord.item_total
+    : undefined
+  const orderTotal = toFiniteNumber(order.total) ?? toFiniteNumber(itemTotal)
 
   if (orderTotal !== undefined) {
-    return orderTotal
+    return { total: orderTotal, usedFallback: false }
   }
 
   if (!shippingData.supports_cod) {
-    return 1
+    return { total: 1, usedFallback: true }
   }
 
   throw new MedusaError(
@@ -196,26 +212,35 @@ async function getPacketWeight(
   items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[],
   shippingData: GLSShippingOptionData,
   query?: QueryService
-): Promise<number> {
-  return (
-    toFiniteNumber((shippingData as { weight?: unknown }).weight) ??
-    (await calculateOrderItemsWeightKg(order, items, query)) ??
-    DEFAULT_PACKET_WEIGHT_KG
-  )
+): Promise<PacketWeight> {
+  const explicitWeight = toFiniteNumber(shippingData.weight)
+  if (explicitWeight !== undefined) {
+    return { weight: explicitWeight, usedFallback: false }
+  }
+
+  const computedWeight = await calculateOrderItemsWeightKg(order, items, query)
+  if (computedWeight !== undefined) {
+    return { weight: computedWeight, usedFallback: false }
+  }
+
+  return { weight: DEFAULT_PACKET_WEIGHT_KG, usedFallback: true }
 }
 
 function getPacketCurrency(
   order: Partial<FulfillmentOrderDTO>,
   shippingData: GLSShippingOptionData
-): string {
-  const currency = order.currency_code?.toUpperCase()
+): PacketCurrency {
+  const orderRecord: unknown = order
+  const currency = getOptionalString(
+    isRecord(orderRecord) ? orderRecord.currency_code : undefined
+  )?.toUpperCase()
 
   if (currency) {
-    return currency
+    return { currency, usedFallback: false }
   }
 
   if (!shippingData.supports_cod) {
-    return "CZK"
+    return { currency: "CZK", usedFallback: true }
   }
 
   throw new MedusaError(
@@ -246,8 +271,9 @@ function buildBasePacketAttributes(params: {
     totalNumber,
   } = params
   const address = normalizeShippingAddress(shippingAddress)
+  const shippingAddressRecord: unknown = shippingAddress
   const phone = getRequiredString(
-    (shippingAddress as ShippingAddressRecord).phone,
+    isRecord(shippingAddressRecord) ? shippingAddressRecord.phone : undefined,
     "GLS: Shipping address phone is required for ParcelShop delivery"
   )
 
@@ -276,16 +302,9 @@ async function getRequiredOrderEmail(
   shippingData: GLSShippingOptionData,
   query?: QueryService
 ): Promise<string> {
-  const directEmail = getOptionalString((order as OrderWithEmail).email)
-  if (directEmail) {
-    return directEmail
-  }
-
-  const customerEmail = getOptionalString(
-    (order as OrderWithEmail).customer?.email
-  )
-  if (customerEmail) {
-    return customerEmail
+  const orderEmail = getOrderEmail(order)
+  if (orderEmail) {
+    return orderEmail
   }
 
   const shippingDataEmail = getOptionalString(shippingData.email)
@@ -301,10 +320,7 @@ async function getRequiredOrderEmail(
         id: order.id,
       },
     })
-    const queriedOrder = data[0] as OrderWithEmail | undefined
-    const queriedEmail =
-      getOptionalString(queriedOrder?.email) ??
-      getOptionalString(queriedOrder?.customer?.email)
+    const queriedEmail = getOrderEmail(data[0])
 
     if (queriedEmail) {
       return queriedEmail
@@ -315,6 +331,20 @@ async function getRequiredOrderEmail(
     MedusaError.Types.INVALID_DATA,
     "GLS: Order email is required"
   )
+}
+
+function getOrderEmail(value: unknown): string | undefined {
+  if (!isRecord(value)) {
+    return
+  }
+
+  const directEmail = getOptionalString(value.email)
+  if (directEmail) {
+    return directEmail
+  }
+
+  const customer: unknown = value.customer
+  return getOptionalString(isRecord(customer) ? customer.email : undefined)
 }
 
 function getOptionalString(value: unknown): string | undefined {
@@ -344,27 +374,30 @@ function normalizeShippingAddress(
   zipCode: string
   country: string
 } {
-  const address = shippingAddress as ShippingAddressRecord
+  const address: unknown = shippingAddress
+  const addressRecord = isRecord(address) ? address : {}
   const addressLine1 = getRequiredString(
-    address.address_1,
+    addressRecord.address_1,
     "GLS: Shipping address address_1 is required"
   )
   const addressLine2 =
-    typeof address.address_2 === "string" ? address.address_2.trim() : ""
+    typeof addressRecord.address_2 === "string"
+      ? addressRecord.address_2.trim()
+      : ""
   const parsedAddress = splitStreetAndHouseNumber(addressLine1, addressLine2)
 
   return {
     ...parsedAddress,
     city: getRequiredString(
-      address.city,
+      addressRecord.city,
       "GLS: Shipping address city is required"
     ),
     zipCode: getRequiredString(
-      address.postal_code,
+      addressRecord.postal_code,
       "GLS: Shipping address postal_code is required"
     ),
     country: getRequiredString(
-      address.country_code,
+      addressRecord.country_code,
       "GLS: Shipping address country_code is required"
     ).toUpperCase(),
   }
@@ -426,12 +459,54 @@ function parseHouseNumber(
   }
 }
 
+function isOrderLineItemWithWeight(
+  value: unknown
+): value is OrderLineItemWithWeight {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  const id: unknown = value.id
+  const productId: unknown = value.product_id
+  const variant: unknown = value.variant
+
+  return (
+    (id === undefined || typeof id === "string") &&
+    (productId === undefined ||
+      productId === null ||
+      typeof productId === "string") &&
+    (variant === undefined || variant === null || isRecord(variant))
+  )
+}
+
+function isFulfillmentItemWithQuantity(
+  value: unknown
+): value is FulfillmentItemWithQuantity {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  const lineItemId: unknown = value.line_item_id
+  return (
+    lineItemId === undefined ||
+    lineItemId === null ||
+    typeof lineItemId === "string"
+  )
+}
+
+function isProductWeightRecord(value: unknown): value is ProductWeightRecord {
+  return isRecord(value) && typeof value.id === "string"
+}
+
 async function calculateOrderItemsWeightKg(
   order: Partial<FulfillmentOrderDTO>,
   fulfillmentItems: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[],
   query?: QueryService
 ): Promise<number | undefined> {
-  const orderItems = (order.items ?? []) as OrderLineItemWithWeight[]
+  const rawOrderItems: unknown = order.items
+  const orderItems = Array.isArray(rawOrderItems)
+    ? rawOrderItems.filter(isOrderLineItemWithWeight)
+    : []
   if (!orderItems.length) {
     return
   }
@@ -445,9 +520,13 @@ async function calculateOrderItemsWeightKg(
       .map((item) => [item.id, item])
   )
 
+  const rawFulfillmentItems: unknown = fulfillmentItems
+  const fulfillmentItemsWithQuantity = Array.isArray(rawFulfillmentItems)
+    ? rawFulfillmentItems.filter(isFulfillmentItemWithQuantity)
+    : []
   const itemsToWeigh =
-    fulfillmentItems.length > 0
-      ? (fulfillmentItems as FulfillmentItemWithQuantity[])
+    fulfillmentItemsWithQuantity.length > 0
+      ? fulfillmentItemsWithQuantity
       : orderItems.map((item) => ({
           line_item_id: item.id,
           quantity: item.quantity,
@@ -505,9 +584,8 @@ async function getProductWeights(
   })
 
   return new Map(
-    (data as ProductWeightRecord[]).map((product) => [
-      product.id,
-      product.weight,
-    ])
+    data
+      .filter(isProductWeightRecord)
+      .map((product) => [product.id, product.weight])
   )
 }

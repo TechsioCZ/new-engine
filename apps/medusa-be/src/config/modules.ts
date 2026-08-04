@@ -1,5 +1,6 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { DATABASE_MODULE } from "../modules/database"
+import { GLS_CLIENT_MODULE } from "../modules/gls-client/constants"
 import { buildPaykitPaymentProviders } from "../modules/payment-paykit/medusa-config"
 import {
   QR_PAYMENT_MODULE,
@@ -125,7 +126,7 @@ function buildFulfillmentDependencies(env: MedusaConfigEnv): string[] {
 
   if (env.featureGlsEnabled) {
     dependencies.push(
-      "gls_client",
+      GLS_CLIENT_MODULE,
       Modules.FILE,
       ContainerRegistrationKeys.QUERY
     )

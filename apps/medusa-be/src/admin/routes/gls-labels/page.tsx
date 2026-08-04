@@ -45,6 +45,8 @@ type OrdersResponse = {
 }
 
 const PAGE_SIZE = 50
+const CONTENT_DISPOSITION_FILENAME_STAR_REGEX = /filename\*=UTF-8''([^;]+)/i
+const CONTENT_DISPOSITION_FILENAME_REGEX = /filename="?([^";]+)"?/i
 
 export const handle = {
   breadcrumb: () => "GLS Labels",
@@ -78,6 +80,25 @@ function getOrderNumber(order: AdminOrder): string {
   return customDisplayId ? customDisplayId : `#${order.display_id}`
 }
 
+function getFilenameFromContentDisposition(header: string | null): string {
+  const fallback = `gls-labels-${new Date().toISOString().slice(0, 10)}.pdf`
+  if (!header) {
+    return fallback
+  }
+
+  const encodedMatch = header.match(CONTENT_DISPOSITION_FILENAME_STAR_REGEX)
+  if (encodedMatch?.[1]) {
+    try {
+      return decodeURIComponent(encodedMatch[1])
+    } catch {
+      return fallback
+    }
+  }
+
+  const filenameMatch = header.match(CONTENT_DISPOSITION_FILENAME_REGEX)
+  return filenameMatch?.[1] ?? fallback
+}
+
 async function downloadLabels(orderIds: string[]) {
   const response = await fetch("/admin/gls-labels", {
     body: JSON.stringify({
@@ -109,11 +130,13 @@ async function downloadLabels(orderIds: string[]) {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement("a")
   anchor.href = url
-  anchor.download = `gls-labels-${new Date().toISOString().slice(0, 10)}.pdf`
+  anchor.download = getFilenameFromContentDisposition(
+    response.headers.get("content-disposition")
+  )
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
-  URL.revokeObjectURL(url)
+  window.setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
 const GLSLabelsPage = () => {

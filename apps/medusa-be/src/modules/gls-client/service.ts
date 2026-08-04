@@ -24,15 +24,6 @@ const DEFAULT_COUNTRY_CODE: GLSCountryCode = "SK"
 const DEFAULT_PRINTER_TYPE: GLSPrinterType = "A4_2x2"
 const DEFAULT_WEBSHOP_ENGINE = "new-engine-medusa"
 
-const computeKey = (scope: string, parts: Record<string, unknown> = {}) =>
-  [
-    "gls",
-    scope,
-    ...Object.entries(parts)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, value]) => `${key}:${String(value)}`),
-  ].join(":")
-
 const CACHE_TAGS = {
   ALL: "gls",
   BRANCHES: "gls:branches",
@@ -104,6 +95,19 @@ const isGLSOptions = (value: unknown): value is GLSOptions =>
   typeof value.sender_country === "string" &&
   isOptionalString(value.sender_phone) &&
   isOptionalString(value.sender_email)
+
+const isGLSBranch = (value: unknown): value is GLSBranch =>
+  isRecord(value) &&
+  typeof value.id === "string" &&
+  typeof value.name === "string" &&
+  typeof value.nameStreet === "string" &&
+  typeof value.street === "string" &&
+  typeof value.city === "string" &&
+  typeof value.zip === "string" &&
+  typeof value.country === "string"
+
+const isGLSBranchArray = (value: unknown): value is GLSBranch[] =>
+  Array.isArray(value) && value.every(isGLSBranch)
 
 const nullableString = (value: unknown): string | null =>
   typeof value === "string" ? value : null
@@ -339,7 +343,7 @@ export class GLSClientModuleService extends MedusaService({
       return
     }
     const cached = (await this.cacheService_.get({
-      key: this.getConfigCacheKey(),
+      key: await this.getConfigCacheKey(),
     })) as unknown
     if (isDisabledConfigCacheEntry(cached)) {
       return null
@@ -392,7 +396,7 @@ export class GLSClientModuleService extends MedusaService({
       return
     }
     await this.cacheService_.set({
-      key: this.getConfigCacheKey(),
+      key: await this.getConfigCacheKey(),
       data: options,
       ttl: CACHE_TTL.CONFIG,
       tags: [CACHE_TAGS.ALL],
@@ -404,7 +408,7 @@ export class GLSClientModuleService extends MedusaService({
       return
     }
     await this.cacheService_.set({
-      key: this.getConfigCacheKey(),
+      key: await this.getConfigCacheKey(),
       data: { disabled: true } satisfies DisabledConfigCacheEntry,
       ttl: CACHE_TTL.CONFIG,
       tags: [CACHE_TAGS.ALL],
@@ -415,7 +419,7 @@ export class GLSClientModuleService extends MedusaService({
     this.client_ = null
     this.clientConfigFingerprint_ = null
     if (this.cacheService_) {
-      await this.cacheService_.clear({ key: this.getConfigCacheKey() })
+      await this.cacheService_.clear({ key: await this.getConfigCacheKey() })
     }
   }
 
@@ -434,12 +438,30 @@ export class GLSClientModuleService extends MedusaService({
     }
   }
 
-  private getConfigCacheKey(): string {
-    return computeKey("config", { environment: this.environment_ })
+  private async getConfigCacheKey(): Promise<string> {
+    return this.computeCacheKey("config", { environment: this.environment_ })
   }
 
-  private getBranchesCacheKey(): string {
-    return computeKey("branches")
+  private async getBranchesCacheKey(): Promise<string> {
+    return this.computeCacheKey("branches")
+  }
+
+  private async computeCacheKey(
+    scope: string,
+    parts: Record<string, unknown> = {}
+  ): Promise<string> {
+    if (!this.cacheService_) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "GLS: Cache service is not available"
+      )
+    }
+
+    return this.cacheService_.computeKey({
+      module: "gls",
+      scope,
+      ...parts,
+    })
   }
 
   private async getClient(): Promise<GLSClient> {
@@ -500,9 +522,9 @@ export class GLSClientModuleService extends MedusaService({
   async getBranches(): Promise<GLSBranch[]> {
     if (this.cacheService_) {
       const cached = (await this.cacheService_.get({
-        key: this.getBranchesCacheKey(),
-      })) as GLSBranch[] | null
-      if (cached) {
+        key: await this.getBranchesCacheKey(),
+      })) as unknown
+      if (isGLSBranchArray(cached)) {
         return cached
       }
     }
@@ -525,7 +547,7 @@ export class GLSClientModuleService extends MedusaService({
 
     if (this.cacheService_ && branches.length > 0) {
       await this.cacheService_.set({
-        key: this.getBranchesCacheKey(),
+        key: await this.getBranchesCacheKey(),
         data: branches,
         ttl: CACHE_TTL.BRANCHES,
         tags: [CACHE_TAGS.ALL, CACHE_TAGS.BRANCHES],

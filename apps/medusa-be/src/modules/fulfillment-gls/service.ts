@@ -60,13 +60,11 @@ const isGLSFulfillmentData = (
   const status: unknown = value.status
 
   return (
-    (packetId === undefined ||
-      typeof packetId === "string" ||
-      typeof packetId === "number") &&
-    (barcode === undefined || typeof barcode === "string") &&
-    (accessPointId === undefined || typeof accessPointId === "string") &&
-    (supportsCod === undefined || typeof supportsCod === "boolean") &&
-    (status === undefined || status === "completed" || status === "error")
+    (typeof packetId === "string" || typeof packetId === "number") &&
+    typeof barcode === "string" &&
+    typeof accessPointId === "string" &&
+    typeof supportsCod === "boolean" &&
+    (status === "completed" || status === "error")
   )
 }
 

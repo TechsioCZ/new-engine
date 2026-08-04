@@ -208,6 +208,7 @@ export type GLSShippingOptionData = {
   access_point_zip?: string
   access_point_city?: string
   email?: string
+  weight?: number
 }
 
 // ============================================
