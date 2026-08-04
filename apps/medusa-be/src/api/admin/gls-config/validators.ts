@@ -8,7 +8,7 @@ import {
 export const PostAdminGLSConfigSchema = z.object({
   is_enabled: z.boolean().optional(),
   username: z.string().email().max(255).optional(),
-  password: z.string().nullable().optional(),
+  password: z.string().max(255).nullable().optional(),
   client_number: z.number().int().positive().nullable().optional(),
   country_code: z.enum(GLS_COUNTRY_CODES).optional(),
   webshop_engine: z.string().max(100).optional(),

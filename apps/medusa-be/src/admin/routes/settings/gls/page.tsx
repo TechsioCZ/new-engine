@@ -12,6 +12,11 @@ import {
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { type FormEvent, useEffect, useState } from "react"
+import type {
+  GLSCountryCode,
+  GLSEnvironment,
+  GLSPrinterType,
+} from "../../../../modules/gls-client/types"
 import { sdk } from "../../../lib/sdk"
 
 export const handle = {
@@ -20,14 +25,14 @@ export const handle = {
 
 type GLSConfigResponse = {
   id: string
-  environment: string
+  environment: GLSEnvironment
   is_enabled: boolean
   username: string | null
   password_set: boolean
   client_number: number | null
-  country_code: string
+  country_code: GLSCountryCode
   webshop_engine: string | null
-  type_of_printer: string
+  type_of_printer: GLSPrinterType
   print_position: number
   hide_phone_number_on_labels: boolean
   sender_name: string | null
@@ -102,6 +107,16 @@ const getStringField = (
 ): string => {
   const value: unknown = data[field]
   return typeof value === "string" ? value : ""
+}
+
+const buildConfigPayload = (data: GLSConfigInput): GLSConfigInput => {
+  const payload: GLSConfigInput = { ...data }
+  for (const field of Object.keys(payload) as (keyof GLSConfigInput)[]) {
+    if (payload[field] === "") {
+      delete payload[field]
+    }
+  }
+  return payload
 }
 
 type FieldConfig = {
@@ -258,7 +273,7 @@ const GLSSettingsPage = () => {
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    const payload: GLSConfigInput = { ...formData }
+    const payload = buildConfigPayload(formData)
     for (const field of clearedFields) {
       payload[field] = null
     }

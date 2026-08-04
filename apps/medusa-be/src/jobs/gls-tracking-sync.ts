@@ -27,7 +27,11 @@ type FulfillmentRecord = {
 }
 
 interface PendingFulfillment extends FulfillmentRecord {
-  data: GLSFulfillmentData & { packet_id: string | number; barcode: string }
+  data: GLSFulfillmentData & {
+    packet_id: string | number
+    barcode: string
+    parcel_number?: string | number
+  }
 }
 
 type GLSPendingEvent = {
@@ -185,6 +189,7 @@ function isPendingFulfillment(value: unknown): value is PendingFulfillment {
   const deliveredAt: unknown = value.delivered_at
   const packetId: unknown = value.data.packet_id
   const barcode: unknown = value.data.barcode
+  const parcelNumber: unknown = value.data.parcel_number
   const accessPointId: unknown = value.data.access_point_id
   const supportsCod: unknown = value.data.supports_cod
   const deliveryFailed: unknown = value.data.delivery_failed
@@ -197,6 +202,9 @@ function isPendingFulfillment(value: unknown): value is PendingFulfillment {
     deliveryFailed !== true &&
     (typeof packetId === "number" || typeof packetId === "string") &&
     typeof barcode === "string" &&
+    (parcelNumber === undefined ||
+      typeof parcelNumber === "string" ||
+      typeof parcelNumber === "number") &&
     typeof accessPointId === "string" &&
     typeof supportsCod === "boolean"
   )
@@ -208,7 +216,11 @@ async function processFulfillment(
   fulfillment: PendingFulfillment
 ): Promise<void> {
   const { logger } = ctx
-  const { packet_id: packetId, barcode: parcelNumber } = fulfillment.data
+  const {
+    packet_id: packetId,
+    barcode,
+    parcel_number: parcelNumber = barcode,
+  } = fulfillment.data
 
   if (await flushPendingEvent(ctx, fulfillment)) {
     return

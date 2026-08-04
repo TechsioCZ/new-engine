@@ -407,6 +407,18 @@ function splitStreetAndHouseNumber(
   addressLine1: string,
   addressLine2: string
 ): { street: string; houseNumber: string; houseNumberInfo?: string } {
+  const match = addressLine1.match(ADDRESS_WITH_HOUSE_NUMBER_REGEX)
+  if (match?.[1] && match[2]) {
+    const parsed = parseHouseNumber(match[2])
+    if (parsed) {
+      return {
+        street: match[1].trim(),
+        houseNumber: parsed.houseNumber,
+        houseNumberInfo: parsed.houseNumberInfo,
+      }
+    }
+  }
+
   const explicitHouseNumber = parseHouseNumber(addressLine2)
   if (explicitHouseNumber) {
     return {
@@ -416,27 +428,10 @@ function splitStreetAndHouseNumber(
     }
   }
 
-  const match = addressLine1.match(ADDRESS_WITH_HOUSE_NUMBER_REGEX)
-  if (!(match?.[1] && match[2])) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "GLS: Shipping address must include a numeric house number (address_1 or address_2)"
-    )
-  }
-
-  const parsed = parseHouseNumber(match[2])
-  if (!parsed) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "GLS: Shipping address house number must contain a number"
-    )
-  }
-
-  return {
-    street: match[1].trim(),
-    houseNumber: parsed.houseNumber,
-    houseNumberInfo: parsed.houseNumberInfo,
-  }
+  throw new MedusaError(
+    MedusaError.Types.INVALID_DATA,
+    "GLS: Shipping address must include a numeric house number (address_1 or address_2)"
+  )
 }
 
 function parseHouseNumber(

@@ -1,5 +1,11 @@
 import type { GLSShipmentState } from "./types"
 
+const NEGATIVE_DELIVERY_PATTERNS = [
+  /\bnot\s+(?:delivered|collected|picked\s+up)\b/,
+  /\b(?:undelivered|uncollected)\b/,
+  /\bne(?:doručen|dorucen|vyzved|vyzdvih|prevzat|převzat|dodán|dodan)\b/,
+]
+
 /**
  * Map MyGLS status codes/descriptions to our normalized shipment states.
  * @see MyGLS_API.pdf Appendix G: GLS Status Codes
@@ -76,10 +82,20 @@ export function mapGLSStatusCode(
       break
   }
 
-  if (text.includes("delivered") || text.includes("doručen")) {
+  const hasNegativeDeliveryText = NEGATIVE_DELIVERY_PATTERNS.some((pattern) =>
+    pattern.test(text)
+  )
+
+  if (
+    !hasNegativeDeliveryText &&
+    (text.includes("delivered") || text.includes("doručen"))
+  ) {
     return "delivered"
   }
-  if (text.includes("parcelshop pickup") || text.includes("collected")) {
+  if (
+    !hasNegativeDeliveryText &&
+    (text.includes("parcelshop pickup") || text.includes("collected"))
+  ) {
     return "collected"
   }
   if (text.includes("returned to sender") || text.includes("returned")) {

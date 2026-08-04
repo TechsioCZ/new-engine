@@ -47,6 +47,8 @@ type DisabledConfigCacheEntry = {
   disabled: true
 }
 
+type CachedGLSOptions = Omit<GLSOptions, "password">
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
@@ -75,10 +77,10 @@ const isPositiveNumber = (value: unknown): value is number =>
 const isBoolean = (value: unknown): value is boolean =>
   typeof value === "boolean"
 
-const isGLSOptions = (value: unknown): value is GLSOptions =>
+const isCachedGLSOptions = (value: unknown): value is CachedGLSOptions =>
   isRecord(value) &&
+  !("password" in value) &&
   typeof value.username === "string" &&
-  typeof value.password === "string" &&
   isPositiveNumber(value.client_number) &&
   isGLSEnvironment(value.environment) &&
   isGLSCountryCode(value.country_code) &&
@@ -95,6 +97,11 @@ const isGLSOptions = (value: unknown): value is GLSOptions =>
   typeof value.sender_country === "string" &&
   isOptionalString(value.sender_phone) &&
   isOptionalString(value.sender_email)
+
+const toCachedOptions = ({
+  password: _password,
+  ...options
+}: GLSOptions): CachedGLSOptions => options
 
 const isGLSBranch = (value: unknown): value is GLSBranch =>
   isRecord(value) &&
@@ -348,8 +355,13 @@ export class GLSClientModuleService extends MedusaService({
     if (isDisabledConfigCacheEntry(cached)) {
       return null
     }
-    if (isGLSOptions(cached)) {
-      return cached
+    if (isCachedGLSOptions(cached)) {
+      const config = await this.getConfig()
+      if (!(config?.is_enabled && config.password)) {
+        await this.cacheDisabledConfig()
+        return null
+      }
+      return { ...cached, password: config.password }
     }
     return
   }
@@ -397,7 +409,7 @@ export class GLSClientModuleService extends MedusaService({
     }
     await this.cacheService_.set({
       key: await this.getConfigCacheKey(),
-      data: options,
+      data: toCachedOptions(options),
       ttl: CACHE_TTL.CONFIG,
       tags: [CACHE_TAGS.ALL],
     })

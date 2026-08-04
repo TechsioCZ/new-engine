@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto"
-import { gunzipSync } from "node:zlib"
+import { promisify } from "node:util"
+import { gunzip } from "node:zlib"
 import { MedusaError } from "@medusajs/framework/utils"
 import type {
   GLSBranch,
@@ -21,6 +22,8 @@ const COUNTRY_DOMAINS: Record<GLSCountryCode, string> = {
   RS: "rs",
 }
 const DOT_NET_DATE_REGEX = /\/Date\((\d+)(?:[+-]\d+)?\)\//
+const MAX_DELIVERY_POINTS_PAYLOAD_BYTES = 20 * 1024 * 1024
+const gunzipAsync = promisify(gunzip)
 
 type MyGLSErrorInfo = {
   ErrorCode?: number
@@ -169,12 +172,14 @@ export class GLSClient {
       )
     }
 
+    const parcelNumber = String(info.ParcelNumber)
     const barcode = String(info.ParcelNumberWithCheckdigit ?? info.ParcelNumber)
 
     return {
       id: info.ParcelId,
       barcode,
       barcodeText: barcode,
+      parcel_number: parcelNumber,
       label_pdf: this.bytesToBuffer(response.Labels),
     }
   }
@@ -295,13 +300,15 @@ export class GLSClient {
       return []
     }
 
-    const decompressed = gunzipSync(this.bytesToBuffer(response.Data))
+    const decompressed = await gunzipAsync(this.bytesToBuffer(response.Data), {
+      maxOutputLength: MAX_DELIVERY_POINTS_PAYLOAD_BYTES,
+    })
     const payload = JSON.parse(decompressed.toString("utf8")) as unknown
     const points = this.getDeliveryPointsPayload(payload)
 
     return points
-      .filter(isRecord)
-      .map((point) => this.mapDeliveryPoint(point as DeliveryPoint))
+      .filter(isDeliveryPoint)
+      .map((point) => this.mapDeliveryPoint(point))
   }
 
   private buildParcel(attributes: GLSPacketAttributes) {
@@ -722,6 +729,10 @@ export class GLSClient {
       `${errorContext} after ${retryable ? this.MAX_RETRIES + 1 : 1} attempts: ${lastError.message}`
     )
   }
+}
+
+function isDeliveryPoint(value: unknown): value is DeliveryPoint {
+  return isRecord(value)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

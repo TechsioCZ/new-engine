@@ -277,7 +277,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
       status: "completed",
       packet_id: result.id,
       barcode: result.barcode,
-      parcel_number: result.barcode,
+      parcel_number: result.parcel_number,
       access_point_id: shippingData.access_point_id,
       supports_cod: shippingData.supports_cod,
       ...(labelUrl && { label_url: labelUrl }),

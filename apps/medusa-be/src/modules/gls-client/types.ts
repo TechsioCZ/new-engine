@@ -93,9 +93,11 @@ export type GLSPacketAttributes = {
 export type GLSCreatePacketResult = {
   /** MyGLS ParcelId (database label/parcel record ID). */
   id: string | number
-  /** MyGLS ParcelNumber, used for tracking. */
+  /** MyGLS ParcelNumberWithCheckdigit, used as customer-facing tracking code. */
   barcode: string
   barcodeText: string
+  /** MyGLS ParcelNumber without the check digit, required by GetParcelStatuses. */
+  parcel_number: string
   /** PDF bytes returned by PrintLabels. */
   label_pdf?: Buffer
 }
@@ -182,8 +184,9 @@ export interface GLSFulfillmentData extends Record<string, unknown> {
   status: GLSFulfillmentStatus
   /** MyGLS ParcelId (label/parcel database record ID). */
   packet_id: string | number
-  /** MyGLS ParcelNumber used for tracking. */
+  /** Customer-facing MyGLS ParcelNumberWithCheckdigit used as tracking code. */
   barcode: string
+  /** Check-digit-free MyGLS ParcelNumber required by GetParcelStatuses. */
   parcel_number?: string | number
   access_point_id: string
   supports_cod: boolean
@@ -245,9 +248,9 @@ export type GLSConfigDTO = {
   username: string | null
   password: string | null
   client_number: number | null
-  country_code: string
+  country_code: GLSCountryCode
   webshop_engine: string | null
-  type_of_printer: string
+  type_of_printer: GLSPrinterType
   print_position: number
   hide_phone_number_on_labels: boolean
   sender_name: string | null
@@ -297,9 +300,9 @@ export type GLSConfigResponse = {
   username: string | null
   password_set: boolean
   client_number: number | null
-  country_code: string
+  country_code: GLSCountryCode
   webshop_engine: string | null
-  type_of_printer: string
+  type_of_printer: GLSPrinterType
   print_position: number
   hide_phone_number_on_labels: boolean
   sender_name: string | null
