@@ -41,6 +41,16 @@ const ALLOWED_TAG_ATTRIBUTES: Record<string, Set<string>> = {
   th: new Set(["colspan", "rowspan", "title"]),
 }
 
+type AllowedAttributeValues = Readonly<
+  Record<string, Readonly<Record<string, ReadonlySet<string>>>>
+>
+
+export type SanitizeHtmlOptions = {
+  additionalAllowedAttributeValues?: AllowedAttributeValues
+  additionalAllowedTagAttributes?: Readonly<Record<string, ReadonlySet<string>>>
+  additionalAllowedTags?: ReadonlySet<string>
+}
+
 const SAFE_ANCHOR_HREF_REGEX = /^(https?:|mailto:|tel:|\/|#)/i
 const SAFE_IMAGE_SRC_REGEX = /^(https?:|\/)/i
 const HTTP_URL_REGEX = /^https?:/i
@@ -87,9 +97,24 @@ const parseTagAttributes = (rawAttributes: string) => {
 }
 
 const isAttributeAllowed = (
+  tag: string,
   name: string,
-  allowedAttributesForTag: Set<string>
-) => ALLOWED_GLOBAL_ATTRIBUTES.has(name) || allowedAttributesForTag.has(name)
+  value: string,
+  allowedAttributesForTag: Set<string>,
+  options: SanitizeHtmlOptions
+) => {
+  if (
+    ALLOWED_GLOBAL_ATTRIBUTES.has(name) ||
+    allowedAttributesForTag.has(name)
+  ) {
+    return true
+  }
+
+  return Boolean(
+    options.additionalAllowedTagAttributes?.[tag]?.has(name) &&
+      options.additionalAllowedAttributeValues?.[tag]?.[name]?.has(value)
+  )
+}
 
 type SanitizedAttributeState = {
   attributes: string[]
@@ -220,7 +245,11 @@ const appendImageAttributes = (state: SanitizedAttributeState) => {
   return true
 }
 
-const sanitizeOpeningTag = (tag: string, rawAttributes: string) => {
+const sanitizeOpeningTag = (
+  tag: string,
+  rawAttributes: string,
+  options: SanitizeHtmlOptions
+) => {
   const allowedAttributesForTag =
     ALLOWED_TAG_ATTRIBUTES[tag] ?? new Set<string>()
   const state = createAttributeState()
@@ -228,7 +257,9 @@ const sanitizeOpeningTag = (tag: string, rawAttributes: string) => {
   for (const attribute of parseTagAttributes(rawAttributes ?? "")) {
     const { name, value } = attribute
 
-    if (!isAttributeAllowed(name, allowedAttributesForTag)) {
+    if (
+      !isAttributeAllowed(tag, name, value, allowedAttributesForTag, options)
+    ) {
       continue
     }
 
@@ -246,7 +277,7 @@ const sanitizeOpeningTag = (tag: string, rawAttributes: string) => {
   const attributesString =
     state.attributes.length > 0 ? ` ${state.attributes.join(" ")}` : ""
 
-  if (tag === "br" || tag === "img") {
+  if (tag === "br" || tag === "hr" || tag === "img") {
     return `<${tag}${attributesString}>`
   }
 
@@ -258,22 +289,28 @@ const sanitizeOpeningTag = (tag: string, rawAttributes: string) => {
 const sanitizeHtmlTag = (
   closingSlash: string,
   rawTag: string,
-  rawAttributes: string
+  rawAttributes: string,
+  options: SanitizeHtmlOptions
 ) => {
   const tag = rawTag.toLowerCase()
 
-  if (!ALLOWED_HTML_TAGS.has(tag)) {
+  if (
+    !(ALLOWED_HTML_TAGS.has(tag) || options.additionalAllowedTags?.has(tag))
+  ) {
     return ""
   }
 
   if (closingSlash === "/") {
-    return tag === "br" || tag === "img" ? "" : `</${tag}>`
+    return tag === "br" || tag === "hr" || tag === "img" ? "" : `</${tag}>`
   }
 
-  return sanitizeOpeningTag(tag, rawAttributes)
+  return sanitizeOpeningTag(tag, rawAttributes, options)
 }
 
-export const sanitizeHtml = (html: string): string => {
+export const sanitizeHtml = (
+  html: string,
+  options: SanitizeHtmlOptions = {}
+): string => {
   if (!html) {
     return ""
   }
@@ -289,7 +326,7 @@ export const sanitizeHtml = (html: string): string => {
   const sanitized = cleanedHtml.replace(
     /<\s*(\/?)\s*([a-zA-Z0-9]+)([^>]*)>/g,
     (_, closingSlash: string, rawTag: string, rawAttributes: string) =>
-      sanitizeHtmlTag(closingSlash, rawTag, rawAttributes)
+      sanitizeHtmlTag(closingSlash, rawTag, rawAttributes, options)
   )
 
   return sanitized.trim()
