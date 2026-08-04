@@ -21,7 +21,6 @@ import {
   resolveRegisterSubmitError,
 } from "@/lib/auth/auth-form-validators"
 import { buildAuthRegisterInput } from "@/lib/auth/register-payload"
-import { appHref } from "@/lib/routing"
 import { useAuth, useLogin, useRegister } from "@/lib/storefront/auth"
 import {
   cartReadQueryOptions,
@@ -118,7 +117,7 @@ export const useAuthController = ({
       return
     }
 
-    router.replace(appHref(safeRedirectHref))
+    router.replace(safeRedirectHref)
   }, [authQuery.isAuthenticated, authQuery.isLoading, router, safeRedirectHref])
 
   const handleLoginSubmit = async (
@@ -131,7 +130,7 @@ export const useAuthController = ({
       const transferNotice = await runPostAuthCartTransfer()
 
       if (safeRedirectHref) {
-        router.replace(appHref(safeRedirectHref))
+        router.replace(safeRedirectHref)
         return null
       }
 
@@ -160,7 +159,7 @@ export const useAuthController = ({
       const transferNotice = await runPostAuthCartTransfer()
 
       if (safeRedirectHref) {
-        router.replace(appHref(safeRedirectHref))
+        router.replace(safeRedirectHref)
         return null
       }
 

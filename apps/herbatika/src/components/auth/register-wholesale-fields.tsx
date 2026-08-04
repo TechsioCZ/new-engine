@@ -37,8 +37,9 @@ export function RegisterWholesaleFields({
               id="auth-register-company-name"
               label={tForm("company_name")}
               {...(onValueChange === undefined
-              ? {}
-              : { onValueChange: onValueChange })}              required
+                ? {}
+                : { onValueChange: onValueChange })}
+              required
               validationMode="blur"
             />
           )}
@@ -55,8 +56,9 @@ export function RegisterWholesaleFields({
             id="auth-register-company-identifier"
             label={tForm("company_id")}
             {...(onValueChange === undefined
-            ? {}
-            : { onValueChange: onValueChange })}            required
+              ? {}
+              : { onValueChange: onValueChange })}
+            required
             validationMode="blur"
           />
         )}
@@ -72,8 +74,8 @@ export function RegisterWholesaleFields({
             items={countryItems}
             label={tForm("country")}
             {...(onValueChange === undefined
-            ? {}
-            : { onValueChange: onValueChange })}
+              ? {}
+              : { onValueChange: onValueChange })}
             placeholder={tForm("country_placeholder")}
             readOnly
             required
@@ -93,8 +95,9 @@ export function RegisterWholesaleFields({
               id="auth-register-billing-address-1"
               label={tForm("address")}
               {...(onValueChange === undefined
-              ? {}
-              : { onValueChange: onValueChange })}              required
+                ? {}
+                : { onValueChange: onValueChange })}
+              required
               validationMode="blur"
             />
           )}
@@ -109,8 +112,9 @@ export function RegisterWholesaleFields({
               id="auth-register-billing-address-2"
               label={tForm("address_line_2")}
               {...(onValueChange === undefined
-              ? {}
-              : { onValueChange: onValueChange })}              validationMode="blur"
+                ? {}
+                : { onValueChange: onValueChange })}
+              validationMode="blur"
             />
           )}
         </form.AppField>
@@ -123,8 +127,9 @@ export function RegisterWholesaleFields({
             id="auth-register-billing-city"
             label={tForm("city")}
             {...(onValueChange === undefined
-            ? {}
-            : { onValueChange: onValueChange })}            required
+              ? {}
+              : { onValueChange: onValueChange })}
+            required
             validationMode="blur"
           />
         )}
@@ -140,8 +145,9 @@ export function RegisterWholesaleFields({
             id="auth-register-billing-postal-code"
             label={tForm("postal_code")}
             {...(onValueChange === undefined
-            ? {}
-            : { onValueChange: onValueChange })}            required
+              ? {}
+              : { onValueChange: onValueChange })}
+            required
             validationMode="blur"
           />
         )}

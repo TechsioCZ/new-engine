@@ -84,8 +84,8 @@ export function useCatalogListingInteractions({
   setQueryState,
 }: UseCatalogListingInteractionsInput) {
   const addToCart = useAddProductToCartAction({
-    regionId,
-    countryCode,
+    ...(regionId === undefined ? {} : { regionId: regionId }),
+    ...(countryCode === undefined ? {} : { countryCode: countryCode }),
   })
   const prefetchProduct = usePrefetchProduct({
     defaultDelay: 180,
@@ -173,8 +173,12 @@ export function useCatalogListingInteractions({
     page: queryState.page,
     queryState,
     selectedPriceRange: {
-      min: queryState.price_min ?? undefined,
-      max: queryState.price_max ?? undefined,
+      ...(queryState.price_min === null || queryState.price_min === undefined
+        ? {}
+        : { min: queryState.price_min }),
+      ...(queryState.price_max === null || queryState.price_max === undefined
+        ? {}
+        : { max: queryState.price_max }),
     },
   }
 }

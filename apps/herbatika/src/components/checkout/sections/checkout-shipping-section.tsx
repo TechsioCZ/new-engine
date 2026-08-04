@@ -109,16 +109,13 @@ export function CheckoutShippingSection({
                           requirement={pickupRequirement}
                         />
                       ),
-                      hint: resolveCarrierPickupHint(pickupRequirement),
+                      hint: tCheckout("pickup_delivery"),
                     }
                   : {}),
                 disabled: isBusy,
-                bodyText: isAwaitingPickupSelection
-                  ? tCheckout("pickup_selection_required")
-                  : undefined,
-                hint: pickupRequirement
-                  ? tCheckout("pickup_delivery")
-                  : undefined,
+                ...(isAwaitingPickupSelection
+                  ? { bodyText: tCheckout("pickup_selection_required") }
+                  : {}),
                 icon: resolveShippingIcon(option),
                 priceLabel: resolveShippingPriceLabel(optionPrice),
                 priceTone: optionPrice > 0 ? "default" : "success",

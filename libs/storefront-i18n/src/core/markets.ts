@@ -8,7 +8,7 @@ export type ResolveStorefrontMarketInput = {
   host?: string | null
 }
 
-export const normalizeStorefrontHost = (host?: string | null) => {
+const normalizeStorefrontHost = (host?: string | null) => {
   const firstHost = host?.split(",")[0]?.trim().toLowerCase()
 
   if (!firstHost) {

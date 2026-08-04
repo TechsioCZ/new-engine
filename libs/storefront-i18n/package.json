@@ -36,7 +36,7 @@
   "scripts": {
     "build": "rslib build --tsconfig tsconfig.build.json",
     "dev": "rslib build --watch --tsconfig tsconfig.build.json",
-    "lint": "pnpm -w exec biome lint libs/storefront-i18n/src libs/storefront-i18n/tests --diagnostic-level=error",
+    "lint": "pnpm -w exec oxlint libs/storefront-i18n/src libs/storefront-i18n/tests --type-aware",
     "test": "vitest run --config vitest.config.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },

@@ -45,21 +45,17 @@ function createSdkMock(overrides?: {
     },
     store: {
       customer: {
-        retrieve: vi
-          .fn()
-          .mockResolvedValue({
-            customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
-          }),
+        retrieve: vi.fn().mockResolvedValue({
+          customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
+        }),
         create:
           overrides?.createCustomer ??
           vi.fn().mockResolvedValue({
             customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
           }),
-        update: vi
-          .fn()
-          .mockResolvedValue({
-            customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
-          }),
+        update: vi.fn().mockResolvedValue({
+          customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
+        }),
       },
     },
   }

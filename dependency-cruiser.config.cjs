@@ -21,6 +21,7 @@ const fallbackTags = {
   "libs/smart-suggest": ["type:lib", "platform:web", "framework:react"],
   "libs/std": ["type:lib", "platform:shared", "framework:agnostic"],
   "libs/storefront-data": ["type:lib", "platform:shared", "framework:agnostic"],
+  "libs/storefront-i18n": ["type:lib", "platform:web", "framework:next"],
   "libs/storefront-security": [
     "type:lib",
     "platform:shared",

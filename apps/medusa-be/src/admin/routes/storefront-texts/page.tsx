@@ -36,6 +36,7 @@ import {
   listStorefrontTexts,
   type StorefrontText,
   type StorefrontTextInput,
+  type StorefrontTextListParams,
   type StorefrontTextSearchScope,
   storefrontTextQueryKeys,
   syncStorefrontTexts,
@@ -366,14 +367,14 @@ const StorefrontTextsPage = () => {
   const [status, setStatus] = useState<StorefrontTextStatus | undefined>()
   const [editedText, setEditedText] = useState<StorefrontText | null>(null)
   const debouncedQuery = useDebouncedValue(query, 250)
-  const params = {
+  const params: StorefrontTextListParams = {
     limit: PAGE_SIZE,
-    market,
-    namespace,
+    ...(market === undefined ? {} : { market }),
+    ...(namespace === undefined ? {} : { namespace }),
     offset: pageIndex * PAGE_SIZE,
-    q: debouncedQuery || undefined,
+    ...(debouncedQuery ? { q: debouncedQuery } : {}),
     search_scope: searchScope,
-    status,
+    ...(status === undefined ? {} : { status }),
   }
   const { data, isLoading } = useQuery({
     queryFn: () => listStorefrontTexts(params),
@@ -415,7 +416,9 @@ const StorefrontTextsPage = () => {
             </Text>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <StorefrontTextCatalogActions market={market} />
+            <StorefrontTextCatalogActions
+              {...(market === undefined ? {} : { market })}
+            />
             <Button
               isLoading={syncMutation.isPending}
               onClick={() => syncMutation.mutate()}

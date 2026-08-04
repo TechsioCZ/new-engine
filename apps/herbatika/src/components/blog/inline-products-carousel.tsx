@@ -64,8 +64,10 @@ export function InlineProductsCarousel({
 }: InlineProductsCarouselProps) {
   const region = useRegionContext()
   const addToCart = useAddProductToCartAction({
-    regionId: region?.region_id,
-    countryCode: region?.country_code,
+    ...(region?.region_id === undefined ? {} : { regionId: region?.region_id }),
+    ...(region?.country_code === undefined
+      ? {}
+      : { countryCode: region?.country_code }),
   })
 
   const handleAddToCart = async (product: HttpTypes.StoreProduct) => {

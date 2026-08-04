@@ -1,11 +1,7 @@
 ---
 name: implement-auth-and-customer-session-flows
 description: >
-  Load this skill when using @techsio/storefront-data for customer auth and
-  session state through storefront.hooks.auth.useAuth, useLogin, useRegister,
-  useLogout, and invalidateOnAuthChange. Use it for login/register flows,
-  session-aware rendering, cross-domain invalidation, and app-level callbacks
-  for toasts, analytics, or redirects.
+  Load this skill when using @techsio/storefront-data for customer auth and session state through storefront.hooks.auth.useAuth, useLogin, useRegister, useLogout, and invalidateOnAuthChange. Use it for login/register flows, session-aware rendering, cross-domain invalidation, and app-level callbacks for toasts, analytics, or redirects.
 type: core
 library: "@techsio/storefront-data"
 library_version: "0.1.0"
@@ -29,7 +25,8 @@ import { createMedusaSdk } from "@techsio/storefront-data/shared/medusa-client"
 import { createMedusaStorefrontPreset } from "@techsio/storefront-data/medusa/preset"
 
 const sdk = createMedusaSdk({
-  baseUrl: process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000",
+  baseUrl:
+    process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000",
   publishableKey: process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? "",
 })
 
@@ -87,7 +84,9 @@ export function LoginButton() {
   return (
     <button
       type="button"
-      onClick={() => login.mutate({ email: "alice@example.com", password: "secret" })}
+      onClick={() =>
+        login.mutate({ email: "alice@example.com", password: "secret" })
+      }
     >
       Log in
     </button>

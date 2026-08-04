@@ -136,9 +136,9 @@ export const resolveOfferState = (
   const isInStock = variantInventory.isInStock
 
   const inStockLabel =
-    asString(source?.availability_in_stock) ?? fallbackLabels.inStock
+    asString(source?.["availability_in_stock"]) ?? fallbackLabels.inStock
   const outOfStockLabel =
-    asString(source?.availability_out_of_stock) ?? fallbackLabels.outOfStock
+    asString(source?.["availability_out_of_stock"]) ?? fallbackLabels.outOfStock
   const currentAmount =
     asNumber(source?.["current_price"]) ?? asNumber(source?.["price_vat"])
 

@@ -55,6 +55,12 @@
       "path": "./scripts/typescript/projects/libs/storefront-data/tsconfig.type-tests.json"
     },
     {
+      "path": "./scripts/typescript/projects/libs/storefront-i18n/tsconfig.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/libs/storefront-i18n/tsconfig.build.json"
+    },
+    {
       "path": "./scripts/typescript/projects/libs/std/tsconfig.json"
     },
     {

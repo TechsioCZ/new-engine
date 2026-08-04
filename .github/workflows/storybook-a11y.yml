@@ -141,7 +141,7 @@ jobs:
       storybook-static-dir: storybook-static
       storybook-config-dir: .storybook
       themes: '["light","dark"]'
-      globals-template: 'theme:{{theme}}'
+      globals-template: "theme:{{theme}}"
       a11y-output-dir: a11y-report
       # The reusable scan reports violations but cannot enforce baseline deltas.
       # A separate job below compares its artifact with the committed fingerprint baseline.

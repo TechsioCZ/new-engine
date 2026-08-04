@@ -132,7 +132,7 @@ describe("storefront text registry", () => {
     const catalog = nestStorefrontTextMessages(
       getStorefrontTextDefaultMessages({ market: "cz" })
     )
-    catalog.unknown = "Neznámý text"
+    catalog["unknown"] = "Neznámý text"
 
     expect(() => parseStorefrontTextCatalog(catalog)).toThrow("Unknown keys")
   })
@@ -554,11 +554,18 @@ describe("storefront text admin validation", () => {
     })
 
     expect(result.success).toBe(true)
-    if (result.success) {
-      expect(Object.hasOwn(result.data.catalog.messages, "__proto__")).toBe(
-        true
-      )
+    if (!result.success) {
+      return
     }
+
+    const parsedMessages: unknown = result.data.catalog.messages
+
+    expect(parsedMessages).toBeTypeOf("object")
+    expect(
+      parsedMessages !== null &&
+        typeof parsedMessages === "object" &&
+        Object.hasOwn(parsedMessages, "__proto__")
+    ).toBe(true)
   })
 })
 

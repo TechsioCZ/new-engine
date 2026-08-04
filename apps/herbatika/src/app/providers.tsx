@@ -57,7 +57,11 @@ export function Providers({
   return (
     <StorefrontDataProvider>
       <NuqsAdapter>
-        <MarketProvider value={initialMarketContext}>
+        <MarketProvider
+          {...(initialMarketContext === undefined
+            ? {}
+            : { value: initialMarketContext })}
+        >
           <RegionBootstrapProvider initialRegion={initialRegion}>
             {children}
           </RegionBootstrapProvider>

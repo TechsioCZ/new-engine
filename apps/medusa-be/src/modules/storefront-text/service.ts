@@ -53,7 +53,9 @@ class StorefrontTextModuleService extends MedusaService({
       {
         enableNestedTransactions:
           sharedContext.enableNestedTransactions ?? false,
-        isolationLevel: sharedContext.isolationLevel,
+        ...(sharedContext.isolationLevel === undefined
+          ? {}
+          : { isolationLevel: sharedContext.isolationLevel }),
         transaction: sharedContext.transactionManager,
       }
     )

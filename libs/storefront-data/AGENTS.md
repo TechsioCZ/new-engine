@@ -3,6 +3,7 @@
 TanStack Query + Medusa data layer. This file is canonical; `CLAUDE.md` is its symlink.
 
 NOTE: `libs/storefront-data/AGENTS.md` is the canonical source of truth.
+
 - `libs/storefront-data/CLAUDE.md` is a symlink to this file.
 - Edit only `AGENTS.md`.
 - Windows: enable Developer Mode and set `git config core.symlinks true` so symlinks work.

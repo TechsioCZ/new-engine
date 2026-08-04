@@ -114,7 +114,7 @@ export function useCheckoutActions({
     try {
       if (data) {
         writeStoredCarrierPickupSelection({
-          ...(cartId == null ? {} : { cartId }),
+          ...(cartId === undefined ? {} : { cartId }),
           data,
           optionId,
         })
@@ -150,10 +150,14 @@ export function useCheckoutActions({
     resetFeedback()
 
     const blockerMessage = resolveOrderCompletionBlocker({
-      ...(cartId == null ? {} : { cartId }),
+      ...(cartId === undefined ? {} : { cartId: cartId }),
       itemCount,
-      selectedPaymentProviderId,
-      selectedShippingMethodId,
+      ...(selectedPaymentProviderId === undefined
+        ? {}
+        : { selectedPaymentProviderId: selectedPaymentProviderId }),
+      ...(selectedShippingMethodId === undefined
+        ? {}
+        : { selectedShippingMethodId: selectedShippingMethodId }),
       messages: {
         cartEmpty: tCheckout("cart_empty"),
         cartNotReady: tCheckout("cart_not_ready"),

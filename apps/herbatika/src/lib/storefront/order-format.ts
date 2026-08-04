@@ -1,7 +1,7 @@
 import { formatCurrencyAmount } from "./price-format"
 
 type OrderStatusBadgeVariant = "danger" | "info" | "success" | "warning"
-export type OrderStatusGroup = "fulfillment" | "lifecycle" | "payment"
+type OrderStatusGroup = "fulfillment" | "lifecycle" | "payment"
 export type OrderStatusTranslator = (
   group: OrderStatusGroup,
   status: string

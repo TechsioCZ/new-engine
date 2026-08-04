@@ -8,6 +8,10 @@ import {
 } from "./currency"
 import type { HerbatikaMarketContext } from "./market-context"
 
+type RegionCurrencySource = RegionInfo & {
+  currency_code?: unknown
+}
+
 export type HerbatikaRegionInfo = RegionInfo & {
   currency_code?: HerbatikaCurrencyCode
 }
@@ -22,7 +26,7 @@ export const regionMatchesMarket = (
   marketContext: HerbatikaMarketContext
 ) => resolveRegionCountryCodes(region).includes(marketContext.countryCode)
 
-export const resolveCountryCode = (
+const resolveCountryCode = (
   region: HttpTypes.StoreRegion,
   expectedCountryCode?: string
 ): string => {
@@ -54,7 +58,7 @@ export const resolveRegionCurrency = (
   region?: RegionInfo | null
 ): HerbatikaCurrencyCode => {
   const explicitCurrencyCode = normalizeSupportedCurrencyCode(
-    region && "currency_code" in region ? region.currency_code : undefined
+    (region as RegionCurrencySource | null | undefined)?.currency_code
   )
 
   if (explicitCurrencyCode) {

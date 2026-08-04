@@ -4,9 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
-import NextLink from "next/link"
 import { useMemo, useState } from "react"
-import { useState } from "react"
 
 import NextLink from "@/components/app-link"
 import {

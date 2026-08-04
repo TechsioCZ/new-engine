@@ -1,10 +1,11 @@
 "use client"
 
 import { Button } from "@techsio/ui-kit/atoms/button"
+import { Rating } from "@techsio/ui-kit/atoms/rating"
+import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
 import { useFormatter, useTranslations } from "next-intl"
-import NextLink from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { createParser, createSerializer, useQueryState } from "nuqs"
 import { useEffect } from "react"
@@ -15,20 +16,23 @@ import {
   PRODUCT_DETAIL_REVIEWS_SECTION_ID,
   toReviewItem,
 } from "@/components/product-detail/sections/product-detail-review-utils"
+import { FractionalRating } from "@/components/reviews/fractional-rating"
+import type { ReviewItem } from "@/components/reviews/reviews.types"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import {
   PRODUCT_REVIEWS_PAGE_SIZE,
   useProductReviews,
 } from "@/lib/storefront/reviews"
 
-import {
-  ProductDetailReviewsHeader,
-  ProductDetailReviewsSkeleton,
-  ProductReviewListItem,
-} from "./product-detail-review-parts"
-
-type ProductDetailReviewsProps = { productId?: string | null }
+type ProductDetailReviewsProps = {
+  productId?: string | null
+}
 
 const REVIEW_PAGE_PARAM = "reviews_page"
+
+const resolveReviewInitial = (author: string) =>
+  author.trim().charAt(0).toUpperCase() || "A"
+
 const reviewPageParser = createParser({
   parse: (value) => {
     const page = Number(value)
@@ -36,6 +40,7 @@ const reviewPageParser = createParser({
   },
   serialize: String,
 }).withDefault(1)
+
 const serializeReviewPage = createSerializer({
   [REVIEW_PAGE_PARAM]: reviewPageParser,
 })
@@ -217,7 +222,9 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
       return
     }
 
-    void setCurrentPage(reviewsQuery.totalPages, { history: "replace" })
+    runDetachedPromise(
+      setCurrentPage(reviewsQuery.totalPages, { history: "replace" })
+    )
   }, [isPageOutOfRange, reviewsQuery.totalPages, setCurrentPage])
 
   if (!productId) {
@@ -244,7 +251,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
         </StatusText>
         <Button
           onClick={() => {
-            void reviewsQuery.query.refetch()
+            runDetachedPromise(reviewsQuery.query.refetch())
           }}
           size="sm"
           variant="secondary"

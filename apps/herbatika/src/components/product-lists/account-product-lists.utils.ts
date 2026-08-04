@@ -1,7 +1,21 @@
 import type { HttpTypes } from "@medusajs/types"
 
+import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
+import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
-import type { StoreProductListItem } from "@/lib/storefront/product-lists"
+import {
+  getProductListTitle,
+  isFavoriteProductList,
+  type StoreProductList,
+  type StoreProductListItem,
+} from "@/lib/storefront/product-lists"
+import {
+  asStorefrontNumber,
+  asStorefrontRecord,
+  resolveAmountWithoutTax,
+  resolveProductTopOffer,
+  resolveStorefrontPrice,
+} from "@/lib/storefront/product-pricing"
 
 export type ProductListPriceSummary = {
   totalWithTaxLabel: string | null
@@ -116,10 +130,9 @@ export const resolveProductListItemAvailability = (
     }
   }
 
-  const inventory = resolveVariantInventoryState(
-    resolveProductListItemVariant(item, product),
-    resolveProductListItemQuantity(item)
-  )
+  const quantity = resolveProductListItemQuantity(item)
+  const variant = resolveProductListItemVariant(item, product)
+  const inventory = resolveVariantInventoryState(variant, quantity)
 
   if (!(inventory.hasVariant && inventory.hasPrice)) {
     return {
@@ -129,6 +142,7 @@ export const resolveProductListItemAvailability = (
       status: "product_unavailable",
     }
   }
+
   if (!inventory.isInStock) {
     return {
       availableQuantity: inventory.availableQuantity,
@@ -137,6 +151,7 @@ export const resolveProductListItemAvailability = (
       status: "out_of_stock",
     }
   }
+
   if (!inventory.isPurchasable) {
     return {
       availableQuantity: inventory.availableQuantity,
@@ -165,6 +180,7 @@ export const resolveProductListAvailabilitySummary = (params: {
   for (const item of params.items) {
     const product = resolveProductListItemProduct(item, params.productsById)
     const availability = resolveProductListItemAvailability(item, product)
+
     if (availability.canAddToCart && product) {
       purchasableItems.push({ item, product })
     } else {
@@ -194,9 +210,9 @@ const resolveProductListItemPrice = (params: {
   const calculatedPrice = asStorefrontRecord(variant?.calculated_price)
   const topOffer = resolveProductTopOffer(product)
   const price = resolveStorefrontPrice({
-    calculatedAmount: calculatedPrice?.calculated_amount,
-    calculatedCurrencyCode: calculatedPrice?.currency_code,
-    calculatedOriginalAmount: calculatedPrice?.original_amount,
+    calculatedAmount: calculatedPrice?.["calculated_amount"],
+    calculatedCurrencyCode: calculatedPrice?.["currency_code"],
+    calculatedOriginalAmount: calculatedPrice?.["original_amount"],
     expectedCurrencyCode: currencyCode,
     topOffer,
   })
@@ -208,14 +224,14 @@ const resolveProductListItemPrice = (params: {
   const variantMetadata = asStorefrontRecord(variant?.metadata)
   const calculatedAmountWithoutTax =
     price.source === "calculated_price"
-      ? asStorefrontNumber(calculatedPrice?.calculated_amount_without_tax)
+      ? asStorefrontNumber(calculatedPrice?.["calculated_amount_without_tax"])
       : null
   const amountWithoutTax = resolveAmountWithoutTax({
     amountWithTax: price.currentAmount,
     amountWithoutTax: calculatedAmountWithoutTax,
     vatRate:
-      asStorefrontNumber(variantMetadata?.vat) ??
-      asStorefrontNumber(topOffer?.vat),
+      asStorefrontNumber(variantMetadata?.["vat"]) ??
+      asStorefrontNumber(topOffer?.["vat"]),
   })
 
   return {

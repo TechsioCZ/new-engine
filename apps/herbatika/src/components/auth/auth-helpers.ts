@@ -3,12 +3,13 @@ import type {
   RegisterFormValues,
 } from "@/lib/auth/auth-form-validators"
 import { normalizeCountryCode } from "@/lib/forms/country-options"
+import { type AppHref, appHref, toAppHref } from "@/lib/routing"
 
 type BuildRegisterDefaultsOptions = {
   countryCode?: string | null
 }
 
-export const resolveSafeRedirectHref = (value?: string) => {
+export const resolveSafeRedirectHref = (value?: string): AppHref | null => {
   if (!value) {
     return null
   }
@@ -17,7 +18,7 @@ export const resolveSafeRedirectHref = (value?: string) => {
     return null
   }
 
-  return value
+  return toAppHref(value)
 }
 
 export const buildAuthRouteHref = (
@@ -33,7 +34,7 @@ export const buildAuthRouteHref = (
 
 export const resolveAfterAuthHref = (
   value?: string | string[],
-  fallback = "/account"
+  fallback: AppHref = appHref("/account")
 ) => {
   const nextValue = typeof value === "string" ? value : undefined
   return resolveSafeRedirectHref(nextValue) ?? fallback

@@ -5,6 +5,7 @@ Database-role orchestration and preview database lifecycle. PostgreSQL 18 minimu
 ## Invariants
 
 This file is the source of truth for AI agents changing:
+
 - `apps/zane-operator/src/*`
 - `docker/development/postgres/postgres-role-bootstrap.sh`
 - `docker/development/postgres/postgres-ready-with-bootstrap.sh`

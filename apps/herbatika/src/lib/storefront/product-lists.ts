@@ -46,9 +46,6 @@ export const findProductListItem = (
 ): StoreProductListItem | undefined =>
   findSharedProductListItem(list, productId, variantId)
 
-export const resolveProductListItemQuantity = (item: StoreProductListItem) =>
-  resolveSharedProductListItemQuantity(item)
-
 export type ProductListTitleLabels = {
   favorite: string
   untitled: string
@@ -98,7 +95,7 @@ export function useProductList(
       ? {}
       : { customerId: options?.customerId }),
     ...(options?.enabled === undefined ? {} : { enabled: options?.enabled }),
-    ...(id === undefined ? {} : { id }),
+    ...(id === undefined ? {} : { id: id }),
   })
 
   return {

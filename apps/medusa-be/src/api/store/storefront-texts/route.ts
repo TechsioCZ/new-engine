@@ -54,7 +54,10 @@ export async function GET(
     status: "active",
   })
   const messages = getPublishedStorefrontTextMessages(
-    getStorefrontTextDefaultMessages({ market, namespace }),
+    getStorefrontTextDefaultMessages({
+      market,
+      ...(namespace ? { namespace } : {}),
+    }),
     storefrontTexts,
     locale
   )

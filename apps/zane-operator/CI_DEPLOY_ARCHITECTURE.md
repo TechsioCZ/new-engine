@@ -1,7 +1,6 @@
 # CI Deploy Architecture
 
-Last updated: 2026-03-18
-Scope: CI-driven preview and main deployment orchestration through `zane-operator`.
+Last updated: 2026-03-18 Scope: CI-driven preview and main deployment orchestration through `zane-operator`.
 
 ## Authority
 
@@ -66,7 +65,9 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 8. After first successful preview creation or baseline replay, subsequent PR updates are redeploy-only in manifest stack order.
 9. Subsequent PR updates should reuse existing preview env values held in Zane; automatic reprovisioning is not required.
 10. If a contract or env shape change requires reprovisioning beyond normal redeploy behavior, that is a manual intervention path unless explicitly automated later.
-   - Consumer-only redeploys may reuse already-persisted contract-owned provider outputs from healthy target deployments instead of rerunning the provider when those outputs are already present on the affected consumers.
+
+- Consumer-only redeploys may reuse already-persisted contract-owned provider outputs from healthy target deployments instead of rerunning the provider when those outputs are already present on the affected consumers.
+
 11. Resolve deploy targets for affected services inside that preview environment.
 12. Obtain the per-service deploy key/webhook/token required to trigger deploys for those services.
 13. Apply env overrides derived from `prepare` or first-creation runtime provisioning before or as part of the deploy trigger.
@@ -142,9 +143,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 ## Deploy Input Contract
 
 - The shared deploy-input contract lives in `apps/new-engine-ctl/config/stack-inputs.yaml`.
-- Preview first-creation random-once secrets are CI-generated from that contract and land on exactly two planes only:
-  service-shared secrets overwrite the existing preview environment shared env keys already defined by the project/env contract when the preview environment is first created
-  service-specific secrets overwrite the existing service env keys those services actually consume when the preview environment is first created
+- Preview first-creation random-once secrets are CI-generated from that contract and land on exactly two planes only: service-shared secrets overwrite the existing preview environment shared env keys already defined by the project/env contract when the preview environment is first created service-specific secrets overwrite the existing service env keys those services actually consume when the preview environment is first created
 - Those generated preview secrets must be created exactly once per preview environment creation and reused for all later preview deploy/verify runs unless the preview environment is recreated.
 - Baseline deploy must not invent new preview env variable names beyond explicit `ZANE_OPERATOR_PREVIEW_*` metadata keys. It must only overwrite the existing shared preview env keys and existing service env keys defined by the contract on first creation, then reuse those stored preview values on later baseline replays or redeploy-only runs.
 - The contract for those preview shared/service env rewrites is repo-owned in `apps/new-engine-ctl/config/stack-inputs.yaml` under `preview_runtime_reconciliation`; `zane-operator` executes typed source resolution from CTL payloads and must not grow a second hardcoded mapping table.
@@ -216,6 +215,7 @@ Scope: CI-driven preview and main deployment orchestration through `zane-operato
 ## Verification Contract
 
 Preview verification must prove:
+
 - the target preview environment exists
 - the preview environment contains the expected cloned service set
 - preview-excluded services are absent after baseline create/replay
@@ -228,6 +228,7 @@ Preview verification must prove:
 - user-created helper/debug services are warning-only and must not fail verification
 
 Main verification must prove:
+
 - only intended services were targeted
 - no preview-only env overrides were applied
 - deploy trigger completed without leaking secrets
@@ -262,6 +263,7 @@ Main verification must prove:
 ## Completion Gate
 
 Do not treat CI deploy implementation as complete until:
+
 - the preview/main deploy contract above is implemented in the active orchestration surface (`apps/new-engine-ctl` plus `apps/zane-operator` where authenticated execution is required)
 - active workflows call that orchestration surface directly, without a superseded shell deploy wrapper
 - obsolete placeholder deploy/verify jobs are removed

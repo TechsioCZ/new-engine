@@ -149,7 +149,8 @@ services:
         service_slug: "medusa-be"
         deploy_lanes: ["preview", "main"]
         deploy_stage: 20
-        service_dependencies: ["medusa-db", "medusa-valkey", "medusa-minio", "medusa-meilisearch"]
+        service_dependencies:
+          ["medusa-db", "medusa-valkey", "medusa-minio", "medusa-meilisearch"]
 
   - id: "payload"
     compose_service: "payload"

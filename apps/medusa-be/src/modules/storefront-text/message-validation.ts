@@ -33,7 +33,7 @@ const getErrorLocation = (error: Error) => {
     : null
 }
 
-const getErrorMessage = (error: unknown) => {
+const getIcuErrorMessage = (error: unknown) => {
   if (!(error instanceof Error)) {
     return "Unknown ICU MessageFormat error"
   }
@@ -69,7 +69,7 @@ export const validateStorefrontTextOverride = ({
   } catch (error) {
     return {
       code: "invalid_default",
-      message: `Default value has an invalid locale: ${getErrorMessage(error)}`,
+      message: `Default value has an invalid locale: ${getIcuErrorMessage(error)}`,
       success: false,
     }
   }
@@ -81,7 +81,7 @@ export const validateStorefrontTextOverride = ({
   } catch (error) {
     return {
       code: "invalid_default",
-      message: `Default value contains invalid ICU syntax: ${getErrorMessage(error)}`,
+      message: `Default value contains invalid ICU syntax: ${getIcuErrorMessage(error)}`,
       success: false,
     }
   }
@@ -93,7 +93,7 @@ export const validateStorefrontTextOverride = ({
   } catch (error) {
     return {
       code: "invalid_override",
-      message: `Custom value contains invalid ICU syntax: ${getErrorMessage(error)}`,
+      message: `Custom value contains invalid ICU syntax: ${getIcuErrorMessage(error)}`,
       success: false,
     }
   }
@@ -104,14 +104,14 @@ export const validateStorefrontTextOverride = ({
     if (!comparison.success) {
       return {
         code: "incompatible_override",
-        message: `Custom value must preserve the default ICU arguments: ${getErrorMessage(comparison.error)}`,
+        message: `Custom value must preserve the default ICU arguments: ${getIcuErrorMessage(comparison.error)}`,
         success: false,
       }
     }
   } catch (error) {
     return {
       code: "incompatible_override",
-      message: `Custom value has incompatible ICU arguments: ${getErrorMessage(error)}`,
+      message: `Custom value has incompatible ICU arguments: ${getIcuErrorMessage(error)}`,
       success: false,
     }
   }

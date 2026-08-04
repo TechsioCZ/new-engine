@@ -4,7 +4,6 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { useTranslations } from "next-intl"
-import NextLink from "next/link"
 
 import { AccountSurface } from "@/components/account/account-surface"
 import NextLink from "@/components/app-link"

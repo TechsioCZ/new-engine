@@ -70,15 +70,23 @@ const createPaymentProviderOption = ({
   const displayTextKeys = resolvePaymentDisplayTextKeys(providerId)
   const providerLabel =
     translatePaymentText({
-      key: displayTextKeys.labelKey,
-      providerName: displayTextKeys.providerName,
+      ...(displayTextKeys.labelKey === undefined
+        ? {}
+        : { key: displayTextKeys.labelKey }),
+      ...(displayTextKeys.providerName === undefined
+        ? {}
+        : { providerName: displayTextKeys.providerName }),
       translate,
     }) ??
     displayTextKeys.providerName ??
     formatProviderLabel(providerId)
   const paymentDescription = translatePaymentText({
-    key: displayTextKeys.descriptionKey,
-    providerName: displayTextKeys.providerName,
+    ...(displayTextKeys.descriptionKey === undefined
+      ? {}
+      : { key: displayTextKeys.descriptionKey }),
+    ...(displayTextKeys.providerName === undefined
+      ? {}
+      : { providerName: displayTextKeys.providerName }),
     translate,
   })
   const paymentHint = displayTextKeys.hintKey
@@ -87,9 +95,11 @@ const createPaymentProviderOption = ({
   const isProviderSelectable = Boolean(providerId && canInitiatePayment)
 
   return {
-    bodyText: paymentDescription,
+    ...(paymentDescription === undefined
+      ? {}
+      : { bodyText: paymentDescription }),
     disabled: isBusy || isInitiatingPayment || !isProviderSelectable,
-    hint: paymentHint,
+    ...(paymentHint === undefined ? {} : { hint: paymentHint }),
     icon: resolvePaymentIcon(providerId),
     priceLabel: translate("free"),
     priceTone: "success" as const,

@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
-import NextLink from "next/link"
 import { useEffect, useState } from "react"
 
 import NextLink from "@/components/app-link"
@@ -74,8 +73,8 @@ export function CheckoutCompletedOrderSection({
   }, [qrPaymentStatus])
 
   return (
-    <section className="mx-auto flex max-w-checkout-status flex-col gap-400">
-      <section className="mx-auto max-w-checkout-status space-y-300 rounded-sm border border-border-primary bg-surface p-350">
+    <section className="mx-auto flex max-w-2xl flex-col gap-400">
+      <section className="mx-auto max-w-2xl space-y-300 rounded-sm border border-border-primary bg-surface p-350">
         <h2 className="font-semibold text-fg-primary text-xl">
           {tCheckout("completed_order_title")}
         </h2>
@@ -154,7 +153,7 @@ function CheckoutPaymentQrPanel({
 
   return (
     <div className="border-border-primary border-t pt-300">
-      <div className="grid w-fit gap-400 sm:checkout-payment-qr-layout">
+      <div className="grid w-fit gap-400 sm:grid-cols-[1fr_auto]">
         <div className="flex justify-center sm:justify-start">
           <div
             aria-label={tCheckout("completed_order_qr_aria", {

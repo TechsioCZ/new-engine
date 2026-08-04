@@ -5,7 +5,6 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Footer } from "@techsio/ui-kit/organisms/footer"
 import type { Route } from "next"
 import { useTranslations } from "next-intl"
-import NextLink from "next/link"
 
 import NextLink from "@/components/app-link"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
@@ -253,7 +252,7 @@ export function HerbatikaFooter() {
         <div className="flex w-full flex-wrap items-center justify-center gap-150 md:w-auto md:justify-end">
           {FOOTER_LOCALES.map((locale) => (
             <Button
-              className={`${!locale.active && "bg-base"} font-bold footer-locale-icon-filter`}
+              className={`${!locale.active && "bg-base"} font-bold [&_span]:brightness-100 [&_span]:saturate-[1.7]`}
               icon={locale.icon}
               iconSize="md"
               key={locale.code}

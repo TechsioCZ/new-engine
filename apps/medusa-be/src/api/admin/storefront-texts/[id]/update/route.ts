@@ -6,7 +6,14 @@ import { handleStorefrontTextLockError } from "../../lock-error"
 import type { AdminUpdateStorefrontTextSchemaType } from "../../validators"
 
 const getStorefrontTextId = (req: MedusaRequest) =>
-  typeof req.params.id === "string" ? req.params.id : undefined
+  typeof req.params["id"] === "string" ? req.params["id"] : undefined
+
+const toWorkflowUpdate = (body: AdminUpdateStorefrontTextSchemaType) => ({
+  ...(body.override_value === undefined
+    ? {}
+    : { override_value: body.override_value }),
+  ...(body.status === undefined ? {} : { status: body.status }),
+})
 
 export async function POST(
   req: MedusaRequest<AdminUpdateStorefrontTextSchemaType>,
@@ -27,7 +34,7 @@ export async function POST(
     ).run({
       input: {
         id,
-        update: req.validatedBody,
+        update: toWorkflowUpdate(req.validatedBody),
       },
     })
 

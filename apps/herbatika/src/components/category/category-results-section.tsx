@@ -3,7 +3,6 @@ import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
 import { useTranslations } from "next-intl"
-import NextLink from "next/link"
 import type { ReactNode } from "react"
 
 import NextLink from "@/components/app-link"

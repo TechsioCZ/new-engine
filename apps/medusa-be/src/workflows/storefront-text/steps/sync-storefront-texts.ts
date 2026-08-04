@@ -33,6 +33,14 @@ type StorefrontTextSyncResult = {
   updated_count: number
 }
 
+export type SynchronizeStorefrontTextsService = Pick<
+  StorefrontTextModuleService,
+  | "createStorefrontTexts"
+  | "deleteStorefrontTexts"
+  | "listStorefrontTexts"
+  | "updateStorefrontTexts"
+>
+
 const getRecordIdentity = ({
   key,
   locale,
@@ -83,7 +91,7 @@ const validateSeedRow = (
 }
 
 export const synchronizeStorefrontTexts = async (
-  service: StorefrontTextModuleService,
+  service: SynchronizeStorefrontTextsService,
   input: SyncStorefrontTextsWorkflowInput,
   sharedContext: Context
 ): Promise<{
@@ -166,7 +174,7 @@ export const synchronizeStorefrontTexts = async (
 }
 
 export const restoreSynchronizedStorefrontTexts = async (
-  service: StorefrontTextModuleService,
+  service: SynchronizeStorefrontTextsService,
   { createdIds, previousRecords }: StorefrontTextSyncCompensation,
   sharedContext: Context
 ) => {

@@ -48,9 +48,9 @@ export function RecentlyVisitedProductsSection({
     emptyText ?? tCatalog("product_card.recently_visited_empty")
   const resolvedHeadingText =
     headingText ?? tCatalog("product_card.recently_visited_title")
-  const recentlyVisitedHandles = useRecentlyVisitedProductHandles({
-    excludeHandle,
-  })
+  const recentlyVisitedHandles = useRecentlyVisitedProductHandles(
+    excludeHandle === undefined ? {} : { excludeHandle: excludeHandle }
+  )
   const productHandles = recentlyVisitedHandles.slice(0, visibleCount)
   const [productsWithImageError, setProductsWithImageError] = useState<
     string[]

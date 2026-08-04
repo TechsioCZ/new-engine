@@ -4,7 +4,6 @@ import { useRegionContext } from "@techsio/storefront-data/shared/region-context
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { useTranslations } from "next-intl"
-import NextLink from "next/link"
 
 import NextLink from "@/components/app-link"
 import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel"

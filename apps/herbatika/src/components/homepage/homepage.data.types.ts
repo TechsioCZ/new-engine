@@ -26,7 +26,7 @@ export type HomepageBenefitTranslationKey =
   | "home.benefits.satisfaction_guarantee"
   | "home.benefits.trusted_customers"
 
-export type HomepageProductSectionTitleKey =
+type HomepageProductSectionTitleKey =
   | "home.product_sections.bestsellers"
   | "home.product_sections.new_products"
   | "home.product_sections.sale"

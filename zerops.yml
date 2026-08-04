@@ -62,9 +62,9 @@ zerops:
           httpSupport: true
       start: npm start
       healthCheck:
-       httpGet:
-         port: 9000
-         path: /health
+        httpGet:
+          port: 9000
+          path: /health
 
   - setup: demo
     build:

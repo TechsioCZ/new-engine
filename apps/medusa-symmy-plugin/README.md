@@ -104,40 +104,39 @@ Content-Type: application/json
 {
   "products": [
     {
-      "identifier_type": "sku",                // sku | ean | erp_id
+      "identifier_type": "sku", // sku | ean | erp_id
       "sku": "TS-001",
       "title": "Tričko basic",
       "subtitle": "Bavlna 180g",
       "description": "...",
       "handle": "tricko-basic",
-      "status": "published",                   // default published
+      "status": "published", // default published
       "discountable": true,
       "weight": 220,
       "hs_code": "6109",
       "categories": [
-        { "handle": "tricka" },                // handle preferred
-        { "name": "Trička" }                   // name fallback
+        { "handle": "tricka" }, // handle preferred
+        { "name": "Trička" }, // name fallback
       ],
       "images": [{ "url": "https://cdn/.../1.jpg" }],
-      "base_prices": [                          // used only when no variants given
-        { "currency_code": "czk", "amount": 599.00 }
+      "base_prices": [
+        // used only when no variants given
+        { "currency_code": "czk", "amount": 599.0 },
       ],
       "variants": [
         {
-          "identifier_type": "sku",            // sku | ean | variant_id
+          "identifier_type": "sku", // sku | ean | variant_id
           "sku": "TS-001-M",
           "title": "M",
           "manage_inventory": true,
-          "vat_rate": 21,                      // stored on variant.metadata.vat_rate
-          "prices": [
-            { "currency_code": "czk", "amount": 599.00 }
-          ],
-          "options": { "size": "M" }
-        }
+          "vat_rate": 21, // stored on variant.metadata.vat_rate
+          "prices": [{ "currency_code": "czk", "amount": 599.0 }],
+          "options": { "size": "M" },
+        },
       ],
-      "metadata": { "source": "erp-import-2026-04" }
-    }
-  ]
+      "metadata": { "source": "erp-import-2026-04" },
+    },
+  ],
 }
 ```
 
@@ -147,7 +146,7 @@ Content-Type: application/json
 {
   "job_id": "symmy_import_job_01...",
   "status": "queued",
-  "status_url": "/api/symmy/v1/jobs/symmy_import_job_01..."
+  "status_url": "/api/symmy/v1/jobs/symmy_import_job_01...",
 }
 ```
 
@@ -173,8 +172,8 @@ Before completion:
     "failed": 0,
     "attempts": 1,
     "result": null,
-    "error": null
-  }
+    "error": null,
+  },
 }
 ```
 
@@ -191,7 +190,7 @@ After completion, `job.result` contains the same partial-success payload that th
     "failed": 1,
     "attempts": 1,
     "result": {
-      "success": false,           // true only when every item succeeded
+      "success": false, // true only when every item succeeded
       "processed": 2,
       "failed": 1,
       "results": [
@@ -200,24 +199,24 @@ After completion, `job.result` contains the same partial-success payload that th
           "sku": "TS-001",
           "status": "created",
           "product_id": "prod_01...",
-          "variant_ids": ["variant_01...", "variant_01..."]
+          "variant_ids": ["variant_01...", "variant_01..."],
         },
         {
           "identifier_type": "erp_id",
           "erp_id": "ERP-42",
           "status": "updated",
           "product_id": "prod_01...",
-          "variant_ids": ["variant_01..."]
+          "variant_ids": ["variant_01..."],
         },
         {
           "identifier_type": "ean",
           "ean": "8590000000017",
           "status": "failed",
-          "error": "Currency 'usd' not supported by store"
-        }
-      ]
-    }
-  }
+          "error": "Currency 'usd' not supported by store",
+        },
+      ],
+    },
+  },
 }
 ```
 
@@ -230,7 +229,7 @@ The submit endpoint returns `202` when validation passed. Per-item failures live
 The original spec leaves several semantics open. This plugin makes the following defaults — change them by forking, the surface area is small.
 
 | Concern | Decision |
-|---|---|
+| --- | --- |
 | `identifier_type: erp_id` storage | Persists to `product.external_id` **and** mirrors to `product.metadata.erp_id` |
 | `identifier_type: sku` / `ean` (product-level) | Resolves the product via the **first variant** with a matching SKU/EAN |
 | Variant `identifier_type: variant_id` | Direct lookup; only matches inside the resolved parent product |
@@ -245,13 +244,13 @@ The original spec leaves several semantics open. This plugin makes the following
 ### Identifier matching cheat-sheet
 
 | `identifier_type` (product) | Lookup |
-|---|---|
+| --- | --- |
 | `sku` | `product_variant.sku = <sku>` → `variant.product_id` |
 | `ean` | `product_variant.ean = <ean>` → `variant.product_id` |
 | `erp_id` | `product.external_id = <erp_id>` |
 
 | `identifier_type` (variant) | Lookup (scoped to the matched product) |
-|---|---|
+| --- | --- |
 | `sku` | first variant with matching `sku` on the product |
 | `ean` | first variant with matching `ean` on the product |
 | `variant_id` | direct id match on the product |

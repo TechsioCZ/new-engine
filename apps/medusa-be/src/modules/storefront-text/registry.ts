@@ -1,4 +1,5 @@
 import { MedusaError } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 import {
   flattenStorefrontTextCatalog,
@@ -419,9 +420,6 @@ export const parseStorefrontTextCatalog = (
 ): Record<StorefrontTextKey, string> =>
   validateCatalogKeys(flattenStorefrontTextCatalog(catalog), "Imported catalog")
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
 export const parseStorefrontTextCatalogEnvelope = ({
   catalog,
   targetMarket,
@@ -455,45 +453,45 @@ export const parseStorefrontTextCatalogEnvelope = ({
     )
   }
 
-  if (catalog.schema_version !== STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION) {
+  if (catalog["schema_version"] !== STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Unsupported storefront text catalog schema version "${String(catalog.schema_version)}"`
+      `Unsupported storefront text catalog schema version "${String(catalog["schema_version"])}"`
     )
   }
 
-  if (!isStorefrontTextMarket(catalog.market)) {
+  if (!isStorefrontTextMarket(catalog["market"])) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Unsupported storefront text market "${catalog.market}"`
+      `Unsupported storefront text market "${String(catalog["market"])}"`
     )
   }
 
-  if (catalog.market !== targetMarket) {
+  if (catalog["market"] !== targetMarket) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Catalog market "${catalog.market}" does not match target market "${targetMarket}"`
+      `Catalog market "${catalog["market"]}" does not match target market "${targetMarket}"`
     )
   }
 
-  if (!isStorefrontTextLocale(catalog.locale)) {
+  if (!isStorefrontTextLocale(catalog["locale"])) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Unsupported storefront text locale "${catalog.locale}"`
+      `Unsupported storefront text locale "${String(catalog["locale"])}"`
     )
   }
 
-  if (!isStorefrontTextMarketLocalePair(catalog.market, catalog.locale)) {
+  if (!isStorefrontTextMarketLocalePair(catalog["market"], catalog["locale"])) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Locale "${catalog.locale}" does not belong to market "${catalog.market}"`
+      `Locale "${catalog["locale"]}" does not belong to market "${catalog["market"]}"`
     )
   }
 
   return {
-    locale: catalog.locale,
-    market: catalog.market,
-    messages: parseStorefrontTextCatalog(catalog.messages),
+    locale: catalog["locale"],
+    market: catalog["market"],
+    messages: parseStorefrontTextCatalog(catalog["messages"]),
     schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
   }
 }

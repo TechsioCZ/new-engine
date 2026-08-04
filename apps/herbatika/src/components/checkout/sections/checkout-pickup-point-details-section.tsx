@@ -10,7 +10,6 @@ import type { CheckoutDetailsFormController } from "@/components/checkout/use-ch
 import { SupportingText } from "@/components/text/supporting-text"
 import { useCheckoutFieldValidators } from "@/lib/storefront/use-checkout-field-validators"
 
-import { CheckoutCompanyFields } from "./checkout-company-fields"
 import { CheckoutLoginPrompt } from "./checkout-login-prompt"
 import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle"
 
@@ -263,7 +262,7 @@ export function CheckoutPickupPointDetailsSection({
               >
                 {(field) => (
                   <field.TextareaField
-                    className="min-h-form-control-lg"
+                    className="min-h-14"
                     id="checkout-pickup-customer-note"
                     label={tForm("customer_note")}
                     resize="auto"

@@ -1,4 +1,3 @@
-import type { MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 
@@ -7,13 +6,11 @@ import {
   STOREFRONT_TEXT_LOCK_CONFLICT_MESSAGE,
 } from "../../../src/api/admin/storefront-texts/lock-error"
 
-const createResponse = (): MedusaResponse => {
-  const response = {
-    json: vi.fn().mockReturnThis(),
-    status: vi.fn().mockReturnThis(),
-  }
+const createResponse = () => {
+  const json = vi.fn()
+  const status = vi.fn(() => ({ json }))
 
-  return response as unknown as MedusaResponse
+  return { json, res: { status }, status }
 }
 
 describe("storefront text lock error handling", () => {
@@ -23,7 +20,7 @@ describe("storefront text lock error handling", () => {
   ])("returns a useful conflict for a lock timeout", (error) => {
     const response = createResponse()
 
-    handleStorefrontTextLockError(error, response)
+    handleStorefrontTextLockError(error, response.res)
 
     expect(response.status).toHaveBeenCalledWith(409)
     expect(response.json).toHaveBeenCalledWith({
@@ -37,7 +34,7 @@ describe("storefront text lock error handling", () => {
     (error) => {
       const response = createResponse()
 
-      expect(() => handleStorefrontTextLockError(error, response)).toThrow(
+      expect(() => handleStorefrontTextLockError(error, response.res)).toThrow(
         error
       )
       expect(response.status).not.toHaveBeenCalled()

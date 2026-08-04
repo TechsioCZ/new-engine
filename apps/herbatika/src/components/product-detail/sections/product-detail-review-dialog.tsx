@@ -5,7 +5,6 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import { useTranslations } from "next-intl"
-import NextLink from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 

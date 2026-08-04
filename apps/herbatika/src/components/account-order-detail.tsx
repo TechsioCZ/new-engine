@@ -3,7 +3,6 @@
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
-import NextLink from "next/link"
 
 import { AccountSurface } from "@/components/account/account-surface"
 import { AccountOrderDetailItems } from "@/components/account/orders/account-order-detail-items"

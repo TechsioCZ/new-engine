@@ -1,8 +1,8 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
+import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import { useTranslations } from "next-intl"
-import NextLink from "next/link"
 
 import NextLink from "@/components/app-link"
 import {
@@ -11,11 +11,6 @@ import {
   resolveShippingIcon,
 } from "@/components/checkout/checkout-display.utils"
 import type { AddressFormState } from "@/components/checkout/checkout.constants"
-import {
-  CheckoutSummaryRecapCard,
-  summaryCardClassName,
-  summaryEditLinkClassName,
-} from "@/components/checkout/sections/checkout-summary-recap-card"
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
@@ -45,6 +40,10 @@ type CheckoutCompleteSectionProps = {
   shippingStepHref: string
 }
 
+const summaryCardClassName =
+  "rounded-sm border border-border-primary bg-surface space-y-300 p-300 sm:px-350"
+const summaryEditLinkClassName =
+  "gap-100 px-0 font-semibold text-fg-primary underline underline-offset-2 hover:text-primary"
 const summaryInlineLinkClassName =
   "text-fg-primary underline underline-offset-2 hover:text-primary"
 
@@ -298,7 +297,7 @@ export function CheckoutCompleteSection({
                 key={`shipping-${row.id}`}
               >
                 <p className="text-fg-tertiary text-sm">{row.label}</p>
-                <p className="text-fg-primary text-sm leading-relaxed overflow-wrap-anywhere">
+                <p className="text-fg-primary text-sm leading-relaxed [overflow-wrap:anywhere]">
                   {resolveValue(row.value)}
                 </p>
               </div>

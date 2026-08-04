@@ -43,7 +43,9 @@ export function CheckoutPplPickupSelector({
 
   const widgetConfig = useMemo(
     () => ({
-      accessPointCode: selectedPoint?.code ?? undefined,
+      ...(selectedPoint?.code == null
+        ? {}
+        : { accessPointCode: selectedPoint.code }),
       allowedCountries: [marketContext.countryCode.toUpperCase()],
       countriesMenuDisabled: true,
       defaultCountry: marketContext.countryCode.toUpperCase(),
@@ -150,9 +152,7 @@ function buildPplShippingData(
   }
 
   return Object.fromEntries(
-    Object.entries(payload).filter(
-      ([, value]) => value !== null && value !== ""
-    )
+    Object.entries(payload).filter(([, value]) => value != null && value !== "")
   )
 }
 

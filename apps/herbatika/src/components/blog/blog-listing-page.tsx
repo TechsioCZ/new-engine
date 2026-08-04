@@ -3,7 +3,6 @@
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { useTranslations } from "next-intl"
-import NextLink from "next/link"
 
 import NextLink from "@/components/app-link"
 import {
@@ -83,7 +82,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
                 return (
                   <LinkButton
                     as={NextLink}
-                    className={`h-full rounded-full border-1 border-primary px-450 py-250 font-bold font-open-sans text-md blog-leading-category ${!isActive && "border-border-muted bg-surface text-fg-muted"}`}
+                    className={`h-full rounded-full border-1 border-primary px-450 py-250 font-bold font-open-sans text-md leading-[18px] ${!isActive && "border-border-muted bg-surface text-fg-muted"}`}
                     href={resolveBlogListingHref({
                       topic: filter.key,
                       page: 1,

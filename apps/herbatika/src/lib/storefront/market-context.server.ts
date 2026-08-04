@@ -9,9 +9,6 @@ export const getMarketServerContext = cache(async () => {
 
   return resolveMarketContext({
     acceptLanguage: headerStore.get("accept-language"),
-    host:
-      headerStore.get("x-forwarded-host") ??
-      headerStore.get("host") ??
-      undefined,
+    host: headerStore.get("x-forwarded-host") ?? headerStore.get("host"),
   })
 })

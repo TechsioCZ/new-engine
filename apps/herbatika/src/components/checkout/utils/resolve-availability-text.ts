@@ -1,7 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 
 import { resolveLineItemInventory } from "@/components/header/herbatika-cart-item.utils"
-import { addBusinessDays, formatSkDate } from "@/lib/date"
 import {
   resolveLineItemQuantity,
   resolveLineItemUnitAmount,
@@ -70,8 +69,8 @@ export const resolveAvailabilityText = (
   }
 
   const availabilityLabel =
-    asStorefrontString(topOffer?.availability_in_stock) ?? "Na sklade"
-  const deliveryLabel = asStorefrontString(topOffer?.delivery_label)
+    asStorefrontString(topOffer?.["availability_in_stock"]) ?? "Na sklade"
+  const deliveryLabel = asStorefrontString(topOffer?.["delivery_label"])
 
   return deliveryLabel
     ? `${availabilityLabel}, ${deliveryLabel}`

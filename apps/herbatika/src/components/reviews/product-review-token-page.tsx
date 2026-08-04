@@ -5,12 +5,12 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
+
+import NextLink from "@/components/app-link"
 import {
   resolveProductReviewSubmitErrorMessage,
   translateProductReviewErrorMessages,
 } from "@/components/reviews/product-review-errors"
-import NextLink from "@/components/app-link"
-import { resolveProductReviewSubmitErrorMessage } from "@/components/reviews/product-review-errors"
 import {
   ProductReviewForm,
   type ProductReviewFormSubmitValues,
@@ -114,7 +114,7 @@ export function ProductReviewTokenPage({
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-500 p-product-detail-page font-rubik 2xl:p-product-detail-page-lg">
-      <section className="mx-auto flex w-full max-w-review-form flex-col gap-400 rounded-sm border border-border-secondary bg-surface p-500 shadow-sm sm:p-600">
+      <section className="mx-auto flex w-full max-w-3xl flex-col gap-400 rounded-sm border border-border-secondary bg-surface p-500 shadow-sm sm:p-600">
         <header className="space-y-150">
           <p className="font-semibold text-fg-secondary text-sm">
             {tCatalog("reviews.token.eyebrow")}

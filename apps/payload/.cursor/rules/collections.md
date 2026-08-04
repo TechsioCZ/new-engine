@@ -9,19 +9,19 @@ tags: [payload, collections, auth, upload, drafts]
 ## Basic Collection
 
 ```typescript
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig } from "payload"
 
 export const Posts: CollectionConfig = {
-  slug: 'posts',
+  slug: "posts",
   admin: {
-    useAsTitle: 'title',
-    defaultColumns: ['title', 'author', 'status', 'createdAt'],
+    useAsTitle: "title",
+    defaultColumns: ["title", "author", "status", "createdAt"],
   },
   fields: [
-    { name: 'title', type: 'text', required: true },
-    { name: 'slug', type: 'text', unique: true, index: true },
-    { name: 'content', type: 'richText' },
-    { name: 'author', type: 'relationship', relationTo: 'users' },
+    { name: "title", type: "text", required: true },
+    { name: "slug", type: "text", unique: true, index: true },
+    { name: "content", type: "richText" },
+    { name: "author", type: "relationship", relationTo: "users" },
   ],
   timestamps: true,
 }
@@ -31,19 +31,19 @@ export const Posts: CollectionConfig = {
 
 ```typescript
 export const Users: CollectionConfig = {
-  slug: 'users',
+  slug: "users",
   auth: true,
   fields: [
     {
-      name: 'roles',
-      type: 'select',
+      name: "roles",
+      type: "select",
       hasMany: true,
-      options: ['admin', 'editor', 'user'],
-      defaultValue: ['user'],
+      options: ["admin", "editor", "user"],
+      defaultValue: ["user"],
       required: true,
       saveToJWT: true, // Include in JWT for fast access checks
       access: {
-        update: ({ req: { user } }) => user?.roles?.includes('admin'),
+        update: ({ req: { user } }) => user?.roles?.includes("admin"),
       },
     },
   ],
@@ -54,24 +54,24 @@ export const Users: CollectionConfig = {
 
 ```typescript
 export const Media: CollectionConfig = {
-  slug: 'media',
+  slug: "media",
   upload: {
-    staticDir: 'media',
-    mimeTypes: ['image/*'],
+    staticDir: "media",
+    mimeTypes: ["image/*"],
     imageSizes: [
       {
-        name: 'thumbnail',
+        name: "thumbnail",
         width: 400,
         height: 300,
-        position: 'centre',
+        position: "centre",
       },
       {
-        name: 'card',
+        name: "card",
         width: 768,
         height: 1024,
       },
     ],
-    adminThumbnail: 'thumbnail',
+    adminThumbnail: "thumbnail",
     focalPoint: true,
     crop: true,
   },
@@ -80,8 +80,8 @@ export const Media: CollectionConfig = {
   },
   fields: [
     {
-      name: 'alt',
-      type: 'text',
+      name: "alt",
+      type: "text",
       required: true,
     },
   ],
@@ -92,7 +92,7 @@ export const Media: CollectionConfig = {
 
 ```typescript
 export const Pages: CollectionConfig = {
-  slug: 'pages',
+  slug: "pages",
   versions: {
     drafts: {
       autosave: true,
@@ -104,7 +104,7 @@ export const Pages: CollectionConfig = {
   access: {
     read: ({ req: { user } }) => {
       // Public sees only published
-      if (!user) return { _status: { equals: 'published' } }
+      if (!user) return { _status: { equals: "published" } }
       // Authenticated sees all
       return true
     },
@@ -117,15 +117,15 @@ export const Pages: CollectionConfig = {
 ```typescript
 // Create draft
 await payload.create({
-  collection: 'posts',
-  data: { title: 'Draft Post' },
+  collection: "posts",
+  data: { title: "Draft Post" },
   draft: true, // Skips required field validation
 })
 
 // Read with drafts
 const page = await payload.findByID({
-  collection: 'pages',
-  id: '123',
+  collection: "pages",
+  id: "123",
   draft: true, // Returns draft version if exists
 })
 ```
@@ -135,34 +135,34 @@ const page = await payload.findByID({
 Globals are single-instance documents (not collections).
 
 ```typescript
-import type { GlobalConfig } from 'payload'
+import type { GlobalConfig } from "payload"
 
 export const Header: GlobalConfig = {
-  slug: 'header',
-  label: 'Header',
+  slug: "header",
+  label: "Header",
   admin: {
-    group: 'Settings',
+    group: "Settings",
   },
   fields: [
     {
-      name: 'logo',
-      type: 'upload',
-      relationTo: 'media',
+      name: "logo",
+      type: "upload",
+      relationTo: "media",
       required: true,
     },
     {
-      name: 'nav',
-      type: 'array',
+      name: "nav",
+      type: "array",
       maxRows: 8,
       fields: [
         {
-          name: 'link',
-          type: 'relationship',
-          relationTo: 'pages',
+          name: "link",
+          type: "relationship",
+          relationTo: "pages",
         },
         {
-          name: 'label',
-          type: 'text',
+          name: "label",
+          type: "text",
         },
       ],
     },

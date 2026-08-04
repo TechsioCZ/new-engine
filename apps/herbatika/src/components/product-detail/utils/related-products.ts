@@ -1,8 +1,5 @@
 import { isRecord } from "@techsio/std/object"
-import {
-  RELATED_PRODUCTS_PER_SECTION,
-  RELATED_RECOMMENDATION_SECTION_TITLES,
-} from "@/components/product-detail/product-detail.constants"
+
 import type {
   Product,
   RelatedProductsSection,

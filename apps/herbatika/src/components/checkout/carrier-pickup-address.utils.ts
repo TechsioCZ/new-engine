@@ -17,12 +17,12 @@ export function resolveCarrierPickupAddress(
     return null
   }
 
-  const label = readString(data.access_point_name) ?? fallbackLabel
-  const street = readString(data.access_point_street)
-  const city = readString(data.access_point_city) ?? ""
-  const postalCode = readString(data.access_point_zip) ?? ""
+  const label = readString(data["access_point_name"]) ?? fallbackLabel
+  const street = readString(data["access_point_street"])
+  const city = readString(data["access_point_city"]) ?? ""
+  const postalCode = readString(data["access_point_zip"]) ?? ""
   const countryCode = (
-    readString(data.access_point_country) ?? fallbackCountryCode
+    readString(data["access_point_country"]) ?? fallbackCountryCode
   ).toUpperCase()
 
   return {

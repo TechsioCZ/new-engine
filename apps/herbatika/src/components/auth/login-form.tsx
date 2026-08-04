@@ -3,7 +3,6 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Label } from "@techsio/ui-kit/atoms/label"
 import { useTranslations } from "next-intl"
-import NextLink from "next/link"
 import { useMemo } from "react"
 
 import NextLink from "@/components/app-link"

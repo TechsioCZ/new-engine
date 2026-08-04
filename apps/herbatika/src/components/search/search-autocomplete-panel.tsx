@@ -1,7 +1,6 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import NextLink from "next/link"
 import type { MouseEvent } from "react"
 
 import NextLink from "@/components/app-link"

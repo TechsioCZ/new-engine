@@ -59,6 +59,9 @@ const isAppHref = (href: string): href is AppHref => {
   )
 }
 
+export const toAppHref = (href: string): AppHref | null =>
+  isAppHref(href) ? href : null
+
 export const appHref = (href: string): AppHref => {
   // Keep an unnarrowed alias: without the generated Next route types (CI
   // lints without .next), the narrowed-out residual of `href` is not a string.

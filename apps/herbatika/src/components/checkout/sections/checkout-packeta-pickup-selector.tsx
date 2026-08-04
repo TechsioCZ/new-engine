@@ -63,8 +63,9 @@ export function CheckoutPacketaPickupSelector({
         { country, group: "", selected: true },
         { country, group: "zbox" },
       ],
-      webUrl:
-        typeof window === "undefined" ? undefined : window.location.origin,
+      ...(typeof window === "undefined"
+        ? {}
+        : { webUrl: window.location.origin }),
     }
   }, [marketContext.countryCode, marketContext.locale])
 
@@ -173,9 +174,7 @@ function buildPacketaShippingData(
   }
 
   return Object.fromEntries(
-    Object.entries(payload).filter(
-      ([, value]) => value !== null && value !== ""
-    )
+    Object.entries(payload).filter(([, value]) => value != null && value !== "")
   )
 }
 

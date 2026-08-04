@@ -7,7 +7,6 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
 import { useTranslations } from "next-intl"
-import NextLink from "next/link"
 import type { ReactNode } from "react"
 
 import NextLink from "@/components/app-link"

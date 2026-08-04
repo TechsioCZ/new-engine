@@ -1,8 +1,8 @@
 import { defineStorefrontMarkets } from "@techsio/storefront-i18n/core/markets"
 
-export type HerbatikaMarketCode = "sk" | "cz" | "hu" | "ro"
+type HerbatikaMarketCode = "sk" | "cz" | "hu" | "ro"
 export type HerbatikaLocale = "sk-SK" | "cs-CZ" | "hu-HU" | "ro-RO"
-export type HerbatikaCountryCode = "sk" | "cz" | "hu" | "ro"
+type HerbatikaCountryCode = "sk" | "cz" | "hu" | "ro"
 
 export type HerbatikaMarketContext = {
   code: HerbatikaMarketCode
@@ -95,7 +95,7 @@ const LANGUAGE_MARKET_MAP: Record<string, HerbatikaMarketCode> = {
   sk: "sk",
 }
 
-export const DEFAULT_MARKET_CODE: HerbatikaMarketCode = "sk"
+const DEFAULT_MARKET_CODE: HerbatikaMarketCode = "sk"
 const marketResolver = defineStorefrontMarkets({
   defaultMarketCode: DEFAULT_MARKET_CODE,
   hostMarketMap: HOST_MARKET_MAP,
@@ -104,14 +104,12 @@ const marketResolver = defineStorefrontMarkets({
 })
 
 export const DEFAULT_MARKET_CONTEXT = marketResolver.defaultMarket
-export const HERBATIKA_MARKETS = Object.values(MARKET_CONFIG)
-
-export const getHerbatikaMarketContext = (
-  code: HerbatikaMarketCode
-): HerbatikaMarketContext => marketResolver.getMarket(code)
 
 export const resolveMarketContext = ({
   acceptLanguage,
   host,
 }: ResolveMarketContextInput = {}): HerbatikaMarketContext =>
-  marketResolver.resolveMarket({ acceptLanguage, host })
+  marketResolver.resolveMarket({
+    ...(acceptLanguage === undefined ? {} : { acceptLanguage }),
+    ...(host === undefined ? {} : { host }),
+  })

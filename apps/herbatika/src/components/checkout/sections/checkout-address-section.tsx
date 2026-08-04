@@ -8,7 +8,6 @@ import {
 import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
 import { useCheckoutFieldValidators } from "@/lib/storefront/use-checkout-field-validators"
 
-import { CheckoutCompanyFields } from "./checkout-company-fields"
 import { CheckoutLoginPrompt } from "./checkout-login-prompt"
 import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle"
 

@@ -1,13 +1,13 @@
 import type { HerbatikaLocale } from "@/lib/storefront/market-context"
 
-export type CarrierPickupType = "packeta" | "ppl"
+type CarrierPickupType = "packeta" | "ppl"
 
 export type CarrierPickupFailureReason =
   | "point_unavailable"
   | "selection_failed"
   | "selector_unavailable"
 
-export type CarrierPickupWidgetLanguage = "cs" | "hu" | "ro" | "sk"
+type CarrierPickupWidgetLanguage = "cs" | "hu" | "ro" | "sk"
 
 export type CarrierPickupRequirement = {
   carrier: CarrierPickupType

@@ -8,8 +8,8 @@ import { Link } from "@techsio/ui-kit/atoms/link"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select"
 import { useLocale, useTranslations } from "next-intl"
-import NextLink from "next/link"
 
+import NextLink from "@/components/app-link"
 import { resolveFlags } from "@/components/product-card/product-card.flags"
 import type {
   Product,

@@ -25,6 +25,7 @@ GET /admin/promotions/rule-attribute-options/:rule_type
 Returns available rule attributes for promotion conditions.
 
 **Parameters:**
+
 - `rule_type`: `rules` | `target-rules` | `buy-rules`
 - `promotion_type`: (optional) Filter attributes by promotion type
 - `application_method_type`: (optional) `fixed` | `percentage`
@@ -39,12 +40,14 @@ GET /admin/promotions/rule-value-options/:rule_type/product_variant
 Search and filter product variants for promotion rules.
 
 **Query Parameters:**
+
 - `q`: Search term
 - `value` or `id`: Variant IDs for hydrating existing rules
 - `limit`: Results per page (1-100, default 100)
 - `offset`: Pagination offset
 
 **Response Format:**
+
 ```json
 {
   "values": [
@@ -66,20 +69,14 @@ Search and filter brands/manufacturers for promotion rules.
 ## Extended Rule Attributes
 
 | Attribute | Type | Operators | Description |
-|-----------|------|-----------|-------------|
+| --- | --- | --- | --- |
 | `product_variant` | multiselect | IN, EQ, NIN | Filter by specific variants |
 | `brand` | multiselect | IN, EQ, NIN | Filter by manufacturer |
 | `cart_item_total` | number | EQ, GT, GTE, LT, LTE | Cart value threshold |
 | `item_price` | number | EQ, GT, GTE, LT, LTE | Individual item price |
 | `item_quantity` | number | EQ, GT, GTE, LT, LTE | Matching item quantity |
 
-Brand rules evaluate against `items.brand_ids`, which is injected through
-Medusa promotion workflow hooks from the product-brand module link. The
-currently exported hooks cover cart promotion updates, draft-order adjustment
-computation, and order adjustment previews. `refreshDraftOrderAdjustmentsWorkflow`
-also defines the needed hook in Medusa source, but is not currently exported
-from `@medusajs/medusa/core-flows`; see the TODO in
-`src/workflows/hooks/promotion-brand-context.ts`.
+Brand rules evaluate against `items.brand_ids`, which is injected through Medusa promotion workflow hooks from the product-brand module link. The currently exported hooks cover cart promotion updates, draft-order adjustment computation, and order adjustment previews. `refreshDraftOrderAdjustmentsWorkflow` also defines the needed hook in Medusa source, but is not currently exported from `@medusajs/medusa/core-flows`; see the TODO in `src/workflows/hooks/promotion-brand-context.ts`.
 
 ## File Structure
 
@@ -100,5 +97,4 @@ promotions/
 
 ## Testing
 
-Unit tests are located in `__tests__/utils.unit.spec.ts` covering utility
-functions, Medusa route-loading assumptions, and brand context enrichment.
+Unit tests are located in `__tests__/utils.unit.spec.ts` covering utility functions, Medusa route-loading assumptions, and brand context enrichment.

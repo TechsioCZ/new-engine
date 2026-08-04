@@ -1,8 +1,8 @@
 import type { HttpTypes } from "@medusajs/types"
+import { isRecord } from "@techsio/std/object"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { useLocale, useTranslations } from "next-intl"
-import NextLink from "next/link"
 
 import NextLink from "@/components/app-link"
 import {
@@ -40,21 +40,12 @@ type OrderAmountSummary = {
 
 type OrderAddress = ReturnType<typeof resolveOrderAddresses>["shipping"]
 
-type OrderAmountField =
-  | "item_total"
-  | "item_subtotal"
-  | "item_tax_total"
-  | "shipping_total"
-  | "shipping_subtotal"
-  | "shipping_tax_total"
-  | "tax_total"
-
 const readOrderAmount = (
   order: HttpTypes.StoreOrder,
-  key: OrderAmountField
+  key: string
 ): number | null => {
-  const value = order[key]
-  return Number.isFinite(value) ? value : null
+  const value = isRecord(order) ? order[key] : undefined
+  return typeof value === "number" && Number.isFinite(value) ? value : null
 }
 
 const resolveOrderAmountSummary = (

@@ -28,7 +28,9 @@ export function CheckoutCartStepSection({
   currencyCode,
 }: CheckoutCartStepSectionProps) {
   const tCheckout = useTranslations("checkout")
-  const lineItemActions = useCartLineItemActions({ cartId })
+  const lineItemActions = useCartLineItemActions(
+    cartId === undefined ? {} : { cartId }
+  )
   const { productsByHandle: cartProductsByHandle } = useCartProductsByHandle(
     cartItems,
     PRODUCT_DETAIL_FIELDS
@@ -109,23 +111,27 @@ export function CheckoutCartStepSection({
       ) : null}
 
       <div className="overflow-hidden rounded-sm border border-border-primary bg-surface p-400 md:px-550 md:pt-550 md:pb-500">
-        {cartItems.map((item, index) => (
-          <div
-            className={`py-250 ${index > 0 ? "border-border-secondary border-t" : ""}`}
-            key={item.id}
-          >
-            <CheckoutCartItemRow
-              currencyCode={supportedCurrencyCode}
-              isPending={lineItemActions.isPending}
-              item={item}
-              onRemove={lineItemActions.removeItem}
-              onUpdateQuantity={lineItemActions.updateQuantity}
-              product={cartProductsByHandle.get(
-                resolveLineItemProductHandle(item) ?? ""
-              )}
-            />
-          </div>
-        ))}
+        {cartItems.map((item, index) => {
+          const itemProduct = cartProductsByHandle.get(
+            resolveLineItemProductHandle(item) ?? ""
+          )
+
+          return (
+            <div
+              className={`py-250 ${index > 0 ? "border-border-secondary border-t" : ""}`}
+              key={item.id}
+            >
+              <CheckoutCartItemRow
+                currencyCode={supportedCurrencyCode}
+                isPending={lineItemActions.isPending}
+                item={item}
+                onRemove={lineItemActions.removeItem}
+                onUpdateQuantity={lineItemActions.updateQuantity}
+                {...(itemProduct === undefined ? {} : { product: itemProduct })}
+              />
+            </div>
+          )
+        })}
       </div>
     </section>
   )

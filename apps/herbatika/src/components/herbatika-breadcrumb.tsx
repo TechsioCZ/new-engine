@@ -3,7 +3,6 @@
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
 import { useTranslations } from "next-intl"
-import NextLink from "next/link"
 import { type ComponentPropsWithoutRef, Fragment } from "react"
 
 import NextLink from "@/components/app-link"
@@ -27,7 +26,12 @@ export type HerbatikaBreadcrumbProps = Omit<
 }
 
 function getBreadcrumbItemKey(item: HerbatikaBreadcrumbItem, index: number) {
-  return `${item.label}-${index}`
+  const hrefKey =
+    typeof item.href === "string"
+      ? item.href
+      : (JSON.stringify(item.href) ?? "current")
+
+  return `${hrefKey}-${item.label}-${index}`
 }
 
 function BreadcrumbItemContent({ item }: { item: HerbatikaBreadcrumbItem }) {

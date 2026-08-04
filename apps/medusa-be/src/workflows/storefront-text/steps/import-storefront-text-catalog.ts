@@ -17,6 +17,7 @@ import {
   restoreSynchronizedStorefrontTexts,
   type StorefrontTextSyncCompensation,
   synchronizeStorefrontTexts,
+  type SynchronizeStorefrontTextsService,
 } from "./sync-storefront-texts"
 
 type PreviousStorefrontTextValue = Pick<
@@ -51,8 +52,11 @@ const parseImportCatalog = (
   }
 }
 
+export type ImportStorefrontTextCatalogService =
+  SynchronizeStorefrontTextsService
+
 const restoreImportedCatalog = async (
-  service: StorefrontTextModuleService,
+  service: ImportStorefrontTextCatalogService,
   compensation: StorefrontTextCatalogImportCompensation,
   sharedContext: Context
 ) => {
@@ -156,7 +160,7 @@ const importStorefrontTextCatalogInTransaction = async ({
 }: {
   catalog: ReturnType<typeof parseImportCatalog>
   input: ImportStorefrontTextCatalogWorkflowInput
-  service: StorefrontTextModuleService
+  service: ImportStorefrontTextCatalogService
   sharedContext: Context
 }) => {
   const sync = await synchronizeStorefrontTexts(
@@ -211,6 +215,18 @@ const importStorefrontTextCatalogInTransaction = async ({
     },
   }
 }
+
+export const importStorefrontTextCatalog = async (
+  service: ImportStorefrontTextCatalogService,
+  input: ImportStorefrontTextCatalogWorkflowInput,
+  sharedContext: Context
+) =>
+  await importStorefrontTextCatalogInTransaction({
+    catalog: parseImportCatalog(input),
+    input,
+    service,
+    sharedContext,
+  })
 
 export const importStorefrontTextCatalogStep = createStep(
   "import-storefront-text-catalog",
