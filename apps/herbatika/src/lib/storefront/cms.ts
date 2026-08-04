@@ -9,6 +9,10 @@ import {
   fetchCmsHeroBanners as fetchCmsHeroBannersValue,
   mapCmsHeroCarouselToHeroBanner as mapCmsHeroCarouselToHeroBannerValue,
 } from "./cms-hero-carousels"
+import {
+  fetchCmsHomepagePromo as fetchCmsHomepagePromoValue,
+  HOMEPAGE_PROMO_PAGE_SLUG as HOMEPAGE_PROMO_PAGE_SLUG_VALUE,
+} from "./cms-homepage-promo"
 import { fetchCmsPageBySlug as fetchCmsPageBySlugValue } from "./cms-pages"
 import type {
   CmsArticleCategory as CmsArticleCategoryValue,
@@ -26,7 +30,9 @@ export const fetchCmsArticleCategories = fetchCmsArticleCategoriesValue
 export const fetchCmsBlogPost = fetchCmsBlogPostValue
 export const fetchCmsBlogPosts = fetchCmsBlogPostsValue
 export const fetchCmsHeroBanners = fetchCmsHeroBannersValue
+export const fetchCmsHomepagePromo = fetchCmsHomepagePromoValue
 export const fetchCmsPageBySlug = fetchCmsPageBySlugValue
+export const HOMEPAGE_PROMO_PAGE_SLUG = HOMEPAGE_PROMO_PAGE_SLUG_VALUE
 export const mapCmsArticleToBlogPost = mapCmsArticleToBlogPostValue
 export const mapCmsHeroCarouselToHeroBanner =
   mapCmsHeroCarouselToHeroBannerValue
