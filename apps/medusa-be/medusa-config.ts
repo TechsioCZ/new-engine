@@ -8,11 +8,10 @@ import { buildAdminConfig, buildProjectConfig } from "./src/config/project"
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
 const env = readMedusaConfigEnv(process.env)
-const isTest = process.env.NODE_ENV === "test"
 
 const config = {
   featureFlags: {
-    index_engine: !isTest,
+    index_engine: true,
     translation: true,
     caching: true,
     backend_hmr: true,
