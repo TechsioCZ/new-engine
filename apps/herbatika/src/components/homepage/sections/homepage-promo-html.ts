@@ -1,6 +1,6 @@
 import {
-  sanitizeHtml,
   type SanitizeHtmlOptions,
+  sanitizeHtml,
 } from "@/components/product-detail/utils/html-sanitizer"
 
 const HOMEPAGE_PROMO_SANITIZE_OPTIONS = {
