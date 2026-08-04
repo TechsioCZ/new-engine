@@ -5,11 +5,12 @@ import { Rating } from "@techsio/ui-kit/atoms/rating"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
+import { useFormatter, useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
-import { useFormatter, useTranslations } from "next-intl"
 import { createParser, createSerializer, useQueryState } from "nuqs"
 import { useEffect } from "react"
+
 import { ProductReviewCreateDialog } from "@/components/product-detail/sections/product-detail-review-dialog"
 import {
   PRODUCT_DETAIL_REVIEWS_SECTION_ID,

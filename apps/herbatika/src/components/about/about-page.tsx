@@ -1,8 +1,10 @@
 import { useTranslations } from "next-intl"
+
 import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb"
+
 import {
   AboutArticleSections,
   AboutClosingStatement,

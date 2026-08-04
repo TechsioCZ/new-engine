@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { parseEnv } from "node:util"
+
 import { expect, type Page, test } from "@playwright/test"
 
 const workspaceRoot = resolve(__dirname, "../../../..")

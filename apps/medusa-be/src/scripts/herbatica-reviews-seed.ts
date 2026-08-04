@@ -1,5 +1,6 @@
 import type { ExecArgs, Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { PRODUCT_REVIEW_MODULE } from "../modules/product-review"
 import type ProductReviewModuleService from "../modules/product-review/service"
 import { HERBATICA_REVIEWS_XML_ENV } from "./herbatica-seed-config"

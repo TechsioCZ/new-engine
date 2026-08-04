@@ -1,6 +1,7 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+
 import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart-item.utils"
 import { PRODUCT_CARD_FIELDS, useProducts } from "@/lib/storefront/products"
 

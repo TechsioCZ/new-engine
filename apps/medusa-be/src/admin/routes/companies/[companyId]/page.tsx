@@ -16,6 +16,7 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom"
+
 import type {
   AdminCompanyResponse,
   QueryCompany,

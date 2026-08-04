@@ -3,6 +3,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Footer } from "@techsio/ui-kit/organisms/footer"
 import Image from "next/image"
 import Link from "next/link"
+
 import logo from "@/assets/logo-n1.webp"
 import wrLogo from "@/assets/wr.png"
 

@@ -2,7 +2,9 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useTranslations } from "next-intl"
+
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
+
 import {
   clearStoredCarrierPickupSelection,
   writeStoredCarrierPickupSelection,

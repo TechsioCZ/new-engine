@@ -4,6 +4,7 @@ import type {
   ILockingModule,
 } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
+
 import { provisionPublishableKey } from "../utils/publishable-key"
 
 export default async function myScript({ container, args }: ExecArgs) {

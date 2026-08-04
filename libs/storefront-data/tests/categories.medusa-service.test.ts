@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import {
   createMedusaCategoryService,
   type MedusaCategoryDetailInput,
@@ -16,9 +17,11 @@ const createCategory = (
   name = "Category",
   handle = id
 ): HttpTypes.StoreProductCategory =>
-  ({ id, name, handle } as HttpTypes.StoreProductCategory)
+  ({ id, name, handle }) as HttpTypes.StoreProductCategory
 
-function createSdkMock(response?: Partial<HttpTypes.StoreProductCategoryListResponse>): SdkLike {
+function createSdkMock(
+  response?: Partial<HttpTypes.StoreProductCategoryListResponse>
+): SdkLike {
   return {
     client: {
       fetch: vi.fn().mockResolvedValue({

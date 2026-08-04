@@ -249,7 +249,11 @@ export class ZaneMedusaPublishableKeyProvisioner {
       adminPassword
     )
     const title = input.frontendOutput.policy.title?.trim() || undefined
-    const result = await this.requestPublishableKey(medusaUrl, auth.token, title)
+    const result = await this.requestPublishableKey(
+      medusaUrl,
+      auth.token,
+      title
+    )
 
     return {
       project_slug: input.projectSlug,
@@ -306,14 +310,17 @@ export class ZaneMedusaPublishableKeyProvisioner {
     email: string,
     password: string
   ): Promise<AuthResponse> {
-    const response = await fetch(resolveMedusaUrl(medusaUrl, "/auth/user/emailpass"), {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    })
+    const response = await fetch(
+      resolveMedusaUrl(medusaUrl, "/auth/user/emailpass"),
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      }
+    )
 
     if (!response.ok) {
       let errorMessage = `Medusa admin auth failed (HTTP ${response.status})`
@@ -331,7 +338,9 @@ export class ZaneMedusaPublishableKeyProvisioner {
 
     const payload = await response.json()
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      throw new BadRequestError("medusa admin auth response must be a JSON object")
+      throw new BadRequestError(
+        "medusa admin auth response must be a JSON object"
+      )
     }
 
     const payloadObject = payload as Record<string, unknown>

@@ -12,6 +12,7 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { updateProductsWorkflow } from "@medusajs/medusa/core-flows"
+
 import {
   getProductAttributeService,
   normalizeRequiredProductAttributeKey,

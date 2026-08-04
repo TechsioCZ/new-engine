@@ -5,6 +5,7 @@ import {
   type Ref,
   useEffect,
 } from "react"
+
 import { useStackedModal } from "./use-stacked-modal"
 
 type StackedFocusModalProps = PropsWithChildren<{

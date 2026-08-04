@@ -6,6 +6,7 @@ import {
   Carousel,
   type CarouselSlide,
 } from "@techsio/ui-kit/molecules/carousel"
+
 import { HerbatikaProductCard } from "@/components/herbatika-product-card"
 import { useAddProductToCartAction } from "@/lib/storefront/use-add-product-to-cart-action"
 

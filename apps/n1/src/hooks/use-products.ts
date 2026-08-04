@@ -1,5 +1,6 @@
 import type { StoreProduct } from "@medusajs/types"
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
+
 import { cacheConfig } from "@/lib/cache-config"
 import { PRODUCT_LIMIT } from "@/lib/constants"
 import { logQuery } from "@/lib/loggers/cache"
@@ -7,6 +8,7 @@ import { fetchLogger } from "@/lib/loggers/fetch"
 import { buildProductQueryParams } from "@/lib/product-query-params"
 import { queryKeys } from "@/lib/query-keys"
 import { getProducts } from "@/services/product-service"
+
 import { useRegion, useSuspenseRegion } from "./use-region"
 
 type UseProductsProps = {

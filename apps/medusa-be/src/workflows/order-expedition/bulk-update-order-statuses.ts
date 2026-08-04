@@ -5,6 +5,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { emitEventStep, updateOrdersStep } from "@medusajs/medusa/core-flows"
+
 import type { OrderExpeditionTargetStatus } from "../../utils/order-expedition"
 
 export const ORDER_EXPEDITION_DIRECT_UPDATE_STATUSES = [

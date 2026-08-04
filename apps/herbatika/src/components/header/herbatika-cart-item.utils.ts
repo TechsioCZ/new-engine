@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 import { asFiniteNumber } from "@/lib/storefront/cart-calculations"
 import { resolveDefaultStockInventoryQuantity } from "@/lib/storefront/default-stock-availability"

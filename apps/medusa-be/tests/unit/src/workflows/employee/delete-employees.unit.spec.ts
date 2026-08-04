@@ -195,9 +195,8 @@ describe("deleteEmployeesStep", () => {
   })
 
   it("scopes deletion to the route company and clears admin auth metadata", async () => {
-    const { deleteEmployeesStep } = await import(
-      "../../../../../src/workflows/employee/steps/delete-employees"
-    )
+    const { deleteEmployeesStep } =
+      await import("../../../../../src/workflows/employee/steps/delete-employees")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -326,9 +325,8 @@ describe("deleteEmployeesStep", () => {
   })
 
   it("keeps admin auth metadata when another active admin employee remains", async () => {
-    const { deleteEmployeesStep } = await import(
-      "../../../../../src/workflows/employee/steps/delete-employees"
-    )
+    const { deleteEmployeesStep } =
+      await import("../../../../../src/workflows/employee/steps/delete-employees")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -390,9 +388,8 @@ describe("deleteEmployeesStep", () => {
   })
 
   it("restores deleted employees and admin metadata on compensation", async () => {
-    const { deleteEmployeesStep } = await import(
-      "../../../../../src/workflows/employee/steps/delete-employees"
-    )
+    const { deleteEmployeesStep } =
+      await import("../../../../../src/workflows/employee/steps/delete-employees")
     const graph = vi.fn()
     const authService = makeAuthService()
     const companyService = makeCompanyService()
@@ -448,9 +445,8 @@ describe("deleteEmployeesStep", () => {
   })
 
   it("throws when an employee is not found for the requested company", async () => {
-    const { deleteEmployeesStep } = await import(
-      "../../../../../src/workflows/employee/steps/delete-employees"
-    )
+    const { deleteEmployeesStep } =
+      await import("../../../../../src/workflows/employee/steps/delete-employees")
     const graph = vi.fn().mockResolvedValue({ data: [] })
     const authService = makeAuthService()
     const companyService = makeCompanyService()

@@ -1,5 +1,6 @@
 import type { MedusaRequest } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import {
   filterProductRecords,
   type ProductRecord,

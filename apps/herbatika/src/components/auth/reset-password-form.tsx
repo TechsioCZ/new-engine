@@ -5,6 +5,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
+
 import { PasswordRequirements } from "@/components/auth/password-requirements"
 import {
   createResetPasswordValidators,

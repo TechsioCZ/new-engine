@@ -5,6 +5,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
 import {
@@ -19,6 +20,7 @@ import {
   removeLineItem,
   updateLineItem,
 } from "@/services/cart-service"
+
 import { useRegion } from "./use-region"
 
 type CartMutationError = {

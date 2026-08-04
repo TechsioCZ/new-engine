@@ -1,6 +1,7 @@
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+import NextLink from "next/link"
+
 import { buildAuthRouteHref } from "@/components/auth/auth-helpers"
 import { SupportingText } from "@/components/text/supporting-text"
 

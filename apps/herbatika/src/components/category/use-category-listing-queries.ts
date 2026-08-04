@@ -3,6 +3,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useLocale, useTranslations } from "next-intl"
+
 import {
   resolveCategoryBottomHtml,
   resolveCategoryContextImageTiles,

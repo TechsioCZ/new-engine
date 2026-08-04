@@ -1,6 +1,7 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import type { Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { syncOrderNoteWorkflow } from "../workflows/order-note/upsert-order-note"
 import { sendAccountSetupWorkflow } from "../workflows/send-account-setup"
 import { sendOrderReceiptWorkflow } from "../workflows/send-order-receipt"

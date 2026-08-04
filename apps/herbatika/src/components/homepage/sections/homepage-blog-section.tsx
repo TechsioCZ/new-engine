@@ -1,8 +1,9 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Link } from "@techsio/ui-kit/atoms/link"
+import { useLocale, useTranslations } from "next-intl"
 import NextImage from "next/image"
 import NextLink from "next/link"
-import { useLocale, useTranslations } from "next-intl"
+
 import {
   formatBlogDate,
   formatTopicFromKey,

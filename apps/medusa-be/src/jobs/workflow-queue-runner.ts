@@ -1,6 +1,7 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import type { ILockingModule, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+
 import { WORKFLOW_QUEUE_MODULE } from "../modules/workflow-queue"
 import type WorkflowQueueModuleService from "../modules/workflow-queue/service"
 import { getQueuedWorkflowRunner } from "../utils/workflow-queue-registry"

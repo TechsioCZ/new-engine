@@ -4,6 +4,7 @@ import { HeurekaProduct } from "@techsio/analytics/heureka"
 import { BreadcrumbTemplate } from "@ui/templates/breadcrumb"
 import { useParams, useSearchParams } from "next/navigation"
 import { useEffect, useRef } from "react"
+
 import { Heading } from "@/components/heading"
 import { Gallery } from "@/components/organisms/gallery"
 import { ProductInfoPanel } from "@/components/product-detail/product-info-panel"

@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import { useEffect, useRef } from "react"
+
 import { useAnalytics } from "@/providers/analytics-provider"
 
 /**

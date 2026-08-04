@@ -11,6 +11,7 @@ vi.mock("../../../../../src/modules/packeta-client", () => ({
 }))
 
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+
 import PacketaFulfillmentProviderService from "../../../../../src/modules/fulfillment-packeta/service"
 // Import after mock
 import type { PacketaClientModuleService } from "../../../../../src/modules/packeta-client"

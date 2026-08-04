@@ -5,11 +5,12 @@ import {
 } from "@tanstack/react-query"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import type { Metadata } from "next"
-import { Inter, Open_Sans, Roboto, Rubik } from "next/font/google"
-import localFont from "next/font/local"
 import { type AbstractIntlMessages, NextIntlClientProvider } from "next-intl"
 import { getMessages } from "next-intl/server"
+import { Inter, Open_Sans, Roboto, Rubik } from "next/font/google"
+import localFont from "next/font/local"
 import { Suspense } from "react"
+
 import { AppShell } from "@/components/app-shell"
 import {
   buildCategoryListParams,
@@ -20,6 +21,7 @@ import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { getMarketServerContext } from "@/lib/storefront/market-context.server"
 import { getRegionServerContext } from "@/lib/storefront/ssr/context"
 import { fetchServerCategories } from "@/lib/storefront/storefront-server"
+
 import "./globals.css"
 import { Providers } from "./providers"
 

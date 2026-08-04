@@ -1,13 +1,15 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
+
+import { StorefrontDataProvider } from "../src/client/provider"
 import { createCustomerHooks } from "../src/customers/hooks"
 import { createOrderHooks } from "../src/orders/hooks"
 import { createProductHooks } from "../src/products/hooks"
 import { resolvePagination as resolveSharedPagination } from "../src/shared/pagination"
-import { StorefrontDataProvider } from "../src/client/provider"
 
-const createWrapper = (client: QueryClient) =>
+const createWrapper =
+  (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
@@ -129,18 +131,23 @@ describe("phase 3 regressions", () => {
       })),
     }
 
-    const { getListQueryOptions, getDetailQueryOptions } =
-      createOrderHooks<Order, ListInput, ListParams, DetailInput, DetailParams>({
-        service,
-        queryKeyNamespace: "phase3-order-query-options",
-        buildListParams: (input) => ({
-          page: input.page,
-          limit: input.limit,
-        }),
-        buildDetailParams: (input) => ({
-          id: input.id,
-        }),
-      })
+    const { getListQueryOptions, getDetailQueryOptions } = createOrderHooks<
+      Order,
+      ListInput,
+      ListParams,
+      DetailInput,
+      DetailParams
+    >({
+      service,
+      queryKeyNamespace: "phase3-order-query-options",
+      buildListParams: (input) => ({
+        page: input.page,
+        limit: input.limit,
+      }),
+      buildDetailParams: (input) => ({
+        id: input.id,
+      }),
+    })
 
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -213,28 +220,33 @@ describe("phase 3 regressions", () => {
       })),
     }
 
-    const { getListQueryOptions, getDetailQueryOptions } =
-      createProductHooks<Product, ListInput, ListParams, DetailInput, DetailParams>({
-        service,
-        queryKeyNamespace: "phase3-product-query-options",
-        requireRegion: false,
-        buildListParams: (input) => ({
-          page: input.page,
-          limit: input.limit,
-          offset: input.offset,
-          region_id: input.region_id,
-        }),
-        buildPrefetchParams: (input) => ({
-          page: input.page,
-          limit: input.limit,
-          offset: input.offset,
-          region_id: input.region_id,
-        }),
-        buildDetailParams: (input) => ({
-          handle: input.handle,
-          region_id: input.region_id,
-        }),
-      })
+    const { getListQueryOptions, getDetailQueryOptions } = createProductHooks<
+      Product,
+      ListInput,
+      ListParams,
+      DetailInput,
+      DetailParams
+    >({
+      service,
+      queryKeyNamespace: "phase3-product-query-options",
+      requireRegion: false,
+      buildListParams: (input) => ({
+        page: input.page,
+        limit: input.limit,
+        offset: input.offset,
+        region_id: input.region_id,
+      }),
+      buildPrefetchParams: (input) => ({
+        page: input.page,
+        limit: input.limit,
+        offset: input.offset,
+        region_id: input.region_id,
+      }),
+      buildDetailParams: (input) => ({
+        handle: input.handle,
+        region_id: input.region_id,
+      }),
+    })
 
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -360,10 +372,10 @@ describe("phase 3 regressions", () => {
 
     const service = {
       getAddresses: vi.fn(async () => ({ addresses: [] as Address[] })),
-      createAddress: vi.fn(async () => ({ id: "addr_created" } as Address)),
-      updateAddress: vi.fn(async () => ({ id: "addr_updated" } as Address)),
+      createAddress: vi.fn(async () => ({ id: "addr_created" }) as Address),
+      updateAddress: vi.fn(async () => ({ id: "addr_updated" }) as Address),
       deleteAddress: vi.fn(async () => {}),
-      updateCustomer: vi.fn(async () => ({ id: "cus_1" } as Customer)),
+      updateCustomer: vi.fn(async () => ({ id: "cus_1" }) as Customer),
     }
 
     const { useDeleteCustomerAddress } = createCustomerHooks<
@@ -376,7 +388,10 @@ describe("phase 3 regressions", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
+      defaultOptions: {
+        mutations: { retry: false },
+        queries: { retry: false },
+      },
     })
     const wrapper = createWrapper(queryClient)
 

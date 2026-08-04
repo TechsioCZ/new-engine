@@ -1,5 +1,6 @@
 import type { Config } from "@medusajs/js-sdk"
 import Medusa from "@medusajs/js-sdk"
+
 import {
   getLocalStorageItem,
   removeLocalStorageItem,

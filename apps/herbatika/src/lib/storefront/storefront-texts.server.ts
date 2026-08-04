@@ -1,6 +1,6 @@
 import "server-only"
-
 import { loadMedusaStorefrontMessages } from "@techsio/storefront-i18n/medusa/messages"
+
 import type { HerbatikaMarketContext } from "./market-context"
 import { storefrontSdk } from "./sdk"
 

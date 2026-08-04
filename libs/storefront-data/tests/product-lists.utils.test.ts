@@ -61,10 +61,12 @@ describe("product list utilities", () => {
   })
 
   it("normalizes display quantity to a positive integer", () => {
-    expect(resolveProductListItemQuantity({ id: "item_1", quantity: 2.8 })).toBe(
-      2
+    expect(
+      resolveProductListItemQuantity({ id: "item_1", quantity: 2.8 })
+    ).toBe(2)
+    expect(resolveProductListItemQuantity({ id: "item_2", quantity: 0 })).toBe(
+      1
     )
-    expect(resolveProductListItemQuantity({ id: "item_2", quantity: 0 })).toBe(1)
     expect(resolveProductListItemQuantity({ id: "item_3" })).toBe(1)
   })
 })

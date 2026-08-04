@@ -1,4 +1,5 @@
 import { MedusaError } from "@medusajs/framework/utils"
+
 import {
   flattenStorefrontTextCatalog,
   getFlatStorefrontTextCatalog,

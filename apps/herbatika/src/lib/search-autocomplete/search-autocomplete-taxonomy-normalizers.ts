@@ -1,4 +1,5 @@
 import { createBrandHref } from "@/lib/storefront/brands"
+
 import {
   createHandleLabel,
   normalizeComparable,

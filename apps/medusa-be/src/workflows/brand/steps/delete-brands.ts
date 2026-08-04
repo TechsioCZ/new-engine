@@ -1,5 +1,6 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import type { DeleteBrandsWorkflowInput } from "../types"
 import { getBrandService } from "./helpers"
 

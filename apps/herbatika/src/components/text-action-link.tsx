@@ -1,5 +1,5 @@
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+import NextLink from "next/link"
 
 type TextActionLinkProps = {
   href: string

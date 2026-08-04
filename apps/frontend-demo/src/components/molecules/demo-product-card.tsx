@@ -1,7 +1,7 @@
 import { Badge, type BadgeProps } from "@ui/atoms/badge"
 import { Button } from "@ui/atoms/button"
-import { NumericInputTemplate } from "@ui/templates/numeric-input"
 import { Rating, type RatingProps } from "@ui/atoms/rating"
+import { NumericInputTemplate } from "@ui/templates/numeric-input"
 import { slugify, tv } from "@ui/utils"
 import Image from "next/image"
 import { type HTMLAttributes, type ReactNode, useId } from "react"
@@ -80,8 +80,7 @@ const productCard = tv({
 type ProductCardVariants = VariantProps<typeof productCard>
 
 export interface ProductCardProps
-  extends ProductCardVariants,
-    HTMLAttributes<HTMLDivElement> {
+  extends ProductCardVariants, HTMLAttributes<HTMLDivElement> {
   imageUrl: string
   name: string
   price: string

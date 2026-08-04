@@ -20,6 +20,7 @@ import {
   createStockLocationsWorkflow,
 } from "@medusajs/medusa/core-flows"
 import { sql } from "drizzle-orm"
+
 import { sqlRaw } from "../utils/db"
 
 const CHUNK_SIZE = 50

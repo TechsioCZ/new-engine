@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import { buildCategoryContextImageTiles } from "@/components/category/category-context-image-tile-grid"
 import { rewriteCategoryMetadataHtml } from "@/components/category/category-html-rewrite"
 import {

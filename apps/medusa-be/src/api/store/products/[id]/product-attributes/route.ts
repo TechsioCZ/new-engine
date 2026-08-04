@@ -7,6 +7,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+
 import { normalizeProductSalesChannelFilter } from "../../../../utils/product-filters"
 import type { StoreProductAttributesQuery } from "./middlewares"
 import {

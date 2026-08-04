@@ -2,9 +2,10 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Label } from "@techsio/ui-kit/atoms/label"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+import NextLink from "next/link"
 import { useMemo } from "react"
+
 import { useAppToast } from "@/hooks/use-app-toast"
 import {
   createLoginValidators,
@@ -12,6 +13,7 @@ import {
 } from "@/lib/auth/auth-form-validators"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+
 import { AuthFooter } from "./auth-footer"
 
 type LoginFormProps = {

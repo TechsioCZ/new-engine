@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+
 import { generateSlug, generateSlugFromTitle } from "@/lib/hooks/slug"
 
 describe("slug utilities", () => {

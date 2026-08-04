@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import {
   CHECKOUT_ADDRESS_FIELDS,
   type CheckoutAddressValues,
@@ -73,11 +74,11 @@ const hasRequiredAddressFields = (
 ) =>
   Boolean(
     address?.first_name &&
-      address?.last_name &&
-      address?.address_1 &&
-      address?.city &&
-      address?.postal_code &&
-      address?.country_code
+    address?.last_name &&
+    address?.address_1 &&
+    address?.city &&
+    address?.postal_code &&
+    address?.country_code
   )
 
 export const resolveAddressFormsMatch = (

@@ -2,6 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+
 import {
   listProductAttributeOptionAssignedProducts,
   retrieveProductAttributeOptionOrThrow,

@@ -1,4 +1,5 @@
 import type { CarouselSlide } from "@techsio/ui-kit/molecules/carousel"
+
 import nwImg from "@/assets/carousel/nw.webp"
 import saleImg from "@/assets/carousel/sale.webp"
 import tallboyImg from "@/assets/carousel/tallboy.webp"

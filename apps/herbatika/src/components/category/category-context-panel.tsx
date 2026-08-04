@@ -3,7 +3,9 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
+
 import { stripHtml } from "@/components/product-detail/utils/html-sanitizer"
+
 import {
   type CategoryContextImageTile,
   CategoryContextImageTileGrid,

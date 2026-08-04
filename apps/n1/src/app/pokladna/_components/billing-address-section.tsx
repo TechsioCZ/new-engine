@@ -7,6 +7,7 @@ import { addressValidators, emailValidator } from "@/lib/form-validators"
 import type { AddressFormData } from "@/utils/address-validation"
 import { formatPhoneNumber } from "@/utils/format/format-phone-number"
 import { formatPostalCode } from "@/utils/format/format-postal-code"
+
 import {
   useCheckoutContext,
   useCheckoutForm,

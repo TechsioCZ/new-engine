@@ -1,5 +1,7 @@
 import type { StaticImageData } from "next/image"
+
 import type { HomepageBenefitTranslationKey } from "@/components/homepage/homepage.data.types"
+
 import delivery from "./doprava.avif"
 import products from "./produkty.avif"
 import returns from "./vraceni.avif"

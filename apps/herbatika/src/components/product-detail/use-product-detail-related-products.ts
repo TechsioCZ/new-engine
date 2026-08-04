@@ -1,5 +1,6 @@
 "use client"
 import { useTranslations } from "next-intl"
+
 import type { Product } from "@/components/product-detail/product-detail.types"
 import {
   orderProductsByReferenceCodes,

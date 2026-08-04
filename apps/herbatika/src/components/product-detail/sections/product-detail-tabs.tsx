@@ -4,8 +4,9 @@ import { Accordion } from "@techsio/ui-kit/molecules/accordion"
 import { Tabs } from "@techsio/ui-kit/molecules/tabs"
 import { useTranslations } from "next-intl"
 import { Suspense } from "react"
-import type { ProductDetailContentSection } from "@/components/product-detail/product-detail.types"
+
 import { ProductDetailHtmlContent } from "@/components/product-detail/product-detail-html-content"
+import type { ProductDetailContentSection } from "@/components/product-detail/product-detail.types"
 import {
   PRODUCT_DETAIL_REVIEWS_SECTION_ID,
   PRODUCT_DETAIL_REVIEWS_TAB_VALUE,

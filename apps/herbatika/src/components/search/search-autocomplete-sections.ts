@@ -1,4 +1,5 @@
 import type { SearchAutocompleteResponse } from "@/lib/search-autocomplete/search-autocomplete-types"
+
 import type { SearchAutocompletePanelSection } from "./search-autocomplete-panel"
 
 type SearchAutocompleteSectionTitles = {

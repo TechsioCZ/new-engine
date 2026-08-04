@@ -1,4 +1,5 @@
 import type { Client } from "@medusajs/js-sdk"
+
 import type { FlatStorefrontMessages } from "../core/messages"
 
 export type LoadMedusaStorefrontMessagesInput = {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useFormatter, useTranslations } from "next-intl"
+
 import { ReviewSkeleton } from "@/components/loading/review-skeleton"
 import {
   PRODUCT_DETAIL_REVIEWS_SECTION_ID,

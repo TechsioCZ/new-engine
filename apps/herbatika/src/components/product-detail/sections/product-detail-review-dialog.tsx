@@ -4,10 +4,11 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
+import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { usePathname } from "next/navigation"
-import { useTranslations } from "next-intl"
 import { useState } from "react"
+
 import { buildAuthRouteHref } from "@/components/auth/auth-helpers"
 import { PRODUCT_DETAIL_REVIEWS_SECTION_ID } from "@/components/product-detail/sections/product-detail-review-utils"
 import {

@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { describe, expect, it, vi } from "vitest"
+
 import { GET as getRuleAttributes } from "../rule-attribute-options/[rule_type]/route"
 import { GET as getBrandValues } from "../rule-value-options/[rule_type]/brand/route"
 import { GET as getVariantValues } from "../rule-value-options/[rule_type]/product_variant/route"

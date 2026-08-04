@@ -1,5 +1,5 @@
-import { HEUREKA_REVIEWS } from "@/components/reviews/reviews.data"
 import { ReviewsSection } from "@/components/reviews/reviews-section"
+import { HEUREKA_REVIEWS } from "@/components/reviews/reviews.data"
 
 export function HomepageReviewsSection() {
   return (

@@ -2,9 +2,10 @@ import type { HttpTypes } from "@medusajs/types"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+import NextLink from "next/link"
 import type { ReactNode } from "react"
+
 import {
   HerbatikaProductGrid,
   type HerbatikaProductGridLayout,
@@ -12,6 +13,7 @@ import {
 import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton"
 import type { ProductSortValue } from "@/lib/storefront/plp-query-state"
 import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-builder"
+
 import { CategorySortTabs } from "./category-sort-tabs"
 
 type CategoryResultsSectionProps = {

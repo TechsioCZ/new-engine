@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { StaticImageData } from "next/image"
+
 import {
   type CategoryImageSlug,
   categoryImagesBySlug,

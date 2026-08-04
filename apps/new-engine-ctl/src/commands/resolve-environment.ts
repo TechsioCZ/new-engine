@@ -1,4 +1,5 @@
 import { Command } from "commander"
+
 import { resolveEnvironmentCommandInputSchema } from "../contracts/resolve-environment.js"
 import { appendGitHubOutput, warnGitHub } from "../github-actions.js"
 import { executeResolveEnvironment } from "../orchestration/resolve-environment.js"

@@ -4,10 +4,12 @@ import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Footer } from "@techsio/ui-kit/organisms/footer"
 import type { Route } from "next"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+import NextLink from "next/link"
+
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
+
 import { HerbatikaLogo } from "./herbatika-logo"
 
 type FooterNavigationLink =

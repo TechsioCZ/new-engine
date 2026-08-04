@@ -4,6 +4,7 @@ import type {
   Logger,
 } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
+
 import { decryptFields, encryptFields } from "../../utils/encryption"
 import { safeResolve } from "../../utils/safe-resolve"
 import { PplClient } from "./client"

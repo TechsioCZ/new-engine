@@ -1,5 +1,6 @@
 import type { Client, FetchArgs, FetchInput } from "@medusajs/js-sdk"
 import { describe, expect, it } from "vitest"
+
 import { loadMedusaStorefrontMessages } from "../src/medusa/messages"
 
 const createClient = (response: unknown) => {

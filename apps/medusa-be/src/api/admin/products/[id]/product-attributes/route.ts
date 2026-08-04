@@ -7,6 +7,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+
 import { setProductAttributesWorkflow } from "../../../../../workflows/product-attribute"
 import { getProductAttributeDetail } from "../../../product-attributes/utils"
 import type { AdminSetProductAttributesSchemaType } from "../../../product-attributes/validators"

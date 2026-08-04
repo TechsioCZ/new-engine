@@ -10,6 +10,7 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import { ORDER_NOTE_MODULE } from "../../modules/order-note"
 import type OrderNoteModuleService from "../../modules/order-note/service"
 

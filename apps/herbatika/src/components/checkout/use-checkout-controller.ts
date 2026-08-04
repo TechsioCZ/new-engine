@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useTranslations } from "next-intl"
 import { useEffect, useMemo, useRef, useState } from "react"
+
 import {
   type CheckoutDetailsValues,
   resolveEffectiveCheckoutAddressDetails,
@@ -14,7 +15,6 @@ import {
   useUpdateCart,
   useUpdateCartAddress,
 } from "@/lib/storefront/cart"
-import { buildHerbatikaCheckoutAddressInput } from "@/lib/storefront/cart/address-adapter"
 import {
   resolveCartItemsSubtotalAmount,
   resolveCartItemsTotalAmount,
@@ -24,6 +24,7 @@ import {
   resolveCartTotalWithoutTaxAmount,
 } from "@/lib/storefront/cart-calculations"
 import { resolveCartShippingSubtotalAmount } from "@/lib/storefront/cart-tax-calculations"
+import { buildHerbatikaCheckoutAddressInput } from "@/lib/storefront/cart/address-adapter"
 import {
   fetchPaymentProviders,
   resolveSelectedPaymentProviderId,
@@ -39,15 +40,12 @@ import {
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { useRegions } from "@/lib/storefront/regions"
 import { storefront } from "@/lib/storefront/storefront"
+
 import {
   buildAccountSetupRequestedMetadata,
   isRecord,
   readAccountSetupRequested,
 } from "./account-setup-metadata"
-import {
-  isCheckoutCountryAvailableForRegion,
-  resolveCheckoutCountryItemsForRegion,
-} from "./checkout.constants"
 import { logCheckoutAccountSetupDebug } from "./checkout-account-setup-debug"
 import { resolveHasStoredAddress } from "./checkout-address.utils"
 import { resolveOrderId } from "./checkout-completion.utils"
@@ -56,6 +54,10 @@ import {
   useStoredPaymentProviderSelection,
   writeStoredPaymentProviderSelection,
 } from "./checkout-payment-selection-storage"
+import {
+  isCheckoutCountryAvailableForRegion,
+  resolveCheckoutCountryItemsForRegion,
+} from "./checkout.constants"
 import { useCheckoutActions } from "./use-checkout-actions"
 import { useCheckoutDetailsForm } from "./use-checkout-details-form"
 

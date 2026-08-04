@@ -3,8 +3,9 @@
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+import NextLink from "next/link"
+
 import { HerbatikaLogo } from "@/components/herbatika-logo"
 import { useAuth } from "@/lib/storefront/auth"
 

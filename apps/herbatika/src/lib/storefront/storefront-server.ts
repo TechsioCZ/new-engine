@@ -1,5 +1,4 @@
 import "server-only"
-
 import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
 import type { CatalogFacets } from "@techsio/storefront-data/catalog/types"
@@ -14,6 +13,7 @@ import type {
   MedusaProductListInput,
 } from "@techsio/storefront-data/products/medusa-service"
 import type { MedusaProductReviewListInput } from "@techsio/storefront-data/reviews/medusa-service"
+
 import { storefrontSdk } from "./sdk"
 import type {
   CatalogListParams,

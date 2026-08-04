@@ -1,9 +1,10 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
+import { useLocale, useTranslations } from "next-intl"
 import NextImage from "next/image"
 import NextLink from "next/link"
-import { useLocale, useTranslations } from "next-intl"
+
 import {
   formatOrderAmount,
   formatOrderDate,

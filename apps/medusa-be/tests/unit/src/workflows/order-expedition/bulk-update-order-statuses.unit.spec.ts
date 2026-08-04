@@ -34,9 +34,8 @@ describe("bulkUpdateOrderStatusesWorkflow", () => {
   })
 
   it("updates draft status consistently and emits order.updated for every order", async () => {
-    const { bulkUpdateOrderStatusesWorkflow } = await import(
-      "../../../../../src/workflows/order-expedition/bulk-update-order-statuses"
-    )
+    const { bulkUpdateOrderStatusesWorkflow } =
+      await import("../../../../../src/workflows/order-expedition/bulk-update-order-statuses")
 
     bulkUpdateOrderStatusesWorkflow({
       order_ids: ["order_1", "order_2"],
@@ -59,9 +58,8 @@ describe("bulkUpdateOrderStatusesWorkflow", () => {
   })
 
   it("clears draft marker for other direct status updates", async () => {
-    const { bulkUpdateOrderStatusesWorkflow } = await import(
-      "../../../../../src/workflows/order-expedition/bulk-update-order-statuses"
-    )
+    const { bulkUpdateOrderStatusesWorkflow } =
+      await import("../../../../../src/workflows/order-expedition/bulk-update-order-statuses")
 
     bulkUpdateOrderStatusesWorkflow({
       order_ids: ["order_1"],

@@ -1,4 +1,5 @@
 import type { TreeNode } from "@techsio/ui-kit/molecules/tree-view"
+
 import type { CategoryTreeNode } from "@/data/static/type"
 
 export const transformToTree = (nodes: CategoryTreeNode[]): TreeNode[] =>

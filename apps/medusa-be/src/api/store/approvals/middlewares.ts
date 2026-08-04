@@ -8,6 +8,7 @@ import {
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type { MiddlewareRoute } from "@medusajs/medusa"
+
 import { ApprovalType } from "../../../types"
 import { ensureRole } from "../../middlewares/ensure-role"
 import { approvalTransformQueryConfig } from "./query-config"

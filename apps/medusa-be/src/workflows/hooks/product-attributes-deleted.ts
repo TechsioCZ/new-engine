@@ -2,6 +2,7 @@ import type { ILockingModule } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import { StepResponse } from "@medusajs/framework/workflows-sdk"
 import { deleteProductsWorkflow } from "@medusajs/medusa/core-flows"
+
 import { getProductAttributeService } from "../../utils/product-attributes"
 import {
   cleanupDeletedProductAttributes,

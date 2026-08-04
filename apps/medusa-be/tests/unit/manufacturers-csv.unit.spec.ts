@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+
 import {
   buildManufacturersLookup,
   parseManufacturersCsv,
@@ -94,32 +95,25 @@ describe("parseManufacturersCsv", () => {
     ).toHaveLength(1)
   })
 
-  it.each([
-    "1",
-    "true",
-    "TRUE",
-    "yes",
-    "on",
-  ])("accepts true boolean spelling %s", (value) => {
-    expect(
-      parseManufacturersCsv(`${HEADERS}\n${csvRow({ inList: value })}`)[0]
-        .inList
-    ).toBe(true)
-  })
+  it.each(["1", "true", "TRUE", "yes", "on"])(
+    "accepts true boolean spelling %s",
+    (value) => {
+      expect(
+        parseManufacturersCsv(`${HEADERS}\n${csvRow({ inList: value })}`)[0]
+          .inList
+      ).toBe(true)
+    }
+  )
 
-  it.each([
-    "",
-    "0",
-    "false",
-    "FALSE",
-    "no",
-    "off",
-  ])("accepts false boolean spelling %s", (value) => {
-    expect(
-      parseManufacturersCsv(`${HEADERS}\n${csvRow({ inList: value })}`)[0]
-        .inList
-    ).toBe(false)
-  })
+  it.each(["", "0", "false", "FALSE", "no", "off"])(
+    "accepts false boolean spelling %s",
+    (value) => {
+      expect(
+        parseManufacturersCsv(`${HEADERS}\n${csvRow({ inList: value })}`)[0]
+          .inList
+      ).toBe(false)
+    }
+  )
 
   it("derives outside-EU only from a complete representative", () => {
     const row = parseManufacturersCsv(

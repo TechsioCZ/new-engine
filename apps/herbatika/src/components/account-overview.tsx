@@ -2,6 +2,7 @@
 
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
+
 import {
   AccountSkeletonSurface,
   AccountSurface,

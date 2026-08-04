@@ -2,6 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+
 import { permanentlyDeleteProductAttributeOptionsWorkflow } from "../../../../../../workflows/product-attribute"
 
 export async function DELETE(

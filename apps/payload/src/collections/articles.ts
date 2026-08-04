@@ -1,5 +1,6 @@
 import { lexicalHTMLField } from "@payloadcms/richtext-lexical"
 import type { CollectionConfig } from "payload"
+
 import { requireAuth } from "../lib/access/require-auth"
 import { fieldDescriptions } from "../lib/constants/descriptions"
 import {

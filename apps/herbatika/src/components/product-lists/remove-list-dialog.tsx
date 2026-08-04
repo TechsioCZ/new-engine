@@ -3,8 +3,10 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import { useTranslations } from "next-intl"
+
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { getProductListTitle } from "@/lib/storefront/product-lists"
+
 import type { AccountProductListsController } from "./use-account-product-lists"
 
 type RemoveListDialogProps = {

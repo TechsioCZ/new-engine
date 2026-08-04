@@ -3,6 +3,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
+
 import { PRODUCT_LIST_MODULE } from "../../../../../src/modules/product-list/constants"
 import {
   assertProductSelectionExists,

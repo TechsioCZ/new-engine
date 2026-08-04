@@ -5,9 +5,10 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+import NextLink from "next/link"
 import { useEffect, useRef, useState } from "react"
+
 import {
   asFiniteNumber,
   resolveCartItemsSubtotalAmount,
@@ -17,6 +18,7 @@ import { resolveCartShippingSubtotalAmount } from "@/lib/storefront/cart-tax-cal
 import type { HerbatikaCurrencyCode } from "@/lib/storefront/currency"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { useCartLineItemActions } from "@/lib/storefront/use-cart-line-item-actions"
+
 import { CartItemRow } from "./herbatika-cart-item-row"
 
 type HerbatikaCartPopoverProps = {

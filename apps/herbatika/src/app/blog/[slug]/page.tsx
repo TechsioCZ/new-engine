@@ -2,6 +2,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { notFound } from "next/navigation"
 import { connection } from "next/server"
 import { Suspense } from "react"
+
 import { BlogDetailPage } from "@/components/blog/blog-detail-page"
 import {
   resolveBlogPostBySlug,

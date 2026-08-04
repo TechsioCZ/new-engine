@@ -1,5 +1,6 @@
 import type { StoreProduct } from "@medusajs/types"
 import { slugify } from "@techsio/ui-kit/utils"
+
 import type {
   Product,
   ProductDetail,
@@ -7,6 +8,7 @@ import type {
   ProductVariantDetail,
   StoreProductExtended,
 } from "@/types/product"
+
 import { formatPrice, formatVariants } from "../format/format-product"
 
 const IMAGE_PREFIX_REGEX = /^[a-f0-9]{10}-/

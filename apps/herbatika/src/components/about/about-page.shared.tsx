@@ -1,6 +1,7 @@
 import type { StaticImageData } from "next/image"
 import NextImage from "next/image"
 import NextLink from "next/link"
+
 import type { AboutParagraph } from "./about-page.data"
 
 export type AboutImage = {

@@ -59,9 +59,8 @@ describe("measurement unit assigned-product queries", () => {
     const scope = {
       resolve: vi.fn(() => productService),
     }
-    const { listMeasurementUnitAssignedProducts } = await import(
-      "../../../../../../src/api/admin/measurement-units/utils"
-    )
+    const { listMeasurementUnitAssignedProducts } =
+      await import("../../../../../../src/api/admin/measurement-units/utils")
     const result = await listMeasurementUnitAssignedProducts({
       limit: 10,
       offset: 20,
@@ -127,9 +126,8 @@ describe("measurement unit assigned-product queries", () => {
   })
 
   it("prefers an active assignment over newer deleted history", async () => {
-    const { getCanonicalAssignmentByProductId } = await import(
-      "../../../../../../src/api/admin/measurement-units/utils"
-    )
+    const { getCanonicalAssignmentByProductId } =
+      await import("../../../../../../src/api/admin/measurement-units/utils")
     const active = {
       deleted_at: null,
       id: "pm_active",

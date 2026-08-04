@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
+
 import { QR_PAYMENT_MODULE } from "../constants"
 import { QrManualPaymentProvider } from "../services/manual"
 

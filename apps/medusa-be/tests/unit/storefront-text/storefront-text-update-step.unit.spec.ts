@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
 import { STOREFRONT_TEXT_MODULE } from "../../../src/modules/storefront-text"
 import {
   nestStorefrontTextMessages,
@@ -98,9 +99,8 @@ describe("updateStorefrontTextStep", () => {
   })
 
   it("validates a draft custom value before updating the record", async () => {
-    const { updateStorefrontTextStep } = await import(
-      "../../../src/workflows/storefront-text/steps/update-storefront-text"
-    )
+    const { updateStorefrontTextStep } =
+      await import("../../../src/workflows/storefront-text/steps/update-storefront-text")
     const service = createService()
 
     await expect(
@@ -119,9 +119,8 @@ describe("updateStorefrontTextStep", () => {
   })
 
   it("rejects an unsupported workflow status before reading the record", async () => {
-    const { updateStorefrontTextStep } = await import(
-      "../../../src/workflows/storefront-text/steps/update-storefront-text"
-    )
+    const { updateStorefrontTextStep } =
+      await import("../../../src/workflows/storefront-text/steps/update-storefront-text")
     const service = createService()
 
     await expect(
@@ -137,9 +136,8 @@ describe("updateStorefrontTextStep", () => {
   })
 
   it("updates a compatible custom value and keeps compensation data", async () => {
-    const { updateStorefrontTextStep } = await import(
-      "../../../src/workflows/storefront-text/steps/update-storefront-text"
-    )
+    const { updateStorefrontTextStep } =
+      await import("../../../src/workflows/storefront-text/steps/update-storefront-text")
     const service = createService()
     const overrideValue = "{count, plural, =0 {Szűr} other {Szűr (#)}}"
 
@@ -162,9 +160,8 @@ describe("updateStorefrontTextStep", () => {
   })
 
   it("allows resetting an override and status-only updates", async () => {
-    const { updateStorefrontTextStep } = await import(
-      "../../../src/workflows/storefront-text/steps/update-storefront-text"
-    )
+    const { updateStorefrontTextStep } =
+      await import("../../../src/workflows/storefront-text/steps/update-storefront-text")
     const resetService = createService()
 
     await (updateStorefrontTextStep as MockStep)(
@@ -188,9 +185,8 @@ describe("updateStorefrontTextStep", () => {
   })
 
   it("validates a stored override before status-only activation", async () => {
-    const { updateStorefrontTextStep } = await import(
-      "../../../src/workflows/storefront-text/steps/update-storefront-text"
-    )
+    const { updateStorefrontTextStep } =
+      await import("../../../src/workflows/storefront-text/steps/update-storefront-text")
     const service = createService()
     service.retrieveStorefrontText.mockResolvedValue({
       default_value: "{count, plural, =0 {Filtr} other {Filtr (#)}}",
@@ -212,9 +208,8 @@ describe("updateStorefrontTextStep", () => {
   })
 
   it("validates against the current catalog instead of a stale database default", async () => {
-    const { updateStorefrontTextStep } = await import(
-      "../../../src/workflows/storefront-text/steps/update-storefront-text"
-    )
+    const { updateStorefrontTextStep } =
+      await import("../../../src/workflows/storefront-text/steps/update-storefront-text")
     const service = createService()
     service.retrieveStorefrontText.mockResolvedValue({
       default_value: "Zbývá už jen {count} ks",
@@ -241,9 +236,8 @@ describe("updateStorefrontTextStep", () => {
 
 describe("syncStorefrontTextsStep", () => {
   it("rejects an existing override that no longer matches its default", async () => {
-    const { syncStorefrontTextsStep } = await import(
-      "../../../src/workflows/storefront-text/steps/sync-storefront-texts"
-    )
+    const { syncStorefrontTextsStep } =
+      await import("../../../src/workflows/storefront-text/steps/sync-storefront-texts")
     const service = {
       createStorefrontTexts: vi.fn().mockResolvedValue({ id: "sftxt_new" }),
       deleteStorefrontTexts: vi.fn(),
@@ -280,9 +274,8 @@ describe("syncStorefrontTextsStep", () => {
   })
 
   it("creates missing rows with one bulk service call", async () => {
-    const { syncStorefrontTextsStep } = await import(
-      "../../../src/workflows/storefront-text/steps/sync-storefront-texts"
-    )
+    const { syncStorefrontTextsStep } =
+      await import("../../../src/workflows/storefront-text/steps/sync-storefront-texts")
     const service = {
       createStorefrontTexts: vi
         .fn()
@@ -308,9 +301,8 @@ describe("syncStorefrontTextsStep", () => {
   })
 
   it("limits synchronization to the requested market", async () => {
-    const { syncStorefrontTextsStep } = await import(
-      "../../../src/workflows/storefront-text/steps/sync-storefront-texts"
-    )
+    const { syncStorefrontTextsStep } =
+      await import("../../../src/workflows/storefront-text/steps/sync-storefront-texts")
     const service = {
       createStorefrontTexts: vi
         .fn()
@@ -358,9 +350,8 @@ describe("importStorefrontTextCatalogStep", () => {
   }
 
   it("writes only values that differ from the default catalog", async () => {
-    const { importStorefrontTextCatalogStep } = await import(
-      "../../../src/workflows/storefront-text/steps/import-storefront-text-catalog"
-    )
+    const { importStorefrontTextCatalogStep } =
+      await import("../../../src/workflows/storefront-text/steps/import-storefront-text-catalog")
     const service = createImportService()
     const messages = {
       ...getStorefrontTextDefaultMessages({ market: "cz" }),
@@ -398,9 +389,8 @@ describe("importStorefrontTextCatalogStep", () => {
   })
 
   it("validates the complete catalog before writing any values", async () => {
-    const { importStorefrontTextCatalogStep } = await import(
-      "../../../src/workflows/storefront-text/steps/import-storefront-text-catalog"
-    )
+    const { importStorefrontTextCatalogStep } =
+      await import("../../../src/workflows/storefront-text/steps/import-storefront-text-catalog")
     const service = createImportService()
     const messages = {
       ...getStorefrontTextDefaultMessages({ market: "cz" }),
@@ -420,9 +410,8 @@ describe("importStorefrontTextCatalogStep", () => {
   })
 
   it("rejects an incomplete workflow catalog before synchronization", async () => {
-    const { importStorefrontTextCatalogStep } = await import(
-      "../../../src/workflows/storefront-text/steps/import-storefront-text-catalog"
-    )
+    const { importStorefrontTextCatalogStep } =
+      await import("../../../src/workflows/storefront-text/steps/import-storefront-text-catalog")
     const service = createImportService()
 
     await expect(
@@ -444,9 +433,8 @@ describe("importStorefrontTextCatalogStep", () => {
   })
 
   it("keeps a hidden draft when the imported value matches the effective value", async () => {
-    const { importStorefrontTextCatalogStep } = await import(
-      "../../../src/workflows/storefront-text/steps/import-storefront-text-catalog"
-    )
+    const { importStorefrontTextCatalogStep } =
+      await import("../../../src/workflows/storefront-text/steps/import-storefront-text-catalog")
     const service = createImportService()
     const draftRecord = service.records.find(
       (record) => record.key === "cart.add_to_cart"
@@ -480,9 +468,8 @@ describe("importStorefrontTextCatalogStep", () => {
   })
 
   it("publishes an imported value that currently exists only as a draft", async () => {
-    const { importStorefrontTextCatalogStep } = await import(
-      "../../../src/workflows/storefront-text/steps/import-storefront-text-catalog"
-    )
+    const { importStorefrontTextCatalogStep } =
+      await import("../../../src/workflows/storefront-text/steps/import-storefront-text-catalog")
     const service = createImportService()
     const draftRecord = service.records.find(
       (record) => record.key === "cart.add_to_cart"
@@ -526,9 +513,8 @@ describe("importStorefrontTextCatalogStep", () => {
   })
 
   it("uses one bulk update so a failed import cannot partially commit", async () => {
-    const { importStorefrontTextCatalogStep } = await import(
-      "../../../src/workflows/storefront-text/steps/import-storefront-text-catalog"
-    )
+    const { importStorefrontTextCatalogStep } =
+      await import("../../../src/workflows/storefront-text/steps/import-storefront-text-catalog")
     const service = createImportService()
     const messages = {
       ...getStorefrontTextDefaultMessages({ market: "cz" }),

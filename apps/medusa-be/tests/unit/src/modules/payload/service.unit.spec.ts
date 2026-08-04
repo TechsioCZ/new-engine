@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto"
+
 import { Modules } from "@medusajs/framework/utils"
 import type { Mock } from "vitest"
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest"
+
 import PayloadModuleService from "../../../../../src/modules/payload/service"
 import type { PayloadModuleOptions } from "../../../../../src/modules/payload/types"
 

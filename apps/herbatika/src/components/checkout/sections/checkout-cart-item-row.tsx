@@ -4,9 +4,10 @@ import type { HttpTypes } from "@medusajs/types"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
+import { useTranslations } from "next-intl"
 import NextImage from "next/image"
 import NextLink from "next/link"
-import { useTranslations } from "next-intl"
+
 import { CartLineItemQuantityInput } from "@/components/cart/cart-line-item-quantity-input"
 import {
   FALLBACK_MAX_QUANTITY,
@@ -21,6 +22,7 @@ import {
 } from "@/lib/storefront/cart-calculations"
 import type { HerbatikaCurrencyCode } from "@/lib/storefront/currency"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+
 import {
   resolveAvailabilityText,
   resolveOriginalLineItemTotalAmount,

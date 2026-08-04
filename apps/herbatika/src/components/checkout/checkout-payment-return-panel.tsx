@@ -4,10 +4,11 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import type { Route } from "next"
+import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { useSearchParams } from "next/navigation"
-import { useTranslations } from "next-intl"
 import { type ReactNode, useEffect, useRef, useState } from "react"
+
 import { readAccountSetupRequested } from "@/components/checkout/account-setup-metadata"
 import {
   logCheckoutAccountSetupDebug,

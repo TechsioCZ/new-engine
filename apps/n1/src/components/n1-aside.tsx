@@ -2,6 +2,7 @@
 import { TreeView } from "@techsio/ui-kit/molecules/tree-view"
 import type { TreeView as TreeType } from "@techsio/ui-kit/types/zag"
 import { useRouter } from "next/navigation"
+
 import type { Category, CategoryTreeNode } from "@/data/static/type"
 import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover"
 import { findNodeById } from "@/utils/transform/find-node-by-id"

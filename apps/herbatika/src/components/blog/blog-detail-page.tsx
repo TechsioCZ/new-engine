@@ -1,15 +1,17 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
+import { useLocale, useTranslations } from "next-intl"
 import NextImage from "next/image"
 import NextLink from "next/link"
-import { useLocale, useTranslations } from "next-intl"
+
 import { CategoryRichText } from "@/components/category/category-rich-text"
 import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb"
 import type { BlogPost } from "@/lib/storefront/blog-content"
+
 import { BlogArticleSidebar } from "./blog-article-sidebar"
 import { BlogAuthorCard } from "./blog-author-card"
 import { formatBlogDate } from "./blog-formatters"

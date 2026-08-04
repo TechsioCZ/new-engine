@@ -1,8 +1,10 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs"
 import { isAbsolute, resolve } from "node:path"
+
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { sql } from "drizzle-orm"
+
 import { sqlRaw } from "../utils/db"
 import { isHttpXmlSource, readXmlSource } from "./herbatica-xml-utils"
 

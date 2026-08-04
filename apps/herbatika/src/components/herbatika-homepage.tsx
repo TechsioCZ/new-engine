@@ -9,6 +9,7 @@ import { HomepagePromoSection } from "@/components/homepage/sections/homepage-pr
 import { HomepageReviewsSection } from "@/components/homepage/sections/homepage-reviews-section"
 import { useHomepageController } from "@/components/homepage/use-homepage-controller"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
+
 import { BenefitsSection } from "./homepage/sections/benefits-section"
 import { PurposeCarousel } from "./homepage/sections/purpose-carousel"
 

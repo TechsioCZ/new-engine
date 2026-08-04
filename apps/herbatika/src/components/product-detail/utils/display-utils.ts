@@ -1,4 +1,5 @@
 import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery"
+
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-detail/product-detail.constants"
 
 const SENTENCE_SEPARATOR_PATTERN = /[.!?]/

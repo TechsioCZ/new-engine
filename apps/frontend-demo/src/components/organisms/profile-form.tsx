@@ -5,6 +5,7 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { FormInputRaw as FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
 import { useState } from "react"
+
 import { useCustomer } from "@/hooks/use-customer"
 import { COUNTRIES, formatPhoneNumber, formatPostalCode } from "@/lib/address"
 import type { FormAddressData, FormUserData } from "@/types/checkout"

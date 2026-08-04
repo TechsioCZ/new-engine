@@ -1,6 +1,7 @@
 "use client"
 
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
+
 import { ReviewSkeleton } from "@/components/loading/review-skeleton"
 
 export function ProductDetailSkeleton() {

@@ -3,6 +3,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
+
 import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel"
 import {
   HerbatikaProductGrid,

@@ -3,6 +3,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { SetValues } from "nuqs"
 import { useEffect } from "react"
+
 import { toggleSelection } from "@/components/category/category-selection-utils"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import {

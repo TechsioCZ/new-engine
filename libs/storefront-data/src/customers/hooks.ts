@@ -4,6 +4,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+
 import type { AuthQueryKeys } from "../auth/types"
 import type {
   StorefrontCustomerCreateAddressContext,
@@ -82,14 +83,14 @@ export function createCustomerHooks<
   TAddress,
   TListInput extends CustomerAddressListInputBase,
   TListParams = TListInput,
-  TCreateInput extends
-    CustomerAddressCreateInputBase = CustomerAddressCreateInputBase,
+  TCreateInput extends CustomerAddressCreateInputBase =
+    CustomerAddressCreateInputBase,
   TCreateParams = TCreateInput,
-  TUpdateInput extends
-    CustomerAddressUpdateInputBase = CustomerAddressUpdateInputBase,
+  TUpdateInput extends CustomerAddressUpdateInputBase =
+    CustomerAddressUpdateInputBase,
   TUpdateParams = TUpdateInput,
-  TUpdateCustomerInput extends
-    CustomerProfileUpdateInputBase = CustomerProfileUpdateInputBase,
+  TUpdateCustomerInput extends CustomerProfileUpdateInputBase =
+    CustomerProfileUpdateInputBase,
   TUpdateCustomerParams = TUpdateCustomerInput,
 >({
   service,
@@ -358,14 +359,14 @@ export type CustomerHooks<
   TAddress,
   TListInput extends CustomerAddressListInputBase,
   TListParams = TListInput,
-  TCreateInput extends
-    CustomerAddressCreateInputBase = CustomerAddressCreateInputBase,
+  TCreateInput extends CustomerAddressCreateInputBase =
+    CustomerAddressCreateInputBase,
   TCreateParams = TCreateInput,
-  TUpdateInput extends
-    CustomerAddressUpdateInputBase = CustomerAddressUpdateInputBase,
+  TUpdateInput extends CustomerAddressUpdateInputBase =
+    CustomerAddressUpdateInputBase,
   TUpdateParams = TUpdateInput,
-  TUpdateCustomerInput extends
-    CustomerProfileUpdateInputBase = CustomerProfileUpdateInputBase,
+  TUpdateCustomerInput extends CustomerProfileUpdateInputBase =
+    CustomerProfileUpdateInputBase,
   TUpdateCustomerParams = TUpdateCustomerInput,
 > = ReturnType<
   typeof createCustomerHooks<

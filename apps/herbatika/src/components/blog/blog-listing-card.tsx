@@ -1,8 +1,10 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { useLocale, useTranslations } from "next-intl"
 import NextImage from "next/image"
 import NextLink from "next/link"
-import { useLocale, useTranslations } from "next-intl"
+
 import type { BlogPost } from "@/lib/storefront/blog-content"
+
 import { formatBlogDate, formatTopicFromKey } from "./blog-formatters"
 
 type BlogListingCardProps = {

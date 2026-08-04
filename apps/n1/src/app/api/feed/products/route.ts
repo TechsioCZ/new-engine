@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+
 import { getMedusaBackendUrl } from "@/lib/medusa-backend-url"
 
 const MEDUSA_API_URL = getMedusaBackendUrl()

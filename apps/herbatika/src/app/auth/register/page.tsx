@@ -1,5 +1,5 @@
-import { resolveAfterAuthHref } from "@/components/auth/auth-helpers"
 import { AuthControls } from "@/components/auth-controls"
+import { resolveAfterAuthHref } from "@/components/auth/auth-helpers"
 
 type RegisterPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>

@@ -1,6 +1,7 @@
 "use client"
 
 import { HerbatikaProductCardSkeleton } from "@/components/herbatika-product-card-skeleton"
+
 import {
   HERBATIKA_PRODUCT_GRID_LAYOUT_CLASSNAME,
   type HerbatikaProductGridLayout,

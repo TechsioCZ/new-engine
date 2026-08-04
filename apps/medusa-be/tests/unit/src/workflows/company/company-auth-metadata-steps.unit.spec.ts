@@ -91,9 +91,8 @@ describe("company admin auth metadata steps", () => {
   })
 
   it("clears company admin auth metadata before company deletion", async () => {
-    const { clearCompanyAdminAuthMetadataStep } = await import(
-      "../../../../../src/workflows/company/steps/clear-company-admin-auth-metadata"
-    )
+    const { clearCompanyAdminAuthMetadataStep } =
+      await import("../../../../../src/workflows/company/steps/clear-company-admin-auth-metadata")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -165,9 +164,8 @@ describe("company admin auth metadata steps", () => {
   })
 
   it("restores company admin auth metadata after company restore", async () => {
-    const { restoreCompanyAdminAuthMetadataStep } = await import(
-      "../../../../../src/workflows/company/steps/restore-company-admin-auth-metadata"
-    )
+    const { restoreCompanyAdminAuthMetadataStep } =
+      await import("../../../../../src/workflows/company/steps/restore-company-admin-auth-metadata")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -237,9 +235,8 @@ describe("company admin auth metadata steps", () => {
   })
 
   it("does not clear restored admin metadata on compensation when another active admin role remains", async () => {
-    const { restoreCompanyAdminAuthMetadataStep } = await import(
-      "../../../../../src/workflows/company/steps/restore-company-admin-auth-metadata"
-    )
+    const { restoreCompanyAdminAuthMetadataStep } =
+      await import("../../../../../src/workflows/company/steps/restore-company-admin-auth-metadata")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({

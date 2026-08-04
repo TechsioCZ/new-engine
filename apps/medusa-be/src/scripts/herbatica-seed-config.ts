@@ -1,4 +1,5 @@
 import { resolve } from "node:path"
+
 import type { TaxRateSeedConfig } from "../workflows/seed/steps/create-tax-rates"
 import type { SyncPriceListsStepConfig } from "../workflows/seed/steps/sync-price-lists"
 import type { SeedDatabaseWorkflowInput } from "../workflows/seed/workflows/seed-database"

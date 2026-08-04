@@ -2,7 +2,9 @@
 
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import { useTranslations } from "next-intl"
+
 import type { RegisterFormValidators } from "@/lib/auth/auth-form-validators"
+
 import type {
   RegisterFieldChangeHandler,
   RegisterFormController,

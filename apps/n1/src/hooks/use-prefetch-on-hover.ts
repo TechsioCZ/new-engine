@@ -1,8 +1,10 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+
 import { ALL_CATEGORIES_MAP } from "@/lib/constants"
 import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
+
 import { usePrefetchProducts } from "./use-prefetch-products"
 
 type UsePrefetchOnHoverReturn = {

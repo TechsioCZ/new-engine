@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
+
 import { useCatalogProducts } from "@/lib/storefront/catalog-products"
 import { useCategories } from "@/lib/storefront/categories"
 import {
@@ -7,6 +8,7 @@ import {
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
 import { HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE } from "@/lib/storefront/homepage-catalog-config"
+
 import {
   PRODUCT_SECTIONS,
   PRODUCTS_PER_COLLECTION_SECTION,

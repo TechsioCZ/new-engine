@@ -59,9 +59,8 @@ describe("measurement record mutation compensation", () => {
       measurement_unit_id: "unit_1",
       product_id: "prod_1",
     })
-    const { activateProductMeasurementStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/measurement-record-mutations"
-    )
+    const { activateProductMeasurementStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/measurement-record-mutations")
     const step = activateProductMeasurementStep as MockStep
     const result = await step(
       {
@@ -90,9 +89,8 @@ describe("measurement record mutation compensation", () => {
       measurement_unit_id: "unit_1",
       product_id: "prod_1",
     }
-    const { activateProductMeasurementStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/measurement-record-mutations"
-    )
+    const { activateProductMeasurementStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/measurement-record-mutations")
     const step = activateProductMeasurementStep as MockStep
     const result = await step(
       {
@@ -116,9 +114,8 @@ describe("measurement record mutation compensation", () => {
       measurement_unit_id: "unit_1",
       product_id: "prod_1",
     }
-    const { activateProductMeasurementStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/measurement-record-mutations"
-    )
+    const { activateProductMeasurementStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/measurement-record-mutations")
     const step = activateProductMeasurementStep as MockStep
     const result = await step(
       {
@@ -145,9 +142,8 @@ describe("measurement record mutation compensation", () => {
       { id: "pvm_1" },
       { id: "pvm_2" },
     ])
-    const { createProductVariantMeasurementsStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/measurement-record-mutations"
-    )
+    const { createProductVariantMeasurementsStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/measurement-record-mutations")
     const step = createProductVariantMeasurementsStep as MockStep
     const result = await step(
       [

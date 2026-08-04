@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
+
 import { runImportJob } from "../lib/import-job-runner"
 import {
   SYMMY_PRODUCTS_UPSERT_REQUESTED_EVENT,

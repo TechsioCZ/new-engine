@@ -3,6 +3,7 @@
 import type { StoreCustomer } from "@medusajs/types"
 import { useQueryClient } from "@tanstack/react-query"
 import { createContext, type ReactNode, useContext, useEffect } from "react"
+
 import { useAuth } from "@/hooks/use-auth"
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"

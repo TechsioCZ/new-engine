@@ -4,6 +4,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useFormatter, useTranslations } from "next-intl"
+
 import type { ProductOfferState } from "@/components/product-detail/product-detail.types"
 import { SupportingText } from "@/components/text/supporting-text"
 import {

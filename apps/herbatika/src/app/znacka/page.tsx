@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { getTranslations } from "next-intl/server"
+
 import { BrandIndexPage } from "@/components/brands/brand-index-page"
 import { fetchStorefrontBrands } from "@/lib/storefront/brands.server"
 

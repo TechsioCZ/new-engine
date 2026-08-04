@@ -32,8 +32,8 @@ import { computeEffectiveEnvVariables } from "./zane-effective-service-state"
 import { buildServicePublicUrls } from "./zane-effective-service-urls"
 import { ZaneEnvironmentManager } from "./zane-environments"
 import { UpstreamHttpError } from "./zane-errors"
-import { ZaneMeiliApiCredentialsProvisioner } from "./zane-meili-api-credentials"
 import { ZaneMedusaPublishableKeyProvisioner } from "./zane-medusa-publishable-key"
+import { ZaneMeiliApiCredentialsProvisioner } from "./zane-meili-api-credentials"
 import {
   type HttpMethod,
   type ZaneSession,
@@ -159,11 +159,10 @@ function assertStringArrayInput(value: unknown, label: string): string[] {
   })
 }
 
-
 function toMeiliProvisionOutputInput(
   output: RuntimeProviderOutputInput,
   label: string
- ): ProvisionMeiliKeysInput["backendOutput"] {
+): ProvisionMeiliKeysInput["backendOutput"] {
   if (output.policy.kind !== "meilisearch_key") {
     throw new BadRequestError(
       `${label}.policy.kind must be meilisearch_key for meili_api_credentials`
@@ -186,8 +185,14 @@ function toMeiliProvisionOutputInput(
     policy: {
       uid: uid.trim(),
       description: description.trim(),
-      actions: assertStringArrayInput(output.policy.actions, `${label}.policy.actions`),
-      indexes: assertStringArrayInput(output.policy.indexes, `${label}.policy.indexes`),
+      actions: assertStringArrayInput(
+        output.policy.actions,
+        `${label}.policy.actions`
+      ),
+      indexes: assertStringArrayInput(
+        output.policy.indexes,
+        `${label}.policy.indexes`
+      ),
     },
   }
 }

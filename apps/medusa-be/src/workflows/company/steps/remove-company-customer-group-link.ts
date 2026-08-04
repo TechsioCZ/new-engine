@@ -6,6 +6,7 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 
 type EmployeeWithCustomer = {

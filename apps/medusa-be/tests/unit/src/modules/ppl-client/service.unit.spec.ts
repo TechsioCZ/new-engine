@@ -1,6 +1,7 @@
 import { MedusaError, Modules } from "@medusajs/framework/utils"
 import type { Mock } from "vitest"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
 // Import after mocks
 import { PplClientModuleService } from "../../../../../src/modules/ppl-client/service"
 import { encryptFields } from "../../../../../src/utils/encryption"

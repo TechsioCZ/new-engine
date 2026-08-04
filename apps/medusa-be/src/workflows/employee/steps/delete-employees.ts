@@ -10,6 +10,7 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 import type { ICompanyModuleService } from "../../../types"
 import { getProviderIdentityIdsWithoutActiveAdminRole } from "../utils/admin-auth-metadata"

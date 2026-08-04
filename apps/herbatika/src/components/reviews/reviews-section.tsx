@@ -2,11 +2,12 @@
 
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Rating } from "@techsio/ui-kit/atoms/rating"
+import { useFormatter, useTranslations } from "next-intl"
 import type { StaticImageData } from "next/image"
 import NextImage from "next/image"
 import NextLink from "next/link"
-import { useFormatter, useTranslations } from "next-intl"
 import type { MouseEvent } from "react"
+
 import { FractionalRating } from "@/components/reviews/fractional-rating"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
 import {

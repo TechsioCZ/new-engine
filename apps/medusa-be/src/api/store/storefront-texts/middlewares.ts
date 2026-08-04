@@ -1,5 +1,6 @@
 import { validateAndTransformQuery } from "@medusajs/framework"
 import type { MiddlewareRoute } from "@medusajs/framework/http"
+
 import { StoreGetStorefrontTextsSchema } from "./validators"
 
 export const storeStorefrontTextRoutesMiddlewares: MiddlewareRoute[] = [

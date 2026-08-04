@@ -1,4 +1,5 @@
 import type { CollectionConfig } from "payload"
+
 import { requireAuth } from "../lib/access/require-auth"
 import {
   adminGroups,
@@ -19,10 +20,7 @@ const cleanString = (value: unknown) =>
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
-const resolveLocalizedString = (
-  value: unknown,
-  locale: string | undefined
-) => {
+const resolveLocalizedString = (value: unknown, locale: string | undefined) => {
   if (typeof value === "string") {
     return cleanString(value)
   }

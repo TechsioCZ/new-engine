@@ -1,5 +1,6 @@
 import { useProducts } from "@/hooks/use-products"
 import { transformProduct } from "@/utils/transform/transform-product"
+
 import { ProductGrid } from "../molecules/product-grid"
 
 type RelatedProductsProps = {

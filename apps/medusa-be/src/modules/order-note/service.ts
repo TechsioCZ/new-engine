@@ -5,6 +5,7 @@ import {
   MedusaError,
   MedusaService,
 } from "@medusajs/framework/utils"
+
 import OrderNote from "./models/order-note"
 
 type UpsertOrderNoteInput = {

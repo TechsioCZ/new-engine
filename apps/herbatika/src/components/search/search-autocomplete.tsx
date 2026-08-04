@@ -3,7 +3,9 @@
 import { SearchForm } from "@techsio/ui-kit/molecules/search-form"
 import { useTranslations } from "next-intl"
 import type { FormEvent } from "react"
+
 import { SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH } from "@/lib/search-autocomplete/search-autocomplete-types"
+
 import { SearchAutocompletePanel } from "./search-autocomplete-panel"
 import { useSearchAutocompleteController } from "./use-search-autocomplete-controller"
 

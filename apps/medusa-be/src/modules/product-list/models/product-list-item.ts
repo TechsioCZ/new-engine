@@ -1,4 +1,5 @@
 import { model } from "@medusajs/framework/utils"
+
 import ProductList from "./product-list"
 
 const ProductListItem = model

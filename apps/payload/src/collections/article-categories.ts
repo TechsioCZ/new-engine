@@ -1,4 +1,5 @@
 import type { CollectionConfig } from "payload"
+
 import { requireAuth } from "../lib/access/require-auth"
 import { fieldDescriptions } from "../lib/constants/descriptions"
 import { createSlugField, createTitleField } from "../lib/constants/fields"

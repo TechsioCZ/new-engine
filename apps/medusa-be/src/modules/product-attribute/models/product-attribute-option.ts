@@ -1,4 +1,5 @@
 import { model } from "@medusajs/framework/utils"
+
 import ProductAttribute from "./product-attribute"
 import ProductAttributeDefinition from "./product-attribute-definition"
 

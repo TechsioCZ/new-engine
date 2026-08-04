@@ -19,7 +19,11 @@ interface ZaneEnvVariableServiceState {
 function coercePendingEnvVariable(
   value: Record<string, unknown> | null | undefined
 ): ZaneEnvVariable | null {
-  if (!value || typeof value.key !== "string" || typeof value.value !== "string") {
+  if (
+    !value ||
+    typeof value.key !== "string" ||
+    typeof value.value !== "string"
+  ) {
     return null
   }
 
@@ -41,7 +45,9 @@ export function computeEffectiveEnvVariables(
     }
 
     if (change.type === "DELETE" && change.item_id) {
-      const index = envVariables.findIndex((envVar) => envVar.id === change.item_id)
+      const index = envVariables.findIndex(
+        (envVar) => envVar.id === change.item_id
+      )
       if (index >= 0) {
         envVariables.splice(index, 1)
       }

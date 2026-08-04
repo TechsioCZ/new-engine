@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+
 import { validateSalesChannelSeedInput } from "../steps/create-sales-channels"
 import { planSalesChannelApiKeyLinks } from "../steps/link-sales-channels-api-key"
 

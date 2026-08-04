@@ -71,9 +71,8 @@ describe("measurement link mutation compensation", () => {
   })
 
   it("restores dismissed product-measurement links on rollback", async () => {
-    const { dismissProductMeasurementLinksStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/measurement-link-mutations"
-    )
+    const { dismissProductMeasurementLinksStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/measurement-link-mutations")
     const step = dismissProductMeasurementLinksStep as MockStep
     const links = [
       {
@@ -100,9 +99,8 @@ describe("measurement link mutation compensation", () => {
   })
 
   it("dismisses restored variant links again on rollback", async () => {
-    const { restoreProductVariantMeasurementLinksStep } = await import(
-      "../../../../../src/workflows/measurement-unit/steps/measurement-link-mutations"
-    )
+    const { restoreProductVariantMeasurementLinksStep } =
+      await import("../../../../../src/workflows/measurement-unit/steps/measurement-link-mutations")
     const step = restoreProductVariantMeasurementLinksStep as MockStep
     const links = [
       {

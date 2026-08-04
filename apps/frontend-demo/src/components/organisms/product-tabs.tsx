@@ -6,6 +6,7 @@ import { Rating } from "@techsio/ui-kit/atoms/rating"
 import { Accordion } from "@techsio/ui-kit/molecules/accordion"
 import { type TabItem, TabsTemplate } from "@techsio/ui-kit/templates/tabs"
 import { slugify } from "@techsio/ui-kit/utils"
+
 import { SafeHtmlContent } from "@/components/safe-html-content"
 import type { Product } from "@/types/product"
 
@@ -52,9 +53,8 @@ export function ProductTabs({ product }: ProductTabsProps) {
       content: (
         <div className="space-y-product-tabs-features-gap text-product-tabs-content-fg text-product-tabs-content-size">
           <p>
-            Naše produkty odpovídají standardním velikostem. Pokud
-            jste mezi dvěma velikostmi, doporučujeme zvolit větší
-            pro pohodlné nošení.
+            Naše produkty odpovídají standardním velikostem. Pokud jste mezi
+            dvěma velikostmi, doporučujeme zvolit větší pro pohodlné nošení.
           </p>
           <table className="w-full text-product-tabs-review-meta">
             <thead>
@@ -62,12 +62,8 @@ export function ProductTabs({ product }: ProductTabsProps) {
                 <th className="py-product-tabs-table-cell-y text-left">
                   Velikost
                 </th>
-                <th className="py-product-tabs-table-cell-y">
-                  Hrudník (cm)
-                </th>
-                <th className="py-product-tabs-table-cell-y">
-                  Délka (cm)
-                </th>
+                <th className="py-product-tabs-table-cell-y">Hrudník (cm)</th>
+                <th className="py-product-tabs-table-cell-y">Délka (cm)</th>
               </tr>
             </thead>
             <tbody>

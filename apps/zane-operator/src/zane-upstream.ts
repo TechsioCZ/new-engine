@@ -41,7 +41,10 @@ function getSetCookieHeaders(headers: Headers): string[] {
   return header ? [header] : []
 }
 
-export function updateCookiesFromHeaders(cookies: Map<string, string>, headers: Headers): void {
+export function updateCookiesFromHeaders(
+  cookies: Map<string, string>,
+  headers: Headers
+): void {
   for (const headerValue of getSetCookieHeaders(headers)) {
     const cookiePair = headerValue.split(";", 1)[0]
     if (!cookiePair) {
@@ -78,10 +81,16 @@ export function parseErrorMessage(payload: unknown, fallback: string): string {
     const firstError = object.errors[0]
     if (firstError && typeof firstError === "object") {
       const firstErrorObject = firstError as Record<string, unknown>
-      if (typeof firstErrorObject.detail === "string" && firstErrorObject.detail.trim()) {
+      if (
+        typeof firstErrorObject.detail === "string" &&
+        firstErrorObject.detail.trim()
+      ) {
         return firstErrorObject.detail
       }
-      if (typeof firstErrorObject.message === "string" && firstErrorObject.message.trim()) {
+      if (
+        typeof firstErrorObject.message === "string" &&
+        firstErrorObject.message.trim()
+      ) {
         return firstErrorObject.message
       }
     }
@@ -97,17 +106,26 @@ function requireZaneDeployConfig(config: AppConfig): {
   password: string
 } {
   if (!config.zaneBaseUrl) {
-    throw new BadRequestError("ZANE_BASE_URL is required for deploy orchestration")
+    throw new BadRequestError(
+      "ZANE_BASE_URL is required for deploy orchestration"
+    )
   }
   if (!config.zaneUsername) {
-    throw new BadRequestError("ZANE_USERNAME is required for deploy orchestration")
+    throw new BadRequestError(
+      "ZANE_USERNAME is required for deploy orchestration"
+    )
   }
   if (!config.zanePassword) {
-    throw new BadRequestError("ZANE_PASSWORD is required for deploy orchestration")
+    throw new BadRequestError(
+      "ZANE_PASSWORD is required for deploy orchestration"
+    )
   }
 
   return {
-    connectBaseUrl: (config.zaneConnectBaseUrl ?? config.zaneBaseUrl).replace(/\/+$/, ""),
+    connectBaseUrl: (config.zaneConnectBaseUrl ?? config.zaneBaseUrl).replace(
+      /\/+$/,
+      ""
+    ),
     connectHostHeader: config.zaneConnectHostHeader,
     username: config.zaneUsername,
     password: config.zanePassword,
@@ -134,7 +152,10 @@ export class ZaneUpstreamClient {
     return this.#baseUrl
   }
 
-  buildHeaders(session: ZaneSession | undefined, method: HttpMethod): Record<string, string> {
+  buildHeaders(
+    session: ZaneSession | undefined,
+    method: HttpMethod
+  ): Record<string, string> {
     const csrfToken = session?.cookies.get("csrftoken")
     const headers: Record<string, string> = {
       Accept: "application/json",
@@ -192,7 +213,7 @@ export class ZaneUpstreamClient {
     method: HttpMethod,
     path: string,
     payload?: unknown,
-    options?: ZaneRequestOptions,
+    options?: ZaneRequestOptions
   ): Promise<T | null> {
     const response = await fetch(`${this.#baseUrl}${path}`, {
       method,
@@ -206,7 +227,10 @@ export class ZaneUpstreamClient {
       return null
     }
 
-    if ((response.status === 401 || response.status === 403) && options?.retryOnAuthFailure !== false) {
+    if (
+      (response.status === 401 || response.status === 403) &&
+      options?.retryOnAuthFailure !== false
+    ) {
       this.invalidateSessionCache()
       const freshSession = await this.authenticate(true)
       return await this.request(freshSession, method, path, payload, {
@@ -222,7 +246,11 @@ export class ZaneUpstreamClient {
       } catch {
         // keep fallback message when upstream response is not JSON
       }
-      throw new UpstreamHttpError(response.status, "zane_request_failed", errorMessage)
+      throw new UpstreamHttpError(
+        response.status,
+        "zane_request_failed",
+        errorMessage
+      )
     }
 
     if (response.status === 204) {
@@ -247,13 +275,17 @@ export class ZaneUpstreamClient {
       throw new UpstreamHttpError(
         csrfResponse.status,
         "zane_csrf_failed",
-        `Failed to initialize ZaneOps CSRF session (HTTP ${csrfResponse.status})`,
+        `Failed to initialize ZaneOps CSRF session (HTTP ${csrfResponse.status})`
       )
     }
 
     const csrfToken = session.cookies.get("csrftoken")
     if (!csrfToken) {
-      throw new UpstreamHttpError(502, "zane_csrf_missing", "ZaneOps did not issue a csrftoken cookie")
+      throw new UpstreamHttpError(
+        502,
+        "zane_csrf_missing",
+        "ZaneOps did not issue a csrftoken cookie"
+      )
     }
 
     const loginResponse = await fetch(`${this.#baseUrl}/api/auth/login/`, {
@@ -269,15 +301,26 @@ export class ZaneUpstreamClient {
     if (!loginResponse.ok) {
       let errorMessage = `ZaneOps login failed (HTTP ${loginResponse.status})`
       try {
-        errorMessage = parseErrorMessage(await loginResponse.json(), errorMessage)
+        errorMessage = parseErrorMessage(
+          await loginResponse.json(),
+          errorMessage
+        )
       } catch {
         // keep fallback message when upstream response is not JSON
       }
-      throw new UpstreamHttpError(loginResponse.status, "zane_login_failed", errorMessage)
+      throw new UpstreamHttpError(
+        loginResponse.status,
+        "zane_login_failed",
+        errorMessage
+      )
     }
 
     if (!session.cookies.get("sessionid")) {
-      throw new UpstreamHttpError(502, "zane_session_missing", "ZaneOps login did not return a session cookie")
+      throw new UpstreamHttpError(
+        502,
+        "zane_session_missing",
+        "ZaneOps login did not return a session cookie"
+      )
     }
 
     return session

@@ -1,4 +1,5 @@
 import { model } from "@medusajs/framework/utils"
+
 import { Message } from "./message"
 
 export const Quote = model.define("quote", {

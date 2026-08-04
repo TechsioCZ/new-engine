@@ -1,5 +1,6 @@
 import { ProductStatus } from "@medusajs/framework/utils"
 import { describe, expect, it } from "vitest"
+
 import type { ProductInput } from "../steps/create-products"
 import {
   type PersistedEanOwner,

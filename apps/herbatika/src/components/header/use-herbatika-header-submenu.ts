@@ -2,6 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import type { StaticImageData } from "next/image"
+
 import {
   normalizeCategoryName,
   resolveCategoryRank,
@@ -12,6 +13,7 @@ import {
   CATEGORY_TREE_FIELDS,
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
+
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./herbatika-header.submenu-data"
 
 type HerbatikaHeaderSubmenuChildItem = {

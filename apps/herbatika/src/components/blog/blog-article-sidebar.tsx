@@ -1,6 +1,8 @@
 import type { HttpTypes } from "@medusajs/types"
 import NextImage from "next/image"
+
 import { BLOG_PROMO_BANNER } from "@/lib/storefront/blog-content"
+
 import { BlogFeaturedProductCard } from "./blog-featured-product-card"
 
 type BlogArticleSidebarProps = {

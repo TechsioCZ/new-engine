@@ -3,6 +3,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
+
 import type { BrandSearchProjectionChangedEventData } from "../events"
 import { reconcileBrandSearchProjectionStep } from "../steps/reconcile-brand-search-projection"
 import { resolveBrandSearchProjectionTargetsStep } from "../steps/resolve-brand-search-projection-targets"

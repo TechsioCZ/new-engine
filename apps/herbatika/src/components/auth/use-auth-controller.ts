@@ -1,9 +1,10 @@
 "use client"
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+
 import {
   buildAuthRouteHref,
   buildLoginDefaults,

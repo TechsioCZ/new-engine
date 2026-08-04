@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Slider } from "@techsio/ui-kit/molecules/slider"
 import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
+
 import {
   type AsideFilterChipItem,
   AsideFilterChipSection,

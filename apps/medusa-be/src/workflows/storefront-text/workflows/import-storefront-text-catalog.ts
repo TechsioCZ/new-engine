@@ -3,6 +3,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
+
 import {
   STOREFRONT_TEXT_LOCK_KEY,
   STOREFRONT_TEXT_LOCK_TIMEOUT_SECONDS,

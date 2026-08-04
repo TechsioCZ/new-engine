@@ -5,13 +5,15 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
+import { useTranslations } from "next-intl"
 import Image from "next/image"
 import NextLink from "next/link"
-import { useTranslations } from "next-intl"
 import { useCallback, useEffect, useId, useRef, useState } from "react"
+
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants"
 import { resolvePriceState } from "@/components/product-card/product-card.pricing"
 import type { StoreProductListItem } from "@/lib/storefront/product-lists"
+
 import {
   resolveProductListItemAvailability,
   resolveProductListItemQuantity,

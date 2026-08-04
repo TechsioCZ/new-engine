@@ -3,11 +3,12 @@ import {
   Carousel,
   type CarouselSlide,
 } from "@techsio/ui-kit/molecules/carousel"
+import { useTranslations } from "next-intl"
 import Image from "next/image"
 import NextLink from "next/link"
-import { useTranslations } from "next-intl"
 import type { MouseEventHandler, PointerEventHandler } from "react"
 import { useEffect, useRef, useState } from "react"
+
 import type { HeroBannerItem } from "@/components/homepage/homepage.data"
 
 const HERO_SLIDE_SPACING = "var(--spacing-400)"

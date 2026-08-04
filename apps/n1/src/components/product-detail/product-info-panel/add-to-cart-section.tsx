@@ -3,6 +3,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import { slugify } from "@techsio/ui-kit/utils"
 import { useState } from "react"
+
 import { useAddToCart, useCart } from "@/hooks/use-cart"
 import { useRegion } from "@/hooks/use-region"
 import { useCartToast } from "@/hooks/use-toast"

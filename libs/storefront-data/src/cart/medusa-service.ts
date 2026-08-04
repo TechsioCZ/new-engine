@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+
 import { getErrorStatus } from "../shared/medusa-errors"
 import type { CartService } from "./types"
 

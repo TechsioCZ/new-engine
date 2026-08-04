@@ -1,4 +1,5 @@
 import { Command } from "commander"
+
 import { teardownPreviewCommandInputSchema } from "../contracts/teardown-preview.js"
 import { appendGitHubOutput } from "../github-actions.js"
 import { executeTeardownPreview } from "../orchestration/teardown-preview.js"

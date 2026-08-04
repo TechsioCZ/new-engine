@@ -4,6 +4,7 @@ import {
   type ParserOptions,
   parse,
 } from "@formatjs/icu-messageformat-parser"
+
 import { isObjectRecord } from "../../utils/guards"
 
 type StorefrontTextMessageValidationFailure = {

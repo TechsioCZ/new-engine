@@ -1,4 +1,5 @@
 import { model } from "@medusajs/framework/utils"
+
 import MeasurementUnit from "./measurement-unit"
 import ProductVariantMeasurement from "./product-variant-measurement"
 

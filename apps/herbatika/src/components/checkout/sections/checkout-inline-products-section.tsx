@@ -2,6 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useTranslations } from "next-intl"
+
 import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel"
 import { useCheckoutInlineProducts } from "@/components/checkout/use-checkout-inline-products"
 

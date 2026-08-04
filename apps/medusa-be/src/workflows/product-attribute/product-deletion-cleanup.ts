@@ -1,4 +1,5 @@
 import type { ILockingModule } from "@medusajs/framework/types"
+
 import {
   getProductAttributeProductLockKey,
   type getProductAttributeService,

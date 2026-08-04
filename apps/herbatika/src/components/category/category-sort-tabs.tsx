@@ -1,6 +1,8 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { useTranslations } from "next-intl"
+
 import type { ProductSortValue } from "@/lib/storefront/plp-query-state"
+
 import { SORT_TAB_ITEMS } from "./category-listing.constants"
 
 type CategorySortTabsProps = {

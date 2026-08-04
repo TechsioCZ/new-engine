@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+
 import { escapeLikePattern } from "../../../../src/utils/sql"
 
 describe("escapeLikePattern", () => {

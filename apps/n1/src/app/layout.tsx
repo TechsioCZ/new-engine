@@ -1,10 +1,12 @@
-import type { Metadata } from "next"
-import { Open_Sans } from "next/font/google"
-import "../tokens/index.css"
 import { GoogleTag } from "@techsio/analytics/google"
 import { LeadhubPixel } from "@techsio/analytics/leadhub"
+
+import "../tokens/index.css"
 import { MetaPixel } from "@techsio/analytics/meta"
+import type { Metadata } from "next"
+import { Open_Sans } from "next/font/google"
 import { type ReactNode, Suspense } from "react"
+
 import { PageviewTracker } from "@/components/analytics/pageview-tracker"
 import { N1Header } from "@/components/header/n1-header"
 import { HeaderProvider } from "@/components/header/store/header-context"

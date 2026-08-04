@@ -1,10 +1,10 @@
 import "server-only"
-
 import {
   MEDUSA_BACKEND_URL,
   MEDUSA_PUBLISHABLE_KEY,
   SSR_FETCH_OPTIONS,
 } from "@/lib/storefront/ssr/constants"
+
 import { normalizeStorefrontBrand, type StorefrontBrand } from "./brands"
 
 type StoreBrandsResponse = {

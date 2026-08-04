@@ -2,10 +2,12 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { useRef } from "react"
+
 import { cacheConfig } from "@/lib/cache-config"
 import { prefetchLogger } from "@/lib/loggers/prefetch"
 import { queryKeys } from "@/lib/query-keys"
 import { getProductByHandle } from "@/services/product-service"
+
 import { useRegion } from "./use-region"
 
 const PREFETCH_DELAY = 400

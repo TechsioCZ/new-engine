@@ -5,6 +5,7 @@ import { StatusText } from "@ui/atoms/status-text"
 import { BreadcrumbTemplate } from "@ui/templates/breadcrumb"
 import Link from "next/link"
 import { useEffect, useState } from "react"
+
 import { SkeletonLoader } from "@/components/atoms/skeleton-loader"
 import { Gallery } from "@/components/organisms/gallery"
 import { ProductGrid } from "@/components/organisms/product-grid"

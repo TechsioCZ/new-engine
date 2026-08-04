@@ -4,6 +4,7 @@ import type { StoreRegion } from "@medusajs/types"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useStore } from "@tanstack/react-store"
 import { useEffect } from "react"
+
 import { sdk } from "@/lib/medusa-client"
 import { queryKeys } from "@/lib/query-keys"
 import { regionStore, setSelectedRegionId } from "@/stores/region-store"

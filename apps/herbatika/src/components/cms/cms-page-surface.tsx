@@ -1,4 +1,5 @@
 import { useTranslations } from "next-intl"
+
 import { CategoryRichText } from "@/components/category/category-rich-text"
 import {
   HerbatikaBreadcrumb,

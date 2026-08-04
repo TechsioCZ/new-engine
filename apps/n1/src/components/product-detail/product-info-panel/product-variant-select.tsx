@@ -3,7 +3,9 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Tooltip } from "@techsio/ui-kit/atoms/tooltip"
 import { tv } from "@techsio/ui-kit/utils"
 import Link from "next/link"
+
 import type { ProductDetail, ProductVariantDetail } from "@/types/product"
+
 import { TooltipContent } from "./tooltip-content"
 
 const variantButton = tv({

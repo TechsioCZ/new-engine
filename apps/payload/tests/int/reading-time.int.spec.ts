@@ -5,6 +5,7 @@ vi.mock("@payloadcms/richtext-lexical/plaintext", () => ({
 }))
 
 import { convertLexicalToPlaintext } from "@payloadcms/richtext-lexical/plaintext"
+
 import { estimateReadingTime } from "@/lib/utils/reading-time"
 
 const convertLexicalToPlaintextMock = vi.mocked(convertLexicalToPlaintext)

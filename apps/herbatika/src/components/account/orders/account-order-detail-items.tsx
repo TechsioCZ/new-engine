@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Table } from "@techsio/ui-kit/organisms/table"
 import { useTranslations } from "next-intl"
+
 import {
   formatOrderAmount,
   resolveOrderItemQuantity,

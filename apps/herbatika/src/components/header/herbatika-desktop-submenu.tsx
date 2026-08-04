@@ -2,9 +2,10 @@
 
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
+import { useTranslations } from "next-intl"
 import NextImage from "next/image"
 import NextLink from "next/link"
-import { useTranslations } from "next-intl"
+
 import {
   type HerbatikaHeaderSubmenuFeaturedItem,
   useHerbatikaHeaderSubmenu,

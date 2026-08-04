@@ -2,6 +2,7 @@ import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { expect, test } from "vitest"
+
 import { listLocalRuntimeProviderOutputAliases } from "../contracts/stack-inputs.js"
 import { loadDeployContracts } from "../orchestration/deploy-inputs.js"
 import { executeLocalEnvRuntimeProviderOutputTargets } from "../orchestration/local-env.js"

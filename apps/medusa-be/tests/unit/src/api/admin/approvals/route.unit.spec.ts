@@ -27,9 +27,8 @@ describe("GET /admin/approvals", () => {
   })
 
   it("normalizes graph cart approvals to approval_requests", async () => {
-    const { GET } = await import(
-      "../../../../../../src/api/admin/approvals/route"
-    )
+    const { GET } =
+      await import("../../../../../../src/api/admin/approvals/route")
     const approval = {
       id: "appr_1",
       cart_id: "cart_1",

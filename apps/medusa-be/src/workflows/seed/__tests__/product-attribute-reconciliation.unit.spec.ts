@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+
 import { resolveHerbaticaProductVisibility } from "../../../scripts/herbatica-seed"
 import {
   selectExclusivelyScopedBrandIds,
@@ -155,18 +156,21 @@ describe("Herbatica native visibility mapping", () => {
     ["visible", "published", ["Default Sales Channel"], true],
     ["cashDeskOnly", "published", ["Default Sales Channel POS"], false],
     ["hidden", "draft", [], false],
-  ])("maps %s to exact status and channel membership", (visibility, status, salesChannelNames, storefrontAccessible) => {
-    expect(
-      resolveHerbaticaProductVisibility({
-        topOffer: { visible: true },
-        visibility,
+  ])(
+    "maps %s to exact status and channel membership",
+    (visibility, status, salesChannelNames, storefrontAccessible) => {
+      expect(
+        resolveHerbaticaProductVisibility({
+          topOffer: { visible: true },
+          visibility,
+        })
+      ).toEqual({
+        salesChannelNames,
+        status,
+        storefrontAccessible,
       })
-    ).toEqual({
-      salesChannelNames,
-      status,
-      storefrontAccessible,
-    })
-  })
+    }
+  )
 
   it("makes an offer marked invisible draft regardless of source visibility", () => {
     expect(

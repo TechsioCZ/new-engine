@@ -1,4 +1,5 @@
 import type { MiddlewareRoute } from "@medusajs/medusa"
+
 import { storeApprovalsMiddlewares } from "./approvals/middlewares"
 import { storeCartsMiddlewares } from "./carts/middlewares"
 import { storeCompaniesMiddlewares } from "./companies/middlewares"

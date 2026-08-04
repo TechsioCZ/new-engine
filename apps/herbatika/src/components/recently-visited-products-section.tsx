@@ -4,6 +4,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useTranslations } from "next-intl"
 import { type ReactNode, useState } from "react"
+
 import { HerbatikaProductCardCompact } from "@/components/herbatika-product-card-compact"
 import { HerbatikaProductCardSkeleton } from "@/components/herbatika-product-card-skeleton"
 import { SupportingText } from "@/components/text/supporting-text"

@@ -9,6 +9,8 @@ import {
   useRef,
   useState,
 } from "react"
+
+import { loadPplWidgetLoader } from "./ppl-widget-loader"
 import type {
   PplAccessPoint,
   PplWidgetConfig,
@@ -16,7 +18,6 @@ import type {
   PplWidgetError,
   PplWidgetHandle,
 } from "./ppl-widget.types"
-import { loadPplWidgetLoader } from "./ppl-widget-loader"
 
 export type {
   PplAccessPoint,

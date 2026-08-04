@@ -2,11 +2,13 @@
 
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { useTranslations } from "next-intl"
+
 import { CatalogListingShell } from "@/components/catalog-listing-shell"
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel"
 import { CategoryResultsSection } from "@/components/category/category-results-section"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
+
 import { useSearchListingController } from "./search/use-search-listing-controller"
 
 export function SearchResults() {

@@ -1,4 +1,5 @@
 import type Medusa from "@medusajs/js-sdk"
+
 import { createMedusaProductReviewService } from "../src/reviews/medusa-service"
 import type { ReviewBase } from "../src/reviews/types"
 

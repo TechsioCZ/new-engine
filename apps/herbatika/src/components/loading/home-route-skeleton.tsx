@@ -1,7 +1,9 @@
 "use client"
 
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
+
 import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton"
+
 import { ReviewSkeleton } from "./review-skeleton"
 
 function HeroCardSkeleton({ index }: { index: number }) {

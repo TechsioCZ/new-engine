@@ -1,5 +1,6 @@
 import type { StoreProductVariantWithPricePerUnit } from "@techsio/storefront-data/products/types"
 import { describe, expect, it } from "vitest"
+
 import { formatUnitPriceLabel, resolveVariantPricePerUnit } from "./unit-price"
 
 describe("formatUnitPriceLabel", () => {

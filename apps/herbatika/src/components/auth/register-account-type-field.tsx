@@ -1,7 +1,9 @@
 "use client"
 
 import { useTranslations } from "next-intl"
+
 import type { RegisterFormValidators } from "@/lib/auth/auth-form-validators"
+
 import type {
   RegisterFieldChangeHandler,
   RegisterFormController,

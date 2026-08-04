@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import {
   createMedusaAuthService,
   MedusaRegistrationSignInError,
@@ -32,11 +33,9 @@ function createSdkMock(overrides?: {
     client: {
       fetch:
         overrides?.fetchCustomer ??
-        vi
-          .fn()
-          .mockResolvedValue({
-            customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
-          }),
+        vi.fn().mockResolvedValue({
+          customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
+        }),
     },
     auth: {
       register: vi.fn().mockResolvedValue("token_1"),
@@ -48,17 +47,19 @@ function createSdkMock(overrides?: {
       customer: {
         retrieve: vi
           .fn()
-          .mockResolvedValue({ customer: { id: "cus_1" } as HttpTypes.StoreCustomer }),
+          .mockResolvedValue({
+            customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
+          }),
         create:
           overrides?.createCustomer ??
-          vi
-            .fn()
-            .mockResolvedValue({
-              customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
-            }),
+          vi.fn().mockResolvedValue({
+            customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
+          }),
         update: vi
           .fn()
-          .mockResolvedValue({ customer: { id: "cus_1" } as HttpTypes.StoreCustomer }),
+          .mockResolvedValue({
+            customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
+          }),
       },
     },
   }
@@ -133,7 +134,9 @@ describe("createMedusaAuthService", () => {
 
   it("cleans up and rejects when register requires multi-step auth", async () => {
     const sdk = createSdkMock()
-    sdk.auth.register.mockResolvedValue({ location: "https://idp.example.test" })
+    sdk.auth.register.mockResolvedValue({
+      location: "https://idp.example.test",
+    })
     const service = createMedusaAuthService(sdk as never)
 
     await expect(
@@ -270,9 +273,7 @@ describe("createMedusaAuthService", () => {
       password: "secret123",
     })
 
-    await expect(
-      registration
-    ).rejects.toEqual(
+    await expect(registration).rejects.toEqual(
       expect.objectContaining({
         name: "MedusaRegistrationSignInError",
         code: "registration_sign_in_failed",

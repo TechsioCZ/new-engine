@@ -1,4 +1,5 @@
 import { Suspense } from "react"
+
 import { CheckoutPaymentReturnPanel } from "@/components/checkout/checkout-payment-return-panel"
 
 function CheckoutPaymentReturnFallback() {

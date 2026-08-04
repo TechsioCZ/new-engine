@@ -2,14 +2,15 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
-import type { AddressFormState } from "@/components/checkout/checkout.constants"
+import NextLink from "next/link"
+
 import {
   resolveCountryLabel,
   resolvePaymentIcon,
   resolveShippingIcon,
 } from "@/components/checkout/checkout-display.utils"
+import type { AddressFormState } from "@/components/checkout/checkout.constants"
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
 import { PAYLOAD_MODULE } from "../../../../../../src/modules/payload"
 
 const mockCmsService = {
@@ -48,9 +49,8 @@ describe("Store CMS routes", () => {
   })
 
   it("passes request locale to published page lookup", async () => {
-    const { GET } = await import(
-      "../../../../../../src/api/store/cms/pages/[slug]/route"
-    )
+    const { GET } =
+      await import("../../../../../../src/api/store/cms/pages/[slug]/route")
     const req = createMockRequest({
       locale: "cs",
       params: { slug: "about-us" },
@@ -71,9 +71,8 @@ describe("Store CMS routes", () => {
   })
 
   it("passes request locale to published article lookup", async () => {
-    const { GET } = await import(
-      "../../../../../../src/api/store/cms/articles/[slug]/route"
-    )
+    const { GET } =
+      await import("../../../../../../src/api/store/cms/articles/[slug]/route")
     const req = createMockRequest({
       locale: "sk",
       params: { slug: "news" },
@@ -94,9 +93,8 @@ describe("Store CMS routes", () => {
   })
 
   it("passes request locale to page category listing", async () => {
-    const { GET } = await import(
-      "../../../../../../src/api/store/cms/page-categories/route"
-    )
+    const { GET } =
+      await import("../../../../../../src/api/store/cms/page-categories/route")
     const req = createMockRequest({
       locale: "cs",
       validatedQuery: { categorySlug: "guides" },
@@ -116,9 +114,8 @@ describe("Store CMS routes", () => {
   })
 
   it("passes request locale to article category listing", async () => {
-    const { GET } = await import(
-      "../../../../../../src/api/store/cms/article-categories/route"
-    )
+    const { GET } =
+      await import("../../../../../../src/api/store/cms/article-categories/route")
     const req = createMockRequest({
       locale: "en",
       validatedQuery: { categorySlug: "journal" },
@@ -142,9 +139,8 @@ describe("Store CMS routes", () => {
   })
 
   it("passes request locale to hero carousel listing", async () => {
-    const { GET } = await import(
-      "../../../../../../src/api/store/cms/hero-carousels/route"
-    )
+    const { GET } =
+      await import("../../../../../../src/api/store/cms/hero-carousels/route")
     const req = createMockRequest({
       locale: "cs",
       validatedQuery: { limit: 5, page: 2, sort: "-updatedAt" },

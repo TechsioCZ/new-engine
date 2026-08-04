@@ -2,6 +2,7 @@ import type {
   CreateProductsWorkflowInput,
   UpdateProductsWorkflowInputProducts,
 } from "@medusajs/medusa/core-flows"
+
 import type {
   ExistingProduct,
   ExistingProductIndex,

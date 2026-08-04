@@ -1,13 +1,9 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
+import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import {
-  CHECKOUT_STEPS,
-  type CheckoutStepId,
-  type CheckoutStepSlug,
-} from "@/components/checkout/checkout.constants"
+
 import {
   canAccessCheckoutStep,
   resolveCheckoutStepHref,
@@ -16,6 +12,11 @@ import {
 } from "@/components/checkout/checkout-route.utils"
 import { CheckoutStepContent } from "@/components/checkout/checkout-step-content"
 import { canNavigateToCheckoutStep } from "@/components/checkout/checkout-step-navigation"
+import {
+  CHECKOUT_STEPS,
+  type CheckoutStepId,
+  type CheckoutStepSlug,
+} from "@/components/checkout/checkout.constants"
 import { CheckoutCompletedOrderSection } from "@/components/checkout/sections/checkout-completed-order-section"
 import { CheckoutEmptyCartSection } from "@/components/checkout/sections/checkout-empty-cart-section"
 import { CheckoutFeedbackSection } from "@/components/checkout/sections/checkout-feedback-section"

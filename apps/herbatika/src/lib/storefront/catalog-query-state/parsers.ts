@@ -6,6 +6,7 @@ import {
   parseAsString,
   parseAsStringLiteral,
 } from "nuqs/server"
+
 import { PRODUCT_SORT_VALUES } from "../plp-config"
 import { normalizeStatusFilterInput } from "./status-filters"
 import { areStringArraysEqual, normalizeMultiValueInput } from "./utils"

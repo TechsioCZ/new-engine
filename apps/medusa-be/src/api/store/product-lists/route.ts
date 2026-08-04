@@ -2,6 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
 import type ProductListModuleService from "../../../modules/product-list/service"
 import { listCustomerProductListIds } from "../../../utils/product-list-links"

@@ -4,6 +4,7 @@ import {
   SearchUtils,
 } from "@medusajs/framework/utils"
 import { afterEach, describe, expect, it, vi } from "vitest"
+
 import {
   BRAND_SEARCH_PROJECTION_EVENT_OPTIONS,
   buildBrandSearchProjectionEventData,

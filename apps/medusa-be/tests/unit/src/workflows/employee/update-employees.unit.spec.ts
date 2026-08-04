@@ -93,9 +93,8 @@ describe("updateEmployeesStep", () => {
   })
 
   it("validates the route company and does not pass company_id into the update payload", async () => {
-    const { updateEmployeesStep } = await import(
-      "../../../../../src/workflows/employee/steps/update-employees"
-    )
+    const { updateEmployeesStep } =
+      await import("../../../../../src/workflows/employee/steps/update-employees")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -162,9 +161,8 @@ describe("updateEmployeesStep", () => {
   })
 
   it("throws when the employee does not belong to the requested company", async () => {
-    const { updateEmployeesStep } = await import(
-      "../../../../../src/workflows/employee/steps/update-employees"
-    )
+    const { updateEmployeesStep } =
+      await import("../../../../../src/workflows/employee/steps/update-employees")
     const graph = vi.fn().mockResolvedValue({ data: [] })
     const companyService = {
       updateEmployees: vi.fn(),

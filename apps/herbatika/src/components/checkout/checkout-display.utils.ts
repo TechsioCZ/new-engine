@@ -1,4 +1,5 @@
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
+
 import { resolveCountryDisplayName } from "@/lib/forms/country-options"
 
 const normalizeProviderValue = (providerId: string) =>

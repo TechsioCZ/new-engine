@@ -21,6 +21,7 @@ import {
   createProductsWorkflow,
   type ProcessProductOptionsForImportInput,
 } from "@medusajs/medusa/core-flows"
+
 import { BRAND_MODULE } from "../../../modules/brand"
 import type BrandModuleService from "../../../modules/brand/service"
 import {

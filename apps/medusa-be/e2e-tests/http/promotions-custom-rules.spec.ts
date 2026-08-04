@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
+
 import { resolveRequiredEnv } from "./helpers/client"
 import type { DraftOrderPreview } from "./helpers/promotions"
 import {
@@ -186,61 +187,64 @@ describe("Custom promotion rules HTTP E2E", () => {
       unmatchedQuantity: 1,
       values: () => ["2"],
     },
-  ])("applies $name target rules only to matching cart items", async ({
-    attribute,
-    matchingAmount,
-    matchingQuantity,
-    operator,
-    unmatchedAmount,
-    unmatchedQuantity,
-    values,
-  }) => {
-    const context = await createTestContext(backendUrl)
-    const matchingProduct = await createProduct(
-      context.admin,
-      context.salesChannelId,
-      {
-        amount: matchingAmount,
-        title: `Matching Rule Product ${suffix()}`,
-      }
-    )
-    const unmatchedProduct = await createProduct(
-      context.admin,
-      context.salesChannelId,
-      {
-        amount: unmatchedAmount,
-        title: `Unmatched Rule Product ${suffix()}`,
-      }
-    )
-    const promotion = await createPromotion(context.admin, {
-      targetRules: [
+  ])(
+    "applies $name target rules only to matching cart items",
+    async ({
+      attribute,
+      matchingAmount,
+      matchingQuantity,
+      operator,
+      unmatchedAmount,
+      unmatchedQuantity,
+      values,
+    }) => {
+      const context = await createTestContext(backendUrl)
+      const matchingProduct = await createProduct(
+        context.admin,
+        context.salesChannelId,
         {
-          attribute,
-          operator,
-          values: values(matchingProduct.variants[0].id),
-        },
-      ],
-    })
+          amount: matchingAmount,
+          title: `Matching Rule Product ${suffix()}`,
+        }
+      )
+      const unmatchedProduct = await createProduct(
+        context.admin,
+        context.salesChannelId,
+        {
+          amount: unmatchedAmount,
+          title: `Unmatched Rule Product ${suffix()}`,
+        }
+      )
+      const promotion = await createPromotion(context.admin, {
+        targetRules: [
+          {
+            attribute,
+            operator,
+            values: values(matchingProduct.variants[0].id),
+          },
+        ],
+      })
 
-    const cart = await createCartAndApplyPromotion(
-      context,
-      [
-        {
-          quantity: matchingQuantity,
-          variantId: matchingProduct.variants[0].id,
-        },
-        {
-          quantity: unmatchedQuantity,
-          variantId: unmatchedProduct.variants[0].id,
-        },
-      ],
-      promotion.code
-    )
+      const cart = await createCartAndApplyPromotion(
+        context,
+        [
+          {
+            quantity: matchingQuantity,
+            variantId: matchingProduct.variants[0].id,
+          },
+          {
+            quantity: unmatchedQuantity,
+            variantId: unmatchedProduct.variants[0].id,
+          },
+        ],
+        promotion.code
+      )
 
-    expectAdjusted(getItem(cart, matchingProduct.variants[0].id), promotion)
-    expectUnadjusted(getItem(cart, unmatchedProduct.variants[0].id))
-    expectCartDiscounted(cart)
-  })
+      expectAdjusted(getItem(cart, matchingProduct.variants[0].id), promotion)
+      expectUnadjusted(getItem(cart, unmatchedProduct.variants[0].id))
+      expectCartDiscounted(cart)
+    }
+  )
 
   it("applies cart item total rules only when the cart reaches the threshold", async () => {
     const context = await createTestContext(backendUrl)

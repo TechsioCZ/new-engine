@@ -3,6 +3,7 @@ import {
   isServer,
   QueryClient,
 } from "@tanstack/react-query"
+
 import { getErrorStatus } from "./medusa-errors"
 
 export type QueryClientConfig = NonNullable<

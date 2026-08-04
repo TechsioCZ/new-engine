@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+
 import type { CatalogFacets } from "../src/catalog/types"
 import type { CreateMedusaStorefrontPresetConfig } from "../src/medusa/preset"
 import type { ProductListHooks } from "../src/product-lists/hooks"

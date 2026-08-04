@@ -3,6 +3,7 @@ import {
   authenticate,
   validateAndTransformBody,
 } from "@medusajs/framework/http"
+
 import { UpdatePriceListPricesBatchSchema } from "./validators"
 
 export const symmyPriceListPricesBatchRoutes: MiddlewareRoute[] = [

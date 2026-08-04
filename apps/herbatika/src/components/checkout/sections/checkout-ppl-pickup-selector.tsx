@@ -4,12 +4,14 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
 import { useMemo, useRef, useState } from "react"
+
 import {
   CARRIER_PICKUP_FAILURE_KEYS,
   type CarrierPickupFailureReason,
   resolveCarrierPickupWidgetLanguage,
 } from "@/components/checkout/carrier-pickup.utils"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
+
 import { PplAccessPointWidget } from "../ppl-widget"
 import type {
   PplAccessPoint,

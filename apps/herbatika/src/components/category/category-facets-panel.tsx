@@ -1,6 +1,7 @@
 "use client"
 
 import { useTranslations } from "next-intl"
+
 import { AsideFilter } from "@/components/aside-filter"
 import type { AsideFilterChipItem } from "@/components/aside-filter-chip-section"
 

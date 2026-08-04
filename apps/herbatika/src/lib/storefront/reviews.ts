@@ -2,6 +2,7 @@
 
 import type { MedusaProductReviewListInput } from "@techsio/storefront-data/reviews/medusa-service"
 import type { ReviewBase } from "@techsio/storefront-data/reviews/types"
+
 import { PRODUCT_REVIEWS_PAGE_SIZE as REVIEWS_PAGE_SIZE } from "./review-query-config"
 import { storefront } from "./storefront"
 

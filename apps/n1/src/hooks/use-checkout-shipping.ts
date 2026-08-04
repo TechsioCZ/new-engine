@@ -4,6 +4,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+
 import { CACHE_TIMES, TAX_RATE } from "@/lib/constants"
 import { CartServiceError } from "@/lib/errors"
 import { queryKeys } from "@/lib/query-keys"
@@ -13,6 +14,7 @@ import {
   type ShippingMethodData,
   setShippingMethod,
 } from "@/services/cart-service"
+
 import { useCartToast } from "./use-toast"
 
 type CartMutationError = {

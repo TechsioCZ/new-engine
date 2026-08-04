@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
+
 import StorefrontTextModuleService from "../../../src/modules/storefront-text/service"
 
 describe("StorefrontTextModuleService transactions", () => {

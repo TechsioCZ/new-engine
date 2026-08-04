@@ -1,4 +1,5 @@
 import { getRequestConfig } from "next-intl/server"
+
 import type { StorefrontMarket } from "../core/markets"
 import {
   type FlatStorefrontMessages,

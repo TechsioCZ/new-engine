@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
+
 import { runImportJob } from "../lib/import-job-runner"
 import {
   SYMMY_PRICE_LIST_PRICES_UPDATE_REQUESTED_EVENT,

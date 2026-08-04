@@ -454,8 +454,8 @@ export const createCheckoutCartAddressAdapter = <
 
 export const createCheckoutCustomerAddressAdapter = <
   TAddress extends CheckoutAddressInput = CheckoutAddressInput,
-  TUpdateInput extends
-    CheckoutCustomerAddressUpdateInput<TAddress> = CheckoutCustomerAddressUpdateInput<TAddress>,
+  TUpdateInput extends CheckoutCustomerAddressUpdateInput<TAddress> =
+    CheckoutCustomerAddressUpdateInput<TAddress>,
 >(
   options?: CheckoutCustomerAddressAdapterOptions
 ): StorefrontCustomerAddressAdapter<

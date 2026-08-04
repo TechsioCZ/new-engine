@@ -41,9 +41,8 @@ describe("GET /admin/order-expedition/orders", () => {
   })
 
   it("returns an unfiltered page of orders", async () => {
-    const { GET } = await import(
-      "../../../../../../../src/api/admin/order-expedition/orders/route"
-    )
+    const { GET } =
+      await import("../../../../../../../src/api/admin/order-expedition/orders/route")
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
@@ -93,9 +92,8 @@ describe("GET /admin/order-expedition/orders", () => {
   })
 
   it("carrier filtering only narrows visible rows", async () => {
-    const { GET } = await import(
-      "../../../../../../../src/api/admin/order-expedition/orders/route"
-    )
+    const { GET } =
+      await import("../../../../../../../src/api/admin/order-expedition/orders/route")
     const graph = vi.fn().mockResolvedValueOnce({
       data: [
         {
@@ -158,9 +156,8 @@ describe("GET /admin/order-expedition/orders", () => {
   })
 
   it("combines carrier and business status filters with AND semantics", async () => {
-    const { GET } = await import(
-      "../../../../../../../src/api/admin/order-expedition/orders/route"
-    )
+    const { GET } =
+      await import("../../../../../../../src/api/admin/order-expedition/orders/route")
     const graph = vi.fn().mockResolvedValueOnce({
       data: [
         {
@@ -216,9 +213,8 @@ describe("GET /admin/order-expedition/orders", () => {
   })
 
   it("stops carrier scans after the requested page and a next-page lookahead", async () => {
-    const { GET } = await import(
-      "../../../../../../../src/api/admin/order-expedition/orders/route"
-    )
+    const { GET } =
+      await import("../../../../../../../src/api/admin/order-expedition/orders/route")
     const graph = vi.fn().mockResolvedValueOnce({
       data: [
         {
@@ -268,9 +264,8 @@ describe("GET /admin/order-expedition/orders", () => {
   })
 
   it("caps carrier scans and exposes truncated metadata", async () => {
-    const { GET } = await import(
-      "../../../../../../../src/api/admin/order-expedition/orders/route"
-    )
+    const { GET } =
+      await import("../../../../../../../src/api/admin/order-expedition/orders/route")
     const graph = vi.fn()
 
     for (let batchIndex = 0; batchIndex < 10; batchIndex += 1) {

@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import { createMedusaCartService } from "../src/cart/medusa-service"
 
 type SdkLike = {
@@ -27,17 +28,15 @@ function createSdkMock(
 ): SdkLike {
   return {
     client: {
-      fetch: vi
-        .fn()
-        .mockImplementation(
-          fetchImpl ??
-            ((path: string) =>
-              Promise.resolve({
-                cart: {
-                  id: path.replace("/store/carts/", ""),
-                } as HttpTypes.StoreCart,
-              }))
-        ),
+      fetch: vi.fn().mockImplementation(
+        fetchImpl ??
+          ((path: string) =>
+            Promise.resolve({
+              cart: {
+                id: path.replace("/store/carts/", ""),
+              } as HttpTypes.StoreCart,
+            }))
+      ),
     },
     store: {
       cart: {
@@ -199,7 +198,10 @@ describe("createMedusaCartService", () => {
       "item_1",
       {}
     )
-    expect(sdk.store.cart.deleteLineItem).toHaveBeenCalledWith("cart_1", "item_1")
+    expect(sdk.store.cart.deleteLineItem).toHaveBeenCalledWith(
+      "cart_1",
+      "item_1"
+    )
     expect(sdk.store.cart.transferCart).toHaveBeenCalledWith("cart_1")
     expect(sdk.store.cart.complete).toHaveBeenCalledWith("cart_1")
   })

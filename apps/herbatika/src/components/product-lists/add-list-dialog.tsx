@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Input } from "@techsio/ui-kit/atoms/input"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import { useTranslations } from "next-intl"
+
 import type { AccountProductListsController } from "./use-account-product-lists"
 
 type AddListDialogProps = {

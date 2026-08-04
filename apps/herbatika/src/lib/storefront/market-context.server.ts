@@ -1,7 +1,7 @@
 import "server-only"
-
 import { headers } from "next/headers"
 import { cache } from "react"
+
 import { resolveMarketContext } from "./market-context"
 
 export const getMarketServerContext = cache(async () => {

@@ -7,6 +7,7 @@ import {
 } from "@medusajs/framework/utils"
 import { wrapProductsWithTaxPrices } from "@medusajs/medusa/api/store/products/helpers"
 import { wrapVariantsWithInventoryQuantityForSalesChannel } from "@medusajs/medusa/api/utils/middlewares/products/variant-inventory-quantity"
+
 import {
   decorateProductsWithMeasurements,
   getMeasurementDecorationOptions,

@@ -3,7 +3,7 @@
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
-import type { Product } from "@/components/product-detail/product-detail.types"
+
 import {
   resolveOptionTitlesById,
   resolveProductBreadcrumbItems,
@@ -18,6 +18,7 @@ import {
   resolveProductVolumeDiscountOptions,
   resolveSelectedVolumeDiscountOption,
 } from "@/components/product-detail/product-detail-pricing-data.utils"
+import type { Product } from "@/components/product-detail/product-detail.types"
 import { useProductDetailDebugLog } from "@/components/product-detail/use-product-detail-debug-log"
 import { useProductDetailRelatedProducts } from "@/components/product-detail/use-product-detail-related-products"
 import {

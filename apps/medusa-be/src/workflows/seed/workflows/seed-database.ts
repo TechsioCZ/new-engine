@@ -4,6 +4,7 @@ import {
   WorkflowResponse,
   when,
 } from "@medusajs/framework/workflows-sdk"
+
 import { buildInventoryItemsInput } from "../helpers/build-inventory-items-input"
 // biome-ignore lint/performance/noNamespaceImport: Existing seed workflow groups many step helpers through this barrel.
 import * as Steps from "../steps"

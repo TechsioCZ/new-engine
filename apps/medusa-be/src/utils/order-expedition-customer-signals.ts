@@ -1,4 +1,5 @@
 import type { Query } from "@medusajs/framework/types"
+
 import type OrderNoteModuleService from "../modules/order-note/service"
 import {
   getOrderExpeditionNote,

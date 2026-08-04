@@ -1,4 +1,5 @@
 import { Icon } from "@ui/atoms/icon"
+
 import { PASSWORD_REQUIREMENTS } from "@/lib/form-validators"
 
 type PasswordValidatorProps = {

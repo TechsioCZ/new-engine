@@ -1,12 +1,14 @@
 "use client"
 
 import { useTranslations } from "next-intl"
+
 import { CatalogListingShell } from "@/components/catalog-listing-shell"
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel"
 import { CategoryResultsSection } from "@/components/category/category-results-section"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
+
 import { useBrandListingController } from "./use-brand-listing-controller"
 
 type BrandListingProps = {

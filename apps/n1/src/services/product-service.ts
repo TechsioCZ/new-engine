@@ -1,4 +1,5 @@
 import type { StoreProduct } from "@medusajs/types"
+
 import { PRODUCT_DETAILED_FIELDS } from "@/lib/constants"
 import { fetchLogger } from "@/lib/loggers/fetch"
 import { getMedusaBackendUrl } from "@/lib/medusa-backend-url"

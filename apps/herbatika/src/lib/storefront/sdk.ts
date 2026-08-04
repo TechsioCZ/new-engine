@@ -7,6 +7,7 @@ import {
   createMedusaSdk,
   type MedusaClientConfig,
 } from "@techsio/storefront-data/shared/medusa-client"
+
 import { resolveMedusaBackendUrl } from "./runtime-env"
 
 export const AUTH_TOKEN_STORAGE_KEY = "herbatika_auth_token"

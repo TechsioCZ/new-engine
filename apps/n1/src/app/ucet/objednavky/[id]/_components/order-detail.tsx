@@ -1,6 +1,8 @@
 import type { StoreOrder } from "@medusajs/types"
+
 import { formatDateString } from "@/utils/format/format-date"
 import { formatAmount } from "@/utils/format/format-product"
+
 import { ItemCard } from "./item-card"
 
 type OrderDetailProps = {

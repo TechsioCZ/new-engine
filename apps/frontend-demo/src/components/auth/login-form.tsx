@@ -5,6 +5,7 @@ import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import Link from "next/link"
 import { type FormEvent, useState } from "react"
+
 import { useAuth } from "@/hooks/use-auth"
 import {
   AUTH_ERRORS,
@@ -12,6 +13,7 @@ import {
   validateEmail,
   withLoading,
 } from "@/lib/auth"
+
 import { AuthFormWrapper } from "./auth-form-wrapper"
 
 export function LoginForm() {

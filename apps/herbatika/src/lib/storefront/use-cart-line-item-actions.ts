@@ -1,7 +1,9 @@
 "use client"
 
 import { useTranslations } from "next-intl"
+
 import { useAppToast } from "@/hooks/use-app-toast"
+
 import { useRemoveLineItem, useUpdateLineItem } from "./cart"
 
 type UseCartLineItemActionsProps = {

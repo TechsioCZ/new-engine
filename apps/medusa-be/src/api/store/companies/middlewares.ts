@@ -4,6 +4,7 @@ import {
   validateAndTransformQuery,
 } from "@medusajs/framework"
 import { authenticate } from "@medusajs/medusa"
+
 import { ensureCompanyMember, ensureRole } from "../../middlewares/ensure-role"
 import {
   storeCompanyQueryConfig,

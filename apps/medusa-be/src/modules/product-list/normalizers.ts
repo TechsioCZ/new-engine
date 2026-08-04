@@ -1,4 +1,5 @@
 import { MedusaError } from "@medusajs/framework/utils"
+
 import {
   PRODUCT_LIST_ACCESS_TYPES,
   PRODUCT_LIST_TYPES,

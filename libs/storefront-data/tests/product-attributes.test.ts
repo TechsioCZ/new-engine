@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import { describe, expect, it, vi } from "vitest"
+
 import { createMedusaStorefrontPreset } from "../src/medusa/preset"
 import { createMedusaProductAttributeService } from "../src/product-attributes/medusa-service"
 import { createProductAttributeQueryKeys } from "../src/product-attributes/query-keys"

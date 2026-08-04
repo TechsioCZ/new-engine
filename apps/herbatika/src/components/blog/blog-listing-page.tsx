@@ -2,8 +2,9 @@
 
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+import NextLink from "next/link"
+
 import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
@@ -13,6 +14,7 @@ import type {
   BlogTopicKey,
   resolveBlogListing,
 } from "@/lib/storefront/blog-content"
+
 import { BlogListingCard } from "./blog-listing-card"
 
 type BlogListingPageProps = {

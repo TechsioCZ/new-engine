@@ -1,6 +1,7 @@
 import type { MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
+
 import {
   handleStorefrontTextLockError,
   STOREFRONT_TEXT_LOCK_CONFLICT_MESSAGE,
@@ -31,14 +32,16 @@ describe("storefront text lock error handling", () => {
     })
   })
 
-  it.each([
-    new Error("Workflow failed"),
-    "Timed-out acquiring lock.",
-  ])("rethrows unrelated errors", (error) => {
-    const response = createResponse()
+  it.each([new Error("Workflow failed"), "Timed-out acquiring lock."])(
+    "rethrows unrelated errors",
+    (error) => {
+      const response = createResponse()
 
-    expect(() => handleStorefrontTextLockError(error, response)).toThrow(error)
-    expect(response.status).not.toHaveBeenCalled()
-    expect(response.json).not.toHaveBeenCalled()
-  })
+      expect(() => handleStorefrontTextLockError(error, response)).toThrow(
+        error
+      )
+      expect(response.status).not.toHaveBeenCalled()
+      expect(response.json).not.toHaveBeenCalled()
+    }
+  )
 })

@@ -1,10 +1,12 @@
 import { useTranslations } from "next-intl"
 import { useEffect } from "react"
+
 import { resolveCarrierPickupRequirement } from "@/components/checkout/carrier-pickup.utils"
 import { resolveShippingIcon } from "@/components/checkout/checkout-display.utils"
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+
 import { CheckoutCarrierPickupDetails } from "./checkout-carrier-pickup-details"
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
 
@@ -88,8 +90,8 @@ export function CheckoutShippingSection({
               const pickupRequirement = pickupRequirements.get(option.id)
               const isAwaitingPickupSelection = Boolean(
                 pickupRequirement &&
-                  pendingPickupOptionId === option.id &&
-                  selectedShippingMethodId !== option.id
+                pendingPickupOptionId === option.id &&
+                selectedShippingMethodId !== option.id
               )
 
               return {

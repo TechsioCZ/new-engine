@@ -3,6 +3,7 @@ import { EnvelopeContent } from "@medusajs/icons"
 import { Button, Container, Drawer, Heading, Table, Text } from "@medusajs/ui"
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
+
 import { sdk } from "../../lib/sdk"
 
 type EmailLog = {

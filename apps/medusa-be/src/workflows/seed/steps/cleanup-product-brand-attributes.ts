@@ -1,6 +1,7 @@
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { BRAND_MODULE } from "../../../modules/brand"
 import type BrandModuleService from "../../../modules/brand/service"
 import {

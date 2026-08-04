@@ -5,6 +5,7 @@ import type {
   IModuleService,
   RestoreReturn,
 } from "@medusajs/framework/types"
+
 import type {
   ModuleCompany,
   ModuleCreateCompany,
@@ -14,14 +15,12 @@ import type {
   ModuleUpdateEmployee,
 } from "./module"
 
-export interface ModuleCompanyFilters
-  extends BaseFilterable<ModuleCompanyFilters> {
+export interface ModuleCompanyFilters extends BaseFilterable<ModuleCompanyFilters> {
   q?: string
   id?: string | string[]
 }
 
-export interface ModuleEmployeeFilters
-  extends BaseFilterable<ModuleEmployeeFilters> {
+export interface ModuleEmployeeFilters extends BaseFilterable<ModuleEmployeeFilters> {
   q?: string
   id?: string | string[]
   company_id?: string | string[]

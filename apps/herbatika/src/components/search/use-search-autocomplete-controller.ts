@@ -1,7 +1,7 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
+import { useRouter } from "next/navigation"
 import {
   type FocusEvent,
   type FormEvent,
@@ -10,10 +10,12 @@ import {
   useId,
   useState,
 } from "react"
+
 import {
   SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH,
   type SearchAutocompleteSuggestion,
 } from "@/lib/search-autocomplete/search-autocomplete-types"
+
 import { getSearchAutocompleteOptionId } from "./search-autocomplete-panel"
 import {
   clampSearchAutocompleteIndex,

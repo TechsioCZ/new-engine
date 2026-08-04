@@ -1,5 +1,6 @@
 import { ContainerRegistrationKeys } from "@medusajs/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
 import { COMPANY_MODULE } from "../../../../../src/modules/company"
 
 vi.mock("@medusajs/framework/workflows-sdk", () => ({
@@ -58,9 +59,8 @@ describe("updateCompaniesStep", () => {
   })
 
   it("uses the workflow input id instead of an id inside the update payload", async () => {
-    const { updateCompaniesStep } = await import(
-      "../../../../../src/workflows/company/steps/update-companies"
-    )
+    const { updateCompaniesStep } =
+      await import("../../../../../src/workflows/company/steps/update-companies")
     const companyService = {
       listCompanies: vi.fn().mockResolvedValue([
         {

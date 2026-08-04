@@ -45,9 +45,8 @@ describe("ensureRole", () => {
   })
 
   it("allows the current company's admin employee", async () => {
-    const { ensureRole } = await import(
-      "../../../../../src/api/middlewares/ensure-role"
-    )
+    const { ensureRole } =
+      await import("../../../../../src/api/middlewares/ensure-role")
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
@@ -82,9 +81,8 @@ describe("ensureRole", () => {
   })
 
   it("rejects a customer that is not an admin employee of the route company", async () => {
-    const { ensureRole } = await import(
-      "../../../../../src/api/middlewares/ensure-role"
-    )
+    const { ensureRole } =
+      await import("../../../../../src/api/middlewares/ensure-role")
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
@@ -110,9 +108,8 @@ describe("ensureRole", () => {
   })
 
   it("rejects empty route companies instead of treating them as implicitly admin-manageable", async () => {
-    const { ensureRole } = await import(
-      "../../../../../src/api/middlewares/ensure-role"
-    )
+    const { ensureRole } =
+      await import("../../../../../src/api/middlewares/ensure-role")
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
@@ -133,9 +130,8 @@ describe("ensureRole", () => {
   })
 
   it("allows route company members for member-scoped store reads", async () => {
-    const { ensureCompanyMember } = await import(
-      "../../../../../src/api/middlewares/ensure-role"
-    )
+    const { ensureCompanyMember } =
+      await import("../../../../../src/api/middlewares/ensure-role")
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
@@ -160,9 +156,8 @@ describe("ensureRole", () => {
   })
 
   it("rejects non-members for route company member-scoped store reads", async () => {
-    const { ensureCompanyMember } = await import(
-      "../../../../../src/api/middlewares/ensure-role"
-    )
+    const { ensureCompanyMember } =
+      await import("../../../../../src/api/middlewares/ensure-role")
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
@@ -188,9 +183,8 @@ describe("ensureRole", () => {
   })
 
   it("uses current customer employee admin state when no company id is in the route", async () => {
-    const { ensureRole } = await import(
-      "../../../../../src/api/middlewares/ensure-role"
-    )
+    const { ensureRole } =
+      await import("../../../../../src/api/middlewares/ensure-role")
     const graph = vi.fn().mockResolvedValue({
       data: [{ employee: { is_admin: true } }],
     })

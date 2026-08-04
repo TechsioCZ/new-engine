@@ -21,9 +21,8 @@ describe("POST /admin/order-business-statuses/bulk", () => {
   })
 
   it("updates eligible orders and skips blocked ones", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-business-statuses/bulk/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-business-statuses/bulk/route")
     const clearCache = vi.fn().mockResolvedValue(undefined)
     const warn = vi.fn()
     const updateOrders = vi.fn().mockResolvedValue(undefined)
@@ -112,9 +111,8 @@ describe("POST /admin/order-business-statuses/bulk", () => {
   })
 
   it("keeps updating eligible orders when one update fails", async () => {
-    const { POST } = await import(
-      "../../../../../../../src/api/admin/order-business-statuses/bulk/route"
-    )
+    const { POST } =
+      await import("../../../../../../../src/api/admin/order-business-statuses/bulk/route")
     const clearCache = vi.fn().mockResolvedValue(undefined)
     const warn = vi.fn()
     const updateOrders = vi.fn((id: string) =>

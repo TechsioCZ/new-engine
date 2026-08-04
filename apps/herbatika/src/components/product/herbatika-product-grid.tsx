@@ -1,6 +1,7 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+
 import { HerbatikaProductCard } from "@/components/herbatika-product-card"
 
 const CATALOG_PRODUCT_GRID_CLASSNAME =

@@ -12,6 +12,7 @@ import type {
 } from "@medusajs/framework/types"
 import { MedusaError, ModuleProvider, Modules } from "@medusajs/framework/utils"
 import { omitInternalMetadata, PAYKIT_METADATA_KEY } from "@paykit-sdk/core"
+
 import { PAYKIT_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
 import {
   type PaykitInjectedDependencies,

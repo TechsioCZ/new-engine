@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
+
 import { cartStorage } from "./cart-storage"
 import { storefrontQueryKeys } from "./storefront-config"
 

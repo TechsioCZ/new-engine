@@ -1,10 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { useRef } from "react"
+
 import { cacheConfig } from "@/lib/cache-config"
 import { prefetchLogger } from "@/lib/loggers/prefetch"
 import { buildPrefetchParams } from "@/lib/product-query-params"
 import { queryKeys } from "@/lib/query-keys"
 import { getProducts, getProductsGlobal } from "@/services/product-service"
+
 import { useRegion } from "./use-region"
 
 export function usePrefetchProducts() {

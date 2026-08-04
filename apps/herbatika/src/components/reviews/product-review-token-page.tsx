@@ -3,9 +3,10 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+import NextLink from "next/link"
 import { useState } from "react"
+
 import {
   resolveProductReviewSubmitErrorMessage,
   translateProductReviewErrorMessages,

@@ -15,6 +15,7 @@ import {
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
+
 import type { QueryCompany } from "../../../types"
 import { adminCompanyDisplayFieldsQuery } from "../../../types/company/admin-fields"
 import { useCompanies } from "../../hooks/api"

@@ -61,8 +61,7 @@ const disclaimerVariants = tv({
 export type DisclaimerVariant = VariantProps<typeof disclaimerVariants>
 
 export interface DisclaimerProps
-  extends HTMLAttributes<HTMLDivElement>,
-    DisclaimerVariant {
+  extends HTMLAttributes<HTMLDivElement>, DisclaimerVariant {
   icon?: IconType
   hideIcon?: boolean
 }

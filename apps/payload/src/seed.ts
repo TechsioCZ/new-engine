@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto"
+
 import { getPayload } from "payload"
-import config from "./payload.config"
+
 import type { Article } from "./payload-types"
+import config from "./payload.config"
 
 type SeedPayload = Awaited<ReturnType<typeof getPayload>>
 type PayloadId = number

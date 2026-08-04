@@ -5,6 +5,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import { useTranslations } from "next-intl"
 import { useMemo } from "react"
+
 import { PasswordRequirements } from "@/components/auth/password-requirements"
 import { RegisterAccountTypeField } from "@/components/auth/register-account-type-field"
 import { RegisterWholesaleFields } from "@/components/auth/register-wholesale-fields"
@@ -16,6 +17,7 @@ import {
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { translateAddressValidationMessages } from "@/lib/forms/validators/address-validation-messages"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+
 import { AuthFooter } from "./auth-footer"
 
 type RegisterFormProps = {

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
 import { APPROVAL_MODULE } from "../../../../../src/modules/approval"
 
 vi.mock("@medusajs/framework/workflows-sdk", () => ({
@@ -99,9 +100,8 @@ describe("approval settings steps", () => {
   })
 
   it("soft-deletes approval settings and restores the same row on compensation", async () => {
-    const { deleteApprovalSettingsStep } = await import(
-      "../../../../../src/workflows/approval/steps/delete-approval-settings"
-    )
+    const { deleteApprovalSettingsStep } =
+      await import("../../../../../src/workflows/approval/steps/delete-approval-settings")
     const approvalService = makeApprovalService({
       listApprovalSettings: vi.fn().mockResolvedValue([
         {
@@ -136,9 +136,8 @@ describe("approval settings steps", () => {
   })
 
   it("restores recoverable approval settings and creates defaults only when missing", async () => {
-    const { ensureApprovalSettingsStep } = await import(
-      "../../../../../src/workflows/approval/steps/ensure-approval-settings"
-    )
+    const { ensureApprovalSettingsStep } =
+      await import("../../../../../src/workflows/approval/steps/ensure-approval-settings")
     const restoredSetting = {
       company_id: "comp_2",
       deleted_at: "2026-01-02T00:00:00.000Z",
@@ -215,9 +214,8 @@ describe("approval settings steps", () => {
   })
 
   it("dismisses stale company approval-settings links with the link API", async () => {
-    const { dismissCompanyApprovalSettingsLinksStep } = await import(
-      "../../../../../src/workflows/approval/steps/dismiss-company-approval-settings-links"
-    )
+    const { dismissCompanyApprovalSettingsLinksStep } =
+      await import("../../../../../src/workflows/approval/steps/dismiss-company-approval-settings-links")
     const staleLink = {
       approval: { approval_settings_id: "apprset_missing" },
       company: { company_id: "comp_1" },

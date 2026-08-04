@@ -1,5 +1,6 @@
 import type { ILockingModule } from "@medusajs/framework/types"
 import { describe, expect, it, vi } from "vitest"
+
 import type ProductAttributeModuleService from "../../../modules/product-attribute/service"
 import {
   cleanupDeletedProductAttributes,

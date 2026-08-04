@@ -1,5 +1,6 @@
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
+
 import {
   formatProviderLabel,
   resolvePaymentDisplayTextKeys,
@@ -7,6 +8,7 @@ import {
 } from "@/components/checkout/checkout-display.utils"
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
 
 type PaymentProvider = {

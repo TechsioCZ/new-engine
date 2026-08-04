@@ -1,5 +1,6 @@
 import type { Logger } from "@medusajs/framework/types"
 import { MedusaError, MedusaService } from "@medusajs/framework/utils"
+
 import packageJson from "../../../package.json"
 import SymmyWebhookConfig, {
   type SymmyWebhookEndpoint,

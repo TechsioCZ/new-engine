@@ -1,4 +1,5 @@
 import type { ProductAttribute } from "@techsio/storefront-data/product-attributes/types"
+
 import type { ProductDetailContentSection } from "@/components/product-detail/product-detail.types"
 
 const WARRANTY_DEFINITION_KEY = "warranty"

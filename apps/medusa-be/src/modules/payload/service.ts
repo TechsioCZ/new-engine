@@ -1,9 +1,11 @@
 import { createHash } from "node:crypto"
+
 import { zodValidator } from "@medusajs/framework"
 import type { ICachingModuleService, Logger } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
 import type { z } from "@medusajs/framework/zod"
 import qs from "qs"
+
 import { safeResolve } from "../../utils/safe-resolve"
 import {
   ArticleCategoriesWithArticlesSchema,

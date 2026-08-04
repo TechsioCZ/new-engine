@@ -16,6 +16,7 @@ import {
 } from "@medusajs/ui"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { ActionMenu, AmountCell, Thumbnail } from "../../../../components"
 import { Form } from "../../../../components/common/form"
 import {

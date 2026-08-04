@@ -1,4 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query"
+
 import type { CacheOptions } from "./cache-config"
 import type { QueryKey } from "./query-keys"
 

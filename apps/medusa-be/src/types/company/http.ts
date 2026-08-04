@@ -1,4 +1,5 @@
 import type { FindParams, PaginatedResponse } from "@medusajs/framework/types"
+
 import type { ModuleCompanySpendingLimitResetFrequency } from "./module"
 import type { QueryCompany, QueryEmployee } from "./query"
 import type { ModuleCompanyFilters, ModuleEmployeeFilters } from "./service"
@@ -8,8 +9,7 @@ import type { ModuleCompanyFilters, ModuleEmployeeFilters } from "./service"
 export interface CompanyFilterParams extends FindParams, ModuleCompanyFilters {}
 
 export interface EmployeeFilterParams
-  extends FindParams,
-    ModuleEmployeeFilters {}
+  extends FindParams, ModuleEmployeeFilters {}
 
 /* Admin */
 

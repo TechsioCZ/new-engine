@@ -8,6 +8,7 @@ import {
 import NextLink from "next/link"
 import { notFound, useParams, useSearchParams } from "next/navigation"
 import { useEffect, useRef } from "react"
+
 import { Banner } from "@/components/atoms/banner"
 import { Heading } from "@/components/heading"
 import { ProductGrid } from "@/components/molecules/product-grid"
