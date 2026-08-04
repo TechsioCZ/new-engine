@@ -1,70 +1,105 @@
 import type { GLSShipmentState } from "./types"
 
 /**
- * Map raw GLS-like tracking codes to our normalised GLSShipmentState.
- */ export function mapGLSStatusCode(code: string | number): GLSShipmentState {
+ * Map MyGLS status codes/descriptions to our normalized shipment states.
+ * @see MyGLS_API.pdf Appendix G: GLS Status Codes
+ */
+export function mapGLSStatusCode(
+  code: string | number,
+  description?: string
+): GLSShipmentState {
   const key = String(code).trim().toLowerCase()
+  const text = `${key} ${description ?? ""}`.toLowerCase()
 
   switch (key) {
-    case "1":
-    case "received data":
-    case "receiveddata":
+    case "51":
       return "received_data"
 
-    case "2":
-    case "arrived":
-    case "arrived at target":
-    case "arrivedattarget":
-      return "arrived"
-
-    case "3":
-    case "prepared for departure":
-    case "preparedfordeparture":
-      return "prepared_for_departure"
-
-    case "4":
-    case "handed to carrier":
-    case "handedtocarrier":
+    case "1":
       return "handed_to_carrier"
 
-    case "5":
-    case "departed":
+    case "2":
+    case "22":
+    case "47":
       return "departed"
 
+    case "3":
     case "6":
-    case "ready for pickup":
-    case "readyforpickup":
+    case "7":
+    case "26":
+    case "27":
+    case "53":
+      return "arrived"
+
+    case "4":
+    case "32":
+      return "prepared_for_departure"
+
+    case "56":
       return "ready_for_pickup"
 
-    case "7":
-    case "delivered":
+    case "5":
+    case "54":
+    case "55":
+    case "58":
       return "delivered"
 
-    case "8":
-    case "collected":
-    case "pickedup":
+    case "59":
       return "collected"
 
-    case "9":
-    case "posted back":
-    case "postedback":
-      return "posted_back"
-
-    case "10":
-    case "returned":
+    case "23":
+    case "40":
       return "returned"
 
-    case "11":
-    case "cancelled":
-    case "canceled":
+    case "42":
       return "cancelled"
 
-    case "12":
-    case "customs declaration":
-    case "customsdeclarationprocess":
+    case "60":
+    case "61":
+    case "62":
+    case "64":
+    case "65":
+    case "66":
+    case "67":
+    case "68":
+    case "69":
+    case "70":
+    case "71":
+    case "72":
+    case "73":
+    case "74":
+    case "75":
+    case "76":
       return "customs_declaration"
 
     default:
-      return "unknown"
+      break
   }
+
+  if (text.includes("delivered") || text.includes("doručen")) {
+    return "delivered"
+  }
+  if (text.includes("parcelshop pickup") || text.includes("collected")) {
+    return "collected"
+  }
+  if (text.includes("returned to sender") || text.includes("returned")) {
+    return "returned"
+  }
+  if (text.includes("stored in gls parcelshop")) {
+    return "ready_for_pickup"
+  }
+  if (text.includes("left the parcel center")) {
+    return "departed"
+  }
+  if (text.includes("reached the parcel center")) {
+    return "arrived"
+  }
+  if (text.includes("entered into the gls it system")) {
+    return "received_data"
+  }
+  if (text.includes("customs")) {
+    return "customs_declaration"
+  }
+
+  return "unknown"
 }

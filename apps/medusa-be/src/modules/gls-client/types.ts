@@ -1,94 +1,109 @@
 /**
- * GLS REST API v6 TypeScript Definitions
- * @see https://docs.gls.com/docs/getting-started/gls-api
- *
- * Scope: ParcelShop (pickup point) deliveries + COD. No home delivery / no international.
+ * MyGLS API TypeScript definitions.
+ * @see https://api.mygls.cz/docs/MyGLS_API.pdf
  */
-
-// ============================================
-// Module Options & Environment
-// ============================================
-
 export type GLSEnvironment = "testing" | "production"
 
-/** GLS label size. A6 is the default thermal printer format. */
-export type GLSLabelFormat = "A6" | "A7"
+export type GLSCountryCode = "HR" | "CZ" | "HU" | "RO" | "SI" | "SK" | "RS"
 
-/**
- * Configuration options passed from medusa-config.ts / stored in DB
- */
+export type GLSLanguageIsoCode = "HR" | "CS" | "HU" | "RO" | "SK" | "SL"
+
+/** MyGLS printer types accepted by PrintLabels/GetPrintedLabels. */
+export type GLSPrinterType =
+  | "A4_2x2"
+  | "A4_4x1"
+  | "Connect"
+  | "Thermo"
+  | "ThermoZPL"
+  | "ShipItThermoPdf"
+  | "ThermoZPL_300DPI"
+  | "ShipItThermoZpl"
+
+export type GLSAddress = {
+  name: string
+  street: string
+  house_number: string
+  house_number_info?: string
+  city: string
+  zip_code: string
+  country: string
+  contact_name?: string
+  contact_phone?: string
+  contact_email?: string
+}
+
 export type GLSOptions = {
-  /** API password from GLS admin portal */
-  api_password: string
+  /** MyGLS login e-mail / username. */
+  username: string
+  /** Raw MyGLS password. Sent to MyGLS as SHA512 byte array. */
+  password: string
+  /** Unique client number provided by GLS. */
+  client_number: number
+  /** Which MyGLS API host family to use. */
   environment: GLSEnvironment
-  default_label_format: GLSLabelFormat
-  /** Label offset on sheet (0 = top-left) */
-  default_label_offset: number
-  /** Sender/eshop identifier shown on labels */
-  sender_label?: string
-  /** Optional GLS eshop ID (some accounts require it) */
-  eshop_id?: string
-  /** COD bank account number (CZ format: account/code) */
-  cod_bank_account?: string
-  cod_bank_code?: string
-  /** IBAN alternative */
-  cod_iban?: string
-  cod_swift?: string
-  /** Fallback sender address */
-  sender_name?: string
-  sender_street?: string
-  sender_city?: string
-  sender_zip_code?: string
-  sender_country?: string
+  /** Country domain for the MyGLS account, e.g. CZ => api.mygls.cz. */
+  country_code: GLSCountryCode
+  /** Optional WebshopEngine field sent with label requests. */
+  webshop_engine?: string
+  type_of_printer: GLSPrinterType
+  /** A4 quarter position. MyGLS accepts 1..4 for A4 labels. */
+  print_position: number
+  hide_phone_number_on_labels: boolean
+  sender_name: string
+  sender_street: string
+  sender_house_number: string
+  sender_house_number_info?: string
+  sender_city: string
+  sender_zip_code: string
+  sender_country: string
   sender_phone?: string
   sender_email?: string
 }
 
 // ============================================
-// Create Packet (synchronous)
+// Label / Parcel creation
 // ============================================
 
-/**
- * Request payload sent as the `packetAttributes` object to createPacket.
- * Conservative shape based on public GLS v6 docs — may be tuned once we
- * have live credentials to verify against the API.
- */
 export type GLSPacketAttributes = {
-  /** eshop's reference number — order ID */
+  /** Client custom tag identifying parcel — order ID/display ID. */
   number: string
   name: string
   surname: string
-  email?: string
-  phone?: string
-  /** Pickup point / ParcelShop ID from GLS tooling */
+  email: string
+  phone: string
+  delivery_street: string
+  delivery_house_number: string
+  delivery_house_number_info?: string
+  delivery_city: string
+  delivery_zip_code: string
+  delivery_country: string
+  /** Pickup point / ParcelShop matchcode from MyGLS/GLS widget. */
   addressId: string
-  /** Declared value for insurance/customs */
+  /** Order total / declared value. */
   value: number
-  /** COD amount (omit if not COD) */
+  /** COD amount (omit if not COD). */
   cod?: number
+  /** ISO currency code. */
   currency: string
   weight?: number
-  /** Sender label shown on packet (matches config) */
-  eshop?: string
+  /** Parcel content printed on label. */
+  content?: string
 }
 
 export type GLSCreatePacketResult = {
-  /** Internal GLS packet ID (used for status / label calls) */
+  /** MyGLS ParcelId (database label/parcel record ID). */
   id: string | number
-  /** Tracking barcode, e.g. "Z987654321" */
+  /** MyGLS ParcelNumber, used for tracking. */
   barcode: string
-  /** Human-formatted barcode, e.g. "Z 987 654 321" */
   barcodeText: string
+  /** PDF bytes returned by PrintLabels. */
+  label_pdf?: Buffer
 }
 
 // ============================================
 // Packet Status / Tracking
 // ============================================
 
-/**
- * GLS shipment states, normalised to snake_case strings.
- * The API returns a status code + name — we map known ones here.
- */
 export type GLSShipmentState =
   | "received_data"
   | "arrived"
@@ -104,20 +119,17 @@ export type GLSShipmentState =
   | "collected"
   | "unknown"
 
-/** States that mean the parcel was successfully handed over to the customer */
 export const GLS_DELIVERED_STATES: readonly GLSShipmentState[] = [
   "delivered",
   "collected",
 ]
 
-/** States that mean delivery failed / was refused / returned */
 export const GLS_FAILED_STATES: readonly GLSShipmentState[] = [
   "posted_back",
   "returned",
   "cancelled",
 ]
 
-/** Human-readable status messages (Czech, to match the rest of UI copy) */
 export const GLS_STATUS_MESSAGES: Record<GLSShipmentState, string> = {
   received_data: "Přijata data zásilky",
   arrived: "Zásilka dorazila na depo",
@@ -134,27 +146,17 @@ export const GLS_STATUS_MESSAGES: Record<GLSShipmentState, string> = {
   unknown: "Neznámý stav",
 }
 
-/**
- * Individual status history record from packetStatus.
- */
 export type GLSPacketStatusRecord = {
-  /** ISO date */
   dateTime: string
-  /** Raw status code from GLS */
   statusCode: string | number
   statusName: string
-  /** Normalised state (our own mapping) */
   state: GLSShipmentState
 }
 
 // ============================================
-// Branch (Pickup Point) Feed
+// Branch / Pickup Point feed
 // ============================================
 
-/**
- * Subset of the `branch.json` feed fields that we use.
- * The full feed has many more fields — add here as needed.
- */
 export type GLSBranch = {
   id: string
   name: string
@@ -167,7 +169,6 @@ export type GLSBranch = {
   latitude?: string
   longitude?: string
   openingHours?: string
-  /** e.g. "zbox", "pickup" */
   branchType?: string
 }
 
@@ -179,69 +180,79 @@ export type GLSFulfillmentStatus = "completed" | "error"
 
 export interface GLSFulfillmentData extends Record<string, unknown> {
   status: GLSFulfillmentStatus
-  /** GLS internal packet ID */
+  /** MyGLS ParcelId (label/parcel database record ID). */
   packet_id: string | number
-  /** Tracking barcode (e.g. Z987654321) */
+  /** MyGLS ParcelNumber used for tracking. */
   barcode: string
-  /** Pickup point ID selected by customer */
+  parcel_number?: string | number
   access_point_id: string
   supports_cod: boolean
-
-  /** Stored label URL in S3/MinIO */
   label_url?: string
-  /** Public tracking URL */
   tracking_url?: string
-
-  // Populated by gls-tracking-sync job
   last_status?: GLSShipmentState
   last_status_date?: string
   delivery_failed?: boolean
-
   error_message?: string
   sync_attempts?: number
   first_sync_attempt?: string
   last_sync_attempt?: string
 }
 
-/** Data stored on the shipping_option and shipping_method */
+/** Data stored on the shipping_option and shipping_method. */
 export type GLSShippingOptionData = {
   code: "parcelshop" | "parcelshop_cod"
   requires_access_point: true
   supports_cod: boolean
-  /** Chosen by customer at checkout via widget (shipping_method.data only) */
   access_point_id?: string
   access_point_name?: string
   access_point_zip?: string
   access_point_city?: string
+  email?: string
 }
 
 // ============================================
 // DB Config Types
 // ============================================
 
-export const GLS_SENSITIVE_FIELDS = [
-  "api_password",
-  "cod_bank_account",
-  "cod_bank_code",
-  "cod_iban",
-  "cod_swift",
-] as const
+export const GLS_COUNTRY_CODES = [
+  "HR",
+  "CZ",
+  "HU",
+  "RO",
+  "SI",
+  "SK",
+  "RS",
+] as const satisfies readonly GLSCountryCode[]
+
+export const GLS_PRINTER_TYPES = [
+  "A4_2x2",
+  "A4_4x1",
+  "Connect",
+  "Thermo",
+  "ThermoZPL",
+  "ShipItThermoPdf",
+  "ThermoZPL_300DPI",
+  "ShipItThermoZpl",
+] as const satisfies readonly GLSPrinterType[]
+
+export const GLS_SENSITIVE_FIELDS = ["password"] as const
 
 export type GLSConfigDTO = {
   id: string
   environment: GLSEnvironment
   is_enabled: boolean
-  api_password: string | null
-  sender_label: string | null
-  eshop_id: string | null
-  default_label_format: string
-  default_label_offset: number
-  cod_bank_account: string | null
-  cod_bank_code: string | null
-  cod_iban: string | null
-  cod_swift: string | null
+  username: string | null
+  password: string | null
+  client_number: number | null
+  country_code: string
+  webshop_engine: string | null
+  type_of_printer: string
+  print_position: number
+  hide_phone_number_on_labels: boolean
   sender_name: string | null
   sender_street: string | null
+  sender_house_number: string | null
+  sender_house_number_info: string | null
   sender_city: string | null
   sender_zip_code: string | null
   sender_country: string | null
@@ -258,17 +269,18 @@ export type GLSConfigDTO = {
  */
 export type UpdateGLSConfigInput = {
   is_enabled?: boolean
-  api_password?: string | null
-  sender_label?: string
-  eshop_id?: string
-  default_label_format?: GLSLabelFormat
-  default_label_offset?: number
-  cod_bank_account?: string | null
-  cod_bank_code?: string | null
-  cod_iban?: string | null
-  cod_swift?: string | null
+  username?: string
+  password?: string | null
+  client_number?: number | null
+  country_code?: GLSCountryCode
+  webshop_engine?: string
+  type_of_printer?: GLSPrinterType
+  print_position?: number
+  hide_phone_number_on_labels?: boolean
   sender_name?: string
   sender_street?: string
+  sender_house_number?: string
+  sender_house_number_info?: string
   sender_city?: string
   sender_zip_code?: string
   sender_country?: string
@@ -276,22 +288,23 @@ export type UpdateGLSConfigInput = {
   sender_email?: string
 }
 
-/** Admin API response — sensitive fields replaced with *_set booleans */
+/** Admin API response — sensitive fields replaced with *_set booleans. */
 export type GLSConfigResponse = {
   id: string
   environment: GLSEnvironment
   is_enabled: boolean
-  api_password_set: boolean
-  sender_label: string | null
-  eshop_id: string | null
-  default_label_format: string
-  default_label_offset: number
-  cod_bank_account_set: boolean
-  cod_bank_code_set: boolean
-  cod_iban_set: boolean
-  cod_swift_set: boolean
+  username: string | null
+  password_set: boolean
+  client_number: number | null
+  country_code: string
+  webshop_engine: string | null
+  type_of_printer: string
+  print_position: number
+  hide_phone_number_on_labels: boolean
   sender_name: string | null
   sender_street: string | null
+  sender_house_number: string | null
+  sender_house_number_info: string | null
   sender_city: string | null
   sender_zip_code: string | null
   sender_country: string | null

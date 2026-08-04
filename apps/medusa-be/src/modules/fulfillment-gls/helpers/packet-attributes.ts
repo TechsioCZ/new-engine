@@ -36,13 +36,34 @@ type OrderLineItemWithWeight = {
   } | null
 }
 
+type OrderWithEmail = {
+  id?: string
+  email?: unknown
+  customer?: {
+    email?: unknown
+  } | null
+}
+
 type FulfillmentItemWithQuantity = {
   line_item_id?: string | null
   quantity?: unknown
 }
 
+type ShippingAddressRecord = NonNullable<
+  FulfillmentOrderDTO["shipping_address"]
+> & {
+  address_1?: string | null
+  address_2?: string | null
+  city?: string | null
+  postal_code?: string | null
+  country_code?: string | null
+  phone?: string | null
+}
+
 const DEFAULT_PACKET_WEIGHT_KG = 0.5
 const GRAMS_PER_KG = 1000
+const ADDRESS_WITH_HOUSE_NUMBER_REGEX = /^(.+?)\s+(\d+[\w/-]*)$/u
+const HOUSE_NUMBER_REGEX = /^(\d+)(.*)$/u
 
 export function toFiniteNumber(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -84,6 +105,7 @@ export async function buildGLSPacketAttributes(params: {
   const orderNumber = getPacketOrderNumber(order)
   const totalNumber = getPacketOrderTotal(order, shippingData)
   const packetWeight = await getPacketWeight(order, items, shippingData, query)
+  const email = await getRequiredOrderEmail(order, shippingData, query)
 
   if (packetWeight === DEFAULT_PACKET_WEIGHT_KG) {
     logger.warn(
@@ -95,7 +117,7 @@ export async function buildGLSPacketAttributes(params: {
     accessPointId,
     config,
     currency: getPacketCurrency(order, shippingData),
-    order,
+    email,
     orderNumber,
     packetWeight,
     recipient,
@@ -203,39 +225,204 @@ function getPacketCurrency(
 }
 
 function buildBasePacketAttributes(params: {
-  order: Partial<FulfillmentOrderDTO>
   shippingAddress: NonNullable<FulfillmentOrderDTO["shipping_address"]>
   accessPointId: string
   config: GLSOptions
   currency: string
+  email: string
   orderNumber: string
   packetWeight: number
   recipient: { firstName: string; lastName: string }
   totalNumber: number
 }): GLSPacketAttributes {
   const {
-    order,
     shippingAddress,
     accessPointId,
-    config,
     currency,
+    email,
     orderNumber,
     packetWeight,
     recipient,
     totalNumber,
   } = params
+  const address = normalizeShippingAddress(shippingAddress)
+  const phone = getRequiredString(
+    (shippingAddress as ShippingAddressRecord).phone,
+    "GLS: Shipping address phone is required for ParcelShop delivery"
+  )
 
   return {
     number: orderNumber,
     name: recipient.firstName,
     surname: recipient.lastName,
-    email: order.email ?? undefined,
-    phone: shippingAddress.phone ?? undefined,
+    email,
+    phone,
     addressId: accessPointId,
     value: totalNumber,
     currency,
     weight: packetWeight,
-    eshop: config.sender_label ?? undefined,
+    content: `Order ${orderNumber}`,
+    delivery_street: address.street,
+    delivery_house_number: address.houseNumber,
+    delivery_house_number_info: address.houseNumberInfo,
+    delivery_city: address.city,
+    delivery_zip_code: address.zipCode,
+    delivery_country: address.country,
+  }
+}
+
+async function getRequiredOrderEmail(
+  order: Partial<FulfillmentOrderDTO>,
+  shippingData: GLSShippingOptionData,
+  query?: QueryService
+): Promise<string> {
+  const directEmail = getOptionalString((order as OrderWithEmail).email)
+  if (directEmail) {
+    return directEmail
+  }
+
+  const customerEmail = getOptionalString(
+    (order as OrderWithEmail).customer?.email
+  )
+  if (customerEmail) {
+    return customerEmail
+  }
+
+  const shippingDataEmail = getOptionalString(shippingData.email)
+  if (shippingDataEmail) {
+    return shippingDataEmail
+  }
+
+  if (order.id && query) {
+    const { data } = await query.graph({
+      entity: "order",
+      fields: ["id", "email", "customer.email"],
+      filters: {
+        id: order.id,
+      },
+    })
+    const queriedOrder = data[0] as OrderWithEmail | undefined
+    const queriedEmail =
+      getOptionalString(queriedOrder?.email) ??
+      getOptionalString(queriedOrder?.customer?.email)
+
+    if (queriedEmail) {
+      return queriedEmail
+    }
+  }
+
+  throw new MedusaError(
+    MedusaError.Types.INVALID_DATA,
+    "GLS: Order email is required"
+  )
+}
+
+function getOptionalString(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim()
+  }
+
+  return
+}
+
+function getRequiredString(value: unknown, message: string): string {
+  const parsed = getOptionalString(value)
+  if (parsed) {
+    return parsed
+  }
+
+  throw new MedusaError(MedusaError.Types.INVALID_DATA, message)
+}
+
+function normalizeShippingAddress(
+  shippingAddress: NonNullable<FulfillmentOrderDTO["shipping_address"]>
+): {
+  street: string
+  houseNumber: string
+  houseNumberInfo?: string
+  city: string
+  zipCode: string
+  country: string
+} {
+  const address = shippingAddress as ShippingAddressRecord
+  const addressLine1 = getRequiredString(
+    address.address_1,
+    "GLS: Shipping address address_1 is required"
+  )
+  const addressLine2 =
+    typeof address.address_2 === "string" ? address.address_2.trim() : ""
+  const parsedAddress = splitStreetAndHouseNumber(addressLine1, addressLine2)
+
+  return {
+    ...parsedAddress,
+    city: getRequiredString(
+      address.city,
+      "GLS: Shipping address city is required"
+    ),
+    zipCode: getRequiredString(
+      address.postal_code,
+      "GLS: Shipping address postal_code is required"
+    ),
+    country: getRequiredString(
+      address.country_code,
+      "GLS: Shipping address country_code is required"
+    ).toUpperCase(),
+  }
+}
+
+function splitStreetAndHouseNumber(
+  addressLine1: string,
+  addressLine2: string
+): { street: string; houseNumber: string; houseNumberInfo?: string } {
+  const explicitHouseNumber = parseHouseNumber(addressLine2)
+  if (explicitHouseNumber) {
+    return {
+      street: addressLine1,
+      houseNumber: explicitHouseNumber.houseNumber,
+      houseNumberInfo: explicitHouseNumber.houseNumberInfo,
+    }
+  }
+
+  const match = addressLine1.match(ADDRESS_WITH_HOUSE_NUMBER_REGEX)
+  if (!(match?.[1] && match[2])) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "GLS: Shipping address must include a numeric house number (address_1 or address_2)"
+    )
+  }
+
+  const parsed = parseHouseNumber(match[2])
+  if (!parsed) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "GLS: Shipping address house number must contain a number"
+    )
+  }
+
+  return {
+    street: match[1].trim(),
+    houseNumber: parsed.houseNumber,
+    houseNumberInfo: parsed.houseNumberInfo,
+  }
+}
+
+function parseHouseNumber(
+  value: string
+): { houseNumber: string; houseNumberInfo?: string } | null {
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  const match = trimmed.match(HOUSE_NUMBER_REGEX)
+  if (!match?.[1]) {
+    return null
+  }
+
+  const houseNumberInfo = match[2]?.trim()
+  return {
+    houseNumber: match[1],
+    houseNumberInfo: houseNumberInfo || undefined,
   }
 }
 

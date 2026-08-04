@@ -11,7 +11,7 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import { type FormEvent, useEffect, useState } from "react"
 import { sdk } from "../../../lib/sdk"
 
 export const handle = {
@@ -22,17 +22,18 @@ type GLSConfigResponse = {
   id: string
   environment: string
   is_enabled: boolean
-  api_password_set: boolean
-  sender_label: string | null
-  eshop_id: string | null
-  default_label_format: string
-  default_label_offset: number
-  cod_bank_account_set: boolean
-  cod_bank_code_set: boolean
-  cod_iban_set: boolean
-  cod_swift_set: boolean
+  username: string | null
+  password_set: boolean
+  client_number: number | null
+  country_code: string
+  webshop_engine: string | null
+  type_of_printer: string
+  print_position: number
+  hide_phone_number_on_labels: boolean
   sender_name: string | null
   sender_street: string | null
+  sender_house_number: string | null
+  sender_house_number_info: string | null
   sender_city: string | null
   sender_zip_code: string | null
   sender_country: string | null
@@ -42,17 +43,18 @@ type GLSConfigResponse = {
 
 type GLSConfigInput = {
   is_enabled?: boolean
-  api_password?: string | null
-  sender_label?: string
-  eshop_id?: string
-  default_label_format?: string
-  default_label_offset?: number
-  cod_bank_account?: string | null
-  cod_bank_code?: string | null
-  cod_iban?: string | null
-  cod_swift?: string | null
+  username?: string
+  password?: string | null
+  client_number?: number | null
+  country_code?: string
+  webshop_engine?: string
+  type_of_printer?: string
+  print_position?: number
+  hide_phone_number_on_labels?: boolean
   sender_name?: string
   sender_street?: string
+  sender_house_number?: string
+  sender_house_number_info?: string
   sender_city?: string
   sender_zip_code?: string
   sender_country?: string
@@ -60,17 +62,31 @@ type GLSConfigInput = {
   sender_email?: string
 }
 
-const CLEARABLE_FIELDS = [
-  "api_password",
-  "cod_bank_account",
-  "cod_bank_code",
-  "cod_iban",
-  "cod_swift",
-] as const satisfies readonly (keyof GLSConfigInput)[]
+const COUNTRY_CODES = [
+  { value: "SK", label: "Slovakia (api.mygls.sk)" },
+  { value: "CZ", label: "Czechia (api.mygls.cz)" },
+  { value: "HU", label: "Hungary (api.mygls.hu)" },
+  { value: "HR", label: "Croatia (api.mygls.hr)" },
+  { value: "RO", label: "Romania (api.mygls.ro)" },
+  { value: "SI", label: "Slovenia (api.mygls.si)" },
+  { value: "RS", label: "Serbia (api.mygls.rs)" },
+]
 
+const PRINTER_TYPES = [
+  { value: "A4_2x2", label: "A4 2×2" },
+  { value: "A4_4x1", label: "A4 4×1" },
+  { value: "Connect", label: "Connect" },
+  { value: "Thermo", label: "Thermo" },
+  { value: "ThermoZPL", label: "Thermo ZPL" },
+  { value: "ThermoZPL_300DPI", label: "Thermo ZPL 300 DPI" },
+  { value: "ShipItThermoPdf", label: "ShipIt Thermo PDF" },
+  { value: "ShipItThermoZpl", label: "ShipIt Thermo ZPL" },
+]
+
+const CLEARABLE_FIELDS = [
+  "password",
+] as const satisfies readonly (keyof GLSConfigInput)[]
 type ClearableField = (typeof CLEARABLE_FIELDS)[number]
-type GLSConfigPayload = Partial<GLSConfigInput> &
-  Partial<Record<ClearableField, string | null>>
 
 const CLEARABLE_FIELD_SET: ReadonlySet<keyof GLSConfigInput> = new Set(
   CLEARABLE_FIELDS
@@ -87,13 +103,6 @@ const getStringField = (
   const value: unknown = data[field]
   return typeof value === "string" ? value : ""
 }
-
-const LABEL_FORMATS = [
-  { value: "A6", label: "A6 (thermal)" },
-  { value: "A7", label: "A7" },
-]
-
-const DEFAULT_LABEL_FORMAT = "A6"
 
 type FieldConfig = {
   field: keyof GLSConfigInput
@@ -173,6 +182,36 @@ const FormField = ({
   )
 }
 
+const buildSenderFormData = (
+  configuration: GLSConfigResponse
+): GLSConfigInput => ({
+  sender_name: configuration.sender_name ?? "",
+  sender_street: configuration.sender_street ?? "",
+  sender_house_number: configuration.sender_house_number ?? "",
+  sender_house_number_info: configuration.sender_house_number_info ?? "",
+  sender_city: configuration.sender_city ?? "",
+  sender_zip_code: configuration.sender_zip_code ?? "",
+  sender_country:
+    configuration.sender_country ?? configuration.country_code ?? "SK",
+  sender_phone: configuration.sender_phone ?? "",
+  sender_email: configuration.sender_email ?? "",
+})
+
+const buildFormDataFromConfig = (
+  configuration: GLSConfigResponse
+): GLSConfigInput => ({
+  is_enabled: configuration.is_enabled,
+  username: configuration.username ?? "",
+  client_number: configuration.client_number ?? null,
+  country_code: configuration.country_code ?? "SK",
+  webshop_engine: configuration.webshop_engine ?? "new-engine-medusa",
+  type_of_printer: configuration.type_of_printer ?? "A4_2x2",
+  print_position: configuration.print_position ?? 1,
+  hide_phone_number_on_labels:
+    configuration.hide_phone_number_on_labels ?? false,
+  ...buildSenderFormData(configuration),
+})
+
 const GLSSettingsPage = () => {
   const queryClient = useQueryClient()
   const [formData, setFormData] = useState<GLSConfigInput>({})
@@ -199,40 +238,27 @@ const GLSSettingsPage = () => {
       toast.success("GLS configuration saved")
     },
     onError: (err) => {
-      toast.error(`Failed to save configuration: ${err.message}`)
+      toast.error(
+        `Failed to save configuration: ${err instanceof Error ? err.message : String(err)}`
+      )
     },
   })
 
   const glsConfig = data?.config
 
   useEffect(() => {
-    if (glsConfig && glsConfig.id !== seededConfigId) {
-      setFormData({
-        is_enabled: glsConfig.is_enabled,
-        sender_label: glsConfig.sender_label ?? "",
-        eshop_id: glsConfig.eshop_id ?? "",
-        default_label_format:
-          glsConfig.default_label_format ?? DEFAULT_LABEL_FORMAT,
-        default_label_offset: glsConfig.default_label_offset,
-        sender_name: glsConfig.sender_name ?? "",
-        sender_street: glsConfig.sender_street ?? "",
-        sender_city: glsConfig.sender_city ?? "",
-        sender_zip_code: glsConfig.sender_zip_code ?? "",
-        sender_country: glsConfig.sender_country ?? "",
-        sender_phone: glsConfig.sender_phone ?? "",
-        sender_email: glsConfig.sender_email ?? "",
-      })
-      setClearedFields(new Set())
-      setSeededConfigId(glsConfig.id)
+    if (!(glsConfig && glsConfig.id !== seededConfigId)) {
+      return
     }
+
+    setFormData(buildFormDataFromConfig(glsConfig))
+    setClearedFields(new Set())
+    setSeededConfigId(glsConfig.id)
   }, [glsConfig, seededConfigId])
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const payload: GLSConfigPayload = { ...formData }
-    if (payload.default_label_format === "") {
-      payload.default_label_format = undefined
-    }
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault()
+    const payload: GLSConfigInput = { ...formData }
     for (const field of clearedFields) {
       payload[field] = null
     }
@@ -241,7 +267,7 @@ const GLSSettingsPage = () => {
 
   const updateField = (
     field: keyof GLSConfigInput,
-    value: string | boolean | number
+    value: string | boolean | number | null
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
     if (isClearableField(field) && clearedFields.has(field)) {
@@ -293,55 +319,35 @@ const GLSSettingsPage = () => {
 
   const credentialFields: FieldConfig[] = [
     {
-      field: "api_password",
-      label: "API Password",
-      placeholder: "Your GLS API password",
-      type: "password",
-      isSet: glsConfig?.api_password_set,
+      field: "username",
+      label: "MyGLS Username (email)",
+      placeholder: "name@example.com",
+      type: "email",
       colSpan: 2,
     },
     {
-      field: "sender_label",
-      label: "Sender Label (eshop)",
-      placeholder: "Eshop identifier shown on labels",
-    },
-    {
-      field: "eshop_id",
-      label: "Eshop ID",
-      placeholder: "Optional, account-specific",
-    },
-  ]
-
-  const codFields: FieldConfig[] = [
-    {
-      field: "cod_bank_account",
-      label: "Bank Account",
-      placeholder: "Bank account",
-      isSet: glsConfig?.cod_bank_account_set,
-    },
-    {
-      field: "cod_bank_code",
-      label: "Bank Code",
-      placeholder: "Bank code",
-      isSet: glsConfig?.cod_bank_code_set,
-    },
-    {
-      field: "cod_iban",
-      label: "IBAN",
-      placeholder: "IBAN (alternative)",
-      isSet: glsConfig?.cod_iban_set,
-    },
-    {
-      field: "cod_swift",
-      label: "SWIFT",
-      placeholder: "SWIFT (with IBAN)",
-      isSet: glsConfig?.cod_swift_set,
+      field: "password",
+      label: "MyGLS Password",
+      placeholder: "Your MyGLS password",
+      type: "password",
+      isSet: glsConfig?.password_set,
+      colSpan: 2,
     },
   ]
 
   const senderFields: FieldConfig[] = [
     { field: "sender_name", label: "Name", placeholder: "Company name" },
-    { field: "sender_street", label: "Street", placeholder: "Street address" },
+    { field: "sender_street", label: "Street", placeholder: "Street name" },
+    {
+      field: "sender_house_number",
+      label: "House Number",
+      placeholder: "123",
+    },
+    {
+      field: "sender_house_number_info",
+      label: "House Number Info",
+      placeholder: "optional, e.g. /A",
+    },
     { field: "sender_city", label: "City", placeholder: "City" },
     {
       field: "sender_zip_code",
@@ -351,7 +357,7 @@ const GLSSettingsPage = () => {
     {
       field: "sender_country",
       label: "Country",
-      placeholder: "Country code (e.g., CZ)",
+      placeholder: "Country code (e.g., SK)",
     },
     { field: "sender_phone", label: "Phone", placeholder: "Phone number" },
     {
@@ -368,12 +374,12 @@ const GLSSettingsPage = () => {
       <div className="px-6 py-4">
         <Heading level="h1">GLS Configuration</Heading>
         <Text className="text-ui-fg-subtle">
-          Environment: {glsConfig?.environment}
+          Environment: {glsConfig?.environment}. MyGLS uses username, password
+          and client number — not a separate API key.
         </Text>
       </div>
 
       <form onSubmit={handleSubmit}>
-        {/* General */}
         <div className="px-6 py-4">
           <Heading className="mb-4" level="h2">
             General
@@ -403,105 +409,146 @@ const GLSSettingsPage = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="gls-label-format">Label Format</Label>
+                <Label htmlFor="gls-country-code">Country Domain</Label>
                 <Select
-                  onValueChange={(value) =>
-                    updateField("default_label_format", value)
-                  }
-                  value={
-                    formData.default_label_format ??
-                    glsConfig?.default_label_format ??
-                    DEFAULT_LABEL_FORMAT
-                  }
+                  onValueChange={(value) => updateField("country_code", value)}
+                  value={formData.country_code ?? "SK"}
                 >
-                  <Select.Trigger id="gls-label-format">
-                    <Select.Value placeholder="Select format" />
+                  <Select.Trigger id="gls-country-code">
+                    <Select.Value placeholder="Select country" />
                   </Select.Trigger>
                   <Select.Content>
-                    {LABEL_FORMATS.map((f) => (
-                      <Select.Item key={f.value} value={f.value}>
-                        {f.label}
+                    {COUNTRY_CODES.map((country) => (
+                      <Select.Item key={country.value} value={country.value}>
+                        {country.label}
                       </Select.Item>
                     ))}
                   </Select.Content>
                 </Select>
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="gls-label-offset">Label Offset</Label>
+                <Label htmlFor="gls-client-number">Client Number</Label>
                 <Input
-                  id="gls-label-offset"
-                  max={3}
-                  min={0}
+                  id="gls-client-number"
+                  min={1}
                   onChange={(e) =>
                     updateField(
-                      "default_label_offset",
-                      Number.parseInt(e.target.value, 10) || 0
+                      "client_number",
+                      e.target.value
+                        ? Number.parseInt(e.target.value, 10)
+                        : null
                     )
                   }
+                  placeholder="GLS client number"
                   type="number"
-                  value={formData.default_label_offset ?? 0}
+                  value={formData.client_number ?? ""}
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* API Credentials */}
         <div className="border-t px-6 py-4">
           <Heading className="mb-4" level="h2">
-            API Credentials
+            MyGLS Credentials
           </Heading>
           <div className="grid grid-cols-2 gap-4">
-            {credentialFields.map((f) => (
+            {credentialFields.map((field) => (
               <FormField
-                fieldConfig={f}
-                isCleared={isFieldCleared(f.field)}
-                key={f.field}
-                onChange={(v) => updateField(f.field, v)}
-                onClear={() => clearField(f.field)}
-                value={getStringField(formData, f.field)}
+                fieldConfig={field}
+                isCleared={isFieldCleared(field.field)}
+                key={field.field}
+                onChange={(value) => updateField(field.field, value)}
+                onClear={() => clearField(field.field)}
+                value={getStringField(formData, field.field)}
               />
             ))}
           </div>
         </div>
 
-        {/* COD Banking */}
         <div className="border-t px-6 py-4">
-          <Heading className="mb-2" level="h2">
-            COD Banking
+          <Heading className="mb-4" level="h2">
+            Label Printing
           </Heading>
-          <Text className="mb-4 text-sm text-ui-fg-subtle">
-            Bank details for cash on delivery payments
-          </Text>
           <div className="grid grid-cols-2 gap-4">
-            {codFields.map((f) => (
-              <FormField
-                fieldConfig={f}
-                isCleared={isFieldCleared(f.field)}
-                key={f.field}
-                onChange={(v) => updateField(f.field, v)}
-                onClear={() => clearField(f.field)}
-                value={getStringField(formData, f.field)}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="gls-printer-type">Type of Printer</Label>
+              <Select
+                onValueChange={(value) => updateField("type_of_printer", value)}
+                value={formData.type_of_printer ?? "A4_2x2"}
+              >
+                <Select.Trigger id="gls-printer-type">
+                  <Select.Value placeholder="Select printer type" />
+                </Select.Trigger>
+                <Select.Content>
+                  {PRINTER_TYPES.map((type) => (
+                    <Select.Item key={type.value} value={type.value}>
+                      {type.label}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="gls-print-position">Print Position</Label>
+              <Input
+                id="gls-print-position"
+                max={4}
+                min={1}
+                onChange={(e) =>
+                  updateField(
+                    "print_position",
+                    Number.parseInt(e.target.value, 10) || 1
+                  )
+                }
+                type="number"
+                value={formData.print_position ?? 1}
               />
-            ))}
+            </div>
+            <div className="col-span-2 flex items-center justify-between">
+              <div>
+                <Label htmlFor="gls-hide-phone">
+                  Hide phone number on labels
+                </Label>
+                <Text className="text-sm text-ui-fg-subtle">
+                  Optional MyGLS print flag
+                </Text>
+              </div>
+              <Switch
+                checked={formData.hide_phone_number_on_labels ?? false}
+                id="gls-hide-phone"
+                onCheckedChange={(checked) =>
+                  updateField("hide_phone_number_on_labels", checked)
+                }
+              />
+            </div>
+            <FormField
+              fieldConfig={{
+                field: "webshop_engine",
+                label: "Webshop Engine",
+                placeholder: "new-engine-medusa",
+                colSpan: 2,
+              }}
+              onChange={(value) => updateField("webshop_engine", value)}
+              value={getStringField(formData, "webshop_engine")}
+            />
           </div>
         </div>
 
-        {/* Fallback Sender Address */}
         <div className="border-t px-6 py-4">
           <Heading className="mb-2" level="h2">
-            Fallback Sender Address
+            Pickup / Sender Address
           </Heading>
           <Text className="mb-4 text-sm text-ui-fg-subtle">
-            Used when no sender is configured in GLS
+            MyGLS sends this as PickupAddress when creating labels.
           </Text>
           <div className="grid grid-cols-2 gap-4">
-            {senderFields.map((f) => (
+            {senderFields.map((field) => (
               <FormField
-                fieldConfig={f}
-                key={f.field}
-                onChange={(v) => updateField(f.field, v)}
-                value={getStringField(formData, f.field)}
+                fieldConfig={field}
+                key={field.field}
+                onChange={(value) => updateField(field.field, value)}
+                value={getStringField(formData, field.field)}
               />
             ))}
           </div>

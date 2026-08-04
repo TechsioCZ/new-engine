@@ -5,17 +5,24 @@ import { safeResolve } from "../../utils/safe-resolve"
 import { GLSClient } from "./client"
 import GLSConfig from "./models/gls-config"
 import {
+  GLS_COUNTRY_CODES,
+  GLS_PRINTER_TYPES,
   GLS_SENSITIVE_FIELDS,
   type GLSBranch,
   type GLSConfigDTO,
+  type GLSCountryCode,
   type GLSCreatePacketResult,
   type GLSEnvironment,
-  type GLSLabelFormat,
   type GLSOptions,
   type GLSPacketAttributes,
   type GLSPacketStatusRecord,
+  type GLSPrinterType,
   type UpdateGLSConfigInput,
 } from "./types"
+
+const DEFAULT_COUNTRY_CODE: GLSCountryCode = "SK"
+const DEFAULT_PRINTER_TYPE: GLSPrinterType = "A4_2x2"
+const DEFAULT_WEBSHOP_ENGINE = "new-engine-medusa"
 
 const computeKey = (scope: string, parts: Record<string, unknown> = {}) =>
   [
@@ -57,37 +64,55 @@ const isDisabledConfigCacheEntry = (
 ): value is DisabledConfigCacheEntry =>
   isRecord(value) && value.disabled === true
 
-const isGLSLabelFormat = (value: unknown): value is GLSLabelFormat =>
-  value === "A6" || value === "A7"
-
 const isGLSEnvironment = (value: unknown): value is GLSEnvironment =>
   value === "testing" || value === "production"
+
+const isGLSCountryCode = (value: unknown): value is GLSCountryCode =>
+  typeof value === "string" &&
+  (GLS_COUNTRY_CODES as readonly string[]).includes(value)
+
+const isGLSPrinterType = (value: unknown): value is GLSPrinterType =>
+  typeof value === "string" &&
+  (GLS_PRINTER_TYPES as readonly string[]).includes(value)
 
 const isOptionalString = (value: unknown): value is string | undefined =>
   value === undefined || typeof value === "string"
 
+const isPositiveNumber = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value > 0
+
+const isBoolean = (value: unknown): value is boolean =>
+  typeof value === "boolean"
+
 const isGLSOptions = (value: unknown): value is GLSOptions =>
   isRecord(value) &&
-  typeof value.api_password === "string" &&
+  typeof value.username === "string" &&
+  typeof value.password === "string" &&
+  isPositiveNumber(value.client_number) &&
   isGLSEnvironment(value.environment) &&
-  isGLSLabelFormat(value.default_label_format) &&
-  typeof value.default_label_offset === "number" &&
-  isOptionalString(value.sender_label) &&
-  isOptionalString(value.eshop_id) &&
-  isOptionalString(value.cod_bank_account) &&
-  isOptionalString(value.cod_bank_code) &&
-  isOptionalString(value.cod_iban) &&
-  isOptionalString(value.cod_swift) &&
-  isOptionalString(value.sender_name) &&
-  isOptionalString(value.sender_street) &&
-  isOptionalString(value.sender_city) &&
-  isOptionalString(value.sender_zip_code) &&
-  isOptionalString(value.sender_country) &&
+  isGLSCountryCode(value.country_code) &&
+  isOptionalString(value.webshop_engine) &&
+  isGLSPrinterType(value.type_of_printer) &&
+  isPositiveNumber(value.print_position) &&
+  isBoolean(value.hide_phone_number_on_labels) &&
+  typeof value.sender_name === "string" &&
+  typeof value.sender_street === "string" &&
+  typeof value.sender_house_number === "string" &&
+  isOptionalString(value.sender_house_number_info) &&
+  typeof value.sender_city === "string" &&
+  typeof value.sender_zip_code === "string" &&
+  typeof value.sender_country === "string" &&
   isOptionalString(value.sender_phone) &&
   isOptionalString(value.sender_email)
 
 const nullableString = (value: unknown): string | null =>
   typeof value === "string" ? value : null
+
+const nullableNumber = (value: unknown): number | null =>
+  typeof value === "number" && Number.isFinite(value) ? value : null
+
+const booleanValue = (value: unknown, defaultValue = false): boolean =>
+  typeof value === "boolean" ? value : defaultValue
 
 const toDate = (value: unknown): Date =>
   value instanceof Date ? value : new Date(String(value ?? Date.now()))
@@ -98,6 +123,30 @@ const isUniqueConstraintError = (error: unknown): boolean => {
     message.includes("unique constraint") || message.includes("duplicate key")
   )
 }
+
+const toCountryCode = (value: unknown): GLSCountryCode =>
+  isGLSCountryCode(value) ? value : DEFAULT_COUNTRY_CODE
+
+const toPrinterType = (value: unknown): GLSPrinterType =>
+  isGLSPrinterType(value) ? value : DEFAULT_PRINTER_TYPE
+
+const toPrintPosition = (value: unknown): number => {
+  if (typeof value !== "number" || !Number.isInteger(value)) {
+    return 1
+  }
+
+  return Math.min(Math.max(value, 1), 4)
+}
+
+const hasRequiredPickupAddress = (config: GLSConfigDTO): boolean =>
+  Boolean(
+    config.sender_name &&
+      config.sender_street &&
+      config.sender_house_number &&
+      config.sender_city &&
+      config.sender_zip_code &&
+      config.sender_country
+  )
 
 const mapGLSConfigDTO = (config: unknown): GLSConfigDTO => {
   if (!isRecord(config)) {
@@ -110,15 +159,11 @@ const mapGLSConfigDTO = (config: unknown): GLSConfigDTO => {
   const id: unknown = config.id
   const environment: unknown = config.environment
   const isEnabled: unknown = config.is_enabled
-  const defaultLabelFormat: unknown = config.default_label_format
-  const defaultLabelOffset: unknown = config.default_label_offset
 
   if (
     typeof id !== "string" ||
     !isGLSEnvironment(environment) ||
-    typeof isEnabled !== "boolean" ||
-    typeof defaultLabelFormat !== "string" ||
-    typeof defaultLabelOffset !== "number"
+    typeof isEnabled !== "boolean"
   ) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
@@ -130,17 +175,20 @@ const mapGLSConfigDTO = (config: unknown): GLSConfigDTO => {
     id,
     environment,
     is_enabled: isEnabled,
-    api_password: nullableString(config.api_password),
-    sender_label: nullableString(config.sender_label),
-    eshop_id: nullableString(config.eshop_id),
-    default_label_format: defaultLabelFormat,
-    default_label_offset: defaultLabelOffset,
-    cod_bank_account: nullableString(config.cod_bank_account),
-    cod_bank_code: nullableString(config.cod_bank_code),
-    cod_iban: nullableString(config.cod_iban),
-    cod_swift: nullableString(config.cod_swift),
+    username: nullableString(config.username),
+    password: nullableString(config.password),
+    client_number: nullableNumber(config.client_number),
+    country_code: toCountryCode(config.country_code),
+    webshop_engine: nullableString(config.webshop_engine),
+    type_of_printer: toPrinterType(config.type_of_printer),
+    print_position: toPrintPosition(config.print_position),
+    hide_phone_number_on_labels: booleanValue(
+      config.hide_phone_number_on_labels
+    ),
     sender_name: nullableString(config.sender_name),
     sender_street: nullableString(config.sender_street),
+    sender_house_number: nullableString(config.sender_house_number),
+    sender_house_number_info: nullableString(config.sender_house_number_info),
     sender_city: nullableString(config.sender_city),
     sender_zip_code: nullableString(config.sender_zip_code),
     sender_country: nullableString(config.sender_country),
@@ -152,15 +200,10 @@ const mapGLSConfigDTO = (config: unknown): GLSConfigDTO => {
 }
 
 /**
- * GLS Client Module Service
+ * MyGLS Client Module Service.
  *
- * Manages the GLS REST API client lifecycle:
- * - DB-stored configuration with encrypted credentials
- * - Short-TTL config cache (Redis) so admin edits propagate quickly
- * - Long-TTL branch (pickup-point) feed cache (Redis)
- * - Lazy HTTP client init, recreated when config changes
- *
- * Registered only when FEATURE_GLS_ENABLED=1.
+ * Stores MyGLS credentials/configuration, exposes a cached effective runtime
+ * configuration, and lazily constructs the JSON MyGLS API client.
  */
 export class GLSClientModuleService extends MedusaService({
   GLSConfig,
@@ -197,10 +240,6 @@ export class GLSClientModuleService extends MedusaService({
     return this.environment_
   }
 
-  // ============================================
-  // Config Management (DB-stored, encrypted)
-  // ============================================
-
   async getConfig(): Promise<GLSConfigDTO | null> {
     const configs = await this.listGLSConfigs(
       { environment: this.environment_ },
@@ -214,7 +253,6 @@ export class GLSClientModuleService extends MedusaService({
   }
 
   /**
-   * Update config.
    * Empty string on a sensitive field = keep existing value.
    * null on a sensitive field = clear it.
    */
@@ -252,7 +290,6 @@ export class GLSClientModuleService extends MedusaService({
         throw error
       }
 
-      // A concurrent writer inserted the row first; fall back to updating it.
       const concurrent = await this.getConfig()
       if (!concurrent) {
         throw error
@@ -268,8 +305,8 @@ export class GLSClientModuleService extends MedusaService({
   }
 
   /**
-   * Effective config used by API calls. Cached briefly so multiple requests in
-   * the same burst don't re-hit the DB. Returns null if disabled / unconfigured.
+   * Effective config used by API calls. Returns null if disabled or missing
+   * required MyGLS credentials/pickup-address fields.
    */
   async getEffectiveConfig(): Promise<GLSOptions | null> {
     const cached = await this.getCachedConfig()
@@ -278,13 +315,20 @@ export class GLSClientModuleService extends MedusaService({
     }
 
     const config = await this.getConfig()
-    const apiPassword = config?.api_password
-    if (!(config?.is_enabled && apiPassword)) {
+    if (
+      !(
+        config?.is_enabled &&
+        config.username &&
+        config.password &&
+        isPositiveNumber(config.client_number) &&
+        hasRequiredPickupAddress(config)
+      )
+    ) {
       await this.cacheDisabledConfig()
       return null
     }
 
-    const options = this.toEffectiveOptions(config, apiPassword)
+    const options = this.toEffectiveOptions(config)
     await this.cacheEffectiveConfig(options)
 
     return options
@@ -306,26 +350,38 @@ export class GLSClientModuleService extends MedusaService({
     return
   }
 
-  private toEffectiveOptions(
-    config: GLSConfigDTO,
-    apiPassword: string
-  ): GLSOptions {
+  private toEffectiveOptions(config: GLSConfigDTO): GLSOptions {
+    if (!(config.username && config.password && config.client_number)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "GLS: Missing MyGLS credentials"
+      )
+    }
+
+    if (!hasRequiredPickupAddress(config)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "GLS: Missing pickup address fields"
+      )
+    }
+
     return {
-      api_password: apiPassword,
+      username: config.username,
+      password: config.password,
+      client_number: config.client_number,
       environment: this.environment_,
-      default_label_format: config.default_label_format as GLSLabelFormat,
-      default_label_offset: config.default_label_offset,
-      sender_label: config.sender_label ?? undefined,
-      eshop_id: config.eshop_id ?? undefined,
-      cod_bank_account: config.cod_bank_account ?? undefined,
-      cod_bank_code: config.cod_bank_code ?? undefined,
-      cod_iban: config.cod_iban ?? undefined,
-      cod_swift: config.cod_swift ?? undefined,
-      sender_name: config.sender_name ?? undefined,
-      sender_street: config.sender_street ?? undefined,
-      sender_city: config.sender_city ?? undefined,
-      sender_zip_code: config.sender_zip_code ?? undefined,
-      sender_country: config.sender_country ?? undefined,
+      country_code: toCountryCode(config.country_code),
+      webshop_engine: config.webshop_engine ?? DEFAULT_WEBSHOP_ENGINE,
+      type_of_printer: toPrinterType(config.type_of_printer),
+      print_position: toPrintPosition(config.print_position),
+      hide_phone_number_on_labels: config.hide_phone_number_on_labels,
+      sender_name: config.sender_name as string,
+      sender_street: config.sender_street as string,
+      sender_house_number: config.sender_house_number as string,
+      sender_house_number_info: config.sender_house_number_info ?? undefined,
+      sender_city: config.sender_city as string,
+      sender_zip_code: config.sender_zip_code as string,
+      sender_country: config.sender_country as string,
       sender_phone: config.sender_phone ?? undefined,
       sender_email: config.sender_email ?? undefined,
     }
@@ -378,10 +434,6 @@ export class GLSClientModuleService extends MedusaService({
     }
   }
 
-  // ============================================
-  // Lazy Client
-  // ============================================
-
   private getConfigCacheKey(): string {
     return computeKey("config", { environment: this.environment_ })
   }
@@ -395,7 +447,7 @@ export class GLSClientModuleService extends MedusaService({
     if (!config) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "GLS is disabled or not configured. Enable it in Settings → GLS."
+        "GLS is disabled or not configured. Enable it in Settings → GLS and fill MyGLS credentials plus pickup address."
       )
     }
 
@@ -408,10 +460,6 @@ export class GLSClientModuleService extends MedusaService({
     this.clientConfigFingerprint_ = fingerprint
     return this.client_
   }
-
-  // ============================================
-  // Public API
-  // ============================================
 
   async createPacket(
     attributes: GLSPacketAttributes
@@ -432,24 +480,23 @@ export class GLSClientModuleService extends MedusaService({
   }
 
   async getPacketStatus(
-    packetId: string | number
+    parcelNumber: string | number
   ): Promise<GLSPacketStatusRecord[]> {
     const client = await this.getClient()
-    return client.packetStatus(packetId)
+    return client.packetStatus(parcelNumber)
   }
 
-  async downloadLabelPdf(
-    packetId: string | number,
-    format?: GLSLabelFormat,
-    offset?: number
-  ): Promise<Buffer> {
+  async downloadLabelPdf(packetId: string | number): Promise<Buffer> {
     const client = await this.getClient()
-    return client.downloadLabelPdf(packetId, format, offset)
+    return client.downloadLabelPdf(packetId)
   }
 
-  /**
-   * Pickup-point (branch) list. Cached for 24h — safe to call on hot paths.
-   */
+  async downloadLabelsPdf(packetIds: (string | number)[]): Promise<Buffer> {
+    const client = await this.getClient()
+    return client.downloadLabelsPdf(packetIds)
+  }
+
+  /** Pickup-point list from MyGLS MasterDataService, cached for 24h. */
   async getBranches(): Promise<GLSBranch[]> {
     if (this.cacheService_) {
       const cached = (await this.cacheService_.get({

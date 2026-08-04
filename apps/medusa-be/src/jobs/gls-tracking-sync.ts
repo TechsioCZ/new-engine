@@ -27,7 +27,7 @@ type FulfillmentRecord = {
 }
 
 interface PendingFulfillment extends FulfillmentRecord {
-  data: GLSFulfillmentData & { packet_id: string | number }
+  data: GLSFulfillmentData & { packet_id: string | number; barcode: string }
 }
 
 type GLSPendingEvent = {
@@ -201,7 +201,7 @@ async function processFulfillment(
   fulfillment: PendingFulfillment
 ): Promise<void> {
   const { logger } = ctx
-  const { packet_id: packetId } = fulfillment.data
+  const { packet_id: packetId, barcode: parcelNumber } = fulfillment.data
 
   if (await flushPendingEvent(ctx, fulfillment)) {
     return
@@ -209,10 +209,10 @@ async function processFulfillment(
 
   let history: GLSPacketStatusRecord[]
   try {
-    history = await glsClient.getPacketStatus(packetId)
+    history = await glsClient.getPacketStatus(parcelNumber)
   } catch (error) {
     logger.warn(
-      `GLS Tracking Sync: Failed to fetch status for packet ${packetId}: ${error instanceof Error ? error.message : String(error)}`
+      `GLS Tracking Sync: Failed to fetch status for packet ${packetId} / parcel ${parcelNumber}: ${error instanceof Error ? error.message : String(error)}`
     )
     return
   }

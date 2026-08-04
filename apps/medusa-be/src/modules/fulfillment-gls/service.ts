@@ -191,6 +191,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
       access_point_name: data.access_point_name as string | undefined,
       access_point_zip: data.access_point_zip as string | undefined,
       access_point_city: data.access_point_city as string | undefined,
+      email: data.email as string | undefined,
     } satisfies GLSShippingOptionData
   }
 
@@ -256,7 +257,10 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
 
     let labelUrl: string | undefined
     try {
-      const pdfBuffer = await this.getClient().downloadLabelPdf(result.id)
+      const pdfBuffer =
+        result.label_pdf && result.label_pdf.length > 0
+          ? result.label_pdf
+          : await this.getClient().downloadLabelPdf(result.id)
       const uploaded = await this.fileService_.createFiles([
         {
           filename: `gls-label-${result.barcode}.pdf`,
@@ -267,7 +271,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
       labelUrl = uploaded[0]?.url
     } catch (error) {
       this.logger_.warn(
-        `GLS: Packet ${result.id} created (barcode ${result.barcode}) but label download/upload failed: ${error instanceof Error ? error.message : String(error)}. The label can be retrieved later from GLS directly.`
+        `GLS: Packet ${result.id} created (parcel number ${result.barcode}) but label upload failed: ${error instanceof Error ? error.message : String(error)}. The label can be retrieved later from MyGLS.`
       )
     }
 
@@ -275,6 +279,7 @@ class GLSFulfillmentProviderService extends AbstractFulfillmentProviderService {
       status: "completed",
       packet_id: result.id,
       barcode: result.barcode,
+      parcel_number: result.barcode,
       access_point_id: shippingData.access_point_id,
       supports_cod: shippingData.supports_cod,
       ...(labelUrl && { label_url: labelUrl }),

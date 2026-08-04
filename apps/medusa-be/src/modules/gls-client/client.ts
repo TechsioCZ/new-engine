@@ -1,7 +1,9 @@
+import { createHash } from "node:crypto"
+import { gunzipSync } from "node:zlib"
 import { MedusaError } from "@medusajs/framework/utils"
-import { XMLBuilder, XMLParser } from "fast-xml-parser"
 import type {
   GLSBranch,
+  GLSCountryCode,
   GLSCreatePacketResult,
   GLSOptions,
   GLSPacketAttributes,
@@ -9,33 +11,108 @@ import type {
 } from "./types"
 import { mapGLSStatusCode } from "./utils"
 
-/**
- * GLS REST/XML API endpoint. Single URL — environment routing happens via
- * sender credentials, not URL.
- * @see https://docs.gls.com/docs/getting-started/gls-api
- */
-const REST_API_URL = "https://www.gls.cz/api/rest"
+const COUNTRY_DOMAINS: Record<GLSCountryCode, string> = {
+  HR: "hr",
+  CZ: "cz",
+  HU: "hu",
+  RO: "ro",
+  SI: "si",
+  SK: "sk",
+  RS: "rs",
+}
+const DOT_NET_DATE_REGEX = /\/Date\((\d+)(?:[+-]\d+)?\)\//
 
-/**
- * Public branch-list feed used for pickup-point discovery. JSON, separate from
- * the REST/XML API. `{apiKey}` is substituted into the path.
- */
-const BRANCH_FEED_URL =
-  "https://pickup-point.api.gls.com/v5/{apiKey}/branch.json?lang=cs"
-
-type RequestOptions = {
-  /** Body fields placed inside the method element alongside apiPassword */
-  params?: Record<string, unknown>
-  /** Set to false for non-idempotent writes such as createPacket. */
-  retryable?: boolean
+type MyGLSErrorInfo = {
+  ErrorCode?: number
+  ErrorDescription?: string
+  ClientReferenceList?: string[]
+  ParcelIdList?: number[]
 }
 
-type GLSResponseEnvelope<T> = {
-  status: "ok" | "fault"
-  result?: T
-  fault?: string
-  string?: string
-  detail?: unknown
+type PrintLabelsInfo = {
+  ClientReference?: string
+  ParcelId?: number
+  ParcelNumber?: number | string
+  ParcelNumberWithCheckdigit?: number | string
+}
+
+type PrintLabelsResponse = {
+  Labels?: number[]
+  PrintLabelsErrorList?: MyGLSErrorInfo[]
+  PrintLabelsInfoList?: PrintLabelsInfo[]
+}
+
+type GetPrintDataResponse = {
+  Pdfdocument?: number[]
+  PdfDocument?: number[]
+  Labels?: number[]
+  GetPrintDataErrorList?: MyGLSErrorInfo[]
+  PrintDataInfoList?: PrintLabelsInfo[]
+}
+
+type DeleteLabelsResponse = {
+  DeleteLabelsErrorList?: MyGLSErrorInfo[]
+  SuccessfullyDeletedList?: Array<{
+    ParcelId?: number
+    SubParcelIdList?: number[]
+  }>
+}
+
+type ParcelStatus = {
+  DepotCity?: string
+  DepotNumber?: string
+  StatusCode?: string | number
+  StatusDate?: string
+  StatusDescription?: string
+  StatusInfo?: string
+}
+
+type GetParcelStatusResponse = {
+  ClientReference?: string
+  DeliveryCountryCode?: string
+  DeliveryZipCode?: string
+  GetParcelStatusErrors?: MyGLSErrorInfo[]
+  ParcelNumber?: number | string
+  ParcelStatusList?: ParcelStatus[]
+  POD?: number[]
+  Weight?: number
+}
+
+type DeliveryPoint = {
+  Id?: number | string
+  Address?: {
+    City?: string
+    ContactEmail?: string
+    ContactName?: string
+    ContactPhone?: string
+    CountryIsoCode?: string
+    HouseNumber?: string
+    HouseNumberInfo?: string
+    Name?: string
+    Street?: string
+    ZipCode?: string
+  }
+  Latitude?: number | string
+  Longitude?: number | string
+  Matchcode?: string
+  LegacyId?: string
+  DeliveryPointType?: number
+  PickupTime?: string
+  IsActive?: boolean
+}
+
+type GetDeliveryPointsResponse = {
+  ErrorCode?: number
+  ErrorDescription?: string
+  IsChanged?: boolean
+  LastUpdateTime?: string
+  Data?: number[]
+}
+
+type MyGLSServiceName = "ParcelService" | "MasterDataService"
+
+type RequestOptions = {
+  retryable?: boolean
 }
 
 type RetryAttemptResult<T> =
@@ -43,15 +120,12 @@ type RetryAttemptResult<T> =
   | { retry: false; value: T }
 
 /**
- * GLS REST/XML API Client — pure HTTP layer.
+ * MyGLS JSON API client.
  *
- * No caching, no rate limiting, no token management — handled by
- * GLSClientModuleService. This client only:
- *
- * - POSTs XML bodies to https://www.gls.cz/api/rest
- * - Retries on transient failures (429 / 5xx)
- * - Translates GLS `<status>fault</status>` envelopes into MedusaErrors
- * - Decodes base64 label PDFs
+ * The MyGLS API authenticates every request using a username and SHA512-hashed
+ * password byte array in the JSON body. Labels are created through
+ * ParcelService.PrintLabels and existing labels are retrieved through
+ * ParcelService.GetPrintData.
  */
 export class GLSClient {
   private readonly MAX_RETRIES = 3
@@ -59,257 +133,449 @@ export class GLSClient {
   private readonly REQUEST_TIMEOUT_MS = 30_000
 
   private readonly options: GLSOptions
-  private readonly xmlBuilder: XMLBuilder
-  private readonly xmlParser: XMLParser
+  private readonly passwordBytes: number[]
 
   constructor(options: GLSOptions) {
     this.options = options
-    this.xmlBuilder = new XMLBuilder({
-      ignoreAttributes: true,
-      suppressEmptyNode: true,
-    })
-    this.xmlParser = new XMLParser({
-      ignoreAttributes: true,
-      parseTagValue: true,
-      // Force these to always be arrays even when the API returns a single child.
-      isArray: (name) => name === "record",
-    })
+    this.passwordBytes = Array.from(
+      createHash("sha512").update(options.password, "utf8").digest()
+    )
   }
 
-  // ============================================
-  // Shipment Operations
-  // ============================================
-
-  /**
-   * Create a packet (synchronous — returns packet ID + barcode immediately).
-   */
   async createPacket(
     attributes: GLSPacketAttributes
   ): Promise<GLSCreatePacketResult> {
-    const params = {
-      packetAttributes: {
-        ...attributes,
-        eshop: attributes.eshop ?? this.options.sender_label ?? undefined,
+    const response = await this.request<PrintLabelsResponse>(
+      "ParcelService",
+      "PrintLabels",
+      {
+        ...this.baseRequest(),
+        ParcelList: [this.buildParcel(attributes)],
+        PrintPosition: this.options.print_position,
+        ShowPrintDialog: false,
+        TypeOfPrinter: this.options.type_of_printer,
+        HidePhoneNumberOnLabels: this.options.hide_phone_number_on_labels,
       },
-    }
+      { retryable: false }
+    )
 
-    const result = await this.request<GLSCreatePacketResult>("createPacket", {
-      params,
-      retryable: false,
-    })
+    this.throwIfErrors(response.PrintLabelsErrorList, "PrintLabels")
 
-    if (!(result?.id && result?.barcode)) {
+    const info = response.PrintLabelsInfoList?.[0]
+    if (!(info?.ParcelId && info.ParcelNumber)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "GLS: createPacket returned no id/barcode"
+        "GLS PrintLabels returned no ParcelId/ParcelNumber"
       )
     }
-    return result
+
+    const barcode = String(info.ParcelNumberWithCheckdigit ?? info.ParcelNumber)
+
+    return {
+      id: info.ParcelId,
+      barcode,
+      barcodeText: barcode,
+      label_pdf: this.bytesToBuffer(response.Labels),
+    }
   }
 
-  /**
-   * Cancel a packet (only possible before pickup by carrier).
-   * Returns true on success, false on GLS-side refusal.
-   */
   async cancelPacket(packetId: string | number): Promise<boolean> {
-    try {
-      await this.request("cancelPacket", { params: { packetId } })
-      return true
-    } catch {
+    const parcelId = this.toPositiveInteger(packetId, "ParcelId")
+
+    const response = await this.request<DeleteLabelsResponse>(
+      "ParcelService",
+      "DeleteLabels",
+      {
+        ...this.baseRequest(),
+        ParcelIdList: [parcelId],
+      },
+      { retryable: false }
+    )
+
+    const errors = response.DeleteLabelsErrorList ?? []
+    if (errors.length > 0) {
       return false
     }
+
+    return (response.SuccessfullyDeletedList ?? []).some(
+      (item) => item.ParcelId === parcelId
+    )
   }
 
-  /**
-   * Get the normalised status history for a packet.
-   *
-   * Calls GLS's `packetTracking` — `packetStatus` only returns the single
-   * current state, while consumers (tracking-sync job) need the full history.
-   */
   async packetStatus(
-    packetId: string | number
+    parcelNumber: string | number
   ): Promise<GLSPacketStatusRecord[]> {
-    const raw = await this.request<{
-      record?: Array<{
-        dateTime: string
-        statusCode: string | number
-        statusName?: string
-      }>
-    }>("packetTracking", { params: { packetId } })
+    const response = await this.request<GetParcelStatusResponse>(
+      "ParcelService",
+      "GetParcelStatuses",
+      {
+        ...this.baseRequest(),
+        ParcelNumber: this.toParcelNumber(parcelNumber),
+        ReturnPOD: false,
+        LanguageIsoCode: this.getLanguageIsoCode(),
+      }
+    )
 
-    const records = raw?.record ?? []
-    return records.map((r) => ({
-      dateTime: r.dateTime,
-      statusCode: r.statusCode,
-      statusName: r.statusName ?? String(r.statusCode),
-      state: mapGLSStatusCode(r.statusCode),
-    }))
+    this.throwIfErrors(response.GetParcelStatusErrors, "GetParcelStatuses")
+
+    return (response.ParcelStatusList ?? []).map((status) => {
+      const statusCode = status.StatusCode ?? "unknown"
+      const statusName =
+        status.StatusDescription ?? status.StatusInfo ?? String(statusCode)
+
+      return {
+        dateTime: this.normalizeMyGLSDate(status.StatusDate),
+        statusCode,
+        statusName,
+        state: mapGLSStatusCode(statusCode, statusName),
+      }
+    })
   }
 
-  /**
-   * Download label PDF for a packet. Returns raw bytes — caller uploads to storage.
-   *
-   * GLS's `format` parameter takes composite values like "A6 on A6" or
-   * "A7 on A4" — we accept the simpler "A6"/"A7" enum from config and translate.
-   */
-  async downloadLabelPdf(
-    packetId: string | number,
-    format: "A6" | "A7" = this.options.default_label_format,
-    offset: number = this.options.default_label_offset
-  ): Promise<Buffer> {
-    const apiFormat = format === "A6" ? "A6 on A6" : "A7 on A4"
-    const result = await this.request<string>("packetLabelPdf", {
-      params: { packetId, format: apiFormat, offset },
-    })
+  async downloadLabelPdf(packetId: string | number): Promise<Buffer> {
+    return this.downloadLabelsPdf([packetId])
+  }
 
-    if (!result || typeof result !== "string") {
+  async downloadLabelsPdf(packetIds: (string | number)[]): Promise<Buffer> {
+    const parcelIds = packetIds.map((id) =>
+      this.toPositiveInteger(id, "ParcelId")
+    )
+
+    if (parcelIds.length === 0) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `GLS: packetLabelPdf returned no PDF data for packet ${packetId}`
+        "GLS: ParcelIdList must not be empty"
       )
     }
-    return Buffer.from(result, "base64")
+
+    const response = await this.request<GetPrintDataResponse>(
+      "ParcelService",
+      "GetPrintData",
+      {
+        ...this.baseRequest(),
+        ParcelIdList: parcelIds,
+      }
+    )
+
+    this.throwIfErrors(response.GetPrintDataErrorList, "GetPrintData")
+
+    const pdf = this.bytesToBuffer(
+      response.Pdfdocument ?? response.PdfDocument ?? response.Labels
+    )
+    if (!pdf) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "GLS GetPrintData returned no PDF data"
+      )
+    }
+
+    return pdf
   }
 
-  // ============================================
-  // Branch (Pickup Point) Feed
-  // ============================================
-
-  /**
-   * Fetch the full pickup-point feed. Large JSON payload — the service layer
-   * caches this (24h TTL) and shouldn't call it on request hot paths.
-   */
   async getBranchList(): Promise<GLSBranch[]> {
-    const apiKey = process.env.GLS_PICKUP_POINTS_API_KEY
-    if (!apiKey) {
+    const response = await this.request<GetDeliveryPointsResponse>(
+      "MasterDataService",
+      "GetDeliveryPoints",
+      {
+        ...this.baseRequest(),
+        CountryIsoCode: this.options.country_code,
+      }
+    )
+
+    if (response.ErrorCode && response.ErrorCode !== 0) {
       throw new MedusaError(
-        MedusaError.Types.NOT_ALLOWED,
-        "GLS: GLS_PICKUP_POINTS_API_KEY is not configured for the branch feed"
+        MedusaError.Types.INVALID_DATA,
+        `GLS GetDeliveryPoints error ${response.ErrorCode}: ${
+          response.ErrorDescription ?? "Unknown error"
+        }`
       )
     }
 
-    const url = BRANCH_FEED_URL.replace("{apiKey}", encodeURIComponent(apiKey))
+    if (!response.Data || response.Data.length === 0) {
+      return []
+    }
 
-    const payload = await this.withRetry(
-      () => this.fetchWithTimeout(url, { method: "GET" }),
+    const decompressed = gunzipSync(this.bytesToBuffer(response.Data))
+    const payload = JSON.parse(decompressed.toString("utf8")) as unknown
+    const points = this.getDeliveryPointsPayload(payload)
+
+    return points
+      .filter(isRecord)
+      .map((point) => this.mapDeliveryPoint(point as DeliveryPoint))
+  }
+
+  private buildParcel(attributes: GLSPacketAttributes) {
+    const recipientName = `${attributes.name} ${attributes.surname}`.trim()
+    const codAmount = attributes.cod ?? 0
+
+    return {
+      ClientNumber: this.options.client_number,
+      ClientReference: attributes.number,
+      CODAmount: codAmount,
+      ...(codAmount > 0 && {
+        CODReference: attributes.number,
+        CODCurrency: attributes.currency,
+      }),
+      Content: attributes.content ?? `Order ${attributes.number}`,
+      Count: 1,
+      PickupDate: this.getPickupDate(),
+      DeliveryAddress: {
+        ContactEmail: attributes.email,
+        ContactName: recipientName,
+        ContactPhone: attributes.phone,
+        CountryIsoCode: attributes.delivery_country,
+        HouseNumber: attributes.delivery_house_number,
+        ...(attributes.delivery_house_number_info && {
+          HouseNumberInfo: attributes.delivery_house_number_info,
+        }),
+        Name: recipientName,
+        Street: attributes.delivery_street,
+        City: attributes.delivery_city,
+        ZipCode: attributes.delivery_zip_code,
+      },
+      PickupAddress: {
+        ContactEmail: this.options.sender_email,
+        ContactName: this.options.sender_name,
+        ContactPhone: this.options.sender_phone,
+        CountryIsoCode: this.options.sender_country,
+        HouseNumber: this.options.sender_house_number,
+        ...(this.options.sender_house_number_info && {
+          HouseNumberInfo: this.options.sender_house_number_info,
+        }),
+        Name: this.options.sender_name,
+        Street: this.options.sender_street,
+        City: this.options.sender_city,
+        ZipCode: this.options.sender_zip_code,
+      },
+      ServiceList: [
+        {
+          Code: "PSD",
+          PSDParameter: {
+            StringValue: attributes.addressId,
+          },
+        },
+      ],
+      ...(attributes.weight && {
+        ParcelPropertyList: [
+          {
+            Content: attributes.content ?? `Order ${attributes.number}`,
+            PackageType: 1,
+            Weight: attributes.weight,
+          },
+        ],
+      }),
+    }
+  }
+
+  private getPickupDate(): string {
+    const date = new Date()
+    date.setHours(23, 59, 59, 0)
+    return `/Date(${date.getTime()})/`
+  }
+
+  private baseRequest(): Record<string, unknown> {
+    return {
+      ClientNumberList: [this.options.client_number],
+      Username: this.options.username,
+      Password: this.passwordBytes,
+      WebshopEngine: this.options.webshop_engine ?? "new-engine-medusa",
+    }
+  }
+
+  private async request<T>(
+    serviceName: MyGLSServiceName,
+    methodName: string,
+    body: Record<string, unknown>,
+    options: RequestOptions = {}
+  ): Promise<T> {
+    return this.withRetry(
+      () =>
+        this.fetchWithTimeout(this.getServiceUrl(serviceName, methodName), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(body),
+        }),
       async (response) => {
+        const text = await response.text()
         if (!response.ok) {
           throw new MedusaError(
             MedusaError.Types.INVALID_DATA,
-            `GLS branch feed failed: ${response.status}`
+            `GLS ${methodName} failed: ${response.status} - ${text}`
           )
         }
-        const text = await response.text()
-        return JSON.parse(text) as
-          | {
-              data?: { branches?: GLSBranch[] }
-              branches?: GLSBranch[]
-            }
-          | GLSBranch[]
-      },
-      "GLS GET branch feed"
-    )
 
+        if (!text) {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            `GLS ${methodName}: empty response body`
+          )
+        }
+
+        return JSON.parse(text) as T
+      },
+      `GLS ${methodName}`,
+      options.retryable ?? true
+    )
+  }
+
+  private getServiceUrl(serviceName: MyGLSServiceName, methodName: string) {
+    const domain = COUNTRY_DOMAINS[this.options.country_code]
+    const hostPrefix =
+      this.options.environment === "testing" ? "api.test.mygls" : "api.mygls"
+
+    return `https://${hostPrefix}.${domain}/${serviceName}.svc/json/${methodName}`
+  }
+
+  private throwIfErrors(
+    errors: MyGLSErrorInfo[] | undefined,
+    methodName: string
+  ): void {
+    const errorList = errors ?? []
+    if (errorList.length === 0) {
+      return
+    }
+
+    const message = errorList
+      .map((error) => {
+        const description = this.enhanceErrorDescription(
+          error.ErrorDescription ?? "Unknown error"
+        )
+        const code = error.ErrorCode ?? "unknown"
+        const references = error.ClientReferenceList?.length
+          ? ` references=${error.ClientReferenceList.join(",")}`
+          : ""
+        const parcelIds = error.ParcelIdList?.length
+          ? ` parcelIds=${error.ParcelIdList.join(",")}`
+          : ""
+        return `${code}: ${description}${references}${parcelIds}`
+      })
+      .join("; ")
+
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `GLS ${methodName} error: ${message}`
+    )
+  }
+
+  private enhanceErrorDescription(description: string): string {
+    if (description.includes("Invalid service parameter, Service 'PSD'")) {
+      return `${description} (ParcelShop/box delivery validation failed: check that the recipient phone is a valid mobile number for the delivery country and that the pickup point id/address/country match.)`
+    }
+
+    return description
+  }
+
+  private bytesToBuffer(value: number[] | undefined): Buffer {
+    return Buffer.from(value ?? [])
+  }
+
+  private toPositiveInteger(value: string | number, field: string): number {
+    const numberValue =
+      typeof value === "number" ? value : Number.parseInt(value, 10)
+
+    if (!Number.isInteger(numberValue) || numberValue <= 0) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `GLS: ${field} must be a positive integer`
+      )
+    }
+
+    return numberValue
+  }
+
+  private toParcelNumber(value: string | number): number {
+    const normalized =
+      typeof value === "number" ? String(value) : value.replace(/\D/g, "")
+    return this.toPositiveInteger(normalized, "ParcelNumber")
+  }
+
+  private getLanguageIsoCode() {
+    switch (this.options.country_code) {
+      case "CZ":
+        return "CS"
+      case "SK":
+        return "SK"
+      case "SI":
+        return "SL"
+      case "HR":
+        return "HR"
+      case "HU":
+        return "HU"
+      case "RO":
+        return "RO"
+      default:
+        return "CS"
+    }
+  }
+
+  private normalizeMyGLSDate(value: string | undefined): string {
+    if (!value) {
+      return new Date().toISOString()
+    }
+
+    const dotNetMatch = value.match(DOT_NET_DATE_REGEX)
+    if (dotNetMatch?.[1]) {
+      return new Date(Number.parseInt(dotNetMatch[1], 10)).toISOString()
+    }
+
+    const parsed = new Date(value)
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString()
+    }
+
+    return value
+  }
+
+  private mapDeliveryPoint(point: DeliveryPoint): GLSBranch {
+    const address = point.Address ?? {}
+    const id = String(point.Matchcode ?? point.LegacyId ?? point.Id ?? "")
+    const street = [address.Street, address.HouseNumber]
+      .filter(Boolean)
+      .join(" ")
+      .trim()
+
+    return {
+      id,
+      name: address.Name ?? point.Matchcode ?? id,
+      nameStreet: [address.Name, street].filter(Boolean).join(", "),
+      street,
+      city: address.City ?? "",
+      zip: address.ZipCode ?? "",
+      country: address.CountryIsoCode ?? this.options.country_code,
+      latitude:
+        point.Latitude !== undefined ? String(point.Latitude) : undefined,
+      longitude:
+        point.Longitude !== undefined ? String(point.Longitude) : undefined,
+      openingHours: point.PickupTime,
+      branchType: this.getDeliveryPointBranchType(point.DeliveryPointType),
+    }
+  }
+
+  private getDeliveryPointsPayload(payload: unknown): unknown[] {
     if (Array.isArray(payload)) {
       return payload
     }
 
-    return payload?.data?.branches ?? payload?.branches ?? []
+    if (isRecord(payload) && Array.isArray(payload.Data)) {
+      return payload.Data
+    }
+
+    return []
   }
 
-  // ============================================
-  // Internal: HTTP + Retry + Envelope handling
-  // ============================================
+  private getDeliveryPointBranchType(type: number | undefined): string {
+    if (type === 2) {
+      return "locker"
+    }
 
-  /**
-   * Builds an XML body of the form
-   *   <methodName>
-   *     <apiPassword>...</apiPassword>
-   *     ...params
-   *   </methodName>
-   * POSTs it to the REST/XML endpoint, parses the `<response>` envelope, and
-   * unwraps the `<result>` payload.
-   */
-  private async request<T>(
-    methodName: string,
-    options: RequestOptions = {}
-  ): Promise<T> {
-    const { params = {}, retryable = true } = options
+    if (type === 3) {
+      return "depot"
+    }
 
-    const xmlBody = this.xmlBuilder.build({
-      [methodName]: {
-        apiPassword: this.options.api_password,
-        ...params,
-      },
-    })
-
-    return this.withRetry(
-      () =>
-        this.fetchWithTimeout(REST_API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "text/xml; charset=utf-8",
-            Accept: "text/xml",
-          },
-          body: xmlBody,
-        }),
-      async (response) => {
-        if (!response.ok) {
-          throw new MedusaError(
-            MedusaError.Types.INVALID_DATA,
-            `GLS request failed: ${response.status} - ${await response.text()}`
-          )
-        }
-
-        const text = await response.text()
-        if (!text) {
-          throw new MedusaError(
-            MedusaError.Types.INVALID_DATA,
-            `GLS: empty response body from ${methodName}`
-          )
-        }
-
-        const parsed: unknown = this.xmlParser.parse(text)
-        const envelope = (parsed as { response?: GLSResponseEnvelope<T> })
-          ?.response
-
-        if (!envelope) {
-          throw new MedusaError(
-            MedusaError.Types.INVALID_DATA,
-            `GLS ${methodName}: missing <response> element`
-          )
-        }
-
-        if (envelope.status === "fault") {
-          throw this.faultToError(envelope, methodName)
-        }
-
-        if (envelope.status !== "ok") {
-          throw new MedusaError(
-            MedusaError.Types.INVALID_DATA,
-            `GLS ${methodName}: unexpected status "${envelope.status}"`
-          )
-        }
-
-        return envelope.result as T
-      },
-      `GLS ${methodName}`,
-      retryable
-    )
-  }
-
-  private faultToError(
-    envelope: GLSResponseEnvelope<unknown>,
-    methodName: string
-  ): MedusaError {
-    const message = envelope.string ?? envelope.fault ?? "unknown fault"
-    const detailSuffix = envelope.detail
-      ? ` Detail: ${JSON.stringify(envelope.detail)}`
-      : ""
-    return new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      `GLS ${methodName} fault (${envelope.fault}): ${message}${detailSuffix}`
-    )
+    return "parcelshop"
   }
 
   private isRetryable(status: number): boolean {
@@ -456,4 +722,8 @@ export class GLSClient {
       `${errorContext} after ${retryable ? this.MAX_RETRIES + 1 : 1} attempts: ${lastError.message}`
     )
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
 }

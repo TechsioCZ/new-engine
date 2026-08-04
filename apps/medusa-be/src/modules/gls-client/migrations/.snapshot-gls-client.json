@@ -54,8 +54,8 @@
           "enumItems": [],
           "mappedType": "boolean"
         },
-        "api_password": {
-          "name": "api_password",
+        "username": {
+          "name": "username",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -70,8 +70,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "sender_label": {
-          "name": "sender_label",
+        "password": {
+          "name": "password",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -86,9 +86,9 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "eshop_id": {
-          "name": "eshop_id",
-          "type": "text",
+        "client_number": {
+          "name": "client_number",
+          "type": "integer",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
@@ -100,10 +100,10 @@
           "default": null,
           "comment": null,
           "enumItems": [],
-          "mappedType": "text"
+          "mappedType": "integer"
         },
-        "default_label_format": {
-          "name": "default_label_format",
+        "country_code": {
+          "name": "country_code",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -113,13 +113,45 @@
           "length": null,
           "precision": null,
           "scale": null,
-          "default": "'A6'",
+          "default": "'SK'",
           "comment": null,
           "enumItems": [],
           "mappedType": "text"
         },
-        "default_label_offset": {
-          "name": "default_label_offset",
+        "webshop_engine": {
+          "name": "webshop_engine",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "type_of_printer": {
+          "name": "type_of_printer",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'A4_2x2'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "print_position": {
+          "name": "print_position",
           "type": "integer",
           "unsigned": false,
           "autoincrement": false,
@@ -129,74 +161,26 @@
           "length": null,
           "precision": null,
           "scale": null,
-          "default": "0",
+          "default": "1",
           "comment": null,
           "enumItems": [],
           "mappedType": "integer"
         },
-        "cod_bank_account": {
-          "name": "cod_bank_account",
-          "type": "text",
+        "hide_phone_number_on_labels": {
+          "name": "hide_phone_number_on_labels",
+          "type": "boolean",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": true,
+          "nullable": false,
           "unique": false,
           "length": null,
           "precision": null,
           "scale": null,
-          "default": null,
+          "default": "false",
           "comment": null,
           "enumItems": [],
-          "mappedType": "text"
-        },
-        "cod_bank_code": {
-          "name": "cod_bank_code",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "cod_iban": {
-          "name": "cod_iban",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "cod_swift": {
-          "name": "cod_swift",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
+          "mappedType": "boolean"
         },
         "sender_name": {
           "name": "sender_name",
@@ -216,6 +200,38 @@
         },
         "sender_street": {
           "name": "sender_street",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "sender_house_number": {
+          "name": "sender_house_number",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "sender_house_number_info": {
+          "name": "sender_house_number_info",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -398,9 +414,19 @@
           "definition": "check ((environment in ('testing', 'production')))"
         },
         {
-          "name": "gls_config_label_format_check",
-          "expression": "default_label_format in ('A6', 'A7')",
-          "definition": "check ((default_label_format in ('A6', 'A7')))"
+          "name": "gls_config_country_code_check",
+          "expression": "country_code in ('HR', 'CZ', 'HU', 'RO', 'SI', 'SK', 'RS')",
+          "definition": "check ((country_code in ('HR', 'CZ', 'HU', 'RO', 'SI', 'SK', 'RS')))"
+        },
+        {
+          "name": "gls_config_printer_type_check",
+          "expression": "type_of_printer in ('A4_2x2', 'A4_4x1', 'Connect', 'Thermo', 'ThermoZPL', 'ShipItThermoPdf', 'ThermoZPL_300DPI', 'ShipItThermoZpl')",
+          "definition": "check ((type_of_printer in ('A4_2x2', 'A4_4x1', 'Connect', 'Thermo', 'ThermoZPL', 'ShipItThermoPdf', 'ThermoZPL_300DPI', 'ShipItThermoZpl')))"
+        },
+        {
+          "name": "gls_config_print_position_check",
+          "expression": "print_position between 1 and 4",
+          "definition": "check ((print_position between 1 and 4))"
         }
       ],
       "foreignKeys": {},

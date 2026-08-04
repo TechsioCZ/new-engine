@@ -5,20 +5,14 @@ import {
   GLS_CLIENT_MODULE,
   type GLSClientModuleService,
 } from "../../../modules/gls-client"
-import type { GLSLabelFormat } from "../../../modules/gls-client/types"
-import { composeGLSLabelsOnA4 } from "../helpers/label-pdf"
 import {
   buildGLSLabelsFilename,
   collectPrintableGLSLabels,
-  downloadGLSLabelPdfsInChunks,
   type GLSLabelOrder,
-  resolveGLSLabelPrintOptions,
 } from "../helpers/labels"
 
 export type GenerateGLSLabelPdfStepInput = {
   order_ids: string[]
-  label_format?: GLSLabelFormat
-  label_offset?: number
 }
 
 export type GenerateGLSLabelPdfStepOutput = {
@@ -55,27 +49,13 @@ export const generateGLSLabelPdfStep = createStep(
       input.order_ids,
       orders as GLSLabelOrder[]
     )
-    const { labelFormat, labelOffset } = await resolveGLSLabelPrintOptions(
-      glsClient,
-      input.label_format,
-      input.label_offset
-    )
-
-    const labelPdfs = await downloadGLSLabelPdfsInChunks(
-      labels,
-      glsClient,
-      labelFormat
-    )
-
-    const pdfBytes = await composeGLSLabelsOnA4(
-      labelPdfs,
-      labelOffset,
-      labelFormat
+    const pdf = await glsClient.downloadLabelsPdf(
+      labels.map((label) => label.packet_id)
     )
 
     return new StepResponse({
       filename: buildGLSLabelsFilename(labels),
-      pdf_base64: Buffer.from(pdfBytes).toString("base64"),
+      pdf_base64: pdf.toString("base64"),
     })
   }
 )

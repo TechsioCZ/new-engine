@@ -6,7 +6,6 @@ import {
   Checkbox,
   Container,
   Heading,
-  Select,
   Table,
   Text,
   toast,
@@ -45,8 +44,6 @@ type OrdersResponse = {
   offset: number
 }
 
-type LabelFormat = "A6" | "A7"
-
 const PAGE_SIZE = 50
 
 export const handle = {
@@ -66,11 +63,6 @@ const ORDER_FIELDS = [
   "fulfillments.data",
 ].join(",")
 
-const LABEL_FORMATS: Array<{ value: LabelFormat; label: string }> = [
-  { value: "A6", label: "A6" },
-  { value: "A7", label: "A7" },
-]
-
 function getGLSLabels(order: AdminOrder): OrderFulfillment[] {
   return (order.fulfillments ?? []).filter(
     (fulfillment) =>
@@ -86,11 +78,10 @@ function getOrderNumber(order: AdminOrder): string {
   return customDisplayId ? customDisplayId : `#${order.display_id}`
 }
 
-async function downloadLabels(orderIds: string[], labelFormat: LabelFormat) {
+async function downloadLabels(orderIds: string[]) {
   const response = await fetch("/admin/gls-labels", {
     body: JSON.stringify({
       order_ids: orderIds,
-      label_format: labelFormat,
     }),
     credentials: "include",
     headers: {
@@ -127,7 +118,6 @@ async function downloadLabels(orderIds: string[], labelFormat: LabelFormat) {
 
 const GLSLabelsPage = () => {
   const [offset, setOffset] = useState(0)
-  const [labelFormat, setLabelFormat] = useState<LabelFormat>("A6")
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(
     new Set()
   )
@@ -204,7 +194,7 @@ const GLSLabelsPage = () => {
 
     setIsPrinting(true)
     try {
-      await downloadLabels(selectedPrintableOrderIds, labelFormat)
+      await downloadLabels(selectedPrintableOrderIds)
       toast.success("GLS labels generated")
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to print labels")
@@ -226,32 +216,15 @@ const GLSLabelsPage = () => {
             {selectedPrintableOrderIds.length} selected
           </Text>
         </div>
-        <div className="flex items-center gap-2">
-          <Select
-            onValueChange={(value) => setLabelFormat(value as LabelFormat)}
-            value={labelFormat}
-          >
-            <Select.Trigger className="w-[92px]">
-              <Select.Value />
-            </Select.Trigger>
-            <Select.Content>
-              {LABEL_FORMATS.map((format) => (
-                <Select.Item key={format.value} value={format.value}>
-                  {format.label}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select>
-          <Button
-            disabled={selectedPrintableOrderIds.length === 0}
-            isLoading={isPrinting}
-            onClick={handlePrint}
-            size="small"
-          >
-            <DocumentSeries />
-            Print labels
-          </Button>
-        </div>
+        <Button
+          disabled={selectedPrintableOrderIds.length === 0}
+          isLoading={isPrinting}
+          onClick={handlePrint}
+          size="small"
+        >
+          <DocumentSeries />
+          Print labels
+        </Button>
       </div>
 
       <Table>
