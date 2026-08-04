@@ -33,6 +33,7 @@ export type CreateAuthHooksConfig<
   TCreateCustomerInput = unknown,
   TLoginResult = unknown,
   TRegisterResult = unknown,
+  TDeactivateResult = unknown,
 > = {
   service: AuthService<
     TCustomer,
@@ -41,7 +42,8 @@ export type CreateAuthHooksConfig<
     TUpdateInput,
     TCreateCustomerInput,
     TLoginResult,
-    TRegisterResult
+    TRegisterResult,
+    TDeactivateResult
   >
   queryKeys?: AuthQueryKeys
   queryKeyNamespace?: QueryNamespace
@@ -73,6 +75,7 @@ export function createAuthHooks<
   TCreateCustomerInput = unknown,
   TLoginResult = unknown,
   TRegisterResult = unknown,
+  TDeactivateResult = unknown,
 >({
   service,
   queryKeys,
@@ -86,7 +89,8 @@ export function createAuthHooks<
   TUpdateInput,
   TCreateCustomerInput,
   TLoginResult,
-  TRegisterResult
+  TRegisterResult,
+  TDeactivateResult
 >) {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys = queryKeys ?? createAuthQueryKeys(queryKeyNamespace)
@@ -117,6 +121,14 @@ export function createAuthHooks<
     for (const queryKey of removeOnLogoutKeys) {
       queryClient.removeQueries({ queryKey })
     }
+  }
+
+  const clearCustomerSessionCache = (queryClient: QueryClient) => {
+    queryClient.setQueryData(resolvedQueryKeys.customer(), null)
+    queryClient.removeQueries({
+      queryKey: resolvedQueryKeys.all(),
+    })
+    removeCrossDomainOnLogout(queryClient)
   }
 
   function useAuth(
@@ -256,12 +268,34 @@ export function createAuthHooks<
       retry: false,
       onMutate: options?.onMutate,
       onSuccess: (_data, _variables, context) => {
-        queryClient.setQueryData(resolvedQueryKeys.customer(), null)
-        queryClient.removeQueries({
-          queryKey: resolvedQueryKeys.all(),
-        })
-        removeCrossDomainOnLogout(queryClient)
+        clearCustomerSessionCache(queryClient)
         options?.onSuccess?.(undefined, undefined, context)
+      },
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
+      },
+    })
+  }
+
+  function useDeactivateAccount<TContext = unknown>(
+    options?: AuthMutationOptions<TDeactivateResult, void, TContext>
+  ) {
+    const queryClient = useQueryClient()
+    return useMutation<TDeactivateResult, unknown, void, TContext>({
+      mutationFn: () => {
+        if (!service.deactivateAccount) {
+          throw new Error("deactivateAccount service is not configured")
+        }
+        return service.deactivateAccount()
+      },
+      retry: false,
+      onMutate: options?.onMutate,
+      onSuccess: (data, variables, context) => {
+        clearCustomerSessionCache(queryClient)
+        options?.onSuccess?.(data, variables, context)
       },
       onError: (error, variables, context) => {
         options?.onError?.(error, variables, context)
@@ -333,6 +367,7 @@ export function createAuthHooks<
     useLogin,
     useRegister,
     useCreateCustomer,
+    useDeactivateAccount,
     useLogout,
     useUpdateCustomer,
     useRefreshAuth,
@@ -347,6 +382,7 @@ export type AuthHooks<
   TCreateCustomerInput = unknown,
   TLoginResult = unknown,
   TRegisterResult = unknown,
+  TDeactivateResult = unknown,
 > = ReturnType<
   typeof createAuthHooks<
     TCustomer,
@@ -355,6 +391,7 @@ export type AuthHooks<
     TUpdateInput,
     TCreateCustomerInput,
     TLoginResult,
-    TRegisterResult
+    TRegisterResult,
+    TDeactivateResult
   >
 >

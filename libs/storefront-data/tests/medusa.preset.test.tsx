@@ -121,6 +121,15 @@ const createSdkMock = () => {
 }
 
 describe("createMedusaStorefrontPreset", () => {
+  it("exposes account deactivation through the preset auth surface", () => {
+    const { sdk } = createSdkMock()
+
+    const preset = createMedusaStorefrontPreset({ sdk })
+
+    expect(preset.hooks.auth.useDeactivateAccount).toBeTypeOf("function")
+    expect(preset.services.auth.deactivateAccount).toBeTypeOf("function")
+  })
+
   it("allows thin cart hook overrides without buildAddParams", () => {
     const { sdk } = createSdkMock()
 
