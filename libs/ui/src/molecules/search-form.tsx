@@ -198,7 +198,7 @@ export function SearchForm({
   )
 }
 
-interface SearchFormLabelProps extends Omit<LabelProps, "htmlFor" | "size"> {}
+type SearchFormLabelProps = Omit<LabelProps, "htmlFor" | "size">
 
 SearchForm.Label = function SearchFormLabel({
   children,
@@ -234,10 +234,10 @@ SearchForm.Control = function SearchFormControl({
   )
 }
 
-interface SearchFormInputProps extends Omit<
+type SearchFormInputProps = Omit<
   InputProps,
   "size" | "value" | "onChange" | "withButtonInside"
-> {}
+>
 
 SearchForm.Input = function SearchFormInput({
   className,
@@ -260,7 +260,7 @@ SearchForm.Input = function SearchFormInput({
   return (
     <div className={styles.inputWrapper()} ref={setClearSlot}>
       <Input
-        aria-label={props["aria-label"] || "Search"}
+        aria-label={props["aria-label"] ?? "Search"}
         className={styles.input({ className })}
         id={inputId}
         onChange={(e) => {

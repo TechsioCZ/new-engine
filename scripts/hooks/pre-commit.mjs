@@ -8,7 +8,7 @@ const stagedFiles = process.argv.slice(2).filter(Boolean)
 const formatFiles = formattableFiles(stagedFiles)
 const lintFiles = lintableFiles(stagedFiles)
 
-function run(command, args, options = {}) {
+const run = (command, args, options = {}) => {
   const result = spawnSync(command, args, {
     encoding: options.capture ? "utf-8" : undefined,
     shell: false,
