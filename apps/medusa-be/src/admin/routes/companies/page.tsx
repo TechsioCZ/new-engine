@@ -184,7 +184,7 @@ const Companies = () => {
           <Select
             onValueChange={(value) => {
               setPageIndex(0)
-              setOrderBy(value as CompanyOrder)
+              setOrderBy(value)
             }}
             value={orderBy}
           >
@@ -202,7 +202,7 @@ const Companies = () => {
           <Select
             onValueChange={(value) => {
               setPageIndex(0)
-              setStatus(value as CompanyStatusFilter)
+              setStatus(value)
             }}
             value={status}
           >

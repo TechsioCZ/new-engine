@@ -272,7 +272,7 @@ const MeasurementUnitFormDrawer = ({
 
   const mutation = useMutation({
     mutationFn: async (input: MeasurementUnitInput) =>
-      updateMeasurementUnit(unit.id, input),
+      await updateMeasurementUnit(unit.id, input),
     onError: (error) => {
       toast.error(
         error instanceof Error ? error.message : t("errors.saveFailed"),
@@ -356,7 +356,7 @@ const MeasurementUnitsSettingsPage = () => {
   )
 
   const { data, error, isLoading } = useQuery({
-    queryFn: async () => listMeasurementUnits(params),
+    queryFn: async () => await listMeasurementUnits(params),
     queryKey: measurementUnitQueryKeys.list(params),
   })
 
@@ -516,7 +516,9 @@ const MeasurementUnitsSettingsPage = () => {
                     deleteMutation.isPending &&
                     deleteMutation.variables === unit.id
                   }
-                  onClick={async () => handleDelete(unit)}
+                  onClick={async () => {
+                    await handleDelete(unit)
+                  }}
                   size="small"
                   type="button"
                   variant="transparent"

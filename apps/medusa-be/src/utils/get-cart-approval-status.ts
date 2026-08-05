@@ -1,7 +1,7 @@
 import { ApprovalStatusType } from "../types/approval"
 
 interface CartWithApprovals {
-  approvals?: Array<{ status?: string | null } | null> | null
+  approvals?: ({ status?: string | null } | null)[] | null
 }
 
 export const getCartApprovalStatus = (cart: CartWithApprovals | null) => {

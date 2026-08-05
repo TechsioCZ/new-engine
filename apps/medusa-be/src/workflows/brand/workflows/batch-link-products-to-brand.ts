@@ -16,10 +16,8 @@ import {
   BRAND_SEARCH_PROJECTION_EVENT_OPTIONS,
   buildBrandSearchProjectionEventData,
 } from "../../meilisearch/events"
-import {
-  getBrandProductsLockKeys,
-  prepareBatchLinkProductsToBrandStep,
-} from "../steps"
+import { prepareBatchLinkProductsToBrandStep } from "../steps/batch-link-products-to-brand"
+import { getBrandProductsLockKeys } from "../steps/helpers"
 import type { BatchLinkProductsToBrandWorkflowInput } from "../types"
 
 export const batchLinkProductsToBrandWorkflow = createWorkflow(

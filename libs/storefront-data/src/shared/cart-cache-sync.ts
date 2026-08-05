@@ -200,7 +200,7 @@ export async function invalidateCartCaches(
 ): Promise<void> {
   const isActiveCartQueryKey = resolveActiveCartQueryMatcher(queryKeys, options)
 
-  return Promise.all([
+  await Promise.all([
     queryClient.invalidateQueries({
       predicate: (query) => isActiveCartQueryKey(query.queryKey, cartId),
     }),

@@ -27,19 +27,19 @@ interface EmployeeCustomerLinkRow {
 }
 
 interface EmployeeCustomerLinkCompensation {
-  deleted_employees: Array<{
+  deleted_employees: {
     company_id: string
     customer_id: string
     id: string
     is_admin: boolean
     spending_limit: number
-  }>
-  links: Array<{ customer_id: string; employee_id: string }>
+  }[]
+  links: { customer_id: string; employee_id: string }[]
   provider_identity_ids: string[]
-  restored_customer_groups: Array<{
+  restored_customer_groups: {
     customer_group_id: string
     customer_id: string
-  }>
+  }[]
 }
 
 interface EmployeeWithCompany {
@@ -206,10 +206,14 @@ export const prepareEmployeeCustomerLinkStep = createStep(
       })
 
     await Promise.all(
-      staleLinks.map(async (staleLink) =>
-        link.dismiss(
-          getEmployeeCustomerLink(staleLink.employee_id, staleLink.customer_id),
-        ),
+      staleLinks.map(
+        async (staleLink) =>
+          await link.dismiss(
+            getEmployeeCustomerLink(
+              staleLink.employee_id,
+              staleLink.customer_id,
+            ),
+          ),
       ),
     )
 
@@ -275,13 +279,14 @@ export const prepareEmployeeCustomerLinkStep = createStep(
     }
 
     await Promise.all(
-      input.links.map(async (existingLink) =>
-        link.create(
-          getEmployeeCustomerLink(
-            existingLink.employee_id,
-            existingLink.customer_id,
+      input.links.map(
+        async (existingLink) =>
+          await link.create(
+            getEmployeeCustomerLink(
+              existingLink.employee_id,
+              existingLink.customer_id,
+            ),
           ),
-        ),
       ),
     )
 

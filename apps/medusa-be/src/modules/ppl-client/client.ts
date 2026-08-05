@@ -136,8 +136,8 @@ export class PplClient {
   ): Promise<string> {
     const body = {
       labelSettings: options?.labelSettings ?? {
-        format: this.options.default_label_format,
         dpi: 300,
+        format: this.options.default_label_format,
       },
       shipments,
       ...(options?.returnChannel && { returnChannel: options.returnChannel }),
@@ -667,7 +667,7 @@ export class PplClient {
   }
 
   private async sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms))
+    await new Promise((resolve) => setTimeout(resolve, ms))
   }
 
   private async fetchWithTimeout(
@@ -818,7 +818,7 @@ export class PplClient {
   ): Promise<string> {
     return await this.withRetry(
       async () =>
-        this.fetchWithTimeout(`${this.baseUrl}${path}`, {
+        await this.fetchWithTimeout(`${this.baseUrl}${path}`, {
           body: JSON.stringify(body),
           headers: {
             Accept: "application/json",
@@ -878,7 +878,8 @@ export class PplClient {
     }
 
     return await this.withRetry(
-      async () => this.fetchWithTimeout(`${this.baseUrl}${path}`, request),
+      async () =>
+        await this.fetchWithTimeout(`${this.baseUrl}${path}`, request),
       async (response) => {
         if (allow404 && response.status === 404) {
           return { data: null, status: 404 }

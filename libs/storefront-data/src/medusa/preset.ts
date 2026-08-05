@@ -1017,11 +1017,11 @@ export function createMedusaStorefrontPreset<
   const createHooks = () => ({
     auth: createAuthHooks({
       ...authHookOverrides,
-      service: services.auth,
-      queryKeys: queryKeys.auth,
-      queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
       invalidateOnAuthChange: resolvedAuthInvalidateOnAuthChange,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.auth,
+      service: services.auth,
     }),
     cart: createCartHooks<
       HttpTypes.StoreCart,
@@ -1038,43 +1038,43 @@ export function createMedusaStorefrontPreset<
       TCartAddressPayload
     >({
       ...cartHookOverrides,
-      service: services.cart,
-      queryKeys: queryKeys.cart,
       buildAddParams:
         cartHookOverrides?.buildAddParams ?? buildMedusaAddLineItemParams,
-      queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.cart,
+      service: services.cart,
     }),
     catalog: createCatalogHooks({
       ...config.catalog?.hooks,
-      service: services.catalog,
-      queryKeys: queryKeys.catalog,
+      cacheConfig: resolvedCacheConfig,
       fallbackFacets: fallbackCatalogFacets,
       queryKeyNamespace: namespace,
-      cacheConfig: resolvedCacheConfig,
+      queryKeys: queryKeys.catalog,
+      service: services.catalog,
     }),
     categories: createCategoryHooks({
       ...config.categories?.hooks,
-      service: services.categories,
-      queryKeys: queryKeys.categories,
-      queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.categories,
+      service: services.categories,
     }),
     checkout: createCheckoutHooks({
       ...checkoutHookOverrides,
-      isActiveCartQueryKey: resolvedCheckoutActiveCartQueryKey,
-      service: services.checkout,
-      queryKeys: queryKeys.checkout,
-      cartQueryKeys: queryKeys.cart,
-      queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
+      cartQueryKeys: queryKeys.cart,
+      isActiveCartQueryKey: resolvedCheckoutActiveCartQueryKey,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.checkout,
+      service: services.checkout,
     }),
     collections: createCollectionHooks({
       ...config.collections?.hooks,
-      service: services.collections,
-      queryKeys: queryKeys.collections,
-      queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.collections,
+      service: services.collections,
     }),
     customers: createCustomerHooks<
       HttpTypes.StoreCustomer,
@@ -1089,11 +1089,11 @@ export function createMedusaStorefrontPreset<
       MedusaCustomerProfileUpdateInput
     >({
       ...customerHookOverrides,
-      service: services.customers,
-      queryKeys: queryKeys.customers,
       authQueryKeys: customerHookOverrides?.authQueryKeys ?? queryKeys.auth,
-      queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.customers,
+      service: services.customers,
     }),
     orders: createOrderHooks<
       HttpTypes.StoreOrder,
@@ -1103,17 +1103,17 @@ export function createMedusaStorefrontPreset<
       MedusaOrderDetailInput
     >({
       ...config.orders?.hooks,
-      service: services.orders,
-      queryKeys: queryKeys.orders,
-      queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.orders,
+      service: services.orders,
     }),
     productAttributes: createProductAttributeHooks({
       ...config.productAttributes?.hooks,
-      service: services.productAttributes,
-      queryKeys: queryKeys.productAttributes,
-      queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.productAttributes,
+      service: services.productAttributes,
     }),
     productLists: createProductListHooks<
       ProductListBase,
@@ -1127,20 +1127,20 @@ export function createMedusaStorefrontPreset<
       MedusaProductListDetailKeyInput
     >({
       ...config.productLists?.hooks,
-      service: services.productLists,
-      queryKeys: queryKeys.productLists,
-      queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
       cartQueryKeys: queryKeys.cart,
       cartStorage: cartHookOverrides?.cartStorage,
       isActiveCartQueryKey: resolvedCheckoutActiveCartQueryKey,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.productLists,
+      service: services.productLists,
     }),
     productLocationAvailability: createProductLocationAvailabilityHooks({
       ...config.productLocationAvailability?.hooks,
-      service: services.productLocationAvailability,
-      queryKeys: queryKeys.productLocationAvailability,
-      queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.productLocationAvailability,
+      service: services.productLocationAvailability,
     }),
     products: createProductHooks<
       TProduct,
@@ -1150,17 +1150,17 @@ export function createMedusaStorefrontPreset<
       MedusaProductDetailInput
     >({
       ...config.products?.hooks,
-      service: services.products,
-      queryKeys: queryKeys.products,
-      queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.products,
+      service: services.products,
     }),
     regions: createRegionHooks({
       ...config.regions?.hooks,
-      service: services.regions,
-      queryKeys: queryKeys.regions,
-      queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.regions,
+      service: services.regions,
     }),
     reviews: createProductReviewHooks<
       ReviewBase,
@@ -1168,10 +1168,10 @@ export function createMedusaStorefrontPreset<
       MedusaProductReviewListInput
     >({
       ...config.reviews?.hooks,
-      service: services.reviews,
-      queryKeys: queryKeys.reviews,
-      queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.reviews,
+      service: services.reviews,
     }),
   })
   const hooks = createHooks()

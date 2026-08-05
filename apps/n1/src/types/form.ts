@@ -10,7 +10,7 @@
  * avoiding variance issues with generic parameters.
  */
 type BivariantChangeHandler = {
-  bivarianceHack(value: unknown): void
+  bivarianceHack: (value: unknown) => void
 }["bivarianceHack"]
 
 export interface AnyFieldApiCompat {

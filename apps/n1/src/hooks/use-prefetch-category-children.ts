@@ -47,9 +47,10 @@ export function usePrefetchCategoryChildren({
           children.map(async (child) => {
             const categoryIds = ALL_CATEGORIES_MAP[child.handle]
             if (categoryIds?.length) {
-              return prefetchCategoryProducts(categoryIds, categoryHandle)
+              await prefetchCategoryProducts(categoryIds, categoryHandle)
+              return
             }
-            return Promise.resolve()
+            return
           }),
         )
 

@@ -27,12 +27,12 @@ export const createMissingPaykitRegionsStep = createStep(
     const { result } = await createRegionsWorkflow(container).run({
       input: {
         regions: input.map((region) => ({
-          name: region.name,
-          currency_code: region.currencyCode,
           ...(region.countries ? { countries: region.countries } : {}),
-          payment_providers: region.paymentProviders,
+          currency_code: region.currencyCode,
           // Match the existing region seed default when PayKit creates fallback regions.
           is_tax_inclusive: region.isTaxInclusive ?? true,
+          name: region.name,
+          payment_providers: region.paymentProviders,
         })),
       },
     })

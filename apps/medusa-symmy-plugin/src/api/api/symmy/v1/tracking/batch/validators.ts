@@ -19,7 +19,7 @@ const ShipmentInputSchema = z
     order_id: z.string().min(1).optional(),
     send_notification: z.boolean().default(true),
     tracking_number: z.string().min(1),
-    tracking_url: z.string().url().optional(),
+    tracking_url: z.url().optional(),
   })
   .superRefine(requireIdentifierField)
 

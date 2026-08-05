@@ -17,7 +17,7 @@ export const createMeasurementUnitsWorkflow = createWorkflow(
         ...new Set(current.units.map((unit) => normalizeUnitCode(unit.code))),
       ]
         .filter(Boolean)
-        .sort()
+        .toSorted()
         .map((code) => `measurement-unit-code:${code}`),
       timeout: 5,
       ttl: 30,

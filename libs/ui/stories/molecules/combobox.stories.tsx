@@ -30,14 +30,14 @@ const meta: Meta<typeof Combobox> = {
     // Size and appearance
     size: {
       control: "select",
-      options: ["sm", "md", "lg"],
       description: "Size variant",
+      options: ["sm", "md", "lg"],
       table: { defaultValue: { summary: "md" } },
     },
     validateStatus: {
       control: "select",
-      options: ["default", "error", "success", "warning"],
       description: "Validation status",
+      options: ["default", "error", "success", "warning"],
       table: { defaultValue: { summary: "default" } },
     },
     showHelpTextIcon: {
@@ -81,8 +81,8 @@ const meta: Meta<typeof Combobox> = {
     },
     selectionBehavior: {
       control: "select",
-      options: ["replace", "clear", "preserve"],
       description: "Selection behavior mode",
+      options: ["replace", "clear", "preserve"],
       table: { defaultValue: { summary: "replace" } },
     },
   },

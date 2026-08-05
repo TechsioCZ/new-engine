@@ -45,9 +45,9 @@ describe(mapVariantToRuleValueOption, () => {
       name: "returns full label with product title, variant title, and SKU",
       variant: createVariant({
         id: "variant_123",
-        title: "Large",
-        sku: "SHIRT-L-BLU",
         product: { title: "Blue T-Shirt" },
+        sku: "SHIRT-L-BLU",
+        title: "Large",
       }),
     },
     {
@@ -55,9 +55,9 @@ describe(mapVariantToRuleValueOption, () => {
       name: "omits SKU when null",
       variant: createVariant({
         id: "variant_123",
-        title: "Medium",
-        sku: null,
         product: { title: "Red Pants" },
+        sku: null,
+        title: "Medium",
       }),
     },
     {
@@ -65,9 +65,9 @@ describe(mapVariantToRuleValueOption, () => {
       name: "omits product title when product is undefined",
       variant: createVariant({
         id: "variant_456",
-        title: "Small",
-        sku: "SM-001",
         product: undefined,
+        sku: "SM-001",
+        title: "Small",
       }),
     },
     {
@@ -78,9 +78,9 @@ describe(mapVariantToRuleValueOption, () => {
       name: "shows only product title with SKU when variant title is empty",
       variant: createVariant({
         id: "variant_789",
-        title: "",
-        sku: "PROD-001",
         product: { title: "Single Variant Product" },
+        sku: "PROD-001",
+        title: "",
       }),
     },
     {
@@ -88,9 +88,9 @@ describe(mapVariantToRuleValueOption, () => {
       name: "falls back to variant ID when no title or product available",
       variant: createVariant({
         id: "variant_fallback",
-        title: "",
-        sku: null,
         product: undefined,
+        sku: null,
+        title: "",
       }),
     },
     {
@@ -101,9 +101,9 @@ describe(mapVariantToRuleValueOption, () => {
       name: "falls back to variant ID with SKU when no titles available",
       variant: createVariant({
         id: "variant_only_sku",
-        title: "",
-        sku: "SKU-ONLY",
         product: undefined,
+        sku: "SKU-ONLY",
+        title: "",
       }),
     },
     {
@@ -111,9 +111,9 @@ describe(mapVariantToRuleValueOption, () => {
       name: "handles product with empty title",
       variant: createVariant({
         id: "variant_empty_product",
-        title: "Default",
-        sku: null,
         product: { title: "" },
+        sku: null,
+        title: "Default",
       }),
     },
     {
@@ -124,9 +124,9 @@ describe(mapVariantToRuleValueOption, () => {
       name: "handles special characters in titles and SKU",
       variant: createVariant({
         id: "variant_special",
-        title: 'Size: 10" x 12"',
-        sku: "ITEM-10x12/A",
         product: { title: "Photo Frame (Black & White)" },
+        sku: "ITEM-10x12/A",
+        title: 'Size: 10" x 12"',
       }),
     },
   ])("$name", ({ variant, expected }) => {

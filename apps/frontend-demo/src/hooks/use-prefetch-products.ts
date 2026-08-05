@@ -31,17 +31,17 @@ export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
     }
 
     void queryClient.prefetchQuery({
-      queryFn: async () => getProducts(queryParams),
+      queryFn: async () => await getProducts(queryParams),
       queryKey: queryKeys.products.list({
+        category: params?.category,
+        filters: params?.filters,
+        limit: params?.limit,
         page: params?.offset
           ? Math.floor(params.offset / (params.limit || DEFAULT_LIMIT)) + 1
           : 1,
-        limit: params?.limit,
-        filters: params?.filters,
-        sort: params?.sort,
-        category: params?.category,
         q: params?.q,
         region_id: selectedRegion.id,
+        sort: params?.sort,
       }),
       ...cacheConfig[cacheStrategy],
     })

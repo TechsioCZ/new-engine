@@ -64,7 +64,7 @@ const resolveCompleteResultOrderMetadata = (result: unknown) => {
     return null
   }
 
-  return result.order["metadata"]
+  return result.order.metadata
 }
 
 export function useCheckoutController() {

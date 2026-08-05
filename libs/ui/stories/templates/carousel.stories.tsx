@@ -177,9 +177,9 @@ export const Playground: Story = {
     slides: [
       ...defaultSlides,
       {
+        alt: "Product 5",
         id: "slide-5",
         src: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600",
-        alt: "Product 5",
       },
     ],
     slidesPerPage: 1,

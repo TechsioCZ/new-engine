@@ -197,7 +197,7 @@ for (const file of toCheck) {
   const componentName = COMPONENT_TAG_RE.exec(src)?.[1] || pascalFromFile(file)
   const changelog = readStaged(CHANGELOG)
   const entryRe = new RegExp(
-    `^###\\s+${componentName}\\s+v${version.replaceAll(/\./g, "\\.")}\\s*$`,
+    `^###\\s+${componentName}\\s+v${version.replaceAll(".", "\\.")}\\s*$`,
     "im",
   )
   if (!changelog) {

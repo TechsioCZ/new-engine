@@ -156,8 +156,8 @@ export const Default: Story = {
 export const Playground: Story = {
   args: {
     badges: [
-      { variant: "success", children: "New" },
-      { variant: "danger", children: "Sale" },
+      { children: "New", variant: "success" },
+      { children: "Sale", variant: "danger" },
     ],
     cartButtonText: "Add to Cart",
     detailButtonText: "View Details",
@@ -187,8 +187,8 @@ export const Playground: Story = {
 export const OnSale: Story = {
   args: {
     badges: [
-      { variant: "danger", children: "40% OFF" },
-      { variant: "info", children: "Limited Time" },
+      { children: "40% OFF", variant: "danger" },
+      { children: "Limited Time", variant: "info" },
     ],
     image: {
       alt: "Running Shoes Pro",
@@ -207,7 +207,7 @@ export const OnSale: Story = {
 
 export const OutOfStock: Story = {
   args: {
-    badges: [{ variant: "secondary", children: "Collector Edition" }],
+    badges: [{ children: "Collector Edition", variant: "secondary" }],
     cartButtonText: "Notify Me",
     image: {
       alt: "Vintage Camera",

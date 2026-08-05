@@ -19,11 +19,11 @@ import { tv } from "../utils"
 const headerVariants = tv({
   compoundSlots: [
     {
-      slots: ["navItem"],
       class: [
         "justify-start font-header-nav text-header-nav-fg hover:text-header-nav-fg-hover",
         "cursor-pointer",
       ],
+      slots: ["navItem"],
     },
   ],
   defaultVariants: {

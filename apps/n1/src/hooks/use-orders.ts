@@ -21,7 +21,7 @@ export function useSuspenseOrders(options?: UseOrdersOptions) {
   }
 
   return useSuspenseQuery({
-    queryFn: async () => getOrders({ limit, offset }),
+    queryFn: async () => await getOrders({ limit, offset }),
     queryKey: queryKeys.orders.list({ limit, offset }),
     ...cacheConfig.userData,
   })

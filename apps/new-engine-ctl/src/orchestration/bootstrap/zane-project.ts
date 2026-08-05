@@ -40,18 +40,18 @@ interface PlannedBootstrapService {
   dockerfilePath: string
   buildContextDir: string
   command: string | null
-  volumes: Array<{
+  volumes: {
     name: string
     container_path: string
     host_path: string | null
     mode: string
-  }>
-  urls: Array<{
+  }[]
+  urls: {
     domain: string
     base_path: string
     strip_prefix: boolean
     associated_port: number | null
-  }>
+  }[]
   healthcheck: {
     type: string
     value: string
@@ -514,10 +514,10 @@ function applySharedEnvServiceTargets(input: {
         (envVar) => envVar.envVar === target.env_var,
       )
 
-      if (existingIndex !== -1) {
-        servicePlan.env[existingIndex] = nextEnv
-      } else {
+      if (existingIndex === -1) {
         servicePlan.env.push(nextEnv)
+      } else {
+        servicePlan.env[existingIndex] = nextEnv
       }
     }
   }
@@ -646,10 +646,10 @@ function buildZaneProjectServices(
       urls: [],
       volumes: [
         {
-          name: "pgdata",
           container_path: "/var/lib/postgresql",
           host_path: null,
           mode: "READ_WRITE",
+          name: "pgdata",
         },
       ],
     },
@@ -671,10 +671,10 @@ function buildZaneProjectServices(
       urls: [],
       volumes: [
         {
-          name: "data",
           container_path: "/data",
           host_path: null,
           mode: "READ_WRITE",
+          name: "data",
         },
       ],
     },
@@ -710,10 +710,10 @@ function buildZaneProjectServices(
       urls: [],
       volumes: [
         {
-          name: "data",
           container_path: "/data",
           host_path: null,
           mode: "READ_WRITE",
+          name: "data",
         },
       ],
     },
@@ -733,24 +733,24 @@ function buildZaneProjectServices(
       resourceLimits: { cpus: 0.5, memory: { unit: "MEGABYTES", value: 1024 } },
       urls: [
         {
+          associated_port: 7700,
+          base_path: "/",
           domain:
             publicServiceDomain({
               projectSlug: context.projectSlug,
-              serviceSlug: meilisearchSlug,
-              publicUrlAffix: context.publicUrlAffix,
               publicDomain: context.publicDomain,
+              publicUrlAffix: context.publicUrlAffix,
+              serviceSlug: meilisearchSlug,
             }) ?? "",
-          base_path: "/",
           strip_prefix: true,
-          associated_port: 7700,
         },
       ].filter((url) => url.domain),
       volumes: [
         {
-          name: "data",
           container_path: "/meili_data",
           host_path: null,
           mode: "READ_WRITE",
+          name: "data",
         },
       ],
     },
@@ -1087,8 +1087,8 @@ function buildZaneProjectServices(
         {
           envVar: "PAYLOAD_BASE_URL",
           source: serviceInternalOriginSource({
-            serviceSlug: payloadSlug,
             port: 8083,
+            serviceSlug: payloadSlug,
           }),
         },
         { envVar: "PAYLOAD_IFRAME_URL", source: servicePublicOrigins.payload },
@@ -1125,8 +1125,8 @@ function buildZaneProjectServices(
         {
           envVar: "MINIO_ENDPOINT",
           source: serviceInternalOriginSource({
-            serviceSlug: minioSlug,
             port: 9004,
+            serviceSlug: minioSlug,
             trailingSlash: true,
           }),
         },
@@ -1174,10 +1174,10 @@ function buildZaneProjectServices(
       resourceLimits: { cpus: 1, memory: { unit: "MEGABYTES", value: 2048 } },
       urls: [
         {
-          domain: medusaBePublicDomain ?? "",
-          base_path: "/",
-          strip_prefix: true,
           associated_port: 9000,
+          base_path: "/",
+          domain: medusaBePublicDomain ?? "",
+          strip_prefix: true,
         },
       ].filter((url) => url.domain),
       volumes: [],
@@ -1232,8 +1232,8 @@ function buildZaneProjectServices(
         {
           envVar: "MEDUSA_BACKEND_URL",
           source: serviceInternalOriginSource({
-            serviceSlug: medusaBeSlug,
             port: 9000,
+            serviceSlug: medusaBeSlug,
           }),
         },
         {
@@ -1273,8 +1273,8 @@ function buildZaneProjectServices(
         {
           envVar: "S3_ENDPOINT",
           source: serviceInternalOriginSource({
-            serviceSlug: minioSlug,
             port: 9004,
+            serviceSlug: minioSlug,
           }),
         },
       ],
@@ -1291,16 +1291,16 @@ function buildZaneProjectServices(
       },
       urls: [
         {
+          associated_port: 8083,
+          base_path: "/",
           domain:
             publicServiceDomain({
               projectSlug: context.projectSlug,
-              serviceSlug: payloadSlug,
-              publicUrlAffix: context.publicUrlAffix,
               publicDomain: context.publicDomain,
+              publicUrlAffix: context.publicUrlAffix,
+              serviceSlug: payloadSlug,
             }) ?? "",
-          base_path: "/",
           strip_prefix: true,
-          associated_port: 8083,
         },
       ].filter((url) => url.domain),
       volumes: [],
@@ -1329,8 +1329,8 @@ function buildZaneProjectServices(
         {
           envVar: "MEDUSA_BACKEND_URL_INTERNAL",
           source: serviceInternalOriginSource({
-            serviceSlug: medusaBeSlug,
             port: 9000,
+            serviceSlug: medusaBeSlug,
           }),
         },
         {
@@ -1381,16 +1381,16 @@ function buildZaneProjectServices(
       },
       urls: [
         {
+          associated_port: 3000,
+          base_path: "/",
           domain:
             publicServiceDomain({
               projectSlug: context.projectSlug,
-              serviceSlug: herbatikaSlug,
-              publicUrlAffix: context.publicUrlAffix,
               publicDomain: context.publicDomain,
+              publicUrlAffix: context.publicUrlAffix,
+              serviceSlug: herbatikaSlug,
             }) ?? "",
-          base_path: "/",
           strip_prefix: true,
-          associated_port: 3000,
         },
       ].filter((url) => url.domain),
       volumes: [],
@@ -1430,8 +1430,8 @@ function buildZaneProjectServices(
               {
                 envVar: "MEDUSA_BACKEND_URL_INTERNAL",
                 source: serviceInternalOriginSource({
-                  serviceSlug: medusaBeSlug,
                   port: 9000,
+                  serviceSlug: medusaBeSlug,
                 }),
               },
               {
@@ -1511,16 +1511,16 @@ function buildZaneProjectServices(
             },
             urls: [
               {
+                associated_port: 3000,
+                base_path: "/",
                 domain:
                   publicServiceDomain({
                     projectSlug: context.projectSlug,
-                    serviceSlug: n1Slug,
-                    publicUrlAffix: context.publicUrlAffix,
                     publicDomain: context.publicDomain,
+                    publicUrlAffix: context.publicUrlAffix,
+                    serviceSlug: n1Slug,
                   }) ?? "",
-                base_path: "/",
                 strip_prefix: true,
-                associated_port: 3000,
               },
             ].filter((url) => url.domain),
             volumes: [],
@@ -1638,16 +1638,16 @@ function buildZaneProjectServices(
       resourceLimits: { cpus: 0.25, memory: { unit: "MEGABYTES", value: 256 } },
       urls: [
         {
+          associated_port: 8080,
+          base_path: "/",
           domain:
             publicServiceDomain({
               projectSlug: context.projectSlug,
-              serviceSlug: "zane-operator",
-              publicUrlAffix: context.publicUrlAffix,
               publicDomain: context.publicDomain,
+              publicUrlAffix: context.publicUrlAffix,
+              serviceSlug: "zane-operator",
             }) ?? "",
-          base_path: "/",
           strip_prefix: true,
-          associated_port: 8080,
         },
       ].filter((url) => url.domain),
       volumes: [],
@@ -1707,15 +1707,15 @@ function buildContext(input: {
 
   return {
     adminCors: preferExplicitOrMergeCsv({
-      explicitValue: input.planInput.adminCorsOverride,
       envValue: process.env.DC_ADMIN_CORS,
+      explicitValue: input.planInput.adminCorsOverride,
       fallbackValue: publicDomain
         ? `https://${input.planInput.projectSlug}-medusa-be${input.planInput.publicUrlAffix}.${publicDomain}`
         : "https://pending-public-domain.invalid",
     }),
     authCors: preferExplicitOrMergeCsv({
-      explicitValue: input.planInput.authCorsOverride,
       envValue: process.env.DC_AUTH_CORS,
+      explicitValue: input.planInput.authCorsOverride,
       fallbackValue: publicDomain
         ? `https://${input.planInput.projectSlug}-medusa-be${input.planInput.publicUrlAffix}.${publicDomain}`
         : "https://pending-public-domain.invalid",
@@ -1741,8 +1741,8 @@ function buildContext(input: {
     publicUrlAffix: input.planInput.publicUrlAffix,
     repositoryUrl: input.repositoryUrl,
     storeCors: preferExplicitOrMergeCsv({
-      explicitValue: input.planInput.storeCorsOverride,
       envValue: process.env.DC_STORE_CORS,
+      explicitValue: input.planInput.storeCorsOverride,
       fallbackValue: publicDomain
         ? `https://${input.planInput.projectSlug}-herbatika${input.planInput.publicUrlAffix}.${publicDomain}`
         : "https://pending-public-domain.invalid",
@@ -1879,23 +1879,23 @@ function buildWarningReasons(): string[] {
     checks: [
       {
         label: "DC_MEDUSA_APP_DB_PASSWORD",
-        value: process.env.DC_MEDUSA_APP_DB_PASSWORD,
         placeholderValues: ["medusa_app_change_me"],
+        value: process.env.DC_MEDUSA_APP_DB_PASSWORD,
       },
       {
         label: "DC_VALKEY_PASSWORD",
-        value: process.env.DC_VALKEY_PASSWORD,
         placeholderValues: ["valkey_dev_change_me"],
+        value: process.env.DC_VALKEY_PASSWORD,
       },
       {
         label: "DC_MINIO_ACCESS_KEY",
-        value: process.env.DC_MINIO_ACCESS_KEY,
         placeholderValues: ["medusaappkey"],
+        value: process.env.DC_MINIO_ACCESS_KEY,
       },
       {
         label: "DC_MINIO_SECRET_KEY",
-        value: process.env.DC_MINIO_SECRET_KEY,
         placeholderValues: ["medusaappsecret_change_me"],
+        value: process.env.DC_MINIO_SECRET_KEY,
       },
       {
         label: "DC_MEILISEARCH_MASTER_KEY",
@@ -1903,28 +1903,28 @@ function buildWarningReasons(): string[] {
       },
       {
         label: "DC_MEDUSA_DEV_DB_PASSWORD",
-        value: process.env.DC_MEDUSA_DEV_DB_PASSWORD,
         placeholderValues: ["medusa_dev_change_me"],
+        value: process.env.DC_MEDUSA_DEV_DB_PASSWORD,
       },
       {
         label: "DC_MINIO_ROOT_USER",
-        value: process.env.DC_MINIO_ROOT_USER,
         placeholderValues: ["minioadmin"],
+        value: process.env.DC_MINIO_ROOT_USER,
       },
       {
         label: "DC_MINIO_ROOT_PASSWORD",
-        value: process.env.DC_MINIO_ROOT_PASSWORD,
         placeholderValues: ["minioadmin"],
+        value: process.env.DC_MINIO_ROOT_PASSWORD,
       },
       {
         label: "DC_JWT_SECRET",
-        value: process.env.DC_JWT_SECRET,
         placeholderValues: ["supersecret"],
+        value: process.env.DC_JWT_SECRET,
       },
       {
         label: "DC_COOKIE_SECRET",
-        value: process.env.DC_COOKIE_SECRET,
         placeholderValues: ["supersecret"],
+        value: process.env.DC_COOKIE_SECRET,
       },
       {
         label: "DC_SUPERADMIN_EMAIL",
@@ -1940,23 +1940,23 @@ function buildWarningReasons(): string[] {
       },
       {
         label: "DC_PAYLOAD_API_KEY",
-        value: process.env.DC_PAYLOAD_API_KEY,
         placeholderValues: ["payload_dev_api_key_change_me"],
+        value: process.env.DC_PAYLOAD_API_KEY,
       },
       {
         label: "DC_PAYLOAD_WEBHOOK_SECRET",
-        value: process.env.DC_PAYLOAD_WEBHOOK_SECRET,
         placeholderValues: ["payload_webhook_secret_change_me"],
+        value: process.env.DC_PAYLOAD_WEBHOOK_SECRET,
       },
       {
         label: "DC_PAYLOAD_SECRET",
-        value: process.env.DC_PAYLOAD_SECRET,
         placeholderValues: ["payload_secret_change_me"],
+        value: process.env.DC_PAYLOAD_SECRET,
       },
       {
         label: "DC_PAYLOAD_DATABASE_PASSWORD",
-        value: process.env.DC_PAYLOAD_DATABASE_PASSWORD,
         placeholderValues: ["payload"],
+        value: process.env.DC_PAYLOAD_DATABASE_PASSWORD,
       },
       {
         label: "DC_PAYLOAD_SSO_PRIVATE_KEY",
@@ -2242,44 +2242,44 @@ export async function executeBootstrapZaneProjectPlan(
           : resolveServiceEnv(servicePlan.env, context, inspectedServices)
 
       return {
-        service_id: service.id,
-        service_slug: service.serviceSlug,
-        exists: serviceState.exists,
-        service_type: serviceState.details?.type ?? null,
-        create_service: !serviceState.exists,
-        dockerfile_path: servicePlan.dockerfilePath,
         build_context_dir: servicePlan.buildContextDir,
-        has_command: Boolean(servicePlan.command),
-        volume_names: servicePlan.volumes.map((volume) => volume.name),
-        managed_public_domains: managedPublicDomains,
-        env_keys: servicePlan.env.map((envVar) => envVar.envVar),
-        env_sources: servicePlan.env.map((envVar) =>
-          summarizeSource({ envVar: envVar.envVar, source: envVar.source }),
-        ),
         cleanup_env_keys: servicePlan.cleanupEnvKeys,
-        desired_git_source: {
-          repository_url: context.repositoryUrl,
-          branch_name: context.branchName,
-          git_app_id: context.gitAppId,
-        },
+        create_service: !serviceState.exists,
         desired_builder: {
-          dockerfile_path: servicePlan.dockerfilePath,
           build_context_dir: servicePlan.buildContextDir,
+          dockerfile_path: servicePlan.dockerfilePath,
         },
         desired_command: servicePlan.command,
-        desired_volumes: servicePlan.volumes,
-        desired_urls: servicePlan.urls,
+        desired_env: desiredEnv,
+        desired_git_source: {
+          branch_name: context.branchName,
+          git_app_id: context.gitAppId,
+          repository_url: context.repositoryUrl,
+        },
         desired_healthcheck: servicePlan.healthcheck,
         desired_resource_limits: {
           cpus: servicePlan.resourceLimits.cpus,
           memory: servicePlan.resourceLimits.memory,
         },
-        desired_env: desiredEnv,
+        desired_urls: servicePlan.urls,
+        desired_volumes: servicePlan.volumes,
+        dockerfile_path: servicePlan.dockerfilePath,
+        env_keys: servicePlan.env.map((envVar) => envVar.envVar),
+        env_sources: servicePlan.env.map((envVar) =>
+          summarizeSource({ envVar: envVar.envVar, source: envVar.source }),
+        ),
+        exists: serviceState.exists,
+        has_command: Boolean(servicePlan.command),
         healthcheck: servicePlan.healthcheck,
+        managed_public_domains: managedPublicDomains,
         resource_limits: {
           cpus: servicePlan.resourceLimits.cpus,
           memory_mb: servicePlan.resourceLimits.memory?.value ?? null,
         },
+        service_id: service.id,
+        service_slug: service.serviceSlug,
+        service_type: serviceState.details?.type ?? null,
+        volume_names: servicePlan.volumes.map((volume) => volume.name),
       }
     }),
     settings: inspectResponse.settings,
