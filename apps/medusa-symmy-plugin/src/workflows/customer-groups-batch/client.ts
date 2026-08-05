@@ -161,6 +161,6 @@ export class CustomerGroupsBatchClient {
     identifiers: Pick<CustomerGroupLookupKeys, "codes" | "erpCodes">,
   ): Promise<SymmyCustomerGroupCodeDTO[]> {
     const codes = new Set([...identifiers.codes, ...identifiers.erpCodes])
-    return this.customerGroupCodeService.listByCodes(codes)
+    return await this.customerGroupCodeService.listByCodes(codes)
   }
 }

@@ -15,7 +15,7 @@ const createMemoryStorage = (): Storage => {
       store.clear()
     },
     getItem: (key) => store.get(key) ?? null,
-    key: (index) => Array.from(store.keys())[index] ?? null,
+    key: (index) => [...store.keys()][index] ?? null,
     get length() {
       return store.size
     },

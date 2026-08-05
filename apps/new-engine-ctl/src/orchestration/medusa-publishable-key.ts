@@ -92,9 +92,9 @@ export function reusePersistedMedusaPublishableKeyFromTargets(input: {
   return {
     frontendEnvVar,
     frontendKey: resolveSharedPersistedValue({
-      targets: input.targets,
-      serviceIds: input.consumerIds,
       envVar: frontendEnvVar,
+      serviceIds: input.consumerIds,
+      targets: input.targets,
     }),
   }
 }
@@ -160,8 +160,8 @@ export async function provisionMedusaPublishableKey(input: {
     environment_name: input.environmentName,
     outputs: [
       {
-        output_id: "frontend_key",
         env_var: frontendEnvVar,
+        output_id: "frontend_key",
         policy: {
           ...frontendPolicy,
           kind: "medusa_publishable_key",

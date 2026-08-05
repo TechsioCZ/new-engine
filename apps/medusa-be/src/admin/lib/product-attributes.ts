@@ -128,7 +128,7 @@ export const listProductAttributeDefinitions = async (params: {
   q?: string
   status?: ProductAttributeStatus
 }) =>
-  sdk.client.fetch<ProductAttributeDefinitionsResponse>(
+  await sdk.client.fetch<ProductAttributeDefinitionsResponse>(
     `/admin/product-attributes/definitions?${toSearch(params)}`,
   )
 
@@ -138,7 +138,7 @@ export const createProductAttributeDefinition = async (input: {
   key: string
   label: string
 }) =>
-  sdk.client.fetch<ProductAttributeDefinitionResponse>(
+  await sdk.client.fetch<ProductAttributeDefinitionResponse>(
     "/admin/product-attributes/definitions",
     { body: input, method: "POST" },
   )
@@ -151,23 +151,26 @@ export const updateProductAttributeDefinition = async (
     label?: string
   },
 ) =>
-  sdk.client.fetch<ProductAttributeDefinitionResponse>(
+  await sdk.client.fetch<ProductAttributeDefinitionResponse>(
     `/admin/product-attributes/definitions/${id}`,
     { body: input, method: "POST" },
   )
 
 export const deleteProductAttributeDefinition = async (id: string) =>
-  sdk.client.fetch(`/admin/product-attributes/definitions/${id}`, {
+  await sdk.client.fetch(`/admin/product-attributes/definitions/${id}`, {
     method: "DELETE",
   })
 
 export const permanentlyDeleteProductAttributeDefinition = async (id: string) =>
-  sdk.client.fetch(`/admin/product-attributes/definitions/${id}/permanent`, {
-    method: "DELETE",
-  })
+  await sdk.client.fetch(
+    `/admin/product-attributes/definitions/${id}/permanent`,
+    {
+      method: "DELETE",
+    },
+  )
 
 export const restoreProductAttributeDefinition = async (id: string) =>
-  sdk.client.fetch<ProductAttributeDefinitionResponse>(
+  await sdk.client.fetch<ProductAttributeDefinitionResponse>(
     `/admin/product-attributes/definitions/${id}/restore`,
     { method: "POST" },
   )
@@ -182,7 +185,7 @@ export const listProductAttributeOptions = async (
     status?: ProductAttributeStatus
   },
 ) =>
-  sdk.client.fetch<ProductAttributeOptionsResponse>(
+  await sdk.client.fetch<ProductAttributeOptionsResponse>(
     `/admin/product-attributes/options?${toSearch({
       ...params,
       definition_id: definitionId,
@@ -198,7 +201,7 @@ export const listProductAttributeOptionAssignedProducts = async (
     q?: string
   },
 ) =>
-  sdk.client.fetch<ProductAttributeAssignedProductsResponse>(
+  await sdk.client.fetch<ProductAttributeAssignedProductsResponse>(
     `/admin/product-attributes/options/${optionId}/products?${toSearch(params)}`,
   )
 
@@ -206,7 +209,7 @@ export const createProductAttributeOption = async (
   definitionId: string,
   input: { key: string; label: string },
 ) =>
-  sdk.client.fetch<ProductAttributeOptionResponse>(
+  await sdk.client.fetch<ProductAttributeOptionResponse>(
     `/admin/product-attributes/definitions/${definitionId}/options`,
     { body: input, method: "POST" },
   )
@@ -215,29 +218,29 @@ export const updateProductAttributeOption = async (
   id: string,
   input: { label: string },
 ) =>
-  sdk.client.fetch<ProductAttributeOptionResponse>(
+  await sdk.client.fetch<ProductAttributeOptionResponse>(
     `/admin/product-attributes/options/${id}`,
     { body: input, method: "POST" },
   )
 
 export const deleteProductAttributeOption = async (id: string) =>
-  sdk.client.fetch(`/admin/product-attributes/options/${id}`, {
+  await sdk.client.fetch(`/admin/product-attributes/options/${id}`, {
     method: "DELETE",
   })
 
 export const permanentlyDeleteProductAttributeOption = async (id: string) =>
-  sdk.client.fetch(`/admin/product-attributes/options/${id}/permanent`, {
+  await sdk.client.fetch(`/admin/product-attributes/options/${id}/permanent`, {
     method: "DELETE",
   })
 
 export const restoreProductAttributeOption = async (id: string) =>
-  sdk.client.fetch<ProductAttributeOptionResponse>(
+  await sdk.client.fetch<ProductAttributeOptionResponse>(
     `/admin/product-attributes/options/${id}/restore`,
     { method: "POST" },
   )
 
 export const retrieveProductAttributes = async (productId: string) =>
-  sdk.client.fetch<ProductAttributesResponse>(
+  await sdk.client.fetch<ProductAttributesResponse>(
     `/admin/products/${productId}/product-attributes`,
   )
 
@@ -245,7 +248,7 @@ export const setProductAttributes = async (
   productId: string,
   operations: SetProductAttributeOperation[],
 ) =>
-  sdk.client.fetch<ProductAttributesResponse>(
+  await sdk.client.fetch<ProductAttributesResponse>(
     `/admin/products/${productId}/product-attributes`,
     {
       body: { operations },

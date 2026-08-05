@@ -57,7 +57,9 @@ export default async function seedImages({ container }: ExecArgs) {
     )
 
     const files = await Promise.all(
-      filePaths.map(async (filePath) => readLocalUploadFile(filePath, access)),
+      filePaths.map(
+        async (filePath) => await readLocalUploadFile(filePath, access),
+      ),
     )
     const validFiles = files.filter(
       (f): f is NonNullable<typeof f> => f !== null,

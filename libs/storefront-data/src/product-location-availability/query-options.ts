@@ -69,7 +69,10 @@ export function createProductLocationAvailabilityQueryOptionsFactory<
             throw new Error("Product id is required for location availability.")
           }
 
-          return service.getProductLocationAvailability(detailParams, signal)
+          return await service.getProductLocationAvailability(
+            detailParams,
+            signal,
+          )
         },
         queryKey: resolvedQueryKeys.detail(detailParams),
         ...resolvedCacheConfig[cacheStrategy],

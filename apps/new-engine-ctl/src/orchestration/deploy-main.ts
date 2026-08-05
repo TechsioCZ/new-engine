@@ -191,9 +191,9 @@ export async function executeDeployMain(
       dryRun: input.dryRun,
       environmentName: environment.environment_name,
       fullPlanServices: effectivePlan.deploy_services.map((service) => ({
+        deploy_stage: service.deploy_stage,
         id: service.id,
         service_slug: service.service_slug,
-        deploy_stage: service.deploy_stage,
       })),
       lane: "main",
       meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,

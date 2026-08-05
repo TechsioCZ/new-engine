@@ -209,7 +209,7 @@ function ascii(value: boolean | number | string | null | undefined) {
   const text = value === null || value === undefined ? "" : String(value)
 
   return text
-    .replaceAll(/\u00A0/g, " ")
+    .replaceAll("\xA0", " ")
     .normalize("NFKD")
     .replaceAll(/[\u0300-\u036F]/g, "")
     .replaceAll(/[^\u0020-\u007E]/g, "")

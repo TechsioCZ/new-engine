@@ -119,13 +119,13 @@ const ProductAssignmentDrawer = ({
   const { data, isLoading } = useQuery({
     enabled: open,
     placeholderData: (previousData) => previousData,
-    queryFn: async () => retrieveBrandProductOptions(brandId, params),
+    queryFn: async () => await retrieveBrandProductOptions(brandId, params),
     queryKey: brandQueryKeys.productOptions(brandId, params),
   })
 
   const mutation = useMutation({
     mutationFn: async () =>
-      updateBrandProducts(
+      await updateBrandProducts(
         brandId,
         buildProductSelectionDelta(currentProductIds, selectedIds),
       ),
@@ -717,7 +717,7 @@ const BrandDetailPage = () => {
       if (!id) {
         throw new Error(t("errors.brandIdRequired"))
       }
-      return retrieveBrand(id)
+      return await retrieveBrand(id)
     },
     queryKey: brandQueryKeys.detail(id),
   })
@@ -738,7 +738,7 @@ const BrandDetailPage = () => {
       if (!id) {
         throw new Error(t("errors.brandIdRequired"))
       }
-      return retrieveBrandProducts(id, productParams)
+      return await retrieveBrandProducts(id, productParams)
     },
     queryKey: brandQueryKeys.products(id, productParams),
   })
@@ -753,7 +753,7 @@ const BrandDetailPage = () => {
     order_by: "name",
   }
   const attributeTypesQuery = useQuery({
-    queryFn: async () => listBrandAttributeTypes(attributeTypesParams),
+    queryFn: async () => await listBrandAttributeTypes(attributeTypesParams),
     queryKey: brandQueryKeys.attributeTypes(attributeTypesParams),
   })
   const attributeTypes = attributeTypesQuery.data?.attribute_types ?? []
@@ -780,7 +780,7 @@ const BrandDetailPage = () => {
 
   const removeProductMutation = useMutation({
     mutationFn: async (productId: string) =>
-      updateBrandProducts(id ?? "", {
+      await updateBrandProducts(id ?? "", {
         add: [],
         remove: [productId],
       }),

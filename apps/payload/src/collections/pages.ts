@@ -43,11 +43,11 @@ export const Pages: CollectionConfig = {
       description: fieldDescriptions.slugPage,
     }),
     {
-      name: "category",
       label: fieldLabels.category,
-      type: "relationship",
+      name: "category",
       relationTo: "page-categories",
       required: false,
+      type: "relationship",
     },
     createContentField({ editor: createLexicalEditor() }),
     lexicalHTMLField({
@@ -55,11 +55,9 @@ export const Pages: CollectionConfig = {
       lexicalFieldName: "content",
     }),
     {
-      name: "visibility",
-      label: fieldLabels.visibility,
-      type: "select",
-      required: true,
       defaultValue: "public",
+      label: fieldLabels.visibility,
+      name: "visibility",
       options: [
         {
           label: fieldLabels.visibilityPublic,
@@ -70,6 +68,8 @@ export const Pages: CollectionConfig = {
           value: "customers-only",
         },
       ],
+      required: true,
+      type: "select",
     },
     createStatusField(),
     createPublishedDateField(),

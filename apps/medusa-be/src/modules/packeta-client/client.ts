@@ -186,7 +186,7 @@ export class PacketaClient {
     )
 
     const payload = await this.withRetry(
-      async () => this.fetchWithTimeout(url, { method: "GET" }),
+      async () => await this.fetchWithTimeout(url, { method: "GET" }),
       async (response) => {
         if (!response.ok) {
           throw new MedusaError(
@@ -240,7 +240,7 @@ export class PacketaClient {
 
     return await this.withRetry(
       async () =>
-        this.fetchWithTimeout(REST_API_URL, {
+        await this.fetchWithTimeout(REST_API_URL, {
           body: xmlBody,
           headers: {
             Accept: "text/xml",
@@ -311,7 +311,7 @@ export class PacketaClient {
   }
 
   private async sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms))
+    return await new Promise((resolve) => setTimeout(resolve, ms))
   }
 
   private async fetchWithTimeout(

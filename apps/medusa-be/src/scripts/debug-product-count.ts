@@ -8,13 +8,13 @@ interface QueryService {
     filters?: Record<string, unknown>
     pagination?: { skip: number; take: number }
   }) => Promise<{
-    data?: Array<{
+    data?: {
       id?: string
       token?: string
       revoked_at?: string | Date | null
       sales_channels_link?: Array<{ sales_channel_id?: string }>
       product_id?: string
-    }>
+    }[]
     metadata?: {
       count?: number
       skip?: number
@@ -27,7 +27,7 @@ interface QueryService {
     filters: Record<string, unknown>
     pagination: { skip: number; take: number }
   }) => Promise<{
-    data?: Array<{ id?: string }>
+    data?: { id?: string }[]
     metadata?: {
       estimate_count?: number
       skip?: number

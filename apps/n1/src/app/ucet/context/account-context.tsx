@@ -34,7 +34,7 @@ export const AccountProvider = ({ children }: { children: ReactNode }) => {
     }
     // Prefetch orders for order-list
     void queryClient.prefetchQuery({
-      queryFn: async () => getOrders({ limit: 20, offset: 0 }),
+      queryFn: async () => await getOrders({ limit: 20, offset: 0 }),
       queryKey: queryKeys.orders.list({ limit: 20, offset: 0 }),
       ...cacheConfig.userData,
     })

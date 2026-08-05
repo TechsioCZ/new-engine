@@ -50,8 +50,8 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
     ],
     policies: [
       {
-        resource: OrdersEntities.order,
         operation: PolicyOperation.read,
+        resource: OrdersEntities.order,
       },
     ],
   },
@@ -67,8 +67,8 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
     ],
     policies: [
       {
-        resource: CustomersEntities.customer,
         operation: PolicyOperation.read,
+        resource: CustomersEntities.customer,
       },
     ],
   },
@@ -89,16 +89,16 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
 
         return maybeApplyLinkFilter({
           entryPoint: "product_sales_channel",
-          resourceId: "product_id",
           filterableField: "sales_channel_id",
+          resourceId: "product_id",
         })(req, res, next)
       },
       maybeApplyPriceListsFilter(),
     ],
     policies: [
       {
-        resource: ProductsEntities.product,
         operation: PolicyOperation.read,
+        resource: ProductsEntities.product,
       },
     ],
   },
@@ -114,8 +114,8 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
     ],
     policies: [
       {
-        resource: RegionsEntities.region,
         operation: PolicyOperation.read,
+        resource: RegionsEntities.region,
       },
     ],
   },
@@ -131,8 +131,8 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
     ],
     policies: [
       {
-        resource: UsersEntities.user,
         operation: PolicyOperation.read,
+        resource: UsersEntities.user,
       },
     ],
   },

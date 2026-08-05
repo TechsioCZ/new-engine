@@ -63,8 +63,8 @@ describe("category endpoints", () => {
         locale: "en",
         req,
         where: expect.objectContaining({
-          status: { equals: "published" },
           "category.slug": { equals: "news" },
+          status: { equals: "published" },
         }),
       }),
     )
@@ -73,16 +73,16 @@ describe("category endpoints", () => {
       {
         articles: [
           {
-            title: "Article 1",
-            slug: "article-1",
             excerpt: "Intro",
             featuredImage: "/img-1.png",
+            slug: "article-1",
+            title: "Article 1",
           },
           {
-            title: "Article 2",
-            slug: "article-2",
             excerpt: null,
             featuredImage: null,
+            slug: "article-2",
+            title: "Article 2",
           },
         ],
         id: 1,
@@ -92,10 +92,10 @@ describe("category endpoints", () => {
       {
         articles: [
           {
-            title: "Article 3",
-            slug: "article-3",
             excerpt: "Other",
             featuredImage: "/img-3.png",
+            slug: "article-3",
+            title: "Article 3",
           },
         ],
         id: 2,
@@ -148,15 +148,15 @@ describe("category endpoints", () => {
       {
         id: 10,
         pages: [
-          { title: "Page 1", slug: "page-1" },
-          { title: "Page 2", slug: "page-2" },
+          { slug: "page-1", title: "Page 1" },
+          { slug: "page-2", title: "Page 2" },
         ],
         slug: "docs",
         title: "Docs",
       },
       {
         id: 11,
-        pages: [{ title: "Page 3", slug: "page-3" }],
+        pages: [{ slug: "page-3", title: "Page 3" }],
         slug: "guides",
         title: "Guides",
       },

@@ -20,29 +20,29 @@ const skeletonVariants = tv({
   ],
   compoundVariants: [
     {
-      variant: "text",
-      size: "sm",
       className: "h-skeleton-text-sm",
+      size: "sm",
+      variant: "text",
     },
     {
-      variant: "text",
-      size: "md",
       className: "h-skeleton-text-md",
+      size: "md",
+      variant: "text",
     },
     {
-      variant: "text",
-      size: "lg",
       className: "h-skeleton-text-lg",
+      size: "lg",
+      variant: "text",
     },
     {
-      variant: "text",
-      size: "xl",
       className: "h-skeleton-text-xl",
+      size: "xl",
+      variant: "text",
     },
     {
-      variant: "text",
-      size: "full",
       className: "h-full",
+      size: "full",
+      variant: "text",
     },
   ],
   defaultVariants: {

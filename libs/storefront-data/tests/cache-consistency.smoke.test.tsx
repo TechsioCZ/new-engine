@@ -61,10 +61,10 @@ describe("storefront-data cache/query consistency", () => {
         seenRegions.push(regionId)
 
         return {
-          products: [{ id: `prod_${regionId}`, title: `Product ${regionId}` }],
           count: 1,
           limit: params.limit,
           offset: params.offset,
+          products: [{ id: `prod_${regionId}`, title: `Product ${regionId}` }],
         }
       },
     }
@@ -159,7 +159,7 @@ describe("storefront-data cache/query consistency", () => {
       UpdateCustomerParams
     > = {
       createAddress: async () => ({ id: "addr_1" }),
-      deleteAddress: async () => undefined,
+      deleteAddress: async () => {},
       getAddresses: async () => ({ addresses: [] }),
       updateAddress: async () => ({ id: "addr_1" }),
       updateCustomer: async () => ({ id: "cust_1" }),
@@ -261,7 +261,7 @@ describe("storefront-data cache/query consistency", () => {
       UpdateCustomerParams
     > = {
       createAddress: async () => ({ id: "addr_1" }),
-      deleteAddress: async () => undefined,
+      deleteAddress: async () => {},
       getAddresses: async () => ({ addresses: [] }),
       updateAddress: async () => ({ id: "addr_1" }),
       updateCustomer: async () => ({ id: "cust_1" }),

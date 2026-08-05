@@ -50,7 +50,6 @@ export function useGoogleAdapter(
         const quantity = params.quantity || 1 // Guard against division by zero
         gtag("event", "add_to_cart", {
           currency: params.currency,
-          value: params.value,
           items: [
             {
               item_id: params.productId,
@@ -61,6 +60,7 @@ export function useGoogleAdapter(
               quantity,
             },
           ],
+          value: params.value,
         })
       },
       debug,
@@ -85,8 +85,8 @@ export function useGoogleAdapter(
 
         gtag("event", "begin_checkout", {
           currency: params.currency,
-          value: params.value,
           items,
+          value: params.value,
         })
       },
       debug,
@@ -97,8 +97,6 @@ export function useGoogleAdapter(
       getGtag,
       (gtag, params) => {
         gtag("event", "purchase", {
-          transaction_id: params.orderId,
-          value: params.value,
           currency: params.currency,
           items: params.products.map((p) => ({
             item_id: p.id,
@@ -107,15 +105,17 @@ export function useGoogleAdapter(
             price: p.price,
             quantity: p.quantity ?? 1,
           })),
+          transaction_id: params.orderId,
+          value: params.value,
         })
 
         // If conversion label provided, also track as conversion
         if (conversionLabel) {
           gtag("event", "conversion", {
-            send_to: conversionLabel,
-            value: params.value,
             currency: params.currency,
+            send_to: conversionLabel,
             transaction_id: params.orderId,
+            value: params.value,
           })
         }
       },
@@ -128,7 +128,6 @@ export function useGoogleAdapter(
       (gtag, params) => {
         gtag("event", "view_item", {
           currency: params.currency,
-          value: params.value,
           items: [
             {
               item_id: params.productId,
@@ -138,6 +137,7 @@ export function useGoogleAdapter(
               quantity: 1,
             },
           ],
+          value: params.value,
         })
       },
       debug,

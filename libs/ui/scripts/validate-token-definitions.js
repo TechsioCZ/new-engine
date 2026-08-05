@@ -57,14 +57,18 @@ function profiled(enabled) {
   const marks = new Map()
   return {
     end(label) {
-      if (!enabled) return 0
+      if (!enabled) {
+        return 0
+      }
       const start = marks.get(label) ?? performance.now()
       const delta = performance.now() - start
       marks.set(label, performance.now())
       return delta
     },
     mark(label) {
-      if (!enabled) return
+      if (!enabled) {
+        return
+      }
       marks.set(label, performance.now())
     },
   }
@@ -599,7 +603,9 @@ if (
     .then((ok) => process.exit(ok ? 0 : 1))
     .catch((error) => {
       console.error("💥 Validation failed:", error?.message || error)
-      if (error?.stack) console.error(error.stack)
+      if (error?.stack) {
+        console.error(error.stack)
+      }
       process.exit(1)
     })
 }

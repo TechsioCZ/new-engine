@@ -18,15 +18,15 @@ figma.connect(
     imports: ['import { Switch } from "@techsio/ui-kit/molecules/switch"'],
     props: {
       checked: figma.enum("state", {
-        unchecked: false,
         checked: true,
         disabled: false,
+        unchecked: false,
       }),
       children: figma.string("label"),
       disabled: figma.enum("state", {
-        unchecked: false,
         checked: false,
         disabled: true,
+        unchecked: false,
       }),
       validateStatus: figma.enum("validateStatus", {
         default: "default",
