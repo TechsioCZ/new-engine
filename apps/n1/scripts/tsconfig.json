@@ -1,0 +1,11 @@
+{
+  "extends": "../../../tsconfig.strict.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "target": "esnext",
+    "types": ["node"]
+  },
+  "include": ["generate-categories.ts"]
+}
