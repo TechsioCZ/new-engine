@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process"
 import { readFile } from "node:fs/promises"
-import { resolve } from "node:path"
+import path from "node:path"
 import { promisify } from "node:util"
 
 import type { PreviewSharedEnvVariableInput } from "../../contracts/preview-shared-env.js"
@@ -8,33 +8,45 @@ import { repoRoot } from "../../paths.js"
 
 const execFileAsync = promisify(execFile)
 const loopbackUrlPattern =
-  /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?(\/.*)?$/
-const trailingSlashPattern = /\/+$/
-const httpSchemePattern = /^https?:\/\//
+  /^(?<scheme>https?:\/\/)?(?<host>localhost|127\.0\.0\.1)(?<port>:\d+)?(?<path>\/.*)?$/u
+const trailingSlashPattern = /\/+$/u
+const httpSchemePattern = /^https?:\/\//u
 
 export type BootstrapValueSource = PreviewSharedEnvVariableInput["source"]
 
-export function firstNonEmpty(
+export const firstNonEmpty = (
   ...values: (string | null | undefined)[]
-): string | undefined {
+): string | undefined => {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) {
       return value.trim()
     }
   }
 
-  return
+  return undefined
 }
 
-export async function deriveRepositoryUrl(
+const readGitValue = async (args: string[]): Promise<string | undefined> => {
+  try {
+    const { stdout } = await execFileAsync("git", args, {
+      cwd: repoRoot,
+    })
+    const value = stdout.trim()
+    return value || undefined
+  } catch {
+    return undefined
+  }
+}
+
+export const deriveRepositoryUrl = async (
   explicitValue?: string,
-): Promise<string> {
-  if (explicitValue?.trim()) {
+): Promise<string> => {
+  if (explicitValue !== undefined && explicitValue.trim() !== "") {
     return explicitValue.trim()
   }
 
   const remoteUrl = await readGitValue(["remote", "get-url", "origin"])
-  if (!remoteUrl) {
+  if (remoteUrl === undefined || remoteUrl === "") {
     throw new Error("Unable to determine repository URL from git origin.")
   }
 
@@ -53,39 +65,27 @@ export async function deriveRepositoryUrl(
   throw new Error(`Unsupported git remote for bootstrap planning: ${remoteUrl}`)
 }
 
-export async function deriveBranchName(
+export const deriveBranchName = async (
   explicitValue?: string,
-): Promise<string> {
-  if (explicitValue?.trim()) {
+): Promise<string> => {
+  if (explicitValue !== undefined && explicitValue.trim() !== "") {
     return explicitValue.trim()
   }
 
-  return (await readGitValue(["branch", "--show-current"])) || "master"
+  return (await readGitValue(["branch", "--show-current"])) ?? "master"
 }
 
-async function readGitValue(args: string[]): Promise<string | undefined> {
-  try {
-    const { stdout } = await execFileAsync("git", args, {
-      cwd: repoRoot,
-    })
-    const value = stdout.trim()
-    return value || undefined
-  } catch {
-    return
-  }
-}
-
-export function isLoopbackUrl(value?: string): boolean {
-  if (!value) {
+export const isLoopbackUrl = (value?: string): boolean => {
+  if (value === undefined || value === "") {
     return false
   }
 
   return loopbackUrlPattern.test(value.trim())
 }
 
-export function normalizeOriginUrl(value?: string): string | undefined {
-  if (!value?.trim()) {
-    return
+export const normalizeOriginUrl = (value?: string): string | undefined => {
+  if (value === undefined || value.trim() === "") {
+    return undefined
   }
 
   const trimmed = value.trim().replace(trailingSlashPattern, "")
@@ -96,12 +96,15 @@ export function normalizeOriginUrl(value?: string): string | undefined {
   return `https://${trimmed}`
 }
 
-export function preferExplicitOrMergeCsv(input: {
+const stripTrailingSlash = (value: string): string =>
+  value === "/" ? value : value.replace(trailingSlashPattern, "")
+
+export const preferExplicitOrMergeCsv = (input: {
   explicitValue?: string | undefined
   envValue?: string | undefined
   fallbackValue: string
-}): string {
-  if (input.explicitValue?.trim()) {
+}): string => {
+  if (input.explicitValue !== undefined && input.explicitValue.trim() !== "") {
     return input.explicitValue.trim()
   }
 
@@ -117,79 +120,64 @@ export function preferExplicitOrMergeCsv(input: {
   return [...new Set(values)].join(",")
 }
 
-function stripTrailingSlash(value: string): string {
-  return value === "/" ? value : value.replace(trailingSlashPattern, "")
-}
-
-export function resolveOptionalPath(pathValue?: string): string | undefined {
-  if (!pathValue?.trim()) {
-    return
+export const resolveOptionalPath = (pathValue?: string): string | undefined => {
+  if (pathValue === undefined || pathValue.trim() === "") {
+    return undefined
   }
 
-  return resolve(pathValue.trim())
+  return path.resolve(pathValue.trim())
 }
 
-export async function readJsonFile<T>(pathValue: string): Promise<T> {
-  const raw = await readFile(resolve(pathValue), "utf-8")
-  return JSON.parse(raw) as T
+export const readJsonFile = async (pathValue: string): Promise<unknown> => {
+  const raw = await readFile(path.resolve(pathValue), "utf-8")
+  const parsed: unknown = JSON.parse(raw)
+  return parsed
 }
 
-export function literalSource(value: string): BootstrapValueSource {
-  return {
-    kind: "literal",
-    value,
-  }
-}
+export const literalSource = (value: string): BootstrapValueSource => ({
+  kind: "literal",
+  value,
+})
 
-export function serviceNetworkAliasSource(
+export const serviceNetworkAliasSource = (
   serviceSlug: string,
-): BootstrapValueSource {
-  return {
-    kind: "service_network_alias",
-    service_slug: serviceSlug,
-  }
-}
+): BootstrapValueSource => ({
+  kind: "service_network_alias",
+  service_slug: serviceSlug,
+})
 
-export function serviceGlobalNetworkAliasSource(
+export const serviceGlobalNetworkAliasSource = (
   serviceSlug: string,
-): BootstrapValueSource {
-  return {
-    kind: "service_global_network_alias",
-    service_slug: serviceSlug,
-  }
-}
+): BootstrapValueSource => ({
+  kind: "service_global_network_alias",
+  service_slug: serviceSlug,
+})
 
-export function servicePublicOriginSource(
+export const servicePublicOriginSource = (
   serviceSlug: string,
-): BootstrapValueSource {
-  return {
-    kind: "service_public_origin",
-    service_slug: serviceSlug,
-  }
-}
+): BootstrapValueSource => ({
+  kind: "service_public_origin",
+  service_slug: serviceSlug,
+})
 
-export function serviceInternalOriginSource(input: {
+export const serviceInternalOriginSource = (input: {
   serviceSlug: string
   port: number
   trailingSlash?: boolean
-}): BootstrapValueSource {
-  return {
-    kind: "service_internal_origin",
-    port: input.port,
-    service_slug: input.serviceSlug,
-    trailing_slash: input.trailingSlash,
-  }
-}
+}): BootstrapValueSource => ({
+  kind: "service_internal_origin",
+  port: input.port,
+  service_slug: input.serviceSlug,
+  trailing_slash: input.trailingSlash,
+})
 
-export function serviceInternalBucketUrlSource(input: {
+export const serviceInternalBucketUrlSource = (input: {
   serviceSlug: string
   port: number
   bucketSharedEnvKey: string
-}): BootstrapValueSource {
-  return {
-    bucket_shared_env_key: input.bucketSharedEnvKey,
-    kind: "service_internal_bucket_url",
-    port: input.port,
-    service_slug: input.serviceSlug,
-  }
-}
+}): BootstrapValueSource => ({
+  bucket_shared_env_key: input.bucketSharedEnvKey,
+  kind: "service_internal_bucket_url",
+  port: input.port,
+  service_slug: input.serviceSlug,
+})
