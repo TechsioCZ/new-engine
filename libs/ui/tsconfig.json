@@ -26,6 +26,7 @@
     ".storybook/**/*.tsx",
     "stories/**/*.ts",
     "stories/**/*.tsx",
+    "scripts/storybook-a11y-summary.mts",
     "test/*.ts",
     "test/*.tsx",
     "test/**/*.ts",

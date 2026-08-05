@@ -188,7 +188,7 @@ run_theme() {
     --index "${CANONICAL_INDEX}" \
     --report-dir "${attempt_dir}" \
     --theme "${theme}"
-  mise exec node@24 -- node "${ROOT_DIR}/scripts/storybook-a11y-summary.mjs" \
+  mise exec node@24 -- node "${ROOT_DIR}/scripts/storybook-a11y-summary.mts" \
     --input "${attempt_dir}/report.json" \
     --output "${attempt_dir}/summary.md"
 
