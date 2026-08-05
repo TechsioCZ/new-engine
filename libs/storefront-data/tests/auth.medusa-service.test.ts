@@ -1,86 +1,120 @@
+import type {
+  AuthLoginResponse,
+  AuthRedirectResponse,
+  AuthRegisterResponse,
+  ClientHeaders,
+} from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
-import { vi, describe, expect, it } from "vitest"
+import type { Mock } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
+import type { MedusaLogoutErrorContext } from "../src/auth/medusa-service"
 import {
   MedusaRegistrationSignInError,
   createMedusaAuthService,
 } from "../src/auth/medusa-service"
+import {
+  createStoreCustomer,
+  createStoreCustomerAddress,
+  createTestMedusaSdk,
+} from "./medusa-fixtures"
 
-interface SdkLike {
-  client: {
-    fetch: ReturnType<typeof vi.fn>
-  }
-  auth: {
-    register: ReturnType<typeof vi.fn>
-    login: ReturnType<typeof vi.fn>
-    refresh: ReturnType<typeof vi.fn>
-    logout: ReturnType<typeof vi.fn>
-  }
-  store: {
-    customer: {
-      retrieve: ReturnType<typeof vi.fn>
-      create: ReturnType<typeof vi.fn>
-      update: ReturnType<typeof vi.fn>
-    }
-  }
+type FetchCustomer = (
+  path: string,
+  init?: { signal?: AbortSignal | null },
+) => Promise<{ customer?: HttpTypes.StoreCustomer }>
+
+type RegisterAuth = (
+  actor: string,
+  method: string,
+  payload: HttpTypes.AdminSignUpWithEmailPassword | Record<string, unknown>,
+) => Promise<AuthRegisterResponse | AuthRedirectResponse>
+
+type LoginAuth = (
+  actor: string,
+  method: string,
+  payload: HttpTypes.AdminSignInWithEmailPassword | Record<string, unknown>,
+) => Promise<AuthLoginResponse>
+
+type RefreshAuth = (headers?: ClientHeaders) => Promise<string>
+
+type LogoutAuth = () => Promise<void>
+
+type CreateCustomer = (
+  body: HttpTypes.StoreCreateCustomer,
+) => Promise<HttpTypes.StoreCustomerResponse>
+
+type OnLogoutError = (error: unknown, context: MedusaLogoutErrorContext) => void
+
+interface SdkSpies {
+  clientFetch: Mock<FetchCustomer>
+  login: Mock<LoginAuth>
+  logout: Mock<LogoutAuth>
+  refresh: Mock<RefreshAuth>
+  register: Mock<RegisterAuth>
+  storeCustomerCreate: Mock<CreateCustomer>
 }
 
-function createSdkMock(overrides?: {
-  logout?: SdkLike["auth"]["logout"]
-  createCustomer?: SdkLike["store"]["customer"]["create"]
-  fetchCustomer?: SdkLike["client"]["fetch"]
-}): SdkLike {
-  return {
-    auth: {
-      login: vi.fn().mockResolvedValue("token_1"),
-      logout: overrides?.logout ?? vi.fn().mockResolvedValue(),
-      refresh: vi.fn().mockResolvedValue("token_2"),
-      register: vi.fn().mockResolvedValue("token_1"),
-    },
-    client: {
-      fetch:
-        overrides?.fetchCustomer ??
-        vi.fn().mockResolvedValue({
-          customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
-        }),
-    },
-    store: {
-      customer: {
-        create:
-          overrides?.createCustomer ??
-          vi.fn().mockResolvedValue({
-            customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
-          }),
-        retrieve: vi.fn().mockResolvedValue({
-          customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
-        }),
-        update: vi.fn().mockResolvedValue({
-          customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
-        }),
-      },
-    },
+const createSdkMock = () => {
+  const sdk = createTestMedusaSdk()
+  const spies: SdkSpies = {
+    clientFetch: vi.fn<FetchCustomer>().mockResolvedValue({
+      customer: createStoreCustomer("cus_1"),
+    }),
+    login: vi.fn<LoginAuth>().mockResolvedValue("token_1"),
+    logout: vi.fn<LogoutAuth>().mockResolvedValue(),
+    refresh: vi.fn<RefreshAuth>().mockResolvedValue("token_2"),
+    register: vi.fn<RegisterAuth>().mockResolvedValue("token_1"),
+    storeCustomerCreate: vi.fn<CreateCustomer>().mockResolvedValue({
+      customer: createStoreCustomer("cus_1"),
+    }),
   }
+
+  Object.defineProperty(sdk.client, "fetch", { value: spies.clientFetch })
+  Object.defineProperties(sdk.auth, {
+    login: { value: spies.login },
+    logout: { value: spies.logout },
+    refresh: { value: spies.refresh },
+    register: { value: spies.register },
+  })
+  Object.defineProperty(sdk.store.customer, "create", {
+    value: spies.storeCustomerCreate,
+  })
+
+  return { sdk, spies }
+}
+
+const firstCallOrder = (mock: {
+  mock: { invocationCallOrder: number[] }
+}): number => {
+  const [order] = mock.mock.invocationCallOrder
+  if (order === undefined) {
+    throw new Error("Expected mock to have recorded at least one call.")
+  }
+  return order
 }
 
 describe(createMedusaAuthService, () => {
   it("forwards AbortSignal in getCustomer and sorts addresses by creation time", async () => {
-    const sdk = createSdkMock({
-      fetchCustomer: vi.fn().mockResolvedValue({
-        customer: {
-          addresses: [
-            { created_at: "2026-02-21T12:00:00.000Z", id: "addr_2" },
-            { created_at: "2026-02-21T10:00:00.000Z", id: "addr_1" },
-          ],
-          id: "cus_1",
-        } as HttpTypes.StoreCustomer,
+    const { sdk, spies } = createSdkMock()
+    spies.clientFetch.mockResolvedValue({
+      customer: createStoreCustomer("cus_1", {
+        addresses: [
+          createStoreCustomerAddress("addr_2", {
+            created_at: "2026-02-21T12:00:00.000Z",
+          }),
+          createStoreCustomerAddress("addr_1", {
+            created_at: "2026-02-21T10:00:00.000Z",
+          }),
+        ],
       }),
     })
-    const service = createMedusaAuthService(sdk as never)
+    const service = createMedusaAuthService(sdk)
     const controller = new AbortController()
 
     const customer = await service.getCustomer(controller.signal)
 
-    expect(sdk.client.fetch).toHaveBeenCalledWith("/store/customers/me", {
+    expect(spies.clientFetch).toHaveBeenCalledWith("/store/customers/me", {
       signal: controller.signal,
     })
     expect(customer?.addresses?.map((address) => address.id)).toStrictEqual([
@@ -90,20 +124,19 @@ describe(createMedusaAuthService, () => {
   })
 
   it("returns null from getCustomer on auth errors", async () => {
-    const sdk = createSdkMock({
-      fetchCustomer: vi.fn().mockRejectedValue({ status: 401 }),
-    })
-    const service = createMedusaAuthService(sdk as never)
+    const { sdk, spies } = createSdkMock()
+    spies.clientFetch.mockRejectedValue({ status: 401 })
+    const service = createMedusaAuthService(sdk)
 
     await expect(service.getCustomer()).resolves.toBeNull()
   })
 
   it("returns refreshed token from register flow and forwards login token to refresh", async () => {
-    const sdk = createSdkMock()
-    sdk.auth.register.mockResolvedValue("registration_token")
-    sdk.auth.login.mockResolvedValue("login_token")
-    sdk.auth.refresh.mockResolvedValue("session_token")
-    const service = createMedusaAuthService(sdk as never)
+    const { sdk, spies } = createSdkMock()
+    spies.register.mockResolvedValue("registration_token")
+    spies.login.mockResolvedValue("login_token")
+    spies.refresh.mockResolvedValue("session_token")
+    const service = createMedusaAuthService(sdk)
 
     await expect(
       service.register({
@@ -112,29 +145,42 @@ describe(createMedusaAuthService, () => {
       }),
     ).resolves.toBe("session_token")
 
-    expect(sdk.auth.register).toHaveBeenCalledOnce()
-    expect(sdk.auth.login).toHaveBeenCalledOnce()
-    expect(sdk.store.customer.create).toHaveBeenCalledOnce()
-    expect(sdk.auth.refresh).toHaveBeenCalledWith({
+    expect(spies.register).toHaveBeenCalledOnce()
+    expect(spies.login).toHaveBeenCalledOnce()
+    expect(spies.storeCustomerCreate).toHaveBeenCalledOnce()
+    expect(spies.refresh).toHaveBeenCalledWith({
       Authorization: "Bearer login_token",
     })
-    expect(sdk.auth.register.mock.invocationCallOrder[0]!).toBeLessThan(
-      sdk.auth.login.mock.invocationCallOrder[0]!,
-    )
-    expect(sdk.auth.login.mock.invocationCallOrder[0]!).toBeLessThan(
-      sdk.store.customer.create.mock.invocationCallOrder[0]!,
-    )
-    expect(sdk.store.customer.create.mock.invocationCallOrder[0]!).toBeLessThan(
-      sdk.auth.refresh.mock.invocationCallOrder[0]!,
-    )
+  })
+
+  it("orders register, login, customer creation, and refresh calls sequentially during registration", async () => {
+    const { sdk, spies } = createSdkMock()
+    spies.register.mockResolvedValue("registration_token")
+    spies.login.mockResolvedValue("login_token")
+    spies.refresh.mockResolvedValue("session_token")
+    const service = createMedusaAuthService(sdk)
+
+    await service.register({
+      email: "john@example.com",
+      password: "secret123",
+    })
+
+    const registerOrder = firstCallOrder(spies.register)
+    const loginOrder = firstCallOrder(spies.login)
+    const createOrder = firstCallOrder(spies.storeCustomerCreate)
+    const refreshOrder = firstCallOrder(spies.refresh)
+
+    expect(registerOrder).toBeLessThan(loginOrder)
+    expect(loginOrder).toBeLessThan(createOrder)
+    expect(createOrder).toBeLessThan(refreshOrder)
   })
 
   it("cleans up and rejects when register requires multi-step auth", async () => {
-    const sdk = createSdkMock()
-    sdk.auth.register.mockResolvedValue({
+    const { sdk, spies } = createSdkMock()
+    spies.register.mockResolvedValue({
       location: "https://idp.example.test",
     })
-    const service = createMedusaAuthService(sdk as never)
+    const service = createMedusaAuthService(sdk)
 
     await expect(
       service.register({
@@ -143,16 +189,16 @@ describe(createMedusaAuthService, () => {
       }),
     ).rejects.toThrow("Multi-step authentication not supported")
 
-    expect(sdk.auth.login).not.toHaveBeenCalled()
-    expect(sdk.store.customer.create).not.toHaveBeenCalled()
-    expect(sdk.auth.refresh).not.toHaveBeenCalled()
-    expect(sdk.auth.logout).toHaveBeenCalledOnce()
+    expect(spies.login).not.toHaveBeenCalled()
+    expect(spies.storeCustomerCreate).not.toHaveBeenCalled()
+    expect(spies.refresh).not.toHaveBeenCalled()
+    expect(spies.logout).toHaveBeenCalledOnce()
   })
 
   it("cleans up and rejects when register login requires multi-step auth", async () => {
-    const sdk = createSdkMock()
-    sdk.auth.login.mockResolvedValue({ location: "https://idp.example.test" })
-    const service = createMedusaAuthService(sdk as never)
+    const { sdk, spies } = createSdkMock()
+    spies.login.mockResolvedValue({ location: "https://idp.example.test" })
+    const service = createMedusaAuthService(sdk)
 
     await expect(
       service.register({
@@ -161,18 +207,17 @@ describe(createMedusaAuthService, () => {
       }),
     ).rejects.toThrow("Multi-step authentication not supported")
 
-    expect(sdk.store.customer.create).not.toHaveBeenCalled()
-    expect(sdk.auth.refresh).not.toHaveBeenCalled()
-    expect(sdk.auth.logout).toHaveBeenCalledOnce()
+    expect(spies.storeCustomerCreate).not.toHaveBeenCalled()
+    expect(spies.refresh).not.toHaveBeenCalled()
+    expect(spies.logout).toHaveBeenCalledOnce()
   })
 
   it("logs logout errors by default and rethrows logout failures", async () => {
     const logoutError = new Error("logout failed")
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
-    const sdk = createSdkMock({
-      logout: vi.fn().mockRejectedValue(logoutError),
-    })
-    const service = createMedusaAuthService(sdk as never)
+    const { sdk, spies } = createSdkMock()
+    spies.logout.mockRejectedValue(logoutError)
+    const service = createMedusaAuthService(sdk)
 
     await expect(service.logout()).rejects.toBe(logoutError)
 
@@ -184,12 +229,11 @@ describe(createMedusaAuthService, () => {
 
   it("calls custom logout reporter and rethrows logout failures", async () => {
     const logoutError = new Error("logout failed")
-    const onLogoutError = vi.fn()
+    const onLogoutError = vi.fn<OnLogoutError>()
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
-    const sdk = createSdkMock({
-      logout: vi.fn().mockRejectedValue(logoutError),
-    })
-    const service = createMedusaAuthService(sdk as never, { onLogoutError })
+    const { sdk, spies } = createSdkMock()
+    spies.logout.mockRejectedValue(logoutError)
+    const service = createMedusaAuthService(sdk, { onLogoutError })
 
     await expect(service.logout()).rejects.toBe(logoutError)
 
@@ -199,12 +243,11 @@ describe(createMedusaAuthService, () => {
 
   it("keeps logout as best effort for auth errors (already logged out)", async () => {
     const logoutError = { status: 401 }
-    const onLogoutError = vi.fn()
+    const onLogoutError = vi.fn<OnLogoutError>()
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
-    const sdk = createSdkMock({
-      logout: vi.fn().mockRejectedValue(logoutError),
-    })
-    const service = createMedusaAuthService(sdk as never, { onLogoutError })
+    const { sdk, spies } = createSdkMock()
+    spies.logout.mockRejectedValue(logoutError)
+    const service = createMedusaAuthService(sdk, { onLogoutError })
 
     await expect(service.logout()).resolves.toBeUndefined()
 
@@ -215,12 +258,11 @@ describe(createMedusaAuthService, () => {
   it("reports cleanup logout errors and rethrows original register failure", async () => {
     const registerError = new Error("customer create failed")
     const cleanupLogoutError = new Error("cleanup logout failed")
-    const onLogoutError = vi.fn()
-    const sdk = createSdkMock({
-      createCustomer: vi.fn().mockRejectedValue(registerError),
-      logout: vi.fn().mockRejectedValue(cleanupLogoutError),
-    })
-    const service = createMedusaAuthService(sdk as never, { onLogoutError })
+    const onLogoutError = vi.fn<OnLogoutError>()
+    const { sdk, spies } = createSdkMock()
+    spies.storeCustomerCreate.mockRejectedValue(registerError)
+    spies.logout.mockRejectedValue(cleanupLogoutError)
+    const service = createMedusaAuthService(sdk, { onLogoutError })
 
     await expect(
       service.register({
@@ -233,18 +275,17 @@ describe(createMedusaAuthService, () => {
       cleanupLogoutError,
       "register-cleanup",
     )
-    expect(sdk.auth.logout).toHaveBeenCalledOnce()
+    expect(spies.logout).toHaveBeenCalledOnce()
   })
 
   it("does not report benign auth errors during register cleanup logout", async () => {
     const logoutError = { status: 401 }
-    const onLogoutError = vi.fn()
+    const onLogoutError = vi.fn<OnLogoutError>()
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
-    const sdk = createSdkMock({
-      logout: vi.fn().mockRejectedValue(logoutError),
-    })
-    sdk.auth.login.mockResolvedValue({ location: "https://idp.example.test" })
-    const service = createMedusaAuthService(sdk as never, { onLogoutError })
+    const { sdk, spies } = createSdkMock()
+    spies.logout.mockRejectedValue(logoutError)
+    spies.login.mockResolvedValue({ location: "https://idp.example.test" })
+    const service = createMedusaAuthService(sdk, { onLogoutError })
 
     await expect(
       service.register({
@@ -255,16 +296,16 @@ describe(createMedusaAuthService, () => {
 
     expect(onLogoutError).not.toHaveBeenCalled()
     expect(warnSpy).not.toHaveBeenCalled()
-    expect(sdk.auth.logout).toHaveBeenCalledOnce()
+    expect(spies.logout).toHaveBeenCalledOnce()
   })
 
   it("surfaces refresh failures after customer creation as sign-in errors", async () => {
     const refreshError = new Error("refresh failed")
-    const sdk = createSdkMock()
-    sdk.auth.register.mockResolvedValue("registration_token")
-    sdk.auth.login.mockResolvedValue("login_token")
-    sdk.auth.refresh.mockRejectedValue(refreshError)
-    const service = createMedusaAuthService(sdk as never)
+    const { sdk, spies } = createSdkMock()
+    spies.register.mockResolvedValue("registration_token")
+    spies.login.mockResolvedValue("login_token")
+    spies.refresh.mockRejectedValue(refreshError)
+    const service = createMedusaAuthService(sdk)
     const registration = service.register({
       email: "john@example.com",
       password: "secret123",
@@ -282,7 +323,7 @@ describe(createMedusaAuthService, () => {
     await expect(registration).rejects.toBeInstanceOf(
       MedusaRegistrationSignInError,
     )
-    expect(sdk.store.customer.create).toHaveBeenCalledOnce()
-    expect(sdk.auth.logout).toHaveBeenCalledOnce()
+    expect(spies.storeCustomerCreate).toHaveBeenCalledOnce()
+    expect(spies.logout).toHaveBeenCalledOnce()
   })
 })
