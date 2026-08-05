@@ -1,4 +1,4 @@
-/**
+/*
  * Menu — @techsio/ui-kit molecule.
  *
  * @component Menu
@@ -9,7 +9,8 @@
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the menu-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import * as menu from "@zag-js/menu"
+import { connect, machine } from "@zag-js/menu"
+import type { Api, Props as ZagMenuProps, Service } from "@zag-js/menu"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import { cloneElement, isValidElement, useEffect, useId } from "react"
 import type { ReactElement, ReactNode } from "react"
@@ -32,7 +33,8 @@ interface RadioMenuItem {
   type: "radio"
   value: string
   label: string
-  name: string // radio group name
+  // Radio group name shared by mutually exclusive items.
+  name: string
   checked: boolean
 }
 
@@ -45,7 +47,8 @@ interface CheckboxMenuItem {
 
 interface SeparatorMenuItem {
   type: "separator"
-  id: string // pro key
+  // Stable React key for the separator.
+  id: string
 }
 
 interface SubmenuMenuItem {
@@ -54,7 +57,8 @@ interface SubmenuMenuItem {
   label: string
   icon?: IconType | undefined
   disabled?: boolean | undefined
-  items: MenuItem[] // nested items
+  // Nested items rendered inside the submenu content.
+  items: MenuItem[]
 }
 
 export type MenuItem =
@@ -124,19 +128,20 @@ const menuVariants = tv({
   },
 })
 
+type MenuSize = NonNullable<VariantProps<typeof menuVariants>["size"]>
+
 // === SUBMENU COMPONENT ===
 interface SubmenuItemProps {
   item: SubmenuMenuItem
-  parentApi: menu.Api
-  parentService: menu.Service
-  size?: "sm" | "md" | "lg" | undefined
+  parentApi: Api
+  parentService: Service
+  size?: MenuSize | undefined
   onCheckedChange?: ((item: MenuItem, checked: boolean) => void) | undefined
   onSelect?: ((details: { value: string }) => void) | undefined
   closeOnSelect?: boolean | undefined
 }
 
-// ! TODO: Fix menu.machine typing, it should work without 'as any'
-function SubmenuItem({
+const SubmenuItem = ({
   item,
   parentApi,
   parentService,
@@ -144,18 +149,18 @@ function SubmenuItem({
   onCheckedChange,
   onSelect,
   closeOnSelect = true,
-}: SubmenuItemProps) {
-  const submenuService = useMachine(menu.machine as any, {
+}: SubmenuItemProps): ReactElement => {
+  const submenuService = useMachine(machine, {
     closeOnSelect,
     id: useId(),
     onSelect,
   })
 
-  const submenuApi = menu.connect(submenuService as any, normalizeProps)
+  const submenuApi = connect(submenuService, normalizeProps)
 
   useEffect(() => {
     // Setup parent-child relationship
-    parentApi.setChild(submenuService as any)
+    parentApi.setChild(submenuService)
     submenuApi.setParent(parentService)
   }, [parentApi, submenuApi, submenuService, parentService])
 
@@ -186,7 +191,7 @@ function SubmenuItem({
           onCheckedChange={onCheckedChange}
           onSelect={onSelect}
           parentApi={submenuApi}
-          parentService={submenuService as any}
+          parentService={submenuService}
           size={size}
         />
       )
@@ -225,7 +230,9 @@ function SubmenuItem({
           value: menuItem.value,
         })}
       >
-        {menuItem.icon && <Icon className={itemIcon()} icon={menuItem.icon} />}
+        {menuItem.icon !== undefined && (
+          <Icon className={itemIcon()} icon={menuItem.icon} />
+        )}
         <span className={itemText()}>{menuItem.label}</span>
       </li>
     )
@@ -238,10 +245,12 @@ function SubmenuItem({
     <>
       <li
         className={itemSlot()}
-        {...(triggerProps as any)}
-        data-disabled={item.disabled || undefined}
+        {...triggerProps}
+        data-disabled={item.disabled === true ? true : undefined}
       >
-        {item.icon && <Icon className={itemIcon()} icon={item.icon} />}
+        {item.icon !== undefined && (
+          <Icon className={itemIcon()} icon={item.icon} />
+        )}
         <span className={itemText()}>{item.label}</span>
         <Icon className={submenuIndicator()} icon="token-icon-menu-submenu" />
       </li>
@@ -272,25 +281,23 @@ export interface MenuProps extends VariantProps<typeof menuVariants> {
   closeOnSelect?: boolean | undefined
   loopFocus?: boolean | undefined
   typeahead?: boolean | undefined
-  positioning?: menu.Props["positioning"] | undefined
-  anchorPoint?: menu.Props["anchorPoint"] | undefined
+  positioning?: ZagMenuProps["positioning"] | undefined
+  anchorPoint?: ZagMenuProps["anchorPoint"] | undefined
   open?: boolean | undefined
   defaultOpen?: boolean | undefined
   composite?: boolean | undefined
-  navigate?: ((value: string) => void) | undefined
+  navigate?: ZagMenuProps["navigate"] | undefined
   defaultHighlightedValue?: string | undefined
   highlightedValue?: string | undefined
-  onHighlightChange?:
-    | ((details: { highlightedValue: string | null }) => void)
-    | undefined
+  onHighlightChange?: ZagMenuProps["onHighlightChange"] | undefined
   onSelect?: ((details: { value: string }) => void) | undefined
   onOpenChange?: ((details: { open: boolean }) => void) | undefined
-  onEscapeKeyDown?: ((event: KeyboardEvent) => void) | undefined
-  onPointerDownOutside?: ((event: PointerEvent) => void) | undefined
-  onInteractOutside?: ((event: FocusEvent | PointerEvent) => void) | undefined
-  onFocusOutside?: ((event: FocusEvent) => void) | undefined
+  onEscapeKeyDown?: ZagMenuProps["onEscapeKeyDown"] | undefined
+  onPointerDownOutside?: ZagMenuProps["onPointerDownOutside"] | undefined
+  onInteractOutside?: ZagMenuProps["onInteractOutside"] | undefined
+  onFocusOutside?: ZagMenuProps["onFocusOutside"] | undefined
 }
-export function Menu({
+export const Menu = ({
   // NATIVE PROPS
   "aria-label": ariaLabel,
   dir,
@@ -325,19 +332,18 @@ export function Menu({
   customTrigger,
   size = "md",
   onCheckedChange,
-}: MenuProps) {
+}: MenuProps) => {
   const generatedId = useId()
 
-  const service = useMachine(menu.machine as any, {
+  const service = useMachine(machine, {
     anchorPoint,
     "aria-label": ariaLabel,
     closeOnSelect,
-    composite,
     defaultHighlightedValue,
     defaultOpen,
     dir,
     highlightedValue,
-    id: id || generatedId,
+    id: id ?? generatedId,
     loopFocus,
     navigate,
     onEscapeKeyDown,
@@ -348,11 +354,14 @@ export function Menu({
     onPointerDownOutside,
     onSelect,
     open,
-    positioning,
     typeahead,
+    // `composite` and `positioning` are required once present on the machine
+    // schema, so only forward them when the consumer supplied a value.
+    ...(composite !== undefined && { composite }),
+    ...(positioning !== undefined && { positioning }),
   })
 
-  const api = menu.connect(service as any, normalizeProps)
+  const api = connect(service, normalizeProps)
 
   const {
     trigger,
@@ -381,7 +390,7 @@ export function Menu({
           onCheckedChange={onCheckedChange}
           onSelect={onSelect}
           parentApi={api}
-          parentService={service as any}
+          parentService={service}
           size={size}
         />
       )
@@ -421,34 +430,49 @@ export function Menu({
           value: item.value,
         })}
       >
-        {item.icon && <Icon className={itemIcon()} icon={item.icon} />}
+        {item.icon !== undefined && (
+          <Icon className={itemIcon()} icon={item.icon} />
+        )}
         <span className={itemText()}>{item.label}</span>
       </li>
+    )
+  }
+
+  const renderTrigger = () => {
+    if (isValidElement(customTrigger)) {
+      return cloneElement(customTrigger, {
+        ...api.getTriggerProps(),
+      })
+    }
+
+    const hasCustomTrigger = Boolean(customTrigger)
+    if (hasCustomTrigger) {
+      return (
+        <button {...api.getTriggerProps()} type="button">
+          {customTrigger}
+        </button>
+      )
+    }
+
+    return (
+      <Button {...api.getTriggerProps()} className={trigger()}>
+        {triggerText}
+        {triggerIcon !== undefined && (
+          <Icon className="ms-1" icon={triggerIcon} />
+        )}
+        {triggerIcon === undefined && (
+          <span {...api.getIndicatorProps()}>
+            <Icon className="ms-1" icon="token-icon-menu-trigger" />
+          </span>
+        )}
+      </Button>
     )
   }
 
   return (
     <>
       {/* Trigger */}
-      {customTrigger ? (
-        isValidElement(customTrigger) ? (
-          cloneElement(customTrigger as ReactElement, {
-            ...api.getTriggerProps(),
-          })
-        ) : (
-          <button {...api.getTriggerProps()}>{customTrigger}</button>
-        )
-      ) : (
-        <Button {...api.getTriggerProps()} className={trigger()}>
-          {triggerText}
-          {triggerIcon && <Icon className="ms-1" icon={triggerIcon} />}
-          {!triggerIcon && (
-            <span {...api.getIndicatorProps()}>
-              <Icon className="ms-1" icon="token-icon-menu-trigger" />
-            </span>
-          )}
-        </Button>
-      )}
+      {renderTrigger()}
 
       <Portal>
         <div className={positioner()} {...api.getPositionerProps()}>
