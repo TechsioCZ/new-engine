@@ -22,13 +22,6 @@ interface ExistingVariantIndex {
   byEan: Map<string, string>
 }
 
-interface RawExistingProduct {
-  id: string
-  external_id?: string | null
-  metadata?: Record<string, unknown> | null
-  variants?: { id: string; sku?: string | null; ean?: string | null }[]
-}
-
 interface ProductIdentifierSets {
   erpIds: Set<string>
   skus: Set<string>
@@ -40,44 +33,92 @@ interface CategoryRefSets {
   names: Set<string>
 }
 
-export class ProductBatchClientMapperHelper {
-  toExistingProduct(
-    raw: RawExistingProduct | Record<string, unknown>,
-  ): ExistingProduct {
-    const product = raw as RawExistingProduct
-    return {
-      external_id: product.external_id ?? null,
-      id: product.id,
-      metadata: product.metadata ?? null,
-      variants: (product.variants ?? []).map((variant) => ({
-        ean: variant.ean ?? null,
-        id: variant.id,
-        sku: variant.sku ?? null,
-      })),
-    }
+const INVALID_MAPPER_RECEIVER_MESSAGE = "Invalid mapper receiver"
+
+const getNullableString = (value: unknown): string | null =>
+  typeof value === "string" ? value : null
+
+const getRequiredString = (value: unknown, field: string): string => {
+  if (typeof value !== "string") {
+    throw new TypeError(`Expected existing product ${field} to be a string`)
+  }
+  return value
+}
+
+const getMetadata = (value: unknown): Record<string, unknown> | null => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null
+  }
+  return Object.fromEntries(Object.entries(value))
+}
+
+const isUnknownArray = (value: unknown): value is unknown[] =>
+  Array.isArray(value)
+
+const getVariants = (value: unknown): ExistingProduct["variants"] => {
+  if (!isUnknownArray(value)) {
+    return []
   }
 
-  findExistingProduct(
+  return value.map((entry) => {
+    const variant = getMetadata(entry)
+    if (variant === null) {
+      throw new TypeError("Expected existing product variant to be an object")
+    }
+
+    const { ean, id, sku } = variant
+    return {
+      ean: getNullableString(ean),
+      id: getRequiredString(id, "variant id"),
+      sku: getNullableString(sku),
+    }
+  })
+}
+
+const toExistingProduct = (raw: Record<string, unknown>): ExistingProduct => {
+  const { external_id: externalId, id, metadata, variants } = raw
+  return {
+    external_id: getNullableString(externalId),
+    id: getRequiredString(id, "id"),
+    metadata: getMetadata(metadata),
+    variants: getVariants(variants),
+  }
+}
+
+export class ProductBatchClientMapperHelper {
+  readonly toExistingProduct = toExistingProduct
+
+  private get helperInstance(): this {
+    return this
+  }
+
+  findExistingProduct = (
     product: ProductInput,
     index: ExistingProductIndex,
-  ): ExistingProduct | null {
-    if (product.identifier_type === "erp_id" && product.erp_id) {
+  ): ExistingProduct | null => {
+    if (this.helperInstance !== this) {
+      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+    }
+    if (product.identifier_type === "erp_id" && product.erp_id !== undefined) {
       return index.byErpId.get(product.erp_id) ?? null
     }
-    if (product.identifier_type === "sku" && product.sku) {
+    if (product.identifier_type === "sku" && product.sku !== undefined) {
       return index.bySku.get(product.sku) ?? null
     }
-    if (product.identifier_type === "ean" && product.ean) {
+    if (product.identifier_type === "ean" && product.ean !== undefined) {
       return index.byEan.get(product.ean) ?? null
     }
     return null
   }
 
-  private buildOptionsDefinition(
+  private readonly buildOptionsDefinition = (
     variants: VariantInput[] | undefined,
-  ): { title: string; values: string[] }[] | undefined {
-    if (!variants?.length) {
-      return
+  ): { title: string; values: string[] }[] | undefined => {
+    if (this.helperInstance !== this) {
+      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+    }
+    if (variants === undefined || variants.length === 0) {
+      return undefined
     }
     const optionMap = new Map<string, Set<string>>()
     for (const variant of variants) {
@@ -100,11 +141,14 @@ export class ProductBatchClientMapperHelper {
     }))
   }
 
-  private normalizeVariantOptions(
+  private readonly normalizeVariantOptions = (
     variant: VariantInput,
     productOptions: { title: string }[] | undefined,
-  ): Record<string, string> {
-    if (!productOptions?.length) {
+  ): Record<string, string> => {
+    if (this.helperInstance !== this) {
+      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+    }
+    if (productOptions === undefined || productOptions.length === 0) {
       return { Default: "Default" }
     }
     const result: Record<string, string> = {}
@@ -115,9 +159,14 @@ export class ProductBatchClientMapperHelper {
     return result
   }
 
-  private normalizePrices(prices: PriceInput[] | undefined) {
-    if (!prices?.length) {
-      return
+  private readonly normalizePrices = (
+    prices: PriceInput[] | undefined,
+  ): { amount: number; currency_code: string }[] | undefined => {
+    if (this.helperInstance !== this) {
+      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+    }
+    if (prices === undefined || prices.length === 0) {
+      return undefined
     }
     return prices.map((price) => ({
       amount: price.amount,
@@ -125,9 +174,14 @@ export class ProductBatchClientMapperHelper {
     }))
   }
 
-  private buildVariantMetadata(variant: VariantInput) {
-    if (variant.vat_rate === undefined && !variant.metadata) {
-      return
+  private readonly buildVariantMetadata = (
+    variant: VariantInput,
+  ): Record<string, unknown> | undefined => {
+    if (this.helperInstance !== this) {
+      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+    }
+    if (variant.vat_rate === undefined && variant.metadata === undefined) {
+      return undefined
     }
     return {
       ...variant.metadata,
@@ -135,19 +189,22 @@ export class ProductBatchClientMapperHelper {
     }
   }
 
-  private buildExistingVariantIndex(
+  private readonly buildExistingVariantIndex = (
     existing: ExistingProduct,
-  ): ExistingVariantIndex {
+  ): ExistingVariantIndex => {
+    if (this.helperInstance !== this) {
+      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+    }
     const byId = new Map<string, string>()
     const bySku = new Map<string, string>()
     const byEan = new Map<string, string>()
 
     for (const variant of existing.variants) {
       byId.set(variant.id, variant.id)
-      if (variant.sku) {
+      if (variant.sku !== null) {
         bySku.set(variant.sku, variant.id)
       }
-      if (variant.ean) {
+      if (variant.ean !== null) {
         byEan.set(variant.ean, variant.id)
       }
     }
@@ -155,62 +212,74 @@ export class ProductBatchClientMapperHelper {
     return { byEan, byId, bySku }
   }
 
-  private findExistingVariantId(
+  private readonly findExistingVariantId = (
     variant: VariantInput,
     index: ExistingVariantIndex,
-  ): string | null {
-    if (variant.identifier_type === "variant_id") {
-      return variant.variant_id
-        ? (index.byId.get(variant.variant_id) ?? null)
-        : null
+  ): string | null => {
+    if (this.helperInstance !== this) {
+      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
     }
-    if (variant.identifier_type === "sku" && variant.sku) {
+    if (variant.identifier_type === "variant_id") {
+      return variant.variant_id === undefined
+        ? null
+        : (index.byId.get(variant.variant_id) ?? null)
+    }
+    if (variant.identifier_type === "sku" && variant.sku !== undefined) {
       return index.bySku.get(variant.sku) ?? null
     }
-    if (variant.identifier_type === "ean" && variant.ean) {
+    if (variant.identifier_type === "ean" && variant.ean !== undefined) {
       return index.byEan.get(variant.ean) ?? null
     }
     return null
   }
 
-  resolveCategoryIds(
+  resolveCategoryIds = (
     refs: CategoryRefInput[] | undefined,
     resolved: ResolvedCategoryMap,
-  ): string[] {
-    if (!refs?.length) {
+  ): string[] => {
+    if (this.helperInstance !== this) {
+      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+    }
+    if (refs === undefined || refs.length === 0) {
       return []
     }
     const ids = new Set<string>()
     for (const ref of refs) {
       let id: string | undefined
-      if (ref.handle) {
+      if (ref.handle !== undefined) {
         id = resolved.byHandle.get(ref.handle)
       }
-      if (!id && ref.name) {
+      if (id === undefined && ref.name !== undefined) {
         id = resolved.byName.get(ref.name)
       }
-      if (id) {
+      if (id !== undefined) {
         ids.add(id)
       }
     }
     return [...ids]
   }
 
-  buildImagesPayload(images: ImageInput[] | undefined) {
-    if (!images?.length) {
-      return
+  buildImagesPayload = (
+    images: ImageInput[] | undefined,
+  ): { url: string }[] | undefined => {
+    if (this.helperInstance !== this) {
+      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+    }
+    if (images === undefined || images.length === 0) {
+      return undefined
     }
     return images.map((image) => ({ url: image.url }))
   }
 
-  buildIdentifierEcho(product: ProductInput) {
-    return {
-      identifier_type: product.identifier_type,
-      ...(product.sku ? { sku: product.sku } : {}),
-      ...(product.ean ? { ean: product.ean } : {}),
-      ...(product.erp_id ? { erp_id: product.erp_id } : {}),
-    }
-  }
+  buildIdentifierEcho = (product: ProductInput) => ({
+    ...this.identifierEchoBase,
+    identifier_type: product.identifier_type,
+    ...(product.sku === undefined ? {} : { sku: product.sku }),
+    ...(product.ean === undefined ? {} : { ean: product.ean }),
+    ...(product.erp_id === undefined ? {} : { erp_id: product.erp_id }),
+  })
+
+  private readonly identifierEchoBase = {}
 
   buildCreatePayload(
     product: ProductInput,
@@ -224,14 +293,14 @@ export class ProductBatchClientMapperHelper {
       ? variants.map((variant) => {
           const metadata = this.buildVariantMetadata(variant)
           return {
-            title: variant.title,
-            ...(variant.sku === undefined ? {} : { sku: variant.sku }),
             ...(variant.ean === undefined ? {} : { ean: variant.ean }),
             manage_inventory: variant.manage_inventory ?? true,
+            ...(metadata === undefined ? {} : { metadata }),
+            options: this.normalizeVariantOptions(variant, productOptions),
             prices:
               this.normalizePrices(variant.prices) ?? fallbackPrices ?? [],
-            options: this.normalizeVariantOptions(variant, productOptions),
-            ...(metadata === undefined ? {} : { metadata }),
+            ...(variant.sku === undefined ? {} : { sku: variant.sku }),
+            title: variant.title,
           }
         })
       : [
@@ -251,32 +320,32 @@ export class ProductBatchClientMapperHelper {
     const images = this.buildImagesPayload(product.images)
 
     return {
-      title: product.title,
-      ...(product.subtitle === undefined ? {} : { subtitle: product.subtitle }),
+      ...(categoryIds.length ? { category_ids: categoryIds } : {}),
       ...(product.description === undefined
         ? {}
         : { description: product.description }),
-      ...(product.handle === undefined ? {} : { handle: product.handle }),
-      status: product.status ?? "published",
       discountable: product.discountable ?? true,
-      ...(product.weight === undefined ? {} : { weight: product.weight }),
-      ...(product.hs_code === undefined ? {} : { hs_code: product.hs_code }),
       ...(product.identifier_type === "erp_id" && product.erp_id !== undefined
         ? { external_id: product.erp_id }
         : {}),
-      ...(productOptions === undefined ? {} : { options: productOptions }),
+      ...(product.handle === undefined ? {} : { handle: product.handle }),
+      ...(product.hs_code === undefined ? {} : { hs_code: product.hs_code }),
       ...(images === undefined ? {} : { images }),
       metadata: {
         ...product.metadata,
-        ...(product.identifier_type === "erp_id" && product.erp_id
+        ...(product.identifier_type === "erp_id" && product.erp_id !== undefined
           ? { erp_id: product.erp_id }
           : {}),
       },
+      ...(productOptions === undefined ? {} : { options: productOptions }),
+      ...(defaultSalesChannelId === null
+        ? {}
+        : { sales_channels: [{ id: defaultSalesChannelId }] }),
+      status: product.status ?? "published",
+      ...(product.subtitle === undefined ? {} : { subtitle: product.subtitle }),
+      title: product.title,
       variants: variantPayload,
-      ...(defaultSalesChannelId
-        ? { sales_channels: [{ id: defaultSalesChannelId }] }
-        : {}),
-      ...(categoryIds.length ? { category_ids: categoryIds } : {}),
+      ...(product.weight === undefined ? {} : { weight: product.weight }),
     }
   }
 
@@ -306,28 +375,30 @@ export class ProductBatchClientMapperHelper {
     }
 
     return {
-      id: productId,
-      title: product.title,
-      ...(product.subtitle === undefined ? {} : { subtitle: product.subtitle }),
+      ...(categoryIdsForUpdate === undefined
+        ? {}
+        : { category_ids: categoryIdsForUpdate }),
       ...(product.description === undefined
         ? {}
         : { description: product.description }),
-      ...(product.handle === undefined ? {} : { handle: product.handle }),
-      status: product.status ?? "published",
       discountable: product.discountable ?? true,
-      ...(product.weight === undefined ? {} : { weight: product.weight }),
-      ...(product.hs_code === undefined ? {} : { hs_code: product.hs_code }),
       ...(product.identifier_type === "erp_id" && product.erp_id !== undefined
         ? { external_id: product.erp_id }
         : {}),
+      ...(product.handle === undefined ? {} : { handle: product.handle }),
+      ...(product.hs_code === undefined ? {} : { hs_code: product.hs_code }),
+      id: productId,
       ...(images === undefined ? {} : { images }),
       metadata: {
         ...existing.metadata,
         ...product.metadata,
-        ...(product.identifier_type === "erp_id" && product.erp_id
+        ...(product.identifier_type === "erp_id" && product.erp_id !== undefined
           ? { erp_id: product.erp_id }
           : {}),
       },
+      status: product.status ?? "published",
+      ...(product.subtitle === undefined ? {} : { subtitle: product.subtitle }),
+      title: product.title,
       ...(variants.length
         ? {
             variants: variants.map((variant) => {
@@ -339,42 +410,54 @@ export class ProductBatchClientMapperHelper {
                 this.normalizePrices(variant.prices) ?? fallbackPrices
               const metadata = this.buildVariantMetadata(variant)
               return {
-                ...(variantId ? { id: variantId } : {}),
-                title: variant.title,
-                ...(variant.sku === undefined ? {} : { sku: variant.sku }),
                 ...(variant.ean === undefined ? {} : { ean: variant.ean }),
+                ...(variantId === null ? {} : { id: variantId }),
                 manage_inventory: variant.manage_inventory ?? true,
-                ...(prices === undefined ? {} : { prices }),
-                ...(variantId
-                  ? {}
-                  : {
+                ...(metadata === undefined ? {} : { metadata }),
+                ...(variantId === null
+                  ? {
                       options: this.normalizeVariantOptions(
                         variant,
                         productOptions,
                       ),
-                    }),
-                ...(metadata === undefined ? {} : { metadata }),
+                    }
+                  : {}),
+                ...(prices === undefined ? {} : { prices }),
+                ...(variant.sku === undefined ? {} : { sku: variant.sku }),
+                title: variant.title,
               }
             }),
           }
         : {}),
-      ...(categoryIdsForUpdate === undefined
-        ? {}
-        : { category_ids: categoryIdsForUpdate }),
+      ...(product.weight === undefined ? {} : { weight: product.weight }),
     }
   }
 
-  collectProductIdentifiers(products: ProductInput[]): ProductIdentifierSets {
+  collectProductIdentifiers = (
+    products: ProductInput[],
+  ): ProductIdentifierSets => {
+    if (this.helperInstance !== this) {
+      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+    }
     const erpIds = new Set<string>()
     const skus = new Set<string>()
     const eans = new Set<string>()
 
     for (const product of products) {
-      if (product.identifier_type === "erp_id" && product.erp_id) {
+      if (
+        product.identifier_type === "erp_id" &&
+        product.erp_id !== undefined
+      ) {
         erpIds.add(product.erp_id)
-      } else if (product.identifier_type === "sku" && product.sku) {
+      } else if (
+        product.identifier_type === "sku" &&
+        product.sku !== undefined
+      ) {
         skus.add(product.sku)
-      } else if (product.identifier_type === "ean" && product.ean) {
+      } else if (
+        product.identifier_type === "ean" &&
+        product.ean !== undefined
+      ) {
         eans.add(product.ean)
       }
     }
@@ -392,7 +475,7 @@ export class ProductBatchClientMapperHelper {
     for (const raw of products) {
       const existingProduct = this.toExistingProduct(raw)
       existingProductsById.set(existingProduct.id, existingProduct)
-      if (existingProduct.external_id) {
+      if (existingProduct.external_id !== null) {
         byErpId.set(existingProduct.external_id, existingProduct)
       }
     }
@@ -400,15 +483,18 @@ export class ProductBatchClientMapperHelper {
     return { byErpId, existingProductsById }
   }
 
-  buildProductIdByVariantField(
+  buildProductIdByVariantField = (
     variants: Record<string, unknown>[],
     field: "sku" | "ean",
-  ): Map<string, string> {
+  ): Map<string, string> => {
+    if (this.helperInstance !== this) {
+      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+    }
     const result = new Map<string, string>()
 
     for (const variant of variants) {
+      const { product_id: productId } = variant
       const value = variant[field]
-      const productId = variant.product_id
       if (typeof value === "string" && typeof productId === "string") {
         result.set(value, productId)
       }
@@ -417,10 +503,13 @@ export class ProductBatchClientMapperHelper {
     return result
   }
 
-  collectMissingProductIds(
+  collectMissingProductIds = (
     existingProductsById: Map<string, ExistingProduct>,
     productIdMaps: Map<string, string>[],
-  ): Set<string> {
+  ): Set<string> => {
+    if (this.helperInstance !== this) {
+      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+    }
     const missingProductIds = new Set<string>()
 
     for (const productIdMap of productIdMaps) {
@@ -434,10 +523,13 @@ export class ProductBatchClientMapperHelper {
     return missingProductIds
   }
 
-  buildExistingProductsByIdentifier(
+  buildExistingProductsByIdentifier = (
     existingProductsById: Map<string, ExistingProduct>,
     identifierToProductId: Map<string, string>,
-  ): Map<string, ExistingProduct> {
+  ): Map<string, ExistingProduct> => {
+    if (this.helperInstance !== this) {
+      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+    }
     const result = new Map<string, ExistingProduct>()
 
     for (const [identifier, productId] of identifierToProductId) {
@@ -450,15 +542,18 @@ export class ProductBatchClientMapperHelper {
     return result
   }
 
-  collectCategoryRefs(products: ProductInput[]): CategoryRefSets {
+  collectCategoryRefs = (products: ProductInput[]): CategoryRefSets => {
+    if (this.helperInstance !== this) {
+      throw new TypeError(INVALID_MAPPER_RECEIVER_MESSAGE)
+    }
     const handles = new Set<string>()
     const names = new Set<string>()
 
     for (const product of products) {
       for (const ref of product.categories ?? []) {
-        if (ref.handle) {
+        if (ref.handle !== undefined) {
           handles.add(ref.handle)
-        } else if (ref.name) {
+        } else if (ref.name !== undefined) {
           names.add(ref.name)
         }
       }
