@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/// <reference types="node" />
 /*
  * Split the full Figma token export into per-component fragments.
  *
@@ -25,22 +26,26 @@
  */
 
 import { readFileSync, writeFileSync } from "node:fs"
-import { dirname, join, resolve } from "node:path"
-import { fileURLToPath } from "node:url"
+import path from "node:path"
+import process from "node:process"
 
-const __dirname = import.meta.dirname
+/** @typedef {Map<string, string>} DeclarationMap */
+/** @typedef {[string, string]} TokenEntry */
+/** @typedef {"dark" | "light"} Mode */
+
+const scriptDirectory = import.meta.dirname
 // scripts/ → figma-token-binding/ → skills/ → .agents/ → repo root
-const REPO_ROOT = resolve(__dirname, "..", "..", "..", "..")
-const LIGHT_INPUT = join(
+const REPO_ROOT = path.resolve(scriptDirectory, "..", "..", "..", "..")
+const LIGHT_INPUT = path.join(
   REPO_ROOT,
   "libs/ui/src/tokens/figma/light/variables.css",
 )
-const DARK_INPUT = join(
+const DARK_INPUT = path.join(
   REPO_ROOT,
   "libs/ui/src/tokens/figma/dark/variables.css",
 )
-const OUT_DIR_LIGHT = join(REPO_ROOT, "libs/ui/src/tokens/figma/light")
-const OUT_DIR_DARK = join(REPO_ROOT, "libs/ui/src/tokens/figma/dark")
+const OUT_DIR_LIGHT = path.join(REPO_ROOT, "libs/ui/src/tokens/figma/light")
+const OUT_DIR_DARK = path.join(REPO_ROOT, "libs/ui/src/tokens/figma/dark")
 
 const PROPERTY_PREFIXES = [
   "color",
@@ -51,59 +56,97 @@ const PROPERTY_PREFIXES = [
   "border-width",
 ]
 
-const DECL_RE = /^\s*(--[a-z0-9-]+):\s*([^;]+);/gm
-const LEADING_LETTER_RE = /^[a-z]/
+const DECL_RE = /^\s*(?<name>--[a-z0-9-]+):\s*(?<value>[^;]+);/gmu
+const LEADING_LETTER_RE = /^[a-z]/u
 
-function parseDecls(css) {
-  const out = new Map()
+/**
+ * @param {string} css - CSS source containing custom-property declarations.
+ * @returns {DeclarationMap} Parsed declaration names and values.
+ */
+const parseDecls = (css) => {
+  const declarations = new Map()
   DECL_RE.lastIndex = 0
-  for (const m of css.matchAll(DECL_RE)) {
-    out.set(m[1], m[2].trim())
+  for (const match of css.matchAll(DECL_RE)) {
+    const name = match.groups?.name
+    const value = match.groups?.value
+    if (name !== undefined && value !== undefined) {
+      declarations.set(name, value.trim())
+    }
   }
-  return out
+  return declarations
 }
 
-function tokensForComponent(decls, component) {
+/**
+ * @param {DeclarationMap} declarations - Available token declarations.
+ * @param {string} component - Component name to match.
+ * @returns {TokenEntry[]} Matching declarations sorted by token name.
+ */
+const tokensForComponent = (declarations, component) => {
+  /** @type {TokenEntry[]} */
   const result = []
-  for (const [name, value] of decls) {
-    if (!name.startsWith("--")) {
-      continue
-    }
-    const body = name.slice(2)
-    for (const prefix of PROPERTY_PREFIXES) {
-      if (body.startsWith(`${prefix}-${component}-`)) {
+  for (const [name, value] of declarations) {
+    const body = name.startsWith("--") ? name.slice(2) : name
+    const matchesComponent = PROPERTY_PREFIXES.some(
+      (prefix) =>
+        body === `${prefix}-${component}` ||
+        body.startsWith(`${prefix}-${component}-`),
+    )
+    if (matchesComponent) {
+      const insertionIndex = result.findIndex(
+        ([existingName]) => existingName.localeCompare(name) > 0,
+      )
+      if (insertionIndex === -1) {
         result.push([name, value])
-        break
-      }
-      if (body === `${prefix}-${component}`) {
-        result.push([name, value])
-        break
+      } else {
+        result.splice(insertionIndex, 0, [name, value])
       }
     }
   }
-  result.sort((a, b) => a[0].localeCompare(b[0]))
   return result
 }
 
-function listComponents(decls) {
+/**
+ * @param {DeclarationMap} declarations - Available token declarations.
+ * @returns {string[]} Unique component names in lexical order.
+ */
+const listComponents = (declarations) => {
+  /** @type {Set<string>} */
   const components = new Set()
-  for (const name of decls.keys()) {
+  for (const name of declarations.keys()) {
     const body = name.slice(2)
-    for (const prefix of PROPERTY_PREFIXES) {
-      if (body.startsWith(`${prefix}-`)) {
-        const rest = body.slice(prefix.length + 1)
-        const first = rest.split("-")[0]
-        if (first && LEADING_LETTER_RE.test(first)) {
-          components.add(first)
-        }
+    const prefix = PROPERTY_PREFIXES.find((candidate) =>
+      body.startsWith(`${candidate}-`),
+    )
+    if (prefix !== undefined) {
+      const rest = body.slice(prefix.length + 1)
+      const [first] = rest.split("-")
+      if (first !== undefined && LEADING_LETTER_RE.test(first)) {
+        components.add(first)
       }
     }
   }
-  return [...components].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+  /** @type {string[]} */
+  const sortedComponents = []
+  for (const component of components) {
+    const insertionIndex = sortedComponents.findIndex(
+      (existingComponent) => existingComponent > component,
+    )
+    if (insertionIndex === -1) {
+      sortedComponents.push(component)
+    } else {
+      sortedComponents.splice(insertionIndex, 0, component)
+    }
+  }
+  return sortedComponents
 }
 
-function header(mode, component) {
-  return [
+/**
+ * @param {Mode} mode - Theme mode represented by the fragment.
+ * @param {string} component - Component name included in the banner.
+ * @returns {string} Generated-file header.
+ */
+const header = (mode, component) =>
+  [
     "/*",
     ` * ${component} tokens — Figma export (${mode.toUpperCase()} mode${mode === "dark" ? " override" : ""}).`,
     " *",
@@ -114,10 +157,16 @@ function header(mode, component) {
     " */",
     "",
   ].join("\n")
-}
 
-function emitLight(component, lightTokens) {
-  const body = lightTokens.map(([n, v]) => `  ${n}: ${v};`).join("\n")
+/**
+ * @param {string} component - Component name used in output metadata.
+ * @param {TokenEntry[]} lightTokens - Light-mode token declarations.
+ * @returns {string} Complete light-mode fragment.
+ */
+const emitLight = (component, lightTokens) => {
+  const body = lightTokens
+    .map(([name, value]) => `  ${name}: ${value};`)
+    .join("\n")
   return `${header("light", component)}@theme static {\n${body}\n}\n`
 }
 
@@ -128,22 +177,32 @@ function emitLight(component, lightTokens) {
 const REGION_START = "/* === FIGMA-GENERATED OVERRIDES START === */"
 const REGION_END = "/* === FIGMA-GENERATED OVERRIDES END === */"
 
-function emitDark(component, lightTokens, darkTokens) {
+/**
+ * @param {string} component - Component name used in output metadata.
+ * @param {TokenEntry[]} lightTokens - Light-mode token declarations.
+ * @param {TokenEntry[]} darkTokens - Dark-mode token declarations.
+ * @returns {string} Complete dark-mode override fragment.
+ */
+const emitDark = (component, lightTokens, darkTokens) => {
   const lightMap = new Map(lightTokens)
   // Only tokens present in BOTH modes participate in reverse-block flipping.
   // Dark-only tokens (no light counterpart) cannot be reverted to a light
   // value, so they would emit `: undefined;` if left in `lightBody`. Skip
   // them here — they should live in their own dark-only declaration.
   const overrides = darkTokens.filter(
-    ([n, v]) => lightMap.has(n) && lightMap.get(n) !== v,
+    ([name, value]) => lightMap.has(name) && lightMap.get(name) !== value,
   )
   if (overrides.length === 0) {
     return `${header("dark", component)}/* No tokens differ between light and dark mode. */\n`
   }
+  /** @param {string} indent - Indentation applied to each declaration. */
   const darkBody = (indent) =>
-    overrides.map(([n, v]) => `${indent}${n}: ${v};`).join("\n")
+    overrides.map(([name, value]) => `${indent}${name}: ${value};`).join("\n")
+  /** @param {string} indent - Indentation applied to each declaration. */
   const lightBody = (indent) =>
-    overrides.map(([n]) => `${indent}${n}: ${lightMap.get(n)};`).join("\n")
+    overrides
+      .map(([name]) => `${indent}${name}: ${lightMap.get(name)};`)
+      .join("\n")
   // Selector matrix:
   //   .dark           → dark values   (explicit-dark / system-dark)
   //   .light .reverse → dark values   (flip into dark inside an explicit light parent)
@@ -187,43 +246,54 @@ function emitDark(component, lightTokens, darkTokens) {
   ].join("")
 }
 
-function writeFragment(component, lightTokens, darkTokens) {
-  const lightOut = join(OUT_DIR_LIGHT, `${component}.css`)
-  const darkOut = join(OUT_DIR_DARK, `${component}.css`)
-  writeFileSync(lightOut, emitLight(component, lightTokens))
-  writeFileSync(darkOut, emitDark(component, lightTokens, darkTokens))
-  console.log(`✓ wrote ${lightOut}`)
-  console.log(`✓ wrote ${darkOut}`)
+/**
+ * @param {string} component - Component name used for output filenames.
+ * @param {TokenEntry[]} lightTokens - Light-mode token declarations.
+ * @param {TokenEntry[]} darkTokens - Dark-mode token declarations.
+ * @returns {void} Writes both component fragments.
+ */
+const writeFragment = (component, lightTokens, darkTokens) => {
+  const lightOutput = path.join(OUT_DIR_LIGHT, `${component}.css`)
+  const darkOutput = path.join(OUT_DIR_DARK, `${component}.css`)
+  writeFileSync(lightOutput, emitLight(component, lightTokens))
+  writeFileSync(darkOutput, emitDark(component, lightTokens, darkTokens))
+  const lightMap = new Map(lightTokens)
+  const differingTokenCount = darkTokens.filter(
+    ([name, value]) => lightMap.get(name) !== value,
+  ).length
+  console.log(`✓ wrote ${lightOutput}`)
+  console.log(`✓ wrote ${darkOutput}`)
   console.log(
-    `  ${lightTokens.length} tokens (${darkTokens.filter(([n, v]) => lightTokens.find(([ln]) => ln === n)?.[1] !== v).length} differ in dark)`,
+    `  ${lightTokens.length} tokens (${differingTokenCount} differ in dark)`,
   )
 }
 
-function main() {
+const main = () => {
   const args = process.argv.slice(2)
-  if (args.length === 0) {
+  const [command] = args
+  if (command === undefined) {
     console.error("usage: split-figma-tokens.mjs <component> | --list | --all")
     process.exit(1)
   }
 
   const lightCss = readFileSync(LIGHT_INPUT, "utf-8")
   const darkCss = readFileSync(DARK_INPUT, "utf-8")
-  const lightDecls = parseDecls(lightCss)
-  const darkDecls = parseDecls(darkCss)
+  const lightDeclarations = parseDecls(lightCss)
+  const darkDeclarations = parseDecls(darkCss)
 
-  if (args[0] === "--list") {
-    for (const c of listComponents(lightDecls)) {
-      console.log(c)
+  if (command === "--list") {
+    for (const component of listComponents(lightDeclarations)) {
+      console.log(component)
     }
     return
   }
 
   const components =
-    args[0] === "--all" ? listComponents(lightDecls) : [args[0]]
+    command === "--all" ? listComponents(lightDeclarations) : [command]
 
   for (const component of components) {
-    const lightTokens = tokensForComponent(lightDecls, component)
-    const darkTokens = tokensForComponent(darkDecls, component)
+    const lightTokens = tokensForComponent(lightDeclarations, component)
+    const darkTokens = tokensForComponent(darkDeclarations, component)
     if (lightTokens.length === 0) {
       console.warn(`! no tokens found for component "${component}"`)
       continue
