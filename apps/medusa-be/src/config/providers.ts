@@ -12,29 +12,29 @@ interface ModuleProviderConfig {
   resolve: string
 }
 
-export function buildNotificationProvider(
+export const buildNotificationProvider = (
   env: MedusaConfigEnv,
-): ModuleProviderConfig {
+): ModuleProviderConfig => {
   switch (env.notificationProvider) {
     case "local": {
       return {
-        resolve: "@medusajs/medusa/notification-local",
         id: "local",
         options: {
-          name: "Local Notification Provider",
           channels: ["email", "feed"],
+          name: "Local Notification Provider",
         },
+        resolve: "@medusajs/medusa/notification-local",
       }
     }
     case "resend": {
       return {
-        resolve: "./src/modules/resend",
         id: "resend",
         options: {
-          channels: ["email"],
           api_key: env.resendApiKey,
+          channels: ["email"],
           from: env.resendFromEmail,
         },
+        resolve: "./src/modules/resend",
       }
     }
     default: {
@@ -43,9 +43,9 @@ export function buildNotificationProvider(
   }
 }
 
-export function buildNotificationProviders(
+export const buildNotificationProviders = (
   env: MedusaConfigEnv,
-): ModuleProviderConfig[] {
+): ModuleProviderConfig[] => {
   const provider = buildNotificationProvider(env)
 
   if (env.notificationProvider === "resend") {
@@ -65,33 +65,35 @@ export function buildNotificationProviders(
   return [provider]
 }
 
-export function buildCachingModule(env: MedusaConfigEnv): MedusaModuleConfig {
+export const buildCachingModule = (
+  env: MedusaConfigEnv,
+): MedusaModuleConfig => {
   switch (env.cacheProvider) {
     case "inmemory": {
       return {
-        resolve: "@medusajs/medusa/caching",
         options: {
           in_memory: {
             enable: true,
           },
         },
+        resolve: "@medusajs/medusa/caching",
       }
     }
     case "redis": {
       return {
-        resolve: "@medusajs/medusa/caching",
         options: {
           providers: [
             {
-              resolve: "@medusajs/caching-redis",
               id: "caching-redis",
               is_default: true,
               options: {
                 redisUrl: requireRedisUrl(env),
               },
+              resolve: "@medusajs/caching-redis",
             },
           ],
         },
+        resolve: "@medusajs/medusa/caching",
       }
     }
     default: {
@@ -100,21 +102,23 @@ export function buildCachingModule(env: MedusaConfigEnv): MedusaModuleConfig {
   }
 }
 
-export function buildEventBusModule(env: MedusaConfigEnv): MedusaModuleConfig {
+export const buildEventBusModule = (
+  env: MedusaConfigEnv,
+): MedusaModuleConfig => {
   switch (env.eventBusProvider) {
     case "local": {
       return {
-        resolve: "./src/modules/local-providers/event-bus-local",
         key: Modules.EVENT_BUS,
+        resolve: "./src/modules/local-providers/event-bus-local",
       }
     }
     case "redis": {
       return {
-        resolve: "@medusajs/event-bus-redis",
         key: Modules.EVENT_BUS,
         options: {
           redisUrl: requireRedisUrl(env),
         },
+        resolve: "@medusajs/event-bus-redis",
       }
     }
     default: {
@@ -123,9 +127,9 @@ export function buildEventBusModule(env: MedusaConfigEnv): MedusaModuleConfig {
   }
 }
 
-export function buildWorkflowEngineModule(
+export const buildWorkflowEngineModule = (
   env: MedusaConfigEnv,
-): MedusaModuleConfig {
+): MedusaModuleConfig => {
   switch (env.workflowEngineProvider) {
     case "inmemory": {
       return {
@@ -134,12 +138,12 @@ export function buildWorkflowEngineModule(
     }
     case "redis": {
       return {
-        resolve: "@medusajs/medusa/workflow-engine-redis",
         options: {
           redis: {
             redisUrl: requireRedisUrl(env),
           },
         },
+        resolve: "@medusajs/medusa/workflow-engine-redis",
       }
     }
     default: {
@@ -148,23 +152,23 @@ export function buildWorkflowEngineModule(
   }
 }
 
-function buildLockingProvider(env: MedusaConfigEnv): ModuleProviderConfig {
+const buildLockingProvider = (env: MedusaConfigEnv): ModuleProviderConfig => {
   switch (env.lockingProvider) {
     case "postgres": {
       return {
-        resolve: "@medusajs/medusa/locking-postgres",
         id: "locking-postgres",
         is_default: true,
+        resolve: "@medusajs/medusa/locking-postgres",
       }
     }
     case "redis": {
       return {
-        resolve: "@medusajs/medusa/locking-redis",
         id: "locking-redis",
         is_default: true,
         options: {
           redisUrl: requireRedisUrl(env),
         },
+        resolve: "@medusajs/medusa/locking-redis",
       }
     }
     default: {
@@ -173,43 +177,43 @@ function buildLockingProvider(env: MedusaConfigEnv): ModuleProviderConfig {
   }
 }
 
-export function buildLockingModule(env: MedusaConfigEnv): MedusaModuleConfig {
-  return {
-    options: {
-      providers: [buildLockingProvider(env)],
-    },
-    resolve: "@medusajs/medusa/locking",
-  }
-}
+export const buildLockingModule = (
+  env: MedusaConfigEnv,
+): MedusaModuleConfig => ({
+  options: {
+    providers: [buildLockingProvider(env)],
+  },
+  resolve: "@medusajs/medusa/locking",
+})
 
-function buildFileProvider(env: MedusaConfigEnv): ModuleProviderConfig {
+const buildFileProvider = (env: MedusaConfigEnv): ModuleProviderConfig => {
   switch (env.fileProvider) {
     case "local": {
       return {
-        resolve: "./src/modules/local-providers/file-local",
         id: "local",
         options: {
           backend_url: "http://localhost:9000/static",
           private_upload_dir: env.fileLocalUploadDir,
           upload_dir: env.fileLocalUploadDir,
         },
+        resolve: "./src/modules/local-providers/file-local",
       }
     }
     case "s3": {
       return {
-        resolve: "@medusajs/medusa/file-s3",
         id: "s3",
         options: {
-          file_url: env.minioFileUrl,
-          endpoint: env.minioEndpoint,
-          bucket: env.minioBucket,
           access_key_id: env.minioAccessKey,
-          secret_access_key: env.minioSecretKey,
-          region: env.minioRegion,
           additional_client_config: {
             forcePathStyle: true,
           },
+          bucket: env.minioBucket,
+          endpoint: env.minioEndpoint,
+          file_url: env.minioFileUrl,
+          region: env.minioRegion,
+          secret_access_key: env.minioSecretKey,
         },
+        resolve: "@medusajs/medusa/file-s3",
       }
     }
     default: {
@@ -218,11 +222,9 @@ function buildFileProvider(env: MedusaConfigEnv): ModuleProviderConfig {
   }
 }
 
-export function buildFileModule(env: MedusaConfigEnv): MedusaModuleConfig {
-  return {
-    options: {
-      providers: [buildFileProvider(env)],
-    },
-    resolve: "@medusajs/medusa/file",
-  }
-}
+export const buildFileModule = (env: MedusaConfigEnv): MedusaModuleConfig => ({
+  options: {
+    providers: [buildFileProvider(env)],
+  },
+  resolve: "@medusajs/medusa/file",
+})
