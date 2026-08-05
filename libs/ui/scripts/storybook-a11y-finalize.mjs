@@ -1,48 +1,79 @@
 #!/usr/bin/env node
+/// <reference types="node" />
 import { createHash } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
 
-function readArg(name) {
+import { isRecord } from "@techsio/std/object"
+
+/** @typedef {{ id: string }} Violation */
+/**
+ * @typedef {object} ReportEntry
+ * @property {string} name - Story name.
+ * @property {Record<string, unknown>} source - Original report entry.
+ * @property {string} storyId - Story identifier.
+ * @property {string} title - Story title.
+ * @property {string} url - Captured story URL.
+ * @property {Violation[]} violations - Normalized violations.
+ */
+
+/** @type {(name: string) => string | null} */
+const readArg = (name) => {
   const index = process.argv.indexOf(name)
   return index === -1 ? null : (process.argv[index + 1] ?? null)
 }
 
-function loadJson(filePath, label) {
+/** @type {(filePath: string, label: string) => unknown} */
+const loadJson = (filePath, label) => {
   try {
-    return JSON.parse(fs.readFileSync(filePath, "utf-8"))
+    /** @type {unknown} */
+    const parsed = JSON.parse(fs.readFileSync(filePath, "utf-8"))
+    return parsed
   } catch (error) {
     throw new Error(`Failed to load ${label}: ${filePath}`, { cause: error })
   }
 }
 
-function writeAtomic(filePath, contents) {
+/** @type {(filePath: string, contents: string) => void} */
+const writeAtomic = (filePath, contents) => {
   const temporaryPath = `${filePath}.tmp-${process.pid}`
   fs.writeFileSync(temporaryPath, contents, "utf-8")
   fs.renameSync(temporaryPath, filePath)
 }
 
-function escapeXml(value) {
-  return String(value)
+/** @type {(value: string) => string} */
+const escapeXml = (value) =>
+  value
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&apos;")
+
+/** @type {(value: unknown, fallback?: string) => string} */
+const stringifyScalar = (value, fallback = "") => {
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "bigint" ||
+    typeof value === "boolean"
+  ) {
+    return String(value)
+  }
+  return fallback
 }
 
-function formatJUnit(entries) {
+/** @type {(entries: ReportEntry[]) => string} */
+const formatJUnit = (entries) => {
   const cases = entries.map((entry) => {
-    const violationCount = entry.results.violations.length
+    const violationCount = entry.violations.length
     const storyName = `${entry.title} / ${entry.name}`
     if (violationCount === 0) {
       return `  <testcase classname="${escapeXml(entry.title)}" name="${escapeXml(storyName)}" />`
     }
     return `  <testcase classname="${escapeXml(entry.title)}" name="${escapeXml(storyName)}">\n    <failure message="${violationCount} accessibility violation(s)" />\n  </testcase>`
   })
-  const failures = entries.filter(
-    (entry) => entry.results.violations.length > 0,
-  ).length
+  const failures = entries.filter((entry) => entry.violations.length > 0).length
   return `${[
     '<?xml version="1.0" encoding="UTF-8"?>',
     `<testsuite name="storybook-a11y" tests="${entries.length}" failures="${failures}">`,
@@ -55,7 +86,11 @@ const indexPath = readArg("--index")
 const reportDir = readArg("--report-dir")
 const theme = readArg("--theme")
 
-if (!indexPath || !reportDir || !["light", "dark"].includes(theme ?? "")) {
+if (
+  indexPath === null ||
+  reportDir === null ||
+  (theme !== "light" && theme !== "dark")
+) {
   console.error(
     "Usage: storybook-a11y-finalize.mjs --index <index.json> --report-dir <dir> --theme <light|dark>",
   )
@@ -64,46 +99,83 @@ if (!indexPath || !reportDir || !["light", "dark"].includes(theme ?? "")) {
 
 try {
   const index = loadJson(indexPath, "Storybook index")
-  const expectedEntries = Object.values(index?.entries ?? {})
-    .filter(
-      (entry) =>
-        entry?.type === "story" &&
-        Array.isArray(entry.tags) &&
-        entry.tags.includes("test"),
+  if (!isRecord(index) || !isRecord(index.entries)) {
+    throw new Error("Storybook index has no entries object.")
+  }
+
+  /** @type {{ id: string }[]} */
+  const expectedEntries = []
+  for (const entry of Object.values(index.entries)) {
+    if (
+      isRecord(entry) &&
+      entry.type === "story" &&
+      Array.isArray(entry.tags) &&
+      entry.tags.includes("test")
+    ) {
+      expectedEntries.push({ id: stringifyScalar(entry.id) })
+    }
+  }
+  /** @type {{ id: string }[]} */
+  const sortedExpectedEntries = []
+  for (const entry of expectedEntries) {
+    const insertionIndex = sortedExpectedEntries.findIndex(
+      (candidate) => entry.id.localeCompare(candidate.id) < 0,
     )
-    .sort((left, right) => String(left.id).localeCompare(String(right.id)))
-  const expectedIds = new Set(expectedEntries.map((entry) => String(entry.id)))
+    if (insertionIndex === -1) {
+      sortedExpectedEntries.push(entry)
+    } else {
+      sortedExpectedEntries.splice(insertionIndex, 0, entry)
+    }
+  }
+  /** @type {Set<string>} */
+  const expectedIds = new Set(sortedExpectedEntries.map((entry) => entry.id))
   const entriesDir = path.join(reportDir, "entries")
-  const entryFiles = fs.existsSync(entriesDir)
-    ? fs
-        .readdirSync(entriesDir)
-        .filter((name) => name.endsWith(".json"))
-        .sort((left, right) => left.localeCompare(right))
-    : []
+  /** @type {string[]} */
+  const entryFiles = []
+  if (fs.existsSync(entriesDir)) {
+    const unsortedEntryFiles = fs
+      .readdirSync(entriesDir)
+      .filter((name) => name.endsWith(".json"))
+    for (const entryFile of unsortedEntryFiles) {
+      const insertionIndex = entryFiles.findIndex(
+        (candidate) => entryFile.localeCompare(candidate) < 0,
+      )
+      if (insertionIndex === -1) {
+        entryFiles.push(entryFile)
+      } else {
+        entryFiles.splice(insertionIndex, 0, entryFile)
+      }
+    }
+  }
+  /** @type {Map<string, ReportEntry>} */
   const byId = new Map()
 
   for (const entryFile of entryFiles) {
-    const entry = loadJson(
+    const rawEntry = loadJson(
       path.join(entriesDir, entryFile),
       `${theme} accessibility entry`,
     )
-    const storyId = String(entry?.storyId ?? "")
+    const storyId = isRecord(rawEntry) ? stringifyScalar(rawEntry.storyId) : ""
     if (!expectedIds.has(storyId)) {
       throw new Error(`${theme} report contains unexpected story: ${storyId}`)
     }
     if (byId.has(storyId)) {
       throw new Error(`${theme} report contains duplicate story: ${storyId}`)
     }
-    if (!entry?.results || !Array.isArray(entry.results.violations)) {
+    if (
+      !isRecord(rawEntry) ||
+      !isRecord(rawEntry.results) ||
+      !Array.isArray(rawEntry.results.violations)
+    ) {
       throw new Error(
         `${theme} report has no completed results for: ${storyId}`,
       )
     }
 
-    const entryUrl = new URL(String(entry.url))
+    const entryUrl = new URL(stringifyScalar(rawEntry.url))
     const globals = entryUrl.searchParams.get("globals") ?? ""
     const selectedMode = globals
-      .split(/[;,]/)
+      .split(/[;,]/u)
       .find((value) => value.startsWith("mode:"))
       ?.slice("mode:".length)
     if (selectedMode !== theme) {
@@ -111,31 +183,67 @@ try {
         `${theme} report captured ${storyId} without the expected mode global.`,
       )
     }
-    byId.set(storyId, entry)
+
+    /** @type {Violation[]} */
+    const violations = []
+    for (const violation of rawEntry.results.violations) {
+      violations.push({
+        id: isRecord(violation)
+          ? stringifyScalar(violation.id, "unknown")
+          : "unknown",
+      })
+    }
+    byId.set(storyId, {
+      name: stringifyScalar(rawEntry.name),
+      source: rawEntry,
+      storyId,
+      title: stringifyScalar(rawEntry.title),
+      url: stringifyScalar(rawEntry.url),
+      violations,
+    })
   }
 
-  const missingIds = expectedEntries
-    .map((entry) => String(entry.id))
+  /** @type {string[]} */
+  const missingIds = sortedExpectedEntries
+    .map((entry) => entry.id)
     .filter((storyId) => !byId.has(storyId))
   if (missingIds.length > 0) {
     throw new Error(
-      `${theme} report is incomplete: expected ${expectedEntries.length}, found ${byId.size}; missing ${missingIds.slice(0, 5).join(", ")}${missingIds.length > 5 ? ", ..." : ""}`,
+      `${theme} report is incomplete: expected ${sortedExpectedEntries.length}, found ${byId.size}; missing ${missingIds.slice(0, 5).join(", ")}${missingIds.length > 5 ? ", ..." : ""}`,
     )
   }
 
-  const sortedReport = expectedEntries.map((entry) =>
-    byId.get(String(entry.id)),
-  )
-  const fingerprints = sortedReport.flatMap((entry) =>
-    entry.results.violations
-      .map((violation) => ({
-        id: String(violation?.id ?? "unknown"),
-        story: `${String(entry.title)} / ${String(entry.name)}`,
-      }))
-      .sort((left, right) => left.id.localeCompare(right.id)),
-  )
+  /** @type {ReportEntry[]} */
+  const sortedReport = sortedExpectedEntries.map((entry) => {
+    const reportEntry = byId.get(entry.id)
+    if (reportEntry === undefined) {
+      throw new Error(`${theme} report is missing story: ${entry.id}`)
+    }
+    return reportEntry
+  })
+  /** @type {{ id: string, story: string }[]} */
+  const fingerprints = []
+  for (const entry of sortedReport) {
+    /** @type {{ id: string, story: string }[]} */
+    const entryFingerprints = []
+    for (const violation of entry.violations) {
+      const fingerprint = {
+        id: violation.id,
+        story: `${entry.title} / ${entry.name}`,
+      }
+      const insertionIndex = entryFingerprints.findIndex(
+        (candidate) => fingerprint.id.localeCompare(candidate.id) < 0,
+      )
+      if (insertionIndex === -1) {
+        entryFingerprints.push(fingerprint)
+      } else {
+        entryFingerprints.splice(insertionIndex, 0, fingerprint)
+      }
+    }
+    fingerprints.push(...entryFingerprints)
+  }
   const canonicalFingerprint = JSON.stringify({
-    stories: sortedReport.map((entry) => String(entry.storyId)),
+    stories: sortedReport.map((entry) => entry.storyId),
     violations: fingerprints,
   })
   const fingerprint = {
@@ -145,14 +253,16 @@ try {
     version: 1,
     violations: fingerprints.length,
   }
+  /** @type {Record<string, unknown>[]} */
+  const reportSources = sortedReport.map((entry) => entry.source)
 
   writeAtomic(
     path.join(reportDir, "report.json"),
-    `${JSON.stringify(sortedReport, null, 2)}\n`,
+    `${JSON.stringify(reportSources, null, 2)}\n`,
   )
   writeAtomic(
     path.join(reportDir, "report.ndjson"),
-    `${sortedReport.map((entry) => JSON.stringify(entry)).join("\n")}\n`,
+    `${reportSources.map((entry) => JSON.stringify(entry)).join("\n")}\n`,
   )
   writeAtomic(path.join(reportDir, "junit.xml"), formatJUnit(sortedReport))
   writeAtomic(
