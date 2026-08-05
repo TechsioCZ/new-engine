@@ -10,7 +10,6 @@ import type {
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { chunk } from "@techsio/std/array"
 
 import { ProductMeasurementLink } from "../../../links/product-measurement"
 import { ProductVariantMeasurementLink } from "../../../links/product-variant-measurement"
@@ -128,10 +127,10 @@ const compareText = (left: string, right: string) => {
   return left < right ? -1 : 1
 }
 
-function compareSeedMeasurementUnitSources(
+const compareSeedMeasurementUnitSources = (
   left: SeedMeasurementUnitInput,
   right: SeedMeasurementUnitInput,
-) {
+) => {
   const comparisons = [
     compareText(left.code, right.code),
     compareText(left.name, right.name),
@@ -148,25 +147,39 @@ export const getSeedMeasurementUnitSemanticKey = (
 ) =>
   `${normalizeUnitSymbol(unit.symbol)}:${normalizeQuantity(unit.base_quantity)}`
 
-function validateSeedMeasurementUnit(unit: SeedMeasurementUnitInput) {
-  if (
-    !(
-      unit.code.trim() &&
-      unit.name.trim() &&
-      unit.symbol.trim() &&
-      Number.isFinite(unit.base_quantity) &&
-      unit.base_quantity > 0
-    )
-  ) {
+const validateSeedMeasurementUnit = (unit: SeedMeasurementUnitInput) => {
+  const hasRequiredText =
+    unit.code.trim().length > 0 &&
+    unit.name.trim().length > 0 &&
+    unit.symbol.trim().length > 0
+  const hasPositiveBaseQuantity =
+    Number.isFinite(unit.base_quantity) && unit.base_quantity > 0
+  if (!(hasRequiredText && hasPositiveBaseQuantity)) {
     throw new Error(
       "Seed measurement unit code, name, symbol, and positive base quantity are required",
     )
   }
 }
 
-export function validateSeedProductMeasurementInput(
+const validateVariantQuantity = (
+  desired: SeedVariantMeasurementInput,
+  variantId: string,
+) => {
+  if (
+    !(
+      Number.isFinite(desired.product_unit_quantity) &&
+      desired.product_unit_quantity > 0
+    )
+  ) {
+    throw new Error(
+      `Product Variant "${variantId}" measurement quantity must be positive`,
+    )
+  }
+}
+
+export const validateSeedProductMeasurementInput = (
   input: CreateProductsStepInput,
-) {
+) => {
   for (const product of input) {
     for (const variant of product.variants ?? []) {
       const { measurement } = variant
@@ -188,36 +201,31 @@ export function validateSeedProductMeasurementInput(
   }
 }
 
-export function collectCanonicalSeedMeasurementUnits(
+export const collectCanonicalSeedMeasurementUnits = (
   input: CreateProductsStepInput,
-) {
+) => {
   const canonical = new Map<string, CanonicalMeasurementUnit>()
 
   for (const product of input) {
     const { measurement } = product
-    if (!measurement) {
-      continue
-    }
-    validateSeedMeasurementUnit(measurement.unit)
-    const semanticKey = getSeedMeasurementUnitSemanticKey(measurement.unit)
-    const normalizedSource: SeedMeasurementUnitInput = {
-      ...measurement.unit,
-      code: normalizeUnitCode(measurement.unit.code),
-      description: normalizeDescription(measurement.unit.description),
-      name: measurement.unit.name.trim(),
-      symbol: measurement.unit.symbol.trim(),
-    }
-    const current = canonical.get(semanticKey)
+    if (measurement) {
+      validateSeedMeasurementUnit(measurement.unit)
+      const semanticKey = getSeedMeasurementUnitSemanticKey(measurement.unit)
+      const normalizedSource: SeedMeasurementUnitInput = {
+        ...measurement.unit,
+        code: normalizeUnitCode(measurement.unit.code),
+        description: normalizeDescription(measurement.unit.description),
+        name: measurement.unit.name.trim(),
+        symbol: measurement.unit.symbol.trim(),
+      }
+      const current = canonical.get(semanticKey)
 
-    if (!current) {
-      canonical.set(semanticKey, { semanticKey, source: normalizedSource })
-      continue
-    }
-
-    if (
-      compareSeedMeasurementUnitSources(normalizedSource, current.source) < 0
-    ) {
-      canonical.set(semanticKey, { semanticKey, source: normalizedSource })
+      if (
+        current === undefined ||
+        compareSeedMeasurementUnitSources(normalizedSource, current.source) < 0
+      ) {
+        canonical.set(semanticKey, { semanticKey, source: normalizedSource })
+      }
     }
   }
 
@@ -232,10 +240,10 @@ const hasMatchingUnitSemantics = (
     normalizeUnitSymbol(desired.symbol) &&
   toNumber(existing.base_quantity) === desired.base_quantity
 
-export function findReusableSeedMeasurementUnit(
+export const findReusableSeedMeasurementUnit = (
   existingUnits: MeasurementUnitRecord[],
   desired: SeedMeasurementUnitInput,
-) {
+) => {
   const matching = existingUnits.filter((unit) =>
     hasMatchingUnitSemantics(unit, desired),
   )
@@ -256,10 +264,10 @@ export function findReusableSeedMeasurementUnit(
   return pickCanonicalRecord(restorable)
 }
 
-export function resolveAvailableSeedMeasurementUnitCode(
+export const resolveAvailableSeedMeasurementUnitCode = (
   preferredCode: string,
   reservedCodes: Set<string>,
-) {
+) => {
   const normalized = normalizeUnitCode(preferredCode)
   let candidate = normalized
   let suffix = 2
@@ -272,55 +280,25 @@ export function resolveAvailableSeedMeasurementUnitCode(
   return candidate
 }
 
-async function listAllMeasurementUnits(
+const listAllMeasurementUnits = async (
   service: ReturnType<typeof getMeasurementUnitService>,
-) {
-  const result: MeasurementUnitRecord[] = []
-  let skip = 0
-
-  while (true) {
-    const [page, count] = await service.listAndCountMeasurementUnits(
-      {},
-      {
-        order: { id: "ASC" },
-        skip,
-        take: RECONCILIATION_BATCH_SIZE,
-        withDeleted: true,
-      },
-    )
-    result.push(...page)
-    if (page.length === 0 || result.length >= count) {
-      return result
-    }
-    skip += page.length
+  skip = 0,
+  result: MeasurementUnitRecord[] = [],
+): Promise<MeasurementUnitRecord[]> => {
+  const [page, count] = await service.listAndCountMeasurementUnits(
+    {},
+    {
+      order: { id: "ASC" },
+      skip,
+      take: RECONCILIATION_BATCH_SIZE,
+      withDeleted: true,
+    },
+  )
+  result.push(...page)
+  if (page.length === 0 || result.length >= count) {
+    return result
   }
-}
-
-async function ensureMeasurementUnits(
-  canonical: Map<string, CanonicalMeasurementUnit>,
-  service: ReturnType<typeof getMeasurementUnitService>,
-  locking: ILockingModule,
-) {
-  const unitBySemanticKey = new Map<string, MeasurementUnitRecord>()
-  let created = 0
-  let restored = 0
-  let reused = 0
-
-  for (const { semanticKey, source } of [...canonical.values()].toSorted(
-    (left, right) => compareText(left.semanticKey, right.semanticKey),
-  )) {
-    const ensured = await ensureMeasurementUnit(
-      { semanticKey, source },
-      service,
-      locking,
-    )
-    unitBySemanticKey.set(semanticKey, ensured.unit)
-    created += Number(ensured.action === "created")
-    restored += Number(ensured.action === "restored")
-    reused += Number(ensured.action === "reused")
-  }
-
-  return { created, restored, reused, unitBySemanticKey }
+  return await listAllMeasurementUnits(service, skip + page.length, result)
 }
 
 interface EnsuredMeasurementUnit {
@@ -328,13 +306,13 @@ interface EnsuredMeasurementUnit {
   unit: MeasurementUnitRecord
 }
 
-async function restoreSeedMeasurementUnit(
+const restoreSeedMeasurementUnit = async (
   desired: CanonicalMeasurementUnit,
   candidate: MeasurementUnitRecord,
   service: ReturnType<typeof getMeasurementUnitService>,
   locking: ILockingModule,
-): Promise<EnsuredMeasurementUnit | null> {
-  return await locking.execute(
+): Promise<EnsuredMeasurementUnit | null> =>
+  await locking.execute(
     [
       `measurement-unit:${candidate.id}`,
       `measurement-unit-code:${normalizeUnitCode(candidate.code)}`,
@@ -357,15 +335,14 @@ async function restoreSeedMeasurementUnit(
     },
     { timeout: 30 },
   )
-}
 
-async function createSeedMeasurementUnit(
+const createSeedMeasurementUnit = async (
   desired: CanonicalMeasurementUnit,
   code: string,
   service: ReturnType<typeof getMeasurementUnitService>,
   locking: ILockingModule,
-): Promise<EnsuredMeasurementUnit | null> {
-  return await locking.execute(
+): Promise<EnsuredMeasurementUnit | null> =>
+  await locking.execute(
     [`measurement-unit-code:${code}`],
     async () => {
       const latestUnits = await listAllMeasurementUnits(service)
@@ -390,13 +367,12 @@ async function createSeedMeasurementUnit(
     },
     { timeout: 30 },
   )
-}
 
-async function tryEnsureMeasurementUnit(
+const tryEnsureMeasurementUnit = async (
   desired: CanonicalMeasurementUnit,
   service: ReturnType<typeof getMeasurementUnitService>,
   locking: ILockingModule,
-) {
+) => {
   const existingUnits = await listAllMeasurementUnits(service)
   const reusable = findReusableSeedMeasurementUnit(
     existingUnits,
@@ -416,48 +392,79 @@ async function tryEnsureMeasurementUnit(
   return await createSeedMeasurementUnit(desired, code, service, locking)
 }
 
-async function ensureMeasurementUnit(
+const ensureMeasurementUnit = async (
   desired: CanonicalMeasurementUnit,
   service: ReturnType<typeof getMeasurementUnitService>,
   locking: ILockingModule,
-): Promise<EnsuredMeasurementUnit> {
-  return await locking.execute(
+): Promise<EnsuredMeasurementUnit> =>
+  await locking.execute(
     [`measurement-unit-seed:${desired.semanticKey}`],
     async () => {
-      while (true) {
+      const attempt = async (): Promise<EnsuredMeasurementUnit> => {
         const ensured = await tryEnsureMeasurementUnit(
           desired,
           service,
           locking,
         )
-        if (ensured) {
-          return ensured
-        }
+        return ensured ?? (await attempt())
       }
+      return await attempt()
     },
     { timeout: 30 },
   )
+
+const ensureMeasurementUnits = async (
+  canonical: Map<string, CanonicalMeasurementUnit>,
+  service: ReturnType<typeof getMeasurementUnitService>,
+  locking: ILockingModule,
+) => {
+  const result = {
+    created: 0,
+    restored: 0,
+    reused: 0,
+    unitBySemanticKey: new Map<string, MeasurementUnitRecord>(),
+  }
+  const desiredUnits = [...canonical.values()].toSorted((left, right) =>
+    compareText(left.semanticKey, right.semanticKey),
+  )
+  const processNext = async (index: number): Promise<void> => {
+    const desired = desiredUnits[index]
+    if (desired === undefined) {
+      return
+    }
+    const ensured = await ensureMeasurementUnit(desired, service, locking)
+    result.unitBySemanticKey.set(desired.semanticKey, ensured.unit)
+    result.created += Number(ensured.action === "created")
+    result.restored += Number(ensured.action === "restored")
+    result.reused += Number(ensured.action === "reused")
+    await processNext(index + 1)
+  }
+  await processNext(0)
+  return result
 }
 
-function getMetadataText(
+const getMetadataText = (
   record: { metadata?: Record<string, unknown> | null },
   key: string,
-) {
+) => {
   const value = record.metadata?.[key]
-  return typeof value === "string" && value.trim() ? value.trim() : undefined
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : undefined
 }
 
-function findPersistedVariant(
+const findPersistedVariant = (
   inputVariant: NonNullable<ProductInput["variants"]>[number],
   persistedVariants: ExistingProductVariant[],
   productHandle: string,
-) {
+) => {
   const sourceVariantId = getSourceVariantId(inputVariant)
-  const bySourceId = sourceVariantId
-    ? persistedVariants.filter(
-        (variant) => getSourceVariantId(variant) === sourceVariantId,
-      )
-    : []
+  const bySourceId =
+    sourceVariantId !== null && sourceVariantId !== undefined
+      ? persistedVariants.filter(
+          (variant) => getSourceVariantId(variant) === sourceVariantId,
+        )
+      : []
   const candidates = bySourceId.length
     ? bySourceId
     : persistedVariants.filter(
@@ -472,13 +479,17 @@ function findPersistedVariant(
     )
   }
 
-  return candidates[0]!
+  const [candidate] = candidates
+  if (candidate === undefined) {
+    throw new Error("Persisted Variant candidate disappeared during resolution")
+  }
+  return candidate
 }
 
-function resolveProductInput(
+const resolveProductInput = (
   input: ProductInput,
   product: ProductDTO,
-): ResolvedProductInput {
+): ResolvedProductInput => {
   const persistedVariants = product.variants ?? []
   const variantInputById = new Map<
     string,
@@ -502,14 +513,18 @@ function resolveProductInput(
   return { input, product, variantInputById }
 }
 
-async function resolveProducts(
+const resolveProducts = async (
   input: CreateProductsStepInput,
   productService: IProductModuleService,
-) {
+) => {
   const owned = input.filter((product) => product.measurement !== undefined)
   const productByHandle = new Map<string, ProductDTO>()
 
-  for (const inputChunk of chunk(owned, RECONCILIATION_BATCH_SIZE)) {
+  const loadChunk = async (start: number): Promise<void> => {
+    const inputChunk = owned.slice(start, start + RECONCILIATION_BATCH_SIZE)
+    if (inputChunk.length === 0) {
+      return
+    }
     const handles = inputChunk.map((product) => product.handle)
     const products = await productService.listProducts(
       { handle: { $in: handles } },
@@ -528,7 +543,9 @@ async function resolveProducts(
     for (const product of products) {
       productByHandle.set(product.handle, product)
     }
+    await loadChunk(start + inputChunk.length)
   }
+  await loadChunk(0)
 
   const missing = owned
     .map((product) => product.handle)
@@ -539,72 +556,84 @@ async function resolveProducts(
     )
   }
 
-  return owned.map((product) =>
-    resolveProductInput(product, productByHandle.get(product.handle)!),
-  )
+  return owned.map((product) => {
+    const persisted = productByHandle.get(product.handle)
+    if (persisted === undefined) {
+      throw new Error(
+        `Product "${product.handle}" disappeared during measurement reconciliation`,
+      )
+    }
+    return resolveProductInput(product, persisted)
+  })
 }
 
-async function listBatchProductMeasurements(
+const listBatchProductMeasurements = async (
   productIds: string[],
   service: ReturnType<typeof getMeasurementUnitService>,
   context: Context<SqlEntityManager>,
-) {
-  const result: ProductMeasurementRecord[] = []
-  let skip = 0
-
-  while (true) {
-    const [page, count] = await service.listAndCountProductMeasurements(
-      { product_id: { $in: productIds } },
-      {
-        order: { id: "ASC" },
-        skip,
-        take: RECONCILIATION_BATCH_SIZE,
-        withDeleted: true,
-      },
-      context,
-    )
-    result.push(...page)
-    if (page.length === 0 || result.length >= count) {
-      return result
-    }
-    skip += page.length
+  skip = 0,
+  result: ProductMeasurementRecord[] = [],
+): Promise<ProductMeasurementRecord[]> => {
+  const [page, count] = await service.listAndCountProductMeasurements(
+    { product_id: { $in: productIds } },
+    {
+      order: { id: "ASC" },
+      skip,
+      take: RECONCILIATION_BATCH_SIZE,
+      withDeleted: true,
+    },
+    context,
+  )
+  result.push(...page)
+  if (page.length === 0 || result.length >= count) {
+    return result
   }
+  return await listBatchProductMeasurements(
+    productIds,
+    service,
+    context,
+    skip + page.length,
+    result,
+  )
 }
 
-async function listBatchVariantMeasurements(
+const listBatchVariantMeasurements = async (
   productMeasurementIds: string[],
   service: ReturnType<typeof getMeasurementUnitService>,
   context: Context<SqlEntityManager>,
-) {
-  if (!productMeasurementIds.length) {
+  skip = 0,
+  result: ProductVariantMeasurementRecord[] = [],
+): Promise<ProductVariantMeasurementRecord[]> => {
+  if (productMeasurementIds.length === 0) {
     return []
   }
-  const result: ProductVariantMeasurementRecord[] = []
-  let skip = 0
-
-  while (true) {
-    const [page, count] = await service.listAndCountProductVariantMeasurements(
-      { product_measurement_id: { $in: productMeasurementIds } },
-      {
-        order: { id: "ASC" },
-        skip,
-        take: RECONCILIATION_BATCH_SIZE,
-        withDeleted: true,
-      },
-      context,
-    )
-    result.push(...page)
-    if (page.length === 0 || result.length >= count) {
-      return result
-    }
-    skip += page.length
+  const [page, count] = await service.listAndCountProductVariantMeasurements(
+    { product_measurement_id: { $in: productMeasurementIds } },
+    {
+      order: { id: "ASC" },
+      skip,
+      take: RECONCILIATION_BATCH_SIZE,
+      withDeleted: true,
+    },
+    context,
+  )
+  result.push(...page)
+  if (page.length === 0 || result.length >= count) {
+    return result
   }
+  return await listBatchVariantMeasurements(
+    productMeasurementIds,
+    service,
+    context,
+    skip + page.length,
+    result,
+  )
 }
 
-function getDesiredUnit(
+const getDesiredUnit = (
   measurement: SeedProductMeasurementInput,
   unitBySemanticKey: Map<string, MeasurementUnitRecord>,
-) {
+) => {
   const unit = unitBySemanticKey.get(
     getSeedMeasurementUnitSemanticKey(measurement.unit),
   )
@@ -616,7 +645,7 @@ function getDesiredUnit(
   return unit
 }
 
-function groupBy<T>(items: T[], getKey: (item: T) => string) {
+const groupBy = <T>(items: T[], getKey: (item: T) => string) => {
   const result = new Map<string, T[]>()
   for (const item of items) {
     const key = getKey(item)
@@ -627,10 +656,10 @@ function groupBy<T>(items: T[], getKey: (item: T) => string) {
   return result
 }
 
-function addActiveVariantRecordsToSoftDelete(
+const addActiveVariantRecordsToSoftDelete = (
   records: ProductVariantMeasurementRecord[],
   plan: ProductRecordMutationPlan,
-) {
+) => {
   for (const record of records) {
     if (!record.deleted_at) {
       plan.variantIdsToSoftDelete.add(record.id)
@@ -638,7 +667,7 @@ function addActiveVariantRecordsToSoftDelete(
   }
 }
 
-function planProductMeasurementClear(
+const planProductMeasurementClear = (
   productId: string,
   records: ProductMeasurementRecord[],
   variantsByProductMeasurementId: Map<
@@ -646,7 +675,7 @@ function planProductMeasurementClear(
     ProductVariantMeasurementRecord[]
   >,
   plan: ProductRecordMutationPlan,
-) {
+) => {
   for (const record of records) {
     if (!record.deleted_at) {
       plan.productIdsToSoftDelete.add(record.id)
@@ -659,7 +688,7 @@ function planProductMeasurementClear(
   plan.productTargetById.set(productId, null)
 }
 
-function planProductMeasurementSet({
+const planProductMeasurementSet = ({
   current,
   desired,
   plan,
@@ -673,7 +702,7 @@ function planProductMeasurementSet({
   records: ProductMeasurementRecord[]
   unitBySemanticKey: Map<string, MeasurementUnitRecord>
   variantsByProductMeasurementId: Map<string, ProductVariantMeasurementRecord[]>
-}) {
+}) => {
   const unit = getDesiredUnit(desired, unitBySemanticKey)
   const target = pickCanonicalRecord(
     records.filter((record) => record.measurement_unit_id === unit.id),
@@ -706,12 +735,12 @@ function planProductMeasurementSet({
   })
 }
 
-export function buildProductRecordMutationPlan(
+export const buildProductRecordMutationPlan = (
   resolved: ResolvedProductInput[],
   productMeasurements: ProductMeasurementRecord[],
   variantMeasurements: ProductVariantMeasurementRecord[],
   unitBySemanticKey: Map<string, MeasurementUnitRecord>,
-) {
+) => {
   const plan: ProductRecordMutationPlan = {
     creates: [],
     productIdsToRestore: new Set(),
@@ -758,12 +787,12 @@ export function buildProductRecordMutationPlan(
   return plan
 }
 
-async function applyProductRecordMutationPlan(
+const applyProductRecordMutationPlan = async (
   plan: ProductRecordMutationPlan,
   productMeasurements: ProductMeasurementRecord[],
   service: ReturnType<typeof getMeasurementUnitService>,
   context: Context<SqlEntityManager>,
-) {
+) => {
   if (plan.variantIdsToSoftDelete.size) {
     await service.softDeleteProductVariantMeasurements(
       [...plan.variantIdsToSoftDelete],
@@ -796,12 +825,12 @@ async function applyProductRecordMutationPlan(
   }
 }
 
-async function reconcileProductMeasurementRecords(
+const reconcileProductMeasurementRecords = async (
   resolved: ResolvedProductInput[],
   service: ReturnType<typeof getMeasurementUnitService>,
   unitBySemanticKey: Map<string, MeasurementUnitRecord>,
   context: Context<SqlEntityManager>,
-) {
+) => {
   const productMeasurements = await listBatchProductMeasurements(
     resolved.map(({ product }) => product.id),
     service,
@@ -833,29 +862,11 @@ async function reconcileProductMeasurementRecords(
   }
 }
 
-function getDesiredVariantMeasurement(
+const getDesiredVariantMeasurement = (
   input: NonNullable<ProductInput["variants"]>[number] | undefined,
-): SeedVariantMeasurementInput | null | undefined {
-  return input?.measurement
-}
+): SeedVariantMeasurementInput | null | undefined => input?.measurement
 
-function validateVariantQuantity(
-  desired: SeedVariantMeasurementInput,
-  variantId: string,
-) {
-  if (
-    !(
-      Number.isFinite(desired.product_unit_quantity) &&
-      desired.product_unit_quantity > 0
-    )
-  ) {
-    throw new Error(
-      `Product Variant "${variantId}" measurement quantity must be positive`,
-    )
-  }
-}
-
-function planExplicitVariantMeasurement({
+const planExplicitVariantMeasurement = ({
   desired,
   matching,
   plan,
@@ -867,7 +878,7 @@ function planExplicitVariantMeasurement({
   plan: VariantRecordMutationPlan
   productTarget: ProductMeasurementRecord
   variant: ExistingProductVariant
-}) {
+}) => {
   validateVariantQuantity(desired, variant.id)
   const target = pickCanonicalRecord(matching)
   if (!target) {
@@ -896,7 +907,7 @@ function planExplicitVariantMeasurement({
   plan.variantTargetById.set(variant.id, activeTarget)
 }
 
-function planOmittedVariantMeasurement({
+const planOmittedVariantMeasurement = ({
   matching,
   plan,
   previousProductMeasurement,
@@ -913,9 +924,11 @@ function planOmittedVariantMeasurement({
     ProductVariantMeasurementRecord[]
   >
   variant: ExistingProductVariant
-}) {
+}) => {
   const active = matching.find(
-    (record) => !(record.deleted_at ?? plan.softDeleteIds.has(record.id)),
+    (record) =>
+      (record.deleted_at === null || record.deleted_at === undefined) &&
+      !plan.softDeleteIds.has(record.id),
   )
   if (active) {
     plan.variantTargetById.set(variant.id, active)
@@ -947,7 +960,7 @@ function planOmittedVariantMeasurement({
   })
 }
 
-function planVariantMeasurement({
+const planVariantMeasurement = ({
   inputVariant,
   plan,
   previousProductMeasurement,
@@ -964,7 +977,7 @@ function planVariantMeasurement({
     ProductVariantMeasurementRecord[]
   >
   variant: ExistingProductVariant
-}) {
+}) => {
   if (!productTarget) {
     plan.variantTargetById.set(variant.id, null)
     return
@@ -1005,10 +1018,10 @@ function planVariantMeasurement({
   })
 }
 
-export function buildVariantRecordMutationPlan(
+export const buildVariantRecordMutationPlan = (
   resolved: ResolvedProductInput[],
   productState: Awaited<ReturnType<typeof reconcileProductMeasurementRecords>>,
-) {
+) => {
   const plan: VariantRecordMutationPlan = {
     creates: [],
     restoreIds: new Set(),
@@ -1049,11 +1062,11 @@ export function buildVariantRecordMutationPlan(
   return plan
 }
 
-async function applyVariantRecordMutationPlan(
+const applyVariantRecordMutationPlan = async (
   plan: VariantRecordMutationPlan,
   service: ReturnType<typeof getMeasurementUnitService>,
   context: Context<SqlEntityManager>,
-) {
+) => {
   if (plan.softDeleteIds.size) {
     await service.softDeleteProductVariantMeasurements(
       [...plan.softDeleteIds],
@@ -1084,23 +1097,23 @@ async function applyVariantRecordMutationPlan(
   }
 }
 
-async function reconcileVariantMeasurementRecords(
+const reconcileVariantMeasurementRecords = async (
   resolved: ResolvedProductInput[],
   productState: Awaited<ReturnType<typeof reconcileProductMeasurementRecords>>,
   service: ReturnType<typeof getMeasurementUnitService>,
   context: Context<SqlEntityManager>,
-) {
+) => {
   const plan = buildVariantRecordMutationPlan(resolved, productState)
   await applyVariantRecordMutationPlan(plan, service, context)
   return plan.variantTargetById
 }
 
-async function reconcileBatchRecords(
+const reconcileBatchRecords = async (
   resolved: ResolvedProductInput[],
   service: ReturnType<typeof getMeasurementUnitService>,
   unitBySemanticKey: Map<string, MeasurementUnitRecord>,
-): Promise<BatchReconciliationResult> {
-  return await service.runInTransaction(async (context) => {
+): Promise<BatchReconciliationResult> =>
+  await service.runInTransaction(async (context) => {
     const productState = await reconcileProductMeasurementRecords(
       resolved,
       service,
@@ -1119,14 +1132,14 @@ async function reconcileBatchRecords(
       variantTargetById,
     }
   })
-}
 
-function isProductMeasurementLinkRecord(
+const isProductMeasurementLinkRecord = (
   value: unknown,
-): value is ProductMeasurementLinkRecord {
+): value is ProductMeasurementLinkRecord => {
+  if (typeof value !== "object" || value === null) {
+    return false
+  }
   return (
-    typeof value === "object" &&
-    value !== null &&
     "product_id" in value &&
     typeof value.product_id === "string" &&
     "product_measurement_id" in value &&
@@ -1134,12 +1147,13 @@ function isProductMeasurementLinkRecord(
   )
 }
 
-function isVariantMeasurementLinkRecord(
+const isVariantMeasurementLinkRecord = (
   value: unknown,
-): value is ProductVariantMeasurementLinkRecord {
+): value is ProductVariantMeasurementLinkRecord => {
+  if (typeof value !== "object" || value === null) {
+    return false
+  }
   return (
-    typeof value === "object" &&
-    value !== null &&
     "product_variant_id" in value &&
     typeof value.product_variant_id === "string" &&
     "product_variant_measurement_id" in value &&
@@ -1147,7 +1161,7 @@ function isVariantMeasurementLinkRecord(
   )
 }
 
-async function listLinkRecords<T>({
+const listLinkRecords = async <T>({
   entity,
   fields,
   filters,
@@ -1161,11 +1175,8 @@ async function listLinkRecords<T>({
   isRecord: (value: unknown) => value is T
   order: Record<string, "ASC">
   query: Query
-}) {
-  const records: T[] = []
-  let skip = 0
-
-  while (true) {
+}) => {
+  const loadPage = async (skip = 0, records: T[] = []): Promise<T[]> => {
     const { data, metadata } = await query.graph({
       entity,
       fields,
@@ -1190,22 +1201,24 @@ async function listLinkRecords<T>({
     if (data.length === 0 || exhausted) {
       return records
     }
-    skip += data.length
+    return await loadPage(skip + data.length, records)
   }
+  return await loadPage()
 }
 
-function planProductLinks(
+const planProductLinks = (
   productLinks: ProductMeasurementLinkRecord[],
   targets: BatchReconciliationResult["productTargetById"],
   plan: MeasurementLinkPlan,
-) {
+) => {
   const linksByProductId = groupBy(productLinks, (link) => link.product_id)
   for (const [productId, target] of targets) {
     const links = linksByProductId.get(productId) ?? []
     plan.productLinksToDismiss.push(
       ...links.filter(
         (link) =>
-          !link.deleted_at && link.product_measurement_id !== target?.id,
+          (link.deleted_at === null || link.deleted_at === undefined) &&
+          link.product_measurement_id !== target?.id,
       ),
     )
     if (!target) {
@@ -1219,17 +1232,20 @@ function planProductLinks(
         product_id: productId,
         product_measurement_id: target.id,
       })
-    } else if (targetLink.deleted_at) {
+    } else if (
+      targetLink.deleted_at !== null &&
+      targetLink.deleted_at !== undefined
+    ) {
       plan.productMeasurementIdsToRestore.push(target.id)
     }
   }
 }
 
-function planVariantLinks(
+const planVariantLinks = (
   variantLinks: ProductVariantMeasurementLinkRecord[],
   targets: BatchReconciliationResult["variantTargetById"],
   plan: MeasurementLinkPlan,
-) {
+) => {
   const linksByVariantId = groupBy(
     variantLinks,
     (link) => link.product_variant_id,
@@ -1239,7 +1255,7 @@ function planVariantLinks(
     plan.variantLinksToDismiss.push(
       ...links.filter(
         (link) =>
-          !link.deleted_at &&
+          (link.deleted_at === null || link.deleted_at === undefined) &&
           link.product_variant_measurement_id !== target?.id,
       ),
     )
@@ -1254,17 +1270,20 @@ function planVariantLinks(
         product_variant_id: variantId,
         product_variant_measurement_id: target.id,
       })
-    } else if (targetLink.deleted_at) {
+    } else if (
+      targetLink.deleted_at !== null &&
+      targetLink.deleted_at !== undefined
+    ) {
       plan.variantMeasurementIdsToRestore.push(target.id)
     }
   }
 }
 
-export function buildLinkPlan(
+export const buildLinkPlan = (
   productLinks: ProductMeasurementLinkRecord[],
   variantLinks: ProductVariantMeasurementLinkRecord[],
   targets: BatchReconciliationResult,
-): MeasurementLinkPlan {
+): MeasurementLinkPlan => {
   const plan: MeasurementLinkPlan = {
     productLinksToCreate: [],
     productLinksToDismiss: [],
@@ -1278,12 +1297,12 @@ export function buildLinkPlan(
   return plan
 }
 
-async function reconcileBatchLinks(
+const reconcileBatchLinks = async (
   resolved: ResolvedProductInput[],
   targets: BatchReconciliationResult,
   query: Query,
   link: Link,
-) {
+) => {
   const productIds = resolved.map(({ product }) => product.id)
   const variantIds = resolved.flatMap(({ product }) =>
     (product.variants ?? []).map((variant) => variant.id),
@@ -1364,9 +1383,9 @@ async function reconcileBatchLinks(
   }
 }
 
-function summarizeInput(
+const summarizeInput = (
   resolved: ResolvedProductInput[],
-): ReconciliationSummary {
+): ReconciliationSummary => {
   const summary: ReconciliationSummary = {
     products_cleared: 0,
     products_set: 0,
@@ -1393,10 +1412,10 @@ function summarizeInput(
   return summary
 }
 
-function getRequiredBatchMeasurementUnits(
+const getRequiredBatchMeasurementUnits = (
   resolved: ResolvedProductInput[],
   unitBySemanticKey: Map<string, MeasurementUnitRecord>,
-) {
+) => {
   const required = new Map<string, MeasurementUnitRecord>()
 
   for (const current of resolved) {
@@ -1414,10 +1433,10 @@ function getRequiredBatchMeasurementUnits(
   return required
 }
 
-async function assertBatchMeasurementUnitsAreActive(
+const assertBatchMeasurementUnitsAreActive = async (
   required: Map<string, MeasurementUnitRecord>,
   service: ReturnType<typeof getMeasurementUnitService>,
-) {
+) => {
   if (!required.size) {
     return
   }
@@ -1474,7 +1493,14 @@ export const reconcileProductMeasurementsStep = createStep(
     summary.units_restored = ensured.restored
     summary.units_reused = ensured.reused
 
-    for (const currentBatch of chunk(resolved, RECONCILIATION_BATCH_SIZE)) {
+    const reconcileNextBatch = async (start: number): Promise<void> => {
+      const currentBatch = resolved.slice(
+        start,
+        start + RECONCILIATION_BATCH_SIZE,
+      )
+      if (currentBatch.length === 0) {
+        return
+      }
       const requiredUnits = getRequiredBatchMeasurementUnits(
         currentBatch,
         ensured.unitBySemanticKey,
@@ -1488,7 +1514,7 @@ export const reconcileProductMeasurementsStep = createStep(
             (unit) => `measurement-unit:${unit.id}`,
           ),
         ]),
-      ].toSorted()
+      ].toSorted(compareText)
       await locking.execute(
         lockKeys,
         async () => {
@@ -1502,7 +1528,9 @@ export const reconcileProductMeasurementsStep = createStep(
         },
         { timeout: 30 },
       )
+      await reconcileNextBatch(start + currentBatch.length)
     }
+    await reconcileNextBatch(0)
 
     logger.info(
       `Reconciled Product measurements: products_set=${summary.products_set}, products_cleared=${summary.products_cleared}, variants_set=${summary.variants_set}, variants_cleared=${summary.variants_cleared}, units_created=${summary.units_created}, units_restored=${summary.units_restored}, units_reused=${summary.units_reused}`,
