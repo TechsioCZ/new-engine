@@ -45,7 +45,7 @@ export const htmlToMarkdown = (html: string) => {
 
   const document = new DOMParser().parseFromString(html, "text/html")
 
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Local HTML import keeps legacy Medusa descriptions editable in the WYSIWYG editor.
+  // Local HTML import keeps legacy Medusa descriptions editable in the WYSIWYG editor.
   const renderNode = (node: ChildNode): string => {
     if (node.nodeType === Node.TEXT_NODE) {
       return node.textContent ?? ""

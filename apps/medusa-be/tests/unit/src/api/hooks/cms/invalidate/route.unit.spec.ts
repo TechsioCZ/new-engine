@@ -45,7 +45,7 @@ afterAll(() => {
   if (originalEnv !== undefined) {
     process.env["PAYLOAD_WEBHOOK_SECRET"] = originalEnv
   } else {
-    // biome-ignore lint/performance/noDelete: delete required to unset env vars in Node.js
+    // delete required to unset env vars in Node.js
     delete process.env["PAYLOAD_WEBHOOK_SECRET"]
   }
 })
@@ -232,7 +232,7 @@ describe("POST /hooks/cms/invalidate", () => {
 
 describe("POST /hooks/cms/invalidate - missing webhook secret", () => {
   it("returns 500 when webhook secret is not configured", async () => {
-    // biome-ignore lint/performance/noDelete: delete required to unset env vars in Node.js
+    // delete required to unset env vars in Node.js
     delete process.env["PAYLOAD_WEBHOOK_SECRET"]
 
     const { POST } =

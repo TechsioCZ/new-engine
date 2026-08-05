@@ -212,5 +212,5 @@ Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
 ```sh
 rg -n 'className=.*(bg-|text-|font-|px-|py-|rounded-)' apps/<app>
 rg -n -- '--color-|--spacing-|--font-weight-|--container-' apps/<app>/src
-bunx biome check --write apps/<app>/src
+pnpm exec oxfmt --config oxfmt.config.ts apps/<app>/src
 ```

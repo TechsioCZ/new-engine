@@ -251,7 +251,7 @@ const SymmyWebhooksSettingsPage = () => {
               return (
                 <div
                   className="grid grid-cols-[1fr_auto_auto] items-end gap-3"
-                  // biome-ignore lint/suspicious/noArrayIndexKey: Endpoint rows are controlled by index and are only appended or removed.
+                  // Endpoint rows are controlled by index and are only appended or removed.
                   key={index}
                 >
                   <div className="flex flex-col gap-2">

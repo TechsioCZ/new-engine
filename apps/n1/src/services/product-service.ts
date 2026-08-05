@@ -23,7 +23,6 @@ export type ProductDetailParams = {
   fields?: string
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: product fetch includes error handling and logging branches
 export async function getProducts(
   params: ProductQueryParams,
   signal?: AbortSignal

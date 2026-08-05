@@ -73,7 +73,7 @@ export function ProductReviewForm({
   const [errors, setErrors] = useState<ProductReviewFormErrors>({})
   const [values, setValues] = useState<ProductReviewFormValues>(defaultValues)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `resetKey` is an intentional reset trigger — the parent bumps it to restore the form to defaults; the effect body doesn't read it.
+  // `resetKey` is an intentional reset trigger — the parent bumps it to restore the form to defaults; the effect body doesn't read it.
   useEffect(() => {
     setErrors({})
     setValues(defaultValues)

@@ -30,12 +30,12 @@ export function ProductDetail({ handle }: ProductDetailProps) {
     string | undefined
   >(controller.defaultInfoSectionValue)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `controller.product?.id` is an intentional trigger — re-syncs the active section when navigating to a different product (App Router reuses the component).
+  // `controller.product?.id` is an intentional trigger — re-syncs the active section when navigating to a different product (App Router reuses the component).
   useEffect(() => {
     setActiveInfoSection(controller.defaultInfoSectionValue)
   }, [controller.defaultInfoSectionValue, controller.product?.id])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `handle` is an intentional trigger — App Router reuses this client component across product navigations, so scroll-to-top must re-run when the handle changes even though the body doesn't read it.
+  // `handle` is an intentional trigger — App Router reuses this client component across product navigations, so scroll-to-top must re-run when the handle changes even though the body doesn't read it.
   useEffect(() => {
     if (window.location.hash) {
       return
@@ -44,7 +44,7 @@ export function ProductDetail({ handle }: ProductDetailProps) {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" })
   }, [handle])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `controller.product?.id` is an intentional trigger — re-selects the reviews tab when navigating to a different product while the reviews hash is in the URL.
+  // `controller.product?.id` is an intentional trigger — re-selects the reviews tab when navigating to a different product while the reviews hash is in the URL.
   useEffect(() => {
     if (window.location.hash !== `#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`) {
       return

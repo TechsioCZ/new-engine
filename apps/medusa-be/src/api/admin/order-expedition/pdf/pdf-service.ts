@@ -1048,7 +1048,6 @@ function drawCheckbox(state: DrawState, x: number, y: number) {
   })
 }
 
-// biome-ignore lint/nursery/useMaxParams: PDF drawing helpers are clearer with x/y/width arguments.
 function drawWrappedRight(
   state: DrawState,
   text: string,
@@ -1074,7 +1073,6 @@ function drawWrappedRight(
   })
 }
 
-// biome-ignore lint/nursery/useMaxParams: PDF drawing helpers are clearer with x/y/width arguments.
 function drawWrappedText(
   state: DrawState,
   text: string,
@@ -1094,7 +1092,6 @@ function drawWrappedText(
   })
 }
 
-// biome-ignore lint/nursery/useMaxParams: PDF drawing helpers are clearer with x/y arguments.
 function drawText(
   state: DrawState,
   text: string,
@@ -1105,7 +1102,6 @@ function drawText(
   drawPageText(state.page, text, x, y, options)
 }
 
-// biome-ignore lint/nursery/useMaxParams: PDF drawing helpers are clearer with x/y arguments.
 function drawRightText(
   state: DrawState,
   text: string,
@@ -1116,7 +1112,6 @@ function drawRightText(
   drawPageRightText(state.page, text, rightX, y, options)
 }
 
-// biome-ignore lint/nursery/useMaxParams: PDF drawing helpers are clearer with x/y arguments.
 function drawCenteredText(
   state: DrawState,
   text: string,
@@ -1128,7 +1123,6 @@ function drawCenteredText(
   drawPageCenteredText(state.page, text, x, width, y, options)
 }
 
-// biome-ignore lint/nursery/useMaxParams: PDF drawing helpers are clearer with x/y arguments.
 function drawPageText(
   page: DrawState["page"],
   text: string,
@@ -1145,7 +1139,6 @@ function drawPageText(
   })
 }
 
-// biome-ignore lint/nursery/useMaxParams: PDF drawing helpers are clearer with x/y arguments.
 function drawPageRightText(
   page: DrawState["page"],
   text: string,
@@ -1163,7 +1156,6 @@ function drawPageRightText(
   })
 }
 
-// biome-ignore lint/nursery/useMaxParams: PDF drawing helpers are clearer with x/y arguments.
 function drawPageCenteredText(
   page: DrawState["page"],
   text: string,

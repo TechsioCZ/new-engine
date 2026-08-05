@@ -49,7 +49,7 @@ function CategoryIntro({
       {sanitizedIntroHtml ? (
         <div
           className={`${CATEGORY_RICH_TEXT_CLASS} ${introClassName}`}
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: Category intro HTML is normalized through sanitizeCategoryRichTextHtml before rendering.
+          // Category intro HTML is normalized through sanitizeCategoryRichTextHtml before rendering.
           dangerouslySetInnerHTML={{ __html: sanitizedIntroHtml }}
         />
       ) : (

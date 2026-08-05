@@ -54,7 +54,7 @@ const normalizeCountryCode = (
 }
 
 const writeDocumentCookie = (name: string, value: string) => {
-  // biome-ignore lint/suspicious/noDocumentCookie: Legacy fallback for browsers without Cookie Store API support.
+  // Legacy fallback for browsers without Cookie Store API support.
   document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${REGION_COOKIE_MAX_AGE}; samesite=lax`
 }
 

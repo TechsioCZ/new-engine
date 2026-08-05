@@ -28,8 +28,7 @@ export const DesktopSubmenu = () => {
   }
   return (
     <Header.Desktop>
-      {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: hover-only wrapper for submenu */}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: hover-only wrapper for submenu */}
+      {/* hover-only wrapper for submenu */}
       <div className="w-full" onMouseLeave={() => setDrawerOpen(false)}>
         <Header.Container className="w-full border-highlight border-t bg-base-dark py-0">
           <Header.Nav className="z-30 flex-wrap gap-0 px-0 py-0">

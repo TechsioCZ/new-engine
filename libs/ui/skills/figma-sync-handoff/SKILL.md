@@ -139,7 +139,7 @@ Source: libs/ui/src/atoms/figma/button.figma.tsx
 
 ```sh
 pnpm --dir libs/ui figma:connect:parse
-bunx biome check --write libs/ui/src/atoms/figma/button.figma.tsx
+pnpm exec oxfmt --config oxfmt.config.ts libs/ui/src/atoms/figma/button.figma.tsx
 ```
 
 Run `figma:connect:publish` only when the maintainer explicitly asks.

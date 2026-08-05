@@ -60,7 +60,6 @@ const REQUIRED_ADDRESS_FIELDS = [
   "country_code",
 ] as const satisfies readonly AddressFieldKey[]
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: switch-based validation rules
 function validateAddressField(
   field: AddressFieldKey,
   value: string,

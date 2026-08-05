@@ -212,7 +212,7 @@ Source: libs/ui/AGENTS.md
 ## Validation Commands
 
 ```sh
-bunx biome check --write libs/ui/stories/atoms/button.stories.tsx
+pnpm exec oxfmt --config oxfmt.config.ts libs/ui/stories/atoms/button.stories.tsx
 bunx nx run ui:build
 pnpm --dir libs/ui build:storybook
 pnpm --dir libs/ui storybook:a11y

@@ -38,7 +38,7 @@ const ItemsPopover = ({
                 <Table.Row className="py-2 hover:bg-transparent" key={item.id}>
                   <Table.Cell>
                     <div className="flex h-10 w-10 items-center justify-center overflow-hidden">
-                      {/* biome-ignore lint/performance/noImgElement: Medusa admin extensions run in Vite, so Next Image is not available here. */}
+                      {/* Medusa admin extensions run in Vite, so Next Image is not available here. */}
                       <img
                         alt={item.product_title}
                         className="mr-4 h-10 object-contain"

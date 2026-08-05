@@ -37,7 +37,6 @@ export function usePrefetchPages({
 }: UsePrefetchPagesParams) {
   const queryClient = useQueryClient()
 
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: prefetch scheduling has multiple priority branches
   useEffect(() => {
     if (!(enabled && regionId)) {
       return

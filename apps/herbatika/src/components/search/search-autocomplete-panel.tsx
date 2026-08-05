@@ -165,8 +165,8 @@ export function SearchAutocompletePanel({
 
   if (!hasItems) {
     return (
-      // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Mouse down keeps the combobox input focused while the suggestion panel handles status feedback.
-      // biome-ignore lint/a11y/noStaticElementInteractions: This handler does not activate panel content; it only preserves combobox focus behavior.
+      // Mouse down does not activate panel content; it only keeps the combobox
+      // input focused while the suggestion panel handles status feedback.
       <div className={PANEL_CLASS_NAME} onMouseDown={onMouseDown}>
         <output
           className={`block px-300 py-250 text-sm ${status === "error" ? "text-danger" : "text-fg-secondary"}`}

@@ -377,7 +377,7 @@ async function syncPreviewServiceEnv(input: {
   })
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: preview deploy keeps provider provisioning and staged deploy ordering in one flow
+// preview deploy keeps provider provisioning and staged deploy ordering in one flow
 export async function executeDeployPreview(
   input: DeployPreviewCommandInput
 ): Promise<DeployPreviewExecutionResult> {

@@ -151,7 +151,7 @@ Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
 ## Validation Commands
 
 ```sh
-bunx biome check --write apps/<app>/src
+pnpm exec oxfmt --config oxfmt.config.ts apps/<app>/src
 ```
 
 Use the audit `rg` commands above before formatting.

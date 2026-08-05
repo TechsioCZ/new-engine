@@ -74,7 +74,7 @@ Do not edit Figma automatically from ordinary UI-kit skills.
 ### Recommend validation by touched area
 
 ```sh
-bunx biome check --write libs/ui/src/atoms/button.tsx
+pnpm exec oxfmt --config oxfmt.config.ts libs/ui/src/atoms/button.tsx
 pnpm --dir libs/ui validate:tokens
 bunx nx run ui:build
 ```
@@ -148,5 +148,5 @@ Source: libs/ui/skills/_artifacts/domain_map.yaml
 
 ```sh
 node -e 'const fs=require("node:fs"); const YAML=require("yaml"); YAML.parse(fs.readFileSync("libs/ui/skills/_artifacts/skill_tree.yaml","utf8"))'
-bunx biome check --write libs/ui/skills/ui-kit-workflow-orchestrator/SKILL.md
+pnpm exec oxfmt --config oxfmt.config.ts libs/ui/skills/ui-kit-workflow-orchestrator/SKILL.md
 ```

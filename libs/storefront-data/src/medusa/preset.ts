@@ -1033,7 +1033,7 @@ export function createMedusaStorefrontPreset<
     ...(input.metadata ? { metadata: input.metadata } : {}),
   })
 
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: flat declarative hook assembly; each domain adds one independent object property.
+  // flat declarative hook assembly; each domain adds one independent object property.
   const createHooks = () => ({
     auth: createAuthHooks({
       ...authHookOverrides,

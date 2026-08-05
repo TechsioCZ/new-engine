@@ -180,7 +180,7 @@ const CustomerSelection = ({
   )
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: existing employee form branching is outside this compiler cleanup.
+// existing employee form branching is outside this compiler cleanup.
 export function EmployeesCreateForm({
   handleSubmit,
   loading,

@@ -21,8 +21,7 @@ export const CartPopover = () => {
   }
 
   return (
-    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: hover-only wrapper for popover
-    // biome-ignore lint/a11y/noStaticElementInteractions: hover-only wrapper for popover
+    // hover-only wrapper for popover
     <div onMouseEnter={handleHover}>
       <ErrorBoundary
         fallback={<CartPopoverErrorFallback onClose={toggleCart} />}

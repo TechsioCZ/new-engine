@@ -75,7 +75,6 @@ describe("instrumentation", () => {
     expect(sentryInit).toHaveBeenCalledWith(
       expect.objectContaining({
         dsn: process.env["SENTRY_DSN"],
-        instrumenter: "otel",
         beforeSend: expect.any(Function),
       })
     )

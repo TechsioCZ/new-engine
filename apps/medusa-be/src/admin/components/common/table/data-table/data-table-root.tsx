@@ -45,7 +45,7 @@ export type DataTableRootProps<TData> = {
   /**
    * The columns to render
    */
-  // biome-ignore lint/suspicious/noExplicitAny: ColumnDef is invariant in TValue, and this table accepts heterogeneous column value types.
+  // ColumnDef is invariant in TValue, and this table accepts heterogeneous column value types.
   columns: ColumnDef<TData, any>[]
   /**
    * Function to generate a link to navigate to when clicking on a row

@@ -164,7 +164,7 @@ process.stdin.on("end", () => {
         "",
         `BLOCKED: ${localRef} (${tip.slice(0, 8)}) contains libs/ui changes that have not passed the ui-kit quality gate.`,
         "",
-        "Run the `ui-validate` skill (build, validate:tokens, biome on changed files, visual tests),",
+        "Run the `ui-validate` skill (build, validate:tokens, oxfmt on changed files, visual tests),",
         "then record it:",
         '  git rev-parse HEAD > "$(git rev-parse --absolute-git-dir)/ui-validate-passed"',
         "",

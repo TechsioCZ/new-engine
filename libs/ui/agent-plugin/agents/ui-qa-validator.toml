@@ -14,7 +14,7 @@ token registration); send anything structural back with a precise finding.
 ## Gate (run in this order, from repo root)
 1. `bunx nx run ui-kit:build` — must succeed.
 2. `pnpm --dir libs/ui validate:tokens` — token usage + definitions.
-3. `bunx biome check --write <changed files>` — NEVER `biome check .`.
+3. `pnpm exec oxfmt --config oxfmt.config.ts <changed files>` — NEVER `.`.
 4. `pnpm --dir libs/ui lint:tailwind` when class names changed.
 5. Visual regression when component markup/CSS changed: `pnpm --dir libs/ui test:components`.
    Snapshot diffs are a finding, not an auto-update; update only when the change is intended.

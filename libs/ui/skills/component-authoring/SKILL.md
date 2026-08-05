@@ -228,7 +228,7 @@ Source: libs/ui/skills/_artifacts/domain_map.yaml
 ## Validation Commands
 
 ```sh
-bunx biome check --write libs/ui/src/atoms/action.tsx libs/ui/stories/atoms/action.stories.tsx
+pnpm exec oxfmt --config oxfmt.config.ts libs/ui/src/atoms/action.tsx libs/ui/stories/atoms/action.stories.tsx
 pnpm --dir libs/ui validate:tokens
 bunx nx run ui:build
 ```

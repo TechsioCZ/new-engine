@@ -147,7 +147,7 @@ This step is **mandatory** for every component migration. Token diffs that are t
 
 #### 7a. Static checks
 
-1. `bunx biome check --write <changed-files>` — lint and format.
+1. `pnpm exec oxfmt --config oxfmt.config.ts <changed-files>` — lint and format.
 2. `bunx nx run ui-kit:build` (project name `ui-kit`, not `ui`).
 
 #### 7b. Storybook + Chrome DevTools MCP visual diff
@@ -307,7 +307,7 @@ When you complete a component migration, produce:
 
 1. **Token renames** — table of old → new names.
 2. **Downstream files affected** — and whether they need follow-up.
-3. **Lint result** — confirmation that biome ran clean.
+3. **Lint result** — confirmation that oxfmt and oxlint ran clean.
 4. **Build result** — `bunx nx run ui-kit:build` passes.
 5. **Visual diff report** — one entry per story showing before/after pairs across light, dark, reverse, and (where relevant) system-pref-auto. Every visible difference must include:
    - A description of what changed (which token, which state).

@@ -32,7 +32,7 @@ describe("encryption utilities", () => {
     if (originalEnv) {
       process.env["SETTINGS_ENCRYPTION_KEY"] = originalEnv
     } else {
-      // biome-ignore lint/performance/noDelete: required to truly unset env var for testing
+      // required to truly unset env var for testing
       delete process.env["SETTINGS_ENCRYPTION_KEY"]
     }
   })
@@ -58,7 +58,7 @@ describe("encryption utilities", () => {
       },
     ])("throws error when $scenario", ({ key, expectedError }) => {
       if (key === undefined) {
-        // biome-ignore lint/performance/noDelete: required to truly unset env var for testing
+        // required to truly unset env var for testing
         delete process.env["SETTINGS_ENCRYPTION_KEY"]
       } else {
         process.env["SETTINGS_ENCRYPTION_KEY"] = key
@@ -126,7 +126,7 @@ describe("encryption utilities", () => {
       // Tamper with the ciphertext (flip a bit using XOR)
       const tampered = Buffer.from(encrypted, "base64")
       const tamperedIndex = 20
-      // biome-ignore lint/suspicious/noBitwiseOperators: XOR is intentional for tampering test
+      // XOR is intentional for tampering test
       tampered[tamperedIndex] = (tampered[tamperedIndex] ?? 0) ^ 0xff
       const tamperedBase64 = tampered.toString("base64")
 

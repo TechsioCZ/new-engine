@@ -157,7 +157,6 @@ export function PplWidget({
 
     // Check permission first if available
     if (navigator.permissions?.query) {
-      // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: permission flow has multiple guard checks
       const checkPermission = async () => {
         try {
           const status = await navigator.permissions.query({

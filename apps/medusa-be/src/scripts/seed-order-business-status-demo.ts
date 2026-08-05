@@ -595,7 +595,7 @@ function buildDemoMetadata(
     order_business_status_demo_key: demo.key,
   }
 
-  // biome-ignore lint/performance/noDelete: remove a legacy seed marker from serialized demo metadata.
+  // remove a legacy seed marker from serialized demo metadata.
   delete nextMetadata["order_business_status_demo_expected_label"]
 
   if (demo.manualStatus) {

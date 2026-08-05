@@ -521,7 +521,7 @@ function applySharedEnvServiceTargets(input: {
   }
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this is a declarative service bootstrap plan; splitting it would hide the service graph.
+// this is a declarative service bootstrap plan; splitting it would hide the service graph.
 function buildZaneProjectServices(
   context: ZaneProjectContext,
   serviceSlugs: Record<string, string>
@@ -2006,7 +2006,7 @@ function interpolateSharedValues(
   )
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: source resolution intentionally keeps all supported source kinds in one switch.
+// source resolution intentionally keeps all supported source kinds in one switch.
 function resolveSharedSourceValue(input: {
   source: BootstrapValueSource
   context: ZaneProjectContext
@@ -2065,7 +2065,7 @@ function renderSharedEnvReference(key: string | undefined): string {
   return key ? placeholderSharedValue(key) : ""
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: source resolution intentionally keeps all supported source kinds in one switch.
+// source resolution intentionally keeps all supported source kinds in one switch.
 function resolveServiceSourceValue(input: {
   source: BootstrapValueSource
   context: ZaneProjectContext

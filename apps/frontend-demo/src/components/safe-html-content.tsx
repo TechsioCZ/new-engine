@@ -130,7 +130,7 @@ export function SafeHtmlContent({
     return (
       <div
         className={className}
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: Product HTML is sanitized by DOMPurify immediately above.
+        // Product HTML is sanitized by DOMPurify immediately above.
         dangerouslySetInnerHTML={{ __html: processedContent.content }}
       />
     )

@@ -26,8 +26,7 @@ export const VariantsBox = ({ variants, limit = 3 }: VariantsBoxProps) => {
   }
 
   return (
-    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: hover/focus handlers are needed for expanded variant display
-    // biome-ignore lint/a11y/noStaticElementInteractions: wrapper handles hover/focus without click semantics
+    // hover/focus wrapper for expanded variant display; no click semantics
     <div
       className="relative flex flex-col items-center justify-center"
       onBlur={hasMore ? handleCollapse : undefined}

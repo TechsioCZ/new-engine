@@ -212,7 +212,6 @@ syncInjectedDepsAfterScripts:
 
 allowBuilds:
   "@nubjs/nub": true
-  "@biomejs/biome": true
   "@medusajs/telemetry": false
   "@parcel/watcher": true
   "@swc/core": true

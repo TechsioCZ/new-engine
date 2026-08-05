@@ -46,7 +46,7 @@ function CheckoutThankYou({ order }) {
 
 ## Linting notes
 
-The repository `biome.json` disables `noDangerouslySetInnerHtml` and `noImgElement` for `libs/analytics/src/**/*.tsx` because pixel/components intentionally:
+Pixel components in `libs/analytics/src/**/*.tsx` intentionally use `dangerouslySetInnerHTML` and raw `<img>` because they:
 
 - Inject vendor snippets via `next/script` (some providers require inline bootstrap code).
 - Render `<noscript><img ... /></noscript>` fallbacks for non-JS environments.

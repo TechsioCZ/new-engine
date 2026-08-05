@@ -207,7 +207,6 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
 
   const form = useForm({
     defaultValues: initialStateRef.current.defaultValues,
-    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: checkout flow includes many validation branches
     onSubmit: async ({ value }: { value: CheckoutFormData }) => {
       if (!cart?.id) {
         setError("Košík nebyl nalezen")

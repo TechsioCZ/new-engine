@@ -112,7 +112,7 @@ export function reusePersistedMeiliKeysFromTargets(input: {
   }
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: provider output shaping is intentionally linear here
+// provider output shaping is intentionally linear here
 export async function provisionMeiliKeys(input: {
   projectSlug: string
   environmentName: string

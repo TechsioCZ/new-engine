@@ -57,7 +57,6 @@ function findFilesWithExtension(dir, extension, ignore = []) {
     })
   }
 
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: recursive directory walk with ignore rules
   function walkDir(currentDir) {
     try {
       const entries = fs.readdirSync(currentDir, { withFileTypes: true })
@@ -463,7 +462,6 @@ const PREFIX_TO_NAMESPACES = (() => {
 /**
  * Extract Tailwind classes from TSX content with line numbers
  */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: multiple parsing branches for class patterns
 function extractTailwindClassesWithLines(content, _filePath) {
   const results = []
   const lines = content.split("\n")
@@ -530,7 +528,6 @@ function extractTailwindClassesWithLines(content, _filePath) {
 /**
  * Map Tailwind utility class to possible CSS custom properties
  */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: handles multiple Tailwind namespaces
 function mapClassToPossibleTokens(className) {
   // Remove chained state/data prefixes
   let baseClass = className
@@ -652,7 +649,6 @@ function findCssFiles(dir) {
 /**
  * Load defined tokens from CSS files
  */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: loads tokens from multiple sources
 function loadDefinedTokens() {
   const tokens = new Set()
 
@@ -863,7 +859,6 @@ const TAILWIND_COLOR_NAMES = [
  * Check if class uses invalid Tailwind default spacing (1-96 scale instead of 50-950)
  * Returns error message if invalid, null if OK
  */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: handles multiple spacing edge cases
 function checkInvalidSpacing(className) {
   // Remove variant prefixes
   let baseClass = className
@@ -912,7 +907,6 @@ function checkInvalidSpacing(className) {
  * These should use semantic tokens instead
  * Returns error message if invalid, null if OK
  */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: handles multiple palette edge cases
 function checkPaletteColor(className) {
   // Remove variant prefixes
   let baseClass = className
@@ -949,7 +943,6 @@ function checkPaletteColor(className) {
 /**
  * Main validation function
  */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: main validation flow aggregates multiple checks
 function validateTokenUsage() {
   console.log("🔍 Validating token usage in N1 components...\n")
 

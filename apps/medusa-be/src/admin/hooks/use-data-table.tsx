@@ -14,7 +14,7 @@ import { useSearchParams } from "react-router-dom"
 
 type UseDataTableProps<TData> = {
   data?: TData[] | undefined
-  // biome-ignore lint/suspicious/noExplicitAny: ColumnDef is invariant in TValue, and this table accepts heterogeneous column value types.
+  // ColumnDef is invariant in TValue, and this table accepts heterogeneous column value types.
   columns: ColumnDef<TData, any>[]
   count?: number | undefined
   pageSize?: number

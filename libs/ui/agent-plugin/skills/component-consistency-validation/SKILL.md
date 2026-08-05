@@ -25,9 +25,9 @@ Use this as the validation pass after changing a component slice.
 Pick checks by touched area:
 
 ```text
-TSX only      -> Biome + build
+TSX only      -> oxfmt + oxlint + build
 Token CSS     -> token validators + build
-Stories       -> Biome + Storybook build when visual/docs behavior changed
+Stories       -> oxfmt + oxlint + Storybook build when visual/docs behavior changed
 Zag/compound  -> build + Storybook/a11y or component tests when practical
 Figma mapping -> figma connect parse
 Release       -> ui-kit-publish-readiness
@@ -145,7 +145,7 @@ Source: libs/ui/src/molecules/carousel.tsx
 ## Validation Commands
 
 ```sh
-bunx biome check --write libs/ui/src/atoms/button.tsx libs/ui/stories/atoms/button.stories.tsx
+pnpm exec oxfmt --config oxfmt.config.ts libs/ui/src/atoms/button.tsx libs/ui/stories/atoms/button.stories.tsx
 pnpm --dir libs/ui validate:tokens
 bunx nx run ui:build
 pnpm --dir libs/ui figma:connect:parse

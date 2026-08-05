@@ -36,5 +36,5 @@ Read first: the bundled `tailwind-token-authoring` skill and `libs/ui/token-cont
 ## Verify every change
 - `pnpm --dir libs/ui validate:tokens`
 - `pnpm --dir libs/ui check:unused-tokens` when removing/renaming tokens
-- `bunx biome check --write <changed files>` (never `.`)
+- `pnpm exec oxfmt --config oxfmt.config.ts <changed files>` (never `.`)
 """

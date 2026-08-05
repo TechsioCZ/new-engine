@@ -123,7 +123,7 @@ const hasCollectionSlug = <T extends Record<string, unknown>>(
 const createMedusaSsoPostEndpoint = (): Endpoint => ({
   path: "/medusa-sso",
   method: "post",
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Endpoint flow is intentionally linear to keep auth failure branches explicit.
+  // Endpoint flow is intentionally linear to keep auth failure branches explicit.
   handler: async (req) => {
     const allowedOrigins = getAllowedOrigins()
     const requestOrigin = getRequestOrigin(req.headers)

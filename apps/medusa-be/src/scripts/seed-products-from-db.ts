@@ -11,7 +11,6 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
-// @ts-nocheck necessary due to Medusa failing with strict mode
 import {
   createCollectionsWorkflow,
   createInventoryLevelsWorkflow,

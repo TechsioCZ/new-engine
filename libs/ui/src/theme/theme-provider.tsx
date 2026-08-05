@@ -213,7 +213,7 @@ export function BrandThemeScript({
 
   return (
     <script
-      // biome-ignore lint/security/noDangerouslySetInnerHtml: required to inline the synchronous pre-hydration brand script
+      // required to inline the synchronous pre-hydration brand script
       dangerouslySetInnerHTML={{ __html: script }}
       suppressHydrationWarning
     />

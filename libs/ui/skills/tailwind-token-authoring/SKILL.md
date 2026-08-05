@@ -204,5 +204,5 @@ Source: https://github.com/TechsioCZ/new-engine/issues/329
 pnpm --dir libs/ui validate:token-usage
 pnpm --dir libs/ui validate:token-definitions
 pnpm --dir libs/ui validate:tokens
-bunx biome check --write libs/ui/src/tokens/components/atoms/_button.css
+pnpm exec oxfmt --config oxfmt.config.ts libs/ui/src/tokens/components/atoms/_button.css
 ```

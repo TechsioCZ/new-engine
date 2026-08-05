@@ -32,7 +32,11 @@
       "{workspaceRoot}/tsconfig.base.json",
       "{workspaceRoot}/tsconfig.json"
     ],
-    "lintTooling": ["workspaceTooling", "{workspaceRoot}/biome.json"],
+    "lintTooling": [
+      "workspaceTooling",
+      "{workspaceRoot}/oxlint.config.ts",
+      "{workspaceRoot}/oxfmt.config.ts"
+    ],
     "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
   },
   "targetDefaults": {

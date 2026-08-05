@@ -15,7 +15,7 @@ import { createMockContainer, createMockPaykitClient } from "./helpers"
 class TestPaykitPaymentProvider extends PaykitPaymentProviderBase<PaykitAdapterOptions> {
   static override identifier = "paykit_test"
 
-  // biome-ignore lint/complexity/noUselessConstructor: the base constructor is protected.
+  // the base constructor is protected.
   constructor(
     container: PaykitInjectedDependencies,
     options: PaykitAdapterOptions

@@ -69,7 +69,6 @@ export function CategoryTreeFilter({
   }
 
   // Handle expanded change events from TreeView
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: existing tree expansion workflow has several category-shape branches.
   const handleExpandedChange = (details: { expandedValue: string[] }) => {
     const finalExpanded = handleAccordionExpansion(details)
 

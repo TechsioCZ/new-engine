@@ -39,8 +39,8 @@ function formatGeneratedFile(filePath) {
   const cwd = path.join(__dirname, "..")
 
   const formatCommands = [
-    ["pnpm", ["exec", "biome", "format", "--write", filePath]],
-    ["biome", ["format", "--write", filePath]],
+    ["pnpm", ["exec", "oxfmt", "--config", "oxfmt.config.ts", filePath]],
+    ["oxfmt", ["--config", "oxfmt.config.ts", filePath]],
   ]
 
   for (const [cmd, args] of formatCommands) {
@@ -53,7 +53,7 @@ function formatGeneratedFile(filePath) {
   }
 
   console.warn(
-    `⚠️ Could not auto-format generated file: ${filePath}. Run biome format manually.`
+    `⚠️ Could not auto-format generated file: ${filePath}. Run oxfmt manually.`
   )
 }
 
@@ -97,7 +97,6 @@ async function fetchCategoriesDirectly() {
 /**
  * Fetch products and determine which categories have products
  */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: paging with nested category aggregation
 async function fetchProductsAndCategorizesByCategory() {
   const baseUrl = getMedusaBackendUrl()
 
@@ -446,7 +445,6 @@ function extractLeafsAndParents(categoryTree, allCategoriesMap) {
 /**
  * Test root_category_id correctness
  */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: verbose test output and branching
 function testRootCategoryIds(allCategories, categoryMap, rootCategories) {
   console.log("\n🧪 Running tests for root_category_id...")
 

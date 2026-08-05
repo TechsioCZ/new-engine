@@ -49,7 +49,7 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
   static override identifier = PAYKIT_PAYMENT_PROVIDER_IDENTIFIER
 
   // Medusa's provider loader instantiates provider classes directly.
-  // biome-ignore lint/complexity/noUselessConstructor: the base constructor is protected; this keeps the provider constructor public.
+  // the base constructor is protected; this keeps the provider constructor public.
   constructor(
     container: PaykitInjectedDependencies,
     options: PaykitComgateOptions

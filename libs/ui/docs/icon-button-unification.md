@@ -95,7 +95,7 @@ Out of scope: radio-card mark, checkbox/switch/slider marks, status-text icons.
 
 ### Validation
 
-`pnpm validate:tokens`; `bunx biome check --write <files>`; `bunx nx run ui-kit:build`; Storybook visual pass (sm/md/lg, light + dark) via browser agent.
+`pnpm validate:tokens`; `pnpm exec oxfmt --config oxfmt.config.ts <files>`; `bunx nx run ui-kit:build`; Storybook visual pass (sm/md/lg, light + dark) via browser agent.
 
 ### Figma
 

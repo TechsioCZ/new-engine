@@ -254,7 +254,7 @@ Source: https://chakra-ui.com/docs/components/accordion
 ## Validation Commands
 
 ```sh
-bunx biome check --write libs/ui/src/molecules/carousel.tsx
+pnpm exec oxfmt --config oxfmt.config.ts libs/ui/src/molecules/carousel.tsx
 bunx nx run ui:build
 pnpm --dir libs/ui validate:tokens
 pnpm --dir libs/ui build:storybook

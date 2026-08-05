@@ -151,7 +151,7 @@ Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
 
 ```sh
 pnpm --dir libs/ui validate:tokens
-bunx biome check --write apps/<app>/src/tokens
+pnpm exec oxfmt --config oxfmt.config.ts apps/<app>/src/tokens
 ```
 
 For app work, also inspect JSX for token-first usage with `app-ui-kit-audit`.

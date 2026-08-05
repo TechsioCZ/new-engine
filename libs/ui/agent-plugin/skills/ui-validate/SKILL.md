@@ -1,7 +1,7 @@
 ---
 name: ui-validate
 description: >
-  Run the full @techsio/ui-kit quality gate before commit/push: build, token validation, biome on changed files, tailwind lint, visual tests, consistency checklist. Use as the last step of any libs/ui change. Invoke explicitly with $ui-validate.
+  Run the full @techsio/ui-kit quality gate before commit/push: build, token validation, oxfmt on changed files, tailwind lint, visual tests, consistency checklist. Use as the last step of any libs/ui change. Invoke explicitly with $ui-validate.
 metadata:
   plugin: techsio-ui-kit-ai
   library: "@techsio/ui-kit"
@@ -14,7 +14,7 @@ Run in order, from repo root. Stop and report on first failure.
 ```sh
 bunx nx run ui-kit:build
 pnpm --dir libs/ui validate:tokens
-bunx biome check --write <changed files>     # NEVER "biome check ."
+pnpm exec oxfmt --config oxfmt.config.ts <changed files>     # NEVER "oxfmt ."
 pnpm --dir libs/ui lint:tailwind             # when class names changed
 pnpm --dir libs/ui test:components           # when markup/CSS changed
 ```

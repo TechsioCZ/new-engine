@@ -35,13 +35,13 @@ describe("env utilities", () => {
     })
 
     it("returns undefined when environment variable is not set", () => {
-      // biome-ignore lint/performance/noDelete: delete required to unset env vars in Node.js
+      // delete required to unset env vars in Node.js
       delete process.env["TEST_VAR"]
       expect(getEnv("TEST_VAR")).toBeUndefined()
     })
 
     it("throws when required variable is missing", () => {
-      // biome-ignore lint/performance/noDelete: delete required to unset env vars in Node.js
+      // delete required to unset env vars in Node.js
       delete process.env["REQUIRED_VAR"]
       expect(() => getEnv("REQUIRED_VAR", true)).toThrow(
         "Missing required environment variable: REQUIRED_VAR"
@@ -80,7 +80,7 @@ describe("env utilities", () => {
     })
 
     it("returns null when environment variable is not set", () => {
-      // biome-ignore lint/performance/noDelete: delete required to unset env vars in Node.js
+      // delete required to unset env vars in Node.js
       delete process.env["STRING_VAR"]
       expect(getEnvString("STRING_VAR")).toBeNull()
     })
@@ -107,7 +107,7 @@ describe("env utilities", () => {
   })
 
   it("isEnabled honors defaults and explicit false values", () => {
-    // biome-ignore lint/performance/noDelete: delete required to unset env vars in Node.js
+    // delete required to unset env vars in Node.js
     delete process.env["TEST_FLAG"]
     expect(isEnabled("TEST_FLAG", true)).toBe(true)
     expect(isEnabled("TEST_FLAG", false)).toBe(false)

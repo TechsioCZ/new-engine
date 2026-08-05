@@ -35,4 +35,4 @@ Data attributes only: `data-disabled:` (boolean shorthand), `data-[state=open]:`
 
 ## 4. Verify (mandatory)
 
-Run `$ui-validate` (or spawn the `ui-qa-validator` agent): `bunx nx run ui-kit:build` → `pnpm --dir libs/ui validate:tokens` → `bunx biome check --write <files>` → stories render in `bunx nx run ui-kit:storybook`.
+Run `$ui-validate` (or spawn the `ui-qa-validator` agent): `bunx nx run ui-kit:build` → `pnpm --dir libs/ui validate:tokens` → `pnpm exec oxfmt --config oxfmt.config.ts <files>` → stories render in `bunx nx run ui-kit:storybook`.

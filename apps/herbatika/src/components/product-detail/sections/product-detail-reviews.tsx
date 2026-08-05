@@ -49,7 +49,7 @@ function ProductDetailReviewsSkeleton() {
   const tCatalog = useTranslations("catalog")
 
   return (
-    // biome-ignore lint/a11y/useAriaPropsSupportedByRole: existing loading skeleton announces itself via aria-busy + aria-label; markup kept unchanged.
+    // existing loading skeleton announces itself via aria-busy + aria-label; markup kept unchanged.
     <div
       aria-busy="true"
       aria-label={tCatalog("reviews.loading_aria")}

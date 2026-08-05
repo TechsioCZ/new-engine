@@ -12,7 +12,6 @@
 /.mise.toml @RedEyeCZ
 /nx.json @RedEyeCZ
 /tsconfig*.json @RedEyeCZ
-/biome.json @RedEyeCZ
 /eslint.config.ts @RedEyeCZ
 /oxfmt.config.ts @RedEyeCZ
 /oxlint.config.ts @RedEyeCZ
