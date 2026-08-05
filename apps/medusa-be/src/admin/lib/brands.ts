@@ -191,7 +191,7 @@ export const brandQueryKeys = {
   products: (id: string | undefined, params: Record<string, unknown>) =>
     brandProductsQueryKeys.detail(id, params),
   productsLists: (id?: string) =>
-    id
+    id !== undefined && id !== ""
       ? (["brand-products", "detail", id] as const)
       : brandProductsQueryKeys.details(),
 }
@@ -211,30 +211,31 @@ export const listBrands = async (params: {
   offset: number
   order_by?: string
   q?: string
-}) => sdk.client.fetch<BrandsResponse>(`/admin/brands?${toSearch(params)}`)
+}) =>
+  await sdk.client.fetch<BrandsResponse>(`/admin/brands?${toSearch(params)}`)
 
 export const retrieveBrand = async (id: string) =>
-  sdk.client.fetch<BrandResponse>(`/admin/brands/${id}`)
+  await sdk.client.fetch<BrandResponse>(`/admin/brands/${id}`)
 
 export const createBrand = async (input: BrandInput) =>
-  sdk.client.fetch<BrandResponse>("/admin/brands", {
+  await sdk.client.fetch<BrandResponse>("/admin/brands", {
     body: input,
     method: "POST",
   })
 
 export const updateBrand = async (id: string, input: BrandUpdateInput) =>
-  sdk.client.fetch<BrandResponse>(`/admin/brands/${id}`, {
+  await sdk.client.fetch<BrandResponse>(`/admin/brands/${id}`, {
     body: input,
     method: "POST",
   })
 
 export const deleteBrand = async (id: string) =>
-  sdk.client.fetch(`/admin/brands/${id}`, {
+  await sdk.client.fetch(`/admin/brands/${id}`, {
     method: "DELETE",
   })
 
 export const restoreBrand = async (id: string) =>
-  sdk.client.fetch<BrandResponse>(`/admin/brands/${id}/restore`, {
+  await sdk.client.fetch<BrandResponse>(`/admin/brands/${id}/restore`, {
     method: "POST",
   })
 
@@ -246,7 +247,7 @@ export const listBrandAttributeTypes = async (params: {
   order_by?: string
   q?: string
 }) =>
-  sdk.client.fetch<BrandAttributeTypesResponse>(
+  await sdk.client.fetch<BrandAttributeTypesResponse>(
     `/admin/brands/attribute-types?${toSearch(params)}`,
   )
 
@@ -260,12 +261,12 @@ export const retrieveBrandAttributeType = async (
     q?: string
   },
 ) =>
-  sdk.client.fetch<BrandAttributeTypeDetailResponse>(
+  await sdk.client.fetch<BrandAttributeTypeDetailResponse>(
     `/admin/brands/attribute-types/${id}?${toSearch(params)}`,
   )
 
 export const createBrandAttributeType = async (input: { name: string }) =>
-  sdk.client.fetch<BrandAttributeTypeResponse>(
+  await sdk.client.fetch<BrandAttributeTypeResponse>(
     "/admin/brands/attribute-types",
     {
       body: input,
@@ -274,7 +275,7 @@ export const createBrandAttributeType = async (input: { name: string }) =>
   )
 
 export const deleteBrandAttributeType = async (id: string) =>
-  sdk.client.fetch<BrandAttributeTypeResponse>(
+  await sdk.client.fetch<BrandAttributeTypeResponse>(
     `/admin/brands/attribute-types/${id}`,
     {
       method: "DELETE",
@@ -282,7 +283,7 @@ export const deleteBrandAttributeType = async (id: string) =>
   )
 
 export const restoreBrandAttributeType = async (id: string) =>
-  sdk.client.fetch<BrandAttributeTypeResponse>(
+  await sdk.client.fetch<BrandAttributeTypeResponse>(
     `/admin/brands/attribute-types/${id}`,
     {
       method: "POST",
@@ -290,18 +291,23 @@ export const restoreBrandAttributeType = async (id: string) =>
   )
 
 export const retrieveProductBrands = async (productId: string) =>
-  sdk.client.fetch<ProductBrandsResponse>(`/admin/products/${productId}/brands`)
+  await sdk.client.fetch<ProductBrandsResponse>(
+    `/admin/products/${productId}/brands`,
+  )
 
 export const setProductBrands = async (
   productId: string,
   brandId?: null | string,
 ) =>
-  sdk.client.fetch<ProductBrandsResponse>(
+  await sdk.client.fetch<ProductBrandsResponse>(
     `/admin/products/${productId}/brands`,
     {
       // Keep the backend relation-replacement payload stable; cardinality is singular.
       body: {
-        brand_ids: brandId ? [brandId] : [],
+        brand_ids:
+          brandId !== undefined && brandId !== null && brandId !== ""
+            ? [brandId]
+            : [],
       },
       method: "POST",
     },
@@ -311,7 +317,7 @@ export const retrieveBrandProducts = async (
   brandId: string,
   params: { limit: number; offset: number; order_by?: string; q?: string },
 ) =>
-  sdk.client.fetch<BrandProductsResponse>(
+  await sdk.client.fetch<BrandProductsResponse>(
     `/admin/brands/${brandId}/products?${toSearch(params)}`,
   )
 
@@ -319,7 +325,7 @@ export const retrieveBrandProductOptions = async (
   brandId: string,
   params: { limit: number; offset: number; q?: string },
 ) =>
-  sdk.client.fetch<BrandProductOptionsResponse>(
+  await sdk.client.fetch<BrandProductOptionsResponse>(
     `/admin/brands/${brandId}/product-options?${toSearch(params)}`,
   )
 
@@ -327,7 +333,7 @@ export const updateBrandProducts = async (
   brandId: string,
   input: UpdateBrandProductsInput,
 ) =>
-  sdk.client.fetch<UpdateBrandProductsResponse>(
+  await sdk.client.fetch<UpdateBrandProductsResponse>(
     `/admin/brands/${brandId}/products`,
     {
       body: input,
@@ -340,4 +346,7 @@ export const listProducts = async (params: {
   limit: number
   offset: number
   q?: string
-}) => sdk.client.fetch<ProductsResponse>(`/admin/products?${toSearch(params)}`)
+}) =>
+  await sdk.client.fetch<ProductsResponse>(
+    `/admin/products?${toSearch(params)}`,
+  )
