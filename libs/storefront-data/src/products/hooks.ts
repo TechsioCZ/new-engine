@@ -5,8 +5,8 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import { omitUndefined } from "@techsio/std/object"
-import { useEffect, useMemo } from "react"
+import { isRecord, omitKeys, omitUndefined } from "@techsio/std/object"
+import { useEffect } from "react"
 
 import {
   createCacheConfig,
@@ -58,23 +58,33 @@ interface InfiniteProductsPageParam {
   page: number
 }
 
+const getNumberProperty = (
+  value: unknown,
+  property: string,
+): number | undefined => {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  const propertyValue = value[property]
+  return typeof propertyValue === "number" ? propertyValue : undefined
+}
+
 const isInfiniteProductsPageParam = (
   pageParam: unknown,
 ): pageParam is InfiniteProductsPageParam =>
-  typeof pageParam === "object" &&
-  pageParam !== null &&
-  typeof (pageParam as { offset?: unknown }).offset === "number" &&
-  typeof (pageParam as { page?: unknown }).page === "number"
+  getNumberProperty(pageParam, "offset") !== undefined &&
+  getNumberProperty(pageParam, "page") !== undefined
 
 const resolveInfiniteProductsPageParam = ({
-  pageParam,
   baseOffset,
   basePage,
+  pageParam,
   resolvedLimit,
 }: {
-  pageParam: unknown
   baseOffset: number
   basePage: number
+  pageParam: unknown
   resolvedLimit: number
 }): InfiniteProductsPageParam => {
   if (isInfiniteProductsPageParam(pageParam)) {
@@ -89,6 +99,48 @@ const resolveInfiniteProductsPageParam = ({
       : basePage
 
   return { offset, page }
+}
+
+const hasText = (value: string | undefined): value is string =>
+  typeof value === "string" && value.length > 0
+
+const runBestEffortPrefetch = async (
+  prefetch: () => Promise<unknown>,
+): Promise<void> => {
+  await Promise.allSettled([prefetch()])
+}
+
+class ParameterCloner {
+  private readonly cloneObject: (input: object) => object
+
+  constructor(cloneObject: (input: object) => object) {
+    this.cloneObject = cloneObject
+  }
+
+  clone<TOutput>(input: object, target?: TOutput): TOutput
+  clone(input: object): unknown {
+    return this.cloneObject(input)
+  }
+}
+
+const parameterCloner = new ParameterCloner((input) => ({ ...input }))
+
+const schedulePagePrefetches = (
+  pages: number[],
+  delay: number,
+  prefetchPage: (page: number) => Promise<unknown>,
+): ReturnType<typeof setTimeout> | undefined => {
+  if (pages.length === 0) {
+    return undefined
+  }
+
+  return setTimeout(() => {
+    for (const page of pages) {
+      void runBestEffortPrefetch(async () => {
+        await prefetchPage(page)
+      })
+    }
+  }, delay)
 }
 
 export interface PrefetchListOptions {
@@ -232,7 +284,7 @@ export interface ProductHooks<
   usePrefetchPages: (params: UsePrefetchPagesParams<TListInput>) => void
 }
 
-export function createProductHooks<
+export const createProductHooks = function createProductHooks<
   TProduct,
   TListInput extends ProductListInputBase,
   TListParams,
@@ -261,12 +313,11 @@ export function createProductHooks<
     createProductQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
   const buildList =
     buildListParams ??
-    ((input: TListInput) => ({ ...input }) as TListInput & TListParams)
-  const buildPrefetch =
-    buildPrefetchParams ?? ((input: TListInput) => buildList(input))
+    ((input: TListInput) => parameterCloner.clone<TListParams>(input))
+  const buildPrefetch = buildPrefetchParams ?? buildList
   const buildDetail =
     buildDetailParams ??
-    ((input: TDetailInput) => ({ ...input }) as TDetailInput & TDetailParams)
+    ((input: TDetailInput) => parameterCloner.clone<TDetailParams>(input))
   const { getListQueryOptions, getDetailQueryOptions } =
     createProductQueryOptionsFactory({
       buildDetailParams: buildDetail,
@@ -301,12 +352,13 @@ export function createProductHooks<
     )
 
     return omitUndefined({
-      queryKey,
-      queryFn,
       ...prefetchCacheOptions,
-      meta: options?.prefetchedBy
-        ? { prefetchedBy: options.prefetchedBy }
-        : undefined,
+      meta:
+        options?.prefetchedBy === undefined
+          ? undefined
+          : { prefetchedBy: options.prefetchedBy },
+      queryFn,
+      queryKey,
     })
   }
 
@@ -320,10 +372,10 @@ export function createProductHooks<
     },
   ) => {
     const { queryKey, queryFn } = createProductListQueryDefinition({
-      input,
-      service,
       buildListParams: buildPrefetch,
+      input,
       queryKeys: resolvedQueryKeys,
+      service,
       ...(options?.region === undefined ? {} : { region: options.region }),
       ...(options?.useGlobalFetcher === undefined
         ? {}
@@ -340,12 +392,13 @@ export function createProductHooks<
     )
 
     return omitUndefined({
-      queryKey,
-      queryFn,
       ...prefetchCacheOptions,
-      meta: options?.prefetchedBy
-        ? { prefetchedBy: options.prefetchedBy }
-        : undefined,
+      meta:
+        options?.prefetchedBy === undefined
+          ? undefined
+          : { prefetchedBy: options.prefetchedBy },
+      queryFn,
+      queryKey,
     })
   }
 
@@ -370,25 +423,24 @@ export function createProductHooks<
     )
 
     return omitUndefined({
-      queryKey,
-      queryFn,
       ...prefetchCacheOptions,
-      meta: options?.prefetchedBy
-        ? { prefetchedBy: options.prefetchedBy }
-        : undefined,
+      meta:
+        options?.prefetchedBy === undefined
+          ? undefined
+          : { prefetchedBy: options.prefetchedBy },
+      queryFn,
+      queryKey,
     })
   }
 
-  function useProducts(
+  const useProducts = (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<ProductListResponse<TProduct>>
     },
-  ): UseProductsResult<TProduct> {
+  ): UseProductsResult<TProduct> => {
     const contextRegion = useRegionContext()
-    const { enabled: inputEnabled } = input as TListInput & {
-      enabled?: boolean
-    }
+    const inputEnabled = input.enabled
     const resolvedInput = resolveProductQueryInput(input, contextRegion)
     const listParams = buildList(resolvedInput)
     const enabled =
@@ -406,8 +458,8 @@ export function createProductHooks<
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
 
-    const limitFromParams = (listParams as { limit?: number }).limit
-    const offsetFromParams = (listParams as { offset?: number }).offset
+    const limitFromParams = getNumberProperty(listParams, "limit")
+    const offsetFromParams = getNumberProperty(listParams, "offset")
     const pagination = resolvePagination(
       omitUndefined({
         limit: limitFromParams ?? resolvedInput.limit,
@@ -441,22 +493,17 @@ export function createProductHooks<
     input: TListInput & ProductInfiniteInputBase,
     contextRegion: RegionInfo | null,
   ) => {
-    const {
-      enabled: inputEnabled,
-      initialLimit,
-      ...baseInput
-    } = input as TListInput & {
-      enabled?: boolean
-      initialLimit?: number
-    }
+    const inputEnabled = input.enabled
+    const { initialLimit } = input
+    const baseInput = omitKeys(input, ["enabled", "initialLimit"])
     const resolvedInput = resolveProductQueryInput(
-      { ...baseInput } as TListInput,
+      parameterCloner.clone<TListInput>(baseInput),
       contextRegion,
     )
     const enabled =
       inputEnabled ?? (!requireRegion || Boolean(resolvedInput.region_id))
 
-    const limitFromInput = (resolvedInput as { limit?: number }).limit
+    const limitFromInput = resolvedInput.limit
     const resolvedLimit =
       typeof limitFromInput === "number" && limitFromInput > 0
         ? limitFromInput
@@ -466,7 +513,7 @@ export function createProductHooks<
         ? initialLimit
         : undefined
     const initialPageLimit = resolvedInitialLimit ?? resolvedLimit
-    const offsetFromInput = (resolvedInput as { offset?: number }).offset
+    const offsetFromInput = getNumberProperty(resolvedInput, "offset")
     const pageFromInput = resolvedInput.page ?? 1
     const baseOffset =
       typeof offsetFromInput === "number"
@@ -501,7 +548,7 @@ export function createProductHooks<
     })
   }
 
-  function useInfiniteProducts(
+  const useInfiniteProducts = (
     input: TListInput & ProductInfiniteInputBase,
     options?: {
       queryOptions?: InfiniteQueryOptions<
@@ -510,7 +557,7 @@ export function createProductHooks<
         ProductInfiniteData<TProduct>
       >
     },
-  ): UseInfiniteProductsResult<TProduct> {
+  ): UseInfiniteProductsResult<TProduct> => {
     const contextRegion = useRegionContext()
     const {
       enabled,
@@ -535,9 +582,9 @@ export function createProductHooks<
       enabled,
       getNextPageParam: (lastPage, _pages, lastPageParam) => {
         const { page } = resolveInfiniteProductsPageParam({
-          pageParam: lastPageParam,
           baseOffset,
           basePage,
+          pageParam: lastPageParam,
           resolvedLimit,
         })
         const limit = lastPage.limit ?? resolvedLimit
@@ -556,21 +603,21 @@ export function createProductHooks<
       },
       queryFn: async ({ pageParam, signal }) => {
         const { offset, page } = resolveInfiniteProductsPageParam({
-          pageParam,
           baseOffset,
           basePage,
+          pageParam,
           resolvedLimit,
         })
         const limitForPage =
           page === basePage ? initialPageLimit : resolvedLimit
-        const pageInput = {
+        const pageInput = parameterCloner.clone<TListInput>({
           ...resolvedInput,
-          page,
           limit: limitForPage,
           offset,
-        } as TListInput & { offset?: number }
+          page,
+        })
         const listParams = buildList(pageInput)
-        return service.getProducts(listParams, signal)
+        return await service.getProducts(listParams, signal)
       },
       queryKey: resolvedQueryKey,
       ...resolvedCacheConfig.semiStatic,
@@ -590,39 +637,37 @@ export function createProductHooks<
 
     return {
       error: toErrorMessage(error),
-      fetchNextPage: async () => fetchNextPage(),
-      hasNextPage: Boolean(hasNextPage),
+      fetchNextPage: async () => await fetchNextPage(),
+      hasNextPage: hasNextPage ?? false,
       isFetching,
       isFetchingNextPage,
       isLoading,
       isSuccess,
       products: data?.pages.flatMap((page) => page.products) ?? [],
       query,
-      refetch: async () => refetch(),
+      refetch: async () => await refetch(),
       totalCount: data?.pages[0]?.count ?? 0,
     }
   }
 
-  function useSuspenseProducts(
+  const useSuspenseProducts = (
     input: SuspenseInput<TListInput>,
     options?: {
       queryOptions?: SuspenseQueryOptions<ProductListResponse<TProduct>>
     },
-  ): UseSuspenseProductsResult<TProduct> {
+  ): UseSuspenseProductsResult<TProduct> => {
     const contextRegion = useRegionContext()
-    const resolvedInput = resolveProductQueryInput(
-      input as TListInput,
-      contextRegion,
-    )
+    const queryInput = parameterCloner.clone<TListInput>(input)
+    const resolvedInput = resolveProductQueryInput(queryInput, contextRegion)
 
-    if (requireRegion && !resolvedInput.region_id) {
+    if (requireRegion && !hasText(resolvedInput.region_id)) {
       throw new Error("Region is required for product queries")
     }
 
     const listParams = buildList(resolvedInput)
     const query = useSuspenseQuery(
       getListQueryOptions(
-        input as TListInput,
+        queryInput,
         omitUndefined({
           queryOptions: options?.queryOptions,
           region: contextRegion,
@@ -631,8 +676,8 @@ export function createProductHooks<
     )
     const { data, isFetching } = query
 
-    const limitFromParams = (listParams as { limit?: number }).limit
-    const offsetFromParams = (listParams as { offset?: number }).offset
+    const limitFromParams = getNumberProperty(listParams, "limit")
+    const offsetFromParams = getNumberProperty(listParams, "offset")
     const pagination = resolvePagination(
       omitUndefined({
         limit: limitFromParams ?? resolvedInput.limit,
@@ -662,14 +707,12 @@ export function createProductHooks<
     }
   }
 
-  function useProduct(
+  const useProduct = (
     input: TDetailInput,
     options?: { queryOptions?: ReadQueryOptions<TProduct | null> },
-  ): UseProductResult<TProduct> {
+  ): UseProductResult<TProduct> => {
     const contextRegion = useRegionContext()
-    const { enabled: inputEnabled } = input as TDetailInput & {
-      enabled?: boolean
-    }
+    const inputEnabled = input.enabled
     const resolvedInput = resolveProductQueryInput(input, contextRegion)
     const enabled =
       inputEnabled ??
@@ -698,27 +741,25 @@ export function createProductHooks<
     }
   }
 
-  function useSuspenseProduct(
+  const useSuspenseProduct = (
     input: SuspenseInput<TDetailInput>,
     options?: { queryOptions?: SuspenseQueryOptions<TProduct | null> },
-  ): UseSuspenseProductResult<TProduct> {
+  ): UseSuspenseProductResult<TProduct> => {
     const contextRegion = useRegionContext()
-    const resolvedInput = resolveProductQueryInput(
-      input as TDetailInput,
-      contextRegion,
-    )
+    const queryInput = parameterCloner.clone<TDetailInput>(input)
+    const resolvedInput = resolveProductQueryInput(queryInput, contextRegion)
 
-    if (requireRegion && !resolvedInput.region_id) {
+    if (requireRegion && !hasText(resolvedInput.region_id)) {
       throw new Error("Region is required for product queries")
     }
 
-    if (!resolvedInput.handle) {
+    if (!hasText(resolvedInput.handle)) {
       throw new Error("Product handle is required for product queries")
     }
 
     const query = useSuspenseQuery(
       getDetailQueryOptions(
-        input as TDetailInput,
+        queryInput,
         omitUndefined({
           queryOptions: options?.queryOptions,
           region: contextRegion,
@@ -737,12 +778,12 @@ export function createProductHooks<
     }
   }
 
-  function usePrefetchProducts(options?: {
+  const usePrefetchProducts = (options?: {
     cacheStrategy?: CacheStrategy
     defaultDelay?: number
     skipIfCached?: boolean
     skipMode?: PrefetchSkipMode
-  }) {
+  }) => {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
     const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
@@ -756,11 +797,13 @@ export function createProductHooks<
       prefetchOptions?: PrefetchListOptions,
     ) => {
       const resolvedInput = resolveProductQueryInput(input, contextRegion)
-      if (requireRegion && !resolvedInput.region_id) {
+      if (requireRegion && !hasText(resolvedInput.region_id)) {
         return
       }
       const useGlobalFetcher =
-        prefetchOptions?.useGlobalFetcher && service.getProductsGlobal
+        prefetchOptions?.useGlobalFetcher === true
+          ? service.getProductsGlobal
+          : undefined
       const skipIfCachedResolved = prefetchOptions?.skipIfCached ?? skipIfCached
       const skipModeResolved = prefetchOptions?.skipMode ?? skipMode
       const cacheStrategyResolved =
@@ -807,11 +850,13 @@ export function createProductHooks<
       prefetchOptions?: PrefetchListOptions,
     ) => {
       const resolvedInput = resolveProductQueryInput(input, contextRegion)
-      if (requireRegion && !resolvedInput.region_id) {
+      if (requireRegion && !hasText(resolvedInput.region_id)) {
         return
       }
       const useGlobalFetcher =
-        prefetchOptions?.useGlobalFetcher && service.getProductsGlobal
+        prefetchOptions?.useGlobalFetcher === true
+          ? service.getProductsGlobal
+          : undefined
       const skipIfCachedResolved = prefetchOptions?.skipIfCached ?? skipIfCached
       const skipModeResolved = prefetchOptions?.skipMode ?? skipMode
       const cacheStrategyResolved =
@@ -862,7 +907,13 @@ export function createProductHooks<
       const listParams = buildList(resolvedInput)
       const queryKey = resolvedQueryKeys.list(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      return schedulePrefetch(async () => prefetchProducts(input), id, delay)
+      return schedulePrefetch(
+        async () => {
+          await prefetchProducts(input)
+        },
+        id,
+        delay,
+      )
     }
 
     return {
@@ -873,12 +924,12 @@ export function createProductHooks<
     }
   }
 
-  function usePrefetchProduct(options?: {
+  const usePrefetchProduct = (options?: {
     cacheStrategy?: CacheStrategy
     defaultDelay?: number
     skipIfCached?: boolean
     skipMode?: PrefetchSkipMode
-  }) {
+  }) => {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
     const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
@@ -892,10 +943,10 @@ export function createProductHooks<
       prefetchOptions?: PrefetchProductOptions,
     ) => {
       const resolvedInput = resolveProductQueryInput(input, contextRegion)
-      if (requireRegion && !resolvedInput.region_id) {
+      if (requireRegion && !hasText(resolvedInput.region_id)) {
         return
       }
-      if (!resolvedInput.handle) {
+      if (!hasText(resolvedInput.handle)) {
         return
       }
       const skipIfCachedResolved = prefetchOptions?.skipIfCached ?? skipIfCached
@@ -946,7 +997,13 @@ export function createProductHooks<
       const detailParams = buildDetail(resolvedInput)
       const queryKey = resolvedQueryKeys.detail(detailParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      return schedulePrefetch(async () => prefetchProduct(input), id, delay)
+      return schedulePrefetch(
+        async () => {
+          await prefetchProduct(input)
+        },
+        id,
+        delay,
+      )
     }
 
     return {
@@ -956,54 +1013,45 @@ export function createProductHooks<
     }
   }
 
-  function usePrefetchPages(params: UsePrefetchPagesParams<TListInput>) {
+  const usePrefetchPages = (
+    params: UsePrefetchPagesParams<TListInput>,
+  ): void => {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
-    const resolvedBaseInput = useMemo(
-      () => resolveProductQueryInput(params.baseInput, contextRegion),
-      [params.baseInput, contextRegion],
+    const resolvedBaseInput = resolveProductQueryInput(
+      params.baseInput,
+      contextRegion,
     )
 
     useEffect(() => {
-      if (params.enabled === false || params.shouldPrefetch === false) {
-        return
-      }
-      if (requireRegion && !resolvedBaseInput.region_id) {
-        return
+      const timers: ReturnType<typeof setTimeout>[] = []
+
+      if (
+        params.enabled === false ||
+        params.shouldPrefetch === false ||
+        (requireRegion && !hasText(resolvedBaseInput.region_id))
+      ) {
+        return () => {
+          timers.length = 0
+        }
       }
 
       const cacheStrategy = params.cacheStrategy ?? "semiStatic"
       const mode = params.mode ?? "priority"
       const mediumDelay = params.delays?.medium ?? 500
       const lowDelay = params.delays?.low ?? 1500
-      const timers: ReturnType<typeof setTimeout>[] = []
 
       const prefetchPage = async (page: number) => {
-        const inputWithPage = {
+        const inputWithPage = parameterCloner.clone<TListInput>({
           ...resolvedBaseInput,
           limit: params.pageSize,
           page,
-        } as TListInput
+        })
 
-        return queryClient.prefetchQuery(
+        await queryClient.prefetchQuery(
           createProductsListPrefetchQueryOptions(inputWithPage, {
             cacheStrategy,
           }),
-        )
-      }
-
-      const scheduleDelayedPrefetch = (pages: number[], delay: number) => {
-        if (pages.length === 0) {
-          return
-        }
-        timers.push(
-          setTimeout(() => {
-            for (const page of pages) {
-              void prefetchPage(page).catch(() => {
-                // best-effort background prefetch
-              })
-            }
-          }, delay),
         )
       }
 
@@ -1016,12 +1064,23 @@ export function createProductHooks<
       })
 
       for (const page of plan.immediate) {
-        void prefetchPage(page).catch(() => {
-          // best-effort background prefetch
+        void runBestEffortPrefetch(async () => {
+          await prefetchPage(page)
         })
       }
-      scheduleDelayedPrefetch(plan.medium, mediumDelay)
-      scheduleDelayedPrefetch(plan.low, lowDelay)
+
+      const mediumTimer = schedulePagePrefetches(
+        plan.medium,
+        mediumDelay,
+        prefetchPage,
+      )
+      const lowTimer = schedulePagePrefetches(plan.low, lowDelay, prefetchPage)
+      if (mediumTimer !== undefined) {
+        timers.push(mediumTimer)
+      }
+      if (lowTimer !== undefined) {
+        timers.push(lowTimer)
+      }
 
       return () => {
         for (const timer of timers) {
