@@ -101,8 +101,8 @@ export function createMedusaProductReviewService(
       const response = await sdk.client.fetch<
         StoreCreateProductReviewResponse<ReviewBase>
       >("/store/reviews", {
-        method: "POST",
         body: input,
+        method: "POST",
       })
 
       return mapReview(response.review)
@@ -132,7 +132,7 @@ export function createMedusaProductReviewService(
         query,
         signal: signal ?? null,
       })
-      let summary = response.summary
+      let { summary } = response
 
       if (hasCompleteReviewSet(response)) {
         summary = calculateReviewSummary(response.reviews)

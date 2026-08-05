@@ -157,7 +157,7 @@ const PayloadRedirectPage = () => {
       style={{
         backgroundColor: payloadFrameBackground,
         colorScheme: "dark",
-        height: height !== null ? `${height}px` : iframeHeight,
+        height: height === null ? iframeHeight : `${height}px`,
         overflow: "hidden",
         width: "100%",
       }}

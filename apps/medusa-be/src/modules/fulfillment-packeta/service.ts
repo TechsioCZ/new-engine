@@ -466,7 +466,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     switch (documentType) {
       case "label": {
         return data.label_url
-          ? { type: "label", url: data.label_url, format: "pdf" }
+          ? { format: "pdf", type: "label", url: data.label_url }
           : null
       }
       case "tracking": {

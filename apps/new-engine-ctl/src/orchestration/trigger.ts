@@ -1,5 +1,5 @@
-import type { resolveTriggerTargets } from "../contracts/trigger.js"
 import {
+  type resolveTriggerTargets,
   type TriggerResponse,
   triggerResponseSchema,
 } from "../contracts/trigger.js"
@@ -22,10 +22,10 @@ export async function executeTriggerPayload(input: {
         git_commit_sha: input.gitCommitSha ?? null,
         project_slug: input.projectSlug,
         services: targets.map((target) => ({
+          deployment_hash: `dry-run:deploy:${target.service_slug}`,
           service_id: target.service_id,
           service_slug: target.service_slug,
           service_type: target.service_type ?? null,
-          deployment_hash: `dry-run:deploy:${target.service_slug}`,
           status: "HEALTHY",
         })),
         triggered_service_ids: targets.map((target) => target.service_id),

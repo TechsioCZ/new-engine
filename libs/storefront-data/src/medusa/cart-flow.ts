@@ -185,7 +185,7 @@ export function createMedusaCartFlow({
     createDefaultActiveCartQueryMatcher(cartQueryKeys)
 
   const retrieveCartById = async (cartId: string, signal?: AbortSignal) =>
-    storefront.services.cart.retrieveCart(cartId, signal)
+    await storefront.services.cart.retrieveCart(cartId, signal)
 
   const fetchCanonicalCart = async (
     cartId: string,
@@ -406,7 +406,7 @@ export function createMedusaCartFlow({
     }
 
     queryClient.setQueryData(orderQueryKeys.detail({ id: order.id }), order)
-    return Promise.all(invalidations).then(() => {
+    return await Promise.all(invalidations).then(() => {
       onSuccess?.(order)
     })
   }
@@ -436,11 +436,11 @@ export function createMedusaCartFlow({
 
         return handleOrderCompletionSuccess(
           omitUndefined({
-            queryClient,
-            order: result.order,
-            variables,
             context: context ?? null,
             onSuccess: options?.onSuccess,
+            order: result.order,
+            queryClient,
+            variables,
           }),
         )
       },

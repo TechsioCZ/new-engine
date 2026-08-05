@@ -89,7 +89,7 @@ export function useCart(): UseCartReturn {
 
   return {
     cart,
-    error: error,
+    error,
     hasItems,
     isEmpty,
     isError,
@@ -226,7 +226,7 @@ export function useUpdateLineItem() {
     CartMutationContext
   >({
     mutationFn: async ({ cartId, lineItemId, quantity }) =>
-      updateLineItem(cartId, lineItemId, quantity),
+      await updateLineItem(cartId, lineItemId, quantity),
     onError: (error, _variables, context) => {
       if (context?.previousCart) {
         queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
@@ -246,12 +246,12 @@ export function useUpdateLineItem() {
       if (previousCart?.items) {
         const updatedCart: OptimisticCart = {
           ...previousCart,
+          _optimistic: true,
           items: previousCart.items.map((item): OptimisticLineItem =>
             item.id === lineItemId
               ? { ...item, quantity, _optimistic: true }
               : item,
           ),
-          _optimistic: true,
         }
 
         queryClient.setQueryData(queryKeys.cart.active(), updatedCart)
@@ -285,7 +285,7 @@ export function useRemoveLineItem() {
     CartMutationContext
   >({
     mutationFn: async ({ cartId, lineItemId }) =>
-      removeLineItem(cartId, lineItemId),
+      await removeLineItem(cartId, lineItemId),
     onError: (error, _variables, context) => {
       if (context?.previousCart) {
         queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
@@ -305,8 +305,8 @@ export function useRemoveLineItem() {
       if (previousCart?.items) {
         const updatedCart: OptimisticCart = {
           ...previousCart,
-          items: previousCart.items.filter((item) => item.id !== lineItemId),
           _optimistic: true,
+          items: previousCart.items.filter((item) => item.id !== lineItemId),
         }
 
         queryClient.setQueryData(queryKeys.cart.active(), updatedCart)
@@ -344,7 +344,7 @@ export function useCompleteCart(options?: UseCompleteCartOptions) {
     { cartId: string },
     CartMutationContext
   >({
-    mutationFn: async ({ cartId }) => completeCart(cartId),
+    mutationFn: async ({ cartId }) => await completeCart(cartId),
     onError: (error) => {
       if (process.env.NODE_ENV === "development") {
         console.error("[useCompleteCart] Failed to complete cart:", error)
@@ -352,7 +352,7 @@ export function useCompleteCart(options?: UseCompleteCartOptions) {
     },
     onSuccess: async (result) => {
       if (result.success) {
-        const order = result.order
+        const { order } = result
 
         // Clear cart cache
         queryClient.setQueryData(queryKeys.cart.active(), null)

@@ -18,14 +18,14 @@ const meta: Meta<typeof FormCheckbox> = {
     // Appearance
     size: {
       control: "select",
-      options: ["sm", "md", "lg"],
       description: "Size of the checkbox and label",
+      options: ["sm", "md", "lg"],
       table: { defaultValue: { summary: "md" } },
     },
     validateStatus: {
       control: "select",
-      options: ["default", "error", "success", "warning"],
       description: "Validation status",
+      options: ["default", "error", "success", "warning"],
       table: { defaultValue: { summary: "default" } },
     },
     showHelpTextIcon: {

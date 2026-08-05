@@ -162,7 +162,8 @@ export function createCustomerHooks<
 
     const query = useQuery({
       enabled,
-      queryFn: async ({ signal }) => service.getAddresses(listParams, signal),
+      queryFn: async ({ signal }) =>
+        await service.getAddresses(listParams, signal),
       queryKey,
       ...resolvedCacheConfig.userData,
       ...options?.queryOptions,
@@ -190,7 +191,8 @@ export function createCustomerHooks<
     }
     const listParams = buildList(listInput as TListInput)
     const query = useSuspenseQuery({
-      queryFn: async ({ signal }) => service.getAddresses(listParams, signal),
+      queryFn: async ({ signal }) =>
+        await service.getAddresses(listParams, signal),
       queryKey: resolvedQueryKeys.addresses(listParams),
       ...resolvedCacheConfig.userData,
       ...options?.queryOptions,
@@ -219,7 +221,7 @@ export function createCustomerHooks<
         assertStorefrontAddressValidation(
           addressAdapter?.validateCreate?.(normalized, { mode: "create" }),
         )
-        return service.createAddress(
+        return await service.createAddress(
           buildCreate(normalized, { mode: "create" }),
         )
       },
@@ -262,7 +264,7 @@ export function createCustomerHooks<
             mode: "update",
           }),
         )
-        return service.updateAddress(
+        return await service.updateAddress(
           addressId,
           buildUpdate(normalized, {
             mode: "update",
@@ -297,7 +299,7 @@ export function createCustomerHooks<
         if (!addressId) {
           throw new Error("Address id is required")
         }
-        return service.deleteAddress(addressId)
+        return await service.deleteAddress(addressId)
       },
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: async (data, variables, context) => {
@@ -331,7 +333,7 @@ export function createCustomerHooks<
         if (!service.updateCustomer) {
           throw new Error("updateCustomer service is not configured")
         }
-        return service.updateCustomer(buildUpdateCustomer(input))
+        return await service.updateCustomer(buildUpdateCustomer(input))
       },
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: async (customer, variables, context) => {

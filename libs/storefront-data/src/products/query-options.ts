@@ -95,17 +95,17 @@ export function createProductQueryOptionsFactory<
       options,
     ): QueryFactoryOptions<TProduct | null> => {
       const { queryKey, queryFn } = createProductDetailQueryDefinition({
-        input,
-        service,
         buildDetailParams: buildDetail,
+        input,
         queryKeys: resolvedQueryKeys,
-        ...(options?.region !== undefined ? { region: options.region } : {}),
+        service,
+        ...(options?.region === undefined ? {} : { region: options.region }),
       })
       const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
 
       return {
-        queryKey,
         queryFn,
+        queryKey,
         ...resolvedCacheConfig[cacheStrategy],
         ...options?.queryOptions,
       }
@@ -115,20 +115,20 @@ export function createProductQueryOptionsFactory<
       options,
     ): QueryFactoryOptions<ProductListResponse<TProduct>> => {
       const { queryKey, queryFn } = createProductListQueryDefinition({
-        input,
-        service,
         buildListParams: buildList,
+        input,
         queryKeys: resolvedQueryKeys,
-        ...(options?.region !== undefined ? { region: options.region } : {}),
-        ...(options?.useGlobalFetcher !== undefined
-          ? { useGlobalFetcher: options.useGlobalFetcher }
-          : {}),
+        service,
+        ...(options?.region === undefined ? {} : { region: options.region }),
+        ...(options?.useGlobalFetcher === undefined
+          ? {}
+          : { useGlobalFetcher: options.useGlobalFetcher }),
       })
       const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
 
       return {
-        queryKey,
         queryFn,
+        queryKey,
         ...resolvedCacheConfig[cacheStrategy],
         ...options?.queryOptions,
       }

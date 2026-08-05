@@ -17,19 +17,19 @@ figma.connect(
     imports: ['import { Accordion } from "@libs/ui/molecules/accordion"'],
     props: {
       shadow: figma.enum("shadow", {
+        md: "md",
         none: "none",
         sm: "sm",
-        md: "md",
       }),
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
       variant: figma.enum("variant", {
-        default: "default",
         borderless: "borderless",
         child: "child",
+        default: "default",
       }),
     },
   },

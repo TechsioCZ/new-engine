@@ -68,12 +68,12 @@ export function ProductFilters({
     if (!cachedData || queryState?.isInvalidated) {
       void queryClient.prefetchQuery({
         queryFn: async () =>
-          getProducts({
+          await getProducts({
+            filters: productFilters,
             limit: 12,
             offset: 0,
-            filters: productFilters,
-            sort: "newest",
             region_id: selectedRegion?.id,
+            sort: "newest",
           }),
         queryKey,
         ...cacheConfig.semiStatic, // Use consistent cache config

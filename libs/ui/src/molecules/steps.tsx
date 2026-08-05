@@ -459,10 +459,7 @@ Steps.Trigger = function StepsTrigger({
     onClick: onTriggerClick,
     disabled: machineDisabled,
     ...restTriggerProps
-  } = triggerProps as typeof triggerProps & {
-    disabled?: boolean | undefined
-    onClick?: ButtonProps["onClick"] | undefined
-  }
+  } = triggerProps
   const { onClick, ...restProps } = props
   const buttonProps = mergeProps(restTriggerProps, restProps)
   const isDisabled = Boolean(machineDisabled || disabled)

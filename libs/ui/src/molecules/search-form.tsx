@@ -60,8 +60,8 @@ const searchFormVariants = tv({
     gapped: {
       // Joined: strip the touching corners so the two controls read as one.
       false: {
-        input: "rounded-e-none",
         button: "rounded-s-none",
+        input: "rounded-e-none",
       },
       // Detached: 8px gap and the controls keep their full rounded corners.
       true: { control: "gap-search-form-gapped" },
@@ -71,19 +71,19 @@ const searchFormVariants = tv({
       // the input height — including `lg`, which the Button atom sizes by
       // padding alone. The clear button trails the input by its inline padding.
       sm: {
-        root: "gap-search-form-sm",
         button: "h-form-control-sm",
         clearButton: "end-(length:--padding-input-sm)",
+        root: "gap-search-form-sm",
       },
       md: {
-        root: "gap-search-form-md",
         button: "h-form-control-md",
         clearButton: "end-(length:--padding-input-md)",
+        root: "gap-search-form-md",
       },
       lg: {
-        root: "gap-search-form-lg",
         button: "h-form-control-lg",
         clearButton: "end-(length:--padding-input-lg)",
+        root: "gap-search-form-lg",
       },
     },
   },

@@ -68,8 +68,8 @@ export const createLexicalEditor = () =>
             fields: [
               {
                 name: "alt",
-                type: "text",
                 required: true,
+                type: "text",
               },
             ],
           },

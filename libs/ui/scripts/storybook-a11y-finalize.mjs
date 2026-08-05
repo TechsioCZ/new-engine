@@ -5,7 +5,7 @@ import path from "node:path"
 
 function readArg(name) {
   const index = process.argv.indexOf(name)
-  return index !== -1 ? (process.argv[index + 1] ?? null) : null
+  return index === -1 ? null : (process.argv[index + 1] ?? null)
 }
 
 function loadJson(filePath, label) {
@@ -24,11 +24,11 @@ function writeAtomic(filePath, contents) {
 
 function escapeXml(value) {
   return String(value)
-    .replaceAll(/&/g, "&amp;")
-    .replaceAll(/</g, "&lt;")
-    .replaceAll(/>/g, "&gt;")
-    .replaceAll(/"/g, "&quot;")
-    .replaceAll(/'/g, "&apos;")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;")
 }
 
 function formatJUnit(entries) {

@@ -68,8 +68,8 @@ export function createMedusaRegionService(
           },
         )
       return {
-        regions: response.regions ?? [],
         count: response.count ?? response.regions?.length ?? 0,
+        regions: response.regions ?? [],
       }
     },
   }
