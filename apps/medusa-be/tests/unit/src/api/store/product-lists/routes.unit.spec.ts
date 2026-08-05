@@ -1,32 +1,50 @@
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework/http"
 import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import type {
+  StoreCreateFavoriteProductListItemSchemaType,
+  StoreCreateProductListItemSchemaType,
+  StoreGetProductListsSchemaType,
+  StoreIncrementProductListItemQuantitySchemaType,
+} from "../../../../../../src/api/store/product-lists/validators"
 import { PRODUCT_LIST_MODULE } from "../../../../../../src/modules/product-list/constants"
 
 const workflowMocks = vi.hoisted(() => {
-  const createCustomerProductListRun = vi.fn()
-  const createProductListItemRun = vi.fn()
-  const addFavoriteProductListItemRun = vi.fn()
-  const incrementProductListItemRun = vi.fn()
+  const createCustomerProductListRun = vi.fn<() => Promise<unknown>>()
+  const createProductListItemRun = vi.fn<() => Promise<unknown>>()
+  const addFavoriteProductListItemRun = vi.fn<() => Promise<unknown>>()
+  const incrementProductListItemRun = vi.fn<() => Promise<unknown>>()
 
   return {
     addFavoriteProductListItemRun,
-    addFavoriteProductListItemWorkflow: vi.fn(() => ({
+    addFavoriteProductListItemWorkflow: vi.fn<
+      () => { run: typeof addFavoriteProductListItemRun }
+    >(() => ({
       run: addFavoriteProductListItemRun,
     })),
     createCustomerProductListRun,
-    createCustomerProductListWorkflow: vi.fn(() => ({
+    createCustomerProductListWorkflow: vi.fn<
+      () => { run: typeof createCustomerProductListRun }
+    >(() => ({
       run: createCustomerProductListRun,
     })),
     createProductListItemRun,
-    createProductListItemWorkflow: vi.fn(() => ({
+    createProductListItemWorkflow: vi.fn<
+      () => { run: typeof createProductListItemRun }
+    >(() => ({
       run: createProductListItemRun,
     })),
     incrementProductListItemRun,
-    incrementProductListItemWorkflow: vi.fn(() => ({
+    incrementProductListItemWorkflow: vi.fn<
+      () => { run: typeof incrementProductListItemRun }
+    >(() => ({
       run: incrementProductListItemRun,
     })),
   }
@@ -87,6 +105,56 @@ interface ProductListServiceMock {
   retrieveProductList: ReturnType<typeof vi.fn>
 }
 
+/**
+ * Asserts that a plain mock object contains the given keys before narrowing
+ * it to a framework type. Building the mock as `unknown` first (instead of
+ * the target type) avoids requiring every property of the huge Node
+ * request/response interfaces while still validating the shape the route
+ * handler actually reads from at runtime.
+ */
+const assertMockShape: <T>(
+  candidate: unknown,
+  requiredKeys: readonly (keyof T)[],
+) => asserts candidate is T = (candidate, requiredKeys) => {
+  if (typeof candidate !== "object" || candidate === null) {
+    throw new TypeError("Expected a mock object")
+  }
+
+  for (const key of requiredKeys) {
+    if (!(key in candidate)) {
+      throw new TypeError(`Mock object missing required key: ${String(key)}`)
+    }
+  }
+}
+
+const AUTHENTICATED_REQUEST_KEYS = [
+  "auth_context",
+  "params",
+  "scope",
+  "validatedBody",
+  "validatedQuery",
+] as const
+
+/**
+ * Wraps `expect.objectContaining` with an explicit `unknown` return type.
+ * Vitest types this matcher factory as `any`, so using it directly as a
+ * nested object-literal property value trips `no-unsafe-assignment`.
+ */
+const objectContaining = (value: Record<string, unknown>): unknown =>
+  expect.objectContaining(value)
+
+type MockMedusaResponse = MedusaResponse & {
+  json: ReturnType<typeof vi.fn>
+  status: ReturnType<typeof vi.fn>
+}
+
+interface ProductListCreationModule {
+  POST: (
+    req: AuthenticatedMedusaRequest<Record<string, unknown>>,
+    res: MockMedusaResponse,
+  ) => Promise<void>
+}
+
 const createProductList = (
   overrides: Partial<Record<string, unknown>> = {},
 ) => ({
@@ -119,9 +187,9 @@ const createProductListItem = (
 const createProductListService = (
   overrides: Partial<ProductListServiceMock> = {},
 ): ProductListServiceMock => ({
-  listAndCountProductLists: vi.fn(),
-  listProductListItems: vi.fn().mockResolvedValue([]),
-  retrieveProductList: vi.fn(),
+  listAndCountProductLists: vi.fn<() => unknown>(),
+  listProductListItems: vi.fn<() => Promise<unknown>>().mockResolvedValue([]),
+  retrieveProductList: vi.fn<() => unknown>(),
   ...overrides,
 })
 
@@ -134,7 +202,7 @@ const createGraphMock = ({
   productLinks?: Record<string, unknown>[]
   variantLinks?: Record<string, unknown>[]
 } = {}) =>
-  vi.fn(({ entity }: { entity: string }) => {
+  vi.fn<(args: { entity: string }) => unknown>(({ entity }) => {
     if (entity === "customer_product_list") {
       return { data: customerLinks }
     }
@@ -150,26 +218,31 @@ const createGraphMock = ({
     throw new Error(`Unexpected graph entity: ${entity}`)
   })
 
-const createMockRequest = ({
-  actorId = "cus_1",
-  graph = createGraphMock(),
-  params = {},
-  productListService = createProductListService(),
-  validatedBody = {},
-  validatedQuery = {},
-}: {
-  actorId?: string | undefined
-  graph?: ReturnType<typeof createGraphMock>
-  params?: Record<string, string | undefined>
-  productListService?: ProductListServiceMock
-  validatedBody?: Record<string, unknown>
-  validatedQuery?: Record<string, unknown>
-} = {}) =>
-  ({
-    auth_context: actorId === undefined ? undefined : { actor_id: actorId },
+const createMockRequest = <T>(
+  options: {
+    actorId?: string | null
+    graph?: ReturnType<typeof createGraphMock>
+    params?: Record<string, string | undefined>
+    productListService?: ProductListServiceMock
+    validatedBody?: Record<string, unknown>
+    validatedQuery?: Record<string, unknown>
+  },
+  requiredKeys: readonly (keyof T)[],
+): T => {
+  const {
+    actorId = "cus_1",
+    graph = createGraphMock(),
+    params = {},
+    productListService = createProductListService(),
+    validatedBody = {},
+    validatedQuery = {},
+  } = options
+
+  const candidate: unknown = {
+    auth_context: actorId === null ? undefined : { actor_id: actorId },
     params,
     scope: {
-      resolve: vi.fn((key: string) => {
+      resolve: vi.fn<(key: string) => unknown>((key) => {
         if (key === PRODUCT_LIST_MODULE) {
           return productListService
         }
@@ -183,13 +256,21 @@ const createMockRequest = ({
     },
     validatedBody,
     validatedQuery,
-  }) as any
+  }
 
-const createMockResponse = () =>
-  ({
-    json: vi.fn().mockReturnThis(),
-    status: vi.fn().mockReturnThis(),
-  }) as any
+  assertMockShape<T>(candidate, requiredKeys)
+  return candidate
+}
+
+const createMockResponse = (): MockMedusaResponse => {
+  const candidate: unknown = {
+    json: vi.fn<(body?: unknown) => unknown>().mockReturnThis(),
+    status: vi.fn<(code?: number) => unknown>().mockReturnThis(),
+  }
+
+  assertMockShape<MockMedusaResponse>(candidate, ["json", "status"])
+  return candidate
+}
 
 describe("Store product-list routes", () => {
   beforeEach(() => {
@@ -221,12 +302,17 @@ describe("Store product-list routes", () => {
         await import("../../../../../../src/api/store/product-lists/route")
       const productListService = createProductListService()
       const graph = createGraphMock()
-      const req = createMockRequest({
-        actorId: "cus_1",
-        graph,
-        productListService,
-        validatedQuery: { limit: 20, offset: 0 },
-      })
+      const req = createMockRequest<
+        AuthenticatedMedusaRequest<unknown, StoreGetProductListsSchemaType>
+      >(
+        {
+          actorId: "cus_1",
+          graph,
+          productListService,
+          validatedQuery: { limit: 20, offset: 0 },
+        },
+        AUTHENTICATED_REQUEST_KEYS,
+      )
       const res = createMockResponse()
 
       await GET(req, res)
@@ -251,8 +337,12 @@ describe("Store product-list routes", () => {
         quantity: 2,
       })
       const productListService = createProductListService({
-        listAndCountProductLists: vi.fn().mockResolvedValue([[list], 1]),
-        listProductListItems: vi.fn().mockResolvedValue([item]),
+        listAndCountProductLists: vi
+          .fn<() => Promise<unknown>>()
+          .mockResolvedValue([[list], 1]),
+        listProductListItems: vi
+          .fn<() => Promise<unknown>>()
+          .mockResolvedValue([item]),
       })
       const graph = createGraphMock({
         customerLinks: [
@@ -269,17 +359,22 @@ describe("Store product-list routes", () => {
           },
         ],
       })
-      const req = createMockRequest({
-        actorId: "cus_1",
-        graph,
-        productListService,
-        validatedQuery: {
-          handle: "spring-picks",
-          limit: 10,
-          offset: 5,
-          type: "custom",
+      const req = createMockRequest<
+        AuthenticatedMedusaRequest<unknown, StoreGetProductListsSchemaType>
+      >(
+        {
+          actorId: "cus_1",
+          graph,
+          productListService,
+          validatedQuery: {
+            handle: "spring-picks",
+            limit: 10,
+            offset: 5,
+            type: "custom",
+          },
         },
-      })
+        AUTHENTICATED_REQUEST_KEYS,
+      )
       const res = createMockResponse()
 
       await GET(req, res)
@@ -308,10 +403,10 @@ describe("Store product-list routes", () => {
         limit: 10,
         offset: 5,
         product_lists: [
-          expect.objectContaining({
+          objectContaining({
             id: "plist_1",
             items: [
-              expect.objectContaining({
+              objectContaining({
                 id: "pli_1",
                 product_id: "prod_persisted",
                 variant_id: "variant_persisted",
@@ -336,8 +431,12 @@ describe("Store product-list routes", () => {
         list_id: "plist_public",
       })
       const productListService = createProductListService({
-        listProductListItems: vi.fn().mockResolvedValue([item]),
-        retrieveProductList: vi.fn().mockResolvedValue(publicList),
+        listProductListItems: vi
+          .fn<() => Promise<unknown>>()
+          .mockResolvedValue([item]),
+        retrieveProductList: vi
+          .fn<() => Promise<unknown>>()
+          .mockResolvedValue(publicList),
       })
       const graph = createGraphMock({
         productLinks: [
@@ -350,12 +449,15 @@ describe("Store product-list routes", () => {
           },
         ],
       })
-      const req = createMockRequest({
-        actorId: undefined,
-        graph,
-        params: { id: "plist_public" },
-        productListService,
-      })
+      const req = createMockRequest<AuthenticatedMedusaRequest>(
+        {
+          actorId: null,
+          graph,
+          params: { id: "plist_public" },
+          productListService,
+        },
+        AUTHENTICATED_REQUEST_KEYS,
+      )
       const res = createMockResponse()
 
       await GET(req, res)
@@ -364,11 +466,11 @@ describe("Store product-list routes", () => {
         "plist_public",
       )
       expect(res.json).toHaveBeenCalledWith({
-        product_list: expect.objectContaining({
+        product_list: objectContaining({
           access_type: "public",
           id: "plist_public",
           items: [
-            expect.objectContaining({
+            objectContaining({
               product_id: "prod_public",
               variant_id: "variant_public",
             }),
@@ -382,14 +484,17 @@ describe("Store product-list routes", () => {
         await import("../../../../../../src/api/store/product-lists/[id]/route")
       const productListService = createProductListService({
         retrieveProductList: vi
-          .fn()
+          .fn<() => Promise<unknown>>()
           .mockResolvedValue(createProductList({ id: "plist_private" })),
       })
-      const req = createMockRequest({
-        actorId: undefined,
-        params: { id: "plist_private" },
-        productListService,
-      })
+      const req = createMockRequest<AuthenticatedMedusaRequest>(
+        {
+          actorId: null,
+          params: { id: "plist_private" },
+          productListService,
+        },
+        AUTHENTICATED_REQUEST_KEYS,
+      )
       const res = createMockResponse()
 
       await expect(GET(req, res)).rejects.toMatchObject({
@@ -405,16 +510,19 @@ describe("Store product-list routes", () => {
         await import("../../../../../../src/api/store/product-lists/[id]/route")
       const productListService = createProductListService({
         retrieveProductList: vi
-          .fn()
+          .fn<() => Promise<unknown>>()
           .mockResolvedValue(createProductList({ id: "plist_private" })),
       })
       const graph = createGraphMock()
-      const req = createMockRequest({
-        actorId: "cus_other",
-        graph,
-        params: { id: "plist_private" },
-        productListService,
-      })
+      const req = createMockRequest<AuthenticatedMedusaRequest>(
+        {
+          actorId: "cus_other",
+          graph,
+          params: { id: "plist_private" },
+          productListService,
+        },
+        AUTHENTICATED_REQUEST_KEYS,
+      )
       const res = createMockResponse()
 
       await expect(GET(req, res)).rejects.toMatchObject({
@@ -449,7 +557,9 @@ describe("Store product-list routes", () => {
     ])(
       "delegates $expectedType creation to the customer product-list workflow",
       async ({ expectedType, importPath, validatedBody }) => {
-        const { POST } = await import(importPath)
+        const routeModule: unknown = await import(importPath)
+        assertMockShape<ProductListCreationModule>(routeModule, ["POST"])
+        const { POST } = routeModule
         const productList = createProductList({
           id: `plist_${expectedType}`,
           type: expectedType,
@@ -460,10 +570,15 @@ describe("Store product-list routes", () => {
             product_list: productList,
           },
         })
-        const req = createMockRequest({
-          actorId: "cus_1",
-          validatedBody,
-        })
+        const req = createMockRequest<
+          AuthenticatedMedusaRequest<Record<string, unknown>>
+        >(
+          {
+            actorId: "cus_1",
+            validatedBody,
+          },
+          AUTHENTICATED_REQUEST_KEYS,
+        )
         const res = createMockResponse()
 
         await POST(req, res)
@@ -471,7 +586,7 @@ describe("Store product-list routes", () => {
         expect(res.status).toHaveBeenCalledWith(200)
         expect(res.json).toHaveBeenCalledWith({
           created: expectedType === "custom",
-          product_list: expect.objectContaining({
+          product_list: objectContaining({
             id: `plist_${expectedType}`,
             type: expectedType,
           }),
@@ -507,26 +622,31 @@ describe("Store product-list routes", () => {
           },
         ],
       })
-      const req = createMockRequest({
-        actorId: "cus_1",
-        graph,
-        params: { id: "plist_1" },
-        validatedBody: {
-          metadata: { source: "detail" },
-          note: "Restock",
-          product_id: "prod_requested",
-          quantity: 3,
-          sort_order: 4,
-          variant_id: "variant_requested",
+      const req = createMockRequest<
+        AuthenticatedMedusaRequest<StoreCreateProductListItemSchemaType>
+      >(
+        {
+          actorId: "cus_1",
+          graph,
+          params: { id: "plist_1" },
+          validatedBody: {
+            metadata: { source: "detail" },
+            note: "Restock",
+            product_id: "prod_requested",
+            quantity: 3,
+            sort_order: 4,
+            variant_id: "variant_requested",
+          },
         },
-      })
+        AUTHENTICATED_REQUEST_KEYS,
+      )
       const res = createMockResponse()
 
       await POST(req, res)
 
       expect(res.status).toHaveBeenCalledWith(200)
       expect(res.json).toHaveBeenCalledWith({
-        item: expect.objectContaining({
+        item: objectContaining({
           id: "pli_created",
           product_id: "prod_persisted",
           variant_id: "variant_persisted",
@@ -550,7 +670,9 @@ describe("Store product-list routes", () => {
         type: "favorite",
       })
       const productListService = createProductListService({
-        listProductListItems: vi.fn().mockResolvedValue([item]),
+        listProductListItems: vi
+          .fn<() => Promise<unknown>>()
+          .mockResolvedValue([item]),
       })
       workflowMocks.addFavoriteProductListItemRun.mockResolvedValue({
         result: { item, product_list: favoriteList },
@@ -569,18 +691,23 @@ describe("Store product-list routes", () => {
           },
         ],
       })
-      const req = createMockRequest({
-        actorId: "cus_1",
-        graph,
-        productListService,
-        validatedBody: {
-          metadata: { source: "heart" },
-          note: "Buy later",
-          product_id: "prod_requested",
-          sort_order: 9,
-          variant_id: "variant_requested",
+      const req = createMockRequest<
+        AuthenticatedMedusaRequest<StoreCreateFavoriteProductListItemSchemaType>
+      >(
+        {
+          actorId: "cus_1",
+          graph,
+          productListService,
+          validatedBody: {
+            metadata: { source: "heart" },
+            note: "Buy later",
+            product_id: "prod_requested",
+            sort_order: 9,
+            variant_id: "variant_requested",
+          },
         },
-      })
+        AUTHENTICATED_REQUEST_KEYS,
+      )
       const res = createMockResponse()
 
       await POST(req, res)
@@ -594,15 +721,15 @@ describe("Store product-list routes", () => {
       )
       expect(res.status).toHaveBeenCalledWith(200)
       expect(res.json).toHaveBeenCalledWith({
-        item: expect.objectContaining({
+        item: objectContaining({
           id: "pli_favorite",
           product_id: "prod_favorite",
           variant_id: "variant_favorite",
         }),
-        product_list: expect.objectContaining({
+        product_list: objectContaining({
           id: "plist_favorites",
           items: [
-            expect.objectContaining({
+            objectContaining({
               id: "pli_favorite",
               product_id: "prod_favorite",
               variant_id: "variant_favorite",
@@ -639,19 +766,24 @@ describe("Store product-list routes", () => {
           },
         ],
       })
-      const req = createMockRequest({
-        actorId: "cus_1",
-        graph,
-        params: { id: "pli_incremented" },
-        validatedBody: { quantity: 2 },
-      })
+      const req = createMockRequest<
+        AuthenticatedMedusaRequest<StoreIncrementProductListItemQuantitySchemaType>
+      >(
+        {
+          actorId: "cus_1",
+          graph,
+          params: { id: "pli_incremented" },
+          validatedBody: { quantity: 2 },
+        },
+        AUTHENTICATED_REQUEST_KEYS,
+      )
       const res = createMockResponse()
 
       await POST(req, res)
 
       expect(res.status).toHaveBeenCalledWith(200)
       expect(res.json).toHaveBeenCalledWith({
-        item: expect.objectContaining({
+        item: objectContaining({
           id: "pli_incremented",
           product_id: "prod_incremented",
           variant_id: "variant_incremented",
