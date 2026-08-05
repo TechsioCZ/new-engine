@@ -39,17 +39,23 @@ import type {
   CommercialValuesPreview,
 } from "../../utils/order-commercial-values"
 
+type NumericValue = number | string | null | undefined
+
 interface ApplyCommercialValuesOrderItem {
   id: string
   adjustments?: CommercialAdjustmentInput[] | null | undefined
-  quantity?: number | string | null | undefined
-  unit_price?: number | string | null | undefined
+  quantity?: NumericValue
+  unit_price?: NumericValue
 }
 
 interface ApplyCommercialValuesShippingMethod {
   id: string
   adjustments?: CommercialAdjustmentInput[] | null | undefined
 }
+
+type ApplyCommercialValuesAdjustmentTarget =
+  | ApplyCommercialValuesOrderItem
+  | ApplyCommercialValuesShippingMethod
 
 interface ReplacementAdjustment {
   amount: number
@@ -78,7 +84,7 @@ interface ActiveOrderChangeRecord {
   change_type?: string | null | undefined
   id: string
   status?: string | null | undefined
-  version?: number | string | null | undefined
+  version?: unknown
 }
 
 type CommercialValuesPreviewItem = CommercialValuesPreview["items"][number]
@@ -114,8 +120,24 @@ type CommercialValuesOrderEditCompletion = Pick<
 
 const COMMERCIAL_VALUES_LOCK_PREFIX = "order-commercial-values:apply"
 const COMMERCIAL_VALUES_LOCK_TIMEOUT_SECONDS = 5
+const MISSING_ORDER_CHANGE_ID_MESSAGE = "Order change id is missing"
 
-function toFiniteNumber(value: number | string | null | undefined) {
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
+const isUnknownArray = (value: unknown): value is unknown[] =>
+  Array.isArray(value)
+
+const toOptionalString = (value: unknown) =>
+  typeof value === "string" ? value : undefined
+
+const hasText = (value: string | null | undefined): value is string =>
+  value !== null && value !== undefined && value !== ""
+
+const getFirstQueryRow = (data: unknown): unknown =>
+  isUnknownArray(data) ? data[0] : undefined
+
+const toFiniteNumber = (value: unknown) => {
   const numberValue = typeof value === "string" ? Number(value) : value
 
   if (typeof numberValue !== "number" || !Number.isFinite(numberValue)) {
@@ -128,7 +150,7 @@ function toFiniteNumber(value: number | string | null | undefined) {
   return numberValue
 }
 
-function toInteger(value: number | string | null | undefined) {
+const toInteger = (value: unknown) => {
   const numberValue = toFiniteNumber(value)
 
   if (!Number.isSafeInteger(numberValue)) {
@@ -141,7 +163,7 @@ function toInteger(value: number | string | null | undefined) {
   return numberValue
 }
 
-function toPositiveNumber(value: number | string | null | undefined) {
+const toPositiveNumber = (value: unknown) => {
   const numberValue = toFiniteNumber(value)
 
   if (numberValue <= 0) {
@@ -154,136 +176,145 @@ function toPositiveNumber(value: number | string | null | undefined) {
   return numberValue
 }
 
-function toActiveOrderChange(
-  orderChange: ActiveOrderChangeRecord | null | undefined,
-): ActiveOrderChange {
-  if (!orderChange?.id) {
+const requireOrderChangeId = (orderChangeId: unknown) => {
+  if (typeof orderChangeId !== "string" || orderChangeId === "") {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Order change id is missing",
+      MISSING_ORDER_CHANGE_ID_MESSAGE,
     )
   }
 
+  return orderChangeId
+}
+
+const toActiveOrderChange = (
+  orderChange: ActiveOrderChangeRecord | null | undefined,
+): ActiveOrderChange => ({
+  change_type: orderChange?.change_type ?? undefined,
+  id: requireOrderChangeId(orderChange?.id),
+  version: toInteger(orderChange?.version),
+})
+
+const toActiveOrderChangeRecord = (
+  value: unknown,
+): ActiveOrderChangeRecord | undefined => {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
   return {
-    change_type: orderChange.change_type ?? undefined,
-    id: orderChange.id,
-    version: toInteger(orderChange.version),
+    change_type: toOptionalString(value["change_type"]),
+    id: toOptionalString(value["id"]) ?? "",
+    status: toOptionalString(value["status"]),
+    version: value["version"],
   }
 }
 
-function isReusableCommercialValuesOrderEdit(
+const isReusableCommercialValuesOrderEdit = (
   activeOrderChange: ActiveOrderChangeRecord | null | undefined,
-) {
-  return (
-    activeOrderChange?.change_type === "edit" &&
-    activeOrderChange.status === OrderChangeStatus.PENDING
-  )
-}
+) =>
+  activeOrderChange?.change_type === "edit" &&
+  activeOrderChange.status === OrderChangeStatus.PENDING
 
-function getCommercialValuesLockKey(orderId: string) {
-  return `${COMMERCIAL_VALUES_LOCK_PREFIX}:${encodeURIComponent(orderId)}`
-}
+const getCommercialValuesLockKey = (orderId: string) =>
+  `${COMMERCIAL_VALUES_LOCK_PREFIX}:${encodeURIComponent(orderId)}`
 
-function getRequestedItem(
+const getRequestedItem = (
   request: CommercialValuesConfirmRequest,
   itemId: string,
-) {
-  return request.items.find((item) => item.item_id === itemId)
-}
+) => request.items.find((item) => item.item_id === itemId)
 
-function getPreviewItem(preview: CommercialValuesPreview, itemId: string) {
-  return preview.items.find((item) => item.item_id === itemId)
-}
+const getPreviewItem = (preview: CommercialValuesPreview, itemId: string) =>
+  preview.items.find((item) => item.item_id === itemId)
 
-function getRequestedShippingMethod(
+const getRequestedShippingMethod = (
   request: CommercialValuesConfirmRequest,
   shippingMethodId: string,
-) {
-  return request.shipping_methods?.find(
+) =>
+  request.shipping_methods?.find(
     (shippingMethod) => shippingMethod.shipping_method_id === shippingMethodId,
   )
-}
 
-function getPreviewShippingMethod(
+const getPreviewShippingMethod = (
   preview: CommercialValuesPreview,
   shippingMethodId: string,
-) {
-  return preview.shipping_methods.find(
+) =>
+  preview.shipping_methods.find(
     (shippingMethod) => shippingMethod.shipping_method_id === shippingMethodId,
   )
-}
 
-function toReplacementAdjustment(
+const toReplacementAdjustment = (
   adjustment: CommercialAdjustmentInput,
   reference: { item_id?: string; shipping_method_id?: string },
-): ReplacementAdjustment {
-  return {
-    amount: adjustment.amount,
-    code: adjustment.code ?? undefined,
-    description: adjustment.description ?? undefined,
-    is_tax_inclusive: adjustment.is_tax_inclusive ?? undefined,
-    item_id: adjustment.item_id ?? reference.item_id,
-    promotion_id: adjustment.promotion_id ?? undefined,
-    provider_id: adjustment.provider_id ?? undefined,
-    shipping_method_id:
-      adjustment.shipping_method_id ?? reference.shipping_method_id,
-  }
-}
+): ReplacementAdjustment => ({
+  amount: adjustment.amount,
+  code: adjustment.code ?? undefined,
+  description: adjustment.description ?? undefined,
+  is_tax_inclusive: adjustment.is_tax_inclusive ?? undefined,
+  item_id: adjustment.item_id ?? reference.item_id,
+  promotion_id: adjustment.promotion_id ?? undefined,
+  provider_id: adjustment.provider_id ?? undefined,
+  shipping_method_id:
+    adjustment.shipping_method_id ?? reference.shipping_method_id,
+})
 
-function getPreservedAdjustments(
-  target: ApplyCommercialValuesOrderItem | ApplyCommercialValuesShippingMethod,
-) {
-  return (target.adjustments ?? [])
-    .filter((adjustment) => !isManualDiscountAdjustment(adjustment))
-    .map((adjustment) =>
-      toReplacementAdjustment(adjustment, getAdjustmentReference(target)),
-    )
-}
-
-function hasExistingManualAdjustment(
-  target: ApplyCommercialValuesOrderItem | ApplyCommercialValuesShippingMethod,
-  code: string,
-) {
-  return (target.adjustments ?? []).some(
-    (adjustment) => adjustment.code === code,
-  )
-}
-
-function getExistingManualAdjustments(
-  target: ApplyCommercialValuesOrderItem | ApplyCommercialValuesShippingMethod,
-  code: string,
-) {
-  return (target.adjustments ?? [])
-    .filter((adjustment) => adjustment.code === code)
-    .map((adjustment) =>
-      toReplacementAdjustment(adjustment, getAdjustmentReference(target)),
-    )
-}
-
-function hasRequestedItemDiscount(
-  requested: ReturnType<typeof getRequestedItem>,
-) {
-  return requested ? "discount" in requested : false
-}
-
-function hasRequestedShippingDiscount(
-  requested: ReturnType<typeof getRequestedShippingMethod>,
-) {
-  return requested ? "discount" in requested : false
-}
-
-function getAdjustmentReference(
-  target: ApplyCommercialValuesOrderItem | ApplyCommercialValuesShippingMethod,
-) {
-  return "unit_price" in target
+const getAdjustmentReference = (
+  target: ApplyCommercialValuesAdjustmentTarget,
+) =>
+  "unit_price" in target
     ? { item_id: target.id }
     : { shipping_method_id: target.id }
+
+const getPreservedAdjustments = (
+  target: ApplyCommercialValuesAdjustmentTarget,
+) => {
+  const preservedAdjustments: ReplacementAdjustment[] = []
+
+  for (const adjustment of target.adjustments ?? []) {
+    if (!isManualDiscountAdjustment(adjustment)) {
+      preservedAdjustments.push(
+        toReplacementAdjustment(adjustment, getAdjustmentReference(target)),
+      )
+    }
+  }
+
+  return preservedAdjustments
 }
 
-function toMedusaShippingAdjustmentAmount(
+const hasExistingManualAdjustment = (
+  target: ApplyCommercialValuesAdjustmentTarget,
+  code: string,
+) => (target.adjustments ?? []).some((adjustment) => adjustment.code === code)
+
+const getExistingManualAdjustments = (
+  target: ApplyCommercialValuesAdjustmentTarget,
+  code: string,
+) => {
+  const existingAdjustments: ReplacementAdjustment[] = []
+
+  for (const adjustment of target.adjustments ?? []) {
+    if (adjustment.code === code) {
+      existingAdjustments.push(
+        toReplacementAdjustment(adjustment, getAdjustmentReference(target)),
+      )
+    }
+  }
+
+  return existingAdjustments
+}
+
+const hasRequestedItemDiscount = (
+  requested: ReturnType<typeof getRequestedItem>,
+) => (requested ? "discount" in requested : false)
+
+const hasRequestedShippingDiscount = (
+  requested: ReturnType<typeof getRequestedShippingMethod>,
+) => (requested ? "discount" in requested : false)
+
+const toMedusaShippingAdjustmentAmount = (
   previewShippingMethod: CommercialValuesPreviewShippingMethod,
   displayAmount: number,
-) {
+) => {
   const shippingTotal =
     previewShippingMethod.current_subtotal +
     previewShippingMethod.current_tax_total
@@ -301,7 +332,7 @@ function toMedusaShippingAdjustmentAmount(
   )
 }
 
-function buildManualDiscountAdjustments({
+const buildManualDiscountAdjustments = ({
   item,
   itemDiscountRequested,
   orderDiscountRequested,
@@ -315,7 +346,7 @@ function buildManualDiscountAdjustments({
   requestedItemDiscount: CommercialValuesConfirmRequest["items"][number]["discount"]
   requestedOrderDiscount: CommercialValuesConfirmRequest["order_discount"]
   previewItem: CommercialValuesPreviewItem
-}) {
+}) => {
   const manualAdjustments: ReplacementAdjustment[] = []
 
   if (!itemDiscountRequested) {
@@ -355,7 +386,7 @@ function buildManualDiscountAdjustments({
   return manualAdjustments
 }
 
-function buildManualShippingDiscountAdjustments({
+const buildManualShippingDiscountAdjustments = ({
   orderDiscountRequested,
   previewShippingMethod,
   requestedOrderDiscount,
@@ -371,7 +402,7 @@ function buildManualShippingDiscountAdjustments({
   >[number]["discount"]
   shippingDiscountRequested: boolean
   shippingMethod: ApplyCommercialValuesShippingMethod
-}) {
+}) => {
   const manualAdjustments: ReplacementAdjustment[] = []
 
   if (!shippingDiscountRequested) {
@@ -421,7 +452,7 @@ function buildManualShippingDiscountAdjustments({
   return manualAdjustments
 }
 
-function shouldReplaceManualDiscounts({
+const shouldReplaceManualDiscounts = ({
   item,
   itemDiscountRequested,
   orderDiscountRequested,
@@ -431,7 +462,7 @@ function shouldReplaceManualDiscounts({
   itemDiscountRequested: boolean
   orderDiscountRequested: boolean
   previewItem: CommercialValuesPreviewItem
-}) {
+}) => {
   const shouldReplaceItemDiscount =
     itemDiscountRequested &&
     (hasExistingManualAdjustment(item, MANUAL_ITEM_DISCOUNT_CODE) ||
@@ -444,7 +475,7 @@ function shouldReplaceManualDiscounts({
   return shouldReplaceItemDiscount || shouldReplaceOrderDiscount
 }
 
-function shouldReplaceManualShippingDiscounts({
+const shouldReplaceManualShippingDiscounts = ({
   orderDiscountRequested,
   previewShippingMethod,
   shippingDiscountRequested,
@@ -454,7 +485,7 @@ function shouldReplaceManualShippingDiscounts({
   previewShippingMethod: CommercialValuesPreviewShippingMethod
   shippingDiscountRequested: boolean
   shippingMethod: ApplyCommercialValuesShippingMethod
-}) {
+}) => {
   const shouldReplaceShippingDiscount =
     shippingDiscountRequested &&
     (hasExistingManualAdjustment(
@@ -470,10 +501,10 @@ function shouldReplaceManualShippingDiscounts({
   return shouldReplaceShippingDiscount || shouldReplaceOrderDiscount
 }
 
-function buildItemUpdateInputs(
+const buildItemUpdateInputs = (
   order: ApplyCommercialValuesOrder,
   request: CommercialValuesConfirmRequest,
-) {
+) => {
   const itemActions = (order.items ?? []).flatMap((item) => {
     const requested = getRequestedItem(request, item.id)
     const currentUnitPrice = toFiniteNumber(item.unit_price)
@@ -485,7 +516,7 @@ function buildItemUpdateInputs(
     return [
       {
         id: item.id,
-        ...(request.internal_note
+        ...(hasText(request.internal_note)
           ? { internal_note: request.internal_note }
           : {}),
         quantity: toPositiveNumber(item.quantity),
@@ -497,7 +528,7 @@ function buildItemUpdateInputs(
   return itemActions
 }
 
-function buildReplacementActions({
+const buildReplacementActions = ({
   activeOrderChange,
   order,
   preview,
@@ -507,7 +538,7 @@ function buildReplacementActions({
   order: ApplyCommercialValuesOrder
   preview: CommercialValuesPreview
   request: CommercialValuesConfirmRequest
-}) {
+}) => {
   const itemActions = (order.items ?? []).flatMap((item) => {
     const requested = getRequestedItem(request, item.id)
     const previewItem = getPreviewItem(preview, item.id)
@@ -550,7 +581,7 @@ function buildReplacementActions({
           },
           reference_id: item.id,
         },
-        ...(request.internal_note
+        ...(hasText(request.internal_note)
           ? { internal_note: request.internal_note }
           : {}),
         order_change_id: activeOrderChange.id,
@@ -608,7 +639,7 @@ function buildReplacementActions({
             },
             reference_id: shippingMethod.id,
           },
-          ...(request.internal_note
+          ...(hasText(request.internal_note)
             ? { internal_note: request.internal_note }
             : {}),
           order_change_id: activeOrderChange.id,
@@ -622,8 +653,8 @@ function buildReplacementActions({
   return [...itemActions, ...shippingActions]
 }
 
-async function fetchActiveOrderChange(query: Query, orderId: string) {
-  const { data } = await query.graph({
+const fetchActiveOrderChange = async (query: Query, orderId: string) => {
+  const { data }: { data: unknown } = await query.graph({
     entity: "order_change",
     fields: ["id", "version", "change_type", "status"],
     filters: {
@@ -633,33 +664,33 @@ async function fetchActiveOrderChange(query: Query, orderId: string) {
     pagination: { take: 1 },
   })
 
-  return (data as ActiveOrderChangeRecord[])[0]
+  return toActiveOrderChangeRecord(getFirstQueryRow(data))
 }
 
-async function fetchOrderVersion(query: Query, orderId: string) {
-  const { data } = await query.graph({
+const fetchOrderVersion = async (query: Query, orderId: string) => {
+  const { data }: { data: unknown } = await query.graph({
     entity: "order",
     fields: ["id", "version"],
     filters: { id: orderId },
   })
 
-  const order = (data as { id: string; version?: number | string | null }[])[0]
+  const order = getFirstQueryRow(data)
 
-  if (!order) {
+  if (!isRecord(order)) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Order ${orderId} was not found`,
     )
   }
 
-  return toInteger(order.version ?? 0)
+  return toInteger(order["version"] ?? 0)
 }
 
-async function assertOrderCanBeginCommercialEdit(
+const assertOrderCanBeginCommercialEdit = async (
   query: Query,
   orderId: string,
   expectedOrderVersion: number,
-) {
+) => {
   const activeOrderChange = await fetchActiveOrderChange(query, orderId)
 
   if (
@@ -683,11 +714,11 @@ async function assertOrderCanBeginCommercialEdit(
   return activeOrderChange ? toActiveOrderChange(activeOrderChange) : undefined
 }
 
-async function cancelStartedEdit(
+const cancelStartedEdit = async (
   container: MedusaContainer,
   logger: Logger,
   orderId: string,
-) {
+) => {
   try {
     await cancelBeginOrderEditWorkflow(container).run({
       input: { order_id: orderId },
@@ -702,7 +733,7 @@ async function cancelStartedEdit(
 
 const previewCommercialValuesStep = createStep(
   "preview-commercial-values",
-  async (calculationInput: CommercialValuesCalculationInput) =>
+  (calculationInput: CommercialValuesCalculationInput) =>
     new StepResponse(calculateCommercialValuesPreview(calculationInput)),
 )
 
@@ -751,8 +782,10 @@ const beginCommercialValuesOrderEditStep = createStep(
       container,
     ).run({
       input: {
-        ...(input.actor_id ? { created_by: input.actor_id } : {}),
-        ...(input.internal_note ? { internal_note: input.internal_note } : {}),
+        ...(hasText(input.actor_id) ? { created_by: input.actor_id } : {}),
+        ...(hasText(input.internal_note)
+          ? { internal_note: input.internal_note }
+          : {}),
         order_id: input.readiness.order_id,
       },
     })
@@ -764,7 +797,7 @@ const beginCommercialValuesOrderEditStep = createStep(
     })
   },
   async (input, { container }) => {
-    if (!input?.started_order_edit) {
+    if (input?.started_order_edit !== true) {
       return
     }
 
@@ -864,7 +897,7 @@ const completeCommercialValuesOrderEditStep = createStep(
       ).run({
         input: {
           order_id: input.order_id,
-          ...(input.actor_id ? { requested_by: input.actor_id } : {}),
+          ...(hasText(input.actor_id) ? { requested_by: input.actor_id } : {}),
         },
       })
 
@@ -880,7 +913,7 @@ const completeCommercialValuesOrderEditStep = createStep(
       container,
     ).run({
       input: {
-        ...(input.actor_id ? { confirmed_by: input.actor_id } : {}),
+        ...(hasText(input.actor_id) ? { confirmed_by: input.actor_id } : {}),
         order_id: input.order_id,
       },
     })
@@ -946,13 +979,13 @@ export const applyOrderCommercialValuesWorkflow = createWorkflow(
   },
 )
 
-export async function applyOrderCommercialValues({
+export const applyOrderCommercialValues = async ({
   actor_id,
   calculation_input,
   container,
   order,
   request,
-}: ApplyCommercialValuesInput): Promise<CommercialValuesConfirmResponse> {
+}: ApplyCommercialValuesInput): Promise<CommercialValuesConfirmResponse> => {
   const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
 
   return await lockingModule.execute(
