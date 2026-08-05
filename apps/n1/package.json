@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "ultracite check",
     "format": "oxfmt",
-    "generate:categories": "node scripts/generate-categories.mjs",
+    "generate:categories": "node --experimental-strip-types scripts/generate-categories.ts",
     "validate:token-usage": "node scripts/validate-token-usage.mjs",
     "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/apps/n1/tsconfig.json"
   },
