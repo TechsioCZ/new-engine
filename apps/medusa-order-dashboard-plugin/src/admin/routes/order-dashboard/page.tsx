@@ -37,8 +37,10 @@ import {
 import {
   formatLocaleCode,
   formatOrderDate,
+  formatOrderStatusLabel,
   formatOrderTotal,
   formatPaymentMethodLabel,
+  formatPaymentStatusLabel,
   getCarrierLabel,
   getOrderDashboardTransitionBlockReason,
   isOrderDashboardBusinessStatusId,
@@ -246,7 +248,7 @@ const OrderDashboardPage = () => {
     filterHelper.accessor(CARRIER_FILTER_ID, {
       label: t("filters.carrier"),
       options: ORDER_DASHBOARD_CARRIER_KEYS.map((carrier) => ({
-        label: carrier === "ppl" ? "PPL" : formatOptionLabel(carrier),
+        label: t(`carriers.${carrier}`),
         value: carrier,
       })),
       type: "radio",
@@ -304,7 +306,7 @@ const OrderDashboardPage = () => {
     columnHelper.accessor("carrier.value", {
       cell: ({ row }) => (
         <Text leading="compact" size="small">
-          {getCarrierLabel(row.original)}
+          {getCarrierLabel(row.original, t)}
         </Text>
       ),
       header: t("columns.carrier"),
@@ -362,10 +364,10 @@ const OrderDashboardPage = () => {
       cell: ({ row }) => (
         <div className="flex flex-col gap-y-1">
           <Text leading="compact" size="small">
-            {row.original.payment_status ?? "-"}
+            {formatPaymentStatusLabel(row.original.payment_status, t)}
           </Text>
           <Text className="text-ui-fg-subtle" leading="compact" size="small">
-            {formatPaymentMethodLabel(row.original.payment_method)}
+            {formatPaymentMethodLabel(row.original.payment_method, t)}
           </Text>
         </div>
       ),
@@ -505,8 +507,8 @@ const OrderDashboardPage = () => {
 
   const orderStatusMutation = useMutation({
     mutationFn: updateOrderDashboardStatuses,
-    onError: (error) => {
-      toast.error(getErrorMessage(error, t("toast.requestFailed")))
+    onError: () => {
+      toast.error(t("toast.requestFailed"))
     },
     onSuccess: (result) => {
       toast.success(t("toast.statusUpdated", { count: result.count }))
@@ -518,11 +520,16 @@ const OrderDashboardPage = () => {
 
   const manualStatusMutation = useMutation({
     mutationFn: updateOrderDashboardManualStatus,
-    onError: (error) => {
-      toast.error(getErrorMessage(error, t("toast.requestFailed")))
+    onError: () => {
+      toast.error(t("toast.requestFailed"))
     },
     onSuccess: (result) => {
-      setBlockingOrders(result.skipped)
+      const localizedSkipped = result.skipped.map((order) => ({
+        ...order,
+        reason: t("toast.manualStatusSkipped"),
+      }))
+
+      setBlockingOrders(localizedSkipped)
       if (result.count > 0) {
         toast.success(
           result.skipped_count
@@ -533,7 +540,7 @@ const OrderDashboardPage = () => {
             : t("toast.businessStatusUpdated", { count: result.count })
         )
       } else {
-        toast.error(result.skipped[0]?.reason ?? t("toast.manualStatusSkipped"))
+        toast.error(t("toast.manualStatusSkipped"))
       }
       setManualStatus("")
       setIsManualStatusPromptOpen(false)
@@ -543,8 +550,8 @@ const OrderDashboardPage = () => {
 
   const expeditionPdfMutation = useMutation({
     mutationFn: downloadOrderDashboardExpeditionPdf,
-    onError: (error) => {
-      toast.error(getErrorMessage(error, t("toast.requestFailed")))
+    onError: () => {
+      toast.error(t("toast.requestFailed"))
     },
     onSuccess: () => {
       toast.success(t("toast.pdfReady"))
@@ -553,8 +560,8 @@ const OrderDashboardPage = () => {
 
   const packetaLabelsMutation = useMutation({
     mutationFn: downloadOrderDashboardPacketaLabels,
-    onError: (error) => {
-      toast.error(getErrorMessage(error, t("toast.requestFailed")))
+    onError: () => {
+      toast.error(t("toast.requestFailed"))
     },
     onSuccess: () => {
       toast.success(t("toast.packetaLabelsReady"))
@@ -677,8 +684,8 @@ const OrderDashboardPage = () => {
         orderIds: packetaLabelPreparation.orderIds,
       })
       setIsPacketaLabelPositionPromptOpen(true)
-    } catch (error) {
-      toast.error(getErrorMessage(error, t("toast.requestFailed")))
+    } catch {
+      toast.error(t("toast.requestFailed"))
     } finally {
       setIsPreparingPacketaLabels(false)
     }
@@ -732,9 +739,7 @@ const OrderDashboardPage = () => {
     setBlockingOrders([])
   }
 
-  const errorMessage = ordersQuery.error
-    ? getErrorMessage(ordersQuery.error, t("toast.requestFailed"))
-    : null
+  const errorMessage = ordersQuery.error ? t("toast.requestFailed") : null
   const pendingUnpaidCount = summaryQuery.data?.pending_unpaid_count ?? 0
 
   useEffect(() => {
@@ -1195,7 +1200,7 @@ const OrderDashboardPage = () => {
       ) : (
         <DataTable instance={table}>
           <DataTable.FilterBar alwaysShow>
-            <DataTable.ColumnVisibilityMenu tooltip={t("columns.order")} />
+            <DataTable.ColumnVisibilityMenu tooltip={t("actions.columns")} />
           </DataTable.FilterBar>
           <DataTable.Table
             emptyState={{
@@ -1229,14 +1234,14 @@ function ManualStatusControl({
         orderIds: [orderId],
         status: value === "clear" ? null : value,
       }),
-    onError: (error) => {
-      toast.error(getErrorMessage(error, t("toast.requestFailed")))
+    onError: () => {
+      toast.error(t("toast.requestFailed"))
     },
     onSuccess: (result) => {
       if (result.count > 0) {
         toast.success(t("toast.businessStatusUpdated", { count: result.count }))
       } else {
-        toast.error(result.skipped[0]?.reason ?? t("toast.manualStatusSkipped"))
+        toast.error(t("toast.manualStatusSkipped"))
       }
 
       queryClient.invalidateQueries({ queryKey: [ORDER_DASHBOARD_QUERY_KEY] })
@@ -1312,17 +1317,17 @@ function OrderDashboardDetailPanel({
           {formatOrderDeliveryAddress(order.delivery_address)}
         </OrderDetailField>
         <OrderDetailField label={t("detail.carrier")}>
-          {getCarrierLabel(order)}
+          {getCarrierLabel(order, t)}
         </OrderDetailField>
         <OrderDetailField label={t("detail.payment")}>
-          {order.payment_status ?? "-"} -{" "}
-          {formatPaymentMethodLabel(order.payment_method)}
+          {formatPaymentStatusLabel(order.payment_status, t)} -{" "}
+          {formatPaymentMethodLabel(order.payment_method, t)}
         </OrderDetailField>
         <OrderDetailField label={t("detail.total")}>
           {formatOrderTotal(order, locale)}
         </OrderDetailField>
         <OrderDetailField label={t("detail.orderStatus")}>
-          {order.status ?? "-"}
+          {formatOrderStatusLabel(order.status, t)}
         </OrderDetailField>
         <OrderDetailField label={t("detail.businessStatus")}>
           {t(order.business_status.translation_key)}
@@ -1445,7 +1450,7 @@ function getFulfillmentStatusDisplay(
 
   return {
     color: "grey" as const,
-    label: formatOptionLabel(status),
+    label: t("fallback.unknownFulfillmentStatus", { status }),
   }
 }
 
@@ -1836,17 +1841,6 @@ function getSelectedStatusBlockedMessage(
     count: blockedOrders.length,
     status: statusLabel,
   })
-}
-
-function formatOptionLabel(value: string) {
-  return value
-    .split("_")
-    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-    .join(" ")
-}
-
-function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error ? error.message : fallback
 }
 
 export const config = defineRouteConfig({

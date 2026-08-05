@@ -1368,7 +1368,7 @@ function OrdersTable({
               </Table.Cell>
               <Table.Cell className="whitespace-nowrap">
                 <div className="flex flex-col">
-                  <Text size="small">{order.payment_method}</Text>
+                  <Text size="small">{order.payment_method ?? "-"}</Text>
                   <Text className="text-ui-fg-subtle" size="small">
                     {order.payment_status ?? "-"}
                   </Text>

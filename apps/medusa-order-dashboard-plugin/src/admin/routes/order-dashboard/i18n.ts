@@ -6,6 +6,7 @@ export type OrderDashboardAdminI18nNamespace = {
     | "cancel"
     | "clearManualStatus"
     | "closeDetails"
+    | "columns"
     | "details"
     | "expeditionPdf"
     | "fulfillItems"
@@ -16,6 +17,7 @@ export type OrderDashboardAdminI18nNamespace = {
     | "targetStatusPlaceholder",
     string
   >
+  carriers: Record<"other" | "packeta" | "ppl", string>
   columns: Record<
     | "businessStatus"
     | "carrier"
@@ -97,6 +99,14 @@ export type OrderDashboardAdminI18nNamespace = {
     | "title",
     string
   >
+  fallback: Record<
+    | "notAvailable"
+    | "unknownFulfillmentStatus"
+    | "unknownOrderStatus"
+    | "unknownPaymentMethod"
+    | "unknownPaymentStatus",
+    string
+  >
   labelFormats: Record<"a6" | "a7", string>
   manualStatus: Record<
     "canceled" | "clear" | "none" | "processing" | "waiting_for_supplier",
@@ -124,6 +134,23 @@ export type OrderDashboardAdminI18nNamespace = {
   packetaSkip: Record<"noActiveLabel" | "notPacketa" | "unchecked", string>
   packetaLabelPositionPrompt: Record<
     "description" | "position" | "print" | "selected" | "title",
+    string
+  >
+  paymentMethod: Record<
+    "comgate" | "gopay" | "manual" | "qr" | "stripe",
+    string
+  >
+  paymentStatus: Record<
+    | "authorized"
+    | "awaiting"
+    | "canceled"
+    | "captured"
+    | "not_paid"
+    | "partially_authorized"
+    | "partially_captured"
+    | "partially_refunded"
+    | "refunded"
+    | "requires_action",
     string
   >
   queues: Record<"action_required" | "all", string>
@@ -173,10 +200,14 @@ export type OrderDashboardAdminI18nNamespace = {
   >
   title: string
   toast: Record<
-    | "businessStatusUpdated"
+    | "businessStatusUpdated_few"
+    | "businessStatusUpdated_one"
+    | "businessStatusUpdated_other"
     | "businessStatusUpdatedWithSkipped"
     | "blockedOrderStatus"
-    | "fulfillmentCreated"
+    | "fulfillmentCreated_few"
+    | "fulfillmentCreated_one"
+    | "fulfillmentCreated_other"
     | "fulfillmentCreatedWithFailed"
     | "fulfillmentLimit"
     | "fulfillmentSkipped"
@@ -189,7 +220,9 @@ export type OrderDashboardAdminI18nNamespace = {
     | "packetaLabelsReady"
     | "pdfReady"
     | "requestFailed"
-    | "statusUpdated",
+    | "statusUpdated_few"
+    | "statusUpdated_one"
+    | "statusUpdated_other",
     string
   >
 }
@@ -197,20 +230,25 @@ export type OrderDashboardAdminI18nNamespace = {
 const englishOrderDashboardAdminI18n = {
   actions: {
     apply: "Apply",
-    applyManualStatus: "Apply manual status",
+    applyManualStatus: "Set manual status",
     businessStatusPlaceholder: "Manual status",
     cancel: "Cancel",
     clearManualStatus: "Clear manual status",
     closeDetails: "Close",
+    columns: "Columns",
     details: "Details",
     expeditionPdf: "Expedition PDF",
-    fulfillItems: "Fulfill items",
+    fulfillItems: "Create fulfillments",
     labelFormat: "Format",
-    packetaEligible:
-      "{{count}} Packeta printable from {{selectedCount}} selected",
+    packetaEligible: "Printable Packeta labels: {{count}} of {{selectedCount}}",
     packetaLabels: "Packeta labels",
     selected: "{{count}} selected",
     targetStatusPlaceholder: "Order status",
+  },
+  carriers: {
+    other: "Other",
+    packeta: "Packeta",
+    ppl: "PPL",
   },
   columns: {
     address: "Address",
@@ -238,7 +276,7 @@ const englishOrderDashboardAdminI18n = {
     orderStatus: "Medusa status",
     payment: "Payment",
     quantity: "{{count}} pcs",
-    title: "{{order}} detail",
+    title: "Order {{order}}",
     total: "Total",
   },
   filters: {
@@ -269,18 +307,18 @@ const englishOrderDashboardAdminI18n = {
       "No fulfillable items match the order shipping profile",
   },
   fulfillmentModal: {
-    confirm: "Fulfill eligible orders",
+    confirm: "Create fulfillments",
     description:
-      "Eligible orders will be fulfilled from the selected stock location using each order's original shipping option.",
-    eligible: "{{count}} eligible",
-    eligibleMore: "{{count}} more eligible",
+      "Fulfillments will be created from the selected stock location using each order's original shipping method.",
+    eligible: "Eligible: {{count}}",
+    eligibleMore: "Additional eligible orders: {{count}}",
     failed: "{{order}}: failed - {{reason}}",
-    failedCount: "{{count}} failed",
-    failedMore: "{{count}} more failed",
+    failedCount: "Failed: {{count}}",
+    failedMore: "Additional failures: {{count}}",
     fulfilled: "{{order}}: fulfilled",
-    fulfilledCount: "{{count}} fulfilled",
-    fulfilledMore: "{{count}} more fulfilled",
-    items: "{{count}} item(s)",
+    fulfilledCount: "Fulfilled: {{count}}",
+    fulfilledMore: "Additional fulfilled orders: {{count}}",
+    items: "Items: {{count}}",
     loading: "Loading fulfillment preview...",
     location: "Stock location",
     locationPlaceholder: "Select stock location",
@@ -289,10 +327,17 @@ const englishOrderDashboardAdminI18n = {
     previewUnavailable: "Select a stock location to preview eligibility.",
     selected: "{{count}} selected",
     skipped: "{{order}}: skipped - {{reason}}",
-    skippedCount: "{{count}} skipped",
-    skippedMore: "{{count}} more skipped",
+    skippedCount: "Skipped: {{count}}",
+    skippedMore: "Additional skipped orders: {{count}}",
     stockLocationsUnavailable: "No stock locations are available.",
-    title: "Fulfill items",
+    title: "Create fulfillments",
+  },
+  fallback: {
+    notAvailable: "—",
+    unknownFulfillmentStatus: "Unknown fulfillment status ({{status}})",
+    unknownOrderStatus: "Unknown status ({{status}})",
+    unknownPaymentMethod: "Other payment method ({{method}})",
+    unknownPaymentStatus: "Unknown payment status ({{status}})",
   },
   labelFormats: {
     a6: "A6",
@@ -308,15 +353,14 @@ const englishOrderDashboardAdminI18n = {
   manualStatusPrompt: {
     description: "Only manually selected orders will be updated.",
     skipped: "{{order}}: skipped - {{reason}}",
-    skippedMore: "{{count}} more will be skipped",
+    skippedMore: "Additional orders to skip: {{count}}",
     target: "Target manual status: {{status}}",
-    title: "Apply manual status",
+    title: "Set manual status",
     updated: "{{order}}: set manual status to {{status}}",
-    updatedMore: "{{count}} more will be updated",
-    willChange:
-      "{{updatedCount}} order(s) will be updated. {{skippedCount}} order(s) will be skipped.",
+    updatedMore: "Additional orders to update: {{count}}",
+    willChange: "To update: {{updatedCount}}. To skip: {{skippedCount}}.",
   },
-  menuItem: "Order dashboard",
+  menuItem: "Dashboard",
   manualStatusBlocker: {
     alreadyClear: "Manual status is already clear",
     alreadyStatus: "Manual status is already {{status}}",
@@ -324,7 +368,7 @@ const englishOrderDashboardAdminI18n = {
     higherPriority: "{{status}} status has higher priority",
   },
   packetaSkip: {
-    noActiveLabel: "No active Packeta packet label",
+    noActiveLabel: "No active Packeta shipping label",
     notPacketa: "Carrier is {{carrier}}, not Packeta",
     unchecked: "Packeta label status could not be checked",
   },
@@ -332,9 +376,28 @@ const englishOrderDashboardAdminI18n = {
     description:
       "Labels will be placed on an A4 sheet with four positions. Choose where the first label should start.",
     position: "Position {{position}}",
-    print: "Prepare labels",
-    selected: "{{count}} labels will be printed",
+    print: "Download labels",
+    selected: "Labels to print: {{count}}",
     title: "Packeta label start position",
+  },
+  paymentMethod: {
+    comgate: "Comgate",
+    gopay: "GoPay",
+    manual: "Other payment method",
+    qr: "QR payment",
+    stripe: "Card (Stripe)",
+  },
+  paymentStatus: {
+    authorized: "Authorized",
+    awaiting: "Awaiting payment",
+    canceled: "Canceled",
+    captured: "Paid",
+    not_paid: "Not paid",
+    partially_authorized: "Partially authorized",
+    partially_captured: "Partially paid",
+    partially_refunded: "Partially refunded",
+    refunded: "Refunded",
+    requires_action: "Requires action",
   },
   queues: {
     action_required: "Action required",
@@ -342,7 +405,7 @@ const englishOrderDashboardAdminI18n = {
   },
   sidebar: {
     actionRequiredOrders:
-      "{{count}} orders waiting for admin confirmation without captured payment",
+      "Orders awaiting admin confirmation without captured payment: {{count}}",
   },
   statuses: {
     awaiting_payment: "Awaiting payment",
@@ -352,7 +415,7 @@ const englishOrderDashboardAdminI18n = {
     paid: "Paid",
     processing: "Processing",
     shipped: "Shipped",
-    waiting_for_supplier: "Waiting internally",
+    waiting_for_supplier: "Waiting for supplier",
   },
   table: {
     blockedOrdersTitle: "Some orders could not be updated.",
@@ -364,7 +427,7 @@ const englishOrderDashboardAdminI18n = {
   },
   tableMessages: {
     blockedCount: "{{count}} blocked",
-    moreBlocked: "{{count}} more blocked",
+    moreBlocked: "Additional blocked orders: {{count}}",
   },
   targetStatusBlocker: {
     activeFulfillmentCannotCanceled:
@@ -391,47 +454,58 @@ const englishOrderDashboardAdminI18n = {
     pending: "Pending",
     requires_action: "Requires action",
   },
-  title: "Order dashboard",
+  title: "Orders",
   toast: {
-    businessStatusUpdated: "Manual status updated for {{count}} orders",
+    businessStatusUpdated_few: "Manual status updated for {{count}} orders.",
+    businessStatusUpdated_one: "Manual status updated for 1 order.",
+    businessStatusUpdated_other: "Manual status updated for {{count}} orders.",
     businessStatusUpdatedWithSkipped:
-      "Manual status updated for {{count}} orders. {{skippedCount}} skipped.",
+      "Manual status update completed. Updated: {{count}}. Skipped: {{skippedCount}}.",
     blockedOrderStatus: "Selected orders do not support that status change.",
-    fulfillmentCreated: "Fulfillment created for {{count}} orders",
+    fulfillmentCreated_few: "Fulfillments created for {{count}} orders.",
+    fulfillmentCreated_one: "Fulfillment created for 1 order.",
+    fulfillmentCreated_other: "Fulfillments created for {{count}} orders.",
     fulfillmentCreatedWithFailed:
-      "Fulfillment created for {{count}} orders. {{failedCount}} failed.",
+      "Fulfillment completed. Successful: {{count}}. Failed: {{failedCount}}.",
     fulfillmentLimit: "Select up to {{count}} orders for bulk fulfillment.",
     fulfillmentSkipped: "No selected orders can be fulfilled.",
-    manualStatusSkipped: "Manual status was not changed",
+    manualStatusSkipped: "Manual status was not changed.",
     missingBusinessStatus: "Select a manual status.",
     missingOrderStatus: "Select a target order status.",
     noPacketaSelection: "No selected orders have printable Packeta labels.",
     noSelection: "Select at least one order.",
     packetaLabelLimit: "Select up to {{count}} orders.",
-    packetaLabelsReady: "Packeta labels are ready",
-    pdfReady: "Expedition PDF is ready",
-    requestFailed: "Operation failed",
-    statusUpdated: "Status updated for {{count}} orders",
+    packetaLabelsReady: "Packeta labels were downloaded.",
+    pdfReady: "Expedition PDF was downloaded.",
+    requestFailed: "Operation failed.",
+    statusUpdated_few: "Status updated for {{count}} orders.",
+    statusUpdated_one: "Status updated for 1 order.",
+    statusUpdated_other: "Status updated for {{count}} orders.",
   },
 } satisfies OrderDashboardAdminI18nNamespace
 
 const czechOrderDashboardAdminI18n = {
   actions: {
     apply: "Použít",
-    applyManualStatus: "Použít ruční stav",
+    applyManualStatus: "Nastavit ruční stav",
     businessStatusPlaceholder: "Ruční stav",
     cancel: "Zrušit",
     clearManualStatus: "Vymazat ruční stav",
     closeDetails: "Zavřít",
+    columns: "Sloupce",
     details: "Detail",
     expeditionPdf: "Expediční PDF",
-    fulfillItems: "Vyřídit položky",
+    fulfillItems: "Vytvořit expedice",
     labelFormat: "Formát",
-    packetaEligible:
-      "{{count}} tisknutelných štítků Packeta z {{selectedCount}} vybraných",
+    packetaEligible: "Štítky Packeta k tisku: {{count}} z {{selectedCount}}",
     packetaLabels: "Štítky Packeta",
     selected: "{{count}} vybráno",
     targetStatusPlaceholder: "Stav objednávky",
+  },
+  carriers: {
+    other: "Ostatní",
+    packeta: "Packeta",
+    ppl: "PPL",
   },
   columns: {
     address: "Adresa",
@@ -440,26 +514,26 @@ const czechOrderDashboardAdminI18n = {
     created: "Vytvořeno",
     customer: "Zákazník",
     details: "Detail",
-    fulfillment: "Vyřízení",
+    fulfillment: "Expedice",
     manualStatus: "Ruční stav",
     order: "Objednávka",
     payment: "Platba",
     total: "Celkem",
   },
   detail: {
-    activeFulfillment: "Aktivní vyřízení",
+    activeFulfillment: "Aktivní expedice",
     address: "Adresa",
     businessStatus: "Provozní stav",
     carrier: "Dopravce",
-    fulfillment: "Vyřízení",
+    fulfillment: "Expedice",
     items: "Položky",
     manualStatus: "Ruční stav",
-    noActiveFulfillment: "Žádné aktivní vyřízení",
+    noActiveFulfillment: "Žádná aktivní expedice",
     noItems: "Žádné položky nejsou dostupné.",
     orderStatus: "Stav v Meduse",
     payment: "Platba",
     quantity: "{{count}} ks",
-    title: "Detail {{order}}",
+    title: "Objednávka {{order}}",
     total: "Celkem",
   },
   filters: {
@@ -469,51 +543,58 @@ const czechOrderDashboardAdminI18n = {
   fulfillmentStatus: {
     canceled: "Zrušeno",
     delivered: "Doručeno",
-    fulfilled: "Vyřízeno",
-    not_fulfilled: "Nevyřízeno",
+    fulfilled: "Expedice vytvořena",
+    not_fulfilled: "Bez expedice",
     partially_delivered: "Částečně doručeno",
-    partially_fulfilled: "Částečně vyřízeno",
+    partially_fulfilled: "Částečná expedice",
     partially_returned: "Částečně vráceno",
-    partially_shipped: "Částečně expedováno",
+    partially_shipped: "Částečně odesláno",
     requires_action: "Vyžaduje akci",
     returned: "Vráceno",
-    shipped: "Expedováno",
+    shipped: "Odesláno",
   },
   fulfillmentBlocker: {
-    canceled: "Zrušené objednávky nelze vyřídit",
+    canceled: "Pro zrušené objednávky nelze vytvořit expedici",
     missingOrder: "Detail objednávky se nepodařilo načíst",
-    noFulfillableItems: "Žádné položky k odeslání nečekají na vyřízení",
-    noShippingOption: "Objednávka nemá dopravní možnost",
+    noFulfillableItems: "Žádné položky nečekají na expedici",
+    noShippingOption: "Objednávka nemá způsob dopravy",
     shippingOptionUnavailable:
-      "Dopravní možnost objednávky není dostupná z vybraného skladu",
+      "Způsob dopravy objednávky není dostupný z vybraného skladu",
     shippingProfileMismatch:
-      "Žádné vyříditelné položky neodpovídají dopravnímu profilu objednávky",
+      "Žádné položky k expedici neodpovídají přepravnímu profilu objednávky",
   },
   fulfillmentModal: {
-    confirm: "Vyřídit způsobilé objednávky",
+    confirm: "Vytvořit expedice",
     description:
-      "Způsobilé objednávky se vyřídí z vybraného skladu přes původní dopravní možnost každé objednávky.",
-    eligible: "{{count}} způsobilých",
-    eligibleMore: "{{count}} dalších způsobilých",
+      "Expedice se vytvoří z vybraného skladu s použitím původního způsobu dopravy každé objednávky.",
+    eligible: "Lze expedovat: {{count}}",
+    eligibleMore: "Další objednávky k expedici: {{count}}",
     failed: "{{order}}: selhalo - {{reason}}",
-    failedCount: "{{count}} selhalo",
-    failedMore: "{{count}} dalších selhalo",
-    fulfilled: "{{order}}: vyřízeno",
-    fulfilledCount: "{{count}} vyřízeno",
-    fulfilledMore: "{{count}} dalších vyřízeno",
-    items: "{{count}} položek",
-    loading: "Načítám náhled vyřízení...",
+    failedCount: "Selhalo: {{count}}",
+    failedMore: "Další chyby: {{count}}",
+    fulfilled: "{{order}}: expedice vytvořena",
+    fulfilledCount: "Expedice vytvořeny: {{count}}",
+    fulfilledMore: "Další vytvořené expedice: {{count}}",
+    items: "Položky: {{count}}",
+    loading: "Načítám náhled expedic...",
     location: "Sklad",
     locationPlaceholder: "Vyberte sklad",
-    noEligible: "Žádné vybrané objednávky nelze vyřídit.",
+    noEligible: "Pro žádnou vybranou objednávku nelze vytvořit expedici.",
     notifyCustomers: "Upozornit zákazníky",
     previewUnavailable: "Pro náhled způsobilosti vyberte sklad.",
     selected: "{{count}} vybráno",
     skipped: "{{order}}: přeskočeno - {{reason}}",
-    skippedCount: "{{count}} přeskočeno",
-    skippedMore: "{{count}} dalších přeskočeno",
+    skippedCount: "Přeskočeno: {{count}}",
+    skippedMore: "Další přeskočené objednávky: {{count}}",
     stockLocationsUnavailable: "Nejsou dostupné žádné sklady.",
-    title: "Vyřídit položky",
+    title: "Vytvořit expedice",
+  },
+  fallback: {
+    notAvailable: "—",
+    unknownFulfillmentStatus: "Neznámý stav expedice ({{status}})",
+    unknownOrderStatus: "Neznámý stav ({{status}})",
+    unknownPaymentMethod: "Jiná platební metoda ({{method}})",
+    unknownPaymentStatus: "Neznámý stav platby ({{status}})",
   },
   labelFormats: {
     a6: "A6",
@@ -529,13 +610,12 @@ const czechOrderDashboardAdminI18n = {
   manualStatusPrompt: {
     description: "Upraví se pouze ručně vybrané objednávky.",
     skipped: "{{order}}: přeskočeno - {{reason}}",
-    skippedMore: "{{count}} dalších bude přeskočeno",
+    skippedMore: "Další objednávky k přeskočení: {{count}}",
     target: "Cílový ruční stav: {{status}}",
-    title: "Použít ruční stav",
+    title: "Nastavit ruční stav",
     updated: "{{order}}: ruční stav bude nastaven na {{status}}",
-    updatedMore: "{{count}} dalších bude upraveno",
-    willChange:
-      "{{updatedCount}} objednávek bude upraveno. {{skippedCount}} objednávek bude přeskočeno.",
+    updatedMore: "Další objednávky k úpravě: {{count}}",
+    willChange: "K úpravě: {{updatedCount}}. K přeskočení: {{skippedCount}}.",
   },
   menuItem: "Přehled",
   manualStatusBlocker: {
@@ -553,9 +633,28 @@ const czechOrderDashboardAdminI18n = {
     description:
       "Štítky se připraví na A4 arch se čtyřmi pozicemi. Vyberte, od které pozice má začít první štítek.",
     position: "Pozice {{position}}",
-    print: "Připravit štítky",
-    selected: "Bude vytištěno {{count}} štítků",
-    title: "Startovní pozice štítku Packeta",
+    print: "Stáhnout štítky",
+    selected: "Štítky k tisku: {{count}}",
+    title: "Počáteční pozice štítku Packeta",
+  },
+  paymentMethod: {
+    comgate: "Comgate",
+    gopay: "GoPay",
+    manual: "Jiný způsob platby",
+    qr: "QR platba",
+    stripe: "Karta (Stripe)",
+  },
+  paymentStatus: {
+    authorized: "Autorizováno",
+    awaiting: "Čeká na platbu",
+    canceled: "Zrušeno",
+    captured: "Zaplaceno",
+    not_paid: "Nezaplaceno",
+    partially_authorized: "Částečně autorizováno",
+    partially_captured: "Částečně zaplaceno",
+    partially_refunded: "Částečně vráceno",
+    refunded: "Vráceno",
+    requires_action: "Vyžaduje akci",
   },
   queues: {
     action_required: "Vyžaduje akci",
@@ -563,7 +662,7 @@ const czechOrderDashboardAdminI18n = {
   },
   sidebar: {
     actionRequiredOrders:
-      "{{count}} objednávek čeká na potvrzení administrátorem bez zaúčtované platby",
+      "Objednávky čekající na potvrzení bez zaúčtované platby: {{count}}",
   },
   statuses: {
     awaiting_payment: "Čeká na platbu",
@@ -572,24 +671,24 @@ const czechOrderDashboardAdminI18n = {
     new: "Nezpracováno",
     paid: "Zaplaceno",
     processing: "Zpracovává se",
-    shipped: "Expedováno",
-    waiting_for_supplier: "Čeká interně",
+    shipped: "Odesláno",
+    waiting_for_supplier: "Čeká na dodavatele",
   },
   table: {
     blockedOrdersTitle: "Některé objednávky se nepodařilo upravit.",
     carrierFilterLimit:
-      "Filtr dopravce prošel {{count}} objednávek. Výsledek nemusí být kompletní.",
+      "Při filtrování podle dopravce bylo zkontrolováno {{count}} objednávek. Výsledek nemusí být kompletní.",
     empty: "Nebyly nalezeny žádné objednávky.",
     filterTooltip: "Přidat filtr",
     loading: "Načítám objednávky...",
   },
   tableMessages: {
     blockedCount: "{{count}} blokováno",
-    moreBlocked: "{{count}} dalších blokováno",
+    moreBlocked: "Další blokované objednávky: {{count}}",
   },
   targetStatusBlocker: {
     activeFulfillmentCannotCanceled:
-      "Objednávky s aktivním vyřízením nelze zrušit",
+      "Objednávky s aktivní expedicí nelze zrušit",
     alreadyStatus: "Objednávka už je {{status}}",
     archivedCannotChange: "Archivované objednávky nelze měnit",
     canceledOnlyArchived: "Zrušené objednávky lze jen archivovat",
@@ -612,29 +711,38 @@ const czechOrderDashboardAdminI18n = {
     pending: "Čeká",
     requires_action: "Vyžaduje akci",
   },
-  title: "Přehled objednávek",
+  title: "Objednávky",
   toast: {
-    businessStatusUpdated: "Ruční stav upraven pro {{count}} objednávek",
+    businessStatusUpdated_few: "Ruční stav byl upraven u {{count}} objednávek.",
+    businessStatusUpdated_one: "Ruční stav byl upraven u 1 objednávky.",
+    businessStatusUpdated_other:
+      "Ruční stav byl upraven u {{count}} objednávek.",
     businessStatusUpdatedWithSkipped:
-      "Ruční stav upraven pro {{count}} objednávek. {{skippedCount}} přeskočeno.",
+      "Úprava ručního stavu dokončena. Upraveno: {{count}}. Přeskočeno: {{skippedCount}}.",
     blockedOrderStatus: "Vybrané objednávky nepodporují tuto změnu stavu.",
-    fulfillmentCreated: "Vyřízení vytvořeno pro {{count}} objednávek",
+    fulfillmentCreated_few: "Expedice byly vytvořeny pro {{count}} objednávky.",
+    fulfillmentCreated_one: "Expedice byla vytvořena pro 1 objednávku.",
+    fulfillmentCreated_other:
+      "Expedice byly vytvořeny pro {{count}} objednávek.",
     fulfillmentCreatedWithFailed:
-      "Vyřízení vytvořeno pro {{count}} objednávek. {{failedCount}} selhalo.",
+      "Vytvoření expedic dokončeno. Úspěšně: {{count}}. Selhalo: {{failedCount}}.",
     fulfillmentLimit:
-      "Pro hromadné vyřízení vyberte nejvýše {{count}} objednávek.",
-    fulfillmentSkipped: "Žádné vybrané objednávky nelze vyřídit.",
-    manualStatusSkipped: "Ruční stav nebyl změněn",
+      "Pro hromadné vytvoření expedic vyberte nejvýše {{count}} objednávek.",
+    fulfillmentSkipped:
+      "Pro žádnou vybranou objednávku nelze vytvořit expedici.",
+    manualStatusSkipped: "Ruční stav nebyl změněn.",
     missingBusinessStatus: "Vyberte ruční stav.",
     missingOrderStatus: "Vyberte cílový stav objednávky.",
     noPacketaSelection:
-      "Žádné vybrané objednávky nemají tisknutelné štítky Packeta.",
+      "Žádné vybrané objednávky nemají štítky Packeta k tisku.",
     noSelection: "Vyberte alespoň jednu objednávku.",
     packetaLabelLimit: "Vyberte nejvýše {{count}} objednávek.",
-    packetaLabelsReady: "Štítky Packeta jsou připravené",
-    pdfReady: "Expediční PDF je připravené",
-    requestFailed: "Operace selhala",
-    statusUpdated: "Stav upraven pro {{count}} objednávek",
+    packetaLabelsReady: "Štítky Packeta byly staženy.",
+    pdfReady: "Expediční PDF bylo staženo.",
+    requestFailed: "Operace selhala.",
+    statusUpdated_few: "Stav byl upraven u {{count}} objednávek.",
+    statusUpdated_one: "Stav byl upraven u 1 objednávky.",
+    statusUpdated_other: "Stav byl upraven u {{count}} objednávek.",
   },
 } satisfies OrderDashboardAdminI18nNamespace
 

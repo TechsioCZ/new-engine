@@ -96,7 +96,7 @@ function getPacketaLabelSkipReason(
   t: TranslationFunction
 ) {
   if (order.carrier.value !== "packeta") {
-    return t("packetaSkip.notPacketa", { carrier: getCarrierLabel(order) })
+    return t("packetaSkip.notPacketa", { carrier: getCarrierLabel(order, t) })
   }
 
   if (!eligibilityOrder) {

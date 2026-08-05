@@ -118,7 +118,7 @@ export type OrderDashboardOrder = {
   items: OrderDashboardItem[]
   manual_status?: OrderDashboardManualStatusId | null
   order_display_id: string
-  payment_method: string
+  payment_method: string | null
   payment_status?: string | null
   status?: string | null
   total?: number | string | null

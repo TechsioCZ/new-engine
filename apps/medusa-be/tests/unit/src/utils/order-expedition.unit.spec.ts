@@ -117,6 +117,16 @@ describe("order expedition helpers", () => {
     ])
   })
 
+  it("returns no payment method when the order has no payment provider", () => {
+    const dto = toOrderExpeditionDto({
+      id: "order_1",
+      display_id: 1001,
+      payment_status: "not_paid",
+    })
+
+    expect(dto.payment_method).toBeNull()
+  })
+
   it("uses the latest summary total when query returns a zero order total", () => {
     const dto = toOrderExpeditionDto({
       id: "order_1",

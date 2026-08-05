@@ -195,7 +195,7 @@ export type OrderExpeditionOrderDto = {
   email?: string | null
   delivery_address: string[]
   carrier: ResolvedOrderExpeditionCarrier
-  payment_method: string
+  payment_method: string | null
   payment_status?: string | null
   fulfillment_status?: string | null
   status?: string | null
@@ -606,7 +606,7 @@ function getOrderExpeditionPaymentMethod(order: OrderExpeditionRawOrder) {
     ?.flatMap((collection) => collection.payments ?? [])
     .find((payment) => payment.provider_id)?.provider_id
 
-  return providerId ?? order.payment_status ?? "Unknown"
+  return providerId ?? null
 }
 
 function getOrderExpeditionTotal(order: OrderExpeditionRawOrder) {
