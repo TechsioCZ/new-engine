@@ -61,28 +61,28 @@ interface ZaneServiceCard {
 
 interface ZaneEnvironmentDeps {
   baseUrl: string
-  authenticate(): Promise<ZaneSession>
-  buildHeaders(
+  authenticate: () => Promise<ZaneSession>
+  buildHeaders: (
     session: ZaneSession | undefined,
     method: HttpMethod,
-  ): Record<string, string>
-  getEnvironment(
+  ) => Record<string, string>
+  getEnvironment: (
     session: ZaneSession,
     projectSlug: string,
     environmentName: string,
-  ): Promise<ZaneEnvironmentWithVariables | null>
-  listServiceCards(
+  ) => Promise<ZaneEnvironmentWithVariables | null>
+  listServiceCards: (
     session: ZaneSession,
     projectSlug: string,
     environmentName: string,
-  ): Promise<ZaneServiceCard[]>
-  getServiceDetails(
+  ) => Promise<ZaneServiceCard[]>
+  getServiceDetails: (
     session: ZaneSession,
     projectSlug: string,
     environmentName: string,
     serviceSlug: string,
-  ): Promise<ZaneServiceDetails>
-  request<T>(
+  ) => Promise<ZaneServiceDetails>
+  request: <T>(
     session: ZaneSession,
     method: HttpMethod,
     path: string,
@@ -91,7 +91,7 @@ interface ZaneEnvironmentDeps {
       allowNotFound?: boolean
       retryOnAuthFailure?: boolean
     },
-  ): Promise<T | null>
+  ) => Promise<T | null>
 }
 
 interface ResolvedEnvironmentState {
@@ -111,6 +111,10 @@ interface ResolvedEnvironmentState {
   warnings: ResolveEnvironmentWarning[]
 }
 
+type ReconciledServiceField = NonNullable<
+  ZaneServiceDetails["unapplied_changes"]
+>[number]["field"]
+
 interface CreateGitServicePayload {
   slug: string
   repository_url: string
@@ -121,11 +125,11 @@ interface CreateGitServicePayload {
   git_app_id?: string
 }
 
-function buildCreateGitServicePayload(
+const buildCreateGitServicePayload = (
   source: ZaneServiceDetails,
   projectSlug: string,
   environmentName: string,
-): CreateGitServicePayload {
+): CreateGitServicePayload => {
   if (source.type !== "git") {
     throw new UpstreamHttpError(
       409,
@@ -156,18 +160,20 @@ function buildCreateGitServicePayload(
     dockerfile_path: dockerfilePath,
     repository_url: repositoryUrl,
     slug: source.slug,
-    ...(source.git_app?.id ? { git_app_id: source.git_app.id } : {}),
+    ...(typeof source.git_app?.id === "string" && source.git_app.id.length > 0
+      ? { git_app_id: source.git_app.id }
+      : {}),
   }
 }
 
-function buildDesiredGitSource(
+const buildDesiredGitSource = (
   sourceDetails: ZaneServiceDetails,
   spec: ZaneServiceReconciliationSpec,
 ): {
   repository_url: string
   branch_name: string
   git_app_id: string | null
-} {
+} => {
   if (sourceDetails.type !== "git") {
     throw new UpstreamHttpError(
       409,
@@ -178,10 +184,10 @@ function buildDesiredGitSource(
 
   const repositoryUrl = sourceDetails.repository_url?.trim() ?? ""
   const branchName =
-    (spec.git_source?.branch_name?.trim() ??
-      sourceDetails.branch_name?.trim()) ||
+    spec.git_source?.branch_name?.trim() ??
+    sourceDetails.branch_name?.trim() ??
     ""
-  if (!repositoryUrl || !branchName) {
+  if (repositoryUrl.length === 0 || branchName.length === 0) {
     throw new UpstreamHttpError(
       409,
       "zane_preview_service_reconcile_invalid_source",
@@ -196,7 +202,7 @@ function buildDesiredGitSource(
   }
 }
 
-function buildDesiredBuilder(
+const buildDesiredBuilder = (
   sourceDetails: ZaneServiceDetails,
   spec: ZaneServiceReconciliationSpec,
 ): {
@@ -204,7 +210,7 @@ function buildDesiredBuilder(
   dockerfile_path: string
   build_context_dir: string
   build_stage_target: string | null
-} {
+} => {
   if (sourceDetails.type !== "git") {
     throw new UpstreamHttpError(
       409,
@@ -237,7 +243,7 @@ function buildDesiredBuilder(
   }
 }
 
-function normalizeGitSourceShape(value: {
+const normalizeGitSourceShape = (value: {
   repository_url: string | null
   branch_name: string | null
   git_app_id: string | null
@@ -245,15 +251,13 @@ function normalizeGitSourceShape(value: {
   repository_url: string | null
   branch_name: string | null
   git_app_id: string | null
-} {
-  return {
-    branch_name: value.branch_name,
-    git_app_id: value.git_app_id,
-    repository_url: value.repository_url,
-  }
-}
+} => ({
+  branch_name: value.branch_name,
+  git_app_id: value.git_app_id,
+  repository_url: value.repository_url,
+})
 
-function normalizeBuilderShape(value: {
+const normalizeBuilderShape = (value: {
   builder: string | null
   dockerfile_path: string | null
   build_context_dir: string | null
@@ -263,16 +267,14 @@ function normalizeBuilderShape(value: {
   dockerfile_path: string | null
   build_context_dir: string | null
   build_stage_target: string | null
-} {
-  return {
-    build_context_dir: value.build_context_dir,
-    build_stage_target: value.build_stage_target,
-    builder: value.builder,
-    dockerfile_path: value.dockerfile_path,
-  }
-}
+} => ({
+  build_context_dir: value.build_context_dir,
+  build_stage_target: value.build_stage_target,
+  builder: value.builder,
+  dockerfile_path: value.dockerfile_path,
+})
 
-function normalizeHealthcheckShape(
+const normalizeHealthcheckShape = (
   healthcheck: ZaneServiceHealthcheck | null,
 ): {
   type: string
@@ -280,7 +282,7 @@ function normalizeHealthcheckShape(
   timeout_seconds: number
   interval_seconds: number
   associated_port: number | null
-} | null {
+} | null => {
   if (!healthcheck) {
     return null
   }
@@ -294,12 +296,12 @@ function normalizeHealthcheckShape(
   }
 }
 
-function normalizeResourceLimitsShape(
+const normalizeResourceLimitsShape = (
   resourceLimits: ZaneServiceResourceLimits | null,
 ): {
   cpus: number | string | null
   memory: { unit?: string; value?: number | string } | null
-} | null {
+} | null => {
   if (!resourceLimits) {
     return null
   }
@@ -308,7 +310,8 @@ function normalizeResourceLimitsShape(
     cpus: resourceLimits.cpus ?? null,
     memory: resourceLimits.memory
       ? {
-          ...(resourceLimits.memory.unit
+          ...(typeof resourceLimits.memory.unit === "string" &&
+          resourceLimits.memory.unit.length > 0
             ? { unit: resourceLimits.memory.unit }
             : {}),
           ...(resourceLimits.memory.value === undefined
@@ -319,89 +322,86 @@ function normalizeResourceLimitsShape(
   }
 }
 
-function escapeRegExp(value: string): string {
-  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")
-}
+const escapeRegExp = (value: string): string =>
+  value.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&")
 
-function getSharedEnvironmentVariable(
+const getSharedEnvironmentVariable = (
   environment: ZaneEnvironmentWithVariables,
   key: string,
-): string | null {
+): string | null => {
   const variable = environment.variables.find((item) => item.key === key)
   return variable?.value ?? null
 }
 
-function normalizeUrlShape(url: ZaneServiceUrl): {
+const normalizeUrlShape = (
+  url: ZaneServiceUrl,
+): {
   domain: string
   base_path: string
   strip_prefix: boolean
   redirect_to: string | null
   associated_port: number | null
-} {
-  return {
-    associated_port: url.associated_port ?? null,
-    base_path: url.base_path,
-    domain: url.domain,
-    redirect_to: url.redirect_to ?? null,
-    strip_prefix: url.strip_prefix ?? true,
-  }
-}
+} => ({
+  associated_port: url.associated_port ?? null,
+  base_path: url.base_path,
+  domain: url.domain,
+  redirect_to: url.redirect_to ?? null,
+  strip_prefix: url.strip_prefix ?? true,
+})
 
-function buildUrlChangeValue(url: ZaneServiceUrl): Record<string, unknown> {
-  return {
-    base_path: url.base_path,
-    domain: url.domain,
-    strip_prefix: url.strip_prefix ?? true,
-    ...(url.redirect_to ? { redirect_to: url.redirect_to } : {}),
-    ...(typeof url.associated_port === "number"
-      ? { associated_port: url.associated_port }
-      : {}),
-  }
-}
+const buildUrlChangeValue = (url: ZaneServiceUrl): Record<string, unknown> => ({
+  base_path: url.base_path,
+  domain: url.domain,
+  strip_prefix: url.strip_prefix ?? true,
+  ...(typeof url.redirect_to === "string" && url.redirect_to.length > 0
+    ? { redirect_to: url.redirect_to }
+    : {}),
+  ...(typeof url.associated_port === "number"
+    ? { associated_port: url.associated_port }
+    : {}),
+})
 
-function buildBuilderChangeValue(value: {
+const buildBuilderChangeValue = (value: {
   builder: string
   dockerfile_path: string
   build_context_dir: string
   build_stage_target: string | null
-}): Record<string, unknown> {
-  return {
-    build_context_dir: value.build_context_dir,
-    builder: value.builder,
-    dockerfile_path: value.dockerfile_path,
-    ...(typeof value.build_stage_target === "string" &&
-    value.build_stage_target.trim()
-      ? { build_stage_target: value.build_stage_target }
-      : {}),
-  }
-}
+}): Record<string, unknown> => ({
+  build_context_dir: value.build_context_dir,
+  builder: value.builder,
+  dockerfile_path: value.dockerfile_path,
+  ...(typeof value.build_stage_target === "string" &&
+  value.build_stage_target.trim().length > 0
+    ? { build_stage_target: value.build_stage_target }
+    : {}),
+})
 
-function buildHealthcheckChangeValue(
+const buildHealthcheckChangeValue = (
   healthcheck: ZaneServiceHealthcheck,
-): Record<string, unknown> {
-  return {
-    interval_seconds: healthcheck.interval_seconds,
-    timeout_seconds: healthcheck.timeout_seconds,
-    type: healthcheck.type,
-    value: healthcheck.value,
-    ...(typeof healthcheck.associated_port === "number"
-      ? { associated_port: healthcheck.associated_port }
-      : {}),
-  }
-}
+): Record<string, unknown> => ({
+  interval_seconds: healthcheck.interval_seconds,
+  timeout_seconds: healthcheck.timeout_seconds,
+  type: healthcheck.type,
+  value: healthcheck.value,
+  ...(typeof healthcheck.associated_port === "number"
+    ? { associated_port: healthcheck.associated_port }
+    : {}),
+})
 
-function buildPreviewUrlDomain(
+const buildPreviewUrlDomain = (
   projectSlug: string,
   serviceSlug: string,
   environmentName: string,
   sourceDomain: string,
-): string {
+): string => {
   const servicePrefix = `${projectSlug}-${serviceSlug}`
   const match = new RegExp(
     `^${escapeRegExp(servicePrefix)}(?<affix>[^.]*)\\.(?<root>.+)$`,
+    "u",
   ).exec(sourceDomain)
 
-  if (!match?.groups?.root) {
+  const { affix, root } = match?.groups ?? {}
+  if (typeof root !== "string" || root.length === 0) {
     throw new UpstreamHttpError(
       409,
       "zane_preview_service_url_contract_invalid",
@@ -409,14 +409,14 @@ function buildPreviewUrlDomain(
     )
   }
 
-  return `${environmentName}-${servicePrefix}${match.groups.affix ?? ""}.${match.groups.root}`
+  return `${environmentName}-${servicePrefix}${affix ?? ""}.${root}`
 }
 
-function buildDesiredPreviewUrls(
+const buildDesiredPreviewUrls = (
   input: ResolveEnvironmentInput,
   sourceDetails: ZaneServiceDetails,
-): ZaneServiceUrl[] {
-  return (sourceDetails.urls ?? []).map((url) => ({
+): ZaneServiceUrl[] =>
+  (sourceDetails.urls ?? []).map((url) => ({
     ...url,
     domain: buildPreviewUrlDomain(
       input.projectSlug,
@@ -425,31 +425,43 @@ function buildDesiredPreviewUrls(
       url.domain,
     ),
   }))
+
+const urlRouteMatches = (
+  currentUrl: ZaneServiceUrl,
+  desiredUrl: ZaneServiceUrl,
+): boolean =>
+  currentUrl.domain === desiredUrl.domain &&
+  currentUrl.base_path === desiredUrl.base_path
+
+const urlTargetMatches = (
+  currentUrl: ZaneServiceUrl,
+  desiredUrl: ZaneServiceUrl,
+): boolean => {
+  const currentPort = currentUrl.associated_port ?? null
+  const desiredPort = desiredUrl.associated_port ?? null
+  const currentRedirect = currentUrl.redirect_to ?? null
+  const desiredRedirect = desiredUrl.redirect_to ?? null
+  return currentPort === desiredPort && currentRedirect === desiredRedirect
 }
 
-function findMatchingUrl(
+const findMatchingUrl = (
   currentUrls: ZaneServiceUrl[],
   desiredUrl: ZaneServiceUrl,
-): ZaneServiceUrl | undefined {
-  return (
-    currentUrls.find(
-      (currentUrl) =>
-        currentUrl.domain === desiredUrl.domain &&
-        currentUrl.base_path === desiredUrl.base_path,
-    ) ??
-    currentUrls.find(
-      (currentUrl) =>
-        (currentUrl.associated_port ?? null) ===
-          (desiredUrl.associated_port ?? null) &&
-        (currentUrl.redirect_to ?? null) === (desiredUrl.redirect_to ?? null),
-    )
-  )
-}
+): ZaneServiceUrl | undefined =>
+  currentUrls.find((currentUrl) => urlRouteMatches(currentUrl, desiredUrl)) ??
+  currentUrls.find((currentUrl) => urlTargetMatches(currentUrl, desiredUrl))
 
-function logResolveEnvironmentEvent(
+const urlShapesMatch = (
+  currentUrl: ZaneServiceUrl,
+  desiredUrl: ZaneServiceUrl,
+): boolean =>
+  JSON.stringify(normalizeUrlShape(currentUrl)) ===
+  JSON.stringify(normalizeUrlShape(desiredUrl))
+
+const logResolveEnvironmentEvent = (
   event: string,
   payload: Record<string, unknown>,
-): void {
+): void => {
   console.info(JSON.stringify({ event, ...payload }))
 }
 
@@ -631,14 +643,17 @@ export class ZaneEnvironmentManager {
     const requiresBaselineReplay =
       state.missing_preview_service_slugs.length > 0
 
+    const presentServiceSlugs = new Set(state.present_service_slugs)
+    const presentExcludedPreviewServiceSlugs =
+      state.excluded_preview_service_slugs.filter((serviceSlug) =>
+        presentServiceSlugs.has(serviceSlug),
+      )
     logResolveEnvironmentEvent("resolve-environment.preview.reconcile", {
       baseline_complete: state.baseline_complete,
       environment_name: input.environmentName,
       missing_preview_service_slugs: state.missing_preview_service_slugs,
       present_excluded_preview_service_slugs:
-        state.excluded_preview_service_slugs.filter((serviceSlug) =>
-          state.present_service_slugs.includes(serviceSlug),
-        ),
+        presentExcludedPreviewServiceSlugs,
       project_slug: input.projectSlug,
       ready: state.ready,
     })
@@ -646,9 +661,7 @@ export class ZaneEnvironmentManager {
     await this.reconcileExcludedPreviewServices(
       session,
       input,
-      state.excluded_preview_service_slugs.filter((serviceSlug) =>
-        state.present_service_slugs.includes(serviceSlug),
-      ),
+      presentExcludedPreviewServiceSlugs,
     )
     await this.reconcileMissingPreviewServices(
       session,
@@ -699,15 +712,17 @@ export class ZaneEnvironmentManager {
       },
     )
 
-    for (const serviceSlug of missingServiceSlugs) {
-      const sourceDetails = await this.#deps.getServiceDetails(
-        session,
-        input.projectSlug,
-        input.sourceEnvironmentName,
-        serviceSlug,
-      )
-      await this.cloneMissingPreviewService(session, input, sourceDetails)
-    }
+    await Promise.all(
+      missingServiceSlugs.map(async (serviceSlug) => {
+        const sourceDetails = await this.#deps.getServiceDetails(
+          session,
+          input.projectSlug,
+          input.sourceEnvironmentName,
+          serviceSlug,
+        )
+        await this.cloneMissingPreviewService(session, input, sourceDetails)
+      }),
+    )
   }
 
   private async cloneMissingPreviewService(
@@ -739,7 +754,10 @@ export class ZaneEnvironmentManager {
       },
     )
 
-    if (sourceDetails.command) {
+    if (
+      typeof sourceDetails.command === "string" &&
+      sourceDetails.command.length > 0
+    ) {
       await this.requestServiceChange(session, input, sourceDetails.slug, {
         field: "command",
         new_value: sourceDetails.command,
@@ -747,9 +765,11 @@ export class ZaneEnvironmentManager {
       })
     }
 
-    for (const volume of sourceDetails.volumes ?? []) {
-      await this.addVolume(session, input, sourceDetails.slug, volume)
-    }
+    await Promise.all(
+      (sourceDetails.volumes ?? []).map(async (volume) => {
+        await this.addVolume(session, input, sourceDetails.slug, volume)
+      }),
+    )
 
     await this.reconcilePreviewServiceUrls(session, input, [sourceDetails.slug])
 
@@ -771,16 +791,18 @@ export class ZaneEnvironmentManager {
       )
     }
 
-    for (const envVar of sourceDetails.env_variables ?? []) {
-      await this.requestServiceChange(session, input, sourceDetails.slug, {
-        field: "env_variables",
-        new_value: {
-          key: envVar.key,
-          value: envVar.value,
-        },
-        type: "ADD",
-      })
-    }
+    await Promise.all(
+      (sourceDetails.env_variables ?? []).map(async (envVar) => {
+        await this.requestServiceChange(session, input, sourceDetails.slug, {
+          field: "env_variables",
+          new_value: {
+            key: envVar.key,
+            value: envVar.value,
+          },
+          type: "ADD",
+        })
+      }),
+    )
   }
 
   private async reconcileExcludedPreviewServices(
@@ -798,58 +820,62 @@ export class ZaneEnvironmentManager {
       service_slugs: [...new Set(serviceSlugs)],
     })
 
-    for (const serviceSlug of new Set(serviceSlugs)) {
-      let currentDetails: ZaneServiceDetails
-      try {
-        currentDetails = await this.#deps.getServiceDetails(
-          session,
-          input.projectSlug,
-          input.environmentName,
-          serviceSlug,
-        )
-      } catch (error) {
-        if (error instanceof UpstreamHttpError && error.status === 404) {
-          continue
-        }
+    await Promise.all(
+      [...new Set(serviceSlugs)].map(async (serviceSlug) => {
+        await this.reconcileExcludedPreviewService(session, input, serviceSlug)
+      }),
+    )
+  }
 
-        throw error
-      }
-      await this.archiveService(
+  private async reconcileExcludedPreviewService(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSlug: string,
+  ): Promise<void> {
+    let currentDetails: ZaneServiceDetails
+    try {
+      currentDetails = await this.#deps.getServiceDetails(
         session,
-        input,
+        input.projectSlug,
+        input.environmentName,
         serviceSlug,
-        currentDetails.type,
       )
-      try {
-        await this.#deps.getServiceDetails(
-          session,
-          input.projectSlug,
-          input.environmentName,
-          serviceSlug,
-        )
-      } catch (error) {
-        if (error instanceof UpstreamHttpError && error.status === 404) {
-          logResolveEnvironmentEvent(
-            "resolve-environment.preview.cleanup.archived",
-            {
-              environment_name: input.environmentName,
-              project_slug: input.projectSlug,
-              service_slug: serviceSlug,
-              service_type: currentDetails.type,
-            },
-          )
-          continue
-        }
-
-        throw error
+    } catch (error) {
+      if (error instanceof UpstreamHttpError && error.status === 404) {
+        return
       }
-
-      throw new UpstreamHttpError(
-        409,
-        "preview_cleanup_service_still_present",
-        `Preview cleanup did not remove excluded service ${serviceSlug} from ${input.projectSlug}/${input.environmentName}`,
-      )
+      throw error
     }
+
+    await this.archiveService(session, input, serviceSlug, currentDetails.type)
+    try {
+      await this.#deps.getServiceDetails(
+        session,
+        input.projectSlug,
+        input.environmentName,
+        serviceSlug,
+      )
+    } catch (error) {
+      if (error instanceof UpstreamHttpError && error.status === 404) {
+        logResolveEnvironmentEvent(
+          "resolve-environment.preview.cleanup.archived",
+          {
+            environment_name: input.environmentName,
+            project_slug: input.projectSlug,
+            service_slug: serviceSlug,
+            service_type: currentDetails.type,
+          },
+        )
+        return
+      }
+      throw error
+    }
+
+    throw new UpstreamHttpError(
+      409,
+      "preview_cleanup_service_still_present",
+      `Preview cleanup did not remove excluded service ${serviceSlug} from ${input.projectSlug}/${input.environmentName}`,
+    )
   }
 
   private async reconcilePreviewServiceSpecs(
@@ -869,59 +895,69 @@ export class ZaneEnvironmentManager {
       ],
     })
 
-    for (const spec of serviceSpecs) {
-      const sourceDetails = await this.#deps.getServiceDetails(
+    await Promise.all(
+      serviceSpecs.map(async (spec) => {
+        await this.reconcilePreviewServiceSpec(session, input, spec)
+      }),
+    )
+  }
+
+  private async reconcilePreviewServiceSpec(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    spec: ZaneServiceReconciliationSpec,
+  ): Promise<void> {
+    const [sourceDetails, initialCurrentDetails] = await Promise.all([
+      this.#deps.getServiceDetails(
         session,
         input.projectSlug,
         input.sourceEnvironmentName,
         spec.service_slug,
-      )
-      let currentDetails = await this.#deps.getServiceDetails(
+      ),
+      this.#deps.getServiceDetails(
         session,
         input.projectSlug,
         input.environmentName,
         spec.service_slug,
+      ),
+    ])
+    let currentDetails = initialCurrentDetails
+
+    if (spec.git_source?.sync_from_source === true) {
+      currentDetails = await this.reconcilePreviewGitSource(
+        session,
+        input,
+        spec,
+        sourceDetails,
+        currentDetails,
       )
-
-      if (spec.git_source?.sync_from_source) {
-        currentDetails = await this.reconcilePreviewGitSource(
-          session,
-          input,
-          spec,
-          sourceDetails,
-          currentDetails,
-        )
-      }
-
-      if (spec.builder?.sync_from_source) {
-        currentDetails = await this.reconcilePreviewBuilder(
-          session,
-          input,
-          spec,
-          sourceDetails,
-          currentDetails,
-        )
-      }
-
-      if (spec.healthcheck?.sync_from_source) {
-        currentDetails = await this.reconcilePreviewHealthcheck(
-          session,
-          input,
-          spec,
-          sourceDetails,
-          currentDetails,
-        )
-      }
-
-      if (spec.resource_limits?.sync_from_source) {
-        currentDetails = await this.reconcilePreviewResourceLimits(
-          session,
-          input,
-          spec,
-          sourceDetails,
-          currentDetails,
-        )
-      }
+    }
+    if (spec.builder?.sync_from_source === true) {
+      currentDetails = await this.reconcilePreviewBuilder(
+        session,
+        input,
+        spec,
+        sourceDetails,
+        currentDetails,
+      )
+    }
+    if (spec.healthcheck?.sync_from_source === true) {
+      currentDetails = await this.reconcilePreviewHealthcheck(
+        session,
+        input,
+        spec,
+        sourceDetails,
+        currentDetails,
+      )
+    }
+    if (spec.resource_limits?.sync_from_source === true) {
+      await this.reconcilePreviewResourceLimits(
+        session,
+        input,
+        spec,
+        sourceDetails,
+        currentDetails,
+      )
     }
   }
 
@@ -1123,117 +1159,164 @@ export class ZaneEnvironmentManager {
       service_slugs: [...new Set(serviceSlugs)],
     })
 
-    for (const serviceSlug of new Set(serviceSlugs)) {
-      const sourceDetails = await this.#deps.getServiceDetails(
+    await Promise.all(
+      [...new Set(serviceSlugs)].map(async (serviceSlug) => {
+        await this.reconcilePreviewServiceUrl(session, input, serviceSlug)
+      }),
+    )
+  }
+
+  private async reconcilePreviewServiceUrl(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSlug: string,
+  ): Promise<void> {
+    const [sourceDetails, initialCurrentDetails] = await Promise.all([
+      this.#deps.getServiceDetails(
         session,
         input.projectSlug,
         input.sourceEnvironmentName,
         serviceSlug,
-      )
-      let currentDetails = await this.getCurrentServiceDetails(
-        session,
-        input,
-        serviceSlug,
-      )
-      currentDetails = await this.cancelPendingFieldChangesIfPresent(
-        session,
-        input,
-        serviceSlug,
-        currentDetails,
-        "urls",
-      )
-      const desiredUrls = buildDesiredPreviewUrls(input, sourceDetails)
-      const desiredShapes = new Set(
-        desiredUrls.map((url) => JSON.stringify(normalizeUrlShape(url))),
-      )
-      for (const currentUrl of currentDetails.urls ?? []) {
-        if (desiredShapes.has(JSON.stringify(normalizeUrlShape(currentUrl)))) {
-          continue
-        }
-        if (!currentUrl.id) {
-          throw new UpstreamHttpError(
-            409,
-            "zane_preview_service_url_missing_id",
-            `Cannot remove unexpected preview URL for ${input.projectSlug}/${input.environmentName}/${serviceSlug} because the URL id is missing`,
-          )
-        }
+      ),
+      this.getCurrentServiceDetails(session, input, serviceSlug),
+    ])
+    const currentDetails = await this.cancelPendingFieldChangesIfPresent(
+      session,
+      input,
+      serviceSlug,
+      initialCurrentDetails,
+      "urls",
+    )
+    const desiredUrls = buildDesiredPreviewUrls(input, sourceDetails)
+    const desiredShapes = new Set(
+      desiredUrls.map((url) => JSON.stringify(normalizeUrlShape(url))),
+    )
+    const unexpectedUrls = (currentDetails.urls ?? []).filter(
+      (url) => !desiredShapes.has(JSON.stringify(normalizeUrlShape(url))),
+    )
+    await this.deleteUnexpectedPreviewUrls(
+      session,
+      input,
+      serviceSlug,
+      unexpectedUrls,
+      0,
+    )
 
-        await this.deleteUrl(session, input, serviceSlug, currentUrl.id)
-        logResolveEnvironmentEvent("resolve-environment.preview.urls.deleted", {
-          base_path: currentUrl.base_path,
-          domain: currentUrl.domain,
-          environment_name: input.environmentName,
-          project_slug: input.projectSlug,
-          service_slug: serviceSlug,
-        })
-      }
+    const refreshedDetails = await this.getCurrentServiceDetails(
+      session,
+      input,
+      serviceSlug,
+    )
+    await this.reconcileDesiredPreviewUrls(
+      session,
+      input,
+      serviceSlug,
+      desiredUrls,
+      0,
+      computeEffectiveUrls(refreshedDetails),
+    )
+  }
 
-      currentDetails = await this.getCurrentServiceDetails(
-        session,
-        input,
-        serviceSlug,
-      )
-      let effectiveCurrentUrls = computeEffectiveUrls(currentDetails)
-
-      for (const desiredUrl of desiredUrls) {
-        const currentUrl = findMatchingUrl(effectiveCurrentUrls, desiredUrl)
-        if (currentUrl) {
-          const currentShape = normalizeUrlShape(currentUrl)
-          const desiredShape = normalizeUrlShape(desiredUrl)
-          if (
-            currentShape.domain === desiredShape.domain &&
-            currentShape.base_path === desiredShape.base_path &&
-            currentShape.strip_prefix === desiredShape.strip_prefix &&
-            currentShape.redirect_to === desiredShape.redirect_to &&
-            currentShape.associated_port === desiredShape.associated_port
-          ) {
-            continue
-          }
-
-          if (currentUrl.id) {
-            await this.updateUrl(
-              session,
-              input,
-              serviceSlug,
-              currentUrl.id,
-              desiredUrl,
-            )
-            logResolveEnvironmentEvent(
-              "resolve-environment.preview.urls.updated",
-              {
-                base_path: desiredUrl.base_path,
-                domain: desiredUrl.domain,
-                environment_name: input.environmentName,
-                project_slug: input.projectSlug,
-                service_slug: serviceSlug,
-              },
-            )
-            currentDetails = await this.getCurrentServiceDetails(
-              session,
-              input,
-              serviceSlug,
-            )
-            effectiveCurrentUrls = computeEffectiveUrls(currentDetails)
-            continue
-          }
-        }
-
-        await this.addUrl(session, input, serviceSlug, desiredUrl)
-        logResolveEnvironmentEvent("resolve-environment.preview.urls.added", {
-          base_path: desiredUrl.base_path,
-          domain: desiredUrl.domain,
-          environment_name: input.environmentName,
-          project_slug: input.projectSlug,
-          service_slug: serviceSlug,
-        })
-        currentDetails = await this.getCurrentServiceDetails(
-          session,
-          input,
-          serviceSlug,
-        )
-        effectiveCurrentUrls = computeEffectiveUrls(currentDetails)
-      }
+  private async deleteUnexpectedPreviewUrls(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSlug: string,
+    urls: ZaneServiceUrl[],
+    index: number,
+  ): Promise<void> {
+    const currentUrl = urls[index]
+    if (!currentUrl) {
+      return
     }
+    if (typeof currentUrl.id !== "string" || currentUrl.id.length === 0) {
+      throw new UpstreamHttpError(
+        409,
+        "zane_preview_service_url_missing_id",
+        `Cannot remove unexpected preview URL for ${input.projectSlug}/${input.environmentName}/${serviceSlug} because the URL id is missing`,
+      )
+    }
+
+    await this.deleteUrl(session, input, serviceSlug, currentUrl.id)
+    logResolveEnvironmentEvent("resolve-environment.preview.urls.deleted", {
+      base_path: currentUrl.base_path,
+      domain: currentUrl.domain,
+      environment_name: input.environmentName,
+      project_slug: input.projectSlug,
+      service_slug: serviceSlug,
+    })
+    await this.deleteUnexpectedPreviewUrls(
+      session,
+      input,
+      serviceSlug,
+      urls,
+      index + 1,
+    )
+  }
+
+  private async reconcileDesiredPreviewUrls(
+    session: ZaneSession,
+    input: ResolveEnvironmentInput,
+    serviceSlug: string,
+    desiredUrls: ZaneServiceUrl[],
+    index: number,
+    effectiveCurrentUrls: ZaneServiceUrl[],
+  ): Promise<void> {
+    const desiredUrl = desiredUrls[index]
+    if (!desiredUrl) {
+      return
+    }
+    const currentUrl = findMatchingUrl(effectiveCurrentUrls, desiredUrl)
+    if (currentUrl && urlShapesMatch(currentUrl, desiredUrl)) {
+      await this.reconcileDesiredPreviewUrls(
+        session,
+        input,
+        serviceSlug,
+        desiredUrls,
+        index + 1,
+        effectiveCurrentUrls,
+      )
+      return
+    }
+
+    if (typeof currentUrl?.id === "string" && currentUrl.id.length > 0) {
+      await this.updateUrl(
+        session,
+        input,
+        serviceSlug,
+        currentUrl.id,
+        desiredUrl,
+      )
+      logResolveEnvironmentEvent("resolve-environment.preview.urls.updated", {
+        base_path: desiredUrl.base_path,
+        domain: desiredUrl.domain,
+        environment_name: input.environmentName,
+        project_slug: input.projectSlug,
+        service_slug: serviceSlug,
+      })
+    } else {
+      await this.addUrl(session, input, serviceSlug, desiredUrl)
+      logResolveEnvironmentEvent("resolve-environment.preview.urls.added", {
+        base_path: desiredUrl.base_path,
+        domain: desiredUrl.domain,
+        environment_name: input.environmentName,
+        project_slug: input.projectSlug,
+        service_slug: serviceSlug,
+      })
+    }
+
+    const refreshedDetails = await this.getCurrentServiceDetails(
+      session,
+      input,
+      serviceSlug,
+    )
+    await this.reconcileDesiredPreviewUrls(
+      session,
+      input,
+      serviceSlug,
+      desiredUrls,
+      index + 1,
+      computeEffectiveUrls(refreshedDetails),
+    )
   }
 
   private async addVolume(
@@ -1334,14 +1417,9 @@ export class ZaneEnvironmentManager {
     )
   }
 
-  private listPendingFieldChanges(
+  private static listPendingFieldChanges(
     serviceDetails: ZaneServiceDetails,
-    field:
-      | "git_source"
-      | "builder"
-      | "healthcheck"
-      | "resource_limits"
-      | "urls",
+    field: ReconciledServiceField,
   ): { id: string }[] {
     return (serviceDetails.unapplied_changes ?? []).flatMap((change) =>
       change.field === field && typeof change.id === "string"
@@ -1355,21 +1433,21 @@ export class ZaneEnvironmentManager {
     input: ResolveEnvironmentInput,
     serviceSlug: string,
     serviceDetails: ZaneServiceDetails,
-    field:
-      | "git_source"
-      | "builder"
-      | "healthcheck"
-      | "resource_limits"
-      | "urls",
+    field: ReconciledServiceField,
   ): Promise<ZaneServiceDetails> {
-    const pendingChanges = this.listPendingFieldChanges(serviceDetails, field)
+    const pendingChanges = ZaneEnvironmentManager.listPendingFieldChanges(
+      serviceDetails,
+      field,
+    )
     if (pendingChanges.length === 0) {
       return serviceDetails
     }
 
-    for (const change of pendingChanges) {
-      await this.cancelServiceChange(session, input, serviceSlug, change.id)
-    }
+    await Promise.all(
+      pendingChanges.map(async (change) => {
+        await this.cancelServiceChange(session, input, serviceSlug, change.id)
+      }),
+    )
 
     return await this.getCurrentServiceDetails(session, input, serviceSlug)
   }
