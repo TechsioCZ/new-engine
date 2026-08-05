@@ -4,26 +4,27 @@ export const primaryFaqItems = [
   {
     answer: [
       {
-        type: "paragraph",
         text: "Radi by ste vedeli, v akom stave je Vaša objednávka? Dozviete sa to rýchlo a ľahko:",
+        type: "paragraph",
       },
       {
-        type: "list",
-        ordered: true,
         items: [
           "Prihláste sa do svojho zákazníckeho konta.",
           'Vpravo zvoľte možnosť "Moje objednávky".',
           "Uvidíte prehľadnú tabuľku so stavom Vašej objednávky.",
         ],
+        ordered: true,
+        type: "list",
       },
       {
-        type: "links",
         items: [
           {
             href: "https://cdn.myshoptet.com/usr/www.herbatica.sk/user/documents/upload/Sledovanie%20stavu%20objedn%C3%A1vky.png",
             label: "Ukážka sledovania stavu objednávky",
           },
         ],
+
+        type: "links",
       },
     ],
     id: "stav-objednavky",
@@ -33,46 +34,48 @@ export const primaryFaqItems = [
   {
     answer: [
       {
-        type: "paragraph",
         text: "Občas máme problém s dostupnosťou produktov, predsa len Rusko je ďalej ako sa môže zdať a ak produkty aj hneď objednáme, tak ich dodanie trvá. A potom sa nás často pýtate, kedy bude produkt skladom.",
+        type: "paragraph",
       },
       {
-        type: "paragraph",
         text: "Vytvorili sme preto pre Vás funkciu Strážny pes, ktorá Vás bude informovať o tom, že je produkt opäť v našej ponuke skladom.",
+        type: "paragraph",
       },
       {
-        type: "paragraph",
         text: "Máte tak možnosť vedieť hneď z prvej ruky, kedy sme produkt naskladnili. A budete si tak môcť hneď objednať svoj vytúžený produkt.",
-      },
-      {
         type: "paragraph",
+      },
+      {
         text: 'Stačí, ak kliknete na "Pošlite mi mail, ak bude skladom", následne zadáte svoj mail a my Vám odošleme automatický mail, keď tovar naskladníme.',
+        type: "paragraph",
       },
       {
-        type: "heading",
         text: "Prvý krok",
+        type: "heading",
       },
       {
-        type: "links",
         items: [
           {
             href: "https://cdn.myshoptet.com/usr/www.herbatica.sk/user/documents/upload/AwesomeScreenshot-www-herbatica-sk-specialna-starostlivost-o-plet-doktor-vedov-horsky-cistotel-extrakt-z-lastovicnika-na-bradavice-1-2ml--2019-08-15_9_40.png",
             label: "Ukážka prvého kroku",
           },
         ],
-      },
-      {
-        type: "heading",
-        text: "Druhý krok",
-      },
-      {
+
         type: "links",
+      },
+      {
+        text: "Druhý krok",
+        type: "heading",
+      },
+      {
         items: [
           {
             href: "https://cdn.myshoptet.com/usr/www.herbatica.sk/user/documents/upload/AwesomeScreenshot-www-herbatica-sk-specialna-starostlivost-o-plet-doktor-vedov-horsky-cistotel-extrakt-z-lastovicnika-na-bradavice-1-2ml--2019-08-15_9_41.png",
             label: "Ukážka druhého kroku",
           },
         ],
+
+        type: "links",
       },
     ],
     id: "vypredany-tovar",
@@ -82,25 +85,26 @@ export const primaryFaqItems = [
   {
     answer: [
       {
-        type: "paragraph",
         text: "Veľmi často sa stretávame s tým, že Vám nejdú uplatniť zľavové kupóny.",
+        type: "paragraph",
       },
       {
-        type: "paragraph",
         text: "Pred tým ako nám budete volať alebo písať, sa prosím, presvedčte o tom, či máte kupón správne gramaticky napísaný a zadávajte ho bez úvodzoviek v ktorých bol zadaný.",
-      },
-      {
         type: "paragraph",
-        text: "Ak problém pretrváva pošlite nám problémový kupón na mail ahoj@herbatica.sk alebo ho napíšte do poznámky pre predajcu a pozrieme sa na to.",
       },
       {
-        type: "links",
+        text: "Ak problém pretrváva pošlite nám problémový kupón na mail ahoj@herbatica.sk alebo ho napíšte do poznámky pre predajcu a pozrieme sa na to.",
+        type: "paragraph",
+      },
+      {
         items: [
           {
             href: "mailto:ahoj@herbatica.sk",
             label: "ahoj@herbatica.sk",
           },
         ],
+
+        type: "links",
       },
     ],
     id: "zlavovy-kupon",
@@ -110,19 +114,18 @@ export const primaryFaqItems = [
   {
     answer: [
       {
-        type: "paragraph",
         text: "Ak máte pre nás obchodnú ponuku, návrh na zlepšenie, viete si predstaviť spoločný rast, rozvoj, alebo máte záujem o veľkoobchodnú spoluprácu, kontaktujte nás alebo napíšte na lenka@herbatica.sk.",
+        type: "paragraph",
       },
       {
-        type: "paragraph",
         text: "Alebo telefonicky: 00421 948 426 280.",
-      },
-      {
         type: "paragraph",
-        text: "Tešíme sa na Vás, nech si už vyberiete akýkoľvek spôsob kontaktu s nami.",
       },
       {
-        type: "links",
+        text: "Tešíme sa na Vás, nech si už vyberiete akýkoľvek spôsob kontaktu s nami.",
+        type: "paragraph",
+      },
+      {
         items: [
           {
             href: "mailto:lenka@herbatica.sk",
@@ -130,6 +133,8 @@ export const primaryFaqItems = [
           },
           { href: "tel:+421948426280", label: "00421 948 426 280" },
         ],
+
+        type: "links",
       },
     ],
     id: "obchodna-ponuka",
@@ -139,15 +144,14 @@ export const primaryFaqItems = [
   {
     answer: [
       {
-        type: "paragraph",
         text: "Tešíme sa, keď máme verných zákazníkov, o ktorých sa môžeme neustále a opakovane starať. Preto sme pre Vás pripravili Herbatica newsletter, Instagram a Facebook.",
+        type: "paragraph",
       },
       {
-        type: "heading",
         text: "Herbatica klub",
+        type: "heading",
       },
       {
-        type: "list",
         items: [
           "individuálny zvýhodnený cenník, ktorý vám zaručí neprekonateľné ceny, aj ty si týmto pádom VIP",
           "ak sa prihlásite k odberu nášho newsletteru, získavate pravidelný prísun noviniek a informácií zo sveta Herbatica. A áno, kupón na zľavu tiež",
@@ -156,20 +160,22 @@ export const primaryFaqItems = [
           "ak získate od nás zľavový kupón, v praxi máte zľavu až 15% (zľavový kupón + VIP cenník)",
           "všetky vaše objednávky máme v evidencii, pri reklamácií nemusíte mať doklad o ich zaplatení",
         ],
-      },
-      {
-        type: "heading",
-        text: "Ako sa stať členom klubu?",
-      },
-      {
+
         type: "list",
+      },
+      {
+        text: "Ako sa stať členom klubu?",
+        type: "heading",
+      },
+      {
         items: [
           "stačí sa zaregistrovať",
           "nezabudnite sa prihlásiť k odberu newsletteru",
         ],
+
+        type: "list",
       },
       {
-        type: "links",
         items: [
           { href: "/registracia/", label: "Registrácia" },
           { href: "/newsletter/", label: "Newsletter" },
@@ -182,6 +188,8 @@ export const primaryFaqItems = [
             label: "Facebook",
           },
         ],
+
+        type: "links",
       },
     ],
     id: "byt-v-obraze",
