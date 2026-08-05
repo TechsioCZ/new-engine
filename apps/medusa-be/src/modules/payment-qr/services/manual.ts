@@ -44,7 +44,7 @@ const QR_PAYMENT_SPAYD_KEY = "payment_qr_spayd"
 const QR_PAYMENT_DATA_URL_KEY = "payment_qr_data_url"
 
 export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPaymentProviderOptions> {
-  static readonly override identifier = QR_PAYMENT_PROVIDER_IDENTIFIER
+  static override readonly identifier = QR_PAYMENT_PROVIDER_IDENTIFIER
 
   protected readonly options_: QrManualPaymentProviderOptions
   protected readonly container_: QrManualPaymentProviderDependencies
