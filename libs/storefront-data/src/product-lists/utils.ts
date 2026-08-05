@@ -1,17 +1,11 @@
 import type { ProductListBase, ProductListItemBase } from "./types"
 
-export const getProductListItems = <
-  TItem,
-  TProductList extends ProductListBase<TItem>,
->(
-  list?: TProductList | null,
+export const getProductListItems = <TItem>(
+  list?: ProductListBase<TItem> | null,
 ): TItem[] => list?.items ?? []
 
-export const getProductListItemCount = <
-  TItem,
-  TProductList extends ProductListBase<TItem>,
->(
-  list?: TProductList | null,
+export const getProductListItemCount = <TItem>(
+  list?: ProductListBase<TItem> | null,
 ): number => {
   if (!list) {
     return 0
@@ -55,7 +49,7 @@ const normalizeVariantId = (variantId?: string | null) => {
   }
 
   const trimmedVariantId = variantId.trim()
-  return trimmedVariantId ? trimmedVariantId : null
+  return trimmedVariantId || null
 }
 
 export const productListItemMatchesSelection = (
@@ -77,11 +71,8 @@ export const productListItemMatchesSelection = (
   return !itemVariantId
 }
 
-export const isProductInProductList = <
-  TItem extends ProductListItemBase,
-  TProductList extends ProductListBase<TItem>,
->(
-  list: TProductList | null | undefined,
+export const isProductInProductList = <TItem extends ProductListItemBase>(
+  list: ProductListBase<TItem> | null | undefined,
   productId: string,
   variantId?: string | null,
 ): boolean =>
@@ -89,11 +80,8 @@ export const isProductInProductList = <
     productListItemMatchesSelection(item, productId, variantId),
   )
 
-export const findProductListItem = <
-  TItem extends ProductListItemBase,
-  TProductList extends ProductListBase<TItem>,
->(
-  list: TProductList | null | undefined,
+export const findProductListItem = <TItem extends ProductListItemBase>(
+  list: ProductListBase<TItem> | null | undefined,
   productId: string,
   variantId?: string | null,
 ): TItem | undefined =>

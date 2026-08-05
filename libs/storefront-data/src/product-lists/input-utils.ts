@@ -27,10 +27,8 @@ export const stripDetailInput = <TInput extends ProductListDetailInputBase>(
   return params
 }
 
-export const createDefaultListParams = <
-  TInput extends ProductListListInputBase,
->(
-  input: TInput,
+export const createDefaultListParams = (
+  input: ProductListListInputBase,
   defaultPageSize: number,
 ) => {
   const params = stripListInput(input) as Record<string, unknown>
@@ -56,10 +54,9 @@ export const createDefaultListParams = <
 }
 
 export const withCustomerScope = <
-  TParams,
   TInput extends { customerId?: string | null },
 >(
-  params: TParams,
+  params: unknown,
   input: TInput,
 ) => ({
   ...(params as object),

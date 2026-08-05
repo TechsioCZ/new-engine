@@ -50,9 +50,9 @@ export class ProductBatchClientMapperHelper {
       id: product.id,
       metadata: product.metadata ?? null,
       variants: (product.variants ?? []).map((variant) => ({
+        ean: variant.ean ?? null,
         id: variant.id,
         sku: variant.sku ?? null,
-        ean: variant.ean ?? null,
       })),
     }
   }

@@ -171,7 +171,7 @@ const OrderDashboardPage = () => {
 
   const ordersQuery = useQuery({
     queryFn: async () =>
-      listOrderDashboardOrders({
+      await listOrderDashboardOrders({
         ...(businessStatusGroupFilter === undefined
           ? {}
           : { businessStatusGroup: businessStatusGroupFilter }),
@@ -211,7 +211,9 @@ const OrderDashboardPage = () => {
   const packetaEligibilityQuery = useQuery({
     enabled: selectedPacketaCarrierOrderIds.length > 0,
     queryFn: async () =>
-      listOrderDashboardPacketaEligibility(selectedPacketaCarrierOrderIds),
+      await listOrderDashboardPacketaEligibility(
+        selectedPacketaCarrierOrderIds,
+      ),
     queryKey: [PACKETA_ELIGIBILITY_QUERY_KEY, selectedPacketaCarrierOrderIds],
   })
   const packetaLabelPreview = getPacketaLabelPreview(
@@ -942,9 +944,7 @@ const OrderDashboardPage = () => {
             </Text>
             <Select
               onValueChange={(value) => {
-                setPacketaLabelStartPosition(
-                  Number(value) as PacketaLabelStartPosition,
-                )
+                setPacketaLabelStartPosition(Number(value))
               }}
               value={String(packetaLabelStartPosition)}
             >
@@ -1038,14 +1038,14 @@ const OrderDashboardPage = () => {
             </Button>
             <Select
               onValueChange={(value) => {
-                setLabelFormat(value as OrderDashboardLabelFormat)
+                setLabelFormat(value)
               }}
               value={labelFormat}
             >
               <Select.Trigger
                 className="w-[84px]"
                 disabled={
-                  isPreparingPacketaLabels || packetaLabelsMutation.isPending
+                  isPreparingPacketaLabels ?? packetaLabelsMutation.isPending
                 }
               >
                 <Select.Value />
@@ -1060,12 +1060,11 @@ const OrderDashboardPage = () => {
             </Select>
             <Button
               disabled={
-                !selectedCount ||
-                isPreparingPacketaLabels ||
+                (!selectedCount || isPreparingPacketaLabels) ??
                 packetaLabelsMutation.isPending
               }
               isLoading={
-                isPreparingPacketaLabels || packetaLabelsMutation.isPending
+                isPreparingPacketaLabels ?? packetaLabelsMutation.isPending
               }
               onClick={handlePacketaLabels}
               size="small"
@@ -1233,18 +1232,18 @@ const OrderDashboardPage = () => {
   )
 }
 
-function ManualStatusControl({
+const ManualStatusControl = ({
   manualStatus,
   orderId,
 }: {
   manualStatus?: OrderDashboardManualStatusId | null
   orderId: string
-}) {
+}) => {
   const { t } = useTranslation("orderDashboard")
   const queryClient = useQueryClient()
   const mutation = useMutation({
     mutationFn: async (value: ManualStatusValue) =>
-      updateOrderDashboardManualStatus({
+      await updateOrderDashboardManualStatus({
         orderIds: [orderId],
         status: value === "clear" ? null : value,
       }),
@@ -1292,13 +1291,13 @@ function ManualStatusControl({
   )
 }
 
-function OrderDashboardDetailPanel({
+const OrderDashboardDetailPanel = ({
   onClose,
   order,
 }: {
   onClose: () => void
   order: OrderDashboardOrder
-}) {
+}) => {
   const { i18n, t } = useTranslation("orderDashboard")
   const locale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
   const manualStatusLabel = order.manual_status
@@ -1401,13 +1400,13 @@ function OrderDashboardDetailPanel({
   )
 }
 
-function OrderDetailField({
+const OrderDetailField = ({
   children,
   label,
 }: {
   children: ReactNode
   label: string
-}) {
+}) => {
   return (
     <div className="min-w-0">
       <Text className="text-ui-fg-muted" leading="compact" size="small">
@@ -1507,8 +1506,6 @@ function getBulkManualStatusBlockReason(
       status: t(order.business_status.translation_key),
     })
   }
-
-  return
 }
 
 function getBulkManualStatusPreview(
@@ -1537,13 +1534,13 @@ function getBulkManualStatusPreview(
   return { skipped, updatable }
 }
 
-function StatusSelectItem({
+const StatusSelectItem = ({
   onBlockedAttempt,
   option,
 }: {
   onBlockedAttempt: (blockedOrders: OrderDashboardBlockingOrder[]) => void
   option: TargetStatusOption
-}) {
+}) => {
   const { t } = useTranslation("orderDashboard")
   const blockedCount = option.blockedOrders.length
   const isBlocked = blockedCount > 0
@@ -1596,11 +1593,11 @@ function StatusSelectItem({
   )
 }
 
-function StatusBlockersTooltipContent({
+const StatusBlockersTooltipContent = ({
   blockedOrders,
 }: {
   blockedOrders: OrderDashboardBlockingOrder[]
-}) {
+}) => {
   const { t } = useTranslation("orderDashboard")
   const visibleOrders = blockedOrders.slice(0, 5)
   const hiddenCount = blockedOrders.length - visibleOrders.length
@@ -1621,11 +1618,11 @@ function StatusBlockersTooltipContent({
   )
 }
 
-function BlockingOrdersPanel({
+const BlockingOrdersPanel = ({
   blockedOrders,
 }: {
   blockedOrders: OrderDashboardBlockingOrder[]
-}) {
+}) => {
   const { t } = useTranslation("orderDashboard")
   const visibleOrders = blockedOrders.slice(0, 20)
   const hiddenCount = blockedOrders.length - visibleOrders.length

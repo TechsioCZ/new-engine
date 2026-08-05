@@ -13,7 +13,7 @@ import { createLocalStorageValueStore } from "../src/shared/storage-value-store"
 interface Cart {
   id: string
   region_id?: string | null
-  items?: Array<{ quantity?: number }>
+  items?: { quantity?: number }[]
 }
 
 const createMemoryStorage = (): Storage => {
@@ -24,7 +24,7 @@ const createMemoryStorage = (): Storage => {
       store.clear()
     },
     getItem: (key) => store.get(key) ?? null,
-    key: (index) => Array.from(store.keys())[index] ?? null,
+    key: (index) => [...store.keys()][index] ?? null,
     get length() {
       return store.size
     },
@@ -37,11 +37,14 @@ const createMemoryStorage = (): Storage => {
   }
 }
 
-const createWrapper =
-  (client: QueryClient) =>
-  ({ children }: { children: ReactNode }) => (
-    <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
-  )
+const createWrapper = (client: QueryClient) =>
+  function ({ children }: { children: ReactNode }) {
+    return (
+      <StorefrontDataProvider client={client}>
+        {children}
+      </StorefrontDataProvider>
+    )
+  }
 
 describe("createCartHooks reactive storage and cache sync", () => {
   it("reacts to observable cartStorage changes", async () => {
@@ -135,7 +138,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
     })
     const Wrapper = createWrapper(queryClient)
 
-    function CartProbe() {
+    const CartProbe = () => {
       const { cart } = useCart({
         autoCreate: true,
         enabled: true,
@@ -353,11 +356,11 @@ describe("createCartHooks reactive storage and cache sync", () => {
     })
     const cancelQueries = vi
       .spyOn(queryClient, "cancelQueries")
-      .mockImplementation(async () =>
+      .mockImplementation(async () => {
         cancelQueries.mock.calls.length <= 2
-          ? firstCancellation
-          : Promise.resolve(),
-      )
+          ? await firstCancellation
+          : await Promise.resolve()
+      })
     const wrapper = createWrapper(queryClient)
     const { result } = renderHook(() => useUpdateLineItem(), { wrapper })
     const detailKey = queryKeys.detail("cart_1")
@@ -462,7 +465,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
     let resolveCartRead: ((cart: Cart) => void) | undefined
     const retrieveCart = vi.fn(
       async () =>
-        new Promise<Cart>((resolve) => {
+        await new Promise<Cart>((resolve) => {
           resolveCartRead = resolve
         }),
     )
@@ -535,7 +538,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
     let resolveCartRead: ((cart: Cart) => void) | undefined
     const retrieveCart = vi.fn(
       async () =>
-        new Promise<Cart>((resolve) => {
+        await new Promise<Cart>((resolve) => {
           resolveCartRead = resolve
         }),
     )

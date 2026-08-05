@@ -39,7 +39,7 @@ export const getLeafIdsForCategory = (
   }
   if (parentIds.has(categoryId)) {
     const parent = leafParents.find((p) => p.id === categoryId)
-    return parent?.leafs || []
+    return parent?.leafs ?? []
   }
   return []
 }

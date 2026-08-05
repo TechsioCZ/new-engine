@@ -70,7 +70,7 @@ export function mergeCsvValues(existing: string, current: string): string {
 export function collectStageNumbers(plan: PlanResponse): number[] {
   return [
     ...new Set(plan.deploy_services.map((service) => service.deploy_stage)),
-  ].sort((left, right) => left - right)
+  ].toSorted((left, right) => left - right)
 }
 
 export function buildStagePlan(
@@ -112,7 +112,7 @@ export function mergeDeployments(
     )
   }
 
-  return [...deduped.values()].sort((left, right) => {
+  return [...deduped.values()].toSorted((left, right) => {
     const leftKey = `${left.service_id}:${left.deployment_hash}`
     const rightKey = `${right.service_id}:${right.deployment_hash}`
     return leftKey.localeCompare(rightKey)
@@ -338,7 +338,7 @@ function checkedDeploymentSummary(response: VerifyResponse): string {
 async function verifyDeploymentsOnce(
   input: WaitForDeploymentsInput,
 ): Promise<VerifyResponse> {
-  return executeVerify({
+  return await executeVerify({
     apiToken: input.apiToken,
     baseUrl: input.baseUrl,
     deployServicesCsv: input.deployServicesCsv,

@@ -60,7 +60,7 @@ export const AddToCartSection = ({
       {
         autoCreateCart: true,
         metadata: {
-          inventory_quantity: selectedVariant.inventory_quantity || 0,
+          inventory_quantity: selectedVariant.inventory_quantity ?? 0,
         },
         quantity,
         variantId: selectedVariant.id,
@@ -84,21 +84,21 @@ export const AddToCartSection = ({
 
           // Unified analytics - AddToCart tracking (sends to Meta, Google, Leadhub)
           analytics.trackAddToCart({
+            currency,
             productId: selectedVariant.id,
             productName: detail.title,
-            value: price * quantity,
-            currency,
             quantity,
+            value: price * quantity,
           })
 
           // Leadhub-specific - SetCart tracking for cart state sync
           analytics.trackSetCart({
             products: [
               {
+                currency,
                 product_id: selectedVariant.id,
                 quantity,
                 value: price,
-                currency,
               },
             ],
           })
@@ -115,7 +115,7 @@ export const AddToCartSection = ({
     )
   }
 
-  const maxQuantity = selectedVariant?.inventory_quantity || 99
+  const maxQuantity = selectedVariant?.inventory_quantity ?? 99
   return (
     <div className="flex gap-200">
       <NumericInput
@@ -136,7 +136,7 @@ export const AddToCartSection = ({
         <NumericInput.IncrementTrigger />
       </NumericInput>
       <Button
-        disabled={isPending || !selectedVariant?.id || !regionId}
+        disabled={(isPending ?? !selectedVariant?.id) || !regionId}
         onClick={handleAddToCart}
         variant="secondary"
       >

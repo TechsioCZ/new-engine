@@ -32,7 +32,7 @@ interface BlogDetailRouteProps {
   }>
 }
 
-function BlogDetailPageFallback() {
+const BlogDetailPageFallback = () => {
   return <main className="mx-auto min-h-dvh w-full max-w-max-w" />
 }
 
@@ -100,7 +100,7 @@ async function resolveRecommendedProductsForBlogPost(
   )
 }
 
-async function BlogDetailPageContent({ params }: BlogDetailRouteProps) {
+const BlogDetailPageContent = async ({ params }: BlogDetailRouteProps) => {
   await connection()
   const { slug } = await params
   const cmsPost = await fetchCmsBlogPost(slug)

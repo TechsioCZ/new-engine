@@ -319,10 +319,10 @@ function formatTemplate(
   const rateValue = rate === undefined ? "" : formatRateValue(rate)
   const rateCode = rateValue.replaceAll(/[^0-9]+/g, "_")
   return template
-    .replaceAll(/\{country\}/g, countryCode.toLowerCase())
-    .replaceAll(/\{COUNTRY\}/g, countryCode.toUpperCase())
-    .replaceAll(/\{rate\}/g, rateValue)
-    .replaceAll(/\{rate_code\}/g, rateCode)
+    .replaceAll("{country}", countryCode.toLowerCase())
+    .replaceAll("{COUNTRY}", countryCode.toUpperCase())
+    .replaceAll("{rate}", rateValue)
+    .replaceAll("{rate_code}", rateCode)
 }
 
 function buildDefaultRateCode(countryCode: string, config: TaxRateSeedConfig) {
@@ -375,7 +375,7 @@ export function buildProductTaxRateIdentity(
 }
 
 function buildProductRules(productIds: string[]) {
-  return [...new Set(productIds)].sort().map((productId) => ({
+  return [...new Set(productIds)].toSorted().map((productId) => ({
     reference: "product",
     reference_id: productId,
   }))

@@ -9,7 +9,7 @@ import { CheckoutHeader } from "@/components/checkout/checkout-header"
 import { HerbatikaFooter } from "@/components/herbatika-footer"
 import { HerbatikaHeader } from "@/components/herbatika-header"
 
-export function AppShell({ children }: PropsWithChildren) {
+export const AppShell = ({ children }: PropsWithChildren) => {
   const pathname = usePathname()
   const isCheckoutRoute = pathname.startsWith("/checkout")
   const shell = isCheckoutRoute ? (

@@ -34,7 +34,7 @@ export function useAuth(): UseAuthReturn {
     isLoading,
     error,
   } = useQuery({
-    queryFn: () => {
+    queryFn: async () => {
       // Check token expiration BEFORE making request
       const token = getTokenFromStorage()
 
@@ -62,7 +62,7 @@ export function useAuth(): UseAuthReturn {
 
   return {
     customer,
-    error: error,
+    error,
     isAuthenticated: customer !== null,
     isLoading,
     isTokenExpired: tokenExpired,
@@ -71,7 +71,7 @@ export function useAuth(): UseAuthReturn {
 
 export function useSuspenseAuth(): UseSuspenseAuthReturn {
   const { data: customer } = useSuspenseQuery({
-    queryFn: () => {
+    queryFn: async () => {
       const token = getTokenFromStorage()
 
       if (!token) {

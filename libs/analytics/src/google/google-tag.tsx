@@ -30,7 +30,7 @@ const VALID_ADS_ID_PATTERN = /^(AW|G)-[A-Z0-9]+$/i
  * }
  * ```
  */
-export function GoogleTag({ adsId, debug = false, nonce }: GoogleAdsConfig) {
+export const GoogleTag = ({ adsId, debug = false, nonce }: GoogleAdsConfig) => {
   const isValidAdsId =
     typeof adsId === "string" && VALID_ADS_ID_PATTERN.test(adsId)
 

@@ -38,7 +38,7 @@ const FilterChip = ({
         className={clx(
           "flex items-center justify-center whitespace-nowrap px-2 py-1",
           {
-            "border-r": !!(value || hadPreviousValue),
+            "border-r": !!(value ?? hadPreviousValue),
           },
         )}
       >
@@ -47,7 +47,7 @@ const FilterChip = ({
         </Text>
       </div>
       <div className="flex w-full items-center overflow-hidden">
-        {hasOperator && !!(value || hadPreviousValue) && (
+        {hasOperator && !!(value ?? hadPreviousValue) && (
           <div className="border-r p-1 px-2">
             <Text
               className="text-ui-fg-muted"
@@ -59,7 +59,7 @@ const FilterChip = ({
             </Text>
           </div>
         )}
-        {!!(value || hadPreviousValue) && (
+        {!!(value ?? hadPreviousValue) && (
           <PopoverTrigger
             asChild
             className={clx(
@@ -76,12 +76,12 @@ const FilterChip = ({
               size="small"
               weight="plus"
             >
-              {value || "\u00A0"}
+              {value ?? "\u00A0"}
             </Text>
           </PopoverTrigger>
         )}
       </div>
-      {!readonly && !!(value || hadPreviousValue) && (
+      {!readonly && !!(value ?? hadPreviousValue) && (
         <button
           className={clx(
             "flex items-center justify-center p-1 text-ui-fg-muted transition-fg",

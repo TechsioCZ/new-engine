@@ -14,7 +14,7 @@ export const DataTableQuery = ({
   filters,
   prefix,
 }: DataTableQueryProps) =>
-  (search || orderBy || filters || prefix) && (
+  ((search ?? orderBy) || filters || prefix) && (
     <div className="flex items-start justify-between gap-x-4 px-6 py-4">
       <div className="w-full max-w-[60%]">
         {filters && filters.length > 0 && (

@@ -10,9 +10,9 @@ figma.connect(
       <TreeView
         data={[
           {
+            children: [{ id: "1-1", name: "Child" }],
             id: "1",
             name: "Root",
-            children: [{ id: "1-1", name: "Child" }],
           },
         ]}
         size={size}
@@ -21,9 +21,9 @@ figma.connect(
     imports: ['import { TreeView } from "@techsio/ui-kit/molecules/tree-view"'],
     props: {
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
     },
   },

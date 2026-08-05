@@ -65,12 +65,12 @@ interface ComponentCardProps {
   bodyClassName?: string
 }
 
-function ComponentCard({
+const ComponentCard = ({
   title,
   children,
   className,
   bodyClassName,
-}: ComponentCardProps) {
+}: ComponentCardProps) => {
   return (
     <div
       className={`flex min-w-0 flex-col gap-200 rounded-md border border-border-primary p-300 ${className ?? ""}`}
@@ -90,12 +90,12 @@ interface SectionProps {
   gridClassName?: string
 }
 
-function Section({
+const Section = ({
   title,
   description,
   children,
   gridClassName,
-}: SectionProps) {
+}: SectionProps) => {
   return (
     <section className="flex flex-col gap-300">
       <div className="flex flex-col gap-100">
@@ -228,20 +228,20 @@ const treeData: TreeNode[] = [
   {
     children: [
       {
-        id: "atoms",
-        name: "atoms",
         children: [
           { id: "button.tsx", name: "button.tsx" },
           { id: "input.tsx", name: "input.tsx" },
         ],
+        id: "atoms",
+        name: "atoms",
       },
       {
-        id: "molecules",
-        name: "molecules",
         children: [
           { id: "dialog.tsx", name: "dialog.tsx" },
           { id: "select.tsx", name: "select.tsx" },
         ],
+        id: "molecules",
+        name: "molecules",
       },
     ],
     id: "src",
@@ -259,10 +259,10 @@ const tableRows = [
     price: 49.99,
     stock: 98,
   },
-  { category: "Furniture", id: 3, name: "Desk Chair", price: 150.0, stock: 16 },
+  { category: "Furniture", id: 3, name: "Desk Chair", price: 150, stock: 16 },
 ]
 
-function ToastPreview() {
+const ToastPreview = () => {
   const toaster = useToast()
   return (
     <Button
@@ -280,7 +280,7 @@ function ToastPreview() {
   )
 }
 
-function ComponentComparison() {
+const ComponentComparison = () => {
   const [currentStep, setCurrentStep] = useState(1)
 
   return (

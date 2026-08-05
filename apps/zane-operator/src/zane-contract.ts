@@ -97,10 +97,10 @@ export interface SyncPreviewServiceEnvInput {
   services: {
     service_id: string
     service_slug: string
-    env: Array<{
+    env: {
       env_var: string
       source: PreviewRuntimeValueSourceInput
-    }>
+    }[]
   }[]
 }
 

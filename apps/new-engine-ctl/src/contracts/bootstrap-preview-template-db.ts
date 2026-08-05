@@ -7,16 +7,16 @@ import {
 
 export const bootstrapPreviewTemplateDbInspectResponseSchema = z.object({
   db_service: z.object({
-    service_slug: z.string().min(1),
-    exists: z.boolean(),
     details: bootstrapInspectServiceDetailsSchema.nullable(),
+    exists: z.boolean(),
+    service_slug: z.string().min(1),
   }),
   environment_exists: z.boolean(),
   environment_name: z.string().min(1),
   operator_service: z.object({
-    service_slug: z.string().min(1),
-    exists: z.boolean(),
     details: bootstrapInspectServiceDetailsSchema.nullable(),
+    exists: z.boolean(),
+    service_slug: z.string().min(1),
   }),
   project_exists: z.boolean(),
   project_slug: z.string().min(1),

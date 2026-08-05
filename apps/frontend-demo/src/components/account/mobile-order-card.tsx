@@ -11,7 +11,7 @@ import {
   truncateProductTitle,
 } from "@/lib/order-utils"
 
-export function MobileOrderCard({ order }: { order: StoreOrder }) {
+export const MobileOrderCard = ({ order }: { order: StoreOrder }) => {
   const statusVariant =
     order.status === "completed"
       ? "success"
@@ -21,7 +21,7 @@ export function MobileOrderCard({ order }: { order: StoreOrder }) {
           ? "danger"
           : "info"
 
-  const itemCount = order.items?.length || 0
+  const itemCount = order.items?.length ?? 0
   const firstItem = order.items?.[0]
   const hasMultipleItems = itemCount > 1
 
@@ -55,7 +55,7 @@ export function MobileOrderCard({ order }: { order: StoreOrder }) {
               >
                 {item.thumbnail && (
                   <Image
-                    alt={item.product_title || ""}
+                    alt={item.product_title ?? ""}
                     className="h-full w-full object-cover"
                     height={48}
                     src={item.thumbnail}
@@ -81,13 +81,13 @@ export function MobileOrderCard({ order }: { order: StoreOrder }) {
               </p>
             ) : firstItem ? (
               <p className="line-clamp-1 text-orders-fg-primary text-orders-md">
-                {truncateProductTitle(firstItem.product_title || "")}
+                {truncateProductTitle(firstItem.product_title ?? "")}
               </p>
             ) : null}
             <p className="text-orders-fg-secondary text-xs">
               {hasMultipleItems && firstItem && (
                 <span className="line-clamp-1">
-                  {truncateProductTitle(firstItem.product_title || "")}
+                  {truncateProductTitle(firstItem.product_title ?? "")}
                   {itemCount > 2 && " a další"}
                 </span>
               )}

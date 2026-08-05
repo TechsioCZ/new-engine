@@ -32,7 +32,7 @@ function getQueryClient() {
   return browserQueryClient
 }
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export const Providers = ({ children }: { children: React.ReactNode }) => {
   const queryClient = getQueryClient()
 
   return (

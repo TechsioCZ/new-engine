@@ -16,7 +16,7 @@ import {
 
 import { OrderDetail } from "./order-detail"
 
-export function OrderDetailClient() {
+export const OrderDetailClient = () => {
   const { id } = useParams<{ id: string }>()
   const [order, setOrder] = useState<StoreOrder | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -33,7 +33,7 @@ export function OrderDetailClient() {
           setOrder(data)
         }
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         if (!active) {
           return
         }
@@ -62,7 +62,7 @@ export function OrderDetailClient() {
     return (
       <div className="mx-auto max-w-max-w px-400">
         <p className="text-fg-secondary">
-          {error || "Objednávka nebyla nalezena"}
+          {error ?? "Objednávka nebyla nalezena"}
         </p>
         <LinkButton
           as={Link}
@@ -77,7 +77,7 @@ export function OrderDetailClient() {
     )
   }
 
-  const statusVariant = getOrderStatusColor(order.status || "pending")
+  const statusVariant = getOrderStatusColor(order.status ?? "pending")
 
   return (
     <div className="mx-auto max-w-max-w px-400">

@@ -30,7 +30,11 @@ const VALID_PIXEL_ID_PATTERN = /^\d+$/
  * }
  * ```
  */
-export function MetaPixel({ pixelId, debug = false, nonce }: MetaPixelConfig) {
+export const MetaPixel = ({
+  pixelId,
+  debug = false,
+  nonce,
+}: MetaPixelConfig) => {
   if (!pixelId) {
     if (debug) {
       console.warn("[MetaPixel] No pixel ID provided, skipping initialization")

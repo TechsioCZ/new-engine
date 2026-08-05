@@ -178,8 +178,8 @@ function buildDesiredGitSource(
 
   const repositoryUrl = sourceDetails.repository_url?.trim() ?? ""
   const branchName =
-    spec.git_source?.branch_name?.trim() ||
-    sourceDetails.branch_name?.trim() ||
+    (spec.git_source?.branch_name?.trim() ??
+      sourceDetails.branch_name?.trim()) ||
     ""
   if (!repositoryUrl || !branchName) {
     throw new UpstreamHttpError(
@@ -228,10 +228,10 @@ function buildDesiredBuilder(
   return {
     build_context_dir: buildContextDir,
     build_stage_target:
-      typeof spec.builder?.build_stage_target !== "undefined"
-        ? (spec.builder.build_stage_target ?? null)
-        : (sourceDetails.dockerfile_builder_options?.build_stage_target?.trim() ??
-          null),
+      spec.builder?.build_stage_target === undefined
+        ? (sourceDetails.dockerfile_builder_options?.build_stage_target?.trim() ??
+          null)
+        : (spec.builder.build_stage_target ?? null),
     builder: "DOCKERFILE",
     dockerfile_path: dockerfilePath,
   }
@@ -311,9 +311,9 @@ function normalizeResourceLimitsShape(
           ...(resourceLimits.memory.unit
             ? { unit: resourceLimits.memory.unit }
             : {}),
-          ...(resourceLimits.memory.value !== undefined
-            ? { value: resourceLimits.memory.value }
-            : {}),
+          ...(resourceLimits.memory.value === undefined
+            ? {}
+            : { value: resourceLimits.memory.value }),
         }
       : null,
   }
@@ -1439,13 +1439,13 @@ export class ZaneEnvironmentManager {
     )
     const presentServiceSlugs = [
       ...new Set(cards.map((service) => service.slug)),
-    ].sort()
+    ].toSorted()
     const expectedPreviewServiceSlugs = [
       ...new Set(input.expectedPreviewServiceSlugs),
-    ].sort()
+    ].toSorted()
     const excludedPreviewServiceSlugs = [
       ...new Set(input.excludedPreviewServiceSlugs),
-    ].sort()
+    ].toSorted()
     const presentSet = new Set(presentServiceSlugs)
     const expectedSet = new Set(expectedPreviewServiceSlugs)
     const excludedSet = new Set(excludedPreviewServiceSlugs)

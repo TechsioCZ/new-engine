@@ -26,32 +26,28 @@ export async function executeApplyEnvOverridesPayload(input: {
   const { payload } = input
 
   if (payload.env_overrides.length === 0) {
-    return Promise.resolve(
-      applyEnvOverridesResponseSchema.parse({
-        applied_changes: [],
-        applied_service_ids: [],
-        environment_name: payload.environment_name,
-        noop: true,
-        project_slug: payload.project_slug,
-      }),
-    )
+    return applyEnvOverridesResponseSchema.parse({
+      applied_changes: [],
+      applied_service_ids: [],
+      environment_name: payload.environment_name,
+      noop: true,
+      project_slug: payload.project_slug,
+    })
   }
 
   if (input.dryRun) {
-    return Promise.resolve(
-      applyEnvOverridesResponseSchema.parse({
-        applied_changes: [],
-        applied_service_ids: payload.env_overrides.map(
-          (override) => override.service_id,
-        ),
-        environment_name: payload.environment_name,
-        noop: false,
-        project_slug: payload.project_slug,
-      }),
-    )
+    return applyEnvOverridesResponseSchema.parse({
+      applied_changes: [],
+      applied_service_ids: payload.env_overrides.map(
+        (override) => override.service_id,
+      ),
+      environment_name: payload.environment_name,
+      noop: false,
+      project_slug: payload.project_slug,
+    })
   }
 
-  return new ZaneOperatorClient(
+  return await new ZaneOperatorClient(
     input.baseUrl,
     input.apiToken,
   ).applyEnvOverrides(payload)

@@ -27,10 +27,10 @@ interface ProductReviewCreateDialogProps {
 
 const REVIEW_FORM_ID = "product-detail-create-review-form"
 
-export function ProductReviewCreateDialog({
+export const ProductReviewCreateDialog = ({
   productId,
   triggerLabel,
-}: ProductReviewCreateDialogProps) {
+}: ProductReviewCreateDialogProps) => {
   const tAuth = useTranslations("auth")
   const tCatalog = useTranslations("catalog")
   const resolvedTriggerLabel = triggerLabel ?? tCatalog("reviews.write_action")

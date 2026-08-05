@@ -211,7 +211,7 @@ const CompanyDetails = () => {
                     </Badge>
                   )}
                   {!(
-                    company?.approval_settings?.requires_admin_approval ||
+                    company?.approval_settings?.requires_admin_approval ??
                     company?.approval_settings?.requires_sales_manager_approval
                   ) && (
                     <Badge color="grey" size="small">
@@ -263,7 +263,7 @@ const CompanyDetails = () => {
                 >
                   <Table.Cell className="h-6 w-6 items-center justify-center">
                     <Avatar
-                      fallback={employee.customer?.first_name?.charAt(0) || ""}
+                      fallback={employee.customer?.first_name?.charAt(0) ?? ""}
                     />
                   </Table.Cell>
                   <Table.Cell className="flex w-fit items-center gap-2">
@@ -282,7 +282,7 @@ const CompanyDetails = () => {
                   <Table.Cell>
                     {formatAmount(
                       employee.spending_limit,
-                      company?.currency_code || "USD",
+                      company?.currency_code ?? "USD",
                     )}
                   </Table.Cell>
                   <EmployeeActionCell

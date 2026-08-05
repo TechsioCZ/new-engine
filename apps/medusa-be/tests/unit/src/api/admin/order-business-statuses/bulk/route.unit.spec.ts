@@ -21,10 +21,10 @@ vi.mock(import("@medusajs/framework/utils"), () => ({
  * request/response interfaces while still validating the shape the route
  * handler actually reads from at runtime.
  */
-function assertMockShape<T>(
+function assertMockShape(
   candidate: unknown,
   requiredKeys: readonly string[],
-): asserts candidate is T {
+): asserts candidate is unknown {
   if (typeof candidate !== "object" || candidate === null) {
     throw new TypeError("Expected a mock object")
   }
@@ -154,11 +154,11 @@ describe("POST /admin/order-business-statuses/bulk", () => {
       await import("../../../../../../../src/api/admin/order-business-statuses/bulk/route")
     const clearCache = vi.fn().mockResolvedValue()
     const warn = vi.fn()
-    const updateOrders = vi.fn(async (id: string) =>
+    const updateOrders = vi.fn(async (id: string) => {
       id === "order_2"
-        ? Promise.reject(new Error("database conflict"))
-        : Promise.resolve(),
-    )
+        ? await Promise.reject(new Error("database conflict"))
+        : await Promise.resolve()
+    })
     const graph = vi
       .fn()
       .mockResolvedValueOnce({

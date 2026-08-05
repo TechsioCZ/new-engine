@@ -38,29 +38,29 @@ export function useCheckout(): UseCheckoutReturn {
       await sdk.store.cart.update(cart.id, {
         billing_address: data.useSameAddress
           ? {
-              first_name: data.shipping.firstName,
-              last_name: data.shipping.lastName,
               address_1: data.shipping.street,
               city: data.shipping.city,
-              postal_code: data.shipping.postalCode,
-              phone: data.shipping.phone,
+              company: data.shipping.company ?? null,
               country_code: (data.shipping.country || "CZ").toLowerCase(),
-              company: data.shipping.company || null,
+              first_name: data.shipping.firstName,
+              last_name: data.shipping.lastName,
+              phone: data.shipping.phone,
+              postal_code: data.shipping.postalCode,
             }
           : {
-              first_name: data.billing.firstName,
-              last_name: data.billing.lastName,
               address_1: data.billing.street,
               city: data.billing.city,
-              postal_code: data.billing.postalCode,
+              company: data.billing.company ?? null,
               country_code: (data.billing.country || "CZ").toLowerCase(),
-              company: data.billing.company || null,
+              first_name: data.billing.firstName,
+              last_name: data.billing.lastName,
+              postal_code: data.billing.postalCode,
             },
         email: data.shipping.email,
         shipping_address: {
           address_1: data.shipping.street,
           city: data.shipping.city,
-          company: data.shipping.company || null,
+          company: data.shipping.company ?? null,
           country_code: (data.shipping.country || "CZ").toLowerCase(),
           first_name: data.shipping.firstName,
           last_name: data.shipping.lastName,
@@ -72,8 +72,8 @@ export function useCheckout(): UseCheckoutReturn {
     } catch (error) {
       console.error("Failed to update cart with addresses:", error)
       toast.create({
-        title: "Chyba při ukládání adresy",
         description: "Zkuste to prosím znovu",
+        title: "Chyba při ukládání adresy",
         type: "error",
       })
       throw error
@@ -87,19 +87,21 @@ export function useCheckout(): UseCheckoutReturn {
   } = useQuery({
     enabled: !!cart?.id,
     queryFn: async () => {
-      if (!cart?.id) throw new Error("No cart ID available")
+      if (!cart?.id) {
+        throw new Error("No cart ID available")
+      }
       const response = await sdk.store.fulfillment.listCartOptions({
         cart_id: cart.id,
       })
 
       const reducedShippingMethods = response.shipping_options.map((o) => ({
+        calculated_price: o.calculated_price,
         id: o.id,
         name: o.name,
-        calculated_price: o.calculated_price,
       }))
       return reducedShippingMethods
     },
-    queryKey: queryKeys.fulfillment.cartOptions(cart?.id || ""),
+    queryKey: queryKeys.fulfillment.cartOptions(cart?.id ?? ""),
     ...cacheConfig.semiStatic,
   })
 

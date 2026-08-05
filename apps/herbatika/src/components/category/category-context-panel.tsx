@@ -27,13 +27,13 @@ interface CategoryIntroProps {
   shouldShowIntroToggle: boolean
 }
 
-function CategoryIntro({
+const CategoryIntro = ({
   introText,
   isExpanded,
   onExpandedChange,
   sanitizedIntroHtml,
   shouldShowIntroToggle,
-}: CategoryIntroProps) {
+}: CategoryIntroProps) => {
   const tCatalog = useTranslations("catalog")
 
   if (!(sanitizedIntroHtml || introText)) {
@@ -76,11 +76,11 @@ function CategoryIntro({
   )
 }
 
-export function CategoryContextPanel({
+export const CategoryContextPanel = ({
   imageTiles,
   introHtml,
   introText,
-}: CategoryContextPanelProps) {
+}: CategoryContextPanelProps) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const sanitizedIntroHtml = sanitizeCategoryRichTextHtml(introHtml)
   const resolvedIntroText = sanitizedIntroHtml

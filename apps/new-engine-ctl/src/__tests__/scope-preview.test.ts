@@ -1,5 +1,4 @@
-import { delimiter, dirname, join, resolve } from "node:path"
-import { fileURLToPath } from "node:url"
+import { delimiter, join, resolve } from "node:path"
 
 import { expect, test } from "vitest"
 

@@ -30,9 +30,9 @@ figma.connect(
     imports: ['import { Footer } from "@libs/ui/organisms/footer"'],
     props: {
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
     },
   },

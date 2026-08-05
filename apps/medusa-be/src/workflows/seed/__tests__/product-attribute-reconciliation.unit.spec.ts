@@ -108,19 +108,19 @@ describe("Herbatica Product Attribute reconciliation", () => {
         attributeTypeIds: new Set(["supplier"]),
         attributes: [
           {
+            attributeType: { id: "supplier" },
+            brand_id: "herbatica-brand",
             id: "herbatica-supplier",
-            brand_id: "herbatica-brand",
-            attributeType: { id: "supplier" },
           },
           {
-            id: "herbatica-custom",
-            brand_id: "herbatica-brand",
             attributeType: { id: "custom" },
+            brand_id: "herbatica-brand",
+            id: "herbatica-custom",
           },
           {
-            id: "n1-supplier",
-            brand_id: "n1-brand",
             attributeType: { id: "supplier" },
+            brand_id: "n1-brand",
+            id: "n1-supplier",
           },
         ],
         brandIds: new Set(["herbatica-brand"]),

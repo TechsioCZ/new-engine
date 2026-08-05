@@ -49,8 +49,8 @@ export function useCheckoutShipping(
 
   // Fetch shipping options for cart
   const { data: shippingOptions } = useSuspenseQuery({
-    queryKey: queryKeys.cart.shippingOptions(cartId || "unknown"),
-    queryFn: () => {
+    queryKey: queryKeys.cart.shippingOptions(cartId ?? "unknown"),
+    queryFn: async () => {
       if (!(canLoadShipping && cartId)) {
         return []
       }
@@ -73,7 +73,7 @@ export function useCheckoutShipping(
       if (!cartId) {
         throw new CartServiceError("Cart ID je povinné", "VALIDATION_ERROR")
       }
-      return setShippingMethod(cartId, optionId, data)
+      return await setShippingMethod(cartId, optionId, data)
     },
     onError: (error, _variables, context) => {
       // Rollback to previous cart state
@@ -111,13 +111,13 @@ export function useCheckoutShipping(
             ...previousCart,
             shipping_methods: [
               {
-                id: `optimistic_${Date.now()}`,
-                cart_id: cartId || "",
-                shipping_option_id: optionId,
-                name: selectedOption.name,
                 amount: selectedOption.amount,
-                is_tax_inclusive: true,
+                cart_id: cartId ?? "",
                 created_at: new Date().toISOString(),
+                id: `optimistic_${Date.now()}`,
+                is_tax_inclusive: true,
+                name: selectedOption.name,
+                shipping_option_id: optionId,
                 updated_at: new Date().toISOString(),
               },
             ],

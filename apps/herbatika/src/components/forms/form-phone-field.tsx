@@ -97,7 +97,7 @@ const resolveRegionPhoneCountry = (
     ?.value
 }
 
-export function FormPhoneField({
+export const FormPhoneField = ({
   countries = HERBATIKA_PHONE_COUNTRIES,
   defaultCountry,
   id,
@@ -106,7 +106,7 @@ export function FormPhoneField({
   placeholder = "900 123 456",
   required = false,
   validationMode = "blur",
-}: FormPhoneFieldProps) {
+}: FormPhoneFieldProps) => {
   const field = useFieldContext<string>()
   const region = useRegionContext()
   const [hasChangedSinceBlur, setHasChangedSinceBlur] = useState(false)

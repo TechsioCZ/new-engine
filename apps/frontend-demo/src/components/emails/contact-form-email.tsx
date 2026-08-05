@@ -60,13 +60,13 @@ ContactFormEmail.PreviewProps = {
   subject: "general",
 } satisfies ContactFormEmailProps
 
-function EmailField({
+const EmailField = ({
   label,
   children,
 }: {
   label: string
   children: ReactNode
-}) {
+}) => {
   return (
     <section style={styles.section}>
       <p style={styles.label}>{label}:</p>

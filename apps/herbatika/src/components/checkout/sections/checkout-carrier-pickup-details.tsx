@@ -11,11 +11,11 @@ interface CheckoutCarrierPickupDetailsProps {
   onConfirm: (data: Record<string, unknown>) => void
 }
 
-export function CheckoutCarrierPickupDetails({
+export const CheckoutCarrierPickupDetails = ({
   disabled,
   requirement,
   onConfirm,
-}: CheckoutCarrierPickupDetailsProps) {
+}: CheckoutCarrierPickupDetailsProps) => {
   if (requirement.carrier === "gls") {
     return (
       <CheckoutGlsPickupSelector disabled={disabled} onConfirm={onConfirm} />

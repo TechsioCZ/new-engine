@@ -63,7 +63,8 @@ const ReviewEditDrawer = ({
   }, [open, review])
 
   const mutation = useMutation({
-    mutationFn: async (input: ReviewInput) => updateReview(review.id, input),
+    mutationFn: async (input: ReviewInput) =>
+      await updateReview(review.id, input),
     onError: () => {
       toast.error("Failed to update review")
     },
@@ -203,7 +204,7 @@ const ReviewsDetailPage = () => {
   const [editOpen, setEditOpen] = useState(false)
   const { data, isLoading } = useQuery({
     enabled: Boolean(id),
-    queryFn: async () => retrieveReview(id as string),
+    queryFn: async () => await retrieveReview(id as string),
     queryKey: reviewQueryKeys.detail(id as string),
   })
   const review = data?.review

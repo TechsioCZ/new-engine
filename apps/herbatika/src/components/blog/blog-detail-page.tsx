@@ -25,12 +25,12 @@ interface BlogDetailPageProps {
   sidebarFeaturedProduct: HttpTypes.StoreProduct | null
 }
 
-export function BlogDetailPage({
+export const BlogDetailPage = ({
   post,
   recommendedProducts,
   relatedPosts,
   sidebarFeaturedProduct,
-}: BlogDetailPageProps) {
+}: BlogDetailPageProps) => {
   const tContent = useTranslations("content")
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
@@ -135,7 +135,7 @@ export function BlogDetailPage({
   )
 }
 
-function BlogPostIntro({ post }: { post: BlogPost }) {
+const BlogPostIntro = ({ post }: { post: BlogPost }) => {
   const locale = useLocale()
   const tContent = useTranslations("content")
 

@@ -165,8 +165,8 @@ export const resolveStorefrontPrice = ({
           calculatedOriginalAmount,
         ) ??
         resolveMatchingTopOfferOriginalAmount({
-          currentAmount: resolvedCalculatedAmount,
           currencyCode: resolvedCalculatedCurrency,
+          currentAmount: resolvedCalculatedAmount,
           topOffer,
         }),
       source: "calculated_price",

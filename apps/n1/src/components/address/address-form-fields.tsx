@@ -19,7 +19,10 @@ interface AddressFormFieldsProps {
   disabled?: boolean
 }
 
-export function AddressFormFields({ form, disabled }: AddressFormFieldsProps) {
+export const AddressFormFields = ({
+  form,
+  disabled,
+}: AddressFormFieldsProps) => {
   return (
     <div className="flex flex-col gap-400">
       <div className="grid grid-cols-2 gap-300">

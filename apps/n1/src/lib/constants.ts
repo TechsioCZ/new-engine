@@ -29,25 +29,25 @@ export const VALID_CATEGORY_ROUTES = allCategories.map((cat) => cat.handle)
 export const CATEGORY_MAP: Record<string, string[]> = {
   "cyklo-category-378":
     CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "cyklo-category-378")
-      ?.children || [],
+      ?.children ?? [],
   damske:
-    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "damske")?.children || [],
+    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "damske")?.children ?? [],
   detske:
-    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "detske")?.children || [],
+    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "detske")?.children ?? [],
   "moto-category-424":
     CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "moto-category-424")
-      ?.children || [],
+      ?.children ?? [],
   "obleceni-category-347":
     CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "obleceni-category-347")
-      ?.children || [],
+      ?.children ?? [],
   panske:
-    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "panske")?.children || [],
+    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "panske")?.children ?? [],
   "ski-category-466":
     CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "ski-category-466")
-      ?.children || [],
+      ?.children ?? [],
   "snb-skate-category-448":
     CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "snb-skate-category-448")
-      ?.children || [],
+      ?.children ?? [],
 }
 
 // Helper: recursively find all leaf category IDs under a given category

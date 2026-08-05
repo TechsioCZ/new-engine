@@ -25,32 +25,32 @@ const meta: Meta<typeof Dialog> = {
     // Appearance variants
     placement: {
       control: "select",
-      options: ["center", "left", "right", "top", "bottom"],
       description: "Dialog/drawer placement",
+      options: ["center", "left", "right", "top", "bottom"],
       table: { defaultValue: { summary: "center" } },
     },
     size: {
       control: "select",
-      options: ["xs", "sm", "md", "lg", "xl", "full"],
       description: "Dialog size",
+      options: ["xs", "sm", "md", "lg", "xl", "full"],
       table: { defaultValue: { summary: "md" } },
     },
     behavior: {
       control: "select",
-      options: ["modal", "modeless"],
       description: "Modal blocks background, modeless allows interaction",
+      options: ["modal", "modeless"],
       table: { defaultValue: { summary: "modal" } },
     },
     position: {
       control: "select",
-      options: ["fixed", "absolute", "sticky", "relative"],
       description: "CSS position type",
+      options: ["fixed", "absolute", "sticky", "relative"],
       table: { defaultValue: { summary: "fixed" } },
     },
     role: {
       control: "select",
-      options: ["dialog", "alertdialog"],
       description: "Semantic role (alertdialog for destructive actions)",
+      options: ["dialog", "alertdialog"],
       table: { defaultValue: { summary: "dialog" } },
     },
 
