@@ -38,6 +38,12 @@ interface CatalogFilterInput {
 
 const MAX_FILTER_VALUES_PER_FACET = 40
 
+const getOwnPropertyValue = (value: object, key: string): unknown => {
+  const descriptor: PropertyDescriptor | undefined =
+    Object.getOwnPropertyDescriptor(value, key)
+  return descriptor?.value
+}
+
 const escapeFilterValue = (value: string): string =>
   value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
 
@@ -68,19 +74,14 @@ const normalizeMultiValueParam = (
   for (const rawValue of rawValues) {
     for (const splitValue of rawValue.split(",")) {
       const normalized = splitValue.trim()
-      if (!normalized || seen.has(normalized)) {
-        continue
-      }
+      const isAllowed = options?.allowValue?.(normalized) ?? true
+      if (normalized !== "" && !seen.has(normalized) && isAllowed) {
+        seen.add(normalized)
+        result.push(normalized)
 
-      if (options?.allowValue && !options.allowValue(normalized)) {
-        continue
-      }
-
-      seen.add(normalized)
-      result.push(normalized)
-
-      if (result.length >= maxItems) {
-        return result
+        if (result.length >= maxItems) {
+          return result
+        }
       }
     }
   }
@@ -93,13 +94,13 @@ const buildOrFilterExpression = (
   values: string[],
 ): string | undefined => {
   if (values.length === 0) {
-    return
+    return undefined
   }
 
   if (values.length === 1) {
-    const singleValue = values[0]
-    if (!singleValue) {
-      return
+    const [singleValue] = values
+    if (singleValue === undefined) {
+      return undefined
     }
 
     return `${field} = "${escapeFilterValue(singleValue)}"`
@@ -114,7 +115,7 @@ const toFinitePositiveNumber = (
   value: number | undefined,
 ): number | undefined => {
   if (value === undefined || Number.isNaN(value) || !Number.isFinite(value)) {
-    return
+    return undefined
   }
 
   return Math.max(0, value)
@@ -151,8 +152,9 @@ export const resolveCatalogSort = (
   sort: CatalogSortValue,
 ): string[] | undefined => {
   switch (sort) {
+    case "recommended":
     case "best-selling": {
-      return
+      return undefined
     }
     case "newest": {
       return ["created_at:desc"]
@@ -173,7 +175,7 @@ export const resolveCatalogSort = (
       return ["title:desc"]
     }
     default: {
-      return
+      return undefined
     }
   }
 }
@@ -187,7 +189,7 @@ export const buildCatalogFilterExpressions = (
     "facet_category_ids",
     input.categoryIds,
   )
-  if (categoryExpression) {
+  if (categoryExpression !== undefined) {
     expressions.push(categoryExpression)
   }
 
@@ -195,17 +197,17 @@ export const buildCatalogFilterExpressions = (
     "facet_status",
     input.statusIds,
   )
-  if (statusExpression) {
+  if (statusExpression !== undefined) {
     expressions.push(statusExpression)
   }
 
   const formExpression = buildOrFilterExpression("facet_form", input.formIds)
-  if (formExpression) {
+  if (formExpression !== undefined) {
     expressions.push(formExpression)
   }
 
   const brandExpression = buildOrFilterExpression("facet_brand", input.brandIds)
-  if (brandExpression) {
+  if (brandExpression !== undefined) {
     expressions.push(brandExpression)
   }
 
@@ -213,7 +215,7 @@ export const buildCatalogFilterExpressions = (
     "facet_ingredient",
     input.ingredientIds,
   )
-  if (ingredientExpression) {
+  if (ingredientExpression !== undefined) {
     expressions.push(ingredientExpression)
   }
 
@@ -241,15 +243,21 @@ export const getFacetDistribution = (
   facetKey: string,
 ): Map<string, number> => {
   if (
-    !distribution ||
+    distribution === null ||
+    distribution === undefined ||
     typeof distribution !== "object" ||
     Array.isArray(distribution)
   ) {
     return new Map()
   }
 
-  const rawFacet = (distribution as Record<string, unknown>)[facetKey]
-  if (!rawFacet || typeof rawFacet !== "object" || Array.isArray(rawFacet)) {
+  const rawFacet = getOwnPropertyValue(distribution, facetKey)
+  if (
+    rawFacet === null ||
+    rawFacet === undefined ||
+    typeof rawFacet !== "object" ||
+    Array.isArray(rawFacet)
+  ) {
     return new Map()
   }
 
@@ -269,21 +277,26 @@ export const getNumericFacetStats = (
   facetKey: string,
 ): { min?: number; max?: number } => {
   if (
-    !facetStats ||
+    facetStats === null ||
+    facetStats === undefined ||
     typeof facetStats !== "object" ||
     Array.isArray(facetStats)
   ) {
     return {}
   }
 
-  const rawFacet = (facetStats as Record<string, unknown>)[facetKey]
-  if (!rawFacet || typeof rawFacet !== "object" || Array.isArray(rawFacet)) {
+  const rawFacet = getOwnPropertyValue(facetStats, facetKey)
+  if (
+    rawFacet === null ||
+    rawFacet === undefined ||
+    typeof rawFacet !== "object" ||
+    Array.isArray(rawFacet)
+  ) {
     return {}
   }
 
-  const typedFacet = rawFacet as Record<string, unknown>
-  const minValue = typedFacet["min"]
-  const maxValue = typedFacet["max"]
+  const minValue = getOwnPropertyValue(rawFacet, "min")
+  const maxValue = getOwnPropertyValue(rawFacet, "max")
 
   const min = typeof minValue === "number" ? minValue : undefined
   const max = typeof maxValue === "number" ? maxValue : undefined
@@ -295,12 +308,12 @@ export const getNumericFacetStats = (
 }
 
 export const humanizeFacetHandle = (handle: string): string =>
-  handle.replaceAll("-", " ").replaceAll(/\s+/g, " ").trim()
+  handle.replaceAll("-", " ").replaceAll(/\s+/gu, " ").trim()
 
 export const sortFacetCountItems = (
   items: FacetCountItem[],
 ): FacetCountItem[] =>
-  [...items].sort((left, right) => {
+  items.toSorted((left, right) => {
     if (left.count !== right.count) {
       return right.count - left.count
     }
