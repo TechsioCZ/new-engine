@@ -17,9 +17,10 @@ import {
   toast,
   usePrompt,
 } from "@medusajs/ui"
+import type { QueryClient } from "@tanstack/react-query"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type { FormEvent } from "react"
-import { useMemo, useState } from "react"
+import type { ComponentProps } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 
@@ -49,9 +50,35 @@ import { getPaginationTranslations } from "../../../lib/table"
 import { useDebouncedValue } from "../../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
+const ACTION_CANCEL = "actions.cancel"
+const ACTION_DELETE = "actions.delete"
+const ACTION_DELETE_PERMANENTLY = "actions.deletePermanently"
+const ACTION_EDIT = "actions.edit"
+const ACTION_SAVE = "actions.save"
+const ERROR_DELETE_FAILED = "errors.deleteFailed"
+const ERROR_SAVE_FAILED = "errors.saveFailed"
+const FIELD_KEY = "fields.key"
+const FIELD_LABEL = "fields.label"
+const STATUS_LOADING = "status.loading"
+const TOAST_DELETED = "toasts.deleted"
 
 const mutationError = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback
+
+const isProductAttributeInputType = (
+  value: string,
+): value is ProductAttributeInputType => value === "select" || value === "text"
+
+const isProductAttributeStatus = (
+  value: string,
+): value is ProductAttributeStatus =>
+  value === "active" || value === "all" || value === "deleted"
+
+const invalidateProductAttributeQueries = async (queryClient: QueryClient) => {
+  await queryClient.invalidateQueries({
+    queryKey: productAttributeQueryKeys.products(),
+  })
+}
 
 const DefinitionCreateModal = ({
   onOpenChange,
@@ -68,8 +95,7 @@ const DefinitionCreateModal = ({
   const [isPublic, setIsPublic] = useState(false)
   const mutation = useMutation({
     mutationFn: createProductAttributeDefinition,
-    onError: (error) =>
-      toast.error(mutationError(error, t("errors.saveFailed"))),
+    onError: (error) => toast.error(mutationError(error, t(ERROR_SAVE_FAILED))),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: productAttributeQueryKeys.definitionLists(),
@@ -79,7 +105,7 @@ const DefinitionCreateModal = ({
     },
   })
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit: ComponentProps<"form">["onSubmit"] = (event) => {
     event.preventDefault()
     mutation.mutate({
       input_type: inputType,
@@ -103,7 +129,7 @@ const DefinitionCreateModal = ({
             <div className="flex w-full max-w-[720px] flex-col gap-4 px-6 py-8">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="product-attribute-label">
-                  {t("fields.label")}
+                  {t(FIELD_LABEL)}
                 </Label>
                 <Input
                   id="product-attribute-label"
@@ -116,7 +142,7 @@ const DefinitionCreateModal = ({
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="product-attribute-key">{t("fields.key")}</Label>
+                <Label htmlFor="product-attribute-key">{t(FIELD_KEY)}</Label>
                 <Input
                   id="product-attribute-key"
                   onChange={(event) => {
@@ -131,7 +157,9 @@ const DefinitionCreateModal = ({
                 <Label>{t("fields.inputType")}</Label>
                 <Select
                   onValueChange={(value) => {
-                    setInputType(value as ProductAttributeInputType)
+                    if (isProductAttributeInputType(value)) {
+                      setInputType(value)
+                    }
                   }}
                   value={inputType}
                 >
@@ -166,14 +194,14 @@ const DefinitionCreateModal = ({
               type="button"
               variant="secondary"
             >
-              {t("actions.cancel")}
+              {t(ACTION_CANCEL)}
             </Button>
             <Button
               disabled={!(key.trim() && label.trim())}
               isLoading={mutation.isPending}
               type="submit"
             >
-              {t("actions.save")}
+              {t(ACTION_SAVE)}
             </Button>
           </FocusModal.Footer>
         </form>
@@ -195,18 +223,18 @@ const OptionEditDrawer = ({
   const [productPage, setProductPage] = useState(0)
   const [productQ, setProductQ] = useState("")
   const debouncedProductQ = useDebouncedValue(productQ)
-  const productParams = useMemo(
-    () => ({
-      limit: PAGE_SIZE,
-      offset: productPage * PAGE_SIZE,
-      order: "title",
-      q: debouncedProductQ,
-    }),
-    [debouncedProductQ, productPage],
-  )
+  const productParams = {
+    limit: PAGE_SIZE,
+    offset: productPage * PAGE_SIZE,
+    order: "title",
+    q: debouncedProductQ,
+  }
   const productsQuery = useQuery({
     queryFn: async () =>
-      listProductAttributeOptionAssignedProducts(option.id, productParams),
+      await listProductAttributeOptionAssignedProducts(
+        option.id,
+        productParams,
+      ),
     queryKey: productAttributeQueryKeys.optionProducts(
       option.id,
       productParams,
@@ -214,9 +242,8 @@ const OptionEditDrawer = ({
   })
   const mutation = useMutation({
     mutationFn: async () =>
-      updateProductAttributeOption(option.id, { label: label.trim() }),
-    onError: (error) =>
-      toast.error(mutationError(error, t("errors.saveFailed"))),
+      await updateProductAttributeOption(option.id, { label: label.trim() }),
+    onError: (error) => toast.error(mutationError(error, t(ERROR_SAVE_FAILED))),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: productAttributeQueryKeys.optionLists(option.definition_id),
@@ -233,16 +260,16 @@ const OptionEditDrawer = ({
     <Drawer onOpenChange={onOpenChange} open>
       <Drawer.Content>
         <Drawer.Header>
-          <Drawer.Title>{t("actions.edit")}</Drawer.Title>
+          <Drawer.Title>{t(ACTION_EDIT)}</Drawer.Title>
         </Drawer.Header>
         <Drawer.Body className="flex flex-col gap-4 overflow-y-auto">
           <div className="flex flex-col gap-2">
-            <Label>{t("fields.key")}</Label>
+            <Label>{t(FIELD_KEY)}</Label>
             <Input disabled value={option.key} />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="product-attribute-option-label">
-              {t("fields.label")}
+              {t(FIELD_LABEL)}
             </Label>
             <Input
               id="product-attribute-option-label"
@@ -281,7 +308,7 @@ const OptionEditDrawer = ({
               <Table.Body>
                 {productsQuery.isLoading ? (
                   <Table.Row>
-                    <Table.Cell>{t("status.loading")}</Table.Cell>
+                    <Table.Cell>{t(STATUS_LOADING)}</Table.Cell>
                     <Table.Cell />
                     <Table.Cell />
                   </Table.Row>
@@ -297,7 +324,7 @@ const OptionEditDrawer = ({
                 ) : null}
                 {productsQuery.isLoading ||
                 productsQuery.error ||
-                products.length ? null : (
+                products.length > 0 ? null : (
                   <Table.Row>
                     <Table.Cell>{t("options.noProducts")}</Table.Cell>
                     <Table.Cell />
@@ -354,7 +381,7 @@ const OptionEditDrawer = ({
             type="button"
             variant="secondary"
           >
-            {t("actions.cancel")}
+            {t(ACTION_CANCEL)}
           </Button>
           <Button
             disabled={!label.trim()}
@@ -364,7 +391,7 @@ const OptionEditDrawer = ({
             }}
             type="button"
           >
-            {t("actions.save")}
+            {t(ACTION_SAVE)}
           </Button>
         </Drawer.Footer>
       </Drawer.Content>
@@ -372,18 +399,159 @@ const OptionEditDrawer = ({
   )
 }
 
-const DefinitionEditDrawer = ({
+interface DefinitionOptionsTableProps {
+  onDelete: (option: ProductAttributeOption) => void
+  onEdit: (option: ProductAttributeOption) => void
+  onPermanentDelete: (option: ProductAttributeOption) => void
+  onPageChange: (page: number | ((current: number) => number)) => void
+  onRestore: (id: string) => void
+  optionCount: number
+  optionPage: number
+  options: ProductAttributeOption[]
+  isLoading: boolean
+  permanentlyDeleting: boolean
+  restoring: boolean
+}
+
+const DefinitionOptionsTable = ({
+  isLoading,
+  onDelete,
+  onEdit,
+  onPageChange,
+  onPermanentDelete,
+  onRestore,
+  optionCount,
+  optionPage,
+  options,
+  permanentlyDeleting,
+  restoring,
+}: DefinitionOptionsTableProps) => {
+  const { t } = useTranslation("productAttributes")
+  const optionPageCount = Math.max(Math.ceil(optionCount / PAGE_SIZE), 1)
+
+  return (
+    <>
+      <Table>
+        <Table.Header>
+          <Table.Row>
+            <Table.HeaderCell>{t("columns.label")}</Table.HeaderCell>
+            <Table.HeaderCell>{t("columns.key")}</Table.HeaderCell>
+            <Table.HeaderCell>{t("columns.usedBy")}</Table.HeaderCell>
+            <Table.HeaderCell />
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {isLoading ? (
+            <Table.Row>
+              <Table.Cell>{t(STATUS_LOADING)}</Table.Cell>
+              <Table.Cell />
+              <Table.Cell />
+              <Table.Cell />
+            </Table.Row>
+          ) : null}
+          {isLoading
+            ? null
+            : options.map((option) => (
+                <Table.Row key={option.id}>
+                  <Table.Cell>{option.label}</Table.Cell>
+                  <Table.Cell className="text-ui-fg-subtle">
+                    {option.key}
+                  </Table.Cell>
+                  <Table.Cell>{option.usage_count}</Table.Cell>
+                  <Table.Cell>
+                    <div className="flex justify-end gap-1">
+                      {option.deleted_at !== null &&
+                      option.deleted_at !== undefined ? (
+                        <>
+                          <Button
+                            disabled={permanentlyDeleting}
+                            isLoading={restoring}
+                            onClick={() => {
+                              onRestore(option.id)
+                            }}
+                            size="small"
+                            type="button"
+                            variant="secondary"
+                          >
+                            {t("actions.restore")}
+                          </Button>
+                          <IconButton
+                            aria-label={t(ACTION_DELETE_PERMANENTLY)}
+                            disabled={restoring || permanentlyDeleting}
+                            onClick={() => {
+                              onPermanentDelete(option)
+                            }}
+                            size="small"
+                            variant="transparent"
+                          >
+                            <Trash />
+                          </IconButton>
+                        </>
+                      ) : (
+                        <>
+                          <IconButton
+                            aria-label={t(ACTION_EDIT)}
+                            onClick={() => {
+                              onEdit(option)
+                            }}
+                            size="small"
+                            variant="transparent"
+                          >
+                            <PencilSquare />
+                          </IconButton>
+                          <IconButton
+                            aria-label={t(ACTION_DELETE)}
+                            onClick={() => {
+                              onDelete(option)
+                            }}
+                            size="small"
+                            variant="transparent"
+                          >
+                            <Trash />
+                          </IconButton>
+                        </>
+                      )}
+                    </div>
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+          {isLoading || options.length > 0 ? null : (
+            <Table.Row>
+              <Table.Cell>{t("options.empty")}</Table.Cell>
+              <Table.Cell />
+              <Table.Cell />
+              <Table.Cell />
+            </Table.Row>
+          )}
+        </Table.Body>
+      </Table>
+      <Table.Pagination
+        canNextPage={optionPage + 1 < optionPageCount}
+        canPreviousPage={optionPage > 0}
+        count={optionCount}
+        nextPage={() => {
+          onPageChange((current) => current + 1)
+        }}
+        pageCount={optionPageCount}
+        pageIndex={optionPage}
+        pageSize={PAGE_SIZE}
+        previousPage={() => {
+          onPageChange((current) => Math.max(current - 1, 0))
+        }}
+        translations={getPaginationTranslations(t)}
+      />
+    </>
+  )
+}
+
+const DefinitionOptions = ({
   definition,
-  onOpenChange,
 }: {
   definition: ProductAttributeDefinition
-  onOpenChange: (open: boolean) => void
 }) => {
   const { t } = useTranslation("productAttributes")
   const queryClient = useQueryClient()
   const prompt = usePrompt()
-  const [label, setLabel] = useState(definition.label)
-  const [isPublic, setIsPublic] = useState(definition.is_public)
   const [optionKey, setOptionKey] = useState("")
   const [optionLabel, setOptionLabel] = useState("")
   const [optionPage, setOptionPage] = useState(0)
@@ -402,43 +570,22 @@ const DefinitionEditDrawer = ({
     status: optionStatus,
   }
   const optionsQuery = useQuery({
-    enabled: definition.input_type === "select",
     queryFn: async () =>
-      listProductAttributeOptions(definition.id, optionParams),
+      await listProductAttributeOptions(definition.id, optionParams),
     queryKey: productAttributeQueryKeys.options(definition.id, optionParams),
   })
-  const invalidateOptions = async () =>
-    queryClient.invalidateQueries({
+  const invalidateOptions = async () => {
+    await queryClient.invalidateQueries({
       queryKey: productAttributeQueryKeys.optionLists(definition.id),
     })
-  const invalidateProductAttributes = async () =>
-    queryClient.invalidateQueries({
-      queryKey: productAttributeQueryKeys.products(),
-    })
-  const saveMutation = useMutation({
-    mutationFn: async () =>
-      updateProductAttributeDefinition(definition.id, {
-        is_public: isPublic,
-        label: label.trim(),
-      }),
-    onError: (error) =>
-      toast.error(mutationError(error, t("errors.saveFailed"))),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: productAttributeQueryKeys.definitionLists(),
-      })
-      toast.success(t("toasts.saved"))
-      onOpenChange(false)
-    },
-  })
+  }
   const createOptionMutation = useMutation({
     mutationFn: async () =>
-      createProductAttributeOption(definition.id, {
+      await createProductAttributeOption(definition.id, {
         key: optionKey.trim(),
         label: optionLabel.trim(),
       }),
-    onError: (error) =>
-      toast.error(mutationError(error, t("errors.saveFailed"))),
+    onError: (error) => toast.error(mutationError(error, t(ERROR_SAVE_FAILED))),
     onSuccess: async () => {
       await invalidateOptions()
       setOptionKey("")
@@ -446,28 +593,33 @@ const DefinitionEditDrawer = ({
       toast.success(t("toasts.created"))
     },
   })
+  const invalidateAfterOptionMutation = async () => {
+    await Promise.all([
+      invalidateOptions(),
+      invalidateProductAttributeQueries(queryClient),
+    ])
+  }
   const deleteOptionMutation = useMutation({
     mutationFn: deleteProductAttributeOption,
     onError: (error) =>
-      toast.error(mutationError(error, t("errors.deleteFailed"))),
+      toast.error(mutationError(error, t(ERROR_DELETE_FAILED))),
     onSuccess: async () => {
-      await Promise.all([invalidateOptions(), invalidateProductAttributes()])
-      toast.success(t("toasts.deleted"))
+      await invalidateAfterOptionMutation()
+      toast.success(t(TOAST_DELETED))
     },
   })
   const permanentlyDeleteOptionMutation = useMutation({
     mutationFn: permanentlyDeleteProductAttributeOption,
     onError: (error) =>
-      toast.error(mutationError(error, t("errors.deleteFailed"))),
+      toast.error(mutationError(error, t(ERROR_DELETE_FAILED))),
     onSuccess: async () => {
       await Promise.all([
-        invalidateOptions(),
-        invalidateProductAttributes(),
+        invalidateAfterOptionMutation(),
         queryClient.invalidateQueries({
           queryKey: productAttributeQueryKeys.definitionLists(),
         }),
       ])
-      toast.success(t("toasts.deleted"))
+      toast.success(t(TOAST_DELETED))
     },
   })
   const restoreOptionMutation = useMutation({
@@ -475,288 +627,126 @@ const DefinitionEditDrawer = ({
     onError: (error) =>
       toast.error(mutationError(error, t("errors.restoreFailed"))),
     onSuccess: async () => {
-      await Promise.all([invalidateOptions(), invalidateProductAttributes()])
+      await invalidateAfterOptionMutation()
       toast.success(t("toasts.restored"))
     },
   })
-  const handleDeleteOption = async (option: ProductAttributeOption) => {
-    const confirmed = await prompt({
-      cancelText: t("actions.cancel"),
-      confirmText: t("actions.delete"),
-      description: t("deletePrompt.option", {
-        count: option.usage_count,
-        label: option.label,
-      }),
-      title: t("actions.delete"),
-    })
-    if (confirmed) {
-      deleteOptionMutation.mutate(option.id)
-    }
-  }
-  const handlePermanentDeleteOption = async (
+  const confirmOptionMutation = async (
     option: ProductAttributeOption,
+    permanent: boolean,
   ) => {
+    const action = permanent ? ACTION_DELETE_PERMANENTLY : ACTION_DELETE
+    const description = permanent
+      ? "permanentDeletePrompt.option"
+      : "deletePrompt.option"
     const confirmed = await prompt({
-      cancelText: t("actions.cancel"),
-      confirmText: t("actions.deletePermanently"),
-      description: t("permanentDeletePrompt.option", {
+      cancelText: t(ACTION_CANCEL),
+      confirmText: t(action),
+      description: t(description, {
         count: option.usage_count,
         label: option.label,
       }),
-      title: t("actions.deletePermanently"),
+      title: t(action),
     })
     if (confirmed) {
-      permanentlyDeleteOptionMutation.mutate(option.id)
+      if (permanent) {
+        permanentlyDeleteOptionMutation.mutate(option.id)
+      } else {
+        deleteOptionMutation.mutate(option.id)
+      }
     }
   }
   const options = optionsQuery.data?.options ?? []
   const optionCount = optionsQuery.data?.count ?? 0
-  const optionPageCount = Math.max(Math.ceil(optionCount / PAGE_SIZE), 1)
 
   return (
     <>
-      <Drawer onOpenChange={onOpenChange} open>
-        <Drawer.Content>
-          <Drawer.Header>
-            <Drawer.Title>{definition.label}</Drawer.Title>
-          </Drawer.Header>
-          <Drawer.Body className="flex flex-col gap-5 overflow-y-auto">
-            <div className="flex flex-col gap-2">
-              <Label>{t("fields.key")}</Label>
-              <Input disabled value={definition.key} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="product-attribute-definition-label">
-                {t("fields.label")}
-              </Label>
-              <Input
-                id="product-attribute-definition-label"
-                onChange={(event) => {
-                  setLabel(event.target.value)
-                }}
-                value={label}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="product-attribute-definition-public">
-                {t("fields.isPublic")}
-              </Label>
-              <Switch
-                checked={isPublic}
-                id="product-attribute-definition-public"
-                onCheckedChange={setIsPublic}
-              />
-            </div>
-            {definition.input_type === "select" ? (
-              <div className="flex flex-col gap-3 border-t pt-4">
-                <Text size="small" weight="plus">
-                  {t("options.title")}
-                </Text>
-                <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
-                  <Input
-                    aria-label={t("fields.label")}
-                    onChange={(event) => {
-                      setOptionLabel(event.target.value)
-                    }}
-                    placeholder={t("fields.label")}
-                    value={optionLabel}
-                  />
-                  <Input
-                    aria-label={t("fields.key")}
-                    onChange={(event) => {
-                      setOptionKey(event.target.value)
-                    }}
-                    placeholder={t("fields.key")}
-                    value={optionKey}
-                  />
-                  <Button
-                    disabled={!(optionKey.trim() && optionLabel.trim())}
-                    isLoading={createOptionMutation.isPending}
-                    onClick={() => {
-                      createOptionMutation.mutate()
-                    }}
-                    type="button"
-                    variant="secondary"
-                  >
-                    {t("actions.add")}
-                  </Button>
-                </div>
-                <div className="grid grid-cols-[1fr_160px] gap-2">
-                  <Input
-                    aria-label={t("placeholders.searchOptions")}
-                    onChange={(event) => {
-                      setOptionPage(0)
-                      setOptionQ(event.target.value)
-                    }}
-                    placeholder={t("placeholders.searchOptions")}
-                    value={optionQ}
-                  />
-                  <Select
-                    onValueChange={(value) => {
-                      setOptionPage(0)
-                      setOptionStatus(value as ProductAttributeStatus)
-                    }}
-                    value={optionStatus}
-                  >
-                    <Select.Trigger>
-                      <Select.Value />
-                    </Select.Trigger>
-                    <Select.Content>
-                      <Select.Item value="active">
-                        {t("filters.activeOnly")}
-                      </Select.Item>
-                      <Select.Item value="deleted">
-                        {t("filters.deletedOnly")}
-                      </Select.Item>
-                      <Select.Item value="all">
-                        {t("filters.allStatuses")}
-                      </Select.Item>
-                    </Select.Content>
-                  </Select>
-                </div>
-                <Table>
-                  <Table.Header>
-                    <Table.Row>
-                      <Table.HeaderCell>{t("columns.label")}</Table.HeaderCell>
-                      <Table.HeaderCell>{t("columns.key")}</Table.HeaderCell>
-                      <Table.HeaderCell>{t("columns.usedBy")}</Table.HeaderCell>
-                      <Table.HeaderCell />
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {optionsQuery.isLoading ? (
-                      <Table.Row>
-                        <Table.Cell>{t("status.loading")}</Table.Cell>
-                        <Table.Cell />
-                        <Table.Cell />
-                        <Table.Cell />
-                      </Table.Row>
-                    ) : null}
-                    {optionsQuery.isLoading
-                      ? null
-                      : options.map((option) => (
-                          <Table.Row key={option.id}>
-                            <Table.Cell>{option.label}</Table.Cell>
-                            <Table.Cell className="text-ui-fg-subtle">
-                              {option.key}
-                            </Table.Cell>
-                            <Table.Cell>{option.usage_count}</Table.Cell>
-                            <Table.Cell>
-                              <div className="flex justify-end gap-1">
-                                {option.deleted_at ? (
-                                  <>
-                                    <Button
-                                      disabled={
-                                        permanentlyDeleteOptionMutation.isPending
-                                      }
-                                      isLoading={
-                                        restoreOptionMutation.isPending
-                                      }
-                                      onClick={() => {
-                                        restoreOptionMutation.mutate(option.id)
-                                      }}
-                                      size="small"
-                                      type="button"
-                                      variant="secondary"
-                                    >
-                                      {t("actions.restore")}
-                                    </Button>
-                                    <IconButton
-                                      aria-label={t(
-                                        "actions.deletePermanently",
-                                      )}
-                                      disabled={
-                                        restoreOptionMutation.isPending ||
-                                        permanentlyDeleteOptionMutation.isPending
-                                      }
-                                      onClick={async () =>
-                                        handlePermanentDeleteOption(option)
-                                      }
-                                      size="small"
-                                      variant="transparent"
-                                    >
-                                      <Trash />
-                                    </IconButton>
-                                  </>
-                                ) : (
-                                  <>
-                                    <IconButton
-                                      aria-label={t("actions.edit")}
-                                      onClick={() => {
-                                        setEditingOption(option)
-                                      }}
-                                      size="small"
-                                      variant="transparent"
-                                    >
-                                      <PencilSquare />
-                                    </IconButton>
-                                    <IconButton
-                                      aria-label={t("actions.delete")}
-                                      onClick={async () =>
-                                        handleDeleteOption(option)
-                                      }
-                                      size="small"
-                                      variant="transparent"
-                                    >
-                                      <Trash />
-                                    </IconButton>
-                                  </>
-                                )}
-                              </div>
-                            </Table.Cell>
-                          </Table.Row>
-                        ))}
-                    {optionsQuery.isLoading || options.length ? null : (
-                      <Table.Row>
-                        <Table.Cell>{t("options.empty")}</Table.Cell>
-                        <Table.Cell />
-                        <Table.Cell />
-                        <Table.Cell />
-                      </Table.Row>
-                    )}
-                  </Table.Body>
-                </Table>
-                <Table.Pagination
-                  canNextPage={optionPage + 1 < optionPageCount}
-                  canPreviousPage={optionPage > 0}
-                  count={optionCount}
-                  nextPage={() => {
-                    setOptionPage((current) => current + 1)
-                  }}
-                  pageCount={optionPageCount}
-                  pageIndex={optionPage}
-                  pageSize={PAGE_SIZE}
-                  previousPage={() => {
-                    setOptionPage((current) => Math.max(current - 1, 0))
-                  }}
-                  translations={getPaginationTranslations(t)}
-                />
-              </div>
-            ) : null}
-          </Drawer.Body>
-          <Drawer.Footer>
-            <Button
-              onClick={() => {
-                onOpenChange(false)
-              }}
-              type="button"
-              variant="secondary"
-            >
-              {t("actions.cancel")}
-            </Button>
-            <Button
-              disabled={!label.trim()}
-              isLoading={saveMutation.isPending}
-              onClick={() => {
-                saveMutation.mutate()
-              }}
-              type="button"
-            >
-              {t("actions.save")}
-            </Button>
-          </Drawer.Footer>
-        </Drawer.Content>
-      </Drawer>
+      <div className="flex flex-col gap-3 border-t pt-4">
+        <Text size="small" weight="plus">
+          {t("options.title")}
+        </Text>
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
+          <Input
+            aria-label={t(FIELD_LABEL)}
+            onChange={(event) => {
+              setOptionLabel(event.target.value)
+            }}
+            placeholder={t(FIELD_LABEL)}
+            value={optionLabel}
+          />
+          <Input
+            aria-label={t(FIELD_KEY)}
+            onChange={(event) => {
+              setOptionKey(event.target.value)
+            }}
+            placeholder={t(FIELD_KEY)}
+            value={optionKey}
+          />
+          <Button
+            disabled={!(optionKey.trim() && optionLabel.trim())}
+            isLoading={createOptionMutation.isPending}
+            onClick={() => {
+              createOptionMutation.mutate()
+            }}
+            type="button"
+            variant="secondary"
+          >
+            {t("actions.add")}
+          </Button>
+        </div>
+        <div className="grid grid-cols-[1fr_160px] gap-2">
+          <Input
+            aria-label={t("placeholders.searchOptions")}
+            onChange={(event) => {
+              setOptionPage(0)
+              setOptionQ(event.target.value)
+            }}
+            placeholder={t("placeholders.searchOptions")}
+            value={optionQ}
+          />
+          <Select
+            onValueChange={(value) => {
+              if (isProductAttributeStatus(value)) {
+                setOptionPage(0)
+                setOptionStatus(value)
+              }
+            }}
+            value={optionStatus}
+          >
+            <Select.Trigger>
+              <Select.Value />
+            </Select.Trigger>
+            <Select.Content>
+              <Select.Item value="active">
+                {t("filters.activeOnly")}
+              </Select.Item>
+              <Select.Item value="deleted">
+                {t("filters.deletedOnly")}
+              </Select.Item>
+              <Select.Item value="all">{t("filters.allStatuses")}</Select.Item>
+            </Select.Content>
+          </Select>
+        </div>
+        <DefinitionOptionsTable
+          isLoading={optionsQuery.isLoading}
+          onDelete={(option) => {
+            void confirmOptionMutation(option, false)
+          }}
+          onEdit={setEditingOption}
+          onPageChange={setOptionPage}
+          onPermanentDelete={(option) => {
+            void confirmOptionMutation(option, true)
+          }}
+          onRestore={(id) => {
+            restoreOptionMutation.mutate(id)
+          }}
+          optionCount={optionCount}
+          optionPage={optionPage}
+          options={options}
+          permanentlyDeleting={permanentlyDeleteOptionMutation.isPending}
+          restoring={restoreOptionMutation.isPending}
+        />
+      </div>
       {editingOption ? (
         <OptionEditDrawer
           onOpenChange={(open) => {
@@ -771,6 +761,95 @@ const DefinitionEditDrawer = ({
   )
 }
 
+const DefinitionEditDrawer = ({
+  definition,
+  onOpenChange,
+}: {
+  definition: ProductAttributeDefinition
+  onOpenChange: (open: boolean) => void
+}) => {
+  const { t } = useTranslation("productAttributes")
+  const queryClient = useQueryClient()
+  const [label, setLabel] = useState(definition.label)
+  const [isPublic, setIsPublic] = useState(definition.is_public)
+  const saveMutation = useMutation({
+    mutationFn: async () =>
+      await updateProductAttributeDefinition(definition.id, {
+        is_public: isPublic,
+        label: label.trim(),
+      }),
+    onError: (error) => toast.error(mutationError(error, t(ERROR_SAVE_FAILED))),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: productAttributeQueryKeys.definitionLists(),
+      })
+      toast.success(t("toasts.saved"))
+      onOpenChange(false)
+    },
+  })
+  return (
+    <Drawer onOpenChange={onOpenChange} open>
+      <Drawer.Content>
+        <Drawer.Header>
+          <Drawer.Title>{definition.label}</Drawer.Title>
+        </Drawer.Header>
+        <Drawer.Body className="flex flex-col gap-5 overflow-y-auto">
+          <div className="flex flex-col gap-2">
+            <Label>{t(FIELD_KEY)}</Label>
+            <Input disabled value={definition.key} />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="product-attribute-definition-label">
+              {t(FIELD_LABEL)}
+            </Label>
+            <Input
+              id="product-attribute-definition-label"
+              onChange={(event) => {
+                setLabel(event.target.value)
+              }}
+              value={label}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="product-attribute-definition-public">
+              {t("fields.isPublic")}
+            </Label>
+            <Switch
+              checked={isPublic}
+              id="product-attribute-definition-public"
+              onCheckedChange={setIsPublic}
+            />
+          </div>
+          {definition.input_type === "select" ? (
+            <DefinitionOptions definition={definition} />
+          ) : null}
+        </Drawer.Body>
+        <Drawer.Footer>
+          <Button
+            onClick={() => {
+              onOpenChange(false)
+            }}
+            type="button"
+            variant="secondary"
+          >
+            {t(ACTION_CANCEL)}
+          </Button>
+          <Button
+            disabled={!label.trim()}
+            isLoading={saveMutation.isPending}
+            onClick={() => {
+              saveMutation.mutate()
+            }}
+            type="button"
+          >
+            {t(ACTION_SAVE)}
+          </Button>
+        </Drawer.Footer>
+      </Drawer.Content>
+    </Drawer>
+  )
+}
+
 const ProductAttributesSettingsPage = () => {
   const { t } = useTranslation("productAttributes")
   const queryClient = useQueryClient()
@@ -781,50 +860,44 @@ const ProductAttributesSettingsPage = () => {
   const [q, setQ] = useState("")
   const [status, setStatus] = useState<ProductAttributeStatus>("active")
   const debouncedQ = useDebouncedValue(q)
-  const params = useMemo(
-    () => ({
-      limit: PAGE_SIZE,
-      offset: pageIndex * PAGE_SIZE,
-      order: "label",
-      q: debouncedQ,
-      status,
-    }),
-    [debouncedQ, pageIndex, status],
-  )
+  const params = {
+    limit: PAGE_SIZE,
+    offset: pageIndex * PAGE_SIZE,
+    order: "label",
+    q: debouncedQ,
+    status,
+  }
   const query = useQuery({
-    queryFn: async () => listProductAttributeDefinitions(params),
+    queryFn: async () => await listProductAttributeDefinitions(params),
     queryKey: productAttributeQueryKeys.definitions(params),
   })
-  const invalidateDefinitions = async () =>
-    queryClient.invalidateQueries({
+  const invalidateDefinitions = async () => {
+    await queryClient.invalidateQueries({
       queryKey: productAttributeQueryKeys.definitionLists(),
     })
-  const invalidateProductAttributes = async () =>
-    queryClient.invalidateQueries({
-      queryKey: productAttributeQueryKeys.products(),
-    })
+  }
   const deleteMutation = useMutation({
     mutationFn: deleteProductAttributeDefinition,
     onError: (error) =>
-      toast.error(mutationError(error, t("errors.deleteFailed"))),
+      toast.error(mutationError(error, t(ERROR_DELETE_FAILED))),
     onSuccess: async () => {
       await Promise.all([
         invalidateDefinitions(),
-        invalidateProductAttributes(),
+        invalidateProductAttributeQueries(queryClient),
       ])
-      toast.success(t("toasts.deleted"))
+      toast.success(t(TOAST_DELETED))
     },
   })
   const permanentlyDeleteMutation = useMutation({
     mutationFn: permanentlyDeleteProductAttributeDefinition,
     onError: (error) =>
-      toast.error(mutationError(error, t("errors.deleteFailed"))),
+      toast.error(mutationError(error, t(ERROR_DELETE_FAILED))),
     onSuccess: async () => {
       await Promise.all([
         invalidateDefinitions(),
-        invalidateProductAttributes(),
+        invalidateProductAttributeQueries(queryClient),
       ])
-      toast.success(t("toasts.deleted"))
+      toast.success(t(TOAST_DELETED))
     },
   })
   const restoreMutation = useMutation({
@@ -834,20 +907,20 @@ const ProductAttributesSettingsPage = () => {
     onSuccess: async () => {
       await Promise.all([
         invalidateDefinitions(),
-        invalidateProductAttributes(),
+        invalidateProductAttributeQueries(queryClient),
       ])
       toast.success(t("toasts.restored"))
     },
   })
   const handleDelete = async (definition: ProductAttributeDefinition) => {
     const confirmed = await prompt({
-      cancelText: t("actions.cancel"),
-      confirmText: t("actions.delete"),
+      cancelText: t(ACTION_CANCEL),
+      confirmText: t(ACTION_DELETE),
       description: t("deletePrompt.definition", {
         count: definition.usage_count,
         label: definition.label,
       }),
-      title: t("actions.delete"),
+      title: t(ACTION_DELETE),
     })
     if (confirmed) {
       deleteMutation.mutate(definition.id)
@@ -857,13 +930,13 @@ const ProductAttributesSettingsPage = () => {
     definition: ProductAttributeDefinition,
   ) => {
     const confirmed = await prompt({
-      cancelText: t("actions.cancel"),
-      confirmText: t("actions.deletePermanently"),
+      cancelText: t(ACTION_CANCEL),
+      confirmText: t(ACTION_DELETE_PERMANENTLY),
       description: t("permanentDeletePrompt.definition", {
         count: definition.usage_count,
         label: definition.label,
       }),
-      title: t("actions.deletePermanently"),
+      title: t(ACTION_DELETE_PERMANENTLY),
     })
     if (confirmed) {
       permanentlyDeleteMutation.mutate(definition.id)
@@ -904,7 +977,9 @@ const ProductAttributesSettingsPage = () => {
           <Select
             onValueChange={(value) => {
               setPageIndex(0)
-              setStatus(value as ProductAttributeStatus)
+              if (isProductAttributeStatus(value)) {
+                setStatus(value)
+              }
             }}
             value={status}
           >
@@ -947,15 +1022,24 @@ const ProductAttributesSettingsPage = () => {
                 </Table.Cell>
                 <Table.Cell>{definition.usage_count}</Table.Cell>
                 <Table.Cell>
-                  <StatusBadge color={definition.deleted_at ? "red" : "green"}>
-                    {definition.deleted_at
+                  <StatusBadge
+                    color={
+                      definition.deleted_at !== null &&
+                      definition.deleted_at !== undefined
+                        ? "red"
+                        : "green"
+                    }
+                  >
+                    {definition.deleted_at !== null &&
+                    definition.deleted_at !== undefined
                       ? t("status.deleted")
                       : t("status.active")}
                   </StatusBadge>
                 </Table.Cell>
                 <Table.Cell>
                   <div className="flex justify-end gap-1">
-                    {definition.deleted_at ? (
+                    {definition.deleted_at !== null &&
+                    definition.deleted_at !== undefined ? (
                       <>
                         <Button
                           disabled={permanentlyDeleteMutation.isPending}
@@ -969,14 +1053,14 @@ const ProductAttributesSettingsPage = () => {
                           {t("actions.restore")}
                         </Button>
                         <IconButton
-                          aria-label={t("actions.deletePermanently")}
+                          aria-label={t(ACTION_DELETE_PERMANENTLY)}
                           disabled={
                             restoreMutation.isPending ||
                             permanentlyDeleteMutation.isPending
                           }
-                          onClick={async () =>
-                            handlePermanentDelete(definition)
-                          }
+                          onClick={() => {
+                            void handlePermanentDelete(definition)
+                          }}
                           size="small"
                           variant="transparent"
                         >
@@ -986,7 +1070,7 @@ const ProductAttributesSettingsPage = () => {
                     ) : (
                       <>
                         <IconButton
-                          aria-label={t("actions.edit")}
+                          aria-label={t(ACTION_EDIT)}
                           onClick={() => {
                             setEditing(definition)
                           }}
@@ -996,8 +1080,10 @@ const ProductAttributesSettingsPage = () => {
                           <PencilSquare />
                         </IconButton>
                         <IconButton
-                          aria-label={t("actions.delete")}
-                          onClick={async () => handleDelete(definition)}
+                          aria-label={t(ACTION_DELETE)}
+                          onClick={() => {
+                            void handleDelete(definition)
+                          }}
                           size="small"
                           variant="transparent"
                         >
@@ -1009,10 +1095,10 @@ const ProductAttributesSettingsPage = () => {
                 </Table.Cell>
               </Table.Row>
             ))}
-            {definitions.length ? null : (
+            {definitions.length > 0 ? null : (
               <Table.Row>
                 <Table.Cell>
-                  {query.isLoading ? t("status.loading") : t("widget.empty")}
+                  {query.isLoading ? t(STATUS_LOADING) : t("widget.empty")}
                 </Table.Cell>
                 <Table.Cell />
                 <Table.Cell />
