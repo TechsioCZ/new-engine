@@ -116,11 +116,7 @@ export interface ProductInput {
         sku: string
         ean?: string | null | undefined
         material?: string | undefined
-        options?:
-          | {
-              [key: string]: string
-            }
-          | undefined
+        options?: Record<string, string> | undefined
         images?:
           | {
               url: string
@@ -182,6 +178,14 @@ type ExistingSalesChannel = Awaited<
 type ExistingShippingProfile = Awaited<
   ReturnType<IFulfillmentModuleService["listShippingProfiles"]>
 >[number]
+const SEED_BRAND_STRING_FIELDS = [
+  "gpsr_contact_email",
+  "gpsr_european_reseller_contact_email",
+  "gpsr_european_reseller_manufacturing_company_name",
+  "gpsr_european_reseller_postal_address",
+  "gpsr_manufacturing_company_name",
+  "gpsr_postal_address",
+] as const
 type BrandRegistry = Map<
   string,
   {
@@ -202,22 +206,23 @@ type VariantImagesRegistry = Map<string, Map<string, ProductVariantImagesInput>>
 type WorkflowContainer = MedusaContainer
 type BrandRegistryEntry =
   BrandRegistry extends Map<string, infer Entry> ? Entry : never
-type SeedBrandScalarField = Exclude<
-  keyof BrandRegistryEntry,
-  "attributes" | "handle" | "products" | "title"
->
+type SeedBrandScalarField =
+  | (typeof SEED_BRAND_STRING_FIELDS)[number]
+  | "gpsr_manufactured_outside_eu"
+type SeedBrandScalarValue = BrandRegistryEntry[SeedBrandScalarField]
+
 interface ExistingBrand {
   attributes?:
-    | Array<{
+    | {
         value: string
         attributeType?:
           | {
               name?: string | undefined
             }
           | undefined
-      }>
+      }[]
     | undefined
-  deleted_at?: string | Date | null | undefined
+  deleted_at?: Date | string | null
   gpsr_contact_email?: string | null | undefined
   gpsr_european_reseller_contact_email?: string | null | undefined
   gpsr_european_reseller_manufacturing_company_name?: string | null | undefined
@@ -230,18 +235,10 @@ interface ExistingBrand {
   title: string
 }
 
-const SEED_BRAND_STRING_FIELDS = [
-  "gpsr_contact_email",
-  "gpsr_european_reseller_contact_email",
-  "gpsr_european_reseller_manufacturing_company_name",
-  "gpsr_european_reseller_postal_address",
-  "gpsr_manufacturing_company_name",
-  "gpsr_postal_address",
-] as const
 const SEED_QUERY_CHUNK_SIZE = 500
 const BRAND_HANDLE_CONTENT_PATTERN = /[\p{L}\p{N}]/u
 
-function chunkArray<T>(items: T[], size = SEED_QUERY_CHUNK_SIZE): T[][] {
+const chunkArray = <T>(items: T[], size = SEED_QUERY_CHUNK_SIZE): T[][] => {
   const chunks: T[][] = []
   for (let index = 0; index < items.length; index += size) {
     chunks.push(items.slice(index, index + size))
@@ -249,23 +246,22 @@ function chunkArray<T>(items: T[], size = SEED_QUERY_CHUNK_SIZE): T[][] {
   return chunks
 }
 
-function normalizeSeedText(value?: string | null): string | undefined {
+const normalizeSeedText = (value?: string | null): string | undefined => {
   const normalized = value?.trim()
-  return normalized ? normalized : undefined
+  return normalized === "" ? undefined : normalized
 }
 
-function stripBrandHandleDiacritics(title: string) {
-  return title.normalize("NFKD").replaceAll(/[\u0300-\u036F]/g, "")
-}
+const stripBrandHandleDiacritics = (title: string) =>
+  title.normalize("NFKD").replaceAll(/[\u0300-\u036F]/gu, "")
 
-export function normalizeBrandRegistryKey(title: string): string {
+export const normalizeBrandRegistryKey = (title: string): string => {
   const separated = stripBrandHandleDiacritics(title).replaceAll(
     /[^\p{L}\p{N}]+/gu,
     "-",
   )
   const kebab = kebabCase(separated)
-    .replaceAll(/-+/g, "-")
-    .replaceAll(/^-|-$/g, "")
+    .replaceAll(/-+/gu, "-")
+    .replaceAll(/^-|-$/gu, "")
 
   if (!BRAND_HANDLE_CONTENT_PATTERN.test(kebab)) {
     return ""
@@ -274,34 +270,33 @@ export function normalizeBrandRegistryKey(title: string): string {
   return toHandle(kebab)
 }
 
-function getLegacyBrandHandles(title: string): string[] {
+const getLegacyBrandHandles = (title: string): string[] => {
   const historicalKebabHandle = kebabCase(title.trim())
   const previousAsciiHandle = stripBrandHandleDiacritics(title)
     .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/g, "-")
-    .replaceAll(/-+/g, "-")
-    .replaceAll(/^-|-$/g, "")
+    .replaceAll(/[^a-z0-9]+/gu, "-")
+    .replaceAll(/-+/gu, "-")
+    .replaceAll(/^-|-$/gu, "")
 
   return [...new Set([historicalKebabHandle, previousAsciiHandle])].filter(
     Boolean,
   )
 }
 
-export function getBrandSeedHandleCandidates(
+export const getBrandSeedHandleCandidates = (
   title: string,
   canonicalHandle = normalizeBrandRegistryKey(title),
-): string[] {
-  return [
-    ...new Set([canonicalHandle, ...getLegacyBrandHandles(title)]),
-  ].filter(Boolean)
-}
+): string[] =>
+  [...new Set([canonicalHandle, ...getLegacyBrandHandles(title)])].filter(
+    Boolean,
+  )
 
-function mergeBrandScalar(
+const mergeBrandScalar = (
   brand: BrandRegistryEntry,
   field: SeedBrandScalarField,
-  value: boolean | string | null | undefined,
+  value: SeedBrandScalarValue,
   productHandle: string,
-) {
+) => {
   const normalizedValue =
     typeof value === "string" ? normalizeSeedText(value) : value
   if (normalizedValue === undefined) {
@@ -318,13 +313,13 @@ function mergeBrandScalar(
   Object.assign(brand, { [field]: normalizedValue })
 }
 
-function mergeBrandAttribute(
+const mergeBrandAttribute = (
   brand: BrandRegistryEntry,
   attribute: { name: string; value: string },
   productHandle: string,
-) {
+) => {
   const name = attribute.name.trim().toLowerCase()
-  if (!name) {
+  if (name === "") {
     throw new Error(
       `Brand "${brand.title}" has an attribute with an empty name on product "${productHandle}"`,
     )
@@ -341,19 +336,19 @@ function mergeBrandAttribute(
   brand.attributes.set(name, value)
 }
 
-export function buildBrandRegistry(
+export const buildBrandRegistry = (
   inputProducts: Pick<ProductInput, "brand" | "handle" | "productAttributes">[],
-): BrandRegistry {
+): BrandRegistry => {
   const brands: BrandRegistry = new Map()
 
   for (const inputProduct of inputProducts) {
     const title = normalizeSeedText(inputProduct.brand?.title)
-    if (!title) {
+    if (title === undefined) {
       continue
     }
 
     const handle = normalizeBrandRegistryKey(title)
-    if (!handle) {
+    if (handle === "") {
       throw new Error(
         `Product "${inputProduct.handle}" has a brand title that cannot produce a valid handle`,
       )
@@ -396,12 +391,14 @@ export function buildBrandRegistry(
   return brands
 }
 
-function collectUsedVariantSkus(existingProducts: ProductDTO[]): Set<string> {
+const collectUsedVariantSkus = (
+  existingProducts: ProductDTO[],
+): Set<string> => {
   const usedSkus = new Set<string>()
 
   for (const product of existingProducts) {
     for (const variant of product.variants ?? []) {
-      if (variant.sku) {
+      if (variant.sku !== null && variant.sku !== "") {
         usedSkus.add(variant.sku)
       }
     }
@@ -410,25 +407,25 @@ function collectUsedVariantSkus(existingProducts: ProductDTO[]): Set<string> {
   return usedSkus
 }
 
-function getExistingVariantSkus(product?: ProductDTO): Set<string> {
-  return new Set(
+const getExistingVariantSkus = (product?: ProductDTO): Set<string> =>
+  new Set(
     (product?.variants ?? [])
       .map((variant) => variant.sku)
       .filter(
         (sku): sku is string => typeof sku === "string" && sku.length > 0,
       ),
   )
-}
 
-function buildUniqueVariantSku(params: {
+const buildUniqueVariantSku = (params: {
   originalSku: string | undefined
   inputProduct: ProductInput
   index: number
   usedSkus: Set<string>
-}): string {
+}): string => {
   const baseSku =
-    params.originalSku ||
-    `${params.inputProduct.handle}-variant-${params.index + 1}`
+    params.originalSku?.trim() === "" || params.originalSku === undefined
+      ? `${params.inputProduct.handle}-variant-${params.index + 1}`
+      : params.originalSku
   let candidate = baseSku
   let suffix = 2
 
@@ -440,10 +437,10 @@ function buildUniqueVariantSku(params: {
   return candidate
 }
 
-function renameVariantSku(
+const renameVariantSku = (
   variant: NonNullable<ProductInput["variants"]>[number],
   candidate: string,
-): boolean {
+): boolean => {
   if (candidate === variant.sku) {
     return false
   }
@@ -457,11 +454,11 @@ function renameVariantSku(
   return true
 }
 
-function ensureUniqueVariantSkus(
+const ensureUniqueVariantSkus = (
   inputProducts: ProductInput[],
   existingProducts: ProductDTO[],
   logger: Logger,
-) {
+) => {
   const existingProductsByHandle = new Map(
     existingProducts.map((product) => [product.handle, product]),
   )
@@ -502,7 +499,7 @@ function ensureUniqueVariantSkus(
   }
 }
 
-function toMetadataId(value: unknown): string | undefined {
+const toMetadataId = (value: unknown): string | undefined => {
   if (typeof value === "string") {
     const normalized = value.trim()
     return normalized === "" ? undefined : normalized
@@ -512,26 +509,26 @@ function toMetadataId(value: unknown): string | undefined {
     return String(value)
   }
 
-  return
+  return undefined
 }
 
-export function getSourceVariantId(variant: {
+export const getSourceVariantId = (variant: {
   metadata?: Record<string, unknown> | null | undefined
-}): string | undefined {
+}): string | undefined => {
   const metadata = variant.metadata ?? undefined
-  if (!metadata) {
-    return
+  if (metadata === undefined) {
+    return undefined
   }
 
   return toMetadataId(metadata["source_variant_id"] ?? metadata["variant_id"])
 }
 
-function findExistingVariant(
+const findExistingVariant = (
   existingProduct: ProductDTO,
   inputVariant: NonNullable<ProductInput["variants"]>[number],
-) {
+) => {
   const sourceVariantId = getSourceVariantId(inputVariant)
-  if (sourceVariantId) {
+  if (sourceVariantId !== undefined) {
     const bySourceId = (existingProduct.variants ?? []).find((variant) => {
       const { metadata } = variant as {
         metadata?: Record<string, unknown> | null
@@ -549,10 +546,10 @@ function findExistingVariant(
   )
 }
 
-function processProductVariantImagesInput(
+const processProductVariantImagesInput = (
   inputProduct: ProductInput,
   productVariantImages: Map<string, Map<string, ProductVariantImagesInput>>,
-) {
+) => {
   if (inputProduct.variants?.length === 0) {
     return
   }
@@ -568,24 +565,25 @@ function processProductVariantImagesInput(
   }
 
   for (const variant of inputProduct.variants ?? []) {
-    if (!variant.images?.length) {
+    const images = variant.images ?? []
+    if (images.length === 0) {
       continue
     }
 
     if (!variantImages.has(variant.sku)) {
       variantImages.set(variant.sku, {
-        images: variant.images.map((i) => i.url),
+        images: images.map((image) => image.url),
       })
     }
   }
 }
 
-function prepareVariantImagesWorkflowInput(
+const prepareVariantImagesWorkflowInput = (
   product: ProductDTO,
   productVariantImages: Map<string, Map<string, ProductVariantImagesInput>>,
-): BatchVariantImagesWorkflowInput[] | undefined {
+): BatchVariantImagesWorkflowInput[] | undefined => {
   if (product.variants?.length === 0) {
-    return
+    return undefined
   }
 
   const variantImages = productVariantImages.get(product.handle)
@@ -598,7 +596,7 @@ function prepareVariantImagesWorkflowInput(
   const result: BatchVariantImagesWorkflowInput[] = []
 
   for (const variant of product.variants) {
-    if (!variant.sku) {
+    if (variant.sku === null || variant.sku === "") {
       throw new Error(`Variant SKU is empty for product "${product.handle}"`)
     }
 
@@ -641,25 +639,24 @@ function prepareVariantImagesWorkflowInput(
       variant_id: variant.id,
     })
   }
+
   return result
 }
 
-function collectCategoryHandles(input: CreateProductsStepInput): string[] {
-  return [
-    ...new Set(
-      input.flatMap((product) => product.categories.map((cat) => cat.handle)),
-    ),
-  ]
-}
+const collectCategoryHandles = (input: CreateProductsStepInput): string[] => [
+  ...new Set(
+    input.flatMap((product) => product.categories.map((cat) => cat.handle)),
+  ),
+]
 
-function collectSalesChannelNames(input: CreateProductsStepInput): string[] {
-  return [...new Set(input.flatMap((product) => product.salesChannelNames))]
-}
+const collectSalesChannelNames = (input: CreateProductsStepInput): string[] => [
+  ...new Set(input.flatMap((product) => product.salesChannelNames)),
+]
 
-function resolveCategory(
+const resolveCategory = (
   existingCategories: ExistingCategory[],
   handle: string,
-): ExistingCategory {
+): ExistingCategory => {
   const existingCategory = existingCategories.find(
     (cat) => cat.handle === handle,
   )
@@ -670,10 +667,10 @@ function resolveCategory(
   return existingCategory
 }
 
-function resolveShippingProfileId(
+const resolveShippingProfileId = (
   existingShippingProfiles: ExistingShippingProfile[],
   name: string,
-): string {
+): string => {
   const profile = existingShippingProfiles.find((sp) => sp.name === name)
   if (!profile) {
     throw new Error(`Shipping profile "${name}" not found`)
@@ -682,10 +679,10 @@ function resolveShippingProfileId(
   return profile.id
 }
 
-function resolveSalesChannel(
+const resolveSalesChannel = (
   existingSalesChannels: ExistingSalesChannel[],
   name: string,
-): ExistingSalesChannel {
+): ExistingSalesChannel => {
   const channel = existingSalesChannels.find((sc) => sc.name === name)
   if (!channel) {
     throw new Error(`Sales channel "${name}" not found`)
@@ -694,17 +691,17 @@ function resolveSalesChannel(
   return channel
 }
 
-function registerProductSideInputs(
+const registerProductSideInputs = (
   inputProduct: ProductInput,
   productVariantImages: VariantImagesRegistry,
-): void {
+): void => {
   processProductVariantImagesInput(inputProduct, productVariantImages)
 }
 
-function buildUpdateVariant(
+const buildUpdateVariant = (
   existingProduct: ProductDTO,
   inputVariant: NonNullable<ProductInput["variants"]>[number],
-) {
+) => {
   const existingVariant = findExistingVariant(existingProduct, inputVariant)
 
   const variantPayload = {
@@ -743,13 +740,13 @@ function buildUpdateVariant(
       }
 }
 
-function buildUpdateProductPayload(params: {
+const buildUpdateProductPayload = (params: {
   existingProduct: ProductDTO
   inputProduct: ProductInput
   existingCategories: ExistingCategory[]
   existingShippingProfiles: ExistingShippingProfile[]
   existingSalesChannels: ExistingSalesChannel[]
-}): ProcessProductOptionsForImportInput["products"][number] {
+}): ProcessProductOptionsForImportInput["products"][number] => {
   const {
     existingProduct,
     inputProduct,
@@ -759,28 +756,28 @@ function buildUpdateProductPayload(params: {
   } = params
 
   return {
-    id: existingProduct.id,
-    title: inputProduct.title,
     category_ids: inputProduct.categories?.map(
       (inputCat) => resolveCategory(existingCategories, inputCat.handle).id,
     ),
     description: inputProduct.description,
-    ...(inputProduct.weight === undefined
-      ? {}
-      : { weight: inputProduct.weight }),
-    status: inputProduct.status || ProductStatus.PUBLISHED,
+    id: existingProduct.id,
+    images: inputProduct.images ?? [],
     ...(inputProduct.metadata === undefined
       ? {}
       : { metadata: inputProduct.metadata }),
+    ...(inputProduct.options === undefined
+      ? {}
+      : { options: inputProduct.options }),
+    sales_channels: inputProduct.salesChannelNames.map((name) =>
+      resolveSalesChannel(existingSalesChannels, name),
+    ),
     shipping_profile_id: resolveShippingProfileId(
       existingShippingProfiles,
       inputProduct.shippingProfileName,
     ),
-    thumbnail: inputProduct.thumbnail || existingProduct.thumbnail,
-    images: inputProduct.images ?? [],
-    ...(inputProduct.options === undefined
-      ? {}
-      : { options: inputProduct.options }),
+    status: inputProduct.status ?? ProductStatus.PUBLISHED,
+    thumbnail: inputProduct.thumbnail ?? existingProduct.thumbnail,
+    title: inputProduct.title,
     ...(inputProduct.variants === undefined
       ? {}
       : {
@@ -788,48 +785,46 @@ function buildUpdateProductPayload(params: {
             buildUpdateVariant(existingProduct, inputVariant),
           ),
         }),
-    sales_channels: inputProduct.salesChannelNames.map((name) =>
-      resolveSalesChannel(existingSalesChannels, name),
-    ),
+    ...(inputProduct.weight === undefined
+      ? {}
+      : { weight: inputProduct.weight }),
   }
 }
 
-function buildCreateVariant(
+const buildCreateVariant = (
   inputVariant: NonNullable<ProductInput["variants"]>[number],
-) {
-  return {
-    sku: inputVariant.sku,
-    title: inputVariant.title,
-    ...(inputVariant.ean === undefined ? {} : { ean: inputVariant.ean }),
-    ...(inputVariant.material === undefined
-      ? {}
-      : { material: inputVariant.material }),
-    ...(inputVariant.options === undefined
-      ? {}
-      : { options: inputVariant.options }),
-    ...(inputVariant.thumbnail === undefined
-      ? {}
-      : { thumbnail: inputVariant.thumbnail }),
-    ...(inputVariant.prices === undefined
-      ? {}
-      : {
-          prices: inputVariant.prices.map((price) => ({
-            amount: price.amount,
-            currency_code: price.currency_code,
-          })),
-        }),
-    ...(inputVariant.metadata === undefined
-      ? {}
-      : { metadata: inputVariant.metadata }),
-  }
-}
+) => ({
+  sku: inputVariant.sku,
+  title: inputVariant.title,
+  ...(inputVariant.ean === undefined ? {} : { ean: inputVariant.ean }),
+  ...(inputVariant.material === undefined
+    ? {}
+    : { material: inputVariant.material }),
+  ...(inputVariant.options === undefined
+    ? {}
+    : { options: inputVariant.options }),
+  ...(inputVariant.thumbnail === undefined
+    ? {}
+    : { thumbnail: inputVariant.thumbnail }),
+  ...(inputVariant.prices === undefined
+    ? {}
+    : {
+        prices: inputVariant.prices.map((price) => ({
+          amount: price.amount,
+          currency_code: price.currency_code,
+        })),
+      }),
+  ...(inputVariant.metadata === undefined
+    ? {}
+    : { metadata: inputVariant.metadata }),
+})
 
-function buildCreateProductPayload(params: {
+const buildCreateProductPayload = (params: {
   inputProduct: ProductInput
   existingCategories: ExistingCategory[]
   existingShippingProfiles: ExistingShippingProfile[]
   existingSalesChannels: ExistingSalesChannel[]
-}) {
+}) => {
   const {
     inputProduct,
     existingCategories,
@@ -838,48 +833,48 @@ function buildCreateProductPayload(params: {
   } = params
 
   return {
-    title: inputProduct.title,
     category_ids: inputProduct.categories?.map(
       (inputCat) => resolveCategory(existingCategories, inputCat.handle).id,
     ),
     description: inputProduct.description,
     handle: inputProduct.handle,
-    ...(inputProduct.weight === undefined
-      ? {}
-      : { weight: inputProduct.weight }),
-    status: inputProduct.status || ProductStatus.PUBLISHED,
+    images: inputProduct.images ?? [],
     ...(inputProduct.metadata === undefined
       ? {}
       : { metadata: inputProduct.metadata }),
+    ...(inputProduct.options === undefined
+      ? {}
+      : { options: inputProduct.options }),
+    sales_channels: inputProduct.salesChannelNames.map((name) =>
+      resolveSalesChannel(existingSalesChannels, name),
+    ),
     shipping_profile_id: resolveShippingProfileId(
       existingShippingProfiles,
       inputProduct.shippingProfileName,
     ),
+    status: inputProduct.status ?? ProductStatus.PUBLISHED,
     ...(inputProduct.thumbnail === undefined
       ? {}
       : { thumbnail: inputProduct.thumbnail }),
-    images: inputProduct.images ?? [],
-    ...(inputProduct.options === undefined
-      ? {}
-      : { options: inputProduct.options }),
+    title: inputProduct.title,
     ...(inputProduct.variants === undefined
       ? {}
       : { variants: inputProduct.variants.map(buildCreateVariant) }),
-    sales_channels: inputProduct.salesChannelNames.map((name) =>
-      resolveSalesChannel(existingSalesChannels, name),
-    ),
+    ...(inputProduct.weight === undefined
+      ? {}
+      : { weight: inputProduct.weight }),
   }
 }
 
-function buildUpdateProductPayloads(params: {
+const buildUpdateProductPayloads = (params: {
   input: CreateProductsStepInput
   existingProducts: ProductDTO[]
   existingCategories: ExistingCategory[]
   existingShippingProfiles: ExistingShippingProfile[]
   existingSalesChannels: ExistingSalesChannel[]
   productVariantImages: VariantImagesRegistry
-}) {
-  return params.existingProducts.flatMap((existingProduct) => {
+}) =>
+  params.existingProducts.flatMap((existingProduct) => {
     const inputProduct = params.input.find(
       (product) => product.handle === existingProduct.handle,
     )
@@ -900,16 +895,15 @@ function buildUpdateProductPayloads(params: {
       }),
     ]
   })
-}
 
-function buildCreateProductPayloads(params: {
+const buildCreateProductPayloads = (params: {
   missingProducts: ProductInput[]
   existingCategories: ExistingCategory[]
   existingShippingProfiles: ExistingShippingProfile[]
   existingSalesChannels: ExistingSalesChannel[]
   productVariantImages: VariantImagesRegistry
-}) {
-  return params.missingProducts.map((inputProduct) => {
+}) =>
+  params.missingProducts.map((inputProduct) => {
     registerProductSideInputs(inputProduct, params.productVariantImages)
 
     return buildCreateProductPayload({
@@ -919,37 +913,38 @@ function buildCreateProductPayloads(params: {
       inputProduct,
     })
   })
-}
 
-async function applyVariantImageUpdates(params: {
+const applyVariantImageUpdates = async (params: {
   container: WorkflowContainer
   products: ProductDTO[]
   productVariantImages: VariantImagesRegistry
   result: string[]
-}): Promise<void> {
-  for (const product of params.products) {
-    const variantImageInputs = prepareVariantImagesWorkflowInput(
-      product,
-      params.productVariantImages,
-    )
-
-    for (const variantImageInput of variantImageInputs ?? []) {
-      await batchVariantImagesWorkflow(params.container).run({
-        input: variantImageInput,
-      })
-    }
-
-    params.result.push(product.id)
-  }
+}): Promise<void> => {
+  await Promise.all(
+    params.products.map(async (product) => {
+      const variantImageInputs = prepareVariantImagesWorkflowInput(
+        product,
+        params.productVariantImages,
+      )
+      await Promise.all(
+        (variantImageInputs ?? []).map(async (variantImageInput) => {
+          await batchVariantImagesWorkflow(params.container).run({
+            input: variantImageInput,
+          })
+        }),
+      )
+      params.result.push(product.id)
+    }),
+  )
 }
 
-function getDesiredBrandHandleByProduct(brands: BrandRegistry) {
+const getDesiredBrandHandleByProduct = (brands: BrandRegistry) => {
   const desiredBrandHandleByProduct = new Map<string, string>()
 
   for (const brand of brands.values()) {
     for (const productHandle of brand.products) {
       const existing = desiredBrandHandleByProduct.get(productHandle)
-      if (existing && existing !== brand.handle) {
+      if (existing !== undefined && existing !== brand.handle) {
         throw new Error(
           `Product "${productHandle}" resolves to multiple brands: "${existing}" and "${brand.handle}"`,
         )
@@ -961,14 +956,14 @@ function getDesiredBrandHandleByProduct(brands: BrandRegistry) {
   return desiredBrandHandleByProduct
 }
 
-function mergeExistingBrandAttributes(
+const mergeExistingBrandAttributes = (
   existing: ExistingBrand,
   incoming: BrandRegistryEntry,
-) {
+) => {
   const attributes = new Map<string, { name: string; value: string }>()
   for (const attribute of existing.attributes ?? []) {
     const persistedName = attribute.attributeType?.name?.trim()
-    if (!persistedName) {
+    if (persistedName === undefined || persistedName === "") {
       throw new Error(
         `Existing brand "${existing.title}" has an attribute without an attribute type name`,
       )
@@ -1004,10 +999,10 @@ function mergeExistingBrandAttributes(
   }
 }
 
-export function buildExistingBrandReconciliation(
+export const buildExistingBrandReconciliation = (
   existing: ExistingBrand,
   incoming: BrandRegistryEntry,
-): Partial<BrandInput> {
+): Partial<BrandInput> => {
   const update: Partial<BrandInput> = {}
   if (existing.title !== incoming.title) {
     update.title = incoming.title
@@ -1047,33 +1042,31 @@ export function buildExistingBrandReconciliation(
   return update
 }
 
-function toCreateBrandInput(brand: BrandRegistryEntry) {
-  return {
-    attributes: [...brand.attributes].map(([name, value]) => ({ name, value })),
-    gpsr_contact_email: brand.gpsr_contact_email,
-    gpsr_european_reseller_contact_email:
-      brand.gpsr_european_reseller_contact_email,
-    gpsr_european_reseller_manufacturing_company_name:
-      brand.gpsr_european_reseller_manufacturing_company_name,
-    gpsr_european_reseller_postal_address:
-      brand.gpsr_european_reseller_postal_address,
-    gpsr_manufactured_outside_eu: brand.gpsr_manufactured_outside_eu ?? false,
-    gpsr_manufacturing_company_name: brand.gpsr_manufacturing_company_name,
-    gpsr_postal_address: brand.gpsr_postal_address,
-    handle: brand.handle,
-    title: brand.title,
-  }
-}
+const toCreateBrandInput = (brand: BrandRegistryEntry) => ({
+  attributes: [...brand.attributes].map(([name, value]) => ({ name, value })),
+  gpsr_contact_email: brand.gpsr_contact_email,
+  gpsr_european_reseller_contact_email:
+    brand.gpsr_european_reseller_contact_email,
+  gpsr_european_reseller_manufacturing_company_name:
+    brand.gpsr_european_reseller_manufacturing_company_name,
+  gpsr_european_reseller_postal_address:
+    brand.gpsr_european_reseller_postal_address,
+  gpsr_manufactured_outside_eu: brand.gpsr_manufactured_outside_eu ?? false,
+  gpsr_manufacturing_company_name: brand.gpsr_manufacturing_company_name,
+  gpsr_postal_address: brand.gpsr_postal_address,
+  handle: brand.handle,
+  title: brand.title,
+})
 
-async function findExistingSeedBrand(
+const findExistingSeedBrand = async (
   brandService: BrandModuleService,
   brandData: BrandRegistryEntry,
-): Promise<ExistingBrand | undefined> {
+): Promise<ExistingBrand | undefined> => {
   const candidateHandles = getBrandSeedHandleCandidates(
     brandData.title,
     brandData.handle,
   )
-  const existingBrands = (await brandService.listBrands(
+  const existingBrands: ExistingBrand[] = await brandService.listBrands(
     {
       handle: { $in: candidateHandles },
     },
@@ -1082,21 +1075,27 @@ async function findExistingSeedBrand(
       take: Math.max(candidateHandles.length * 2, 1),
       withDeleted: true,
     },
-  )) as ExistingBrand[]
+  )
 
   if (existingBrands.length > 1) {
+    const formattedHandles = candidateHandles
+      .map((handle) => `"${handle}"`)
+      .join(", ")
+    const formattedBrands = existingBrands
+      .map((brand) => `"${brand.title}" (${brand.handle})`)
+      .join(", ")
     throw new Error(
-      `Brand "${brandData.title}" resolves to multiple persisted records for handles ${candidateHandles.map((handle) => `"${handle}"`).join(", ")}: ${existingBrands.map((brand) => `"${brand.title}" (${brand.handle})`).join(", ")}`,
+      `Brand "${brandData.title}" resolves to multiple persisted records for handles ${formattedHandles}: ${formattedBrands}`,
     )
   }
 
   return existingBrands[0]
 }
 
-function validateExistingSeedBrandReconciliation(
+const validateExistingSeedBrandReconciliation = (
   existing: ExistingBrand,
   brandData: BrandRegistryEntry,
-) {
+) => {
   const update = buildExistingBrandReconciliation(existing, brandData)
   const effectiveState: BrandScalarWriteInput = {
     gpsr_contact_email: existing.gpsr_contact_email,
@@ -1117,34 +1116,43 @@ function validateExistingSeedBrandReconciliation(
   validateBrandGpsrState(effectiveState, brandData.handle)
 }
 
-async function assertSeedBrandsCompatibleWithPersistence(
+const assertSeedBrandsCompatibleWithPersistence = async (
   brandService: BrandModuleService,
   brands: BrandRegistry,
-) {
+) => {
+  const existingBrands = await Promise.all(
+    [...brands.values()].map(async (brandData) => ({
+      brandData,
+      existing: await findExistingSeedBrand(brandService, brandData),
+    })),
+  )
   const desiredHandleByExistingBrandId = new Map<string, string>()
 
-  for (const brandData of brands.values()) {
-    const existing = await findExistingSeedBrand(brandService, brandData)
-    if (existing) {
-      const priorDesiredHandle = desiredHandleByExistingBrandId.get(existing.id)
-      if (priorDesiredHandle && priorDesiredHandle !== brandData.handle) {
-        throw new Error(
-          `Persisted brand "${existing.title}" (${existing.handle}) resolves to multiple seed handles: "${priorDesiredHandle}" and "${brandData.handle}"`,
-        )
-      }
-      desiredHandleByExistingBrandId.set(existing.id, brandData.handle)
-      validateExistingSeedBrandReconciliation(existing, brandData)
-    } else {
+  for (const { brandData, existing } of existingBrands) {
+    if (existing === undefined) {
       validateBrandGpsrState(toCreateBrandInput(brandData), brandData.handle)
+      continue
     }
+
+    const priorDesiredHandle = desiredHandleByExistingBrandId.get(existing.id)
+    if (
+      priorDesiredHandle !== undefined &&
+      priorDesiredHandle !== brandData.handle
+    ) {
+      throw new Error(
+        `Persisted brand "${existing.title}" (${existing.handle}) resolves to multiple seed handles: "${priorDesiredHandle}" and "${brandData.handle}"`,
+      )
+    }
+    desiredHandleByExistingBrandId.set(existing.id, brandData.handle)
+    validateExistingSeedBrandReconciliation(existing, brandData)
   }
 }
 
-async function upsertSeedBrand(params: {
+const upsertSeedBrand = async (params: {
   brandData: BrandRegistryEntry
   brandService: BrandModuleService
   container: WorkflowContainer
-}): Promise<ExistingBrand> {
+}): Promise<ExistingBrand> => {
   const existing = await findExistingSeedBrand(
     params.brandService,
     params.brandData,
@@ -1155,16 +1163,19 @@ async function upsertSeedBrand(params: {
         brands: [toCreateBrandInput(params.brandData)],
       },
     })
-    const created = result[0] as ExistingBrand | undefined
-    if (!created) {
+    const [created] = result
+    if (created === undefined) {
       throw new Error(`Brand "${params.brandData.title}" was not created`)
     }
-    return created
+    return {
+      ...created,
+      title: params.brandData.title,
+    }
   }
 
   validateExistingSeedBrandReconciliation(existing, params.brandData)
 
-  if (existing.deleted_at) {
+  if (existing.deleted_at !== null && existing.deleted_at !== undefined) {
     await restoreBrandsWorkflow(params.container).run({
       input: {
         ids: [existing.id],
@@ -1187,42 +1198,45 @@ async function upsertSeedBrand(params: {
   return existing
 }
 
-async function upsertSeedBrandsByHandle(params: {
+const upsertSeedBrandsByHandle = async (params: {
   brandService: BrandModuleService
   brands: BrandRegistry
   container: WorkflowContainer
-}) {
-  const brandIdsByHandle = new Map<string, string>()
-
-  for (const brandData of params.brands.values()) {
-    const brand = await upsertSeedBrand({
+}) => {
+  const upsertedBrands = await Promise.all(
+    [...params.brands.values()].map(async (brandData) => ({
+      brand: await upsertSeedBrand({
+        brandData,
+        brandService: params.brandService,
+        container: params.container,
+      }),
       brandData,
-      brandService: params.brandService,
-      container: params.container,
-    })
-    brandIdsByHandle.set(brandData.handle, brand.id)
-  }
+    })),
+  )
 
-  return brandIdsByHandle
+  return new Map(
+    upsertedBrands.map(({ brand, brandData }) => [brandData.handle, brand.id]),
+  )
 }
 
-async function listSeedProductsByHandle(params: {
+const listSeedProductsByHandle = async (params: {
   productHandles: string[]
   productService: IProductModuleService
-}) {
-  const products: ProductDTO[] = []
+}) => {
   const uniqueHandles = [...new Set(params.productHandles)]
-
-  for (const handleChunk of chunkArray(uniqueHandles)) {
-    const chunkProducts = await params.productService.listProducts(
-      { handle: { $in: handleChunk } },
-      {
-        select: ["id", "handle"],
-        take: handleChunk.length,
-      },
-    )
-    products.push(...chunkProducts)
-  }
+  const productChunks = await Promise.all(
+    chunkArray(uniqueHandles).map(
+      async (handleChunk) =>
+        await params.productService.listProducts(
+          { handle: { $in: handleChunk } },
+          {
+            select: ["id", "handle"],
+            take: handleChunk.length,
+          },
+        ),
+    ),
+  )
+  const products = productChunks.flat()
 
   if (products.length !== uniqueHandles.length) {
     const foundHandles = new Set(products.map((product) => product.handle))
@@ -1237,26 +1251,27 @@ async function listSeedProductsByHandle(params: {
   return products
 }
 
-export function buildDesiredProductBrandLinks(params: {
+export const buildDesiredProductBrandLinks = (params: {
   brandIdsByHandle: Map<string, string>
   desiredBrandHandleByProduct: Map<string, string>
   products: ProductDTO[]
-}) {
+}) => {
   const desiredLinks: { brandIds: string[]; productId: string }[] = []
 
   for (const product of params.products) {
     const desiredHandle = params.desiredBrandHandleByProduct.get(product.handle)
-    const desiredBrandId = desiredHandle
-      ? params.brandIdsByHandle.get(desiredHandle)
-      : undefined
-    if (desiredHandle && !desiredBrandId) {
+    const desiredBrandId =
+      desiredHandle === undefined
+        ? undefined
+        : params.brandIdsByHandle.get(desiredHandle)
+    if (desiredHandle !== undefined && desiredBrandId === undefined) {
       throw new Error(
         `Resolved brand was not found for product "${product.handle}"`,
       )
     }
 
     desiredLinks.push({
-      brandIds: desiredBrandId ? [desiredBrandId] : [],
+      brandIds: desiredBrandId === undefined ? [] : [desiredBrandId],
       productId: product.id,
     })
   }
@@ -1264,29 +1279,31 @@ export function buildDesiredProductBrandLinks(params: {
   return desiredLinks
 }
 
-async function reconcileProductBrandLinks(
+const reconcileProductBrandLinks = async (
   container: WorkflowContainer,
   links: { brandIds: string[]; productId: string }[],
-) {
-  for (const link of links) {
-    await setProductBrandsWorkflow(container).run({
-      input: {
-        brand_ids: link.brandIds,
-        dismiss_inactive: true,
-        fail_on_conflict: false,
-        product_id: link.productId,
-      },
-    })
-  }
+) => {
+  await Promise.all(
+    links.map(async (link) => {
+      await setProductBrandsWorkflow(container).run({
+        input: {
+          brand_ids: link.brandIds,
+          dismiss_inactive: true,
+          fail_on_conflict: false,
+          product_id: link.productId,
+        },
+      })
+    }),
+  )
 }
 
-async function linkBrands(params: {
+const linkBrands = async (params: {
   container: WorkflowContainer
   productService: IProductModuleService
   brandService: BrandModuleService
   brands: BrandRegistry
   seedProducts: ProductInput[]
-}): Promise<void> {
+}): Promise<void> => {
   if (!params.seedProducts.length) {
     return
   }
@@ -1359,7 +1376,7 @@ export const createProductsStep = createStep(
     ensureUniqueVariantSkus(input, existingProducts, logger)
 
     const missingProducts = input.filter(
-      (i) => !existingProducts.find((j) => j.handle === i.handle),
+      (i) => !existingProducts.some((j) => j.handle === i.handle),
     )
     const updateProducts = existingProducts.flatMap((existingProduct) =>
       buildUpdateProductPayloads({
@@ -1419,19 +1436,19 @@ export const createProductsStep = createStep(
     if (updateProducts.length !== 0) {
       logger.info("Updating existing products...")
 
-      const updatedIds: string[] = []
-
-      for (const updateProductsChunk of chunkArray(updateProducts)) {
-        const updateResult = await batchProductsWorkflow(container).run({
-          input: {
-            update: updateProductsChunk,
-          },
-        })
-
-        for (const updated of updateResult.result.updated) {
-          updatedIds.push(updated.id)
-        }
-      }
+      const updateResults = await Promise.all(
+        chunkArray(updateProducts).map(
+          async (updateProductsChunk) =>
+            await batchProductsWorkflow(container).run({
+              input: {
+                update: updateProductsChunk,
+              },
+            }),
+        ),
+      )
+      const updatedIds = updateResults.flatMap(({ result: updateResult }) =>
+        updateResult.updated.map((updated) => updated.id),
+      )
 
       const products = await productService.listProducts(
         { id: { $in: updatedIds } },
