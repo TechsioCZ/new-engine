@@ -404,51 +404,51 @@ const PRODUCT_CONTENT_LABEL_RULES: ProductContentLabelRule[] = [
   {
     key: "usage",
     patterns: [
-      /^sposob (?:pouzitia|uzivania)(?: a (?:odporucane )?davkovanie)?$/,
-      /^davkovanie(?: a (?:pouzitie|sposob (?:pouzitia|uzivania)))?$/,
-      /^odporucane davkovanie$/,
-      /^pouzitie(?: a (?:davkovanie|odporucane davkovanie))?$/,
-      /^navod na pouzitie$/,
-      /^(?:vnutorne|vonkajsie|na vonkajsie|pre vnutorne) (?:pouzitie|uzivanie)$/,
+      /^sposob (?:pouzitia|uzivania)(?: a (?:odporucane )?davkovanie)?$/u,
+      /^davkovanie(?: a (?:pouzitie|sposob (?:pouzitia|uzivania)))?$/u,
+      /^odporucane davkovanie$/u,
+      /^pouzitie(?: a (?:davkovanie|odporucane davkovanie))?$/u,
+      /^navod na pouzitie$/u,
+      /^(?:vnutorne|vonkajsie|na vonkajsie|pre vnutorne) (?:pouzitie|uzivanie)$/u,
     ],
   },
   {
     key: "composition",
     patterns: [
-      /^zlozenie(?: .*)?$/,
-      /^ingrediencie$/,
-      /^zlozky$/,
-      /^ucinne latky$/,
-      /^aktivne latky$/,
-      /^obsah ucin(?:nej latky|nych latok)(?: .*)?$/,
-      /^materialove zlozenie$/,
+      /^zlozenie(?: .*)?$/u,
+      /^ingrediencie$/u,
+      /^zlozky$/u,
+      /^ucinne latky$/u,
+      /^aktivne latky$/u,
+      /^obsah ucin(?:nej latky|nych latok)(?: .*)?$/u,
+      /^materialove zlozenie$/u,
     ],
   },
   {
     key: "warning",
     patterns: [
-      /^(?:zdravotne )?(?:upozornenie|upozornenia)$/,
-      /^bezpecnostne upozornenia$/,
-      /^vseobecne upozornenia$/,
-      /^kontraindikacie$/,
+      /^(?:zdravotne )?(?:upozornenie|upozornenia)$/u,
+      /^bezpecnostne upozornenia$/u,
+      /^vseobecne upozornenia$/u,
+      /^kontraindikacie$/u,
     ],
   },
   {
     key: "other",
     patterns: [
-      /^skladovanie(?: .*)?$/,
-      /^obsah$/,
-      /^obsah balenia(?:\/objem)?$/,
-      /^obsah balenia a povod$/,
-      /^obsah a povod$/,
-      /^objem(?: .*)?$/,
-      /^krajina (?:povodu|vyroby)$/,
-      /^nas tip$/,
-      /^vyzivove udaje(?: .*)?$/,
-      /^rozmer$/,
-      /^rozmery balenia$/,
-      /^zaruka$/,
-      /^appendix$/,
+      /^skladovanie(?: .*)?$/u,
+      /^obsah$/u,
+      /^obsah balenia(?:\/objem)?$/u,
+      /^obsah balenia a povod$/u,
+      /^obsah a povod$/u,
+      /^objem(?: .*)?$/u,
+      /^krajina (?:povodu|vyroby)$/u,
+      /^nas tip$/u,
+      /^vyzivove udaje(?: .*)?$/u,
+      /^rozmer$/u,
+      /^rozmery balenia$/u,
+      /^zaruka$/u,
+      /^appendix$/u,
     ],
   },
 ]
@@ -458,343 +458,323 @@ const PRODUCT_CONTENT_TEXT_LABEL_DEFINITIONS: ProductContentTextLabelDefinition[
     {
       key: "usage",
       label: "Spôsob užívania a odporúčané dávkovanie",
-      pattern: /Spôsob\s+užívania\s+a\s+o\s*dporúčané\s+dávkovanie\s*:/gi,
+      pattern: /Spôsob\s+užívania\s+a\s+o\s*dporúčané\s+dávkovanie\s*:/giu,
     },
     {
       key: "usage",
       label: "Spôsob užívania a odporúčané dávkovanie",
-      pattern: /Spôsob\s+užívania\s+a\s+odporúčané\s+dávkovanie\s*:/gi,
+      pattern: /Spôsob\s+užívania\s+a\s+odporúčané\s+dávkovanie\s*:/giu,
     },
     {
       key: "usage",
       label: "Spôsob použitia a odporúčané dávkovanie",
-      pattern: /Spôsob\s+použitia\s+a\s+odporúčané\s+dávkovanie\s*:/gi,
+      pattern: /Spôsob\s+použitia\s+a\s+odporúčané\s+dávkovanie\s*:/giu,
     },
     {
       key: "usage",
       label: "Spôsob použitia",
-      pattern: /Spôsob\s+použitia\s*:/gi,
+      pattern: /Spôsob\s+použitia\s*:/giu,
     },
     {
       key: "usage",
       label: "Spôsob užívania",
-      pattern: /Spôsob\s+užívania\s*:/gi,
+      pattern: /Spôsob\s+užívania\s*:/giu,
     },
     {
       key: "usage",
       label: "Odporúčané dávkovanie",
-      pattern: /Odporúčané\s+dávkovanie\s*:/gi,
+      pattern: /Odporúčané\s+dávkovanie\s*:/giu,
     },
     {
       key: "usage",
       label: "Dávkovanie",
-      pattern: /Dávkovanie\s*:/gi,
+      pattern: /Dávkovanie\s*:/giu,
     },
     {
       key: "usage",
       label: "Použitie",
-      pattern: /Použitie\s*:/gi,
+      pattern: /Použitie\s*:/giu,
     },
     {
       key: "usage",
       label: "Vnútorné použitie",
-      pattern: /Vnútorné\s+použitie\s*:/gi,
+      pattern: /Vnútorné\s+použitie\s*:/giu,
     },
     {
       key: "usage",
       label: "Vnútorné užívanie",
-      pattern: /Vnútorné\s+užívanie\s*:/gi,
+      pattern: /Vnútorné\s+užívanie\s*:/giu,
     },
     {
       key: "usage",
       label: "Vonkajšie použitie",
-      pattern: /Vonkajšie\s+použitie\s*:/gi,
+      pattern: /Vonkajšie\s+použitie\s*:/giu,
     },
     {
       key: "usage",
       label: "Na vonkajšie použitie",
-      pattern: /Na\s+vonkajšie\s+použitie\s*:/gi,
+      pattern: /Na\s+vonkajšie\s+použitie\s*:/giu,
     },
     {
       key: "warning",
       label: "Zdravotné upozornenia",
-      pattern: /Zdravotné\s+upozornenia\s*:/gi,
+      pattern: /Zdravotné\s+upozornenia\s*:/giu,
     },
     {
       key: "warning",
       label: "Bezpečnostné upozornenia",
-      pattern: /Bezpečnostné\s+upozornenia\s*:/gi,
+      pattern: /Bezpečnostné\s+upozornenia\s*:/giu,
     },
     {
       key: "warning",
       label: "Všeobecné upozornenia",
-      pattern: /Všeobecné\s+upozornenia\s*:/gi,
+      pattern: /Všeobecné\s+upozornenia\s*:/giu,
     },
     {
       key: "warning",
       label: "Upozornenia",
-      pattern: /Upozornenia\s*:/gi,
+      pattern: /Upozornenia\s*:/giu,
     },
     {
       key: "warning",
       label: "Upozornenie",
-      pattern: /Upozornenie\s*:/gi,
+      pattern: /Upozornenie\s*:/giu,
     },
     {
       key: "composition",
       label: "Zloženie",
-      pattern: /Zloženie(?:\s+\(INCI\))?\s*:/gi,
+      pattern: /Zloženie(?:\s+\(INCI\))?\s*:/giu,
     },
     {
       key: "composition",
       label: "Ingrediencie",
-      pattern: /Ingrediencie\s*:/gi,
+      pattern: /Ingrediencie\s*:/giu,
     },
     {
       key: "composition",
       label: "Účinné látky",
-      pattern: /Účinné\s+látky\s*:/gi,
+      pattern: /Účinné\s+látky\s*:/giu,
     },
     {
       key: "composition",
       label: "Aktívne látky",
-      pattern: /Aktívne\s+látky\s*:/gi,
+      pattern: /Aktívne\s+látky\s*:/giu,
     },
     {
       key: "other",
       label: "Výživové údaje na 100 g",
-      pattern: /Výživové\s+údaje\s+na\s+100\s+g\s*:/gi,
+      pattern: /Výživové\s+údaje\s+na\s+100\s+g\s*:/giu,
     },
     {
       key: "other",
       label: "Výživové údaje",
-      pattern: /Výživové\s+údaje\s*:/gi,
+      pattern: /Výživové\s+údaje\s*:/giu,
     },
     {
       key: "other",
       label: "Skladovanie",
-      pattern: /Skladovanie\s*:/gi,
+      pattern: /Skladovanie\s*:/giu,
     },
     {
       key: "other",
       label: "Obsah balenia/Objem",
-      pattern: /Obsah\s+balenia\/Objem\s*:/gi,
+      pattern: /Obsah\s+balenia\/Objem\s*:/giu,
     },
     {
       key: "other",
       label: "Obsah balenia",
-      pattern: /Obsah\s+balenia\s*:/gi,
+      pattern: /Obsah\s+balenia\s*:/giu,
     },
     {
       key: "other",
       label: "Krajina pôvodu",
-      pattern: /Krajina\s+pôvodu\s*:/gi,
+      pattern: /Krajina\s+pôvodu\s*:/giu,
     },
     {
       key: "other",
       label: "Krajina výroby",
-      pattern: /Krajina\s+výroby\s*:/gi,
+      pattern: /Krajina\s+výroby\s*:/giu,
     },
     {
       key: "other",
       label: "Objem",
-      pattern: /Objem\s*:/gi,
+      pattern: /Objem\s*:/giu,
     },
     {
       key: "other",
       label: "Obsah",
-      pattern: /Obsah\s*:/gi,
+      pattern: /Obsah\s*:/giu,
     },
     {
       key: "other",
       label: "Rozmer",
-      pattern: /Rozmer\s*:/gi,
+      pattern: /Rozmer\s*:/giu,
     },
     {
       key: "other",
       label: "NÁŠ TIP",
-      pattern: /NÁŠ\s+TIP\s*:/gi,
+      pattern: /NÁŠ\s+TIP\s*:/giu,
     },
   ]
 
 const PRODUCT_CONTENT_BLOCK_REGEX =
-  /<(h[1-6]|p|div|ul|ol|table|blockquote)[^>]*>[\s\S]*?<\/\1>/gi
-const HTML_TAG_REGEX = /<[a-z][\s\S]*?>/i
-const HEADING_TAG_REGEX = /^h[1-6]$/
-const ISO_DATE_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/
-const CATEGORY_PATH_LEADING_SEPARATOR_REGEX = /^>+\s*/
-const CATEGORY_PATH_TRAILING_SEPARATOR_REGEX = /\s*>+$/
+  /<(?<tag>h[1-6]|p|div|ul|ol|table|blockquote)[^>]*>[\s\S]*?<\/\k<tag>>/giu
+const HTML_TAG_REGEX = /<[a-z][\s\S]*?>/iu
+const HEADING_TAG_REGEX = /^h[1-6]$/u
+const ISO_DATE_REGEX = /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})$/u
+const CATEGORY_PATH_LEADING_SEPARATOR_REGEX = /^>+\s*/u
+const CATEGORY_PATH_TRAILING_SEPARATOR_REGEX = /\s*>+$/u
 const START_OF_DAY_UTC = [0, 0, 0, 0] as const
 const END_OF_DAY_UTC = [23, 59, 59, 999] as const
 
-function stripHtmlTags(value?: string): string | undefined {
-  if (!value) {
-    return
+const stripHtmlTags = (value?: string): string | undefined => {
+  if (value === undefined || value === "") {
+    return undefined
   }
-  const withoutTags = value.replaceAll(/<[^>]+>/g, " ")
+  const withoutTags = value.replaceAll(/<[^>]+>/gu, " ")
   return normalizeInlineText(withoutTags)
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll(/&/g, "&amp;")
-    .replaceAll(/</g, "&lt;")
-    .replaceAll(/>/g, "&gt;")
-    .replaceAll(/"/g, "&quot;")
-    .replaceAll(/'/g, "&#39;")
-}
+const escapeHtml = (value: string): string =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
 
-function hasHtmlTags(value: string): boolean {
-  return HTML_TAG_REGEX.test(value)
-}
+const hasHtmlTags = (value: string): boolean => HTML_TAG_REGEX.test(value)
 
-function normalizeComparableText(value?: string): string | undefined {
+const normalizeComparableText = (value?: string): string | undefined => {
   const normalized = normalizeInlineText(value)
-  if (!normalized) {
-    return
+  if (normalized === undefined || normalized === "") {
+    return undefined
   }
   return normalized
     .normalize("NFKD")
-    .replaceAll(/[\u0300-\u036F]/g, "")
+    .replaceAll(/[\u0300-\u036F]/gu, "")
     .toLowerCase()
 }
 
-function trimHtmlFragment(value?: string): string | undefined {
+const trimHtmlFragment = (value?: string): string | undefined => {
   const normalized = normalizeText(value)
-  if (!normalized) {
-    return
+  if (normalized === undefined || normalized === "") {
+    return undefined
   }
-  const trimmed = normalized.replaceAll(/^\s+|\s+$/g, "")
+  const trimmed = normalized.replaceAll(/^\s+|\s+$/gu, "")
   return trimmed === "" ? undefined : trimmed
 }
 
-function dedupeHtmlFragments(values: (string | undefined)[]): string[] {
+const dedupeHtmlFragments = (values: (string | undefined)[]): string[] => {
   const result: string[] = []
   const seen = new Set<string>()
-
   for (const value of values) {
     const fragment = trimHtmlFragment(value)
-    if (!fragment) {
-      continue
+    if (fragment !== undefined && fragment !== "") {
+      const fingerprint =
+        normalizeInlineText(fragment.replaceAll(/>\s+</gu, "><")) ?? fragment
+      if (!seen.has(fingerprint)) {
+        seen.add(fingerprint)
+        result.push(fragment)
+      }
     }
-
-    const fingerprint =
-      normalizeInlineText(fragment.replaceAll(/>\s+</g, "><")) ?? fragment
-    if (seen.has(fingerprint)) {
-      continue
-    }
-
-    seen.add(fingerprint)
-    result.push(fragment)
   }
-
   return result
 }
 
-function normalizeProductContentLabel(value?: string): string | undefined {
+const normalizeProductContentLabel = (value?: string): string | undefined => {
   const normalized = normalizeComparableText(value)
-  if (!normalized) {
-    return
+  if (normalized === undefined || normalized === "") {
+    return undefined
   }
-
   const cleaned = normalized
-    .replaceAll(/^[^a-z0-9]+/g, "")
-    .replaceAll(/\bo\s+dporucane\b/g, "odporucane")
-    .replaceAll(/[:-]+$/g, "")
-    .replaceAll(/\s+/g, " ")
+    .replaceAll(/^[^a-z0-9]+/gu, "")
+    .replaceAll(/\bo\s+dporucane\b/gu, "odporucane")
+    .replaceAll(/[:-]+$/gu, "")
+    .replaceAll(/\s+/gu, " ")
     .trim()
-
   return cleaned === "" ? undefined : cleaned
 }
 
-function classifyProductContentLabel(
+const classifyProductContentLabel = (
   label?: string,
-): ProductContentSectionKey | undefined {
+): ProductContentSectionKey | undefined => {
   const normalizedLabel = normalizeProductContentLabel(label)
-  if (!normalizedLabel) {
-    return
+  if (normalizedLabel === undefined || normalizedLabel === "") {
+    return undefined
   }
-
   for (const rule of PRODUCT_CONTENT_LABEL_RULES) {
     if (rule.patterns.some((pattern) => pattern.test(normalizedLabel))) {
       return rule.key
     }
   }
-
-  return
+  return undefined
 }
 
-function toHtmlFragment(value?: string): string | undefined {
+const toHtmlFragment = (value?: string): string | undefined => {
   const normalized = normalizeText(value)
-  if (!normalized) {
-    return
+  if (normalized === undefined || normalized === "") {
+    return undefined
   }
-
   if (hasHtmlTags(normalized)) {
     return normalized
   }
-
   return `<p>${escapeHtml(normalized)}</p>`
 }
 
-function buildLabeledHtmlFragment(
+const buildLabeledHtmlFragment = (
   label: string,
   value?: string,
-): string | undefined {
+): string | undefined => {
   const normalized = normalizeText(value)
-  if (!normalized) {
-    return
+  if (normalized === undefined || normalized === "") {
+    return undefined
   }
-
   if (hasHtmlTags(normalized)) {
     return `<h3>${escapeHtml(label)}</h3>\n${normalized}`
   }
-
   return `<p><strong>${escapeHtml(label)}:</strong> ${escapeHtml(normalized)}</p>`
 }
 
-function buildTextPropertyHtml(property: ParsedParameter): string {
-  return `<p><strong>${escapeHtml(property.name)}:</strong> ${escapeHtml(property.value)}</p>`
-}
+const buildTextPropertyHtml = (property: ParsedParameter): string =>
+  `<p><strong>${escapeHtml(property.name)}:</strong> ${escapeHtml(property.value)}</p>`
 
-function buildPlainTextHtmlFragment(value?: string): string | undefined {
+const buildPlainTextHtmlFragment = (value?: string): string | undefined => {
   const normalized = normalizeInlineText(value)
-  if (!normalized) {
-    return
+  if (normalized === undefined || normalized === "") {
+    return undefined
   }
-
   return `<p>${escapeHtml(normalized)}</p>`
 }
 
-function buildLabeledPlainTextHtmlFragment(
+const buildLabeledPlainTextHtmlFragment = (
   label: string,
   value?: string,
-): string | undefined {
-  const normalizedLabel = normalizeInlineText(label.replaceAll(/:\s*$/g, ""))
+): string | undefined => {
+  const normalizedLabel = normalizeInlineText(label.replaceAll(/:\s*$/gu, ""))
   const normalizedValue = normalizeInlineText(value)
-  if (!normalizedLabel) {
-    return
+  if (normalizedLabel === undefined || normalizedLabel === "") {
+    return undefined
   }
-
-  return `<p><strong>${escapeHtml(normalizedLabel)}:</strong>${
-    normalizedValue ? ` ${escapeHtml(normalizedValue)}` : ""
-  }</p>`
+  const valueSuffix =
+    normalizedValue === undefined || normalizedValue === ""
+      ? ""
+      : ` ${escapeHtml(normalizedValue)}`
+  return `<p><strong>${escapeHtml(normalizedLabel)}:</strong>${valueSuffix}</p>`
 }
 
-function findProductContentTextAnchors(
+const findProductContentTextAnchors = (
   text: string,
-): ProductContentTextAnchor[] {
+): ProductContentTextAnchor[] => {
   const anchors: ProductContentTextAnchor[] = []
-
   for (const definition of PRODUCT_CONTENT_TEXT_LABEL_DEFINITIONS) {
-    const pattern = new RegExp(definition.pattern.source, "gi")
+    const pattern = new RegExp(definition.pattern.source, "giu")
     for (const match of text.matchAll(pattern)) {
       const start = match.index
-      const matchedText = match[0]
+      const [matchedText] = match
       if (start === undefined || !matchedText) {
         continue
       }
-
       anchors.push({
         end: start + matchedText.length,
         key: definition.key,
@@ -803,43 +783,41 @@ function findProductContentTextAnchors(
       })
     }
   }
-
-  const sortedAnchors = anchors.sort((left, right) => {
+  const sortedAnchors = anchors.toSorted((left, right) => {
     if (left.start !== right.start) {
       return left.start - right.start
     }
-
     return right.end - left.end
   })
   const result: ProductContentTextAnchor[] = []
-
   for (const anchor of sortedAnchors) {
     const previous = result.at(-1)
     if (previous && anchor.start < previous.end) {
       continue
     }
-
     result.push(anchor)
   }
-
   return result
 }
 
-function splitLabeledTextBlock(blockHtml: string): {
+const splitLabeledTextBlock = (
+  blockHtml: string,
+): {
   beforeHtml?: string | undefined
-  sections: { key: ProductContentSectionKey; html: string }[]
-} {
+  sections: {
+    key: ProductContentSectionKey
+    html: string
+  }[]
+} => {
   const blockText = stripHtmlTags(blockHtml)
-  if (!blockText) {
+  if (blockText === undefined || blockText === "") {
     return { sections: [] }
   }
-
   const anchors = findProductContentTextAnchors(blockText)
   if (anchors.length === 0) {
     return { sections: [] }
   }
-
-  const firstAnchor = anchors[0]
+  const [firstAnchor] = anchors
   const beforeHtml = firstAnchor
     ? buildPlainTextHtmlFragment(blockText.slice(0, firstAnchor.start))
     : undefined
@@ -847,10 +825,9 @@ function splitLabeledTextBlock(blockHtml: string): {
     const nextAnchor = anchors[index + 1]
     const value = blockText.slice(anchor.end, nextAnchor?.start).trim()
     const html = buildLabeledPlainTextHtmlFragment(anchor.label, value)
-    if (!html) {
+    if (html === undefined || html === "") {
       return []
     }
-
     return [
       {
         html,
@@ -858,75 +835,67 @@ function splitLabeledTextBlock(blockHtml: string): {
       },
     ]
   })
-
   return {
     beforeHtml,
     sections,
   }
 }
 
-function createProductContentGroups(): ProductContentGroups {
-  return {
-    composition: [],
-    description: [],
-    other: [],
-    usage: [],
-    warning: [],
-  }
-}
+const createProductContentGroups = (): ProductContentGroups => ({
+  composition: [],
+  description: [],
+  other: [],
+  usage: [],
+  warning: [],
+})
 
-function appendSplitProductContentBlock(
+const appendSplitProductContentBlock = (
   grouped: ProductContentGroups,
   currentSection: ProductContentSectionKey,
   blockHtml: string,
-): boolean {
+): boolean => {
   const splitBlock = splitLabeledTextBlock(blockHtml)
   if (splitBlock.sections.length === 0) {
     return false
   }
-
-  if (splitBlock.beforeHtml) {
+  if (splitBlock.beforeHtml !== undefined && splitBlock.beforeHtml !== "") {
     grouped[currentSection].push(splitBlock.beforeHtml)
   }
   for (const section of splitBlock.sections) {
     grouped[section.key].push(section.html)
   }
-
   return true
 }
 
-function resolveHeadingContentSection(
+const resolveHeadingContentSection = (
   grouped: ProductContentGroups,
   blockHtml: string,
-): ProductContentSectionKey {
+): ProductContentSectionKey => {
   const sectionKey = classifyProductContentLabel(stripHtmlTags(blockHtml))
   if (sectionKey) {
     return sectionKey
   }
-
   grouped.description.push(blockHtml)
   return "description"
 }
 
-function appendDescriptionFallbackContent(
+const appendDescriptionFallbackContent = (
   grouped: ProductContentGroups,
   descriptionHtml: string,
-) {
+) => {
   if (appendSplitProductContentBlock(grouped, "description", descriptionHtml)) {
     return
   }
-
   grouped.description.push(descriptionHtml)
 }
 
-function buildProductDescriptionContentGroups(
+const buildProductDescriptionContentGroups = (
   descriptionHtml: string,
-): ProductContentGroups {
+): ProductContentGroups => {
   const grouped = createProductContentGroups()
   let currentSection: ProductContentSectionKey = "description"
   let cursor = 0
   let hasBlock = false
-
   for (const match of descriptionHtml.matchAll(PRODUCT_CONTENT_BLOCK_REGEX)) {
     hasBlock = true
     const blockStart = match.index ?? 0
@@ -934,46 +903,41 @@ function buildProductDescriptionContentGroups(
     const beforeHtml = trimHtmlFragment(
       descriptionHtml.slice(cursor, blockStart),
     )
-    if (beforeHtml) {
+    if (beforeHtml !== undefined && beforeHtml !== "") {
       grouped[currentSection].push(beforeHtml)
     }
-
     const blockHtml = trimHtmlFragment(match[0])
     const tagName = match[1]?.toLowerCase()
-    if (!(blockHtml && tagName)) {
-      cursor = blockEnd
-      continue
+    const hasInvalidBlock =
+      blockHtml === undefined ||
+      blockHtml === "" ||
+      tagName === undefined ||
+      tagName === ""
+    if (!hasInvalidBlock) {
+      if (HEADING_TAG_REGEX.test(tagName)) {
+        currentSection = resolveHeadingContentSection(grouped, blockHtml)
+      } else if (
+        !appendSplitProductContentBlock(grouped, currentSection, blockHtml)
+      ) {
+        grouped[currentSection].push(blockHtml)
+      }
     }
-
-    if (HEADING_TAG_REGEX.test(tagName)) {
-      currentSection = resolveHeadingContentSection(grouped, blockHtml)
-      cursor = blockEnd
-      continue
-    }
-
-    if (!appendSplitProductContentBlock(grouped, currentSection, blockHtml)) {
-      grouped[currentSection].push(blockHtml)
-    }
-
     cursor = blockEnd
   }
-
   if (!hasBlock) {
     appendDescriptionFallbackContent(grouped, descriptionHtml)
     return grouped
   }
-
   const remainingHtml = trimHtmlFragment(descriptionHtml.slice(cursor))
-  if (remainingHtml) {
+  if (remainingHtml !== undefined && remainingHtml !== "") {
     grouped[currentSection].push(remainingHtml)
   }
-
   return grouped
 }
 
-function buildProductContentSections(
+const buildProductContentSections = (
   item: ParsedShopItem,
-): ProductContentSection[] {
+): ProductContentSection[] => {
   const grouped: Record<ProductContentSectionKey, string[]> = {
     composition: [],
     description: [],
@@ -981,21 +945,18 @@ function buildProductContentSections(
     usage: [],
     warning: [],
   }
-
   const shortDescriptionHtml = toHtmlFragment(item.shortDescription)
-  if (shortDescriptionHtml) {
+  if (shortDescriptionHtml !== undefined && shortDescriptionHtml !== "") {
     grouped.description.push(shortDescriptionHtml)
   }
-
   const descriptionHtml = toHtmlFragment(item.description)
-  if (descriptionHtml) {
+  if (descriptionHtml !== undefined && descriptionHtml !== "") {
     const descriptionGroups =
       buildProductDescriptionContentGroups(descriptionHtml)
     for (const sectionKey of PRODUCT_CONTENT_SECTION_ORDER) {
       grouped[sectionKey].push(...descriptionGroups[sectionKey])
     }
   }
-
   const unmatchedTextProperties: ParsedParameter[] = []
   for (const property of item.textProperties) {
     const sectionKey = classifyProductContentLabel(property.name)
@@ -1005,7 +966,6 @@ function buildProductContentSections(
     }
     unmatchedTextProperties.push(property)
   }
-
   if (unmatchedTextProperties.length > 0) {
     grouped.other.push(
       unmatchedTextProperties
@@ -1013,18 +973,15 @@ function buildProductContentSections(
         .join("\n"),
     )
   }
-
   const appendixHtml = buildLabeledHtmlFragment("Appendix", item.appendix)
-  if (appendixHtml) {
+  if (appendixHtml !== undefined && appendixHtml !== "") {
     grouped.other.push(appendixHtml)
   }
-
   return PRODUCT_CONTENT_SECTION_ORDER.flatMap((sectionKey) => {
     const fragments = dedupeHtmlFragments(grouped[sectionKey])
     if (fragments.length === 0) {
       return []
     }
-
     return [
       {
         html: fragments.join("\n"),
@@ -1035,19 +992,18 @@ function buildProductContentSections(
   })
 }
 
-function countHtmlListItems(value?: string): number {
+const countHtmlListItems = (value?: string): number => {
   const html = normalizeText(value)
-  if (!html) {
+  if (html === undefined || html === "") {
     return 0
   }
-
-  return [...html.matchAll(/<li(?:\s[^>]*)?>/gi)].length
+  return [...html.matchAll(/<li(?:\s[^>]*)?>/giu)].length
 }
 
-function buildProductCardCopyConfig(
+const buildProductCardCopyConfig = (
   contentSectionsMap: Record<ProductContentSectionKey, string>,
   shortDescription?: string,
-): ProductCardCopyConfig {
+): ProductCardCopyConfig => {
   const candidates: {
     source: ProductCardCopySource
     html?: string | undefined
@@ -1065,7 +1021,6 @@ function buildProductCardCopyConfig(
       source: "short_description",
     },
   ]
-
   for (const candidate of candidates) {
     const liCount = countHtmlListItems(candidate.html)
     if (liCount > 0) {
@@ -1077,9 +1032,11 @@ function buildProductCardCopyConfig(
       }
     }
   }
-
   for (const candidate of candidates) {
-    if (normalizeText(candidate.html)) {
+    if (
+      normalizeText(candidate.html) !== undefined &&
+      normalizeText(candidate.html) !== ""
+    ) {
       return {
         mode: "sentences",
         skip: 0,
@@ -1088,7 +1045,6 @@ function buildProductCardCopyConfig(
       }
     }
   }
-
   return {
     mode: "sentences",
     skip: 0,
@@ -1097,65 +1053,61 @@ function buildProductCardCopyConfig(
   }
 }
 
-function parseNumber(value?: string): number | undefined {
+const parseNumber = (value?: string): number | undefined => {
   const normalized = normalizeInlineText(value)
-  if (!normalized) {
-    return
+  if (normalized === undefined || normalized === "") {
+    return undefined
   }
   const numberValue = Number(normalized.replace(",", "."))
   return Number.isFinite(numberValue) ? numberValue : undefined
 }
 
-function parseInteger(value?: string): number | undefined {
+const parseInteger = (value?: string): number | undefined => {
   const numberValue = parseNumber(value)
   if (numberValue === undefined) {
-    return
+    return undefined
   }
   return Math.trunc(numberValue)
 }
 
-function parseBoolean(value?: string, fallback = false): boolean {
+const parseBoolean = (value?: string, fallback = false): boolean => {
   const normalized = normalizeInlineText(value)?.toLowerCase()
-  if (!normalized) {
+  if (normalized === undefined || normalized === "") {
     return fallback
   }
   return ["1", "true", "yes"].includes(normalized)
 }
 
-function normalizePriceAmount(amount?: number): number | undefined {
+const normalizePriceAmount = (amount?: number): number | undefined => {
   if (
     amount === undefined ||
     Number.isNaN(amount) ||
     !Number.isFinite(amount)
   ) {
-    return
+    return undefined
   }
-
   return Math.max(0, amount)
 }
 
-function parsePositiveIntegerEnv(name: string): number | undefined {
+const parsePositiveIntegerEnv = (name: string): number | undefined => {
   const parsed = parseInteger(process.env[name])
   if (parsed === undefined || parsed <= 0) {
-    return
+    return undefined
   }
-
   return parsed
 }
 
-function formatIsoDate(date: Date): string {
-  return date.toISOString().slice(0, 10)
-}
+const formatIsoDate = (date: Date): string => date.toISOString().slice(0, 10)
 
-function addUtcDays(date: Date, days: number): Date {
+const addUtcDays = (date: Date, days: number): Date => {
   const result = new Date(date)
   result.setUTCDate(result.getUTCDate() + days)
   return result
 }
 
-function resolveSeedBuildOptions(
+const resolveSeedBuildOptions = (
   options?: SeedBuildOptions,
-): ResolvedSeedBuildOptions {
+): ResolvedSeedBuildOptions => {
   const referenceDate = options?.referenceDate
     ? new Date(options.referenceDate)
     : new Date()
@@ -1165,7 +1117,6 @@ function resolveSeedBuildOptions(
     options.promoRebaseDays > 0
       ? Math.trunc(options.promoRebaseDays)
       : undefined
-
   return {
     promoRebaseDays,
     referenceDate: Number.isNaN(referenceDate.getTime())
@@ -1174,12 +1125,11 @@ function resolveSeedBuildOptions(
   }
 }
 
-function parseIsoDate(value?: string, endOfDay = false): Date | undefined {
+const parseIsoDate = (value?: string, endOfDay = false): Date | undefined => {
   const normalized = normalizeInlineText(value)
-  if (!normalized) {
-    return
+  if (normalized === undefined || normalized === "") {
+    return undefined
   }
-
   const [hours, minutes, seconds, milliseconds] = endOfDay
     ? END_OF_DAY_UTC
     : START_OF_DAY_UTC
@@ -1197,82 +1147,72 @@ function parseIsoDate(value?: string, endOfDay = false): Date | undefined {
         milliseconds,
       ),
     )
-
     if (Number.isNaN(parsed.getTime())) {
-      return
+      return undefined
     }
-
     return parsed
   }
-
   const parsed = new Date(normalized)
   if (Number.isNaN(parsed.getTime())) {
-    return
+    return undefined
   }
-
   parsed.setUTCHours(hours, minutes, seconds, milliseconds)
   return parsed
 }
 
-function isDateRangeActive(
+const isDateRangeActive = (
   validFrom?: string,
   validUntil?: string,
   referenceDate = new Date(),
-): boolean {
+): boolean => {
   const from = parseIsoDate(validFrom, false)
   const until = parseIsoDate(validUntil, true)
-
   if (from && referenceDate < from) {
     return false
   }
-
   if (until && referenceDate > until) {
     return false
   }
-
   return true
 }
 
-function resolveOfferBasePrice(
+const resolveOfferBasePrice = (
   offer: ParsedOfferData,
   fallbackOffer?: ParsedOfferData,
-): number | undefined {
-  return normalizePriceAmount(
+): number | undefined =>
+  normalizePriceAmount(
     offer.standardPrice ??
       offer.priceVat ??
       fallbackOffer?.standardPrice ??
       fallbackOffer?.priceVat,
   )
-}
 
-function resolveOfferActionPrice(
+const resolveOfferActionPrice = (
   offer: ParsedOfferData,
   fallbackOffer?: ParsedOfferData,
   referenceDate = new Date(),
-): number | undefined {
+): number | undefined => {
   const actionPrice = normalizePriceAmount(
     offer.actionPrice ?? fallbackOffer?.actionPrice,
   )
   if (actionPrice === undefined) {
-    return
+    return undefined
   }
-
   const actionPriceFrom =
     offer.actionPriceFrom ?? fallbackOffer?.actionPriceFrom
   const actionPriceUntil =
     offer.actionPriceUntil ?? fallbackOffer?.actionPriceUntil
   if (!isDateRangeActive(actionPriceFrom, actionPriceUntil, referenceDate)) {
-    return
+    return undefined
   }
-
   return actionPrice
 }
 
-function resolveOfferHasActiveDiscount(
+const resolveOfferHasActiveDiscount = (
   offer: ParsedOfferData,
   fallbackOffer?: ParsedOfferData,
   referenceDate = new Date(),
-): boolean {
+): boolean => {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
   const actionPrice = resolveOfferActionPrice(
     offer,
@@ -1282,23 +1222,20 @@ function resolveOfferHasActiveDiscount(
   if (actionPrice === undefined) {
     return false
   }
-
   if (basePrice === undefined) {
     return false
   }
-
   return actionPrice < basePrice
 }
 
-function hasDiscountedActionPrice(
+const hasDiscountedActionPrice = (
   offer: ParsedOfferData,
   fallbackOffer?: ParsedOfferData,
-): boolean {
+): boolean => {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
   const actionPrice = normalizePriceAmount(
     offer.actionPrice ?? fallbackOffer?.actionPrice,
   )
-
   return (
     basePrice !== undefined &&
     actionPrice !== undefined &&
@@ -1306,18 +1243,17 @@ function hasDiscountedActionPrice(
   )
 }
 
-function resolveOfferCurrentPrice(
+const resolveOfferCurrentPrice = (
   offer: ParsedOfferData,
   fallbackOffer?: ParsedOfferData,
   referenceDate = new Date(),
-): number {
+): number => {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
   const actionPrice = resolveOfferActionPrice(
     offer,
     fallbackOffer,
     referenceDate,
   )
-
   if (
     actionPrice !== undefined &&
     basePrice !== undefined &&
@@ -1325,80 +1261,81 @@ function resolveOfferCurrentPrice(
   ) {
     return actionPrice
   }
-
   if (basePrice !== undefined) {
     return basePrice
   }
-
   if (actionPrice !== undefined) {
     return actionPrice
   }
-
   return 0
 }
 
-function resolveOfferDefaultPrice(
+const resolveOfferDefaultPrice = (
   offer: ParsedOfferData,
   fallbackOffer?: ParsedOfferData,
-): number {
-  return resolveOfferBasePrice(offer, fallbackOffer) ?? 0
-}
+): number => resolveOfferBasePrice(offer, fallbackOffer) ?? 0
 
-function priceAmountsEqual(left?: number, right?: number): boolean {
+const priceAmountsEqual = (left?: number, right?: number): boolean => {
   if (left === undefined || right === undefined) {
     return left === right
   }
-
   return Math.abs(left - right) < 0.000001
 }
 
-function isDefaultPricelistTitle(title?: string): boolean {
+const isDefaultPricelistTitle = (title?: string): boolean => {
   const comparable = normalizeComparableText(title)
-  return !!comparable && DEFAULT_SHOPTET_PRICELIST_TITLES.has(comparable)
+  return (
+    comparable !== undefined &&
+    comparable !== "" &&
+    DEFAULT_SHOPTET_PRICELIST_TITLES.has(comparable)
+  )
 }
 
-function shouldImportActionPrice(
+const shouldImportActionPrice = (
   actionPrice?: number,
   validUntil?: string,
   referenceDate = new Date(),
-): actionPrice is number {
+): actionPrice is number => {
   if (actionPrice === undefined || actionPrice <= 0) {
     return false
   }
-
   const until = parseIsoDate(validUntil, true)
   return !until || referenceDate <= until
 }
 
-function serializePriceListDate(
+const serializePriceListDate = (
   value?: string,
   endOfDay = false,
-): string | undefined {
-  return parseIsoDate(value, endOfDay)?.toISOString()
-}
+): string | undefined => parseIsoDate(value, endOfDay)?.toISOString()
 
-function buildSalePriceListTitle(
+const buildSalePriceListTitle = (
   sourceTitle: string,
   startsAt?: string,
   endsAt?: string,
-): string {
-  const windowLabel =
-    startsAt || endsAt ? `${startsAt ?? "open"}_${endsAt ?? "open"}` : "undated"
+): string => {
+  const hasWindow =
+    (startsAt !== undefined && startsAt !== "") ||
+    (endsAt !== undefined && endsAt !== "")
+  const windowStart = startsAt ?? "open"
+  const windowEnd = endsAt ?? "open"
+  const windowLabel = hasWindow ? `${windowStart}_${windowEnd}` : "undated"
   return HERBATICA_SALE_PRICE_LIST_TITLE_TEMPLATE.replace(
     "{sourceTitle}",
     sourceTitle,
   ).replace("{windowLabel}", windowLabel)
 }
 
-function rebaseOfferPromotion(
+const rebaseOfferPromotion = (
   offer: ParsedOfferData,
   buildOptions: ResolvedSeedBuildOptions,
   fallbackOffer?: ParsedOfferData,
-): ParsedOfferData {
-  if (!buildOptions.promoRebaseDays) {
+): ParsedOfferData => {
+  if (
+    buildOptions.promoRebaseDays === undefined ||
+    buildOptions.promoRebaseDays === 0
+  ) {
     return offer
   }
-
   if (
     !hasDiscountedActionPrice(offer, fallbackOffer) ||
     resolveOfferHasActiveDiscount(
@@ -1409,7 +1346,6 @@ function rebaseOfferPromotion(
   ) {
     return offer
   }
-
   return {
     ...offer,
     actionPriceFrom: formatIsoDate(buildOptions.referenceDate),
@@ -1419,48 +1355,46 @@ function rebaseOfferPromotion(
   }
 }
 
-function resolveFlagActive(
+const resolveFlagActive = (
   rawFlag: ParsedFlag,
   hasActiveDiscount: boolean,
   referenceDate: Date,
-): boolean {
+): boolean => {
   if (rawFlag.code?.toLowerCase() === "action" && hasActiveDiscount) {
     return true
   }
-
   if (typeof rawFlag.active === "boolean") {
     return rawFlag.active
   }
-
-  if (rawFlag.validFrom || rawFlag.validUntil) {
+  if (
+    (rawFlag.validFrom !== undefined && rawFlag.validFrom !== "") ||
+    (rawFlag.validUntil !== undefined && rawFlag.validUntil !== "")
+  ) {
     return isDateRangeActive(
       rawFlag.validFrom,
       rawFlag.validUntil,
       referenceDate,
     )
   }
-
   return false
 }
 
-function normalizeFlags(
+const normalizeFlags = (
   flags: ParsedFlag[],
   topOffer: ParsedOfferData,
   referenceDate = new Date(),
-): ParsedFlag[] {
+): ParsedFlag[] => {
   const flagsByCode = new Map<string, ParsedFlag>()
   const hasActiveDiscount = resolveOfferHasActiveDiscount(
     topOffer,
     undefined,
     referenceDate,
   )
-
   for (const rawFlag of flags) {
     const code = normalizeInlineText(rawFlag.code)?.toLowerCase()
-    if (!code) {
+    if (code === undefined || code === "") {
       continue
     }
-
     flagsByCode.set(code, {
       active: resolveFlagActive(rawFlag, hasActiveDiscount, referenceDate),
       code,
@@ -1468,32 +1402,30 @@ function normalizeFlags(
       validUntil: normalizeInlineText(rawFlag.validUntil),
     })
   }
-
   if (hasActiveDiscount && !flagsByCode.has("action")) {
     flagsByCode.set("action", {
       active: true,
       code: "action",
     })
   }
-
   return [...flagsByCode.values()]
 }
 
-function removeBlocks(source: string, tags: readonly string[]): string {
+const removeBlocks = (source: string, tags: readonly string[]): string => {
   let result = source
   for (const tag of tags) {
-    const regex = new RegExp(`<${tag}(\\s[^>]*)?>[\\s\\S]*?<\\/${tag}>`, "g")
+    const regex = new RegExp(`<${tag}(\\s[^>]*)?>[\\s\\S]*?<\\/${tag}>`, "gu")
     result = result.replace(regex, "")
   }
   return result
 }
 
-function dedupeStrings(values: (string | undefined)[]): string[] {
+const dedupeStrings = (values: (string | undefined)[]): string[] => {
   const result: string[] = []
   const seen = new Set<string>()
   for (const value of values) {
     const normalized = normalizeText(value)
-    if (!normalized || seen.has(normalized)) {
+    if (normalized === undefined || normalized === "" || seen.has(normalized)) {
       continue
     }
     seen.add(normalized)
@@ -1502,35 +1434,37 @@ function dedupeStrings(values: (string | undefined)[]): string[] {
   return result
 }
 
-function dedupeParameters(values: ParsedParameter[]): ParsedParameter[] {
+const dedupeParameters = (values: ParsedParameter[]): ParsedParameter[] => {
   const result: ParsedParameter[] = []
   const seen = new Set<string>()
   for (const value of values) {
     const name = normalizeInlineText(value.name)
     const parsedValue = normalizeInlineText(value.value)
-    if (!(name && parsedValue)) {
-      continue
+    if (
+      name !== undefined &&
+      name !== "" &&
+      parsedValue !== undefined &&
+      parsedValue !== ""
+    ) {
+      const key = `${name}::${parsedValue}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        result.push({ name, value: parsedValue })
+      }
     }
-    const key = `${name}::${parsedValue}`
-    if (seen.has(key)) {
-      continue
-    }
-    seen.add(key)
-    result.push({ name, value: parsedValue })
   }
   return result
 }
 
-function normalizeCategoryPath(path: string): string {
-  return path
-    .replaceAll(/\s*>{2,}\s*/g, " > ")
-    .replaceAll(/\s*>\s*/g, " > ")
-    .replaceAll(/\s+/g, " ")
+const normalizeCategoryPath = (path: string): string =>
+  path
+    .replaceAll(/\s*>{2,}\s*/gu, " > ")
+    .replaceAll(/\s*>\s*/gu, " > ")
+    .replaceAll(/\s+/gu, " ")
     .trim()
-}
 
-function splitCategoryPath(path: string): string[] {
-  return normalizeCategoryPath(path)
+const splitCategoryPath = (path: string): string[] =>
+  normalizeCategoryPath(path)
     .split(" > ")
     .map((part) =>
       part
@@ -1539,48 +1473,43 @@ function splitCategoryPath(path: string): string[] {
         .trim(),
     )
     .filter((part) => part !== "")
-}
 
-function canonicalizeCategoryPath(path: string): string {
-  return splitCategoryPath(path).join(" > ")
-}
+const canonicalizeCategoryPath = (path: string): string =>
+  splitCategoryPath(path).join(" > ")
 
-function slugifyHerbaticaHandle(value: string): string {
+const slugifyHerbaticaHandle = (value: string): string => {
   const normalized = value
     .normalize("NFKD")
-    .replaceAll(/[\u0300-\u036F]/g, "")
+    .replaceAll(/[\u0300-\u036F]/gu, "")
     .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/g, "-")
-    .replaceAll(/-+/g, "-")
-    .replaceAll(/^-|-$/g, "")
-
+    .replaceAll(/[^a-z0-9]+/gu, "-")
+    .replaceAll(/-+/gu, "-")
+    .replaceAll(/^-|-$/gu, "")
   return normalized
 }
 
-function truncateWithHash(
+const truncateWithHash = (
   value: string,
   maxLength = MAX_HANDLE_LENGTH,
-): string {
+): string => {
   if (value.length <= maxLength) {
     return value
   }
-
   const hash = createHash("sha1").update(value).digest("hex").slice(0, 8)
   const keep = Math.max(1, maxLength - hash.length - 1)
   return `${value.slice(0, keep)}-${hash}`
 }
 
-function ensureUnique(
+const ensureUnique = (
   base: string,
   used: Set<string>,
   fallbackPrefix: string,
-): string {
+): string => {
   const seed = truncateWithHash(base || fallbackPrefix)
   if (!used.has(seed)) {
     used.add(seed)
     return seed
   }
-
   let index = 2
   while (true) {
     const candidate = truncateWithHash(`${seed}-${index}`)
@@ -1592,63 +1521,65 @@ function ensureUnique(
   }
 }
 
-function sanitizeSku(value: string): string {
-  return value
+const sanitizeSku = (value: string): string =>
+  value
     .normalize("NFKD")
-    .replaceAll(/[\u0300-\u036F]/g, "")
+    .replaceAll(/[\u0300-\u036F]/gu, "")
     .toUpperCase()
-    .replaceAll(/[^A-Z0-9._-]+/g, "-")
-    .replaceAll(/-+/g, "-")
-    .replaceAll(/^-|-$/g, "")
-}
+    .replaceAll(/[^A-Z0-9._-]+/gu, "-")
+    .replaceAll(/-+/gu, "-")
+    .replaceAll(/^-|-$/gu, "")
 
-function buildSkuSeed(parts: (string | undefined)[], fallback: string): string {
+const buildSkuSeed = (
+  parts: (string | undefined)[],
+  fallback: string,
+): string => {
   const normalized = parts
     .map((part) => sanitizeSku(part ?? ""))
     .filter((part) => part !== "")
-
   if (normalized.length > 0) {
     return normalized.join("-")
   }
-
   return sanitizeSku(fallback) || "SKU"
 }
 
-function normalizeInventoryQuantity(quantity?: number): number {
+const normalizeInventoryQuantity = (quantity?: number): number => {
   if (quantity === undefined || Number.isNaN(quantity)) {
     return 0
   }
   return Math.max(0, Math.trunc(quantity))
 }
 
-function resolveWarehouseStockLocationName(warehouse: ParsedStockWarehouse): {
+const resolveWarehouseStockLocationName = (
+  warehouse: ParsedStockWarehouse,
+): {
   name: string
   usedFallback: boolean
-} {
+} => {
   const name = normalizeInlineText(warehouse.name)
-  if (name) {
+  if (name !== undefined && name !== "") {
     return {
       name,
       usedFallback: false,
     }
   }
-
   return {
     name: FALLBACK_SHOPTET_WAREHOUSE_NAME,
     usedFallback: true,
   }
 }
 
-function buildWarehouseStockLocationAddress(location?: string): {
+const buildWarehouseStockLocationAddress = (
+  location?: string,
+): {
   city: string
   country_code: string
   address_1: string
-} {
+} => {
   const address = normalizeInlineText(location)
-  if (!address) {
+  if (address === undefined || address === "") {
     return { ...FALLBACK_SHOPTET_WAREHOUSE_ADDRESS }
   }
-
   return {
     address_1: address,
     city: "Unknown",
@@ -1656,22 +1587,21 @@ function buildWarehouseStockLocationAddress(location?: string): {
   }
 }
 
-function buildOfferInventoryQuantities(
+const buildOfferInventoryQuantities = (
   offer: ParsedOfferData,
-): NonNullable<VariantSeedInput["quantities"]> {
+): NonNullable<VariantSeedInput["quantities"]> => {
   if (offer.stockWarehouses.length === 0) {
     const quantity = normalizeInventoryQuantity(offer.stockAmountRaw)
     return {
       locations: [
         {
-          stockLocationName: DEFAULT_STOCK_LOCATION_NAME,
           quantity,
+          stockLocationName: DEFAULT_STOCK_LOCATION_NAME,
         },
       ],
       quantity,
     }
   }
-
   return {
     locations: offer.stockWarehouses.map((warehouse) => ({
       quantity: normalizeInventoryQuantity(warehouse.quantity),
@@ -1680,31 +1610,28 @@ function buildOfferInventoryQuantities(
   }
 }
 
-function parseParameters(
+const parseParameters = (
   source: string,
   containerTag: string,
-): ParsedParameter[] {
+): ParsedParameter[] => {
   const container = extractFirstElementContent(source, containerTag)
-  if (!container) {
+  if (container === undefined || container === "") {
     return []
   }
-
   const parameters = extractElements(container, "PARAMETER").map(
     (parameter) => ({
       name: extractFirstText(parameter.inner, "NAME") ?? "",
       value: extractFirstText(parameter.inner, "VALUE") ?? "",
     }),
   )
-
   return dedupeParameters(parameters)
 }
 
-function parsePricelists(source: string): ParsedPricelist[] {
+const parsePricelists = (source: string): ParsedPricelist[] => {
   const pricelistsRaw = extractFirstElementContent(source, "PRICELISTS")
-  if (!pricelistsRaw) {
+  if (pricelistsRaw === undefined || pricelistsRaw === "") {
     return []
   }
-
   return extractElements(pricelistsRaw, "PRICELIST").map((pricelist) => ({
     actionPrice: parseNumber(extractFirstText(pricelist.inner, "ACTION_PRICE")),
     actionPriceFrom: extractFirstText(pricelist.inner, "ACTION_PRICE_FROM"),
@@ -1721,31 +1648,25 @@ function parsePricelists(source: string): ParsedPricelist[] {
   }))
 }
 
-function stripNestedPricelists(source: string): string {
-  return source.replaceAll(
-    /<PRICELISTS(?:\s[^>]*)?>[\s\S]*?<\/PRICELISTS>/g,
-    "",
-  )
-}
+const stripNestedPricelists = (source: string): string =>
+  source.replaceAll(/<PRICELISTS(?:\s[^>]*)?>[\s\S]*?<\/PRICELISTS>/gu, "")
 
-function parseOssTaxRates(source: string): ParsedOssTaxRate[] {
+const parseOssTaxRates = (source: string): ParsedOssTaxRate[] => {
   const ossRatesRaw = extractFirstElementContent(source, "OSS_TAX_RATES")
-  if (!ossRatesRaw) {
+  if (ossRatesRaw === undefined || ossRatesRaw === "") {
     return []
   }
-
   return extractElements(ossRatesRaw, "OSS_TAX_RATE").map((rate) => ({
     country: extractFirstText(rate.inner, "TAX_COUNTRY"),
     level: extractFirstText(rate.inner, "TAX_RATE_LEVEL"),
   }))
 }
 
-function parseStockWarehouses(stockRaw?: string): ParsedStockWarehouse[] {
+const parseStockWarehouses = (stockRaw?: string): ParsedStockWarehouse[] => {
   const warehousesRaw = extractFirstElementContent(stockRaw ?? "", "WAREHOUSES")
-  if (!warehousesRaw) {
+  if (warehousesRaw === undefined || warehousesRaw === "") {
     return []
   }
-
   return extractElements(warehousesRaw, "WAREHOUSE").map((warehouse) => ({
     location: extractFirstText(warehouse.inner, "LOCATION"),
     name: extractFirstText(warehouse.inner, "NAME"),
@@ -1753,10 +1674,10 @@ function parseStockWarehouses(stockRaw?: string): ParsedStockWarehouse[] {
   }))
 }
 
-function parseOfferData(
+const parseOfferData = (
   source: string,
   attributes?: Record<string, string>,
-): ParsedOfferData {
+): ParsedOfferData => {
   const scalarSource = stripNestedPricelists(source)
   const stockRaw = extractFirstElementContent(scalarSource, "STOCK")
   const stockAmount = parseInteger(extractFirstText(stockRaw ?? "", "AMOUNT"))
@@ -1773,7 +1694,6 @@ function parseOfferData(
     scalarSource,
     "UNIT_OF_MEASURE",
   )
-
   return {
     actionPrice: parseNumber(extractFirstText(scalarSource, "ACTION_PRICE")),
     actionPriceFrom: extractFirstText(scalarSource, "ACTION_PRICE_FROM"),
@@ -1872,9 +1792,9 @@ function parseOfferData(
   }
 }
 
-function parseCodeList(source: string, containerTag: string): string[] {
+const parseCodeList = (source: string, containerTag: string): string[] => {
   const container = extractFirstElementContent(source, containerTag)
-  if (!container) {
+  if (container === undefined || container === "") {
     return []
   }
   return dedupeStrings(
@@ -1884,12 +1804,11 @@ function parseCodeList(source: string, containerTag: string): string[] {
   )
 }
 
-function parseRelatedFiles(source: string): ParsedRelatedFile[] {
+const parseRelatedFiles = (source: string): ParsedRelatedFile[] => {
   const relatedFilesRaw = extractFirstElementContent(source, "RELATED_FILES")
-  if (!relatedFilesRaw) {
+  if (relatedFilesRaw === undefined || relatedFilesRaw === "") {
     return []
   }
-
   return extractElements(relatedFilesRaw, "RELATED_FILE").map((entry) => ({
     text: extractFirstText(entry.inner, "TEXT"),
     title: extractFirstText(entry.inner, "TITLE"),
@@ -1897,12 +1816,11 @@ function parseRelatedFiles(source: string): ParsedRelatedFile[] {
   }))
 }
 
-function parseRelatedVideos(source: string): ParsedRelatedVideo[] {
+const parseRelatedVideos = (source: string): ParsedRelatedVideo[] => {
   const relatedVideosRaw = extractFirstElementContent(source, "RELATED_VIDEOS")
-  if (!relatedVideosRaw) {
+  if (relatedVideosRaw === undefined || relatedVideosRaw === "") {
     return []
   }
-
   return extractElements(relatedVideosRaw, "RELATED_VIDEO").map((entry) => ({
     text: extractFirstText(entry.inner, "TEXT"),
     url: extractFirstText(entry.inner, "URL"),
@@ -1910,12 +1828,11 @@ function parseRelatedVideos(source: string): ParsedRelatedVideo[] {
   }))
 }
 
-function parseFlags(source: string): ParsedFlag[] {
+const parseFlags = (source: string): ParsedFlag[] => {
   const flagsRaw = extractFirstElementContent(source, "FLAGS")
-  if (!flagsRaw) {
+  if (flagsRaw === undefined || flagsRaw === "") {
     return []
   }
-
   return extractElements(flagsRaw, "FLAG").map((flag) => ({
     active: parseBoolean(extractFirstText(flag.inner, "ACTIVE")),
     code: extractFirstText(flag.inner, "CODE"),
@@ -1924,27 +1841,25 @@ function parseFlags(source: string): ParsedFlag[] {
   }))
 }
 
-function parseSetItems(source: string): ParsedSetItem[] {
+const parseSetItems = (source: string): ParsedSetItem[] => {
   const setItemsRaw = extractFirstElementContent(source, "SET_ITEMS")
-  if (!setItemsRaw) {
+  if (setItemsRaw === undefined || setItemsRaw === "") {
     return []
   }
-
   return extractElements(setItemsRaw, "SET_ITEM").map((item) => ({
     amount: parseInteger(extractFirstText(item.inner, "AMOUNT")),
     code: extractFirstText(item.inner, "CODE"),
   }))
 }
 
-function parseTextProperties(source: string): ParsedParameter[] {
+const parseTextProperties = (source: string): ParsedParameter[] => {
   const textPropertiesRaw = extractFirstElementContent(
     source,
     "TEXT_PROPERTIES",
   )
-  if (!textPropertiesRaw) {
+  if (textPropertiesRaw === undefined || textPropertiesRaw === "") {
     return []
   }
-
   const textProperties = extractElements(
     textPropertiesRaw,
     "TEXT_PROPERTY",
@@ -1955,12 +1870,11 @@ function parseTextProperties(source: string): ParsedParameter[] {
   return dedupeParameters(textProperties)
 }
 
-function parseImageUrls(source: string): string[] {
+const parseImageUrls = (source: string): string[] => {
   const imagesRaw = extractFirstElementContent(source, "IMAGES")
-  if (!imagesRaw) {
+  if (imagesRaw === undefined || imagesRaw === "") {
     return []
   }
-
   return dedupeStrings(
     extractElements(imagesRaw, "IMAGE").map((image) =>
       normalizeText(image.inner),
@@ -1968,12 +1882,11 @@ function parseImageUrls(source: string): string[] {
   )
 }
 
-function parseCategoryRefs(source: string): ParsedCategoryRef[] {
+const parseCategoryRefs = (source: string): ParsedCategoryRef[] => {
   const categoriesRaw = extractFirstElementContent(source, "CATEGORIES")
-  if (!categoriesRaw) {
+  if (categoriesRaw === undefined || categoriesRaw === "") {
     return []
   }
-
   const refs = [
     ...extractElements(categoriesRaw, "CATEGORY").map((category) => ({
       id: normalizeInlineText(category.attributes["id"]),
@@ -1986,29 +1899,22 @@ function parseCategoryRefs(source: string): ParsedCategoryRef[] {
       path: canonicalizeCategoryPath(normalizeInlineText(category.inner) ?? ""),
     })),
   ]
-
   const result: ParsedCategoryRef[] = []
   const seen = new Set<string>()
-
   for (const ref of refs) {
-    if (!(ref.id || ref.path)) {
-      continue
+    if ((ref.id !== undefined && ref.id !== "") || ref.path !== "") {
+      const key = `${ref.id ?? ""}::${ref.path}::${ref.isDefault ? "1" : "0"}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        result.push(ref)
+      }
     }
-
-    const key = `${ref.id ?? ""}::${ref.path}::${ref.isDefault ? "1" : "0"}`
-    if (seen.has(key)) {
-      continue
-    }
-
-    seen.add(key)
-    result.push(ref)
   }
-
   return result
 }
 
-function parseShopItems(xml: string): ParsedShopItem[] {
-  return extractElements(xml, "SHOPITEM").map((shopItem) => {
+const parseShopItems = (xml: string): ParsedShopItem[] =>
+  extractElements(xml, "SHOPITEM").map((shopItem) => {
     const topLevelSource = removeBlocks(shopItem.inner, [
       "VARIANTS",
       "CATEGORIES",
@@ -2021,21 +1927,19 @@ function parseShopItems(xml: string): ParsedShopItem[] {
       "FLAGS",
       "SET_ITEMS",
     ])
-
     const variantsRaw = extractFirstElementContent(shopItem.inner, "VARIANTS")
-    const variants = variantsRaw
-      ? extractElements(variantsRaw, "VARIANT").map((variant) =>
-          parseOfferData(variant.inner, variant.attributes),
-        )
-      : []
-
+    const variants =
+      variantsRaw === undefined || variantsRaw === ""
+        ? []
+        : extractElements(variantsRaw, "VARIANT").map((variant) =>
+            parseOfferData(variant.inner, variant.attributes),
+          )
     const images = dedupeStrings([
       ...parseImageUrls(shopItem.inner),
       ...variants.map((variant) => variant.imageRef),
       extractFirstText(topLevelSource, "IMAGE_REF"),
     ])
     const categoryRefs = parseCategoryRefs(shopItem.inner)
-
     return {
       adult: parseBoolean(extractFirstText(shopItem.inner, "ADULT")),
       allowsIplatba: parseBoolean(
@@ -2086,19 +1990,17 @@ function parseShopItems(xml: string): ParsedShopItem[] {
       zboziCategoryId: extractFirstText(shopItem.inner, "ZBOZI_CATEGORY_ID"),
     }
   })
-}
 
-function addCategoryPathNodes(
+const addCategoryPathNodes = (
   nodes: Map<string, CategoryNode>,
   rawPath: string,
-) {
+) => {
   const segments = splitCategoryPath(rawPath)
   for (let index = 0; index < segments.length; index += 1) {
     const title = segments[index]
-    if (!title) {
+    if (title === undefined || title === "") {
       continue
     }
-
     const key = segments.slice(0, index + 1).join(" > ")
     const parentKey =
       index === 0 ? undefined : segments.slice(0, index).join(" > ")
@@ -2113,16 +2015,14 @@ function addCategoryPathNodes(
   }
 }
 
-function collectCategoryNodes(items: ParsedShopItem[]): CategoryNode[] {
+const collectCategoryNodes = (items: ParsedShopItem[]): CategoryNode[] => {
   const nodes = new Map<string, CategoryNode>()
-
   for (const item of items) {
     for (const rawPath of item.categoryPaths) {
       addCategoryPathNodes(nodes, rawPath)
     }
   }
-
-  return [...nodes.values()].sort((a, b) => {
+  return [...nodes.values()].toSorted((a, b) => {
     if (a.depth !== b.depth) {
       return a.depth - b.depth
     }
@@ -2130,13 +2030,12 @@ function collectCategoryNodes(items: ParsedShopItem[]): CategoryNode[] {
   })
 }
 
-function buildCategoryHandleMaps(
+const buildCategoryHandleMaps = (
   sortedNodes: CategoryNode[],
-): CategoryHandleMaps {
+): CategoryHandleMaps => {
   const usedHandles = new Set<string>()
   const keyToHandle = new Map<string, string>()
   const pathToHandle = new Map<string, string>()
-
   for (const node of sortedNodes) {
     const baseHandle = truncateWithHash(
       slugifyHerbaticaHandle(node.key) ||
@@ -2146,39 +2045,38 @@ function buildCategoryHandleMaps(
     keyToHandle.set(node.key, handle)
     pathToHandle.set(node.key, handle)
   }
-
   return {
     keyToHandle,
     pathToHandle,
   }
 }
 
-function buildCategorySeedInputs(
+const buildCategorySeedInputs = (
   sortedNodes: CategoryNode[],
   keyToHandle: Map<string, string>,
-): CategorySeedInput[] {
-  return sortedNodes.map((node) => {
+): CategorySeedInput[] =>
+  sortedNodes.map((node) => {
     const handle = keyToHandle.get(node.key)
-    const parentHandle = node.parentKey
-      ? keyToHandle.get(node.parentKey)
-      : undefined
-
+    const parentHandle =
+      node.parentKey === undefined || node.parentKey === ""
+        ? undefined
+        : keyToHandle.get(node.parentKey)
     return {
-      name: node.title,
       description: "Imported from Herbatica XML feed.",
-      ...(handle ? { handle } : {}),
+      name: node.title,
+      ...(handle === undefined || handle === "" ? {} : { handle }),
       isActive: true,
-      ...(parentHandle ? { parentHandle } : {}),
+      ...(parentHandle === undefined || parentHandle === ""
+        ? {}
+        : { parentHandle }),
     }
   })
-}
 
-function buildCategoriesFromProductPaths(
+const buildCategoriesFromProductPaths = (
   items: ParsedShopItem[],
-): CategoryBuildResult {
+): CategoryBuildResult => {
   const sortedNodes = collectCategoryNodes(items)
   const { keyToHandle, pathToHandle } = buildCategoryHandleMaps(sortedNodes)
-
   return {
     categories: buildCategorySeedInputs(sortedNodes, keyToHandle),
     categoryIdToHandle: new Map<string, string>(),
@@ -2186,103 +2084,92 @@ function buildCategoriesFromProductPaths(
   }
 }
 
-function buildCategoryExportPathIndex(
+const buildCategoryExportPathIndex = (
   categories: HerbaticaCategoryExport[],
-): Map<string, string> {
+): Map<string, string> => {
   const categoryById = new Map(
     categories.map((category) => [category.id, category]),
   )
   const pathById = new Map<string, string>()
   const visiting = new Set<string>()
-
   const resolvePath = (categoryId: string): string => {
     const existingPath = pathById.get(categoryId)
-    if (existingPath) {
+    if (existingPath !== undefined && existingPath !== "") {
       return existingPath
     }
-
     const category = categoryById.get(categoryId)
     if (!category) {
       return ""
     }
-
     if (visiting.has(categoryId)) {
       throw new Error(`Detected circular category ancestry for ${categoryId}`)
     }
-
     visiting.add(categoryId)
-
     const title = normalizeInlineText(category.title) ?? categoryId
-    const parentPath = category.parentId ? resolvePath(category.parentId) : ""
+    const parentPath =
+      category.parentId === undefined || category.parentId === ""
+        ? ""
+        : resolvePath(category.parentId)
     const path = parentPath ? `${parentPath} > ${title}` : title
-
     visiting.delete(categoryId)
     pathById.set(categoryId, path)
     return path
   }
-
   for (const category of categories) {
     resolvePath(category.id)
   }
-
   return pathById
 }
 
-function buildCategoryMetadata(
+const buildCategoryMetadata = (
   category: HerbaticaCategoryExport,
   path: string,
-): Record<string, unknown> {
-  return {
-    access: category.access,
-    bottom_description_html: category.bottomDescriptionHtml,
-    expand_in_menu: category.expandInMenu,
-    is_system: category.isSystem,
-    link_text: category.linkText,
-    meta_description: category.metaDescription,
-    meta_title: category.metaTitle,
-    page_type: category.pageType,
-    priority: category.priority,
-    search_priority: category.searchPriority,
-    source: "herbatica-categories-xml",
-    source_category_id: category.id,
-    source_guid: category.guid,
-    source_parent_category_id: category.parentId,
-    source_path: path,
-    source_url: category.url,
-    top_description_html: category.topDescriptionHtml,
-    visible: category.isVisible,
-  }
-}
+): Record<string, unknown> => ({
+  access: category.access,
+  bottom_description_html: category.bottomDescriptionHtml,
+  expand_in_menu: category.expandInMenu,
+  is_system: category.isSystem,
+  link_text: category.linkText,
+  meta_description: category.metaDescription,
+  meta_title: category.metaTitle,
+  page_type: category.pageType,
+  priority: category.priority,
+  search_priority: category.searchPriority,
+  source: "herbatica-categories-xml",
+  source_category_id: category.id,
+  source_guid: category.guid,
+  source_parent_category_id: category.parentId,
+  source_path: path,
+  source_url: category.url,
+  top_description_html: category.topDescriptionHtml,
+  visible: category.isVisible,
+})
 
-function buildCategoriesFromExport(
+const buildCategoriesFromExport = (
   categoryExports: HerbaticaCategoryExport[],
-): CategoryBuildResult {
+): CategoryBuildResult => {
   const pathById = buildCategoryExportPathIndex(categoryExports)
   const sortedCategories = [...categoryExports]
     .map((category) => {
       const path = pathById.get(category.id)
-      if (!path) {
+      if (path === undefined || path === "") {
         throw new Error(`Missing resolved path for category ${category.id}`)
       }
-
       return {
         category,
         depth: splitCategoryPath(path).length,
         path,
       }
     })
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       if (a.depth !== b.depth) {
         return a.depth - b.depth
       }
-
       return a.path.localeCompare(b.path)
     })
-
   const usedHandles = new Set<string>()
   const pathToHandle = new Map<string, string>()
   const categoryIdToHandle = new Map<string, string>()
-
   for (const node of sortedCategories) {
     const baseHandle = truncateWithHash(
       slugifyHerbaticaHandle(node.path) ||
@@ -2292,22 +2179,23 @@ function buildCategoriesFromExport(
     pathToHandle.set(node.path, handle)
     categoryIdToHandle.set(node.category.id, handle)
   }
-
   const categories: CategorySeedInput[] = sortedCategories.map((node) => {
     const handle = categoryIdToHandle.get(node.category.id)
-    const parentHandle = node.category.parentId
-      ? categoryIdToHandle.get(node.category.parentId)
-      : undefined
-
+    const parentHandle =
+      node.category.parentId === undefined || node.category.parentId === ""
+        ? undefined
+        : categoryIdToHandle.get(node.category.parentId)
     return {
-      name: node.category.title,
       description:
         excerptPlainText(node.category.topDescriptionHtml) ??
         excerptPlainText(node.category.bottomDescriptionHtml) ??
         "Imported from Herbatica category export.",
-      ...(handle ? { handle } : {}),
+      name: node.category.title,
+      ...(handle === undefined || handle === "" ? {} : { handle }),
       isActive: node.category.isVisible,
-      ...(parentHandle ? { parentHandle } : {}),
+      ...(parentHandle === undefined || parentHandle === ""
+        ? {}
+        : { parentHandle }),
       metadata: buildCategoryMetadata(node.category, node.path),
       ...(node.category.priority === undefined
         ? {}
@@ -2315,7 +2203,6 @@ function buildCategoriesFromExport(
       isInternal: node.category.isSystem,
     }
   })
-
   return {
     categories,
     categoryIdToHandle,
@@ -2323,17 +2210,24 @@ function buildCategoriesFromExport(
   }
 }
 
-function buildBrand(
+export const normalizeHerbaticaManufacturerTitle = (
+  value?: string | null,
+): string | undefined => {
+  if (value === undefined || value === null || value === "") {
+    return undefined
+  }
+  return normalizeInlineText(decodeXml(value))
+}
+
+const buildBrand = (
   item: ParsedShopItem,
   manufacturersLookup: ManufacturerCsvLookup,
-): BrandSeedInput | undefined {
+): BrandSeedInput | undefined => {
   const title = normalizeHerbaticaManufacturerTitle(item.manufacturer)
-  if (!title) {
-    return
+  if (title === undefined || title === "") {
+    return undefined
   }
-
   const manufacturerRow = findManufacturerCsvRow(manufacturersLookup, title)
-
   return {
     attributes: [],
     gpsr_contact_email: manufacturerRow?.gpsr_contact_email,
@@ -2351,30 +2245,21 @@ function buildBrand(
   }
 }
 
-export function normalizeHerbaticaManufacturerTitle(
-  value?: string | null,
-): string | undefined {
-  if (!value) {
-    return
-  }
-
-  return normalizeInlineText(decodeXml(value))
-}
-
-function applyPromoOverrides(
+const applyPromoOverrides = (
   items: ParsedShopItem[],
   buildOptions: ResolvedSeedBuildOptions,
-): ParsedShopItem[] {
-  if (!buildOptions.promoRebaseDays) {
+): ParsedShopItem[] => {
+  if (
+    buildOptions.promoRebaseDays === undefined ||
+    buildOptions.promoRebaseDays === 0
+  ) {
     return items
   }
-
   return items.map((item) => {
     const topOffer = rebaseOfferPromotion(item.topOffer, buildOptions)
     const variants = item.variants.map((variant) =>
       rebaseOfferPromotion(variant, buildOptions, topOffer),
     )
-
     return {
       ...item,
       topOffer,
@@ -2383,14 +2268,16 @@ function applyPromoOverrides(
   })
 }
 
-export function resolveHerbaticaProductVisibility(item: {
-  topOffer: { visible?: boolean | undefined }
+export const resolveHerbaticaProductVisibility = (item: {
+  topOffer: {
+    visible?: boolean | undefined
+  }
   visibility?: string | undefined
 }): {
   salesChannelNames: string[]
   status: ProductStatus
   storefrontAccessible: boolean
-} {
+} => {
   if (item.topOffer.visible === false) {
     return {
       salesChannelNames: [],
@@ -2398,7 +2285,6 @@ export function resolveHerbaticaProductVisibility(item: {
       storefrontAccessible: false,
     }
   }
-
   switch ((item.visibility ?? "visible").trim().toLowerCase()) {
     case "cashdeskonly": {
       return {
@@ -2429,57 +2315,64 @@ export function resolveHerbaticaProductVisibility(item: {
   }
 }
 
-function buildHerbaticaProductAttributes(
+const buildHerbaticaProductAttributes = (
   item: ParsedShopItem,
-): NonNullable<ProductSeedInput["productAttributes"]> {
-  return [
-    {
-      input_type: "select",
-      is_public: false,
-      key: "supplier",
-      label: "Supplier",
-      option: item.supplier ? { label: item.supplier } : null,
-    },
-    {
-      input_type: "select",
-      is_public: true,
-      key: "warranty",
-      label: "Warranty",
-      option: item.warranty ? { label: item.warranty } : null,
-    },
-  ]
-}
+): NonNullable<ProductSeedInput["productAttributes"]> => [
+  {
+    input_type: "select",
+    is_public: false,
+    key: "supplier",
+    label: "Supplier",
+    option:
+      item.supplier === undefined || item.supplier === ""
+        ? null
+        : { label: item.supplier },
+  },
+  {
+    input_type: "select",
+    is_public: true,
+    key: "warranty",
+    label: "Warranty",
+    option:
+      item.warranty === undefined || item.warranty === ""
+        ? null
+        : { label: item.warranty },
+  },
+]
 
-function resolveProductReference(
+const resolveProductReference = (
   code: string,
   productHandleBySourceId: Map<string, string>,
   publishedSourceIds: Set<string>,
-): ResolvedProductReference | undefined {
+): ResolvedProductReference | undefined => {
   const sourceShopitemId = normalizeInlineText(code)
-  if (!(sourceShopitemId && publishedSourceIds.has(sourceShopitemId))) {
-    return
+  if (
+    !(
+      sourceShopitemId !== undefined &&
+      sourceShopitemId !== "" &&
+      publishedSourceIds.has(sourceShopitemId)
+    )
+  ) {
+    return undefined
   }
-
   const handle = productHandleBySourceId.get(sourceShopitemId)
-  if (!handle) {
-    return
+  if (handle === undefined || handle === "") {
+    return undefined
   }
-
   return {
     handle,
     source_shopitem_id: sourceShopitemId,
   }
 }
 
-function resolveProductReferences(
+const resolveProductReferences = (
   codes: string[],
   productHandleBySourceId: Map<string, string>,
   publishedSourceIds: Set<string>,
   excludedSourceId?: string,
-): ResolvedProductReference[] {
+): ResolvedProductReference[] => {
   const refs: ResolvedProductReference[] = []
   const seen = new Set<string>()
-
   for (const code of codes) {
     const ref = resolveProductReference(
       code,
@@ -2493,19 +2386,17 @@ function resolveProductReferences(
     ) {
       continue
     }
-
     seen.add(ref.source_shopitem_id)
     refs.push(ref)
   }
-
   return refs
 }
 
-function buildResolvedProductReferences(
+const buildResolvedProductReferences = (
   item: ParsedShopItem,
   productHandleBySourceId: Map<string, string>,
   publishedSourceIds: Set<string>,
-): ResolvedProductReferences {
+): ResolvedProductReferences => {
   const relatedProductRefs = resolveProductReferences(
     item.relatedProducts,
     productHandleBySourceId,
@@ -2518,7 +2409,6 @@ function buildResolvedProductReferences(
     publishedSourceIds,
     item.id,
   )
-
   return {
     alternativeProductHandles: alternativeProductRefs.map((ref) => ref.handle),
     alternativeProductRefs,
@@ -2527,11 +2417,11 @@ function buildResolvedProductReferences(
   }
 }
 
-function buildVariantMetadata(
+const buildVariantMetadata = (
   offer: ParsedOfferData,
   fallbackOffer?: ParsedOfferData,
   referenceDate = new Date(),
-): Record<string, unknown> {
+): Record<string, unknown> => {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
   const hasActiveDiscount = resolveOfferHasActiveDiscount(
     offer,
@@ -2544,7 +2434,6 @@ function buildVariantMetadata(
     referenceDate,
   )
   const compareAtPrice = hasActiveDiscount ? basePrice : undefined
-
   return {
     action_price: offer.actionPrice,
     action_price_from: offer.actionPriceFrom,
@@ -2593,9 +2482,9 @@ function buildVariantMetadata(
       min_supply: offer.stockMinSupply,
       minimal_amount: offer.stockMinimalAmount,
       warehouses: offer.stockWarehouses.map((warehouse) => ({
+        location: warehouse.location,
         name: warehouse.name,
         value: warehouse.quantity,
-        location: warehouse.location,
       })),
     },
     unit: offer.unit,
@@ -2606,14 +2495,14 @@ function buildVariantMetadata(
   }
 }
 
-function buildProductMetadata({
+const buildProductMetadata = ({
   item,
   topOffer,
   categoryPaths,
   categoryRefs,
   resolvedProductReferences,
   referenceDate = new Date(),
-}: BuildProductMetadataOptions): Record<string, unknown> {
+}: BuildProductMetadataOptions): Record<string, unknown> => {
   const normalizedFlags = normalizeFlags(item.flags, topOffer, referenceDate)
   const sourceCategoryIds = dedupeStrings(
     categoryRefs.map((categoryRef) => categoryRef.id),
@@ -2621,11 +2510,13 @@ function buildProductMetadata({
   const defaultCategoryRef = categoryRefs.find(
     (categoryRef) => categoryRef.isDefault,
   )
-
   const contentSections = buildProductContentSections(item)
-  const contentSectionsMap = {} as Record<ProductContentSectionKey, string>
-  for (const sectionKey of PRODUCT_CONTENT_SECTION_ORDER) {
-    contentSectionsMap[sectionKey] = ""
+  const contentSectionsMap: Record<ProductContentSectionKey, string> = {
+    composition: "",
+    description: "",
+    other: "",
+    usage: "",
+    warning: "",
   }
   for (const section of contentSections) {
     contentSectionsMap[section.key] = section.html
@@ -2641,7 +2532,6 @@ function buildProductMetadata({
     contentSectionsMap,
     item.shortDescription,
   )
-
   return {
     adult: item.adult,
     allows_iplatba: item.allowsIplatba,
@@ -2655,8 +2545,8 @@ function buildProductMetadata({
     category_paths: categoryPaths,
     category_refs: categoryRefs.map((categoryRef) => ({
       id: categoryRef.id,
-      path: categoryRef.path,
       is_default: categoryRef.isDefault,
+      path: categoryRef.path,
     })),
     content_sections: completeContentSections,
     content_sections_map: contentSectionsMap,
@@ -2692,23 +2582,21 @@ function buildProductMetadata({
   }
 }
 
-function normalizeMeasurementSourceUnit(value?: string) {
-  return normalizeInlineText(value)
-}
+const normalizeMeasurementSourceUnit = (value?: string) =>
+  normalizeInlineText(value)
 
-function getMeasurementConfigurationKey(
+const getMeasurementConfigurationKey = (
   measurement: NonNullable<ProductSeedInput["measurement"]>,
-) {
-  return `${measurement.unit.symbol.toLowerCase()}:${measurement.unit.base_quantity}`
-}
+) =>
+  `${measurement.unit.symbol.toLowerCase()}:${measurement.unit.base_quantity}`
 
-export function resolveHerbaticaOfferMeasurement(
+export const resolveHerbaticaOfferMeasurement = (
   offer: HerbaticaOfferMeasurementSource,
   sourceLabel: string,
 ): {
   product: NonNullable<ProductSeedInput["measurement"]>
   variant: NonNullable<VariantSeedInput["measurement"]>
-} | null {
+} | null => {
   const packageUnit = normalizeMeasurementSourceUnit(offer.packageAmountUnit)
   const measureUnit = normalizeMeasurementSourceUnit(offer.measureAmountUnit)
   const values = [
@@ -2720,7 +2608,6 @@ export function resolveHerbaticaOfferMeasurement(
   const populatedCount = values.filter(
     (value) => value !== undefined && value !== null,
   ).length
-
   if (populatedCount === 0) {
     return null
   }
@@ -2729,9 +2616,10 @@ export function resolveHerbaticaOfferMeasurement(
       `Incomplete UNIT_OF_MEASURE configuration for ${sourceLabel}`,
     )
   }
-
-  const packageAmount = offer.packageAmount as number
-  const measureAmount = offer.measureAmount as number
+  const { measureAmount, packageAmount } = offer
+  if (measureAmount === undefined || packageAmount === undefined) {
+    throw new Error(`Incomplete UNIT_OF_MEASURE amounts for ${sourceLabel}`)
+  }
   if (
     !(
       Number.isFinite(packageAmount) &&
@@ -2749,8 +2637,10 @@ export function resolveHerbaticaOfferMeasurement(
       `UNIT_OF_MEASURE package unit "${packageUnit}" does not match comparison unit "${measureUnit}" for ${sourceLabel}`,
     )
   }
-
-  const symbol = measureUnit as string
+  if (measureUnit === undefined) {
+    throw new Error(`Missing UNIT_OF_MEASURE unit for ${sourceLabel}`)
+  }
+  const symbol = measureUnit
   return {
     product: {
       unit: {
@@ -2766,7 +2656,7 @@ export function resolveHerbaticaOfferMeasurement(
   }
 }
 
-function resolveHerbaticaProductMeasurement(item: ParsedShopItem) {
+const resolveHerbaticaProductMeasurement = (item: ParsedShopItem) => {
   const offers = item.variants.length ? item.variants : [item.topOffer]
   const configured = offers.flatMap((offer, index) => {
     const sourceLabel = item.variants.length
@@ -2782,7 +2672,6 @@ function resolveHerbaticaProductMeasurement(item: ParsedShopItem) {
   if (!measurement) {
     return null
   }
-
   const expectedKey = getMeasurementConfigurationKey(measurement)
   const conflicting = configured.find(
     (current) => getMeasurementConfigurationKey(current) !== expectedKey,
@@ -2792,11 +2681,10 @@ function resolveHerbaticaProductMeasurement(item: ParsedShopItem) {
       `Product "${item.id}" contains conflicting UNIT_OF_MEASURE comparison configurations`,
     )
   }
-
   return measurement
 }
 
-function buildDefaultVariantForProduct({
+const buildDefaultVariantForProduct = ({
   handle,
   item,
   referenceDate,
@@ -2806,7 +2694,7 @@ function buildDefaultVariantForProduct({
 }): {
   options: ProductOptionSeedInput[]
   variants: VariantSeedInput[]
-} {
+} => {
   const { topOffer } = item
   const skuSeed = buildSkuSeed(
     ["SHOPITEM", item.id, topOffer.variantId ?? "DEFAULT"],
@@ -2822,7 +2710,6 @@ function buildDefaultVariantForProduct({
     topOffer,
     `Product "${item.id}"`,
   )
-
   return {
     options: [
       {
@@ -2832,9 +2719,12 @@ function buildDefaultVariantForProduct({
     ],
     variants: [
       {
-        title: DEFAULT_OPTION_VALUE,
-        sku,
-        ...(ean ? { ean } : {}),
+        ...(ean === undefined || ean === "" ? {} : { ean }),
+        ...(thumbnail === undefined || thumbnail === ""
+          ? {}
+          : { images: [{ url: thumbnail }], thumbnail }),
+        measurement: measurement?.variant ?? null,
+        metadata: buildVariantMetadata(topOffer, undefined, referenceDate),
         options: {
           [DEFAULT_OPTION_TITLE]: DEFAULT_OPTION_VALUE,
         },
@@ -2844,29 +2734,27 @@ function buildDefaultVariantForProduct({
             currency_code: currencyCode,
           },
         ],
-        ...(thumbnail ? { images: [{ url: thumbnail }], thumbnail } : {}),
-        metadata: buildVariantMetadata(topOffer, undefined, referenceDate),
-        measurement: measurement?.variant ?? null,
         quantities,
+        sku,
+        title: DEFAULT_OPTION_VALUE,
       },
     ],
   }
 }
 
-function completeVariantOptions(
+const completeVariantOptions = (
   optionsForVariant: Map<string, string>,
   optionNames: string[],
-): Record<string, string> {
+): Record<string, string> => {
   for (const optionName of optionNames) {
     if (!optionsForVariant.has(optionName)) {
       optionsForVariant.set(optionName, DEFAULT_OPTION_VALUE)
     }
   }
-
   return Object.fromEntries(optionsForVariant.entries())
 }
 
-function buildVariantSeed({
+const buildVariantSeed = ({
   handle,
   index,
   item,
@@ -2875,11 +2763,15 @@ function buildVariantSeed({
   referenceDate,
   usedSkus,
   variant,
-}: BuildVariantSeedOptions): VariantSeedInput {
+}: BuildVariantSeedOptions): VariantSeedInput => {
   const optionObject = completeVariantOptions(optionsForVariant, optionNames)
+  const optionTitle = optionNames
+    .map((optionName) => optionObject[optionName])
+    .join(" / ")
+  const codeTitle = normalizeInlineText(variant.code)
   const title =
-    optionNames.map((optionName) => optionObject[optionName]).join(" / ") ||
-    normalizeInlineText(variant.code) ||
+    (optionTitle === "" ? undefined : optionTitle) ??
+    codeTitle ??
     `${DEFAULT_OPTION_VALUE} ${index + 1}`
   const skuSeed = buildSkuSeed(
     ["SHOPITEM", item.id, "VARIANT", variant.variantId ?? `${index + 1}`],
@@ -2899,11 +2791,13 @@ function buildVariantSeed({
     variant,
     `Product "${item.id}" Variant "${variant.variantId ?? index + 1}"`,
   )
-
   return {
-    title,
-    sku,
-    ...(ean ? { ean } : {}),
+    ...(ean === undefined || ean === "" ? {} : { ean }),
+    ...(thumbnail === undefined || thumbnail === ""
+      ? {}
+      : { images: [{ url: thumbnail }], thumbnail }),
+    measurement: measurement?.variant ?? null,
+    metadata: buildVariantMetadata(variant, item.topOffer, referenceDate),
     options: optionObject,
     prices: [
       {
@@ -2911,14 +2805,13 @@ function buildVariantSeed({
         currency_code: currencyCode,
       },
     ],
-    ...(thumbnail ? { images: [{ url: thumbnail }], thumbnail } : {}),
-    metadata: buildVariantMetadata(variant, item.topOffer, referenceDate),
-    measurement: measurement?.variant ?? null,
     quantities,
+    sku,
+    title,
   }
 }
 
-function buildVariantsForProduct({
+const buildVariantsForProduct = ({
   item,
   handle,
   usedSkus,
@@ -2926,7 +2819,7 @@ function buildVariantsForProduct({
 }: BuildVariantsForProductOptions): {
   options: ProductOptionSeedInput[]
   variants: VariantSeedInput[]
-} {
+} => {
   if (item.variants.length === 0) {
     return buildDefaultVariantForProduct({
       handle,
@@ -2935,14 +2828,18 @@ function buildVariantsForProduct({
       usedSkus,
     })
   }
-
   const optionValues = new Map<string, Set<string>>()
   const rawVariantOptions = item.variants.map((variant, index) => {
     const valuesByName = new Map<string, string>()
     for (const parameter of variant.parameters) {
       const name = normalizeInlineText(parameter.name)
       const value = normalizeInlineText(parameter.value)
-      if (!(name && value)) {
+      if (
+        name === undefined ||
+        name === "" ||
+        value === undefined ||
+        value === ""
+      ) {
         continue
       }
       if (!optionValues.has(name)) {
@@ -2951,24 +2848,20 @@ function buildVariantsForProduct({
       optionValues.get(name)?.add(value)
       valuesByName.set(name, value)
     }
-
     if (valuesByName.size === 0) {
       const fallbackName = DEFAULT_OPTION_TITLE
       const fallbackValue =
         normalizeInlineText(variant.code) ??
         normalizeInlineText(variant.variantId) ??
         `${DEFAULT_OPTION_VALUE} ${index + 1}`
-
       if (!optionValues.has(fallbackName)) {
         optionValues.set(fallbackName, new Set<string>())
       }
       optionValues.get(fallbackName)?.add(fallbackValue)
       valuesByName.set(fallbackName, fallbackValue)
     }
-
     return valuesByName
   })
-
   const optionNames = [...optionValues.keys()]
   for (const valuesByName of rawVariantOptions) {
     for (const optionName of optionNames) {
@@ -2978,12 +2871,10 @@ function buildVariantsForProduct({
       }
     }
   }
-
   const options: ProductOptionSeedInput[] = optionNames.map((optionName) => ({
     title: optionName,
     values: [...(optionValues.get(optionName) ?? new Set<string>())],
   }))
-
   const variants: VariantSeedInput[] = item.variants.map((variant, index) =>
     buildVariantSeed({
       handle,
@@ -2996,20 +2887,19 @@ function buildVariantsForProduct({
       variant,
     }),
   )
-
   return {
     options,
     variants,
   }
 }
 
-function buildProducts(params: {
+const buildProducts = (params: {
   items: ParsedShopItem[]
   pathToHandle: Map<string, string>
   categoryIdToHandle: Map<string, string>
   manufacturersLookup: ManufacturerCsvLookup
   buildOptions: ResolvedSeedBuildOptions
-}): ProductSeedInput[] {
+}): ProductSeedInput[] => {
   const {
     items,
     pathToHandle,
@@ -3027,7 +2917,6 @@ function buildProducts(params: {
       slugifyHerbaticaHandle(stableHandleSource) || `product-${index + 1}`,
     )
     const handle = ensureUnique(handleSeed, usedHandles, `product-${index + 1}`)
-
     return {
       handle,
       index,
@@ -3036,35 +2925,30 @@ function buildProducts(params: {
   })
   const productHandleBySourceId = new Map<string, string>()
   const publishedSourceIds = new Set<string>()
-
   for (const { item, handle } of productEntries) {
     if (!item.id) {
       continue
     }
-
     productHandleBySourceId.set(item.id, handle)
     if (resolveHerbaticaProductVisibility(item).storefrontAccessible) {
       publishedSourceIds.add(item.id)
     }
   }
-
   return productEntries.map(({ item, index, handle }) => {
     const categoryHandles = dedupeStrings(
       item.categoryRefs.map((categoryRef) => {
-        if (categoryRef.id) {
+        if (categoryRef.id !== undefined && categoryRef.id !== "") {
           const categoryHandle = categoryIdToHandle.get(categoryRef.id)
-          if (categoryHandle) {
+          if (categoryHandle !== undefined && categoryHandle !== "") {
             return categoryHandle
           }
         }
-
         return pathToHandle.get(categoryRef.path)
       }),
     )
     const categories = categoryHandles.map((categoryHandle) => ({
       handle: categoryHandle,
     }))
-
     const primaryWeightKg =
       item.topOffer.weightKg ??
       item.variants.find((variant) => variant.weightKg !== undefined)?.weightKg
@@ -3078,7 +2962,6 @@ function buildProducts(params: {
       productHandleBySourceId,
       publishedSourceIds,
     )
-
     const { options, variants } = buildVariantsForProduct({
       handle,
       item,
@@ -3087,14 +2970,13 @@ function buildProducts(params: {
     })
     const thumbnail = item.images[0] ?? item.topOffer.imageRef
     const imageUrls = dedupeStrings([...item.images, thumbnail])
-
     return {
-      title: item.name || `Product ${item.id || index + 1}`,
+      brand: buildBrand(item, manufacturersLookup),
       categories,
       description: item.description ?? item.shortDescription ?? "",
       handle,
-      weight,
-      status: visibility.status,
+      images: imageUrls.map((url) => ({ url })),
+      measurement: resolveHerbaticaProductMeasurement(item),
       metadata: buildProductMetadata({
         categoryPaths: item.categoryPaths,
         categoryRefs: item.categoryRefs,
@@ -3103,27 +2985,26 @@ function buildProducts(params: {
         resolvedProductReferences,
         topOffer: item.topOffer,
       }),
-      shippingProfileName: "Default Shipping Profile",
-      ...(thumbnail ? { thumbnail } : {}),
-      images: imageUrls.map((url) => ({ url })),
       options,
-      brand: buildBrand(item, manufacturersLookup),
-      measurement: resolveHerbaticaProductMeasurement(item),
       productAttributes: buildHerbaticaProductAttributes(item),
-      variants,
       salesChannelNames: visibility.salesChannelNames,
+      shippingProfileName: "Default Shipping Profile",
+      status: visibility.status,
+      ...(thumbnail === undefined || thumbnail === "" ? {} : { thumbnail }),
+      title: item.name || `Product ${item.id || index + 1}`,
+      variants,
+      weight,
     }
   })
 }
 
-function getVariantBasePrice(
+const getVariantBasePrice = (
   variant: VariantSeedInput,
-): PriceListPriceSeedInput | undefined {
-  const price = variant.prices?.[0]
-  if (!(price && variant.sku)) {
-    return
+): PriceListPriceSeedInput | undefined => {
+  const [price] = variant.prices ?? []
+  if (price === undefined || variant.sku === "") {
+    return undefined
   }
-
   return {
     amount: price.amount,
     currencyCode: price.currency_code,
@@ -3132,26 +3013,24 @@ function getVariantBasePrice(
   }
 }
 
-function addPriceListPrice(
+const addPriceListPrice = (
   prices: PriceListPriceSeedInput[],
   price: PriceListPriceSeedInput,
-) {
+) => {
   const existingIndex = prices.findIndex(
     (existing) =>
       existing.productHandle === price.productHandle &&
       existing.variantSku === price.variantSku &&
       existing.currencyCode.toLowerCase() === price.currencyCode.toLowerCase(),
   )
-
   if (existingIndex === -1) {
     prices.push(price)
     return
   }
-
   prices[existingIndex] = price
 }
 
-function addSalePriceListPrice(
+const addSalePriceListPrice = (
   salePriceListsByKey: Map<string, PriceListsSeedInput["sales"][number]>,
   {
     sourceTitle,
@@ -3166,7 +3045,7 @@ function addSalePriceListPrice(
     endsAtRaw?: string | undefined
     price: PriceListPriceSeedInput
   },
-) {
+) => {
   const key = [
     sourceTitle,
     customerGroupName ?? "",
@@ -3178,52 +3057,74 @@ function addSalePriceListPrice(
   const salePriceList =
     salePriceListsByKey.get(key) ??
     ({
-      title: buildSalePriceListTitle(sourceTitle, startsAtRaw, endsAtRaw),
       sourceTitle,
-      ...(customerGroupName ? { customerGroupName } : {}),
-      ...(startsAt ? { startsAt } : {}),
-      ...(endsAt ? { endsAt } : {}),
+      title: buildSalePriceListTitle(sourceTitle, startsAtRaw, endsAtRaw),
+      ...(customerGroupName === undefined || customerGroupName === ""
+        ? {}
+        : { customerGroupName }),
+      ...(startsAt === undefined || startsAt === "" ? {} : { startsAt }),
+      ...(endsAt === undefined || endsAt === "" ? {} : { endsAt }),
       prices: [],
     } satisfies PriceListsSeedInput["sales"][number])
-
   addPriceListPrice(salePriceList.prices, price)
   salePriceListsByKey.set(key, salePriceList)
 }
 
-function getVariantMetadata(
+const getVariantMetadata = (
   variant: VariantSeedInput,
-): Record<string, unknown> | undefined {
+): Record<string, unknown> | undefined => {
   const { metadata } = variant
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
-    return
+    return undefined
   }
-
   return metadata
 }
 
-function getMetadataString(
+const getMetadataString = (
   metadata: Record<string, unknown> | undefined,
   key: string,
-): string | undefined {
-  return typeof metadata?.[key] === "string" ? metadata[key] : undefined
-}
+): string | undefined =>
+  typeof metadata?.[key] === "string" ? metadata[key] : undefined
 
-function getMetadataNumber(
+const getMetadataNumber = (
   metadata: Record<string, unknown> | undefined,
   key: string,
-): number | undefined {
-  return typeof metadata?.[key] === "number" ? metadata[key] : undefined
+): number | undefined =>
+  typeof metadata?.[key] === "number" ? metadata[key] : undefined
+
+const hasOptionalPropertyType = (
+  record: Record<string, unknown>,
+  key: string,
+  type: "number" | "string",
+): boolean => record[key] === undefined || typeof record[key] === type
+
+const isParsedPricelist = (value: unknown): value is ParsedPricelist => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false
+  }
+  const record = Object.fromEntries(Object.entries(value))
+  const stringKeys = ["title", "actionPriceFrom", "actionPriceUntil"]
+  const numberKeys = [
+    "priceVat",
+    "vat",
+    "standardPrice",
+    "actionPrice",
+    "purchasePrice",
+  ]
+  return (
+    stringKeys.every((key) => hasOptionalPropertyType(record, key, "string")) &&
+    numberKeys.every((key) => hasOptionalPropertyType(record, key, "number"))
+  )
 }
 
-function getMetadataPricelists(
+const getMetadataPricelists = (
   metadata: Record<string, unknown> | undefined,
-): ParsedPricelist[] {
-  return Array.isArray(metadata?.["pricelists"])
-    ? (metadata["pricelists"] as ParsedPricelist[])
+): ParsedPricelist[] =>
+  Array.isArray(metadata?.["pricelists"])
+    ? metadata["pricelists"].filter(isParsedPricelist)
     : []
-}
 
-function addDefaultSalePriceFromMetadata({
+const addDefaultSalePriceFromMetadata = ({
   basePrice,
   metadata,
   referenceDate,
@@ -3233,20 +3134,18 @@ function addDefaultSalePriceFromMetadata({
   metadata: Record<string, unknown> | undefined
   referenceDate: Date
   salePriceListsByKey: Map<string, PriceListsSeedInput["sales"][number]>
-}) {
+}) => {
   const actionPrice = normalizePriceAmount(
     getMetadataNumber(metadata, "action_price"),
   )
   const actionPriceFrom = getMetadataString(metadata, "action_price_from")
   const actionPriceUntil = getMetadataString(metadata, "action_price_until")
-
   if (
     !shouldImportActionPrice(actionPrice, actionPriceUntil, referenceDate) ||
     priceAmountsEqual(actionPrice, basePrice.amount)
   ) {
     return
   }
-
   addSalePriceListPrice(salePriceListsByKey, {
     endsAtRaw: actionPriceUntil,
     price: {
@@ -3258,18 +3157,17 @@ function addDefaultSalePriceFromMetadata({
   })
 }
 
-function ensureOverridePriceList(
+const ensureOverridePriceList = (
   overridePriceListsByTitle: Map<
     string,
     PriceListsSeedInput["overrides"][number]
   >,
   title: string,
-): PriceListsSeedInput["overrides"][number] {
+): PriceListsSeedInput["overrides"][number] => {
   const existing = overridePriceListsByTitle.get(title)
   if (existing) {
     return existing
   }
-
   const created = {
     customerGroupName: title,
     prices: [],
@@ -3279,25 +3177,24 @@ function ensureOverridePriceList(
   return created
 }
 
-function addRegularPricelistPrice(
+const addRegularPricelistPrice = (
   overridePriceList: PriceListsSeedInput["overrides"][number],
   basePrice: PriceListPriceSeedInput,
   regularPrice?: number,
-) {
+) => {
   if (
     regularPrice === undefined ||
     priceAmountsEqual(regularPrice, basePrice.amount)
   ) {
     return
   }
-
   addPriceListPrice(overridePriceList.prices, {
     ...basePrice,
     amount: regularPrice,
   })
 }
 
-function addPricelistSalePrice({
+const addPricelistSalePrice = ({
   basePrice,
   pricelist,
   referenceDate,
@@ -3311,10 +3208,9 @@ function addPricelistSalePrice({
   regularPrice?: number | undefined
   salePriceListsByKey: Map<string, PriceListsSeedInput["sales"][number]>
   title: string
-}) {
+}) => {
   const actionPrice = normalizePriceAmount(pricelist.actionPrice)
   const comparisonPrice = regularPrice ?? basePrice.amount
-
   if (
     !shouldImportActionPrice(
       actionPrice,
@@ -3325,7 +3221,6 @@ function addPricelistSalePrice({
   ) {
     return
   }
-
   addSalePriceListPrice(salePriceListsByKey, {
     customerGroupName: title,
     endsAtRaw: pricelist.actionPriceUntil,
@@ -3338,7 +3233,7 @@ function addPricelistSalePrice({
   })
 }
 
-function addVariantPriceListEntries({
+const addVariantPriceListEntries = ({
   basePrice,
   metadata,
   overridePriceListsByTitle,
@@ -3353,20 +3248,18 @@ function addVariantPriceListEntries({
   >
   referenceDate: Date
   salePriceListsByKey: Map<string, PriceListsSeedInput["sales"][number]>
-}) {
+}) => {
   addDefaultSalePriceFromMetadata({
     basePrice,
     metadata,
     referenceDate,
     salePriceListsByKey,
   })
-
   for (const pricelist of getMetadataPricelists(metadata)) {
     const title = normalizeInlineText(pricelist.title)
-    if (!title || isDefaultPricelistTitle(title)) {
+    if (title === undefined || title === "" || isDefaultPricelistTitle(title)) {
       continue
     }
-
     const overridePriceList = ensureOverridePriceList(
       overridePriceListsByTitle,
       title,
@@ -3374,7 +3267,6 @@ function addVariantPriceListEntries({
     const regularPrice = normalizePriceAmount(
       pricelist.priceVat ?? pricelist.standardPrice,
     )
-
     addRegularPricelistPrice(overridePriceList, basePrice, regularPrice)
     addPricelistSalePrice({
       basePrice,
@@ -3387,10 +3279,10 @@ function addVariantPriceListEntries({
   }
 }
 
-function buildPriceListsFromProducts(
+const buildPriceListsFromProducts = (
   products: ProductSeedInput[],
   referenceDate = new Date(),
-): PriceListsSeedInput {
+): PriceListsSeedInput => {
   const overridePriceListsByTitle = new Map<
     string,
     PriceListsSeedInput["overrides"][number]
@@ -3399,14 +3291,12 @@ function buildPriceListsFromProducts(
     string,
     PriceListsSeedInput["sales"][number]
   >()
-
   for (const product of products) {
     for (const variant of product.variants ?? []) {
       const basePrice = getVariantBasePrice(variant)
       if (!basePrice) {
         continue
       }
-
       addVariantPriceListEntries({
         basePrice: {
           ...basePrice,
@@ -3419,28 +3309,25 @@ function buildPriceListsFromProducts(
       })
     }
   }
-
   return {
     overrides: [...overridePriceListsByTitle.values()],
     sales: [...salePriceListsByKey.values()],
   }
 }
 
-function getItemOffers(item: ParsedShopItem): ParsedOfferData[] {
-  return item.variants.length > 0 ? item.variants : [item.topOffer]
-}
+const getItemOffers = (item: ParsedShopItem): ParsedOfferData[] =>
+  item.variants.length > 0 ? item.variants : [item.topOffer]
 
-function addWarehouseStockLocation(
+const addWarehouseStockLocation = (
   locationsByName: Map<
     string,
     SeedDatabaseWorkflowInput["stockLocations"]["locations"][number]
   >,
   warehouse: ParsedStockWarehouse,
-): boolean {
+): boolean => {
   const { name, usedFallback } = resolveWarehouseStockLocationName(warehouse)
   const address = buildWarehouseStockLocationAddress(warehouse.location)
   const existingLocation = locationsByName.get(name)
-
   if (!existingLocation) {
     locationsByName.set(name, {
       address,
@@ -3448,7 +3335,6 @@ function addWarehouseStockLocation(
     })
     return usedFallback
   }
-
   if (
     existingLocation.address.address_1 ===
       FALLBACK_SHOPTET_WAREHOUSE_ADDRESS.address_1 &&
@@ -3456,16 +3342,15 @@ function addWarehouseStockLocation(
   ) {
     existingLocation.address = address
   }
-
   return usedFallback
 }
 
-function addDefaultStockLocation(
+const addDefaultStockLocation = (
   locationsByName: Map<
     string,
     SeedDatabaseWorkflowInput["stockLocations"]["locations"][number]
   >,
-) {
+) => {
   locationsByName.set(DEFAULT_STOCK_LOCATION_NAME, {
     ...HERBATICA_DEFAULT_STOCK_LOCATION,
     address: {
@@ -3474,10 +3359,12 @@ function addDefaultStockLocation(
   })
 }
 
-function buildStockLocationsFromItems(items: ParsedShopItem[]): {
+const buildStockLocationsFromItems = (
+  items: ParsedShopItem[],
+): {
   locations: SeedDatabaseWorkflowInput["stockLocations"]["locations"]
   warnings: string[]
-} {
+} => {
   const locationsByName = new Map<
     string,
     SeedDatabaseWorkflowInput["stockLocations"]["locations"][number]
@@ -3488,44 +3375,37 @@ function buildStockLocationsFromItems(items: ParsedShopItem[]): {
     (offer) => offer.stockWarehouses.length === 0,
   )
   let missingWarehouseNames = 0
-
   for (const warehouse of offers.flatMap((offer) => offer.stockWarehouses)) {
     if (addWarehouseStockLocation(locationsByName, warehouse)) {
       missingWarehouseNames += 1
     }
   }
-
   if (hasSimpleStock || locationsByName.size === 0) {
     addDefaultStockLocation(locationsByName)
   }
-
   if (missingWarehouseNames > 0) {
     warnings.push(
       `${missingWarehouseNames} Shoptet warehouse stock entries had no warehouse name and were mapped to "${FALLBACK_SHOPTET_WAREHOUSE_NAME}".`,
     )
   }
-
   return {
     locations: [...locationsByName.values()],
     warnings,
   }
 }
 
-function enforceUniqueVariantSkus(products: ProductSeedInput[]) {
+const enforceUniqueVariantSkus = (products: ProductSeedInput[]) => {
   const usedSkus = new Set<string>()
-
   for (const product of products) {
     for (const variant of product.variants ?? []) {
       const baseSku = sanitizeSku(variant.sku) || sanitizeSku(product.handle)
       let candidate = baseSku
       let suffix = 2
-
       while (usedSkus.has(candidate)) {
         candidate =
           sanitizeSku(`${baseSku}-${suffix}`) || `${baseSku}-${suffix}`
         suffix += 1
       }
-
       if (candidate !== variant.sku) {
         variant.metadata = {
           ...variant.metadata,
@@ -3533,18 +3413,17 @@ function enforceUniqueVariantSkus(products: ProductSeedInput[]) {
         }
         variant.sku = candidate
       }
-
       usedSkus.add(candidate)
     }
   }
 }
 
-export function buildSeedInputFromXml(
+export const buildSeedInputFromXml = (
   xml: string,
   categoryExports?: HerbaticaCategoryExport[],
   options?: SeedBuildOptions,
   manufacturersLookup?: ManufacturerCsvLookup,
-): BuildResult {
+): BuildResult => {
   const buildOptions = resolveSeedBuildOptions(options)
   const items = applyPromoOverrides(parseShopItems(xml), buildOptions)
   const { categories, pathToHandle, categoryIdToHandle } = categoryExports
@@ -3580,7 +3459,6 @@ export function buildSeedInputFromXml(
       (acc, priceList) => acc + priceList.prices.length,
       0,
     )
-
   return {
     categories,
     priceLists,
@@ -3602,7 +3480,7 @@ export function buildSeedInputFromXml(
   }
 }
 
-export function buildHerbaticaSeedWorkflowInput(
+export const buildHerbaticaSeedWorkflowInput = (
   parsed: BuildResult,
   {
     regionsInput,
@@ -3610,146 +3488,134 @@ export function buildHerbaticaSeedWorkflowInput(
     fulfillmentSetType,
     serviceZoneName,
   }: HerbaticaWorkflowInputOptions,
-): SeedDatabaseWorkflowInput {
-  return {
-    currencies: HERBATICA_CURRENCIES,
-    defaultShippingProfile: HERBATICA_DEFAULT_SHIPPING_PROFILE,
-    fulfillmentSets: {
-      name: fulfillmentSetName,
-      serviceZones: [
-        {
-          name: serviceZoneName,
-          geoZones: [...DEFAULT_COUNTRIES].map((country) => ({
-            countryCode: country,
-          })),
-        },
-      ],
-      type: fulfillmentSetType,
-    },
-    legacyBrandAttributeNames: ["supplier", "manufacturer", "item_type"],
-    priceListSync: HERBATICA_PRICE_LIST_SYNC_CONFIG,
-    priceLists: parsed.priceLists,
-    productCategories: parsed.categories,
-    products: parsed.products,
-    publishableKey: HERBATICA_PUBLISHABLE_KEY,
-    regions: regionsInput,
-    salesChannels: HERBATICA_SALES_CHANNELS,
-    shippingOptions: HERBATICA_SHIPPING_OPTIONS,
-    stockLocations: {
-      locations: parsed.stockLocations,
-    },
-    taxRates: {
-      config: HERBATICA_TAX_RATE_CONFIG,
-      countries: HERBATICA_TAX_RATE_COUNTRIES,
-    },
-    taxRegions: {
-      countries: [...DEFAULT_COUNTRIES],
-    },
-    workflowDefaults: HERBATICA_WORKFLOW_DEFAULTS,
-  }
-}
+): SeedDatabaseWorkflowInput => ({
+  currencies: HERBATICA_CURRENCIES,
+  defaultShippingProfile: HERBATICA_DEFAULT_SHIPPING_PROFILE,
+  fulfillmentSets: {
+    name: fulfillmentSetName,
+    serviceZones: [
+      {
+        geoZones: [...DEFAULT_COUNTRIES].map((country) => ({
+          countryCode: country,
+        })),
+        name: serviceZoneName,
+      },
+    ],
+    type: fulfillmentSetType,
+  },
+  legacyBrandAttributeNames: ["supplier", "manufacturer", "item_type"],
+  priceListSync: HERBATICA_PRICE_LIST_SYNC_CONFIG,
+  priceLists: parsed.priceLists,
+  productCategories: parsed.categories,
+  products: parsed.products,
+  publishableKey: HERBATICA_PUBLISHABLE_KEY,
+  regions: regionsInput,
+  salesChannels: HERBATICA_SALES_CHANNELS,
+  shippingOptions: HERBATICA_SHIPPING_OPTIONS,
+  stockLocations: {
+    locations: parsed.stockLocations,
+  },
+  taxRates: {
+    config: HERBATICA_TAX_RATE_CONFIG,
+    countries: HERBATICA_TAX_RATE_COUNTRIES,
+  },
+  taxRegions: {
+    countries: [...DEFAULT_COUNTRIES],
+  },
+  workflowDefaults: HERBATICA_WORKFLOW_DEFAULTS,
+})
 
-function resolveProductsXmlPath(args?: string[]): string {
+const resolveProductsXmlPath = (args?: string[]): string => {
   const argPath = normalizeInlineText(args?.[0])
-  if (argPath) {
+  if (argPath !== undefined && argPath !== "") {
     return argPath
   }
-
   const envPath = normalizeInlineText(process.env[HERBATICA_PRODUCTS_XML_ENV])
-  if (envPath) {
+  if (envPath !== undefined && envPath !== "") {
     return envPath
   }
-
   const detectedPath = HERBATICA_PRODUCTS_XML_PATHS.find((path) =>
     existsSync(path),
   )
-  if (!detectedPath) {
+  if (detectedPath === undefined || detectedPath === "") {
     throw new Error(
       `Could not find productsComplete.xml. Checked: ${HERBATICA_PRODUCTS_XML_PATHS.join(", ")}`,
     )
   }
-
   return detectedPath
 }
 
-function resolveCategoriesXmlPath(args?: string[]): string | undefined {
+const resolveCategoriesXmlPath = (args?: string[]): string | undefined => {
   const argPath = normalizeInlineText(args?.[1])
-  if (argPath) {
+  if (argPath !== undefined && argPath !== "") {
     return argPath
   }
-
   const envPath = normalizeInlineText(process.env[HERBATICA_CATEGORIES_XML_ENV])
-  if (envPath) {
+  if (envPath !== undefined && envPath !== "") {
     return envPath
   }
-
   return HERBATICA_CATEGORIES_XML_PATHS.find((path) => existsSync(path))
 }
 
-function resolveReviewsXmlPath(args?: string[]): string | undefined {
+const resolveReviewsXmlPath = (args?: string[]): string | undefined => {
   const argPath = normalizeInlineText(args?.[2])
-  if (argPath) {
+  if (argPath !== undefined && argPath !== "") {
     return argPath
   }
-
   const envPath = normalizeInlineText(process.env[HERBATICA_REVIEWS_XML_ENV])
-  if (envPath) {
+  if (envPath !== undefined && envPath !== "") {
     return envPath
   }
-
-  return
+  return undefined
 }
 
-function resolveManufacturersCsvSource(args?: string[]): string {
+const resolveManufacturersCsvSource = (args?: string[]): string => {
   const argPath = normalizeInlineText(args?.[3])
-  if (argPath) {
+  if (argPath !== undefined && argPath !== "") {
     return argPath
   }
-
   const envPath = normalizeInlineText(
     process.env[HERBATICA_MANUFACTURERS_CSV_ENV],
   )
-  if (envPath) {
+  if (envPath !== undefined && envPath !== "") {
     return envPath
   }
-
   throw new Error(
     `Manufacturers CSV source is required. Pass it as the fourth seed argument or set ${HERBATICA_MANUFACTURERS_CSV_ENV} to an explicit local path or pinned/versioned URL. No mutable remote fallback is used.`,
   )
 }
 
-function resolveFeedPaths(args?: string[]): ResolvedFeedPaths {
-  return {
-    categoriesXmlPath: resolveCategoriesXmlPath(args),
-    productsXmlPath: resolveProductsXmlPath(args),
-    reviewsXmlPath: resolveReviewsXmlPath(args),
-  }
-}
+const resolveFeedPaths = (args?: string[]): ResolvedFeedPaths => ({
+  categoriesXmlPath: resolveCategoriesXmlPath(args),
+  productsXmlPath: resolveProductsXmlPath(args),
+  reviewsXmlPath: resolveReviewsXmlPath(args),
+})
 
-// This seed script is intentionally linear and only runs in dev/seed flows.
-export default async function herbaticaSeed({ container, args }: ExecArgs) {
-  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-
-  logger.info("Starting Herbatica seed from XML feed...")
-  const feedPaths = resolveFeedPaths(args)
+const logFeedPaths = (logger: Logger, feedPaths: ResolvedFeedPaths) => {
   logger.info(`Using product XML feed: ${feedPaths.productsXmlPath}`)
-  if (feedPaths.categoriesXmlPath) {
+  if (
+    feedPaths.categoriesXmlPath !== undefined &&
+    feedPaths.categoriesXmlPath !== ""
+  ) {
     logger.info(`Using categories XML feed: ${feedPaths.categoriesXmlPath}`)
   } else {
     logger.warn(
       "Categories XML feed not found, falling back to categories derived from product paths.",
     )
   }
-  const xml = await readXmlSource(feedPaths.productsXmlPath)
+}
+
+const loadManufacturersLookup = async (
+  args: string[] | undefined,
+  logger: Logger,
+): Promise<ManufacturerCsvLookup> => {
   const manufacturersCsvSource = resolveManufacturersCsvSource(args)
   logger.info(`Using manufacturers CSV feed: ${manufacturersCsvSource}`)
-
-  let manufacturersLookup: ReturnType<typeof buildManufacturersLookup>
   try {
     const manufacturersCsv = parseManufacturersCsv(
       await readCsvSource(manufacturersCsvSource),
     )
-    manufacturersLookup = buildManufacturersLookup(manufacturersCsv)
+    return buildManufacturersLookup(manufacturersCsv)
   } catch (error) {
     logger.error(
       `Failed to load manufacturers CSV from ${manufacturersCsvSource}`,
@@ -3757,26 +3623,16 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     )
     throw error
   }
-  const categoryExports = feedPaths.categoriesXmlPath
-    ? await parseHerbaticaCategoriesXmlSource(feedPaths.categoriesXmlPath)
-    : undefined
-  const buildOptions = resolveSeedBuildOptions({
-    promoRebaseDays: parsePositiveIntegerEnv(HERBATICA_PROMO_REBASE_DAYS_ENV),
-  })
+}
 
-  if (buildOptions.promoRebaseDays !== undefined) {
-    logger.info(
-      `Rebasing expired Herbatica promo windows to ${formatIsoDate(buildOptions.referenceDate)} + ${buildOptions.promoRebaseDays} days`,
-    )
-  }
+const loadCategoryExports = async (
+  categoriesXmlPath: string | undefined,
+): Promise<HerbaticaCategoryExport[] | undefined> =>
+  categoriesXmlPath === undefined || categoriesXmlPath === ""
+    ? undefined
+    : await parseHerbaticaCategoriesXmlSource(categoriesXmlPath)
 
-  const parsed = buildSeedInputFromXml(
-    xml,
-    categoryExports,
-    buildOptions,
-    manufacturersLookup,
-  )
-
+const logParsedBuildResult = (logger: Logger, parsed: BuildResult) => {
   logger.info(
     `Parsed feed: ${parsed.stats.shopItems} SHOPITEMs, ${parsed.stats.categories} categories, ${parsed.stats.products} products, ${parsed.stats.variants} variants`,
   )
@@ -3792,12 +3648,16 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
   for (const warning of parsed.warnings) {
     logger.warn(warning)
   }
+}
 
+const resolveRegionsInput = async (
+  container: ExecArgs["container"],
+  logger: Logger,
+): Promise<SeedDatabaseWorkflowInput["regions"]> => {
   const regionService = container.resolve<IRegionModuleService>(Modules.REGION)
   const existingRegions = await regionService.listRegions({})
   const defaultRegions: SeedDatabaseWorkflowInput["regions"] =
     HERBATICA_DEFAULT_REGIONS
-
   const regionsInput: SeedDatabaseWorkflowInput["regions"] =
     existingRegions.length === 0
       ? defaultRegions
@@ -3806,13 +3666,18 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
           isTaxInclusive: true,
           name: region.name,
         }))
-
   if (existingRegions.length > 0) {
     logger.info(
       `Using existing regions (${regionsInput.map((region) => region.name).join(", ")}) to avoid country assignment conflicts`,
     )
   }
+  return regionsInput
+}
 
+const resolveFulfillmentOptions = async (
+  container: ExecArgs["container"],
+  logger: Logger,
+): Promise<Omit<HerbaticaWorkflowInputOptions, "regionsInput">> => {
   const fulfillmentService = container.resolve<IFulfillmentModuleService>(
     Modules.FULFILLMENT,
   )
@@ -3825,7 +3690,6 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
   )
   const selectedFulfillmentSet =
     existingFulfillmentSetWithEurope ?? existingFulfillmentSets[0]
-
   const fulfillmentSetName =
     selectedFulfillmentSet?.name ?? HERBATICA_DEFAULT_FULFILLMENT_SET.name
   const fulfillmentSetType =
@@ -3834,42 +3698,70 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     selectedFulfillmentSet?.service_zones?.find((zone) => zone.name)?.name ??
     selectedFulfillmentSet?.service_zones?.[0]?.name ??
     HERBATICA_DEFAULT_FULFILLMENT_SET.serviceZoneName
-
   if (selectedFulfillmentSet) {
     logger.info(
       `Using existing fulfillment set "${fulfillmentSetName}" and service zone "${serviceZoneName}" to avoid duplicate service zone conflicts`,
     )
   }
-
-  const input = buildHerbaticaSeedWorkflowInput(parsed, {
+  return {
     fulfillmentSetName,
     fulfillmentSetType,
-    regionsInput,
     serviceZoneName,
-  })
+  }
+}
 
+// This seed script is intentionally linear and only runs in dev/seed flows.
+const herbaticaSeed = async ({ container, args }: ExecArgs) => {
+  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+  logger.info("Starting Herbatica seed from XML feed...")
+  const feedPaths = resolveFeedPaths(args)
+  logFeedPaths(logger, feedPaths)
+  const xml = await readXmlSource(feedPaths.productsXmlPath)
+  const manufacturersLookup = await loadManufacturersLookup(args, logger)
+  const categoryExports = await loadCategoryExports(feedPaths.categoriesXmlPath)
+  const buildOptions = resolveSeedBuildOptions({
+    promoRebaseDays: parsePositiveIntegerEnv(HERBATICA_PROMO_REBASE_DAYS_ENV),
+  })
+  if (buildOptions.promoRebaseDays !== undefined) {
+    logger.info(
+      `Rebasing expired Herbatica promo windows to ${formatIsoDate(buildOptions.referenceDate)} + ${buildOptions.promoRebaseDays} days`,
+    )
+  }
+  const parsed = buildSeedInputFromXml(
+    xml,
+    categoryExports,
+    buildOptions,
+    manufacturersLookup,
+  )
+  logParsedBuildResult(logger, parsed)
+  const regionsInput = await resolveRegionsInput(container, logger)
+  const fulfillmentOptions = await resolveFulfillmentOptions(container, logger)
+  const input = buildHerbaticaSeedWorkflowInput(parsed, {
+    ...fulfillmentOptions,
+    regionsInput,
+  })
   logger.info("Running Herbatica seed workflow...")
   const { result: seedResult } = await seedShoptetImportWorkflow(container).run(
     {
       input,
     },
   )
-
-  if (feedPaths.reviewsXmlPath) {
+  if (
+    feedPaths.reviewsXmlPath !== undefined &&
+    feedPaths.reviewsXmlPath !== ""
+  ) {
     await importHerbaticaReviews({
       container,
       logger,
       xmlPath: feedPaths.reviewsXmlPath,
     })
   }
-
   logger.info("Herbatica seed completed successfully")
   const eanReconciliation = seedResult.reconcileProductVariantEansResult
   const eanWarnings = eanReconciliation.issues.length
   logger.info(
     `Summary: products=${parsed.stats.products}, variants=${parsed.stats.variants}, categories=${parsed.stats.categories}, draft_products=${parsed.stats.hiddenProducts}, stock_locations=${parsed.stats.stockLocations}, price_lists=${parsed.stats.overridePriceLists + parsed.stats.salePriceLists}, price_list_prices=${parsed.stats.priceListPrices}, warnings=${parsed.stats.warnings + eanWarnings}, ean_accepted=${eanReconciliation.summary.accepted}, ean_retained=${eanReconciliation.summary.retained}, ean_transferred=${eanReconciliation.summary.transferred}, ean_suppressed=${eanReconciliation.summary.suppressed}, ean_collisions=${eanReconciliation.summary.collisions}`,
   )
-
   for (const issue of eanReconciliation.issues.slice(0, EAN_ISSUE_LOG_LIMIT)) {
     const owner = `${issue.owner.product_handle}/${issue.owner.sku}`
     const previousOwner = issue.previous_owner
@@ -3888,3 +3780,5 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     )
   }
 }
+
+export default herbaticaSeed
