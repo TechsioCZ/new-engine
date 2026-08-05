@@ -14,6 +14,7 @@ export type OrderDashboardAdminI18nNamespace = {
     | "packetaEligible"
     | "packetaLabels"
     | "selected"
+    | "sorting"
     | "targetStatusPlaceholder",
     string
   >
@@ -49,7 +50,7 @@ export type OrderDashboardAdminI18nNamespace = {
     | "total",
     string
   >
-  filters: Record<"businessStatus" | "carrier", string>
+  filters: Record<"allCarriers", string>
   fulfillmentStatus: Record<
     | "canceled"
     | "delivered"
@@ -136,6 +137,18 @@ export type OrderDashboardAdminI18nNamespace = {
     "description" | "position" | "print" | "selected" | "title",
     string
   >
+  pagination: Record<
+    | "next"
+    | "of"
+    | "pages_few"
+    | "pages_one"
+    | "pages_other"
+    | "prev"
+    | "results_few"
+    | "results_one"
+    | "results_other",
+    string
+  >
   paymentMethod: Record<
     "comgate" | "gopay" | "manual" | "qr" | "stripe",
     string
@@ -155,6 +168,7 @@ export type OrderDashboardAdminI18nNamespace = {
   >
   queues: Record<"action_required" | "all", string>
   sidebar: Record<"actionRequiredOrders", string>
+  sorting: Record<"ascending" | "descending", string>
   statuses: Record<
     | "awaiting_payment"
     | "canceled"
@@ -170,7 +184,6 @@ export type OrderDashboardAdminI18nNamespace = {
     | "blockedOrdersTitle"
     | "carrierFilterLimit"
     | "empty"
-    | "filterTooltip"
     | "loading",
     string
   >
@@ -243,6 +256,7 @@ const englishOrderDashboardAdminI18n = {
     packetaEligible: "Printable Packeta labels: {{count}} of {{selectedCount}}",
     packetaLabels: "Packeta labels",
     selected: "{{count}} selected",
+    sorting: "Sort orders",
     targetStatusPlaceholder: "Order status",
   },
   carriers: {
@@ -280,8 +294,7 @@ const englishOrderDashboardAdminI18n = {
     total: "Total",
   },
   filters: {
-    businessStatus: "Status",
-    carrier: "Carrier",
+    allCarriers: "All carriers",
   },
   fulfillmentStatus: {
     canceled: "Canceled",
@@ -380,6 +393,17 @@ const englishOrderDashboardAdminI18n = {
     selected: "Labels to print: {{count}}",
     title: "Packeta label start position",
   },
+  pagination: {
+    next: "Next",
+    of: "of",
+    pages_few: "pages",
+    pages_one: "page",
+    pages_other: "pages",
+    prev: "Previous",
+    results_few: "results",
+    results_one: "result",
+    results_other: "results",
+  },
   paymentMethod: {
     comgate: "Comgate",
     gopay: "GoPay",
@@ -407,6 +431,10 @@ const englishOrderDashboardAdminI18n = {
     actionRequiredOrders:
       "Orders awaiting admin confirmation without captured payment: {{count}}",
   },
+  sorting: {
+    ascending: "Ascending",
+    descending: "Descending",
+  },
   statuses: {
     awaiting_payment: "Awaiting payment",
     canceled: "Canceled",
@@ -422,7 +450,6 @@ const englishOrderDashboardAdminI18n = {
     carrierFilterLimit:
       "The carrier filter scanned {{count}} orders. The result may be incomplete.",
     empty: "No orders found.",
-    filterTooltip: "Add filter",
     loading: "Loading orders...",
   },
   tableMessages: {
@@ -500,6 +527,7 @@ const czechOrderDashboardAdminI18n = {
     packetaEligible: "Štítky Packeta k tisku: {{count}} z {{selectedCount}}",
     packetaLabels: "Štítky Packeta",
     selected: "{{count}} vybráno",
+    sorting: "Seřadit objednávky",
     targetStatusPlaceholder: "Stav objednávky",
   },
   carriers: {
@@ -537,8 +565,7 @@ const czechOrderDashboardAdminI18n = {
     total: "Celkem",
   },
   filters: {
-    businessStatus: "Stav",
-    carrier: "Dopravce",
+    allCarriers: "Všichni dopravci",
   },
   fulfillmentStatus: {
     canceled: "Zrušeno",
@@ -637,6 +664,17 @@ const czechOrderDashboardAdminI18n = {
     selected: "Štítky k tisku: {{count}}",
     title: "Počáteční pozice štítku Packeta",
   },
+  pagination: {
+    next: "Další",
+    of: "z",
+    pages_few: "stránek",
+    pages_one: "stránky",
+    pages_other: "stránek",
+    prev: "Předchozí",
+    results_few: "výsledků",
+    results_one: "výsledku",
+    results_other: "výsledků",
+  },
   paymentMethod: {
     comgate: "Comgate",
     gopay: "GoPay",
@@ -664,6 +702,10 @@ const czechOrderDashboardAdminI18n = {
     actionRequiredOrders:
       "Objednávky čekající na potvrzení bez zaúčtované platby: {{count}}",
   },
+  sorting: {
+    ascending: "Vzestupně",
+    descending: "Sestupně",
+  },
   statuses: {
     awaiting_payment: "Čeká na platbu",
     canceled: "Zrušeno",
@@ -679,7 +721,6 @@ const czechOrderDashboardAdminI18n = {
     carrierFilterLimit:
       "Při filtrování podle dopravce bylo zkontrolováno {{count}} objednávek. Výsledek nemusí být kompletní.",
     empty: "Nebyly nalezeny žádné objednávky.",
-    filterTooltip: "Přidat filtr",
     loading: "Načítám objednávky...",
   },
   tableMessages: {

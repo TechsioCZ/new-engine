@@ -11,6 +11,7 @@ import type {
   OrderDashboardOrdersResponse,
   OrderDashboardPacketaEligibilityOrder,
   OrderDashboardShippingOption,
+  OrderDashboardSortOrder,
   OrderDashboardStatusResponse,
   OrderDashboardStockLocation,
   OrderDashboardSummaryResponse,
@@ -51,6 +52,7 @@ type ListOrderDashboardOrdersInput = {
   carrier?: OrderDashboardCarrierKey
   limit: number
   offset: number
+  order: OrderDashboardSortOrder
 }
 
 export function listOrderDashboardOrders({
@@ -59,6 +61,7 @@ export function listOrderDashboardOrders({
   carrier,
   limit,
   offset,
+  order,
 }: ListOrderDashboardOrdersInput) {
   return sdk.client.fetch<OrderDashboardOrdersResponse>(
     "/admin/order-expedition/orders",
@@ -69,6 +72,7 @@ export function listOrderDashboardOrders({
         carrier,
         limit,
         offset,
+        order,
       },
     }
   )

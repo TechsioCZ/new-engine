@@ -5,11 +5,10 @@ import {
   Button,
   Container,
   createDataTableColumnHelper,
-  createDataTableFilterHelper,
   DataTable,
-  type DataTableFilteringState,
   type DataTablePaginationState,
   type DataTableRowSelectionState,
+  type DataTableSortingState,
   Heading,
   Prompt,
   Select,
@@ -43,7 +42,6 @@ import {
   formatPaymentStatusLabel,
   getCarrierLabel,
   getOrderDashboardTransitionBlockReason,
-  isOrderDashboardBusinessStatusId,
   isOrderDashboardCarrierKey,
   isOrderDashboardTargetStatus,
 } from "./format"
@@ -54,8 +52,6 @@ import {
   preparePacketaLabelDownload,
 } from "./packeta-labels"
 import {
-  ORDER_DASHBOARD_BUSINESS_STATUS_GROUP_IDS,
-  ORDER_DASHBOARD_BUSINESS_STATUS_IDS,
   ORDER_DASHBOARD_CARRIER_KEYS,
   ORDER_DASHBOARD_MANUAL_STATUS_IDS,
   ORDER_DASHBOARD_MAX_FULFILLMENT_IDS,
@@ -65,10 +61,13 @@ import {
   type OrderDashboardBlockingOrder,
   type OrderDashboardBusinessStatusGroupId,
   type OrderDashboardBusinessStatusId,
+  type OrderDashboardCarrierKey,
   type OrderDashboardLabelFormat,
   type OrderDashboardManualStatusId,
   type OrderDashboardOrder,
   type OrderDashboardQueueId,
+  type OrderDashboardSortField,
+  type OrderDashboardSortOrder,
   type OrderDashboardSummaryResponse,
   type OrderDashboardTargetStatus,
 } from "./types"
@@ -76,12 +75,22 @@ import {
 const ORDER_DASHBOARD_QUERY_KEY = "order-dashboard-orders"
 const ORDER_DASHBOARD_SUMMARY_QUERY_KEY = "order-dashboard-summary"
 const PACKETA_ELIGIBILITY_QUERY_KEY = "order-dashboard-packeta-eligibility"
-const CARRIER_FILTER_ID = "carrier.value"
-const BUSINESS_STATUS_GROUP_FILTER_ID = "business_status.group"
-const BUSINESS_STATUS_FILTER_ID = "business_status.id"
+const ORDER_DASHBOARD_SORT_FIELD_BY_COLUMN_ID = {
+  business_status: "business_status",
+  carrier: "carrier",
+  created_at: "created_at",
+  customer: "customer",
+  fulfillment_status: "fulfillment",
+  order_display_id: "display_id",
+  payment_status: "payment",
+  total: "total",
+} as const satisfies Record<string, OrderDashboardSortField>
+const DEFAULT_ORDER_DASHBOARD_SORTING = {
+  desc: true,
+  id: "created_at",
+} satisfies DataTableSortingState
 
 const columnHelper = createDataTableColumnHelper<OrderDashboardOrder>()
-const filterHelper = createDataTableFilterHelper<OrderDashboardOrder>()
 
 type ManualStatusValue = OrderDashboardManualStatusId | "clear"
 type ManualStatusTarget = OrderDashboardManualStatusId | null
@@ -128,7 +137,14 @@ const OrderDashboardPage = () => {
     pageIndex: 0,
     pageSize: ORDER_DASHBOARD_PAGE_SIZE,
   })
-  const [filtering, setFiltering] = useState<DataTableFilteringState>({})
+  const [carrierFilter, setCarrierFilter] = useState<
+    OrderDashboardCarrierKey | "all"
+  >("all")
+  const [activeQueueId, setActiveQueueId] =
+    useState<OrderDashboardQueueId>("all")
+  const [sorting, setSorting] = useState<DataTableSortingState>(
+    DEFAULT_ORDER_DASHBOARD_SORTING
+  )
   const [rowSelection, setRowSelection] = useState<DataTableRowSelectionState>(
     {}
   )
@@ -162,28 +178,32 @@ const OrderDashboardPage = () => {
   >([])
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null)
 
-  const carrierFilter = getCarrierFilter(filtering)
-  const businessStatusGroupFilter = getBusinessStatusGroupFilter(filtering)
-  const businessStatusFilter = getBusinessStatusFilter(filtering)
+  const carrier = carrierFilter === "all" ? undefined : carrierFilter
+  const businessStatusGroupFilter =
+    getBusinessStatusGroupFilter(activeQueueId)
+  const businessStatusFilter = getBusinessStatusFilter(activeQueueId)
   const limit = pagination.pageSize
   const offset = pagination.pageIndex * limit
+  const order = getOrderDashboardSortOrder(sorting)
 
   const ordersQuery = useQuery({
     queryFn: () =>
       listOrderDashboardOrders({
         businessStatusGroup: businessStatusGroupFilter,
         businessStatus: businessStatusFilter,
-        carrier: carrierFilter,
+        carrier,
         limit,
         offset,
+        order,
       }),
     queryKey: [
       ORDER_DASHBOARD_QUERY_KEY,
-      carrierFilter,
+      carrier,
       businessStatusGroupFilter,
       businessStatusFilter,
       limit,
       offset,
+      order,
     ],
   })
   const summaryQuery = useQuery({
@@ -192,6 +212,8 @@ const OrderDashboardPage = () => {
   })
 
   const orders = ordersQuery.data?.orders ?? []
+  const orderCount = ordersQuery.data?.count ?? 0
+  const orderPageCount = Math.max(Math.ceil(orderCount / limit), 1)
   const selectedOrders = Array.from(selectedOrdersById.values())
   const selectedOrderIds = Array.from(selectedOrdersById.keys())
   const selectedOrderIdSet = new Set(selectedOrderIds)
@@ -236,32 +258,16 @@ const OrderDashboardPage = () => {
     manualStatusTarget === undefined
       ? ""
       : getManualStatusLabel(manualStatusTarget, t)
-  const activeQueueId: OrderDashboardQueueId =
-    businessStatusGroupFilter ?? businessStatusFilter ?? "all"
   const queueTabs = ORDER_DASHBOARD_QUEUE_IDS.map((queueId) => ({
     count: getQueueCount(queueId, summaryQuery.data),
     id: queueId,
     label: getQueueLabel(queueId, t),
   }))
 
-  const filters = [
-    filterHelper.accessor(CARRIER_FILTER_ID, {
-      label: t("filters.carrier"),
-      options: ORDER_DASHBOARD_CARRIER_KEYS.map((carrier) => ({
-        label: t(`carriers.${carrier}`),
-        value: carrier,
-      })),
-      type: "radio",
-    }),
-    filterHelper.accessor(BUSINESS_STATUS_FILTER_ID, {
-      label: t("filters.businessStatus"),
-      options: ORDER_DASHBOARD_BUSINESS_STATUS_IDS.map((status) => ({
-        label: t(`statuses.${status}`),
-        value: status,
-      })),
-      type: "radio",
-    }),
-  ]
+  const sortableColumnLabels = {
+    sortAscLabel: t("sorting.ascending"),
+    sortDescLabel: t("sorting.descending"),
+  }
 
   const columns = [
     columnHelper.select(),
@@ -274,7 +280,10 @@ const OrderDashboardPage = () => {
           {row.original.order_display_id}
         </Link>
       ),
+      enableSorting: true,
       header: t("columns.order"),
+      sortLabel: t("columns.order"),
+      ...sortableColumnLabels,
     }),
     columnHelper.accessor("created_at", {
       cell: ({ getValue }) => (
@@ -282,7 +291,10 @@ const OrderDashboardPage = () => {
           {formatOrderDate(getValue(), locale)}
         </Text>
       ),
+      enableSorting: true,
       header: t("columns.created"),
+      sortLabel: t("columns.created"),
+      ...sortableColumnLabels,
     }),
     columnHelper.accessor("customer", {
       cell: ({ row }) => (
@@ -301,7 +313,10 @@ const OrderDashboardPage = () => {
           ) : null}
         </div>
       ),
+      enableSorting: true,
       header: t("columns.customer"),
+      sortLabel: t("columns.customer"),
+      ...sortableColumnLabels,
     }),
     columnHelper.accessor("carrier.value", {
       cell: ({ row }) => (
@@ -309,7 +324,11 @@ const OrderDashboardPage = () => {
           {getCarrierLabel(row.original, t)}
         </Text>
       ),
+      enableSorting: true,
       header: t("columns.carrier"),
+      id: "carrier",
+      sortLabel: t("columns.carrier"),
+      ...sortableColumnLabels,
     }),
     columnHelper.accessor("delivery_address", {
       cell: ({ row }) => {
@@ -336,7 +355,11 @@ const OrderDashboardPage = () => {
           {t(row.original.business_status.translation_key)}
         </Badge>
       ),
+      enableSorting: true,
       header: t("columns.businessStatus"),
+      id: "business_status",
+      sortLabel: t("columns.businessStatus"),
+      ...sortableColumnLabels,
     }),
     columnHelper.accessor("fulfillment_status", {
       cell: ({ row }) => {
@@ -348,7 +371,10 @@ const OrderDashboardPage = () => {
           </StatusBadge>
         )
       },
+      enableSorting: true,
       header: t("columns.fulfillment"),
+      sortLabel: t("columns.fulfillment"),
+      ...sortableColumnLabels,
     }),
     columnHelper.display({
       cell: ({ row }) => (
@@ -371,7 +397,10 @@ const OrderDashboardPage = () => {
           </Text>
         </div>
       ),
+      enableSorting: true,
       header: t("columns.payment"),
+      sortLabel: t("columns.payment"),
+      ...sortableColumnLabels,
     }),
     columnHelper.accessor("total", {
       cell: ({ row }) => (
@@ -379,8 +408,11 @@ const OrderDashboardPage = () => {
           {formatOrderTotal(row.original, locale)}
         </Text>
       ),
+      enableSorting: true,
       header: t("columns.total"),
       headerAlign: "right",
+      sortLabel: t("columns.total"),
+      ...sortableColumnLabels,
     }),
     columnHelper.display({
       cell: ({ row }) => (
@@ -447,19 +479,6 @@ const OrderDashboardPage = () => {
       state: columnVisibility,
     },
     data: orders,
-    filters,
-    filtering: {
-      onFilteringChange: (nextFiltering) => {
-        setFiltering(normalizeFiltering(nextFiltering))
-        setPagination((currentPagination) => ({
-          ...currentPagination,
-          pageIndex: 0,
-        }))
-        clearSelection()
-        setBlockingOrders([])
-      },
-      state: filtering,
-    },
     getRowId: (order) => order.id,
     isLoading: ordersQuery.isLoading,
     pagination: {
@@ -470,10 +489,23 @@ const OrderDashboardPage = () => {
       },
       state: pagination,
     },
-    rowCount: ordersQuery.data?.count ?? 0,
+    rowCount: orderCount,
     rowSelection: {
       onRowSelectionChange: handleRowSelectionChange,
       state: rowSelection,
+    },
+    sorting: {
+      onSortingChange: (nextSorting) => {
+        // Medusa UI emits undefined when TanStack clears its single sort.
+        setSorting(nextSorting ?? DEFAULT_ORDER_DASHBOARD_SORTING)
+        setPagination((currentPagination) => ({
+          ...currentPagination,
+          pageIndex: 0,
+        }))
+        clearSelection()
+        setBlockingOrders([])
+      },
+      state: sorting,
     },
   })
 
@@ -728,9 +760,27 @@ const OrderDashboardPage = () => {
       return
     }
 
-    setFiltering((currentFiltering) =>
-      getFilteringForQueue(currentFiltering, value)
-    )
+    setActiveQueueId(value)
+    setPagination((currentPagination) => ({
+      ...currentPagination,
+      pageIndex: 0,
+    }))
+    clearSelection()
+    setBlockingOrders([])
+  }
+
+  const handleCarrierFilterChange = (value: string) => {
+    let nextCarrierFilter: OrderDashboardCarrierKey | "all"
+
+    if (value === "all") {
+      nextCarrierFilter = value
+    } else if (isOrderDashboardCarrierKey(value)) {
+      nextCarrierFilter = value
+    } else {
+      return
+    }
+
+    setCarrierFilter(nextCarrierFilter)
     setPagination((currentPagination) => ({
       ...currentPagination,
       pageIndex: 0,
@@ -1200,6 +1250,25 @@ const OrderDashboardPage = () => {
       ) : (
         <DataTable instance={table}>
           <DataTable.FilterBar alwaysShow>
+            <Select
+              onValueChange={handleCarrierFilterChange}
+              value={carrierFilter}
+            >
+              <Select.Trigger className="w-[180px]">
+                <Select.Value />
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="all">
+                  {t("filters.allCarriers")}
+                </Select.Item>
+                {ORDER_DASHBOARD_CARRIER_KEYS.map((carrierKey) => (
+                  <Select.Item key={carrierKey} value={carrierKey}>
+                    {t(`carriers.${carrierKey}`)}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select>
+            <DataTable.SortingMenu tooltip={t("actions.sorting")} />
             <DataTable.ColumnVisibilityMenu tooltip={t("actions.columns")} />
           </DataTable.FilterBar>
           <DataTable.Table
@@ -1212,7 +1281,15 @@ const OrderDashboardPage = () => {
               },
             }}
           />
-          <DataTable.Pagination />
+          <DataTable.Pagination
+            translations={{
+              next: t("pagination.next"),
+              of: t("pagination.of"),
+              pages: t("pagination.pages", { count: orderPageCount }),
+              prev: t("pagination.prev"),
+              results: t("pagination.results", { count: orderCount }),
+            }}
+          />
         </DataTable>
       )}
     </Container>
@@ -1677,23 +1754,36 @@ function formatOrderDeliveryAddress(address: string[]) {
   return address.filter(Boolean).join(", ") || "-"
 }
 
-function getCarrierFilter(filtering: DataTableFilteringState) {
-  const value = filtering[CARRIER_FILTER_ID]
-  return isOrderDashboardCarrierKey(value) ? value : undefined
+function getOrderDashboardSortOrder(
+  sorting: DataTableSortingState | null | undefined
+): OrderDashboardSortOrder {
+  if (!sorting) {
+    return "-created_at"
+  }
+
+  const field = ORDER_DASHBOARD_SORT_FIELD_BY_COLUMN_ID[
+    sorting.id as keyof typeof ORDER_DASHBOARD_SORT_FIELD_BY_COLUMN_ID
+  ]
+
+  if (!field) {
+    return "-created_at"
+  }
+
+  return sorting.desc ? `-${field}` : field
 }
 
 function getBusinessStatusFilter(
-  filtering: DataTableFilteringState
+  queueId: OrderDashboardQueueId
 ): OrderDashboardBusinessStatusId | undefined {
-  const value = filtering[BUSINESS_STATUS_FILTER_ID]
-  return isOrderDashboardBusinessStatusId(value) ? value : undefined
+  return queueId === "all" || queueId === "action_required"
+    ? undefined
+    : queueId
 }
 
 function getBusinessStatusGroupFilter(
-  filtering: DataTableFilteringState
+  queueId: OrderDashboardQueueId
 ): OrderDashboardBusinessStatusGroupId | undefined {
-  const value = filtering[BUSINESS_STATUS_GROUP_FILTER_ID]
-  return isOrderDashboardBusinessStatusGroupId(value) ? value : undefined
+  return queueId === "action_required" ? queueId : undefined
 }
 
 function isManualStatus(value: unknown): value is OrderDashboardManualStatusId {
@@ -1705,17 +1795,6 @@ function isManualStatus(value: unknown): value is OrderDashboardManualStatusId {
   )
 }
 
-function isOrderDashboardBusinessStatusGroupId(
-  value: unknown
-): value is OrderDashboardBusinessStatusGroupId {
-  return (
-    typeof value === "string" &&
-    ORDER_DASHBOARD_BUSINESS_STATUS_GROUP_IDS.includes(
-      value as OrderDashboardBusinessStatusGroupId
-    )
-  )
-}
-
 function isOrderDashboardQueueId(
   value: unknown
 ): value is OrderDashboardQueueId {
@@ -1723,38 +1802,6 @@ function isOrderDashboardQueueId(
     typeof value === "string" &&
     ORDER_DASHBOARD_QUEUE_IDS.includes(value as OrderDashboardQueueId)
   )
-}
-
-function normalizeFiltering(filtering: DataTableFilteringState) {
-  const nextFiltering = { ...filtering }
-
-  if (nextFiltering[BUSINESS_STATUS_FILTER_ID]) {
-    delete nextFiltering[BUSINESS_STATUS_GROUP_FILTER_ID]
-  }
-
-  return nextFiltering
-}
-
-function getFilteringForQueue(
-  filtering: DataTableFilteringState,
-  queueId: OrderDashboardQueueId
-) {
-  const nextFiltering = { ...filtering }
-
-  delete nextFiltering[BUSINESS_STATUS_GROUP_FILTER_ID]
-  delete nextFiltering[BUSINESS_STATUS_FILTER_ID]
-
-  if (queueId === "all") {
-    return nextFiltering
-  }
-
-  if (queueId === "action_required") {
-    nextFiltering[BUSINESS_STATUS_GROUP_FILTER_ID] = queueId
-    return nextFiltering
-  }
-
-  nextFiltering[BUSINESS_STATUS_FILTER_ID] = queueId
-  return nextFiltering
 }
 
 function getQueueCount(

@@ -7,6 +7,7 @@ import {
   ORDER_EXPEDITION_CARRIER_KEYS,
   ORDER_EXPEDITION_MAX_LIMIT,
   ORDER_EXPEDITION_MAX_ORDER_IDS,
+  ORDER_EXPEDITION_SORT_QUERY_VALUES,
   ORDER_EXPEDITION_TARGET_STATUSES,
 } from "../../../utils/order-expedition"
 
@@ -20,12 +21,18 @@ const OptionalLimitQuerySchema = z.preprocess(
   z.coerce.number().int().min(1).max(ORDER_EXPEDITION_MAX_LIMIT).optional()
 )
 
+const OptionalOrderQuerySchema = z.preprocess(
+  (value) => (Array.isArray(value) ? value[0] : value),
+  z.enum(ORDER_EXPEDITION_SORT_QUERY_VALUES).optional()
+)
+
 export const GetAdminOrderExpeditionOrdersSchema = z.object({
   business_status_group: z.enum(ORDER_BUSINESS_STATUS_GROUP_IDS).optional(),
   business_status: z.enum(ORDER_BUSINESS_STATUS_IDS).optional(),
   carrier: z.enum(ORDER_EXPEDITION_CARRIER_KEYS).optional(),
   limit: OptionalLimitQuerySchema,
   offset: OptionalNonNegativeIntQuerySchema,
+  order: OptionalOrderQuerySchema,
 })
 
 export const PostAdminOrderExpeditionPdfSchema = z.object({

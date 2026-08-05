@@ -38,6 +38,8 @@ export const ORDER_BUSINESS_STATUS_ORDER_FIELDS = [
   "fulfillments.shipped_at",
   "fulfillments.delivered_at",
   "fulfillments.canceled_at",
+  // Ensures Medusa hydrates the versioned order-shipping relation correctly.
+  "shipping_methods.id",
 ]
 
 export async function fetchOrderBusinessStatusOrder(query: Query, id: string) {

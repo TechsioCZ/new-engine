@@ -47,6 +47,17 @@ export const ORDER_DASHBOARD_TARGET_STATUSES = [
   "requires_action",
 ] as const
 
+export const ORDER_DASHBOARD_SORT_FIELDS = [
+  "created_at",
+  "display_id",
+  "customer",
+  "carrier",
+  "business_status",
+  "fulfillment",
+  "payment",
+  "total",
+] as const
+
 export type OrderDashboardCarrierKey =
   (typeof ORDER_DASHBOARD_CARRIER_KEYS)[number]
 
@@ -63,6 +74,13 @@ export type OrderDashboardManualStatusId =
 
 export type OrderDashboardTargetStatus =
   (typeof ORDER_DASHBOARD_TARGET_STATUSES)[number]
+
+export type OrderDashboardSortField =
+  (typeof ORDER_DASHBOARD_SORT_FIELDS)[number]
+
+export type OrderDashboardSortOrder =
+  | OrderDashboardSortField
+  | `-${OrderDashboardSortField}`
 
 export type OrderDashboardLabelFormat = "A6" | "A7"
 
@@ -200,6 +218,7 @@ export type OrderDashboardOrdersResponse = {
   scanned_count: number | null
   limit: number
   offset: number
+  order: OrderDashboardSortOrder
   carrier: OrderDashboardCarrierKey | null
   business_status_group: OrderDashboardBusinessStatusGroupId | null
   business_status: OrderDashboardBusinessStatusId | null

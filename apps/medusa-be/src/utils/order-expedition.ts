@@ -25,6 +25,34 @@ export const ORDER_EXPEDITION_TARGET_STATUSES = [
   "canceled",
   "requires_action",
 ] as const
+export const ORDER_EXPEDITION_SORT_FIELDS = [
+  "created_at",
+  "display_id",
+  "customer",
+  "carrier",
+  "business_status",
+  "fulfillment",
+  "payment",
+  "total",
+] as const
+export const ORDER_EXPEDITION_SORT_QUERY_VALUES = [
+  "created_at",
+  "-created_at",
+  "display_id",
+  "-display_id",
+  "customer",
+  "-customer",
+  "carrier",
+  "-carrier",
+  "business_status",
+  "-business_status",
+  "fulfillment",
+  "-fulfillment",
+  "payment",
+  "-payment",
+  "total",
+  "-total",
+] as const
 
 const ORDER_EXPEDITION_ALLOWED_STATUS_TRANSITIONS = {
   archived: [],
@@ -43,6 +71,12 @@ export type OrderExpeditionCarrierKey =
 
 export type OrderExpeditionTargetStatus =
   (typeof ORDER_EXPEDITION_TARGET_STATUSES)[number]
+
+export type OrderExpeditionSortField =
+  (typeof ORDER_EXPEDITION_SORT_FIELDS)[number]
+
+export type OrderExpeditionSortQuery =
+  (typeof ORDER_EXPEDITION_SORT_QUERY_VALUES)[number]
 
 export type OrderExpeditionCarrierOption = {
   label: string
@@ -285,6 +319,36 @@ export const ORDER_EXPEDITION_ORDER_FIELDS = [
   "payment_collections.payments.provider_id",
 ]
 
+export const ORDER_EXPEDITION_LIST_FIELDS = [
+  "id",
+  "created_at",
+  "display_id",
+  "custom_display_id",
+  "email",
+  "status",
+  "fulfillment_status",
+  "metadata",
+  "payment_status",
+  "summary.*",
+  "total",
+  "customer.first_name",
+  "customer.last_name",
+  "customer.email",
+  "customer.company_name",
+  "shipping_address.first_name",
+  "shipping_address.last_name",
+  "shipping_address.company",
+  "shipping_methods.id",
+  "shipping_methods.name",
+  "shipping_methods.shipping_option_id",
+  "shipping_methods.data",
+  "fulfillments.canceled_at",
+  "fulfillments.delivered_at",
+  "fulfillments.shipped_at",
+  "payment_collections.status",
+  "payment_collections.payments.provider_id",
+]
+
 const CARRIER_MATCHERS: Record<
   Exclude<OrderExpeditionCarrierKey, "other">,
   { label: string; tokens: string[] }
@@ -515,6 +579,10 @@ export async function fetchOrderExpeditionOrdersByIds(
   query: Query,
   orderIds: string[]
 ) {
+  if (!orderIds.length) {
+    return []
+  }
+
   const { data } = await query.graph({
     entity: "order",
     fields: ORDER_EXPEDITION_ORDER_FIELDS,

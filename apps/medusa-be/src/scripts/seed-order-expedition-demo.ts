@@ -97,7 +97,7 @@ const PRODUCT_GROUPS = [
 
 const SIZES = ["S", "M", "L"] as const
 const COLORS = ["Black", "Olive", "Natural", "Navy"] as const
-const DEMO_ORDER_COUNT = 36
+const DEMO_ORDER_COUNT = 60
 const DEMO_ORDER_EMAIL_REGEX = /^expedition\.demo\.(\d+)@example\.test$/u
 const DEMO_ORDER_DATE_OFFSETS = [
   { daysAgo: 0, hour: 8, minute: 10 },
@@ -568,10 +568,11 @@ async function updateOrderCreatedAt(
 
 function getDemoOrderCreatedAt(index: number, now: Date) {
   const offset = pickCircular(DEMO_ORDER_DATE_OFFSETS, index)
+  const dateCycle = Math.floor(index / DEMO_ORDER_DATE_OFFSETS.length)
   const createdAt = new Date(now)
 
   createdAt.setHours(offset.hour, offset.minute, 0, 0)
-  createdAt.setDate(createdAt.getDate() - offset.daysAgo)
+  createdAt.setDate(createdAt.getDate() - offset.daysAgo - dateCycle * 365)
 
   return createdAt
 }
