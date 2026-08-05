@@ -13,81 +13,112 @@ import { queryKeys } from "@/lib/query-keys"
 
 export type Cart = HttpTypes.StoreCart | undefined
 
-interface ErrorResponse {
-  status?: number
-  message?: string
-  response?: { status?: number; data?: { message?: string } }
+const NO_CART_ERROR_MESSAGE = "No cart available"
+const UNKNOWN_ERROR_MESSAGE = "Unknown error"
+
+const readErrorStatus = (value: unknown): number | undefined => {
+  if (typeof value !== "object" || value === null || !("status" in value)) {
+    return undefined
+  }
+
+  return typeof value.status === "number" ? value.status : undefined
 }
 
 const getErrorStatus = (error: unknown): number | undefined => {
-  if (!error || typeof error !== "object") {
+  const directStatus = readErrorStatus(error)
+  if (directStatus !== undefined) {
+    return directStatus
+  }
+  if (typeof error !== "object" || error === null || !("response" in error)) {
     return undefined
   }
-  const err = error as ErrorResponse
-  return err.status ?? err.response?.status
+
+  return readErrorStatus(error.response)
+}
+
+const readErrorMessage = (value: unknown): string | undefined => {
+  if (typeof value !== "object" || value === null || !("message" in value)) {
+    return undefined
+  }
+
+  return typeof value.message === "string" ? value.message : undefined
+}
+
+const readResponseData = (value: unknown): unknown => {
+  if (typeof value !== "object" || value === null || !("data" in value)) {
+    return undefined
+  }
+
+  return value.data
+}
+
+const readErrorResponse = (value: unknown): unknown => {
+  if (typeof value !== "object" || value === null || !("response" in value)) {
+    return undefined
+  }
+
+  return value.response
 }
 
 const resolveErrorMessage = (error: unknown): string | undefined => {
-  if (!error || typeof error !== "object") {
-    return undefined
+  const directMessage = readErrorMessage(error)
+  if (directMessage !== undefined) {
+    return directMessage
   }
-  const err = error as ErrorResponse
-  return err.message ?? err.response?.data?.message
+
+  return readErrorMessage(readResponseData(readErrorResponse(error)))
 }
 
-// Cart hook using React Query
-export function useCart() {
+const useCart = () => {
   const { selectedRegion } = useRegions()
   const queryClient = useQueryClient()
   const toast = useToast()
   const [isOpen, setIsOpen] = useState(false)
 
-  // Get or create cart
   const {
     data: cart,
+    error: cartQueryError,
     isLoading,
-    error,
   } = useQuery({
-    queryKey: queryKeys.cart(
-      typeof window === "undefined"
-        ? undefined
-        : localStorage.getItem(STORAGE_KEYS.CART_ID) || undefined,
-    ),
+    ...cacheConfig.realtime,
+    enabled: selectedRegion !== null,
     queryFn: async () => {
       const cartId =
         typeof window === "undefined"
           ? null
           : localStorage.getItem(STORAGE_KEYS.CART_ID)
 
-      if (cartId) {
+      if (cartId !== null && cartId.length > 0) {
         try {
-          const { cart } = await sdk.store.cart.retrieve(cartId)
+          const { cart: retrievedCart } = await sdk.store.cart.retrieve(cartId)
 
-          // If cart region doesn't match current region, update it instead of creating new
-          if (selectedRegion && cart.region_id !== selectedRegion.id) {
-            const { cart: updatedCart } = await sdk.store.cart.update(cart.id, {
-              region_id: selectedRegion.id,
-            })
+          if (
+            selectedRegion !== null &&
+            retrievedCart.region_id !== selectedRegion.id
+          ) {
+            const { cart: updatedCart } = await sdk.store.cart.update(
+              retrievedCart.id,
+              {
+                region_id: selectedRegion.id,
+              },
+            )
             return updatedCart
           }
 
-          return cart
-        } catch (error) {
-          console.error("[Cart Hook] Failed to retrieve cart:", error)
-          // Only remove cart ID if it's a 404 (cart not found)
-          if (getErrorStatus(error) === 404) {
+          return retrievedCart
+        } catch (caughtError) {
+          console.error("[Cart Hook] Failed to retrieve cart:", caughtError)
+          if (getErrorStatus(caughtError) === 404) {
             if (typeof window !== "undefined") {
               localStorage.removeItem(STORAGE_KEYS.CART_ID)
             }
           } else {
-            // For other errors, don't remove cart ID - might be network issue
-            throw error
+            throw caughtError
           }
         }
       }
 
-      // Create new cart
-      if (!selectedRegion) {
+      if (selectedRegion === null) {
         throw new Error("No region available")
       }
 
@@ -100,19 +131,19 @@ export function useCart() {
       }
       return newCart
     },
-    enabled: !!selectedRegion,
-    ...cacheConfig.realtime, // 30s stale, 5m gc, refetch on focus
-    retry: (failureCount, error) => {
-      // Don't retry if cart was not found
-      if (getErrorStatus(error) === 404) {
+    queryKey: queryKeys.cart(
+      typeof window === "undefined"
+        ? undefined
+        : (localStorage.getItem(STORAGE_KEYS.CART_ID) ?? undefined),
+    ),
+    retry: (failureCount, retryError) => {
+      if (getErrorStatus(retryError) === 404) {
         return false
       }
-      // Retry up to 3 times for other errors
       return failureCount < 3
     },
   })
 
-  // Add item mutation
   const addItemMutation = useMutation({
     mutationFn: async ({
       variantId,
@@ -121,49 +152,50 @@ export function useCart() {
       variantId: string
       quantity?: number
     }) => {
-      if (!cart) throw new Error("No cart available")
+      if (cart === undefined) {
+        throw new Error(NO_CART_ERROR_MESSAGE)
+      }
 
       const { cart: updatedCart } = await sdk.store.cart.createLineItem(
         cart.id,
         {
-          variant_id: variantId,
           quantity,
+          variant_id: variantId,
         },
       )
       return updatedCart
     },
-    onError: async (error) => {
-      console.error("[Cart Hook] Add item error:", error)
+    onError: async (mutationError) => {
+      console.error("[Cart Hook] Add item error:", mutationError)
 
-      // Parse error message for specific inventory issue
-      const errorMessage = resolveErrorMessage(error) || "Unknown error"
+      const errorMessage =
+        resolveErrorMessage(mutationError) ?? UNKNOWN_ERROR_MESSAGE
+      const normalizedErrorMessage = errorMessage.toLowerCase()
 
-      if (errorMessage.toLowerCase().includes("inventory")) {
+      if (normalizedErrorMessage.includes("inventory")) {
         toast.create({
-          title: "Vyprodáno",
           description:
             "Tato varianta produktu není dostupná v požadovaném množství.",
+          title: "Vyprodáno",
           type: "error",
         })
       } else if (
-        errorMessage.toLowerCase().includes("cart") &&
-        errorMessage.toLowerCase().includes("not found")
+        normalizedErrorMessage.includes("cart") &&
+        normalizedErrorMessage.includes("not found")
       ) {
-        // Cart was likely deleted or expired, clear localStorage and retry
         if (typeof window !== "undefined") {
           localStorage.removeItem(STORAGE_KEYS.CART_ID)
         }
         toast.create({
-          title: "Košík vypršel",
           description: "Váš košík vypršel. Zkuste to prosím znovu.",
+          title: "Košík vypršel",
           type: "error",
         })
-        // Invalidate cart query to trigger recreation
         await queryClient.invalidateQueries({ queryKey: queryKeys.cart() })
       } else {
         toast.create({
-          title: "Nepodařilo se přidat položku",
           description: errorMessage,
+          title: "Nepodařilo se přidat položku",
           type: "error",
         })
       }
@@ -171,14 +203,13 @@ export function useCart() {
     onSuccess: (updatedCart) => {
       queryClient.setQueryData(queryKeys.cart(updatedCart.id), updatedCart)
       toast.create({
-        title: "Přidáno do košíku",
         description: "Položka byla přidána do vašeho košíku",
+        title: "Přidáno do košíku",
         type: "success",
       })
     },
   })
 
-  // Update quantity mutation
   const updateQuantityMutation = useMutation({
     mutationFn: async ({
       lineItemId,
@@ -187,7 +218,9 @@ export function useCart() {
       lineItemId: string
       quantity: number
     }) => {
-      if (!cart) throw new Error("No cart available")
+      if (cart === undefined) {
+        throw new Error(NO_CART_ERROR_MESSAGE)
+      }
 
       if (quantity <= 0) {
         await sdk.store.cart.deleteLineItem(cart.id, lineItemId)
@@ -202,10 +235,11 @@ export function useCart() {
       )
       return updatedCart
     },
-    onError: (error: Error) => {
+    onError: (mutationError) => {
       toast.create({
+        description:
+          resolveErrorMessage(mutationError) ?? UNKNOWN_ERROR_MESSAGE,
         title: "Nepodařilo se aktualizovat množství",
-        description: error.message,
         type: "error",
       })
     },
@@ -214,43 +248,45 @@ export function useCart() {
     },
   })
 
-  // Remove item mutation
   const removeItemMutation = useMutation({
     mutationFn: async (lineItemId: string) => {
-      if (!cart) throw new Error("No cart available")
+      if (cart === undefined) {
+        throw new Error(NO_CART_ERROR_MESSAGE)
+      }
 
       await sdk.store.cart.deleteLineItem(cart.id, lineItemId)
       const { cart: updatedCart } = await sdk.store.cart.retrieve(cart.id)
       return updatedCart
     },
-    onError: (error: Error) => {
+    onError: (mutationError) => {
       toast.create({
+        description:
+          resolveErrorMessage(mutationError) ?? UNKNOWN_ERROR_MESSAGE,
         title: "Nepodařilo se odebrat položku",
-        description: error.message,
         type: "error",
       })
     },
     onSuccess: (updatedCart) => {
       queryClient.setQueryData(queryKeys.cart(updatedCart.id), updatedCart)
       toast.create({
-        title: "Odebráno z košíku",
         description: "Položka byla odebrána z vašeho košíku",
+        title: "Odebráno z košíku",
         type: "success",
       })
     },
   })
 
-  // Clear cart mutation
   const clearCartMutation = useMutation({
     mutationFn: async () => {
-      if (!cart) {
-        throw new Error("No cart available")
+      if (cart === undefined) {
+        throw new Error(NO_CART_ERROR_MESSAGE)
       }
 
-      // Remove all items
-      for (const item of cart.items || []) {
-        await sdk.store.cart.deleteLineItem(cart.id, item.id)
-      }
+      await Promise.all(
+        (cart.items ?? []).map(
+          async (item) => await sdk.store.cart.deleteLineItem(cart.id, item.id),
+        ),
+      )
 
       const { cart: updatedCart } = await sdk.store.cart.retrieve(cart.id)
       return updatedCart
@@ -265,87 +301,87 @@ export function useCart() {
     },
   })
 
-  // Apply discount mutation
   const applyDiscountMutation = useMutation({
     mutationFn: async (code: string) => {
-      if (!cart) throw new Error("No cart available")
+      if (cart === undefined) {
+        throw new Error(NO_CART_ERROR_MESSAGE)
+      }
       const { cart: updatedCart } = await sdk.store.cart.update(cart.id, {
         promo_codes: [code],
       })
       return updatedCart
     },
-    onError: (error: Error) => {
+    onError: (mutationError) => {
       toast.create({
+        description:
+          resolveErrorMessage(mutationError) ?? UNKNOWN_ERROR_MESSAGE,
         title: "Neplatný slevový kód",
-        description: error.message,
         type: "error",
       })
     },
     onSuccess: (updatedCart) => {
       queryClient.setQueryData(queryKeys.cart(updatedCart.id), updatedCart)
       toast.create({
-        title: "Sleva aplikována",
         description: "Váš slevový kód byl aplikován",
+        title: "Sleva aplikována",
         type: "success",
       })
     },
   })
 
+  const errorMessage =
+    cartQueryError instanceof Error ? cartQueryError.message : null
+
   return {
-    // Cart data
-    cart,
-    isLoading,
-    error:
-      error instanceof Error ? error.message : error ? String(error) : null,
-
-    // UI state
-    isOpen,
-    toggleCart: () => {
-      setIsOpen((prev) => !prev)
-    },
-    openCart: () => {
-      setIsOpen(true)
-    },
-    closeCart: () => {
-      setIsOpen(false)
-    },
-
-    // Actions
     addItem: (variantId: string, quantity?: number) => {
       addItemMutation.mutate({
         variantId,
-        ...(quantity !== undefined && { quantity }),
+        ...(quantity === undefined ? {} : { quantity }),
       })
     },
-    updateQuantity: (lineItemId: string, quantity: number) => {
-      updateQuantityMutation.mutate({ lineItemId, quantity })
+    addItemMutation,
+    applyDiscount: (code: string) => {
+      applyDiscountMutation.mutate(code)
+    },
+    applyDiscountMutation,
+    cart,
+    clearCart: () => {
+      clearCartMutation.mutate()
+    },
+    clearCartMutation,
+    closeCart: () => {
+      setIsOpen(false)
+    },
+    discount: cart?.discount_total ?? 0,
+    error: errorMessage,
+    isLoading,
+    isOpen,
+    itemCount: cart?.items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0,
+    items: cart?.items ?? [],
+    openCart: () => {
+      setIsOpen(true)
+    },
+    refetch: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.cart(cart?.id),
+      })
     },
     removeItem: (lineItemId: string) => {
       removeItemMutation.mutate(lineItemId)
     },
-    clearCart: () => {
-      clearCartMutation.mutate()
-    },
-    applyDiscount: (code: string) => {
-      applyDiscountMutation.mutate(code)
-    },
-    refetch: async () =>
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart(cart?.id) }),
-
-    // Mutations for direct access
-    addItemMutation,
-    updateQuantityMutation,
     removeItemMutation,
-    clearCartMutation,
-    applyDiscountMutation,
-
-    // Computed values
-    itemCount: cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0,
-    subtotal: cart?.subtotal || 0,
-    tax: cart?.tax_total || 0,
-    shipping: cart?.shipping_total || 0,
-    discount: cart?.discount_total || 0,
-    total: cart?.total || 0,
-    items: cart?.items || [],
+    shipping: cart?.shipping_total ?? 0,
+    subtotal: cart?.subtotal ?? 0,
+    tax: cart?.tax_total ?? 0,
+    toggleCart: () => {
+      setIsOpen((previousIsOpen) => !previousIsOpen)
+    },
+    total: cart?.total ?? 0,
+    updateQuantity: (lineItemId: string, quantity: number) => {
+      updateQuantityMutation.mutate({ lineItemId, quantity })
+    },
+    updateQuantityMutation,
   }
 }
+
+export { useCart }
