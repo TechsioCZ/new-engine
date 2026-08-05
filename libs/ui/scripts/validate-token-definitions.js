@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+/// <reference types="node" />
+
 /**
  * Token Definition Validation Script (optimized)
  *
@@ -9,37 +11,37 @@
  * - Optional --profile timings
  */
 
-import { existsSync } from "node:fs"
+import { existsSync, readdirSync } from "node:fs"
 import fs from "node:fs/promises"
 import path from "node:path"
 import { performance } from "node:perf_hooks"
-import { fileURLToPath, pathToFileURL } from "node:url"
-
-import { globSync } from "glob"
+import { argv, env } from "node:process"
+import { pathToFileURL } from "node:url"
 
 const ROOT = path.resolve(import.meta.dirname, "..")
 
-// Configuration for validation
+/**
+ * @typedef {object} TokenDefinition
+ * @property {string} file - Source file.
+ * @property {number} line - Source line.
+ * @property {string} value - CSS value.
+ */
+
+/** @typedef {TokenDefinition & {name: string}} UnusedToken */
+
+/**
+ * @typedef {object} Profiler
+ * @property {(label: string) => number} end - End a timing interval.
+ * @property {(label: string) => void} mark - Start a timing interval.
+ */
+
+/**
+ * @typedef {object} ValidationOptions
+ * @property {boolean} [failOnUnused] - Fail when unused tokens are found.
+ * @property {boolean} [profile] - Print timing details.
+ */
+
 const CONFIG = {
-  // Tokens to always consider "used" (whitelist)
-  whitelistPatterns: [
-    /^--color-primary$/,
-    /^--color-secondary$/,
-    /^--color-danger$/,
-    /^--color-warning$/,
-    /^--color-success$/,
-    /^--color-info$/,
-    /^--spacing-\d{2,3}$/,
-    /^--text-(xs|sm|md|lg|xl)$/,
-    /^--radius-(sm|md|lg)$/,
-    // Base system tokens
-    /^--color-.*-(50|100|200|300|400|500|600|700|800|900)$/,
-    /^--state-(hover|focus|active|disabled)$/,
-  ],
-
-  // Patterns to ignore completely
-  ignorePatterns: [/^--tw-/, /_test$/, /_debug$/],
-
   // File patterns to exclude from usage scanning
   excludeFiles: [
     "**/*.stories.tsx",
@@ -48,289 +50,414 @@ const CONFIG = {
     "**/node_modules/**",
   ],
 
+  // Patterns to ignore completely
+  ignorePatterns: [/^--tw-/u, /_test$/u, /_debug$/u],
+
   // Token CSS glob
   tokenCssGlob: "src/tokens/components/**/*.css",
+
+  // Tokens to always consider "used" (whitelist)
+  whitelistPatterns: [
+    /^--color-primary$/u,
+    /^--color-secondary$/u,
+    /^--color-danger$/u,
+    /^--color-warning$/u,
+    /^--color-success$/u,
+    /^--color-info$/u,
+    /^--spacing-\d{2,3}$/u,
+    /^--text-(?:xs|sm|md|lg|xl)$/u,
+    /^--radius-(?:sm|md|lg)$/u,
+    // Base system tokens
+    /^--color-.*-(?:50|100|200|300|400|500|600|700|800|900)$/u,
+    /^--state-(?:hover|focus|active|disabled)$/u,
+  ],
 }
 
-// Simple stopwatch profiling
-function profiled(enabled) {
+/** @type {Readonly<Record<string, readonly string[]>>} */
+const UTILITY_MAPPINGS = {
+  animate: ["animate"],
+  arrow: [],
+  aspect: ["aspect"],
+  blur: ["blur"],
+  border: ["border"],
+  color: [
+    "bg",
+    "text",
+    "border",
+    "outline",
+    "decoration",
+    "shadow",
+    "inset-shadow",
+    "ring",
+    "ring-offset",
+    "inset-ring",
+    "accent",
+    "caret",
+    "fill",
+    "stroke",
+  ],
+  container: ["w", "h", "min-w", "min-h", "max-w", "max-h"],
+  "drop-shadow": ["drop-shadow"],
+  duration: ["duration"],
+  ease: ["ease"],
+  font: ["font"],
+  gap: ["gap"],
+  height: ["h", "min-h", "max-h"],
+  "inset-shadow": ["inset-shadow"],
+  leading: ["leading"],
+  margin: [
+    "m",
+    "mx",
+    "my",
+    "mt",
+    "mr",
+    "mb",
+    "ml",
+    "ms",
+    "me",
+    "-m",
+    "-mx",
+    "-my",
+    "-mt",
+    "-mr",
+    "-mb",
+    "-ml",
+    "-ms",
+    "-me",
+  ],
+  opacity: ["opacity"],
+  padding: ["p", "px", "py", "pt", "pr", "pb", "pl", "ps", "pe"],
+  perspective: ["perspective"],
+  radius: ["rounded"],
+  shadow: ["shadow"],
+  size: ["size"],
+  spacing: [
+    "p",
+    "px",
+    "py",
+    "pt",
+    "pr",
+    "pb",
+    "pl",
+    "ps",
+    "pe",
+    "m",
+    "mx",
+    "my",
+    "mt",
+    "mr",
+    "mb",
+    "ml",
+    "ms",
+    "me",
+    "-m",
+    "-mx",
+    "-my",
+    "-mt",
+    "-mr",
+    "-mb",
+    "-ml",
+    "-ms",
+    "-me",
+    "w",
+    "h",
+    "min-w",
+    "min-h",
+    "max-w",
+    "max-h",
+    "inset",
+    "inset-x",
+    "inset-y",
+    "top",
+    "right",
+    "bottom",
+    "left",
+    "start",
+    "end",
+    "-inset",
+    "-inset-x",
+    "-inset-y",
+    "-top",
+    "-right",
+    "-bottom",
+    "-left",
+    "-start",
+    "-end",
+    "gap",
+    "gap-x",
+    "gap-y",
+    "space-x",
+    "space-y",
+    "size",
+    "translate",
+    "translate-x",
+    "translate-y",
+    "-translate",
+    "-translate-x",
+    "-translate-y",
+  ],
+  text: ["text"],
+  textarea: [],
+  tooltip: [],
+  tracking: ["tracking"],
+  tree: [],
+  width: ["w", "min-w", "max-w"],
+  z: [],
+}
+
+const CUSTOM_PROPERTY_PREFIXES = [
+  "arrow",
+  "tree",
+  "tooltip",
+  "textarea",
+  "z",
+  "opacity-bg",
+  "opacity-borderless",
+  "spacing-translate",
+]
+
+/** @param {boolean} enabled - Whether profiling is enabled. @returns {Profiler} */
+const profiled = (enabled) => {
+  /** @type {Map<string, number>} */
   const marks = new Map()
   return {
-    end(label) {
+    end: (label) => {
       if (!enabled) {
         return 0
       }
-      const start = marks.get(label) ?? performance.now()
-      const delta = performance.now() - start
-      marks.set(label, performance.now())
-      return delta
+      const now = performance.now()
+      const start = marks.get(label) ?? now
+      marks.set(label, now)
+      return now - start
     },
-    mark(label) {
-      if (!enabled) {
-        return
+    mark: (label) => {
+      if (enabled) {
+        marks.set(label, performance.now())
       }
-      marks.set(label, performance.now())
     },
   }
 }
 
-function isWhitelisted(tokenName) {
-  return CONFIG.whitelistPatterns.some((p) => p.test(tokenName))
+/** @param {string} tokenName - Token name. */
+const isWhitelisted = (tokenName) =>
+  CONFIG.whitelistPatterns.some((pattern) => pattern.test(tokenName))
+
+/** @param {string} tokenName - Token name. */
+const shouldIgnoreToken = (tokenName) =>
+  CONFIG.ignorePatterns.some((pattern) => pattern.test(tokenName))
+
+/** @param {unknown} error - Thrown value. */
+const getErrorMessage = (error) =>
+  error instanceof Error ? error.message : String(error)
+
+/** @param {string} raw - Class-like source text. */
+const normalizeClass = (raw) => raw.split(":").at(-1) ?? ""
+
+/** @param {string} directory - Directory path. */
+const readDirectory = (directory) => {
+  try {
+    return readdirSync(directory, { withFileTypes: true })
+  } catch (error) {
+    console.error(`💥 Failed to inspect ${directory}:`, getErrorMessage(error))
+    return []
+  }
 }
 
-function shouldIgnoreToken(tokenName) {
-  return CONFIG.ignorePatterns.some((p) => p.test(tokenName))
+/** @param {string} file - Relative path. */
+const isExcludedComponentFile = (file) =>
+  file.endsWith(".stories.tsx") ||
+  file.endsWith(".test.tsx") ||
+  file.endsWith(".spec.tsx")
+
+/** @param {string} pattern - Glob pattern. @returns {string[]} */
+const findFiles = (pattern) => {
+  const tokenFiles = pattern.endsWith(".css")
+  const baseDirectory = tokenFiles
+    ? path.join(ROOT, "src/tokens/components")
+    : path.join(ROOT, "src")
+  const allowedExtensions = tokenFiles
+    ? new Set([".css"])
+    : new Set([".ts", ".tsx"])
+  const files = []
+  const pendingDirectories = [baseDirectory]
+
+  while (pendingDirectories.length > 0) {
+    const directory = pendingDirectories.pop()
+    if (directory === undefined || !existsSync(directory)) {
+      continue
+    }
+
+    for (const entry of readDirectory(directory)) {
+      const absolutePath = path.join(directory, entry.name)
+      if (entry.isDirectory()) {
+        pendingDirectories.push(absolutePath)
+      } else if (allowedExtensions.has(path.extname(entry.name))) {
+        const relativePath = path.relative(ROOT, absolutePath)
+        if (tokenFiles || !isExcludedComponentFile(relativePath)) {
+          files.push(relativePath)
+        }
+      }
+    }
+  }
+  return files
 }
 
-// Map CSS token to possible Tailwind utility classes
-function tokenToUtilityClasses(tokenName) {
+/** @param {string} tokenName - CSS token. @returns {Set<string>} */
+const tokenToUtilityClasses = (tokenName) => {
+  /** @type {Set<string>} */
   const classes = new Set()
   const tokenParts = tokenName.slice(2).split("-")
   if (tokenParts.length < 2) {
     return classes
   }
 
-  const primaryNamespace = tokenParts[0]
-  const subNamespace = tokenParts.length > 2 ? tokenParts[1] : null
-  const key = tokenParts.slice(subNamespace ? 2 : 1).join("-")
-
-  const mappings = {
-    animate: ["animate"],
-    arrow: [],
-    aspect: ["aspect"],
-    blur: ["blur"],
-    border: ["border"],
-    color: [
-      "bg",
-      "text",
-      "border",
-      "outline",
-      "decoration",
-      "shadow",
-      "inset-shadow",
-      "ring",
-      "ring-offset",
-      "inset-ring",
-      "accent",
-      "caret",
-      "fill",
-      "stroke",
-    ],
-    container: ["w", "h", "min-w", "min-h", "max-w", "max-h"],
-    "drop-shadow": ["drop-shadow"],
-    duration: ["duration"],
-    ease: ["ease"],
-    font: ["font"],
-    gap: ["gap"],
-    height: ["h", "min-h", "max-h"],
-    "inset-shadow": ["inset-shadow"],
-    leading: ["leading"],
-    margin: [
-      "m",
-      "mx",
-      "my",
-      "mt",
-      "mr",
-      "mb",
-      "ml",
-      "ms",
-      "me",
-      "-m",
-      "-mx",
-      "-my",
-      "-mt",
-      "-mr",
-      "-mb",
-      "-ml",
-      "-ms",
-      "-me",
-    ],
-    opacity: ["opacity"],
-    padding: ["p", "px", "py", "pt", "pr", "pb", "pl", "ps", "pe"],
-    perspective: ["perspective"],
-    radius: ["rounded"],
-    shadow: ["shadow"],
-    size: ["size"],
-    spacing: [
-      "p",
-      "px",
-      "py",
-      "pt",
-      "pr",
-      "pb",
-      "pl",
-      "ps",
-      "pe",
-      "m",
-      "mx",
-      "my",
-      "mt",
-      "mr",
-      "mb",
-      "ml",
-      "ms",
-      "me",
-      "-m",
-      "-mx",
-      "-my",
-      "-mt",
-      "-mr",
-      "-mb",
-      "-ml",
-      "-ms",
-      "-me",
-      "w",
-      "h",
-      "min-w",
-      "min-h",
-      "max-w",
-      "max-h",
-      "inset",
-      "inset-x",
-      "inset-y",
-      "top",
-      "right",
-      "bottom",
-      "left",
-      "start",
-      "end",
-      "-inset",
-      "-inset-x",
-      "-inset-y",
-      "-top",
-      "-right",
-      "-bottom",
-      "-left",
-      "-start",
-      "-end",
-      "gap",
-      "gap-x",
-      "gap-y",
-      "space-x",
-      "space-y",
-      "size",
-      "translate",
-      "translate-x",
-      "translate-y",
-      "-translate",
-      "-translate-x",
-      "-translate-y",
-    ],
-    text: ["text"],
-    textarea: [],
-    tooltip: [],
-    tracking: ["tracking"],
-    tree: [],
-    width: ["w", "min-w", "max-w"],
-    z: [],
+  const [primaryNamespace, possibleSubNamespace] = tokenParts
+  if (primaryNamespace === undefined) {
+    return classes
   }
+
+  const subNamespace =
+    tokenParts.length > 2 ? (possibleSubNamespace ?? null) : null
+  const key = tokenParts.slice(subNamespace === null ? 1 : 2).join("-")
 
   let namespace = primaryNamespace
   let tokenKey = key
   if (primaryNamespace === "font" && subNamespace === "weight") {
     namespace = "font-weight"
-  } else if (subNamespace && mappings[`${primaryNamespace}-${subNamespace}`]) {
+  } else if (
+    subNamespace !== null &&
+    UTILITY_MAPPINGS[`${primaryNamespace}-${subNamespace}`] !== undefined
+  ) {
     namespace = `${primaryNamespace}-${subNamespace}`
-  } else if (subNamespace) {
+  } else if (subNamespace !== null) {
     tokenKey = `${subNamespace}-${key}`
   }
 
-  const customPropertyPrefixes = [
-    "arrow",
-    "tree",
-    "tooltip",
-    "textarea",
-    "z",
-    "opacity-bg",
-    "opacity-borderless",
-    "spacing-translate",
-  ]
-  if (
-    customPropertyPrefixes.some((prefix) => tokenName.includes(`--${prefix}`))
-  ) {
+  const isCustomProperty = CUSTOM_PROPERTY_PREFIXES.some((prefix) =>
+    tokenName.includes(`--${prefix}`),
+  )
+  if (isCustomProperty) {
     return classes
   }
 
-  const prefixes = mappings[namespace] || mappings[primaryNamespace] || []
+  const prefixes =
+    UTILITY_MAPPINGS[namespace] ?? UTILITY_MAPPINGS[primaryNamespace] ?? []
   for (const prefix of prefixes) {
-    if (namespace === "font-weight") {
-      classes.add(`font-${tokenKey}`)
-    } else {
-      classes.add(`${prefix}-${tokenKey}`)
-    }
+    classes.add(
+      namespace === "font-weight"
+        ? `font-${tokenKey}`
+        : `${prefix}-${tokenKey}`,
+    )
   }
   return classes
 }
 
-// Build indices from token CSS files in a single pass
-async function buildTokenIndices() {
-  const files = globSync(CONFIG.tokenCssGlob)
-  const defs = new Map() // token -> { value, file, line }
-  const dependencyGraph = new Map() // token -> Set<token>
-  const cssUsage = new Map() // token -> Set<location>
+/**
+ * @param {string} file - Relative token file.
+ * @param {Map<string, TokenDefinition>} defs - Token definitions.
+ * @param {Map<string, Set<string>>} dependencyGraph - Token dependencies.
+ * @param {Map<string, Set<string>>} cssUsage - Direct CSS usage.
+ */
+/**
+ * @param {string} value - Token value.
+ * @returns {Set<string>} - Referenced tokens.
+ */
+const extractDependencies = (value) => {
+  /** @type {Set<string>} */
+  const dependencies = new Set()
+  for (const match of value.matchAll(/var\(\s*(?<token>--[\w-]+)/gu)) {
+    const dependency = match.groups?.token
+    if (dependency !== undefined) {
+      dependencies.add(dependency)
+    }
+  }
+  return dependencies
+}
+
+/**
+ * @param {string} content - CSS content.
+ * @param {string} file - Relative file path.
+ * @param {Map<string, TokenDefinition>} defs - Token definitions.
+ * @param {Map<string, Set<string>>} dependencyGraph - Token dependencies.
+ */
+const indexTokenDefinitions = (content, file, defs, dependencyGraph) => {
+  const tokenPattern = /--(?<name>[\w-]+)\s*:\s*(?<value>[^;]+);/gu
+  for (const match of content.matchAll(tokenPattern)) {
+    const nameGroup = match.groups?.name
+    const valueGroup = match.groups?.value
+    if (nameGroup !== undefined && valueGroup !== undefined) {
+      const name = `--${nameGroup}`
+      const value = valueGroup.trim()
+      const line = content.slice(0, match.index).split("\n").length
+      defs.set(name, { file, line, value })
+      dependencyGraph.set(name, extractDependencies(value))
+    }
+  }
+}
+
+/**
+ * @param {string[]} lines - CSS lines.
+ * @param {string} file - Relative file path.
+ * @param {Map<string, TokenDefinition>} defs - Token definitions.
+ * @param {Map<string, Set<string>>} cssUsage - Direct CSS usage.
+ */
+const indexCssUsage = (lines, file, defs, cssUsage) => {
+  const definitionLines = new Set()
+  for (const definition of defs.values()) {
+    if (definition.file === file) {
+      definitionLines.add(definition.line)
+    }
+  }
+
+  for (const [index, line] of lines.entries()) {
+    const lineNumber = index + 1
+    if (!definitionLines.has(lineNumber) && line.includes("var(")) {
+      for (const token of extractDependencies(line)) {
+        const locations = cssUsage.get(token) ?? new Set()
+        // This is direct usage from a non-definition CSS property.
+        locations.add(`${file}:${lineNumber} (CSS property)`)
+        cssUsage.set(token, locations)
+      }
+    }
+  }
+}
+
+/**
+ * @param {string} file - Relative token file.
+ * @param {Map<string, TokenDefinition>} defs - Token definitions.
+ * @param {Map<string, Set<string>>} dependencyGraph - Token dependencies.
+ * @param {Map<string, Set<string>>} cssUsage - Direct CSS usage.
+ */
+const processTokenFile = async (file, defs, dependencyGraph, cssUsage) => {
+  const absolutePath = path.join(ROOT, file)
+  if (!existsSync(absolutePath)) {
+    return
+  }
+
+  try {
+    const content = await fs.readFile(absolutePath, "utf-8")
+    indexTokenDefinitions(content, file, defs, dependencyGraph)
+    indexCssUsage(content.split("\n"), file, defs, cssUsage)
+  } catch (error) {
+    console.error(`💥 Failed to process ${file}:`, getErrorMessage(error))
+  }
+}
+
+const buildTokenIndices = async () => {
+  const files = findFiles(CONFIG.tokenCssGlob)
+  /** @type {Map<string, TokenDefinition>} */
+  const defs = new Map()
+  /** @type {Map<string, Set<string>>} */
+  const dependencyGraph = new Map()
+  /** @type {Map<string, Set<string>>} */
+  const cssUsage = new Map()
 
   await Promise.all(
     files.map(async (file) => {
-      const abs = path.join(ROOT, file)
-      if (!existsSync(abs)) {
-        return
-      }
-      try {
-        const content = await fs.readFile(abs, "utf-8")
-        const lines = content.split("\n")
-
-        // 1) Parse token definitions and dependency edges
-        const tokenRegex = /--([\w-]+)\s*:\s*([^;]+);/g
-        let m
-        while ((m = tokenRegex.exec(content)) !== null) {
-          const name = `--${m[1]}`
-          const value = m[2].trim()
-          const line = content.substring(0, m.index).split("\n").length
-          defs.set(name, { file, line, value })
-
-          // Extract dependencies from value
-          const deps = new Set()
-          for (const vm of value.matchAll(/var\(\s*(--[\w-]+)/g)) {
-            deps.add(vm[1])
-          }
-          for (const om of value.matchAll(/oklch\([^)]*var\(\s*(--[\w-]+)/g)) {
-            deps.add(om[1])
-          }
-          dependencyGraph.set(name, deps)
-        }
-
-        // 2) Index var() usage on non-definition lines as direct CSS usage
-        const defLine = new Set()
-        for (const data of defs.values()) {
-          if (data.file === file) {
-            defLine.add(data.line)
-          }
-        }
-
-        for (let i = 0; i < lines.length; i++) {
-          const lineNo = i + 1
-          if (defLine.has(lineNo)) {
-            continue
-          }
-          const line = lines[i]
-          if (!line.includes("var(")) {
-            continue
-          }
-          for (const vm of line.matchAll(/var\(\s*(--[\w-]+)/g)) {
-            const t = vm[1]
-            if (!cssUsage.has(t)) {
-              cssUsage.set(t, new Set())
-            }
-            cssUsage.get(t).add(`${file}:${lineNo} (CSS property)`) // direct usage
-          }
-        }
-      } catch (error) {
-        console.error(`💥 Failed to process ${file}:`, error?.message || error)
-      }
+      await processTokenFile(file, defs, dependencyGraph, cssUsage)
     }),
   )
 
-  // Ensure every token key exists in maps
   for (const token of defs.keys()) {
     if (!dependencyGraph.has(token)) {
       dependencyGraph.set(token, new Set())
@@ -343,236 +470,266 @@ async function buildTokenIndices() {
   return { cssUsage, defs, dependencyGraph }
 }
 
-// Build component indices in a single pass
-async function buildComponentIndices(classToTokens, knownTokens) {
-  const files = globSync("src/**/*.{ts,tsx}", {
-    cwd: ROOT,
-    ignore: CONFIG.excludeFiles,
-  })
-  const componentVarUsage = new Map() // token -> Set<location>
-  const classUsageTokens = new Set() // tokens used via classes
-
-  const normalizeClass = (raw) => {
-    // Strip variant prefixes like sm:, hover:, data-[...]: etc.
-    if (!raw) {
-      return ""
+/**
+ * @param {string} content - Component content.
+ * @param {string} file - Relative file path.
+ * @param {Map<string, Set<string>>} componentVarUsage - Direct component usage.
+ */
+const indexComponentVariables = (content, file, componentVarUsage) => {
+  for (const match of content.matchAll(/var\(\s*(?<token>--[\w-]+)/gu)) {
+    const token = match.groups?.token
+    if (token !== undefined) {
+      const locations = componentVarUsage.get(token) ?? new Set()
+      const lineNumber = content.slice(0, match.index).split("\n").length
+      locations.add(`${file}:${lineNumber} (component var() reference)`)
+      componentVarUsage.set(token, locations)
     }
-    const parts = String(raw).split(":")
-    const core = parts.at(-1)
-    return core
   }
+}
+
+/**
+ * @param {string} content - Component content.
+ * @param {ReadonlySet<string>} knownTokens - Defined tokens.
+ * @param {Set<string>} classUsageTokens - Class-based usage.
+ */
+const indexDirectTokenClasses = (content, knownTokens, classUsageTokens) => {
+  for (const match of content.matchAll(/--[a-z0-9-]+/giu)) {
+    const [token] = match
+    if (knownTokens.has(token)) {
+      classUsageTokens.add(token)
+    }
+  }
+}
+
+/**
+ * @param {string} content - Component content.
+ * @param {Map<string, Set<string>>} classToTokens - Utility-to-token map.
+ * @param {Set<string>} classUsageTokens - Class-based usage.
+ */
+const indexUtilityClasses = (content, classToTokens, classUsageTokens) => {
+  const classLikePattern =
+    /(?:^|[^A-Za-z0-9_-])(?<className>[A-Za-z0-9_-]+(?::[A-Za-z0-9_[\]-]+)*-[A-Za-z0-9_[\]-]+)/gu
+  for (const match of content.matchAll(classLikePattern)) {
+    const rawClass = match.groups?.className
+    if (rawClass === undefined) {
+      continue
+    }
+
+    const className = normalizeClass(rawClass)
+    const tokens = classToTokens.get(className)
+    if (className !== "" && tokens !== undefined) {
+      for (const token of tokens) {
+        classUsageTokens.add(token)
+      }
+    }
+  }
+}
+
+/**
+ * @param {string} content - Component content.
+ * @param {ReadonlySet<string>} knownTokens - Defined tokens.
+ * @param {Set<string>} classUsageTokens - Class-based usage.
+ */
+const indexVariantTokens = (content, knownTokens, classUsageTokens) => {
+  const variantPattern = /@?(?:max|min)-(?<variant>[a-z0-9-]+):/giu
+  for (const match of content.matchAll(variantPattern)) {
+    const variantKey = match.groups?.variant
+    if (variantKey === undefined) {
+      continue
+    }
+
+    for (const token of [
+      `--container-${variantKey}`,
+      `--breakpoint-${variantKey}`,
+    ]) {
+      if (knownTokens.has(token)) {
+        classUsageTokens.add(token)
+      }
+    }
+  }
+}
+
+/**
+ * @param {string} file - Relative component file.
+ * @param {Map<string, Set<string>>} classToTokens - Utility-to-token map.
+ * @param {ReadonlySet<string>} knownTokens - Defined tokens.
+ * @param {Map<string, Set<string>>} componentVarUsage - Direct component usage.
+ * @param {Set<string>} classUsageTokens - Class-based usage.
+ */
+const processComponentFile = async (
+  file,
+  classToTokens,
+  knownTokens,
+  componentVarUsage,
+  classUsageTokens,
+) => {
+  const absolutePath = path.join(ROOT, file)
+  if (!existsSync(absolutePath)) {
+    return
+  }
+
+  try {
+    const content = await fs.readFile(absolutePath, "utf-8")
+    indexComponentVariables(content, file, componentVarUsage)
+    indexDirectTokenClasses(content, knownTokens, classUsageTokens)
+    indexUtilityClasses(content, classToTokens, classUsageTokens)
+    indexVariantTokens(content, knownTokens, classUsageTokens)
+  } catch (error) {
+    console.error(`💥 Failed to process ${file}:`, getErrorMessage(error))
+  }
+}
+
+/**
+ * @param {Map<string, Set<string>>} classToTokens - Utility-to-token map.
+ * @param {ReadonlySet<string>} knownTokens - Defined tokens.
+ */
+const buildComponentIndices = async (classToTokens, knownTokens) => {
+  const files = findFiles("src/**/*.{ts,tsx}")
+  /** @type {Map<string, Set<string>>} */
+  const componentVarUsage = new Map()
+  /** @type {Set<string>} */
+  const classUsageTokens = new Set()
 
   await Promise.all(
     files.map(async (file) => {
-      if (!existsSync(file)) {
-        return
-      }
-      try {
-        const content = await fs.readFile(file, "utf-8")
-
-        // 1) Direct var(--token) usage in TSX
-        for (const m of content.matchAll(/var\(\s*(--[\w-]+)/g)) {
-          const t = m[1]
-          if (!componentVarUsage.has(t)) {
-            componentVarUsage.set(t, new Set())
-          }
-          const lineNo = content.substring(0, m.index).split("\n").length
-          componentVarUsage
-            .get(t)
-            .add(`${file}:${lineNo} (component var() reference)`)
-        }
-
-        // 1b) Arbitrary utilities referencing tokens directly, e.g. border-(length:--token)
-        for (const m of content.matchAll(/--[a-z0-9-]+/gi)) {
-          const t = m[0]
-          if (knownTokens.has(t)) {
-            classUsageTokens.add(t)
-          }
-        }
-
-        // 2) Class-based usage: scan whole file for class-like tokens
-        // Capture words with at least one hyphen, optionally with variant prefixes like sm:, hover:, data-[...]:
-        const classLike =
-          /(^|[^A-Za-z0-9_-])([A-Za-z0-9_-]+(?::[A-Za-z0-9_[\]-]+)*-[A-Za-z0-9_[\]-]+)/g
-        for (const m of content.matchAll(classLike)) {
-          const raw = m[2]
-          const cls = normalizeClass(raw)
-          if (!cls) {
-            continue
-          }
-          const tokens = classToTokens.get(cls)
-          if (!tokens) {
-            continue
-          }
-          for (const t of tokens) {
-            classUsageTokens.add(t)
-          }
-        }
-
-        // 2b) Variant-based token usage for Tailwind container/breakpoint variants
-        // Examples: @max-header-desktop:hidden, @min-md:flex
-        for (const m of content.matchAll(/@?(?:max|min)-([a-z0-9-]+):/gi)) {
-          const variantKey = m[1]
-          const candidates = [
-            `--container-${variantKey}`,
-            `--breakpoint-${variantKey}`,
-          ]
-          for (const token of candidates) {
-            if (knownTokens.has(token)) {
-              classUsageTokens.add(token)
-            }
-          }
-        }
-      } catch {
-        // ignore unreadable files
-      }
+      await processComponentFile(
+        file,
+        classToTokens,
+        knownTokens,
+        componentVarUsage,
+        classUsageTokens,
+      )
     }),
   )
 
   return { classUsageTokens, componentVarUsage }
 }
 
-function computeClassMaps(tokens) {
-  const tokenToClasses = new Map()
+/** @param {readonly string[]} tokens - Defined tokens. */
+const computeClassMaps = (tokens) => {
+  /** @type {Map<string, Set<string>>} */
   const classToTokens = new Map()
   for (const token of tokens) {
-    const classes = tokenToUtilityClasses(token)
-    tokenToClasses.set(token, classes)
-    for (const c of classes) {
-      if (!classToTokens.has(c)) {
-        classToTokens.set(c, new Set())
-      }
-      classToTokens.get(c).add(token)
+    for (const className of tokenToUtilityClasses(token)) {
+      const mappedTokens = classToTokens.get(className) ?? new Set()
+      mappedTokens.add(token)
+      classToTokens.set(className, mappedTokens)
     }
   }
-  return { classToTokens, tokenToClasses }
+  return classToTokens
 }
 
-function propagateUsage(initialUsed, dependencyGraph) {
+/**
+ * @param {ReadonlySet<string>} initialUsed - Directly used tokens.
+ * @param {Map<string, Set<string>>} dependencyGraph - Token dependencies.
+ */
+const propagateUsage = (initialUsed, dependencyGraph) => {
   const used = new Set(initialUsed)
   const queue = [...initialUsed]
-  while (queue.length) {
-    const cur = queue.shift()
-    const deps = dependencyGraph.get(cur)
-    if (!deps) {
-      continue
-    }
-    for (const d of deps) {
-      if (!used.has(d)) {
-        used.add(d)
-        queue.push(d)
+  for (const current of queue) {
+    const dependencies = dependencyGraph.get(current) ?? []
+    for (const dependency of dependencies) {
+      if (!used.has(dependency)) {
+        used.add(dependency)
+        queue.push(dependency)
       }
     }
   }
   return used
 }
 
-async function validateTokenDefinitions({
-  profile = false,
-  failOnUnused = false,
-} = {}) {
-  const p = profiled(profile)
-  p.mark("total")
-  console.log("🔍 Analyzing token definitions and usage...")
-
-  // 1) Token indices
-  p.mark("tokens")
-  const { defs, dependencyGraph, cssUsage } = await buildTokenIndices()
-  const allTokens = [...defs.keys()]
-  if (profile) {
-    console.log(`⏱️  tokens: ${p.end("tokens").toFixed(1)}ms`)
-  }
-  console.log(`📋 Found ${allTokens.length} total tokens\n`)
-
-  // 2) Class maps from tokens
-  p.mark("classmaps")
-  const { classToTokens } = computeClassMaps(allTokens)
-  if (profile) {
-    console.log(`⏱️  class maps: ${p.end("classmaps").toFixed(1)}ms`)
-  }
-
-  // 3) Component indices
-  p.mark("components")
-  const { componentVarUsage, classUsageTokens } = await buildComponentIndices(
-    classToTokens,
-    new Set(allTokens),
-  )
-  if (profile) {
-    console.log(`⏱️  components: ${p.end("components").toFixed(1)}ms`)
-  }
-
-  // 4) Seed used set
-  const usedDirect = new Set()
-  for (const t of allTokens) {
-    if (isWhitelisted(t)) {
-      usedDirect.add(t)
+/**
+ * @param {readonly string[]} allTokens - Defined tokens.
+ * @param {Map<string, Set<string>>} cssUsage - Direct CSS usage.
+ * @param {Map<string, Set<string>>} componentVarUsage - Component var usage.
+ * @param {ReadonlySet<string>} classUsageTokens - Class-based usage.
+ */
+const collectDirectUsage = (
+  allTokens,
+  cssUsage,
+  componentVarUsage,
+  classUsageTokens,
+) => {
+  const usedDirect = new Set(classUsageTokens)
+  for (const token of allTokens) {
+    if (isWhitelisted(token)) {
+      usedDirect.add(token)
     }
   }
-  // Direct CSS var() usage (outside token defs)
-  for (const [t, locs] of cssUsage) {
-    if (locs.size > 0) {
-      usedDirect.add(t)
+  for (const [token, locations] of cssUsage) {
+    if (locations.size > 0) {
+      usedDirect.add(token)
     }
   }
-  // Component var() usage
-  for (const [t, locs] of componentVarUsage) {
-    if (locs.size > 0) {
-      usedDirect.add(t)
+  for (const [token, locations] of componentVarUsage) {
+    if (locations.size > 0) {
+      usedDirect.add(token)
     }
   }
-  // Class usage
-  for (const t of classUsageTokens) {
-    usedDirect.add(t)
-  }
+  return usedDirect
+}
 
-  // 5) Propagate through dependencies (forward)
-  p.mark("closure")
-  const usedTokens = propagateUsage(usedDirect, dependencyGraph)
-  if (profile) {
-    console.log(`⏱️  closure: ${p.end("closure").toFixed(1)}ms`)
-  }
-
-  // 6) Classify
+/**
+ * @param {readonly string[]} allTokens - Defined tokens.
+ * @param {ReadonlySet<string>} usedTokens - Transitively used tokens.
+ * @param {Map<string, TokenDefinition>} defs - Token definitions.
+ * @returns {UnusedToken[]} - Unused token definitions.
+ */
+const findUnusedTokens = (allTokens, usedTokens, defs) => {
   const unusedTokens = []
-  for (const t of allTokens) {
-    if (shouldIgnoreToken(t)) {
-      continue
-    }
-    if (!usedTokens.has(t)) {
-      const d = defs.get(t)
-      unusedTokens.push({ file: d.file, line: d.line, name: t, value: d.value })
+  for (const name of allTokens) {
+    if (!shouldIgnoreToken(name) && !usedTokens.has(name)) {
+      const definition = defs.get(name)
+      if (definition !== undefined) {
+        unusedTokens.push({ name, ...definition })
+      }
     }
   }
+  return unusedTokens
+}
 
-  // Report results
+/** @param {Profiler} profiler - Profiler. @param {string} label - Mark label. */
+const logTiming = (profiler, label) => {
+  console.log(`⏱️  ${label}: ${profiler.end(label).toFixed(1)}ms`)
+}
+
+/** @param {UnusedToken[]} unusedTokens - Unused tokens. */
+const logUnusedTokens = (unusedTokens) => {
+  /** @type {Map<string, UnusedToken[]>} */
+  const byFile = new Map()
+  for (const token of unusedTokens) {
+    const fileTokens = byFile.get(token.file) ?? []
+    fileTokens.push(token)
+    byFile.set(token.file, fileTokens)
+  }
+
+  for (const [file, tokens] of byFile) {
+    console.log(`📄 ${file}:`)
+    for (const token of tokens) {
+      console.log(`  Line ${token.line}: ${token.name} = ${token.value}`)
+    }
+    console.log()
+  }
+}
+
+/**
+ * @param {UnusedToken[]} unusedTokens - Unused tokens.
+ * @param {number} totalTokens - Total token count.
+ * @param {boolean} failOnUnused - Whether unused tokens fail validation.
+ */
+const reportResults = (unusedTokens, totalTokens, failOnUnused) => {
   console.log("\n📊 Validation Summary:")
-  console.log(`   Total tokens: ${allTokens.length}`)
-  console.log(`   Used tokens: ${allTokens.length - unusedTokens.length}`)
+  console.log(`   Total tokens: ${totalTokens}`)
+  console.log(`   Used tokens: ${totalTokens - unusedTokens.length}`)
   console.log(`   Unused tokens: ${unusedTokens.length}`)
 
   if (unusedTokens.length === 0) {
     console.log("\n✅ All tokens are being used!")
-    if (profile) {
-      console.log(`⏱️  total: ${p.end("total").toFixed(1)}ms`)
-    }
     return true
   }
 
   console.log(`\n⚠️  Found ${unusedTokens.length} potentially unused tokens:\n`)
-  const byFile = new Map()
-  for (const tok of unusedTokens) {
-    if (!byFile.has(tok.file)) {
-      byFile.set(tok.file, [])
-    }
-    byFile.get(tok.file).push(tok)
-  }
-  for (const [file, list] of byFile) {
-    console.log(`📄 ${file}:`)
-    for (const t of list) {
-      console.log(`  Line ${t.line}: ${t.name} = ${t.value}`)
-    }
-    console.log()
-  }
+  logUnusedTokens(unusedTokens)
   console.log(
     "💡 Note: Tokens might be used dynamically or externally and not detected.",
   )
@@ -580,34 +737,86 @@ async function validateTokenDefinitions({
     console.log(
       "ℹ️  Non-blocking mode: treating potentially unused tokens as warnings.",
     )
-    if (profile) {
-      console.log(`⏱️  total: ${p.end("total").toFixed(1)}ms`)
-    }
     return true
-  }
-  if (profile) {
-    console.log(`⏱️  total: ${p.end("total").toFixed(1)}ms`)
   }
   return false
 }
 
-if (
-  process.argv[1] &&
-  pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url
-) {
-  const profile = process.argv.includes("--profile")
+/** @param {ValidationOptions} [options] - Validation options. */
+const validateTokenDefinitions = async ({
+  failOnUnused = false,
+  profile = false,
+} = {}) => {
+  const profiler = profiled(profile)
+  profiler.mark("total")
+  console.log("🔍 Analyzing token definitions and usage...")
+
+  profiler.mark("tokens")
+  const { cssUsage, defs, dependencyGraph } = await buildTokenIndices()
+  const allTokens = [...defs.keys()]
+  if (profile) {
+    logTiming(profiler, "tokens")
+  }
+  console.log(`📋 Found ${allTokens.length} total tokens\n`)
+
+  profiler.mark("class maps")
+  const classToTokens = computeClassMaps(allTokens)
+  if (profile) {
+    logTiming(profiler, "class maps")
+  }
+
+  profiler.mark("components")
+  const { classUsageTokens, componentVarUsage } = await buildComponentIndices(
+    classToTokens,
+    new Set(allTokens),
+  )
+  if (profile) {
+    logTiming(profiler, "components")
+  }
+
+  const usedDirect = collectDirectUsage(
+    allTokens,
+    cssUsage,
+    componentVarUsage,
+    classUsageTokens,
+  )
+  profiler.mark("closure")
+  const usedTokens = propagateUsage(usedDirect, dependencyGraph)
+  if (profile) {
+    logTiming(profiler, "closure")
+  }
+
+  const result = reportResults(
+    findUnusedTokens(allTokens, usedTokens, defs),
+    allTokens.length,
+    failOnUnused,
+  )
+  if (profile) {
+    logTiming(profiler, "total")
+  }
+  return result
+}
+
+const isMainModule =
+  argv[1] !== undefined &&
+  pathToFileURL(path.resolve(argv[1])).href === import.meta.url
+
+if (isMainModule) {
+  const profile = argv.includes("--profile")
   const failOnUnused =
-    process.argv.includes("--fail-on-unused") ||
-    process.env.VALIDATE_TOKEN_DEFINITIONS_FAIL_ON_UNUSED === "1"
-  validateTokenDefinitions({ failOnUnused, profile })
-    .then((ok) => process.exit(ok ? 0 : 1))
-    .catch((error) => {
-      console.error("💥 Validation failed:", error?.message || error)
-      if (error?.stack) {
-        console.error(error.stack)
-      }
-      process.exit(1)
-    })
+    argv.includes("--fail-on-unused") ||
+    env.VALIDATE_TOKEN_DEFINITIONS_FAIL_ON_UNUSED === "1"
+
+  try {
+    const valid = await validateTokenDefinitions({ failOnUnused, profile })
+    process.exitCode = valid ? 0 : 1
+  } catch (error) {
+    console.error("💥 Validation failed:", getErrorMessage(error))
+    if (error instanceof Error && error.stack !== undefined) {
+      console.error(error.stack)
+    }
+    process.exitCode = 1
+  }
 }
 
 export { validateTokenDefinitions }
