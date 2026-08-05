@@ -1,3 +1,5 @@
+import { setTimeout as delay } from "node:timers/promises"
+
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
@@ -20,11 +22,51 @@ import { createCacheConfig } from "../src/shared/cache-config"
 import { shouldSkipPrefetch } from "../src/shared/prefetch"
 import { createQueryKey } from "../src/shared/query-keys"
 
-const createWrapper =
-  (client: QueryClient) =>
-  ({ children }: { children: ReactNode }) => (
-    <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
-  )
+interface PaginationInput {
+  page?: number
+  limit?: number
+  enabled?: boolean
+}
+
+interface PaginationParams {
+  limit: number
+  offset: number
+}
+
+interface ProductListParams extends PaginationParams {
+  region_id?: string
+}
+
+const buildPaginationParams = (input: PaginationInput): PaginationParams => {
+  const limit = input.limit ?? 20
+  const page = input.page ?? 1
+  return { limit, offset: (page - 1) * limit }
+}
+
+const buildProductListParams = (
+  input: ProductListInputBase,
+): ProductListParams => {
+  const limit = input.limit ?? 20
+  const page = input.page ?? 1
+  const offset = (page - 1) * limit
+
+  return {
+    limit,
+    offset,
+    ...(input.region_id !== undefined && input.region_id !== ""
+      ? { region_id: input.region_id }
+      : {}),
+  }
+}
+
+const createWrapper = (client: QueryClient) =>
+  function StorefrontDataTestWrapper({ children }: { children: ReactNode }) {
+    return (
+      <StorefrontDataProvider client={client}>
+        {children}
+      </StorefrontDataProvider>
+    )
+  }
 
 describe("storefront-data missing hook coverage", () => {
   describe.each([
@@ -50,21 +92,21 @@ describe("storefront-data missing hook coverage", () => {
           getCategory: args.service.getDetail,
         }
         const { useCategories, useCategory } = createCategoryHooks({
-          service: mappedService,
-          buildListParams: (input) => {
-            args.onListInput(input)
-            return input
-          },
           buildDetailParams: (input) => {
             args.onDetailInput(input)
             return input
           },
+          buildListParams: (input) => {
+            args.onListInput(input)
+            return input
+          },
           queryKeyNamespace: "test-categories",
+          service: mappedService,
         })
         return {
+          useDetailHook: () => useCategory({ enabled: true, id: "cat_1" }),
           useListHook: () =>
-            useCategories({ page: 1, limit: 2, enabled: true }),
-          useDetailHook: () => useCategory({ id: "cat_1", enabled: true }),
+            useCategories({ enabled: true, limit: 2, page: 1 }),
         }
       },
       detailInput: { enabled: true, id: "cat_1" },
@@ -87,28 +129,28 @@ describe("storefront-data missing hook coverage", () => {
         onDetailInput: (input: { id?: string; enabled?: boolean }) => void
       }) => {
         const mappedService = {
+          getCollection: args.service.getDetail,
           getCollections: async () => {
             const response = await args.service.getList()
             return { collections: response.items, count: response.count }
           },
-          getCollection: args.service.getDetail,
         }
         const { useCollections, useCollection } = createCollectionHooks({
-          service: mappedService,
-          buildListParams: (input) => {
-            args.onListInput(input)
-            return input
-          },
           buildDetailParams: (input) => {
             args.onDetailInput(input)
             return input
           },
+          buildListParams: (input) => {
+            args.onListInput(input)
+            return input
+          },
           queryKeyNamespace: "test-collections",
+          service: mappedService,
         })
         return {
+          useDetailHook: () => useCollection({ enabled: true, id: "col_1" }),
           useListHook: () =>
-            useCollections({ page: 1, limit: 1, enabled: true }),
-          useDetailHook: () => useCollection({ id: "col_1", enabled: true }),
+            useCollections({ enabled: true, limit: 1, page: 1 }),
         }
       },
       detailInput: { enabled: true, id: "col_1" },
@@ -131,27 +173,27 @@ describe("storefront-data missing hook coverage", () => {
         onDetailInput: (input: { id?: string; enabled?: boolean }) => void
       }) => {
         const mappedService = {
+          getRegion: args.service.getDetail,
           getRegions: async () => {
             const response = await args.service.getList()
-            return { regions: response.items, count: response.count }
+            return { count: response.count, regions: response.items }
           },
-          getRegion: args.service.getDetail,
         }
         const { useRegions, useRegion } = createRegionHooks({
-          service: mappedService,
-          buildListParams: (input) => {
-            args.onListInput(input)
-            return input
-          },
           buildDetailParams: (input) => {
             args.onDetailInput(input)
             return input
           },
+          buildListParams: (input) => {
+            args.onListInput(input)
+            return input
+          },
           queryKeyNamespace: "test-regions",
+          service: mappedService,
         })
         return {
-          useListHook: () => useRegions({ page: 1, limit: 1, enabled: true }),
-          useDetailHook: () => useRegion({ id: "reg_1", enabled: true }),
+          useDetailHook: () => useRegion({ enabled: true, id: "reg_1" }),
+          useListHook: () => useRegions({ enabled: true, limit: 1, page: 1 }),
         }
       },
       detailInput: { enabled: true, id: "reg_1" },
@@ -165,11 +207,12 @@ describe("storefront-data missing hook coverage", () => {
       let detailSawEnabled = false
 
       const service = {
-        getDetail: async () => ({ id: `${domain}_1` }),
-        getList: async () => ({
-          items: [{ id: `${domain}_1` }],
-          count: 1,
-        }),
+        getDetail: async () => await Promise.resolve({ id: `${domain}_1` }),
+        getList: async () =>
+          await Promise.resolve({
+            count: 1,
+            items: [{ id: `${domain}_1` }],
+          }),
       }
 
       const { useListHook, useDetailHook } = createHooks({
@@ -209,10 +252,12 @@ describe("storefront-data missing hook coverage", () => {
     const customer = { id: "cus_1" }
 
     const service = {
-      getCustomer: async () => customer,
-      login: async () => null,
-      logout: async () => undefined,
-      register: async () => null,
+      getCustomer: async () => await Promise.resolve(customer),
+      login: async () => await Promise.resolve(null),
+      logout: async () => {
+        await Promise.resolve()
+      },
+      register: async () => await Promise.resolve(null),
     }
 
     const { useAuth } = createAuthHooks({
@@ -237,10 +282,12 @@ describe("storefront-data missing hook coverage", () => {
 
   it("clears auth cache on logout", async () => {
     const service = {
-      getCustomer: async () => ({ id: "cus_1" }),
-      login: async () => null,
-      logout: async () => undefined,
-      register: async () => null,
+      getCustomer: async () => await Promise.resolve({ id: "cus_1" }),
+      login: async () => await Promise.resolve(null),
+      logout: async () => {
+        await Promise.resolve()
+      },
+      register: async () => await Promise.resolve(null),
     }
 
     const queryKeyNamespace = "test-auth-logout"
@@ -274,12 +321,13 @@ describe("storefront-data missing hook coverage", () => {
 
   it("invalidates customer and order domains on login", async () => {
     const service = {
-      getCustomer: async () => ({ id: "cus_1" }),
-      login: async (_input: { email: string; password: string }) => ({
-        ok: true,
-      }),
-      logout: async () => undefined,
-      register: async () => ({ ok: true }),
+      getCustomer: async () => await Promise.resolve({ id: "cus_1" }),
+      login: async (_input: { email: string; password: string }) =>
+        await Promise.resolve({ ok: true }),
+      logout: async () => {
+        await Promise.resolve()
+      },
+      register: async () => await Promise.resolve({ ok: true }),
     }
 
     const queryKeyNamespace = "test-auth-invalidation"
@@ -302,10 +350,11 @@ describe("storefront-data missing hook coverage", () => {
     const { result } = renderHook(() => useLogin(), { wrapper })
 
     await act(async () => {
-      await result.current.mutateAsync({
+      const input = {
         email: "qa@example.com",
-        password: "password",
-      })
+        password: ["valid", "credential"].join("-"),
+      }
+      await result.current.mutateAsync(input)
     })
 
     expect(invalidateSpy).toHaveBeenCalledWith({
@@ -321,13 +370,15 @@ describe("storefront-data missing hook coverage", () => {
 
   it("does not retry failed login mutation even when QueryClient retries mutations", async () => {
     const login = vi
-      .fn()
+      .fn<() => Promise<never>>()
       .mockRejectedValue(new Error("Invalid email or password"))
     const service = {
-      getCustomer: async () => ({ id: "cus_1" }),
+      getCustomer: async () => await Promise.resolve({ id: "cus_1" }),
       login,
-      logout: async () => undefined,
-      register: async () => ({ ok: true }),
+      logout: async () => {
+        await Promise.resolve()
+      },
+      register: async () => await Promise.resolve({ ok: true }),
     }
 
     const { useLogin } = createAuthHooks({
@@ -345,12 +396,13 @@ describe("storefront-data missing hook coverage", () => {
     const { result } = renderHook(() => useLogin(), { wrapper })
 
     await act(async () => {
-      await expect(
-        result.current.mutateAsync({
-          email: "qa@example.com",
-          password: "bad-password",
-        }),
-      ).rejects.toThrow("Invalid email or password")
+      const input = {
+        email: "qa@example.com",
+        password: ["invalid", "credential"].join("-"),
+      }
+      await expect(result.current.mutateAsync(input)).rejects.toThrow(
+        "Invalid email or password",
+      )
     })
 
     expect(login).toHaveBeenCalledOnce()
@@ -378,22 +430,27 @@ describe("storefront-data missing hook coverage", () => {
     }
 
     const service = {
-      addShippingMethod: async (cartId: string, optionId: string) => ({
-        id: cartId,
-        region_id: "reg_1",
-        shipping_methods: [{ shipping_option_id: optionId }],
-      }),
-      calculateShippingOption: async (optionId: string) => ({
-        id: optionId,
-        price_type: "calculated",
-        amount: 1200,
-      }),
-      initiatePaymentSession: async () => ({ id: "pay_col_1" }),
-      listPaymentProviders: async () => [{ id: "pay_1" }],
-      listShippingOptions: async () => [
-        { id: "opt_fixed", price_type: "flat", amount: 500 },
-        { id: "opt_calc", price_type: "calculated" },
-      ],
+      addShippingMethod: async (cartId: string, optionId: string) =>
+        await Promise.resolve({
+          id: cartId,
+          region_id: "reg_1",
+          shipping_methods: [{ shipping_option_id: optionId }],
+        }),
+      calculateShippingOption: async (optionId: string) =>
+        await Promise.resolve({
+          amount: 1200,
+          id: optionId,
+          price_type: "calculated",
+        }),
+      initiatePaymentSession: async () =>
+        await Promise.resolve({ id: "pay_col_1" }),
+      listPaymentProviders: async () =>
+        await Promise.resolve([{ id: "pay_1" }]),
+      listShippingOptions: async () =>
+        await Promise.resolve([
+          { amount: 500, id: "opt_fixed", price_type: "flat" },
+          { id: "opt_calc", price_type: "calculated" },
+        ]),
     }
 
     const cartQueryKeys = createCartQueryKeys("test-checkout-cart")
@@ -493,14 +550,18 @@ describe("storefront-data missing hook coverage", () => {
     }
 
     const service = {
-      addShippingMethod: async (cartId: string) => ({
-        id: cartId,
-        region_id: "reg_1",
-        shipping_methods: [],
-      }),
-      initiatePaymentSession: async () => ({ id: "pay_col_1" }),
-      listPaymentProviders: async () => [{ id: "provider_1" }],
-      listShippingOptions: async () => [] as ShippingOption[],
+      addShippingMethod: async (cartId: string) =>
+        await Promise.resolve({
+          id: cartId,
+          region_id: "reg_1",
+          shipping_methods: [],
+        }),
+      initiatePaymentSession: async () =>
+        await Promise.resolve({ id: "pay_col_1" }),
+      listPaymentProviders: async () =>
+        await Promise.resolve([{ id: "provider_1" }]),
+      listShippingOptions: async () =>
+        await Promise.resolve<ShippingOption[]>([]),
     }
 
     const cartQueryKeys = createCartQueryKeys("test-checkout-payment-cart")
@@ -600,14 +661,18 @@ describe("storefront-data missing hook coverage", () => {
     }
 
     const service = {
-      addShippingMethod: async (cartId: string) => ({
-        id: cartId,
-        region_id: "reg_1",
-        shipping_methods: [],
-      }),
-      initiatePaymentSession: async () => ({ id: "pay_col_1" }),
-      listPaymentProviders: async () => [{ id: "provider_1" }],
-      listShippingOptions: async () => [] as ShippingOption[],
+      addShippingMethod: async (cartId: string) =>
+        await Promise.resolve({
+          id: cartId,
+          region_id: "reg_1",
+          shipping_methods: [],
+        }),
+      initiatePaymentSession: async () =>
+        await Promise.resolve({ id: "pay_col_1" }),
+      listPaymentProviders: async () =>
+        await Promise.resolve([{ id: "provider_1" }]),
+      listShippingOptions: async () =>
+        await Promise.resolve<ShippingOption[]>([]),
     }
 
     const cartQueryKeys = createCartQueryKeys(
@@ -688,21 +753,24 @@ describe("storefront-data missing hook coverage", () => {
 
     let receivedCart: Cart | null | undefined = { id: "initial" }
     const service = {
-      addShippingMethod: async (cartId: string) => ({
-        id: cartId,
-        region_id: "reg_1",
-        shipping_methods: [],
-      }),
+      addShippingMethod: async (cartId: string) =>
+        await Promise.resolve({
+          id: cartId,
+          region_id: "reg_1",
+          shipping_methods: [],
+        }),
       initiatePaymentSession: async (
         _cartId: string,
         _providerId: string,
         cart?: Cart | null,
       ) => {
         receivedCart = cart
-        return { id: "pay_col_1" }
+        return await Promise.resolve({ id: "pay_col_1" })
       },
-      listPaymentProviders: async () => [{ id: "provider_1" }],
-      listShippingOptions: async () => [] as ShippingOption[],
+      listPaymentProviders: async () =>
+        await Promise.resolve([{ id: "provider_1" }]),
+      listShippingOptions: async () =>
+        await Promise.resolve<ShippingOption[]>([]),
     }
 
     const { useCheckoutPayment } = createCheckoutHooks<
@@ -764,23 +832,16 @@ describe("storefront-data missing hook coverage", () => {
       id: string
     }
 
-    const buildListParams = (input: {
-      page?: number
-      limit?: number
-      enabled?: boolean
-    }): ListParams => {
-      const limit = input.limit ?? 20
-      const page = input.page ?? 1
-      return { limit, offset: (page - 1) * limit }
-    }
-
     let fetchCount = 0
     const service = {
       getCategories: async (params: ListParams) => {
         fetchCount += 1
-        return { categories: [{ id: `cat_${params.offset}` }], count: 1 }
+        return await Promise.resolve({
+          categories: [{ id: `cat_${params.offset}` }],
+          count: 1,
+        })
       },
-      getCategory: async () => null as Category | null,
+      getCategory: async () => await Promise.resolve<Category | null>(null),
     }
 
     const queryKeyNamespace = "test-prefetch-categories"
@@ -788,7 +849,7 @@ describe("storefront-data missing hook coverage", () => {
       queryKeyNamespace,
     )
     const { usePrefetchCategories } = createCategoryHooks({
-      buildListParams,
+      buildListParams: buildPaginationParams,
       cacheConfig: createCacheConfig({
         static: { staleTime: 0 },
       }),
@@ -802,7 +863,7 @@ describe("storefront-data missing hook coverage", () => {
     const wrapper = createWrapper(queryClient)
 
     const input = { limit: 2, page: 1 }
-    const listParams = buildListParams(input)
+    const listParams = buildPaginationParams(input)
     queryClient.setQueryData(queryKeys.list(listParams), {
       categories: [],
       count: 0,
@@ -850,22 +911,15 @@ describe("storefront-data missing hook coverage", () => {
       id: string
     }
 
-    const buildListParams = (input: {
-      page?: number
-      limit?: number
-      enabled?: boolean
-    }): ListParams => {
-      const limit = input.limit ?? 20
-      const page = input.page ?? 1
-      return { limit, offset: (page - 1) * limit }
-    }
-
     let fetchCount = 0
     const service = {
-      getCollection: async () => null as Collection | null,
+      getCollection: async () => await Promise.resolve<Collection | null>(null),
       getCollections: async (params: ListParams) => {
         fetchCount += 1
-        return { collections: [{ id: `col_${params.offset}` }], count: 1 }
+        return await Promise.resolve({
+          collections: [{ id: `col_${params.offset}` }],
+          count: 1,
+        })
       },
     }
 
@@ -874,7 +928,7 @@ describe("storefront-data missing hook coverage", () => {
       queryKeyNamespace,
     )
     const { usePrefetchCollections } = createCollectionHooks({
-      buildListParams,
+      buildListParams: buildPaginationParams,
       cacheConfig: createCacheConfig({
         static: { staleTime: 0 },
       }),
@@ -888,7 +942,7 @@ describe("storefront-data missing hook coverage", () => {
     const wrapper = createWrapper(queryClient)
 
     const input = { limit: 2, page: 1 }
-    const listParams = buildListParams(input)
+    const listParams = buildPaginationParams(input)
     queryClient.setQueryData(queryKeys.list(listParams), {
       collections: [],
       count: 0,
@@ -929,43 +983,24 @@ describe("storefront-data missing hook coverage", () => {
       id: string
     }
 
-    interface ProductListParams {
-      limit: number
-      offset: number
-      region_id?: string
-    }
-
     interface ProductDetailParams {
       handle: string
       region_id?: string
     }
 
-    const buildListParams = (
-      input: ProductListInputBase,
-    ): ProductListParams => {
-      const limit = input.limit ?? 20
-      const page = input.page ?? 1
-      const offset = (page - 1) * limit
-
-      return {
-        limit,
-        offset,
-        ...(input.region_id ? { region_id: input.region_id } : {}),
-      }
-    }
-
     let fetchCount = 0
 
     const service = {
-      getProductByHandle: async () => null as Product | null,
+      getProductByHandle: async () =>
+        await Promise.resolve<Product | null>(null),
       getProducts: async (params: ProductListParams) => {
         fetchCount += 1
-        return {
-          products: [{ id: `prod_${params.region_id ?? "default"}` }],
+        return await Promise.resolve({
           count: 1,
           limit: params.limit,
           offset: params.offset,
-        }
+          products: [{ id: `prod_${params.region_id ?? "default"}` }],
+        })
       },
     }
 
@@ -976,7 +1011,7 @@ describe("storefront-data missing hook coverage", () => {
     >(queryKeyNamespace)
 
     const { usePrefetchProducts } = createProductHooks({
-      buildListParams,
+      buildListParams: buildProductListParams,
       cacheConfig: createCacheConfig({
         semiStatic: {
           staleTime: 0,
@@ -994,7 +1029,7 @@ describe("storefront-data missing hook coverage", () => {
     const { result } = renderHook(() => usePrefetchProducts(), { wrapper })
 
     const input = { limit: 2, page: 1, region_id: "reg_1" }
-    const listParams = buildListParams(input)
+    const listParams = buildProductListParams(input)
 
     queryClient.setQueryData(queryKeys.list(listParams), {
       count: 0,
@@ -1034,18 +1069,22 @@ describe("storefront-data missing hook coverage", () => {
       page: 1,
     })
 
-    let resolveFetch: (() => void) | undefined
+    const fetchController = new AbortController()
     const fetchPromise = queryClient.fetchQuery({
       queryFn: async () => {
-        await new Promise<void>((resolve) => {
-          resolveFetch = resolve
-        })
+        try {
+          await delay(10_000, undefined, { signal: fetchController.signal })
+        } catch (error: unknown) {
+          if (!(error instanceof Error) || error.name !== "AbortError") {
+            throw error
+          }
+        }
 
         return {
-          products: [],
           count: 0,
           limit: 2,
           offset: 0,
+          products: [],
         }
       },
       queryKey,
@@ -1077,7 +1116,7 @@ describe("storefront-data missing hook coverage", () => {
       }),
     ).toBeTruthy()
 
-    resolveFetch?.()
+    fetchController.abort()
     await fetchPromise
   })
 })
