@@ -25,12 +25,16 @@ export interface StoreOrderResponse {
     display_id?: number | string | null
     id?: string | null
     metadata?: Record<string, unknown> | null
-    payment_collections?: Array<{
-      payments?: Array<{
-        data?: Record<string, unknown> | null
-        provider_id?: string | null
-      }> | null
-    }> | null
+    payment_collections?:
+      | {
+          payments?:
+            | {
+                data?: Record<string, unknown> | null
+                provider_id?: string | null
+              }[]
+            | null
+        }[]
+      | null
     total?: number | null
   } | null
 }
@@ -48,37 +52,98 @@ const UNAVAILABLE_QR_PAYMENT_RESPONSE = {
   status: "unavailable",
 } as const
 
-export function getNotApplicableQrPaymentResponse() {
-  return NOT_APPLICABLE_QR_PAYMENT_RESPONSE
+const createQrSvg = async (spayd: string) => {
+  try {
+    return await QRCode.toString(spayd, {
+      errorCorrectionLevel: "M",
+      margin: 4,
+      type: "svg",
+    })
+  } catch {
+    return null
+  }
 }
 
-export async function mapStoreOrderPaymentQr(payload: StoreOrderResponse) {
+const findQrPayment = (order: NonNullable<StoreOrderResponse["order"]>) => {
+  for (const collection of order.payment_collections ?? []) {
+    for (const payment of collection.payments ?? []) {
+      if (payment.provider_id === ORDER_QR_PAYMENT_PROVIDER_ID) {
+        return payment
+      }
+    }
+  }
+
+  return null
+}
+
+const parseSpaydFields = (spayd: string) => {
+  const fields: Record<string, string> = {}
+
+  for (const part of spayd.split("*")) {
+    const separatorIndex = part.indexOf(":")
+    if (separatorIndex <= 0) {
+      continue
+    }
+
+    fields[part.slice(0, separatorIndex)] = part.slice(separatorIndex + 1)
+  }
+
+  return fields
+}
+
+const readString = (value: unknown) => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value)
+  }
+
+  if (typeof value !== "string") {
+    return null
+  }
+
+  const normalized = value.trim()
+  return normalized.length > 0 ? normalized : null
+}
+
+const readAmount = (value: unknown) => {
+  const normalized = readString(value)
+  if (normalized === null) {
+    return null
+  }
+
+  const amount = Number(normalized)
+  return Number.isFinite(amount) ? amount : null
+}
+
+export const getNotApplicableQrPaymentResponse = () =>
+  NOT_APPLICABLE_QR_PAYMENT_RESPONSE
+
+export const mapStoreOrderPaymentQr = async (payload: StoreOrderResponse) => {
   const { order } = payload
 
-  if (!order?.id) {
+  if (order?.id === undefined || order.id === null || order.id === "") {
     return NOT_APPLICABLE_QR_PAYMENT_RESPONSE
   }
 
   const qrPayment = findQrPayment(order)
-  if (!qrPayment) {
+  if (qrPayment === null) {
     return NOT_APPLICABLE_QR_PAYMENT_RESPONSE
   }
 
   const spayd =
     readString(qrPayment.data?.[ORDER_PAYMENT_QR_METADATA_KEY]) ??
     readString(order.metadata?.[ORDER_PAYMENT_QR_METADATA_KEY])
-  if (!spayd) {
+  if (spayd === null) {
     return PENDING_QR_PAYMENT_RESPONSE
   }
 
   const qrSvg = await createQrSvg(spayd)
-  if (!qrSvg) {
+  if (qrSvg === null) {
     return UNAVAILABLE_QR_PAYMENT_RESPONSE
   }
 
   const spaydFields = parseSpaydFields(spayd)
   const iban = readString(spaydFields.ACC)
-  if (!iban) {
+  if (iban === null) {
     return UNAVAILABLE_QR_PAYMENT_RESPONSE
   }
 
@@ -107,66 +172,4 @@ export async function mapStoreOrderPaymentQr(payload: StoreOrderResponse) {
     },
     status: "ready",
   } as const
-}
-
-async function createQrSvg(spayd: string) {
-  try {
-    return await QRCode.toString(spayd, {
-      errorCorrectionLevel: "M",
-      margin: 4,
-      type: "svg",
-    })
-  } catch {
-    return null
-  }
-}
-
-function findQrPayment(order: NonNullable<StoreOrderResponse["order"]>) {
-  for (const collection of order.payment_collections ?? []) {
-    for (const payment of collection.payments ?? []) {
-      if (payment.provider_id === ORDER_QR_PAYMENT_PROVIDER_ID) {
-        return payment
-      }
-    }
-  }
-
-  return null
-}
-
-function parseSpaydFields(spayd: string) {
-  const fields: Record<string, string> = {}
-
-  for (const part of spayd.split("*")) {
-    const separatorIndex = part.indexOf(":")
-    if (separatorIndex <= 0) {
-      continue
-    }
-
-    fields[part.slice(0, separatorIndex)] = part.slice(separatorIndex + 1)
-  }
-
-  return fields
-}
-
-function readString(value: unknown) {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value)
-  }
-
-  if (typeof value !== "string") {
-    return null
-  }
-
-  const normalized = value.trim()
-  return normalized.length > 0 ? normalized : null
-}
-
-function readAmount(value: unknown) {
-  const normalized = readString(value)
-  if (!normalized) {
-    return null
-  }
-
-  const amount = Number.parseFloat(normalized)
-  return Number.isFinite(amount) ? amount : null
 }

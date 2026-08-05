@@ -29,30 +29,30 @@ export interface HerbaticaCategoryExport {
   isSystem: boolean
 }
 
-function trimHtmlFragment(value?: string): string | undefined {
+const trimHtmlFragment = (value?: string): string | undefined => {
   const normalized = normalizeText(value)
-  if (!normalized) {
-    return
+  if (normalized === undefined || normalized === "") {
+    return undefined
   }
 
-  const trimmed = normalized.replaceAll(/^\s+|\s+$/g, "")
+  const trimmed = normalized.replaceAll(/^\s+|\s+$/gu, "")
   return trimmed === "" ? undefined : trimmed
 }
 
-function parseInteger(value?: string): number | undefined {
+const parseInteger = (value?: string): number | undefined => {
   const normalized = normalizeInlineText(value)
-  if (!normalized) {
-    return
+  if (normalized === undefined || normalized === "") {
+    return undefined
   }
 
   const parsed = Number(normalized.replace(",", "."))
   return Number.isFinite(parsed) ? Math.trunc(parsed) : undefined
 }
 
-function parseBoolean(value?: string): boolean | undefined {
+const parseBoolean = (value?: string): boolean | undefined => {
   const normalized = normalizeInlineText(value)?.toLowerCase()
-  if (!normalized) {
-    return
+  if (normalized === undefined || normalized === "") {
+    return undefined
   }
 
   if (["1", "true", "yes"].includes(normalized)) {
@@ -63,33 +63,46 @@ function parseBoolean(value?: string): boolean | undefined {
     return false
   }
 
-  return
+  return undefined
 }
 
-export function stripHtmlToPlainText(value?: string): string | undefined {
-  if (!value) {
-    return
+const resolveParentId = (parentId?: string): string | undefined => {
+  if (
+    parentId === undefined ||
+    parentId === "" ||
+    parentId === "0" ||
+    parentId === "1"
+  ) {
+    return undefined
+  }
+
+  return parentId
+}
+
+export const stripHtmlToPlainText = (value?: string): string | undefined => {
+  if (value === undefined || value === "") {
+    return undefined
   }
 
   const text = decodeXml(value)
-    .replaceAll(/<script[\s\S]*?<\/script>/gi, " ")
-    .replaceAll(/<style[\s\S]*?<\/style>/gi, " ")
-    .replaceAll(/<br\s*\/?>/gi, " ")
-    .replaceAll(/<\/p\s*>/gi, " ")
-    .replaceAll(/<[^>]+>/g, " ")
-    .replaceAll(/\s+/g, " ")
+    .replaceAll(/<script[\s\S]*?<\/script>/giu, " ")
+    .replaceAll(/<style[\s\S]*?<\/style>/giu, " ")
+    .replaceAll(/<br\s*\/?>/giu, " ")
+    .replaceAll(/<\/p\s*>/giu, " ")
+    .replaceAll(/<[^>]+>/gu, " ")
+    .replaceAll(/\s+/gu, " ")
     .trim()
 
   return text === "" ? undefined : text
 }
 
-export function excerptPlainText(
+export const excerptPlainText = (
   value?: string,
   maxLength = 280,
-): string | undefined {
+): string | undefined => {
   const text = stripHtmlToPlainText(value)
-  if (!text) {
-    return
+  if (text === undefined) {
+    return undefined
   }
 
   if (text.length <= maxLength) {
@@ -102,16 +115,16 @@ export function excerptPlainText(
   return `${excerpt}…`
 }
 
-export function parseHerbaticaCategoriesXml(
+export const parseHerbaticaCategoriesXml = (
   xml: string,
-): HerbaticaCategoryExport[] {
+): HerbaticaCategoryExport[] => {
   const categories: HerbaticaCategoryExport[] = []
 
   for (const element of extractElements(xml, "CATEGORY")) {
     const id = extractFirstText(element.inner, "ID")
     const title = normalizeInlineText(extractFirstText(element.inner, "TITLE"))
 
-    if (!(id && title)) {
+    if (id === undefined || id === "" || title === undefined || title === "") {
       continue
     }
 
@@ -120,8 +133,7 @@ export function parseHerbaticaCategoriesXml(
     )
 
     const guid = normalizeInlineText(extractFirstText(element.inner, "GUID"))
-    const resolvedParentId =
-      parentId && parentId !== "0" && parentId !== "1" ? parentId : undefined
+    const resolvedParentId = resolveParentId(parentId)
     const linkText = normalizeInlineText(
       extractFirstText(element.inner, "LINK_TEXT"),
     )
@@ -179,14 +191,12 @@ export function parseHerbaticaCategoriesXml(
   return categories
 }
 
-export function parseHerbaticaCategoriesXmlFile(
+export const parseHerbaticaCategoriesXmlFile = (
   path: string,
-): HerbaticaCategoryExport[] {
-  return parseHerbaticaCategoriesXml(readFileSync(path, "utf-8"))
-}
+): HerbaticaCategoryExport[] =>
+  parseHerbaticaCategoriesXml(readFileSync(path, "utf-8"))
 
-export async function parseHerbaticaCategoriesXmlSource(
+export const parseHerbaticaCategoriesXmlSource = async (
   source: string,
-): Promise<HerbaticaCategoryExport[]> {
-  return parseHerbaticaCategoriesXml(await readXmlSource(source))
-}
+): Promise<HerbaticaCategoryExport[]> =>
+  parseHerbaticaCategoriesXml(await readXmlSource(source))
