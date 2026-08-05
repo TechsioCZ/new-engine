@@ -138,90 +138,199 @@ const BUSINESS_STATUS_DEMOS: BusinessStatusDemo[] = [
   },
 ]
 
-export default async function seedOrderBusinessStatusDemo({
-  container,
-}: ExecArgs) {
-  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-  const query = container.resolve<QueryService>(ContainerRegistrationKeys.QUERY)
-  const pgConnection = container.resolve<DatabaseConnection>(
-    ContainerRegistrationKeys.PG_CONNECTION,
-  )
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
 
-  logger.info("Starting order business status demo seed...")
+const isOptionalNullableString = (value: unknown) =>
+  value === undefined || value === null || typeof value === "string"
 
-  await seedOrderExpeditionDemo({ args: [], container })
-  const stockLocationId =
-    await fetchBusinessStatusDemoStockLocationId(pgConnection)
+const isDemoRegion = (
+  value: unknown,
+): value is DemoRegion & { name?: string } =>
+  isRecord(value) &&
+  typeof value["id"] === "string" &&
+  isOptionalNullableString(value["name"]) &&
+  isOptionalNullableString(value["currency_code"])
 
-  const [region, salesChannel, variants] = await Promise.all([
-    fetchCzechRegion(query),
-    fetchDefaultSalesChannel(query),
-    fetchDemoVariants(query),
-  ])
+const isDemoSalesChannel = (
+  value: unknown,
+): value is DemoSalesChannel & { name?: string } =>
+  isRecord(value) &&
+  typeof value["id"] === "string" &&
+  isOptionalNullableString(value["name"])
 
-  if (!region) {
-    throw new Error("Czechia region is required for business status demo seed")
+const isDemoProduct = (value: unknown): value is DemoVariant["product"] => {
+  if (value === undefined || value === null) {
+    return true
   }
 
-  if (!salesChannel) {
-    throw new Error(
-      "Default Sales Channel is required for business status demo seed",
-    )
-  }
-
-  if (!variants.length) {
-    throw new Error("At least one demo product variant is required")
-  }
-
-  let existingOrders = await fetchBusinessStatusDemoOrders(query)
-
-  for (const [index, demo] of BUSINESS_STATUS_DEMOS.entries()) {
-    if (existingOrders.some((order) => getDemoKey(order) === demo.key)) {
-      continue
-    }
-
-    const variant = variants[index % variants.length]
-    if (!variant) {
-      throw new Error(`Missing variant for business status demo ${demo.key}`)
-    }
-
-    await createDemoOrder({
-      container,
-      demo,
-      index,
-      region,
-      salesChannel,
-      variant,
-    })
-  }
-
-  existingOrders = await fetchBusinessStatusDemoOrders(query)
-
-  for (const [index, demo] of BUSINESS_STATUS_DEMOS.entries()) {
-    const order = existingOrders.find(
-      (candidate) => getDemoKey(candidate) === demo.key,
-    )
-
-    if (!order) {
-      throw new Error(`Business status demo order ${demo.key} was not created`)
-    }
-
-    await normalizeDemoOrder({
-      demo,
-      index,
-      order,
-      pgConnection,
-      region,
-      stockLocationId,
-    })
-  }
-
-  logger.info(
-    `Order business status demo seed ready with ${BUSINESS_STATUS_DEMOS.length} orders.`,
+  return (
+    isRecord(value) &&
+    isOptionalNullableString(value["id"]) &&
+    isOptionalNullableString(value["title"]) &&
+    isOptionalNullableString(value["handle"])
   )
 }
 
-async function createDemoOrder({
+const isDemoVariant = (value: unknown): value is DemoVariant => {
+  if (!isRecord(value) || typeof value["id"] !== "string") {
+    return false
+  }
+
+  return (
+    isOptionalNullableString(value["sku"]) &&
+    isOptionalNullableString(value["title"]) &&
+    isDemoProduct(value["product"])
+  )
+}
+
+const isDemoOrder = (value: unknown): value is DemoOrder => {
+  if (!isRecord(value) || typeof value["id"] !== "string") {
+    return false
+  }
+
+  const { metadata } = value
+  return (
+    isOptionalNullableString(value["email"]) &&
+    (metadata === undefined || metadata === null || isRecord(metadata))
+  )
+}
+
+const buildDemoMetadata = (
+  metadata: Record<string, unknown> | null | undefined,
+  demo: BusinessStatusDemo,
+) => {
+  const nextMetadata: Record<string, unknown> = {
+    ...metadata,
+    order_business_status_demo: true,
+    order_business_status_demo_expected_status: demo.expectedStatus,
+    order_business_status_demo_key: demo.key,
+  }
+
+  // remove a legacy seed marker from serialized demo metadata.
+  delete nextMetadata["order_business_status_demo_expected_label"]
+
+  if (demo.manualStatus === undefined) {
+    delete nextMetadata["order_business_status_manual"]
+  } else {
+    nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = demo.manualStatus
+  }
+
+  return nextMetadata
+}
+
+const getRows = <T>(result: RawRows<T>) =>
+  Array.isArray(result) ? result : (result.rows ?? [])
+
+const getDemoKey = (order: DemoOrder) => {
+  const key = order.metadata?.["order_business_status_demo_key"]
+  return typeof key === "string" ? key : undefined
+}
+
+const getDemoItemAmount = (index: number) =>
+  DEMO_ITEM_BASE_AMOUNT + index * DEMO_ITEM_AMOUNT_STEP
+
+const getDemoOrderTotal = (index: number) =>
+  getDemoItemAmount(index) + DEMO_SHIPPING_AMOUNT
+
+const getDemoIdSlug = (demo: BusinessStatusDemo) =>
+  demo.key.replaceAll("-", "_")
+
+const getPaymentCollectionId = (demo: BusinessStatusDemo) =>
+  `paycol_obs_demo_${getDemoIdSlug(demo)}`
+
+const getFulfillmentId = (demo: BusinessStatusDemo) =>
+  `ful_obs_demo_${getDemoIdSlug(demo)}`
+
+const fetchBusinessStatusDemoStockLocationId = async (
+  pgConnection: DatabaseConnection,
+) => {
+  const result = await pgConnection.raw<RawRows<{ id: string }>>(
+    `select "id" from "stock_location" where "deleted_at" is null order by "created_at" asc limit 1`,
+  )
+  const stockLocationId = getRows(result)[0]?.id
+
+  if (stockLocationId === undefined || stockLocationId.length === 0) {
+    throw new Error(
+      "At least one stock location is required for business status demo seed",
+    )
+  }
+
+  return stockLocationId
+}
+
+const fetchCzechRegion = async (query: QueryService) => {
+  const { data } = await query.graph({
+    entity: "region",
+    fields: ["id", "name", "currency_code"],
+  })
+
+  return Array.isArray(data)
+    ? data.filter(isDemoRegion).find((region) => region.name === "Czechia")
+    : undefined
+}
+
+const fetchDefaultSalesChannel = async (query: QueryService) => {
+  const { data } = await query.graph({
+    entity: "sales_channel",
+    fields: ["id", "name"],
+  })
+
+  return Array.isArray(data)
+    ? data
+        .filter(isDemoSalesChannel)
+        .find((salesChannel) => salesChannel.name === "Default Sales Channel")
+    : undefined
+}
+
+const fetchDemoVariants = async (query: QueryService) => {
+  const { data } = await query.graph({
+    entity: "variant",
+    fields: [
+      "id",
+      "sku",
+      "title",
+      "product.id",
+      "product.title",
+      "product.handle",
+    ],
+  })
+
+  return Array.isArray(data)
+    ? data
+        .filter(isDemoVariant)
+        .filter(
+          (variant) =>
+            variant.product?.handle?.startsWith(DEMO_PRODUCT_HANDLE_PREFIX) ===
+            true,
+        )
+    : []
+}
+
+const fetchBusinessStatusDemoOrders = async (query: QueryService) => {
+  const { data } = await query.graph({
+    entity: "order",
+    fields: ["id", "email", "metadata"],
+  })
+
+  return Array.isArray(data)
+    ? data
+        .filter(isDemoOrder)
+        .filter(
+          (order) => order.metadata?.["order_business_status_demo"] === true,
+        )
+    : []
+}
+
+const nonEmptyStringProperty = (
+  key: string,
+  value: string | null | undefined,
+): Record<string, string> =>
+  value === undefined || value === null || value.length === 0
+    ? {}
+    : { [key]: value }
+
+const createDemoOrder = async ({
   container,
   demo,
   index,
@@ -235,24 +344,22 @@ async function createDemoOrder({
   region: DemoRegion
   salesChannel: DemoSalesChannel
   variant: DemoVariant
-}) {
+}) => {
   await createOrderWorkflow(container).run({
     input: {
       currency_code: region.currency_code ?? "czk",
       email: demo.email,
       items: [
         {
-          ...(variant.product?.handle
-            ? { product_handle: variant.product.handle }
-            : {}),
-          ...(variant.product?.id ? { product_id: variant.product.id } : {}),
+          ...nonEmptyStringProperty("product_handle", variant.product?.handle),
+          ...nonEmptyStringProperty("product_id", variant.product?.id),
           product_title: variant.product?.title ?? "Business status demo",
           quantity: 1,
           title: variant.product?.title ?? variant.title ?? "Demo item",
           unit_price: getDemoItemAmount(index),
           variant_id: variant.id,
-          ...(variant.sku ? { variant_sku: variant.sku } : {}),
-          ...(variant.title ? { variant_title: variant.title } : {}),
+          ...nonEmptyStringProperty("variant_sku", variant.sku),
+          ...nonEmptyStringProperty("variant_title", variant.title),
         },
       ],
       metadata: buildDemoMetadata({}, demo),
@@ -281,76 +388,13 @@ async function createDemoOrder({
   })
 }
 
-async function normalizeDemoOrder({
+const upsertCompletedPaymentCollection = async ({
   demo,
   index,
   order,
   pgConnection,
   region,
-  stockLocationId,
-}: {
-  demo: BusinessStatusDemo
-  index: number
-  order: DemoOrder
-  pgConnection: DatabaseConnection
-  region: DemoRegion
-  stockLocationId: string
-}) {
-  const createdAt = new Date(Date.now() - index * 60_000)
-  const metadata = buildDemoMetadata(order.metadata, demo)
-
-  // Direct SQL keeps demo chronology deterministic and intentionally bypasses order workflows/subscribers.
-  await pgConnection.raw(
-    `update "order"
-      set "email" = ?,
-          "status" = ?,
-          "canceled_at" = ?,
-          "metadata" = ?::jsonb,
-          "created_at" = ?,
-          "updated_at" = now()
-      where "id" = ?`,
-    [
-      demo.email,
-      demo.orderStatus,
-      demo.orderStatus === "canceled" ? createdAt : null,
-      JSON.stringify(metadata),
-      createdAt,
-      order.id,
-    ],
-  )
-
-  if (demo.paid) {
-    await upsertCompletedPaymentCollection({
-      demo,
-      index,
-      order,
-      pgConnection,
-      region,
-    })
-  } else {
-    await removeDemoPaymentCollection(pgConnection, demo)
-  }
-
-  await removeDemoFulfillment(pgConnection, demo)
-
-  if (demo.fulfillment) {
-    await upsertDemoFulfillment({
-      demo,
-      order,
-      pgConnection,
-      stockLocationId,
-      timestamp: createdAt,
-    })
-  }
-}
-
-async function upsertCompletedPaymentCollection({
-  demo,
-  index,
-  order,
-  pgConnection,
-  region,
-}: UpsertCompletedPaymentCollectionInput) {
+}: UpsertCompletedPaymentCollectionInput) => {
   const paymentCollectionId = getPaymentCollectionId(demo)
   const amount = getDemoOrderTotal(index)
   const rawAmount = { precision: 20, value: amount }
@@ -412,10 +456,10 @@ async function upsertCompletedPaymentCollection({
   )
 }
 
-async function removeDemoPaymentCollection(
+const removeDemoPaymentCollection = async (
   pgConnection: DatabaseConnection,
   demo: BusinessStatusDemo,
-) {
+) => {
   const paymentCollectionId = getPaymentCollectionId(demo)
 
   await pgConnection.raw(
@@ -427,13 +471,13 @@ async function removeDemoPaymentCollection(
   ])
 }
 
-async function upsertDemoFulfillment({
+const upsertDemoFulfillment = async ({
   demo,
   order,
   pgConnection,
   stockLocationId,
   timestamp,
-}: UpsertDemoFulfillmentInput) {
+}: UpsertDemoFulfillmentInput) => {
   const fulfillmentId = getFulfillmentId(demo)
   const shippedAt = timestamp
   const deliveredAt = demo.fulfillment === "delivered" ? timestamp : null
@@ -495,10 +539,10 @@ async function upsertDemoFulfillment({
   )
 }
 
-async function removeDemoFulfillment(
+const removeDemoFulfillment = async (
   pgConnection: DatabaseConnection,
   demo: BusinessStatusDemo,
-) {
+) => {
   const fulfillmentId = getFulfillmentId(demo)
 
   await pgConnection.raw(
@@ -510,128 +554,156 @@ async function removeDemoFulfillment(
   ])
 }
 
-async function fetchBusinessStatusDemoStockLocationId(
-  pgConnection: DatabaseConnection,
-) {
-  const result = await pgConnection.raw<RawRows<{ id: string }>>(
-    `select "id" from "stock_location" where "deleted_at" is null order by "created_at" asc limit 1`,
-  )
-  const stockLocationId = getRows(result)[0]?.id
+const normalizeDemoOrder = async ({
+  demo,
+  index,
+  order,
+  pgConnection,
+  region,
+  stockLocationId,
+}: {
+  demo: BusinessStatusDemo
+  index: number
+  order: DemoOrder
+  pgConnection: DatabaseConnection
+  region: DemoRegion
+  stockLocationId: string
+}) => {
+  const createdAt = new Date(Date.now() - index * 60_000)
+  const metadata = buildDemoMetadata(order.metadata, demo)
 
-  if (!stockLocationId) {
+  // Direct SQL keeps demo chronology deterministic and intentionally bypasses order workflows/subscribers.
+  await pgConnection.raw(
+    `update "order"
+      set "email" = ?,
+          "status" = ?,
+          "canceled_at" = ?,
+          "metadata" = ?::jsonb,
+          "created_at" = ?,
+          "updated_at" = now()
+      where "id" = ?`,
+    [
+      demo.email,
+      demo.orderStatus,
+      demo.orderStatus === "canceled" ? createdAt : null,
+      JSON.stringify(metadata),
+      createdAt,
+      order.id,
+    ],
+  )
+
+  await (demo.paid
+    ? upsertCompletedPaymentCollection({
+        demo,
+        index,
+        order,
+        pgConnection,
+        region,
+      })
+    : removeDemoPaymentCollection(pgConnection, demo))
+
+  await removeDemoFulfillment(pgConnection, demo)
+
+  if (demo.fulfillment) {
+    await upsertDemoFulfillment({
+      demo,
+      order,
+      pgConnection,
+      stockLocationId,
+      timestamp: createdAt,
+    })
+  }
+}
+
+export default async function seedOrderBusinessStatusDemo({
+  container,
+}: ExecArgs) {
+  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+  const query = container.resolve<QueryService>(ContainerRegistrationKeys.QUERY)
+  const pgConnection = container.resolve<DatabaseConnection>(
+    ContainerRegistrationKeys.PG_CONNECTION,
+  )
+
+  logger.info("Starting order business status demo seed...")
+
+  await seedOrderExpeditionDemo({ args: [], container })
+  const stockLocationId =
+    await fetchBusinessStatusDemoStockLocationId(pgConnection)
+
+  const [region, salesChannel, variants] = await Promise.all([
+    fetchCzechRegion(query),
+    fetchDefaultSalesChannel(query),
+    fetchDemoVariants(query),
+  ])
+
+  if (!region) {
+    throw new Error("Czechia region is required for business status demo seed")
+  }
+
+  if (!salesChannel) {
     throw new Error(
-      "At least one stock location is required for business status demo seed",
+      "Default Sales Channel is required for business status demo seed",
     )
   }
 
-  return stockLocationId
-}
-
-async function fetchCzechRegion(query: QueryService) {
-  const { data } = await query.graph({
-    entity: "region",
-    fields: ["id", "name", "currency_code"],
-  })
-
-  return (
-    Array.isArray(data) ? (data as (DemoRegion & { name?: string })[]) : []
-  ).find((region) => region.name === "Czechia")
-}
-
-async function fetchDefaultSalesChannel(query: QueryService) {
-  const { data } = await query.graph({
-    entity: "sales_channel",
-    fields: ["id", "name"],
-  })
-
-  return (
-    Array.isArray(data)
-      ? (data as (DemoSalesChannel & { name?: string })[])
-      : []
-  ).find((salesChannel) => salesChannel.name === "Default Sales Channel")
-}
-
-async function fetchDemoVariants(query: QueryService) {
-  const { data } = await query.graph({
-    entity: "variant",
-    fields: [
-      "id",
-      "sku",
-      "title",
-      "product.id",
-      "product.title",
-      "product.handle",
-    ],
-  })
-
-  return Array.isArray(data)
-    ? (data as DemoVariant[]).filter((variant) =>
-        variant.product?.handle?.startsWith(DEMO_PRODUCT_HANDLE_PREFIX),
-      )
-    : []
-}
-
-async function fetchBusinessStatusDemoOrders(query: QueryService) {
-  const { data } = await query.graph({
-    entity: "order",
-    fields: ["id", "email", "metadata"],
-  })
-
-  return Array.isArray(data)
-    ? (data as DemoOrder[]).filter(
-        (order) => order.metadata?.["order_business_status_demo"] === true,
-      )
-    : []
-}
-
-function buildDemoMetadata(
-  metadata: Record<string, unknown> | null | undefined,
-  demo: BusinessStatusDemo,
-) {
-  const nextMetadata: Record<string, unknown> = {
-    ...metadata,
-    order_business_status_demo: true,
-    order_business_status_demo_expected_status: demo.expectedStatus,
-    order_business_status_demo_key: demo.key,
+  if (!variants.length) {
+    throw new Error("At least one demo product variant is required")
   }
 
-  // remove a legacy seed marker from serialized demo metadata.
-  delete nextMetadata["order_business_status_demo_expected_label"]
+  const existingOrders = await fetchBusinessStatusDemoOrders(query)
+  const demosToCreate = BUSINESS_STATUS_DEMOS.flatMap((demo, index) => {
+    if (existingOrders.some((order) => getDemoKey(order) === demo.key)) {
+      return []
+    }
 
-  if (demo.manualStatus) {
-    nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = demo.manualStatus
-  } else {
-    delete nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY]
-  }
+    const variant = variants[index % variants.length]
+    if (variant === undefined) {
+      throw new Error(`Missing variant for business status demo ${demo.key}`)
+    }
 
-  return nextMetadata
-}
+    return [{ demo, index, variant }]
+  })
 
-function getRows<T>(result: RawRows<T>) {
-  return Array.isArray(result) ? result : (result.rows ?? [])
-}
+  await Promise.all(
+    demosToCreate.map(async ({ demo, index, variant }) => {
+      await createDemoOrder({
+        container,
+        demo,
+        index,
+        region,
+        salesChannel,
+        variant,
+      })
+    }),
+  )
 
-function getDemoKey(order: DemoOrder) {
-  const key = order.metadata?.["order_business_status_demo_key"]
-  return typeof key === "string" ? key : undefined
-}
+  const createdOrders = await fetchBusinessStatusDemoOrders(query)
+  const ordersToNormalize = BUSINESS_STATUS_DEMOS.map((demo, index) => {
+    const order = createdOrders.find(
+      (candidate) => getDemoKey(candidate) === demo.key,
+    )
 
-function getDemoItemAmount(index: number) {
-  return DEMO_ITEM_BASE_AMOUNT + index * DEMO_ITEM_AMOUNT_STEP
-}
+    if (order === undefined) {
+      throw new Error(`Business status demo order ${demo.key} was not created`)
+    }
 
-function getDemoOrderTotal(index: number) {
-  return getDemoItemAmount(index) + DEMO_SHIPPING_AMOUNT
-}
+    return { demo, index, order }
+  })
 
-function getDemoIdSlug(demo: BusinessStatusDemo) {
-  return demo.key.replaceAll(/-/g, "_")
-}
+  await Promise.all(
+    ordersToNormalize.map(async ({ demo, index, order }) => {
+      await normalizeDemoOrder({
+        demo,
+        index,
+        order,
+        pgConnection,
+        region,
+        stockLocationId,
+      })
+    }),
+  )
 
-function getPaymentCollectionId(demo: BusinessStatusDemo) {
-  return `paycol_obs_demo_${getDemoIdSlug(demo)}`
-}
-
-function getFulfillmentId(demo: BusinessStatusDemo) {
-  return `ful_obs_demo_${getDemoIdSlug(demo)}`
+  logger.info(
+    `Order business status demo seed ready with ${BUSINESS_STATUS_DEMOS.length} orders.`,
+  )
 }
