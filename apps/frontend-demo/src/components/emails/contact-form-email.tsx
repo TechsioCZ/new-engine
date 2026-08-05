@@ -9,83 +9,6 @@ interface ContactFormEmailProps {
   message: string
 }
 
-export const ContactFormEmail = ({
-  firstName,
-  lastName,
-  email,
-  phone,
-  subject,
-  message,
-}: ContactFormEmailProps) => {
-  const previewText = `Nová zpráva od ${firstName} ${lastName}`
-
-  return (
-    <html lang="cs">
-      <body style={styles.body}>
-        <div style={styles.preview}>{previewText}</div>
-        <main style={styles.container}>
-          <h1 style={styles.heading}>Nová zpráva z kontaktního formuláře</h1>
-          <EmailField label="Jméno">
-            {firstName} {lastName}
-          </EmailField>
-          <EmailField label="Email">
-            <a href={`mailto:${email}`} style={styles.link}>
-              {email}
-            </a>
-          </EmailField>
-          {phone ? <EmailField label="Telefon">{phone}</EmailField> : null}
-          <EmailField label="Téma">{getSubjectLabel(subject)}</EmailField>
-          <hr style={styles.divider} />
-          <section style={styles.section}>
-            <p style={styles.label}>Zpráva:</p>
-            <p style={styles.message}>{message}</p>
-          </section>
-          <hr style={styles.divider} />
-          <p style={styles.footer}>
-            Tato zpráva byla odeslána prostřednictvím kontaktního formuláře na
-            webu.
-          </p>
-        </main>
-      </body>
-    </html>
-  )
-}
-
-ContactFormEmail.PreviewProps = {
-  email: "jan.novak@example.com",
-  firstName: "Jan",
-  lastName: "Novák",
-  message: "Dobrý den, rád bych se zeptal na dostupnost vašich produktů.",
-  phone: "+420 123 456 789",
-  subject: "general",
-} satisfies ContactFormEmailProps
-
-const EmailField = ({
-  label,
-  children,
-}: {
-  label: string
-  children: ReactNode
-}) => {
-  return (
-    <section style={styles.section}>
-      <p style={styles.label}>{label}:</p>
-      <p style={styles.value}>{children}</p>
-    </section>
-  )
-}
-
-function getSubjectLabel(subject: string): string {
-  const subjects: Record<string, string> = {
-    general: "Obecný dotaz",
-    other: "Jiné",
-    returns: "Vrácení zboží",
-    shipping: "Doprava a doručení",
-    support: "Technická podpora",
-  }
-  return subjects[subject] || subject
-}
-
 const styles = {
   body: {
     backgroundColor: "#f3f4f6",
@@ -150,3 +73,80 @@ const styles = {
     margin: 0,
   },
 } satisfies Record<string, CSSProperties>
+
+const EmailField = ({
+  label,
+  children,
+}: {
+  label: string
+  children: ReactNode
+}) => (
+  <section style={styles.section}>
+    <p style={styles.label}>{label}:</p>
+    <p style={styles.value}>{children}</p>
+  </section>
+)
+
+const getSubjectLabel = (subject: string): string => {
+  const subjects: Record<string, string> = {
+    general: "Obecný dotaz",
+    other: "Jiné",
+    returns: "Vrácení zboží",
+    shipping: "Doprava a doručení",
+    support: "Technická podpora",
+  }
+  return subjects[subject] ?? subject
+}
+
+export const ContactFormEmail = ({
+  firstName,
+  lastName,
+  email,
+  phone,
+  subject,
+  message,
+}: ContactFormEmailProps) => {
+  const previewText = `Nová zpráva od ${firstName} ${lastName}`
+
+  return (
+    <html lang="cs">
+      <body style={styles.body}>
+        <div style={styles.preview}>{previewText}</div>
+        <main style={styles.container}>
+          <h1 style={styles.heading}>Nová zpráva z kontaktního formuláře</h1>
+          <EmailField label="Jméno">
+            {firstName} {lastName}
+          </EmailField>
+          <EmailField label="Email">
+            <a href={`mailto:${email}`} style={styles.link}>
+              {email}
+            </a>
+          </EmailField>
+          {phone !== undefined && phone.length > 0 ? (
+            <EmailField label="Telefon">{phone}</EmailField>
+          ) : null}
+          <EmailField label="Téma">{getSubjectLabel(subject)}</EmailField>
+          <hr style={styles.divider} />
+          <section style={styles.section}>
+            <p style={styles.label}>Zpráva:</p>
+            <p style={styles.message}>{message}</p>
+          </section>
+          <hr style={styles.divider} />
+          <p style={styles.footer}>
+            Tato zpráva byla odeslána prostřednictvím kontaktního formuláře na
+            webu.
+          </p>
+        </main>
+      </body>
+    </html>
+  )
+}
+
+ContactFormEmail.PreviewProps = {
+  email: "jan.novak@example.com",
+  firstName: "Jan",
+  lastName: "Novák",
+  message: "Dobrý den, rád bych se zeptal na dostupnost vašich produktů.",
+  phone: "+420 123 456 789",
+  subject: "general",
+} satisfies ContactFormEmailProps
