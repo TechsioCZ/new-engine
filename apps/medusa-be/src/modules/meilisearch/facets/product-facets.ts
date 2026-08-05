@@ -1,3 +1,5 @@
+import { isRecord } from "@techsio/std/object"
+
 type UnknownRecord = Record<string, unknown>
 
 interface ProductFacetValue {
@@ -14,8 +16,9 @@ export const BRAND_FACET_PREFIX = "brand-"
 export const INGREDIENT_FACET_PREFIX = "ingredient-"
 export const ACTIVE_INGREDIENT_ROOT = "Účinné zložky od A po Z"
 export const ACTIVE_INGREDIENT_HANDLE_PREFIX = "ucinne-zlozky-od-a-po-z-"
-const BIO_STATUS_REGEX = /\bbio\b/
-const VEGAN_STATUS_REGEX = /\bvegan\b/
+const BIO_STATUS_REGEX = /\bbio\b/u
+const VEGAN_STATUS_REGEX = /\bvegan\b/u
+const NUMERIC_PREFIX_REGEX = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/iu
 
 export const STATUS_FACET_DEFINITIONS: ProductFacetValue[] = [
   { id: IN_STOCK_FACET_ID, label: "Na sklade" },
@@ -68,13 +71,8 @@ export interface ProductFacetDocument {
   facet_price?: number | undefined
 }
 
-const asRecord = (value: unknown): UnknownRecord | null => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null
-  }
-
-  return value as UnknownRecord
-}
+const asRecord = (value: unknown): UnknownRecord | null =>
+  isRecord(value) ? value : null
 
 const asArray = (value: unknown): unknown[] => {
   if (!Array.isArray(value)) {
@@ -101,10 +99,10 @@ const normalizeForMatch = (value: string): string =>
 
 const toSlug = (value: string): string =>
   normalizeForMatch(value)
-    .replaceAll(/[^a-z0-9-]+/g, "-")
-    .replaceAll(/-+/g, "-")
-    .replaceAll(/^-+/g, "")
-    .replaceAll(/-+$/g, "")
+    .replaceAll(/[^a-z0-9-]+/gu, "-")
+    .replaceAll(/-+/gu, "-")
+    .replaceAll(/^-+/gu, "")
+    .replaceAll(/-+$/gu, "")
 
 const dedupe = (values: string[]): string[] => {
   const result: string[] = []
@@ -137,7 +135,7 @@ const resolveSalesChannelFacetIds = (document: UnknownRecord): string[] => {
   for (const rawSalesChannel of asArray(document["sales_channels"])) {
     const salesChannel = asRecord(rawSalesChannel)
     const id = getStringField(salesChannel, "id")
-    if (id) {
+    if (id !== undefined) {
       ids.push(id)
     }
   }
@@ -145,12 +143,22 @@ const resolveSalesChannelFacetIds = (document: UnknownRecord): string[] => {
   for (const rawSalesChannelLink of asArray(document["sales_channels_link"])) {
     const salesChannelLink = asRecord(rawSalesChannelLink)
     const salesChannelId = getStringField(salesChannelLink, "sales_channel_id")
-    if (salesChannelId) {
+    if (salesChannelId !== undefined) {
       ids.push(salesChannelId)
     }
   }
 
   return dedupe(ids)
+}
+
+const parseNumericPrefix = (value: string): number | undefined => {
+  const numericPrefix = NUMERIC_PREFIX_REGEX.exec(value.trim())?.[0]
+  if (numericPrefix === undefined) {
+    return undefined
+  }
+
+  const parsed = Number(numericPrefix)
+  return Number.isFinite(parsed) ? parsed : undefined
 }
 
 const resolveProductInStock = (document: UnknownRecord): boolean => {
@@ -164,8 +172,8 @@ const resolveProductInStock = (document: UnknownRecord): boolean => {
   }
 
   if (typeof amount === "string") {
-    const parsed = Number.parseFloat(amount)
-    return Number.isFinite(parsed) ? parsed > 0 : true
+    const parsed = parseNumericPrefix(amount)
+    return parsed === undefined ? true : parsed > 0
   }
 
   return true
@@ -241,10 +249,10 @@ const resolveFormFacetIds = (document: UnknownRecord): string[] => {
 const sanitizeHandle = (value: string): string | undefined => {
   const normalized = value.trim().toLowerCase()
   if (!normalized) {
-    return
+    return undefined
   }
   const slug = toSlug(normalized)
-  return slug || undefined
+  return slug === "" ? undefined : slug
 }
 
 const resolveBrandFacetIds = (document: UnknownRecord): string[] => {
@@ -268,7 +276,7 @@ const resolveBrandFacetIds = (document: UnknownRecord): string[] => {
       : undefined
   const handle = brandHandle ?? brandTitle
 
-  if (!handle) {
+  if (handle === undefined) {
     return []
   }
 
@@ -284,28 +292,22 @@ const resolveIngredientFacetIds = (document: UnknownRecord): string[] => {
 
   for (const rawCategory of categories) {
     const category = asRecord(rawCategory)
-    if (!category || typeof category["handle"] !== "string") {
-      continue
-    }
+    const categoryHandle = category?.["handle"]
+    const categoryName = category?.["name"]
+    const isRoot =
+      typeof categoryName === "string" &&
+      Boolean(categoryName.trim()) &&
+      isActiveIngredientRoot(categoryName)
+    const handle =
+      typeof categoryHandle === "string" &&
+      categoryHandle.startsWith(ACTIVE_INGREDIENT_HANDLE_PREFIX) &&
+      !isRoot
+        ? sanitizeHandle(categoryHandle)
+        : undefined
 
-    if (!category["handle"].startsWith(ACTIVE_INGREDIENT_HANDLE_PREFIX)) {
-      continue
+    if (handle !== undefined) {
+      ids.push(`${INGREDIENT_FACET_PREFIX}${handle}`)
     }
-
-    if (
-      typeof category["name"] === "string" &&
-      category["name"].trim() &&
-      isActiveIngredientRoot(category["name"])
-    ) {
-      continue
-    }
-
-    const handle = sanitizeHandle(category["handle"])
-    if (!handle) {
-      continue
-    }
-
-    ids.push(`${INGREDIENT_FACET_PREFIX}${handle}`)
   }
 
   return dedupe(ids)
@@ -332,21 +334,20 @@ const parseNumericValue = (value: unknown): number | undefined => {
   }
 
   if (typeof value !== "string") {
-    return
+    return undefined
   }
 
   const normalized = value.trim().replace(",", ".")
   if (!normalized) {
-    return
+    return undefined
   }
 
-  const parsed = Number.parseFloat(normalized)
-  return Number.isFinite(parsed) ? parsed : undefined
+  return parseNumericPrefix(normalized)
 }
 
 const normalizeFacetPrice = (value: number | undefined): number | undefined => {
   if (value === undefined || !Number.isFinite(value) || value < 0) {
-    return
+    return undefined
   }
 
   return Math.round(value * 100) / 100
@@ -359,7 +360,7 @@ const toMajorUnitAmount = (value: number): number =>
 const parsePositiveFacetPrice = (value: unknown): number | undefined => {
   const parsedPrice = parseNumericValue(value)
   if (parsedPrice === undefined || parsedPrice <= 0) {
-    return
+    return undefined
   }
 
   return normalizeFacetPrice(parsedPrice)
@@ -388,16 +389,15 @@ const resolveVariantMinFacetPrice = (
     for (const rawPrice of prices) {
       const price = asRecord(rawPrice)
       const amount = parseNumericValue(price?.["amount"])
-      if (amount === undefined) {
-        continue
-      }
+      const normalizedPrice =
+        amount === undefined
+          ? undefined
+          : normalizeFacetPrice(toMajorUnitAmount(amount))
 
-      const normalizedPrice = normalizeFacetPrice(toMajorUnitAmount(amount))
-      if (normalizedPrice === undefined) {
-        continue
-      }
-
-      if (minPrice === undefined || normalizedPrice < minPrice) {
+      if (
+        normalizedPrice !== undefined &&
+        (minPrice === undefined || normalizedPrice < minPrice)
+      ) {
         minPrice = normalizedPrice
       }
     }
@@ -442,7 +442,7 @@ export const extractBrandHandleFromFacetId = (
   id: string,
 ): string | undefined => {
   if (!isBrandFacetId(id)) {
-    return
+    return undefined
   }
 
   return id.slice(BRAND_FACET_PREFIX.length) || undefined
@@ -455,7 +455,7 @@ export const extractIngredientHandleFromFacetId = (
   id: string,
 ): string | undefined => {
   if (!isIngredientFacetId(id)) {
-    return
+    return undefined
   }
 
   return id.slice(INGREDIENT_FACET_PREFIX.length) || undefined
