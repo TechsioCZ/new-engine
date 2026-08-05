@@ -1,28 +1,42 @@
 import QRCode from "qrcode"
 
+type NullableText = string | null | undefined
+
+type NullableNumericText = number | string | null
+
+interface BigNumberLike {
+  valueOf: () => unknown
+}
+
+type PaymentQrAmount = BigNumberLike | number | string
+
+type AsciiInput = boolean | number | string
+
 export interface OrderPaymentQrOrder {
   currency_code?: string | null
   custom_display_id?: string | null
-  display_id?: number | string | null
+  display_id?: NullableNumericText
   id: string
   summary?: {
-    current_order_total?: number | string | null
-    original_order_total?: number | string | null
+    current_order_total?: NullableNumericText
+    original_order_total?: NullableNumericText
   } | null
-  total?: number | string | { valueOf(): unknown } | null
+  total?: PaymentQrAmount | null
 }
 
 export interface PaymentQrPaymentData {
-  amount: number | string | { valueOf(): unknown }
+  amount: PaymentQrAmount
   currency_code?: string | null
-  iban: string | null | undefined
+  iban: NullableText
   message?: string | null
   reference?: string | null
 }
 
-const VARIABLE_SYMBOL_REGEX = /^\d{1,10}$/
+const VARIABLE_SYMBOL_REGEX = /^\d{1,10}$/u
 const PAYMENT_QR_QUIET_ZONE_MODULES = 4
-const SPAYD_RESERVED_CHARS_REGEX = /[*:]/g
+const SPAYD_RESERVED_CHARS_REGEX = /[*:]/gu
+const DEFAULT_CURRENCY_CODE = "CZK"
+const DEFAULT_PAYMENT_MESSAGE = "OBJEDNAVKA"
 
 export interface PaymentQrPdfCommandOptions {
   moduleSize?: number
@@ -32,30 +46,124 @@ export interface PaymentQrPdfCommandOptions {
   y?: number
 }
 
-export type PaymentQrPdfCommand = string
+const nonEmptyText = (value: NullableText) =>
+  value === null || value === undefined || value === "" ? null : value
+
+const ascii = (value: AsciiInput | null | undefined) => {
+  const text = value === null || value === undefined ? "" : String(value)
+
+  return text
+    .replaceAll("\u00A0", " ")
+    .normalize("NFKD")
+    .replaceAll(/[\u0300-\u036F]/gu, "")
+    .replaceAll(/[^\u0020-\u007E]/gu, "")
+}
+
+const escapeSpaydValue = (value: string) =>
+  ascii(value)
+    .toUpperCase()
+    .replace(SPAYD_RESERVED_CHARS_REGEX, " ")
+    .slice(0, 60)
+
+const formatSpaydAmount = (value: PaymentQrAmount | null | undefined) => {
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  const amount = Number(value)
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return null
+  }
+
+  return amount.toFixed(2)
+}
+
+const normalizeVariableSymbol = (value: NullableText) => {
+  const normalized = value?.replaceAll(/\D/gu, "") ?? ""
+
+  return VARIABLE_SYMBOL_REGEX.test(normalized) ? normalized : null
+}
+
+const getOrderPaymentAmount = (order: OrderPaymentQrOrder) =>
+  order.summary?.current_order_total ??
+  order.total ??
+  order.summary?.original_order_total
+
+const getOrderCurrencyCode = (
+  order: OrderPaymentQrOrder,
+  fallbackCurrencyCode: string,
+) => {
+  const currencyCode = nonEmptyText(order.currency_code?.trim())
+
+  return (currencyCode ?? fallbackCurrencyCode).toUpperCase()
+}
+
+const getOrderVariableSymbol = (order: OrderPaymentQrOrder) => {
+  const customDisplayId = normalizeVariableSymbol(order.custom_display_id)
+  if (customDisplayId !== null) {
+    return customDisplayId
+  }
+
+  return normalizeVariableSymbol(String(order.display_id ?? ""))
+}
+
+const getOrderPaymentMessage = (
+  order: OrderPaymentQrOrder,
+  messagePrefix: string,
+) => {
+  const displayId = order.custom_display_id ?? order.display_id ?? order.id
+
+  return `${messagePrefix} ${displayId}`
+}
+
+const pdfFillRect = ({
+  color = "0 0 0",
+  height,
+  width,
+  x,
+  y,
+}: {
+  color?: string
+  height: number
+  width: number
+  x: number
+  y: number
+}) =>
+  `q ${color} rg ${x.toFixed(2)} ${y.toFixed(2)} ${width.toFixed(
+    2,
+  )} ${height.toFixed(2)} re f Q`
 
 export class OrderPaymentQr {
-  buildSpayd(order: OrderPaymentQrOrder, iban: string | null | undefined) {
-    if (!iban) {
+  readonly #defaultCurrencyCode = DEFAULT_CURRENCY_CODE
+
+  readonly #defaultMessage = DEFAULT_PAYMENT_MESSAGE
+
+  readonly #quietZoneModules = PAYMENT_QR_QUIET_ZONE_MODULES
+
+  buildSpayd(order: OrderPaymentQrOrder, iban: NullableText) {
+    const account = nonEmptyText(iban)
+    if (account === null) {
       return null
     }
 
     const amount = formatSpaydAmount(getOrderPaymentAmount(order))
-    if (!amount) {
+    if (amount === null) {
       return null
     }
 
     const fields = [
       "SPD",
       "1.0",
-      `ACC:${iban.replaceAll(/\s+/g, "").toUpperCase()}`,
+      `ACC:${account.replaceAll(/\s+/gu, "").toUpperCase()}`,
       `AM:${amount}`,
-      `CC:${getOrderCurrencyCode(order)}`,
-      `MSG:${escapeSpaydValue(getOrderPaymentMessage(order))}`,
+      `CC:${getOrderCurrencyCode(order, this.#defaultCurrencyCode)}`,
+      `MSG:${escapeSpaydValue(
+        getOrderPaymentMessage(order, this.#defaultMessage),
+      )}`,
     ]
 
     const variableSymbol = getOrderVariableSymbol(order)
-    if (variableSymbol) {
+    if (variableSymbol !== null) {
       fields.push(`X-VS:${variableSymbol}`)
     }
 
@@ -63,26 +171,32 @@ export class OrderPaymentQr {
   }
 
   buildPaymentSpayd(payment: PaymentQrPaymentData) {
-    if (!payment.iban) {
+    const account = nonEmptyText(payment.iban)
+    if (account === null) {
       return null
     }
 
     const amount = formatSpaydAmount(payment.amount)
-    if (!amount) {
+    if (amount === null) {
       return null
     }
+
+    const currencyCode =
+      nonEmptyText(payment.currency_code) ?? this.#defaultCurrencyCode
 
     const fields = [
       "SPD",
       "1.0",
-      `ACC:${payment.iban.replaceAll(/\s+/g, "").toUpperCase()}`,
+      `ACC:${account.replaceAll(/\s+/gu, "").toUpperCase()}`,
       `AM:${amount}`,
-      `CC:${(payment.currency_code || "CZK").toUpperCase()}`,
-      `MSG:${escapeSpaydValue(payment.message ?? payment.reference ?? "OBJEDNAVKA")}`,
+      `CC:${currencyCode.toUpperCase()}`,
+      `MSG:${escapeSpaydValue(
+        payment.message ?? payment.reference ?? this.#defaultMessage,
+      )}`,
     ]
 
     const variableSymbol = normalizeVariableSymbol(payment.reference ?? null)
-    if (variableSymbol) {
+    if (variableSymbol !== null) {
       fields.push(`X-VS:${variableSymbol}`)
     }
 
@@ -90,7 +204,7 @@ export class OrderPaymentQr {
   }
 
   buildPdfCommands(
-    spayd: string | null | undefined,
+    spayd: NullableText,
     {
       moduleSize: requestedModuleSize,
       size,
@@ -98,25 +212,26 @@ export class OrderPaymentQr {
       x,
       y,
     }: PaymentQrPdfCommandOptions,
-  ): PaymentQrPdfCommand[] {
-    if (!spayd) {
+  ): string[] {
+    const payload = nonEmptyText(spayd)
+    if (payload === null) {
       return []
     }
 
     let qr: ReturnType<typeof QRCode.create>
     try {
-      qr = QRCode.create(spayd, { errorCorrectionLevel: "M" })
+      qr = QRCode.create(payload, { errorCorrectionLevel: "M" })
     } catch {
       return []
     }
 
     const matrixSize = qr.modules.size
-    const quietZoneSize = PAYMENT_QR_QUIET_ZONE_MODULES * 2
+    const quietZoneSize = this.#quietZoneModules * 2
     const moduleSize =
       requestedModuleSize ?? (size ?? 120) / (matrixSize + quietZoneSize)
     const renderedSize = (matrixSize + quietZoneSize) * moduleSize
     const renderedY = top === undefined ? (y ?? 0) : top - renderedSize
-    const commands: PaymentQrPdfCommand[] = [
+    const commands: string[] = [
       pdfFillRect({
         color: "1 1 1",
         height: renderedSize,
@@ -136,11 +251,10 @@ export class OrderPaymentQr {
           pdfFillRect({
             height: moduleSize,
             width: moduleSize,
-            x: x + (col + PAYMENT_QR_QUIET_ZONE_MODULES) * moduleSize,
+            x: x + (col + this.#quietZoneModules) * moduleSize,
             y:
               renderedY +
-              (matrixSize - row - 1 + PAYMENT_QR_QUIET_ZONE_MODULES) *
-                moduleSize,
+              (matrixSize - row - 1 + this.#quietZoneModules) * moduleSize,
           }),
         )
       }
@@ -152,89 +266,5 @@ export class OrderPaymentQr {
 
 export const orderPaymentQr = new OrderPaymentQr()
 
-export function buildPaymentQrSpayd(payment: PaymentQrPaymentData) {
-  return orderPaymentQr.buildPaymentSpayd(payment)
-}
-
-function formatSpaydAmount(value: OrderPaymentQrOrder["total"]) {
-  if (value === null || value === undefined) {
-    return null
-  }
-
-  const amount = Number(value)
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return null
-  }
-
-  return amount.toFixed(2)
-}
-
-function getOrderPaymentAmount(order: OrderPaymentQrOrder) {
-  return (
-    order.summary?.current_order_total ??
-    order.total ??
-    order.summary?.original_order_total
-  )
-}
-
-function getOrderCurrencyCode(order: OrderPaymentQrOrder) {
-  const currencyCode = order.currency_code?.trim() || undefined
-
-  return (currencyCode ?? "CZK").toUpperCase()
-}
-
-function getOrderVariableSymbol(order: OrderPaymentQrOrder) {
-  const customDisplayId = normalizeVariableSymbol(order.custom_display_id)
-  if (customDisplayId) {
-    return customDisplayId
-  }
-
-  return normalizeVariableSymbol(String(order.display_id ?? ""))
-}
-
-function getOrderPaymentMessage(order: OrderPaymentQrOrder) {
-  const displayId = order.custom_display_id ?? order.display_id ?? order.id
-
-  return `OBJEDNAVKA ${displayId}`
-}
-
-function escapeSpaydValue(value: string) {
-  return ascii(value)
-    .toUpperCase()
-    .replace(SPAYD_RESERVED_CHARS_REGEX, " ")
-    .slice(0, 60)
-}
-
-function ascii(value: boolean | number | string | null | undefined) {
-  const text = value === null || value === undefined ? "" : String(value)
-
-  return text
-    .replaceAll("\xA0", " ")
-    .normalize("NFKD")
-    .replaceAll(/[\u0300-\u036F]/g, "")
-    .replaceAll(/[^\u0020-\u007E]/g, "")
-}
-
-function normalizeVariableSymbol(value: string | null | undefined) {
-  const normalized = value?.replaceAll(/\D/g, "") ?? ""
-
-  return VARIABLE_SYMBOL_REGEX.test(normalized) ? normalized : null
-}
-
-function pdfFillRect({
-  color = "0 0 0",
-  height,
-  width,
-  x,
-  y,
-}: {
-  color?: string
-  height: number
-  width: number
-  x: number
-  y: number
-}) {
-  return `q ${color} rg ${x.toFixed(2)} ${y.toFixed(2)} ${width.toFixed(
-    2,
-  )} ${height.toFixed(2)} re f Q`
-}
+export const buildPaymentQrSpayd = (payment: PaymentQrPaymentData) =>
+  orderPaymentQr.buildPaymentSpayd(payment)
