@@ -93,7 +93,7 @@ const previewLastDeployedCommitEnvKey =
   "ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA"
 const previewBaselineCompleteEnvKey = "ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE"
 
-function assertString(value: unknown, label: string): string {
+const assertString = (value: unknown, label: string): string => {
   if (typeof value !== "string" || !value.trim()) {
     throw new UpstreamHttpError(
       502,
@@ -105,7 +105,7 @@ function assertString(value: unknown, label: string): string {
   return value.trim()
 }
 
-function assertServiceType(value: unknown, label: string): ServiceType {
+const assertServiceType = (value: unknown, label: string): ServiceType => {
   const rawServiceType = assertString(value, label)
 
   switch (rawServiceType.toUpperCase()) {
@@ -127,8 +127,11 @@ function assertServiceType(value: unknown, label: string): ServiceType {
   }
 }
 
-function assertObject(value: unknown, label: string): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+const assertObject = (
+  value: unknown,
+  label: string,
+): Record<string, unknown> => {
+  if (!isRecord(value)) {
     throw new UpstreamHttpError(
       502,
       "zane_payload_invalid",
@@ -136,10 +139,10 @@ function assertObject(value: unknown, label: string): Record<string, unknown> {
     )
   }
 
-  return value as Record<string, unknown>
+  return value
 }
 
-function assertStringArrayInput(value: unknown, label: string): string[] {
+const assertStringArrayInput = (value: unknown, label: string): string[] => {
   if (!Array.isArray(value)) {
     throw new BadRequestError(`${label} must be an array`)
   }
@@ -153,10 +156,10 @@ function assertStringArrayInput(value: unknown, label: string): string[] {
   })
 }
 
-function toMeiliProvisionOutputInput(
+const toMeiliProvisionOutputInput = (
   output: RuntimeProviderOutputInput,
   label: string,
-): NonNullable<ProvisionMeiliKeysInput["backendOutput"]> {
+): NonNullable<ProvisionMeiliKeysInput["backendOutput"]> => {
   if (output.policy.kind !== "meilisearch_key") {
     throw new BadRequestError(
       `${label}.policy.kind must be meilisearch_key for meili_api_credentials`,
@@ -191,10 +194,10 @@ function toMeiliProvisionOutputInput(
   }
 }
 
-function toMedusaPublishableKeyProvisionOutputInput(
+const toMedusaPublishableKeyProvisionOutputInput = (
   output: RuntimeProviderOutputInput,
   label: string,
-): ProvisionMedusaPublishableKeyInput["frontendOutput"] {
+): ProvisionMedusaPublishableKeyInput["frontendOutput"] => {
   if (output.policy.kind !== "medusa_publishable_key") {
     throw new BadRequestError(
       `${label}.policy.kind must be medusa_publishable_key for medusa_publishable_key`,
@@ -219,7 +222,7 @@ function toMedusaPublishableKeyProvisionOutputInput(
   }
 }
 
-function normalizeServiceCards(payload: unknown): ZaneServiceCard[] {
+const normalizeServiceCards = (payload: unknown): ZaneServiceCard[] => {
   if (!Array.isArray(payload)) {
     throw new UpstreamHttpError(
       502,
@@ -239,9 +242,11 @@ function normalizeServiceCards(payload: unknown): ZaneServiceCard[] {
   })
 }
 
-function normalizeDockerfileBuilderOptions(
+const normalizeDockerfileBuilderOptions = (
   value: unknown,
-): NonNullable<ZaneServiceDetails["dockerfile_builder_options"]> | undefined {
+):
+  | NonNullable<ZaneServiceDetails["dockerfile_builder_options"]>
+  | undefined => {
   if (!isRecord(value)) {
     return undefined
   }
@@ -262,7 +267,9 @@ function normalizeDockerfileBuilderOptions(
   }
 }
 
-function normalizeEnvVariables(value: unknown): ZaneEnvVariable[] | undefined {
+const normalizeEnvVariables = (
+  value: unknown,
+): ZaneEnvVariable[] | undefined => {
   if (!Array.isArray(value)) {
     return undefined
   }
@@ -285,12 +292,108 @@ function normalizeEnvVariables(value: unknown): ZaneEnvVariable[] | undefined {
   return variables
 }
 
+const normalizeServiceUrls = (value: unknown): ZaneServiceDetails["urls"] => {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.flatMap((entry) => {
+    if (
+      !isRecord(entry) ||
+      typeof entry.domain !== "string" ||
+      typeof entry.base_path !== "string"
+    ) {
+      return []
+    }
+
+    return [
+      {
+        base_path: entry.base_path,
+        domain: entry.domain,
+        ...(typeof entry.id === "string" ? { id: entry.id } : {}),
+        ...(typeof entry.strip_prefix === "boolean"
+          ? { strip_prefix: entry.strip_prefix }
+          : {}),
+        ...(typeof entry.redirect_to === "string" || entry.redirect_to === null
+          ? { redirect_to: entry.redirect_to }
+          : {}),
+        ...(typeof entry.associated_port === "number" ||
+        entry.associated_port === null
+          ? { associated_port: entry.associated_port }
+          : {}),
+      },
+    ]
+  })
+}
+
+const normalizeServiceVolumes = (
+  value: unknown,
+): NonNullable<ZaneServiceDetails["volumes"]> | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined
+  }
+
+  return value.flatMap((entry) => {
+    if (
+      !isRecord(entry) ||
+      typeof entry.name !== "string" ||
+      typeof entry.container_path !== "string" ||
+      typeof entry.mode !== "string"
+    ) {
+      return []
+    }
+
+    return [
+      {
+        container_path: entry.container_path,
+        mode: entry.mode,
+        name: entry.name,
+        ...(typeof entry.id === "string" ? { id: entry.id } : {}),
+        ...(typeof entry.host_path === "string" || entry.host_path === null
+          ? { host_path: entry.host_path }
+          : {}),
+      },
+    ]
+  })
+}
+
+const normalizeUnappliedChanges = (
+  value: unknown,
+): NonNullable<ZaneServiceDetails["unapplied_changes"]> | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined
+  }
+
+  return value.flatMap((entry) => {
+    if (!isRecord(entry) || typeof entry.id !== "string") {
+      return []
+    }
+
+    return [
+      {
+        id: entry.id,
+        ...(typeof entry.type === "string" ? { type: entry.type } : {}),
+        ...(typeof entry.field === "string" ? { field: entry.field } : {}),
+        ...(typeof entry.item_id === "string" || entry.item_id === null
+          ? { item_id: entry.item_id }
+          : {}),
+        ...(isRecord(entry.new_value) || entry.new_value === null
+          ? { new_value: entry.new_value }
+          : {}),
+        ...(isRecord(entry.old_value) || entry.old_value === null
+          ? { old_value: entry.old_value }
+          : {}),
+      },
+    ]
+  })
+}
+
 // The environment reference carries the variables that bootstrap-generated
 // {{env.X}} references resolve against. Dropping it makes the Meilisearch and
 // Medusa provisioners fall back to the literal placeholder as a credential.
-function normalizeEnvironmentReference(
+const normalizeEnvironmentReference = (
   value: unknown,
-): ZaneServiceDetails["environment"] | undefined {
+): ZaneServiceDetails["environment"] | undefined => {
   if (value === null) {
     return null
   }
@@ -311,9 +414,9 @@ function normalizeEnvironmentReference(
   }
 }
 
-function normalizeGitAppRef(
+const normalizeGitAppRef = (
   value: unknown,
-): ZaneServiceDetails["git_app"] | undefined {
+): ZaneServiceDetails["git_app"] | undefined => {
   if (value === null) {
     return null
   }
@@ -323,16 +426,19 @@ function normalizeGitAppRef(
     : undefined
 }
 
-function normalizeHealthcheck(
+const normalizeHealthcheck = (
   value: unknown,
-): ZaneServiceHealthcheck | null | undefined {
+): ZaneServiceHealthcheck | null | undefined => {
   if (value === null) {
     return null
   }
+  if (!isRecord(value)) {
+    return undefined
+  }
+  if (typeof value.type !== "string" || typeof value.value !== "string") {
+    return undefined
+  }
   if (
-    !isRecord(value) ||
-    typeof value.type !== "string" ||
-    typeof value.value !== "string" ||
     typeof value.timeout_seconds !== "number" ||
     typeof value.interval_seconds !== "number"
   ) {
@@ -351,9 +457,9 @@ function normalizeHealthcheck(
   }
 }
 
-function normalizeResourceLimits(
+const normalizeResourceLimits = (
   value: unknown,
-): ZaneServiceResourceLimits | null | undefined {
+): ZaneServiceResourceLimits | null | undefined => {
   if (value === null) {
     return null
   }
@@ -362,6 +468,17 @@ function normalizeResourceLimits(
   }
 
   const { memory } = value
+  let normalizedMemory: ZaneServiceResourceLimits["memory"] | undefined
+  if (memory === null) {
+    normalizedMemory = null
+  } else if (isRecord(memory)) {
+    normalizedMemory = {
+      ...(typeof memory.unit === "string" ? { unit: memory.unit } : {}),
+      ...(typeof memory.value === "number" || typeof memory.value === "string"
+        ? { value: memory.value }
+        : {}),
+    }
+  }
 
   return {
     ...(typeof value.cpus === "number" ||
@@ -369,26 +486,14 @@ function normalizeResourceLimits(
     value.cpus === null
       ? { cpus: value.cpus }
       : {}),
-    ...(memory === null
-      ? { memory: null }
-      : isRecord(memory)
-        ? {
-            memory: {
-              ...(typeof memory.unit === "string" ? { unit: memory.unit } : {}),
-              ...(typeof memory.value === "number" ||
-              typeof memory.value === "string"
-                ? { value: memory.value }
-                : {}),
-            },
-          }
-        : {}),
+    ...(normalizedMemory === undefined ? {} : { memory: normalizedMemory }),
   }
 }
 
-function normalizeServiceDetails(
+const normalizeServiceDetails = (
   payload: unknown,
   label: string,
-): ZaneServiceDetails {
+): ZaneServiceDetails => {
   const object = assertObject(payload, label)
   const dockerfileBuilderOptions = normalizeDockerfileBuilderOptions(
     object.dockerfile_builder_options,
@@ -397,12 +502,13 @@ function normalizeServiceDetails(
   const gitApp = normalizeGitAppRef(object.git_app)
   const healthcheck = normalizeHealthcheck(object.healthcheck)
   const resourceLimits = normalizeResourceLimits(object.resource_limits)
+  const systemEnvVariables = normalizeEnvVariables(object.system_env_variables)
+  const unappliedChanges = normalizeUnappliedChanges(object.unapplied_changes)
+  const volumes = normalizeServiceVolumes(object.volumes)
 
   return {
     deploy_token: assertString(object.deploy_token, `${label}.deploy_token`),
-    env_variables: Array.isArray(object.env_variables)
-      ? (object.env_variables as ZaneEnvVariable[])
-      : [],
+    env_variables: normalizeEnvVariables(object.env_variables) ?? [],
     global_network_alias:
       typeof object.global_network_alias === "string"
         ? object.global_network_alias
@@ -410,9 +516,7 @@ function normalizeServiceDetails(
     id: assertString(object.id, `${label}.id`),
     slug: assertString(object.slug, `${label}.slug`),
     type: assertServiceType(object.type, `${label}.type`),
-    urls: Array.isArray(object.urls)
-      ? (object.urls as ZaneServiceDetails["urls"])
-      : [],
+    urls: normalizeServiceUrls(object.urls),
     ...(typeof object.network_alias === "string"
       ? { network_alias: object.network_alias }
       : {}),
@@ -428,24 +532,13 @@ function normalizeServiceDetails(
     ...(typeof object.builder === "string" ? { builder: object.builder } : {}),
     ...(typeof object.command === "string" ? { command: object.command } : {}),
     ...(environment === undefined ? {} : { environment }),
-    ...(Array.isArray(object.system_env_variables)
-      ? {
-          system_env_variables:
-            object.system_env_variables as ZaneEnvVariable[],
-        }
-      : {}),
-    ...(Array.isArray(object.volumes)
-      ? {
-          volumes: object.volumes as NonNullable<ZaneServiceDetails["volumes"]>,
-        }
-      : {}),
-    ...(Array.isArray(object.unapplied_changes)
-      ? {
-          unapplied_changes: object.unapplied_changes as NonNullable<
-            ZaneServiceDetails["unapplied_changes"]
-          >,
-        }
-      : {}),
+    ...(systemEnvVariables === undefined
+      ? {}
+      : { system_env_variables: systemEnvVariables }),
+    ...(volumes === undefined ? {} : { volumes }),
+    ...(unappliedChanges === undefined
+      ? {}
+      : { unapplied_changes: unappliedChanges }),
     ...(dockerfileBuilderOptions === undefined
       ? {}
       : { dockerfile_builder_options: dockerfileBuilderOptions }),
@@ -457,11 +550,9 @@ function normalizeServiceDetails(
   }
 }
 
-function previewRandomOnceSecretPersistsToZaneEnv(secret: {
+const previewRandomOnceSecretPersistsToZaneEnv = (secret: {
   persistTo?: string
-}): boolean {
-  return (secret.persistTo ?? "zane_env") === "zane_env"
-}
+}): boolean => (secret.persistTo ?? "zane_env") === "zane_env"
 
 export class ZaneClient {
   readonly #upstream: ZaneUpstreamClient
@@ -697,20 +788,20 @@ export class ZaneClient {
 
     return {
       baseline_complete:
-        this.getSharedEnvironmentVariable(
+        ZaneClient.getSharedEnvironmentVariable(
           environment,
           previewBaselineCompleteEnvKey,
         ) === "true",
       environment_exists: environment !== null,
       environment_name: input.environmentName,
       last_deployed_commit_sha:
-        this.getSharedEnvironmentVariable(
+        ZaneClient.getSharedEnvironmentVariable(
           environment,
           previewLastDeployedCommitEnvKey,
         ) ?? null,
       project_slug: input.projectSlug,
       target_commit_sha:
-        this.getSharedEnvironmentVariable(
+        ZaneClient.getSharedEnvironmentVariable(
           environment,
           previewTargetCommitEnvKey,
         ) ?? null,
@@ -744,38 +835,41 @@ export class ZaneClient {
       environment.variables.map((variable) => [variable.key, variable]),
     )
 
-    const targetCommitSha = await this.upsertSharedEnvironmentVariable({
-      envByKey,
-      environmentName: input.environmentName,
-      key: previewTargetCommitEnvKey,
-      projectSlug: input.projectSlug,
-      session,
-      value: input.targetCommitSha,
-    })
-    const lastDeployedCommitSha = await this.upsertSharedEnvironmentVariable({
-      envByKey,
-      environmentName: input.environmentName,
-      key: previewLastDeployedCommitEnvKey,
-      projectSlug: input.projectSlug,
-      session,
-      value: input.lastDeployedCommitSha,
-    })
-    const baselineComplete = await this.upsertSharedEnvironmentVariable({
-      envByKey,
-      environmentName: input.environmentName,
-      key: previewBaselineCompleteEnvKey,
-      projectSlug: input.projectSlug,
-      session,
-      value:
-        typeof input.baselineComplete === "boolean"
-          ? String(input.baselineComplete)
-          : undefined,
-    })
+    const [targetCommitSha, lastDeployedCommitSha, baselineComplete] =
+      await Promise.all([
+        this.upsertSharedEnvironmentVariable({
+          envByKey,
+          environmentName: input.environmentName,
+          key: previewTargetCommitEnvKey,
+          projectSlug: input.projectSlug,
+          session,
+          value: input.targetCommitSha,
+        }),
+        this.upsertSharedEnvironmentVariable({
+          envByKey,
+          environmentName: input.environmentName,
+          key: previewLastDeployedCommitEnvKey,
+          projectSlug: input.projectSlug,
+          session,
+          value: input.lastDeployedCommitSha,
+        }),
+        this.upsertSharedEnvironmentVariable({
+          envByKey,
+          environmentName: input.environmentName,
+          key: previewBaselineCompleteEnvKey,
+          projectSlug: input.projectSlug,
+          session,
+          value:
+            typeof input.baselineComplete === "boolean"
+              ? String(input.baselineComplete)
+              : undefined,
+        }),
+      ])
 
     return {
       baseline_complete:
         (baselineComplete ??
-          this.getSharedEnvironmentVariable(
+          ZaneClient.getSharedEnvironmentVariable(
             environment,
             previewBaselineCompleteEnvKey,
           )) === "true",
@@ -783,7 +877,7 @@ export class ZaneClient {
       environment_name: input.environmentName,
       last_deployed_commit_sha:
         lastDeployedCommitSha ??
-        this.getSharedEnvironmentVariable(
+        ZaneClient.getSharedEnvironmentVariable(
           environment,
           previewLastDeployedCommitEnvKey,
         ) ??
@@ -791,7 +885,7 @@ export class ZaneClient {
       project_slug: input.projectSlug,
       target_commit_sha:
         targetCommitSha ??
-        this.getSharedEnvironmentVariable(
+        ZaneClient.getSharedEnvironmentVariable(
           environment,
           previewTargetCommitEnvKey,
         ) ??
@@ -830,121 +924,26 @@ export class ZaneClient {
       environment.variables.map((variable) => [variable.key, variable]),
     )
     const serviceDetailsBySlug = new Map<string, ZaneServiceDetails>()
-    const secrets: { secret_id: string; value: string }[] = []
-    const missingSecretIds: string[] = []
-
-    for (const secret of input.secrets) {
-      if (previewRandomOnceSecretPersistsToZaneEnv(secret)) {
-        if (!secret.persistedEnvVar) {
-          throw new UpstreamHttpError(
-            400,
-            "preview_secret_persisted_env_missing",
-            `Preview secret ${secret.secretId} is missing persisted_env_var`,
-          )
-        }
-
-        if (secret.value) {
-          const persisted = await this.syncResolvedPreviewSharedVariables({
+    const results = await Promise.all(
+      input.secrets.map(
+        async (secret) =>
+          await this.resolvePreviewRandomOnceSecret({
             envByKey,
             environment,
             environmentName: input.environmentName,
             projectSlug: input.projectSlug,
+            secret,
+            serviceDetailsBySlug,
             session,
-            variables: [
-              {
-                key: secret.persistedEnvVar,
-                source: {
-                  kind: "literal",
-                  value: secret.value,
-                },
-              },
-            ],
-          })
-          const persistedValue = persisted[0]?.value
-
-          if (!persistedValue) {
-            throw new UpstreamHttpError(
-              500,
-              "preview_secret_write_failed",
-              `Failed to persist preview random-once secret ${secret.secretId} to ${secret.persistedEnvVar}`,
-            )
-          }
-
-          secrets.push({
-            secret_id: secret.secretId,
-            value: persistedValue,
-          })
-          continue
-        }
-
-        const existingSharedValue = envByKey.get(secret.persistedEnvVar)?.value
-        if (existingSharedValue) {
-          secrets.push({
-            secret_id: secret.secretId,
-            value: existingSharedValue,
-          })
-          continue
-        }
-
-        missingSecretIds.push(secret.secretId)
-        continue
-      }
-
-      if (secret.value) {
-        secrets.push({
-          secret_id: secret.secretId,
-          value: secret.value,
-        })
-        continue
-      }
-
-      const resolvedValues = new Set<string>()
-
-      for (const target of secret.targets) {
-        let serviceDetails = serviceDetailsBySlug.get(target.serviceSlug)
-        if (!serviceDetails) {
-          serviceDetails = await this.getServiceDetails(
-            session,
-            input.projectSlug,
-            input.environmentName,
-            target.serviceSlug,
-          )
-          serviceDetailsBySlug.set(target.serviceSlug, serviceDetails)
-        }
-
-        const existingValue = computeEffectiveEnvVariables(serviceDetails).find(
-          (envVar) => envVar.key === target.envVar,
-        )?.value
-
-        if (existingValue) {
-          resolvedValues.add(existingValue)
-        }
-      }
-
-      if (resolvedValues.size > 1) {
-        throw new UpstreamHttpError(
-          409,
-          "preview_secret_conflict",
-          `Preview secret ${secret.secretId} has conflicting persisted target values in ${input.environmentName}`,
-        )
-      }
-
-      const existingValue = resolvedValues.values().next().value
-      if (existingValue) {
-        secrets.push({
-          secret_id: secret.secretId,
-          value: existingValue,
-        })
-        continue
-      }
-
-      if (!secret.value) {
-        missingSecretIds.push(secret.secretId)
-        continue
-      }
-
-      missingSecretIds.push(secret.secretId)
-    }
+          }),
+      ),
+    )
+    const secrets = results.flatMap((result) =>
+      result.secret === undefined ? [] : [result.secret],
+    )
+    const missingSecretIds = results.flatMap((result) =>
+      result.missingSecretId === undefined ? [] : [result.missingSecretId],
+    )
 
     return {
       environment_exists: true,
@@ -953,6 +952,136 @@ export class ZaneClient {
       project_slug: input.projectSlug,
       secrets,
     }
+  }
+
+  private async resolvePreviewRandomOnceSecret(input: {
+    session: ZaneSession
+    projectSlug: string
+    environmentName: string
+    environment: ZaneEnvironmentWithVariables
+    envByKey: Map<string, { id: string; key: string; value: string }>
+    serviceDetailsBySlug: Map<string, ZaneServiceDetails>
+    secret: SyncPreviewRandomOnceSecretsInput["secrets"][number]
+  }): Promise<{
+    secret?: { secret_id: string; value: string }
+    missingSecretId?: string
+  }> {
+    if (previewRandomOnceSecretPersistsToZaneEnv(input.secret)) {
+      return await this.resolveZaneEnvPreviewRandomOnceSecret(input)
+    }
+
+    if (input.secret.value !== undefined && input.secret.value !== "") {
+      return {
+        secret: {
+          secret_id: input.secret.secretId,
+          value: input.secret.value,
+        },
+      }
+    }
+
+    const targetValues = await Promise.all(
+      input.secret.targets.map(async (target) => {
+        let serviceDetails = input.serviceDetailsBySlug.get(target.serviceSlug)
+        if (serviceDetails === undefined) {
+          serviceDetails = await this.getServiceDetails(
+            input.session,
+            input.projectSlug,
+            input.environmentName,
+            target.serviceSlug,
+          )
+          input.serviceDetailsBySlug.set(target.serviceSlug, serviceDetails)
+        }
+
+        return computeEffectiveEnvVariables(serviceDetails).find(
+          (envVar) => envVar.key === target.envVar,
+        )?.value
+      }),
+    )
+    const resolvedValues = new Set(
+      targetValues.filter(
+        (value): value is string => value !== undefined && value !== "",
+      ),
+    )
+
+    if (resolvedValues.size > 1) {
+      throw new UpstreamHttpError(
+        409,
+        "preview_secret_conflict",
+        `Preview secret ${input.secret.secretId} has conflicting persisted target values in ${input.environmentName}`,
+      )
+    }
+
+    const [existingValue] = resolvedValues
+    return existingValue === undefined
+      ? { missingSecretId: input.secret.secretId }
+      : {
+          secret: {
+            secret_id: input.secret.secretId,
+            value: existingValue,
+          },
+        }
+  }
+
+  private async resolveZaneEnvPreviewRandomOnceSecret(input: {
+    session: ZaneSession
+    projectSlug: string
+    environmentName: string
+    environment: ZaneEnvironmentWithVariables
+    envByKey: Map<string, { id: string; key: string; value: string }>
+    secret: SyncPreviewRandomOnceSecretsInput["secrets"][number]
+  }): Promise<{
+    secret?: { secret_id: string; value: string }
+    missingSecretId?: string
+  }> {
+    const { persistedEnvVar } = input.secret
+    if (persistedEnvVar === undefined || persistedEnvVar === "") {
+      throw new UpstreamHttpError(
+        400,
+        "preview_secret_persisted_env_missing",
+        `Preview secret ${input.secret.secretId} is missing persisted_env_var`,
+      )
+    }
+
+    if (input.secret.value !== undefined && input.secret.value !== "") {
+      const persisted = await this.syncResolvedPreviewSharedVariables({
+        envByKey: input.envByKey,
+        environment: input.environment,
+        environmentName: input.environmentName,
+        projectSlug: input.projectSlug,
+        session: input.session,
+        variables: [
+          {
+            key: persistedEnvVar,
+            source: { kind: "literal", value: input.secret.value },
+          },
+        ],
+      })
+      const [persistedVariable] = persisted
+      if (persistedVariable === undefined || persistedVariable.value === "") {
+        throw new UpstreamHttpError(
+          500,
+          "preview_secret_write_failed",
+          `Failed to persist preview random-once secret ${input.secret.secretId} to ${persistedEnvVar}`,
+        )
+      }
+
+      return {
+        secret: {
+          secret_id: input.secret.secretId,
+          value: persistedVariable.value,
+        },
+      }
+    }
+
+    const existingSharedValue = input.envByKey.get(persistedEnvVar)?.value
+    return existingSharedValue === undefined || existingSharedValue === ""
+      ? { missingSecretId: input.secret.secretId }
+      : {
+          secret: {
+            secret_id: input.secret.secretId,
+            value: existingSharedValue,
+          },
+        }
   }
 
   async syncPreviewSharedEnv(input: SyncPreviewSharedEnvInput): Promise<{
@@ -1034,7 +1163,7 @@ export class ZaneClient {
       input.services.map(async (service) => ({
         env: Object.fromEntries(
           await Promise.all(
-            service.env.map(async (envVar) => [
+            service.env.map(async (envVar): Promise<[string, string]> => [
               envVar.env_var,
               await this.resolvePreviewRuntimeValueSource({
                 envByKey,
@@ -1302,7 +1431,7 @@ export class ZaneClient {
     )
   }
 
-  private getSharedEnvironmentVariable(
+  private static getSharedEnvironmentVariable(
     environment: ZaneEnvironmentWithVariables | null,
     key: string,
   ): string | undefined {
@@ -1318,12 +1447,12 @@ export class ZaneClient {
     key: string
     value: string | undefined
   }): Promise<string | undefined> {
-    if (input.value === null || input.value === undefined) {
-      return
+    if (input.value === undefined) {
+      return undefined
     }
 
     const existing = input.envByKey.get(input.key)
-    if (existing?.value === input.value) {
+    if (existing !== undefined && existing.value === input.value) {
       return existing.value
     }
 
@@ -1332,7 +1461,7 @@ export class ZaneClient {
       value: input.value,
     }
 
-    if (existing) {
+    if (existing !== undefined) {
       await this.request(
         input.session,
         "PATCH",
@@ -1361,7 +1490,7 @@ export class ZaneClient {
       payload,
     )
 
-    if (created?.id) {
+    if (created?.id !== undefined && created.id !== "") {
       input.envByKey.set(input.key, {
         id: created.id,
         key: input.key,
@@ -1381,44 +1510,39 @@ export class ZaneClient {
     variables: SyncPreviewSharedEnvInput["variables"]
   }): Promise<{ key: string; value: string }[]> {
     const serviceDetailsByRef = new Map<string, ZaneServiceDetails>()
-    const variables: { key: string; value: string }[] = []
+    return await Promise.all(
+      input.variables.map(async (variable) => {
+        const resolvedValue = await this.resolvePreviewSharedVariableValue({
+          envByKey: input.envByKey,
+          environment: input.environment,
+          environmentName: input.environmentName,
+          label: variable.key,
+          projectSlug: input.projectSlug,
+          serviceDetailsByRef,
+          session: input.session,
+          source: variable.source,
+        })
 
-    for (const variable of input.variables) {
-      const resolvedValue = await this.resolvePreviewSharedVariableValue({
-        envByKey: input.envByKey,
-        environment: input.environment,
-        environmentName: input.environmentName,
-        label: variable.key,
-        projectSlug: input.projectSlug,
-        serviceDetailsByRef,
-        session: input.session,
-        source: variable.source,
-      })
+        const persistedValue = await this.upsertSharedEnvironmentVariable({
+          envByKey: input.envByKey,
+          environmentName: input.environmentName,
+          key: variable.key,
+          projectSlug: input.projectSlug,
+          session: input.session,
+          value: resolvedValue,
+        })
 
-      const persistedValue = await this.upsertSharedEnvironmentVariable({
-        envByKey: input.envByKey,
-        environmentName: input.environmentName,
-        key: variable.key,
-        projectSlug: input.projectSlug,
-        session: input.session,
-        value: resolvedValue,
-      })
+        if (persistedValue === undefined || persistedValue === "") {
+          throw new UpstreamHttpError(
+            500,
+            "preview_shared_env_write_failed",
+            `Failed to persist preview shared env ${variable.key}`,
+          )
+        }
 
-      if (!persistedValue) {
-        throw new UpstreamHttpError(
-          500,
-          "preview_shared_env_write_failed",
-          `Failed to persist preview shared env ${variable.key}`,
-        )
-      }
-
-      variables.push({
-        key: variable.key,
-        value: persistedValue,
-      })
-    }
-
-    return variables
+        return { key: variable.key, value: persistedValue }
+      }),
+    )
   }
 
   private async resolvePreviewSharedVariableValue(input: {
@@ -1437,109 +1561,136 @@ export class ZaneClient {
   private async resolvePreviewRuntimeValueSource(
     input: PreviewRuntimeSourceContext,
   ): Promise<string> {
-    switch (input.source.kind) {
-      case "literal": {
-        if (!input.source.value) {
-          throw new UpstreamHttpError(
-            400,
-            "preview_runtime_value_missing",
-            `Preview runtime source ${input.label} requires an explicit value`,
-          )
-        }
-
-        return input.source.value
+    if (input.source.kind === "literal") {
+      if (input.source.value === undefined || input.source.value === "") {
+        throw new UpstreamHttpError(
+          400,
+          "preview_runtime_value_missing",
+          `Preview runtime source ${input.label} requires an explicit value`,
+        )
       }
-      case "service_network_alias": {
-        const serviceDetails =
-          await this.getCachedPreviewRuntimeServiceDetails(input)
-        const value = serviceDetails.network_alias?.trim()
-        if (!value) {
-          throw this.createPreviewRuntimeSourceMissingError(
-            input,
-            serviceDetails.slug,
-          )
-        }
+      return input.source.value
+    }
 
-        return value
+    const serviceDetails =
+      await this.getCachedPreviewRuntimeServiceDetails(input)
+    switch (input.source.kind) {
+      case "service_network_alias": {
+        return ZaneClient.requirePreviewRuntimeValue(
+          input,
+          serviceDetails,
+          serviceDetails.network_alias?.trim(),
+        )
       }
       case "service_global_network_alias": {
-        const serviceDetails =
-          await this.getCachedPreviewRuntimeServiceDetails(input)
-        const value = serviceDetails.global_network_alias?.trim()
-        if (!value) {
-          throw this.createPreviewRuntimeSourceMissingError(
-            input,
-            serviceDetails.slug,
-          )
-        }
-
-        return value
+        return ZaneClient.requirePreviewRuntimeValue(
+          input,
+          serviceDetails,
+          serviceDetails.global_network_alias?.trim(),
+        )
       }
       case "service_public_origin": {
-        const serviceDetails =
-          await this.getCachedPreviewRuntimeServiceDetails(input)
-        const publicUrl = buildServicePublicUrls(serviceDetails)[0]
-        if (!publicUrl) {
-          throw this.createPreviewRuntimeSourceMissingError(
+        const [publicUrl] = buildServicePublicUrls(serviceDetails)
+        return new URL(
+          ZaneClient.requirePreviewRuntimeValue(
             input,
-            serviceDetails.slug,
-          )
-        }
-
-        return new URL(publicUrl).origin
+            serviceDetails,
+            publicUrl,
+          ),
+        ).origin
       }
       case "service_internal_origin": {
-        const serviceDetails =
-          await this.getCachedPreviewRuntimeServiceDetails(input)
-        const alias = serviceDetails.network_alias?.trim()
-        const { port } = input.source
-        if (!(alias && port)) {
-          throw this.createPreviewRuntimeSourceMissingError(
-            input,
-            serviceDetails.slug,
-          )
-        }
-
-        const origin = new URL(`http://${alias}:${port}`)
-          .toString()
-          .replace(/\/$/, "")
-        return input.source.trailingSlash ? `${origin}/` : origin
+        return ZaneClient.buildPreviewInternalOrigin(input, serviceDetails)
       }
       case "service_internal_bucket_url": {
-        const serviceDetails =
-          await this.getCachedPreviewRuntimeServiceDetails(input)
-        const alias = serviceDetails.network_alias?.trim()
-        const { port } = input.source
-        const bucketSharedEnvKey = input.source.bucketSharedEnvKey?.trim()
-        if (!(alias && port && bucketSharedEnvKey)) {
-          throw this.createPreviewRuntimeSourceMissingError(
-            input,
-            serviceDetails.slug,
-          )
-        }
-
-        const bucketName = input.envByKey.get(bucketSharedEnvKey)?.value?.trim()
-        if (!bucketName) {
-          throw new UpstreamHttpError(
-            409,
-            "preview_runtime_bucket_missing",
-            `Could not resolve ${input.label} because ${bucketSharedEnvKey} is missing in ${input.projectSlug}/${input.environment.name}`,
-          )
-        }
-
-        return new URL(
-          `/${encodeURIComponent(bucketName)}`,
-          `http://${alias}:${port}`,
-        ).toString()
+        return ZaneClient.buildPreviewInternalBucketUrl(input, serviceDetails)
+      }
+      default: {
+        throw new UpstreamHttpError(
+          400,
+          "preview_runtime_source_invalid",
+          "Unsupported preview runtime source",
+        )
       }
     }
+  }
+
+  private static requirePreviewRuntimeValue(
+    input: PreviewRuntimeSourceContext,
+    serviceDetails: ZaneServiceDetails,
+    value: string | undefined,
+  ): string {
+    if (value === undefined || value === "") {
+      throw ZaneClient.createPreviewRuntimeSourceMissingError(
+        input,
+        serviceDetails.slug,
+      )
+    }
+    return value
+  }
+
+  private static buildPreviewInternalOrigin(
+    input: PreviewRuntimeSourceContext,
+    serviceDetails: ZaneServiceDetails,
+  ): string {
+    const alias = serviceDetails.network_alias?.trim()
+    const { port } = input.source
+    if (
+      alias === undefined ||
+      alias === "" ||
+      port === undefined ||
+      port === 0
+    ) {
+      throw ZaneClient.createPreviewRuntimeSourceMissingError(
+        input,
+        serviceDetails.slug,
+      )
+    }
+
+    const origin = new URL(`http://${alias}:${port}`)
+      .toString()
+      .replace(/\/$/u, "")
+    return input.source.trailingSlash === true ? `${origin}/` : origin
+  }
+
+  private static buildPreviewInternalBucketUrl(
+    input: PreviewRuntimeSourceContext,
+    serviceDetails: ZaneServiceDetails,
+  ): string {
+    const alias = serviceDetails.network_alias?.trim()
+    const { port } = input.source
+    const bucketSharedEnvKey = input.source.bucketSharedEnvKey?.trim()
+    const hasAlias = alias !== undefined && alias !== ""
+    const hasPort = port !== undefined && port !== 0
+    const hasBucketSharedEnvKey =
+      bucketSharedEnvKey !== undefined && bucketSharedEnvKey !== ""
+    if (!(hasAlias && hasPort && hasBucketSharedEnvKey)) {
+      throw ZaneClient.createPreviewRuntimeSourceMissingError(
+        input,
+        serviceDetails.slug,
+      )
+    }
+
+    const bucketName = input.envByKey.get(bucketSharedEnvKey)?.value.trim()
+    if (bucketName === undefined || bucketName === "") {
+      throw new UpstreamHttpError(
+        409,
+        "preview_runtime_bucket_missing",
+        `Could not resolve ${input.label} because ${bucketSharedEnvKey} is missing in ${input.projectSlug}/${input.environment.name}`,
+      )
+    }
+
+    return new URL(
+      `/${encodeURIComponent(bucketName)}`,
+      `http://${alias}:${port}`,
+    ).toString()
   }
 
   private async getCachedPreviewRuntimeServiceDetails(
     input: PreviewRuntimeSourceContext,
   ): Promise<ZaneServiceDetails> {
     const serviceSlug = input.source.serviceSlug?.trim()
-    if (!serviceSlug) {
+    if (serviceSlug === undefined || serviceSlug === "") {
       throw new UpstreamHttpError(
         400,
         "preview_runtime_service_missing",
@@ -1551,7 +1702,7 @@ export class ZaneClient {
       input.source.sourceEnvironmentName ?? input.environmentName
     const cacheKey = `${sourceEnvironmentName}/${serviceSlug}`
     const cached = input.serviceDetailsByRef.get(cacheKey)
-    if (cached) {
+    if (cached !== undefined) {
       return cached
     }
 
@@ -1565,7 +1716,7 @@ export class ZaneClient {
     return serviceDetails
   }
 
-  private createPreviewRuntimeSourceMissingError(
+  private static createPreviewRuntimeSourceMissingError(
     input: PreviewRuntimeSourceContext,
     serviceSlug: string,
   ): UpstreamHttpError {
@@ -1614,7 +1765,7 @@ export class ZaneClient {
       )}/service-details/${encodeURIComponent(serviceSlug)}/`,
     )
 
-    if (!detailsPayload) {
+    if (detailsPayload === null) {
       throw new UpstreamHttpError(
         404,
         "zane_service_not_found",
