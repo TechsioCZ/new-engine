@@ -132,12 +132,14 @@ export const listMeasurementUnits = async (params: {
   q?: string
   status?: MeasurementUnitStatus
 }) =>
-  sdk.client.fetch<MeasurementUnitsResponse>(
+  await sdk.client.fetch<MeasurementUnitsResponse>(
     `/admin/measurement-units?${toSearch(params)}`,
   )
 
 export const retrieveMeasurementUnit = async (id: string) =>
-  sdk.client.fetch<MeasurementUnitResponse>(`/admin/measurement-units/${id}`)
+  await sdk.client.fetch<MeasurementUnitResponse>(
+    `/admin/measurement-units/${id}`,
+  )
 
 export const listMeasurementUnitAssignedProducts = async (
   id: string,
@@ -149,12 +151,12 @@ export const listMeasurementUnitAssignedProducts = async (
     status?: MeasurementUnitStatus
   },
 ) =>
-  sdk.client.fetch<MeasurementUnitAssignedProductsResponse>(
+  await sdk.client.fetch<MeasurementUnitAssignedProductsResponse>(
     `/admin/measurement-units/${id}/products?${toSearch(params)}`,
   )
 
 export const createMeasurementUnit = async (input: MeasurementUnitInput) =>
-  sdk.client.fetch<MeasurementUnitResponse>("/admin/measurement-units", {
+  await sdk.client.fetch<MeasurementUnitResponse>("/admin/measurement-units", {
     body: input,
     method: "POST",
   })
@@ -163,18 +165,21 @@ export const updateMeasurementUnit = async (
   id: string,
   input: Partial<MeasurementUnitInput>,
 ) =>
-  sdk.client.fetch<MeasurementUnitResponse>(`/admin/measurement-units/${id}`, {
-    body: input,
-    method: "POST",
-  })
+  await sdk.client.fetch<MeasurementUnitResponse>(
+    `/admin/measurement-units/${id}`,
+    {
+      body: input,
+      method: "POST",
+    },
+  )
 
 export const deleteMeasurementUnit = async (id: string) =>
-  sdk.client.fetch(`/admin/measurement-units/${id}`, {
+  await sdk.client.fetch(`/admin/measurement-units/${id}`, {
     method: "DELETE",
   })
 
 export const restoreMeasurementUnit = async (id: string) =>
-  sdk.client.fetch<MeasurementUnitResponse>(
+  await sdk.client.fetch<MeasurementUnitResponse>(
     `/admin/measurement-units/${id}/restore`,
     {
       method: "POST",
@@ -182,7 +187,7 @@ export const restoreMeasurementUnit = async (id: string) =>
   )
 
 export const retrieveProductMeasurement = async (productId: string) =>
-  sdk.client.fetch<ProductMeasurementResponse>(
+  await sdk.client.fetch<ProductMeasurementResponse>(
     `/admin/products/${productId}/measurement`,
   )
 
@@ -192,7 +197,7 @@ export const setProductMeasurement = async (
     measurement_unit_id: string
   },
 ) =>
-  sdk.client.fetch<ProductMeasurementResponse>(
+  await sdk.client.fetch<ProductMeasurementResponse>(
     `/admin/products/${productId}/measurement`,
     {
       body: input,
@@ -201,7 +206,7 @@ export const setProductMeasurement = async (
   )
 
 export const deleteProductMeasurement = async (productId: string) =>
-  sdk.client.fetch(`/admin/products/${productId}/measurement`, {
+  await sdk.client.fetch(`/admin/products/${productId}/measurement`, {
     method: "DELETE",
   })
 
@@ -209,7 +214,7 @@ export const retrieveProductVariantMeasurement = async (
   productId: string,
   productVariantId: string,
 ) =>
-  sdk.client.fetch<ProductVariantMeasurementResponse>(
+  await sdk.client.fetch<ProductVariantMeasurementResponse>(
     `/admin/products/${productId}/variants/${productVariantId}/measurement`,
   )
 
@@ -220,7 +225,7 @@ export const setProductVariantMeasurement = async (
     product_unit_quantity: number
   },
 ) =>
-  sdk.client.fetch<ProductVariantMeasurementResponse>(
+  await sdk.client.fetch<ProductVariantMeasurementResponse>(
     `/admin/products/${productId}/variants/${productVariantId}/measurement`,
     {
       body: input,
@@ -232,7 +237,7 @@ export const deleteProductVariantMeasurement = async (
   productId: string,
   productVariantId: string,
 ) =>
-  sdk.client.fetch(
+  await sdk.client.fetch(
     `/admin/products/${productId}/variants/${productVariantId}/measurement`,
     {
       method: "DELETE",
