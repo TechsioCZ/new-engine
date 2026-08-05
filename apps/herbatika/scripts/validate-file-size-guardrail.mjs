@@ -1,35 +1,56 @@
 #!/usr/bin/env node
+/// <reference types="node" />
 
 import fs from "node:fs"
 import path from "node:path"
 
-import {
-  globToRegExp,
-  normalizePath,
-  parseGuardrailArgs,
-} from "./guardrail-utils.mjs"
-
 const DEFAULT_CONFIG_PATH = "scripts/file-size-guardrail.config.json"
 
-function buildMatchers(patterns) {
-  return patterns.map((pattern) => globToRegExp(pattern))
+/** @typedef {{ error: number, warning: number }} Thresholds */
+/** @typedef {{ allowlist: string[], exclude: string[], fileExtensions: string[], scanDirectories: string[], thresholds: Thresholds }} GuardrailConfig */
+/** @typedef {"allowlisted" | "error" | "warning"} Severity */
+/** @typedef {"error" | "warning"} SourceSeverity */
+/** @typedef {{ file: string, lineCount: number, severity: Severity, sourceSeverity: SourceSeverity, threshold: number }} Finding */
+/** @typedef {{ allowlisted: number, allowlistedErrors: number, allowlistedWarnings: number, errors: number, warnings: number }} FindingCounts */
+/** @typedef {{ counts: FindingCounts, findings: Finding[], scannedFiles: number, thresholds: Thresholds }} Report */
+
+/** @type {(value: string) => string} */
+const normalizePath = (value) => value.replaceAll(path.sep, "/")
+
+/** @type {(globPattern: string) => RegExp} */
+const globToRegExp = (globPattern) => {
+  const normalized = normalizePath(globPattern)
+  const withMarkers = normalized
+    .replaceAll("**", "__DOUBLE_STAR__")
+    .replaceAll("*", "__SINGLE_STAR__")
+  const escaped = withMarkers
+    .replaceAll(/[.+^${}()|[\]\\]/gu, "\\$&")
+    .replaceAll("__DOUBLE_STAR__", ".*")
+    .replaceAll("__SINGLE_STAR__", "[^/]*")
+
+  return new RegExp(`^${escaped}$`, "u")
 }
 
-function matchesAny(value, matchers) {
-  return matchers.some((matcher) => matcher.test(value))
-}
+/** @type {(patterns: string[]) => RegExp[]} */
+const buildMatchers = (patterns) => patterns.map(globToRegExp)
 
-function isNonEmptyString(value) {
-  return typeof value === "string" && value.length > 0
-}
+/** @type {(value: string, matchers: RegExp[]) => boolean} */
+const matchesAny = (value, matchers) =>
+  matchers.some((matcher) => matcher.test(value))
 
-function assertArrayOfStrings(value, label) {
+/** @type {(value: unknown) => value is string} */
+const isNonEmptyString = (value) =>
+  typeof value === "string" && value.length > 0
+
+/** @type {(value: unknown, label: string) => asserts value is string[]} */
+const assertArrayOfStrings = (value, label) => {
   if (!Array.isArray(value) || value.some((item) => !isNonEmptyString(item))) {
     throw new Error(`${label} must be an array of non-empty strings.`)
   }
 }
 
-function parseThreshold(value, label) {
+/** @type {(value: unknown, label: string) => number} */
+const parseThreshold = (value, label) => {
   if (typeof value !== "number" || Number.isNaN(value) || value < 1) {
     throw new Error(`${label} must be a positive number.`)
   }
@@ -37,19 +58,25 @@ function parseThreshold(value, label) {
   return Math.trunc(value)
 }
 
-function loadConfig(configPath) {
+/** @type {(value: unknown) => value is Record<string, unknown>} */
+const isRecord = (value) =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
+/** @type {(configPath: string) => GuardrailConfig} */
+const loadConfig = (configPath) => {
   const configContent = fs.readFileSync(configPath, "utf-8")
+  /** @type {unknown} */
   const config = JSON.parse(configContent)
 
-  if (!config || typeof config !== "object" || Array.isArray(config)) {
+  if (!isRecord(config)) {
     throw new Error("Invalid config format.")
   }
 
   const {
-    scanDirectories,
-    fileExtensions,
-    exclude = [],
     allowlist = [],
+    exclude = [],
+    fileExtensions,
+    scanDirectories,
     thresholds,
   } = config
 
@@ -58,11 +85,7 @@ function loadConfig(configPath) {
   assertArrayOfStrings(exclude, "exclude")
   assertArrayOfStrings(allowlist, "allowlist")
 
-  if (
-    !thresholds ||
-    typeof thresholds !== "object" ||
-    Array.isArray(thresholds)
-  ) {
+  if (!isRecord(thresholds)) {
     throw new Error("thresholds must be an object.")
   }
 
@@ -88,13 +111,14 @@ function loadConfig(configPath) {
   }
 }
 
-function collectFiles({
+/** @type {(options: { cwd: string, directory: string, fileExtensions: string[], excludeMatchers: RegExp[], output: string[] }) => void} */
+const collectFiles = ({
   cwd,
   directory,
   fileExtensions,
   excludeMatchers,
   output,
-}) {
+}) => {
   if (!(fs.existsSync(directory) && fs.statSync(directory).isDirectory())) {
     return
   }
@@ -110,27 +134,20 @@ function collectFiles({
         fileExtensions,
         output,
       })
-      continue
+    } else if (
+      entry.isFile() &&
+      fileExtensions.some((extension) => entry.name.endsWith(extension))
+    ) {
+      const relativePath = normalizePath(path.relative(cwd, absolutePath))
+      if (!matchesAny(relativePath, excludeMatchers)) {
+        output.push(relativePath)
+      }
     }
-
-    if (!entry.isFile()) {
-      continue
-    }
-
-    if (!fileExtensions.some((extension) => entry.name.endsWith(extension))) {
-      continue
-    }
-
-    const relativePath = normalizePath(path.relative(cwd, absolutePath))
-    if (matchesAny(relativePath, excludeMatchers)) {
-      continue
-    }
-
-    output.push(relativePath)
   }
 }
 
-function resolveLineCount(content) {
+/** @type {(content: string) => number} */
+const resolveLineCount = (content) => {
   if (content.length === 0) {
     return 0
   }
@@ -142,14 +159,11 @@ function resolveLineCount(content) {
     }
   }
 
-  if (content.endsWith("\n")) {
-    return newlineCount
-  }
-
-  return newlineCount + 1
+  return content.endsWith("\n") ? newlineCount : newlineCount + 1
 }
 
-function resolveSeverity(lineCount, thresholds) {
+/** @type {(lineCount: number, thresholds: Thresholds) => SourceSeverity | null} */
+const resolveSeverity = (lineCount, thresholds) => {
   if (lineCount >= thresholds.error) {
     return "error"
   }
@@ -161,7 +175,9 @@ function resolveSeverity(lineCount, thresholds) {
   return null
 }
 
-function buildReport({ cwd, files, allowlistMatchers, thresholds }) {
+/** @type {(options: { cwd: string, files: string[], allowlistMatchers: RegExp[], thresholds: Thresholds }) => Report} */
+const buildReport = ({ cwd, files, allowlistMatchers, thresholds }) => {
+  /** @type {Finding[]} */
   const findings = []
 
   for (const file of files) {
@@ -170,21 +186,19 @@ function buildReport({ cwd, files, allowlistMatchers, thresholds }) {
     const lineCount = resolveLineCount(content)
     const sourceSeverity = resolveSeverity(lineCount, thresholds)
 
-    if (!sourceSeverity) {
-      continue
+    if (sourceSeverity) {
+      const isAllowlisted = matchesAny(file, allowlistMatchers)
+      const severity = isAllowlisted ? "allowlisted" : sourceSeverity
+
+      findings.push({
+        file,
+        lineCount,
+        severity,
+        sourceSeverity,
+        threshold:
+          sourceSeverity === "error" ? thresholds.error : thresholds.warning,
+      })
     }
-
-    const isAllowlisted = matchesAny(file, allowlistMatchers)
-    const severity = isAllowlisted ? "allowlisted" : sourceSeverity
-
-    findings.push({
-      file,
-      lineCount,
-      severity,
-      sourceSeverity,
-      threshold:
-        sourceSeverity === "error" ? thresholds.error : thresholds.warning,
-    })
   }
 
   findings.sort((left, right) => {
@@ -195,21 +209,23 @@ function buildReport({ cwd, files, allowlistMatchers, thresholds }) {
     return left.file.localeCompare(right.file)
   })
 
+  const counts = {
+    allowlisted: findings.filter((item) => item.severity === "allowlisted")
+      .length,
+    allowlistedErrors: findings.filter(
+      (item) =>
+        item.severity === "allowlisted" && item.sourceSeverity === "error",
+    ).length,
+    allowlistedWarnings: findings.filter(
+      (item) =>
+        item.severity === "allowlisted" && item.sourceSeverity === "warning",
+    ).length,
+    errors: findings.filter((item) => item.severity === "error").length,
+    warnings: findings.filter((item) => item.severity === "warning").length,
+  }
+
   const summary = {
-    counts: {
-      allowlisted: findings.filter((item) => item.severity === "allowlisted")
-        .length,
-      allowlistedErrors: findings.filter(
-        (item) =>
-          item.severity === "allowlisted" && item.sourceSeverity === "error",
-      ).length,
-      allowlistedWarnings: findings.filter(
-        (item) =>
-          item.severity === "allowlisted" && item.sourceSeverity === "warning",
-      ).length,
-      errors: findings.filter((item) => item.severity === "error").length,
-      warnings: findings.filter((item) => item.severity === "warning").length,
-    },
+    counts,
     scannedFiles: files.length,
     thresholds,
   }
@@ -220,7 +236,8 @@ function buildReport({ cwd, files, allowlistMatchers, thresholds }) {
   }
 }
 
-function printSection(title, findings) {
+/** @type {(title: string, findings: Finding[]) => void} */
+const printSection = (title, findings) => {
   if (findings.length === 0) {
     return
   }
@@ -233,7 +250,8 @@ function printSection(title, findings) {
   }
 }
 
-function printHumanReadable(report) {
+/** @type {(report: Report) => void} */
+const printHumanReadable = (report) => {
   console.log("File size guardrail report")
   console.log(`Scanned files: ${report.scannedFiles}`)
   console.log(
@@ -268,8 +286,31 @@ function printHumanReadable(report) {
   }
 }
 
-function main() {
-  const args = parseGuardrailArgs(process.argv.slice(2), DEFAULT_CONFIG_PATH)
+/** @type {(argv: string[]) => { configPath: string, json: boolean }} */
+const parseArgs = (argv) => {
+  const args = { configPath: DEFAULT_CONFIG_PATH, json: false }
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index]
+
+    if (arg === "--json") {
+      args.json = true
+    } else if (arg === "--config") {
+      const nextValue = argv[index + 1]
+      if (nextValue) {
+        args.configPath = nextValue
+        index += 1
+      }
+    } else if (arg?.startsWith("--config=")) {
+      args.configPath = arg.slice("--config=".length)
+    }
+  }
+
+  return args
+}
+
+const main = () => {
+  const args = parseArgs(process.argv.slice(2))
   const cwd = process.cwd()
   const configPath = path.resolve(cwd, args.configPath)
 
@@ -294,6 +335,7 @@ function main() {
 
   const excludeMatchers = buildMatchers(config.exclude)
   const allowlistMatchers = buildMatchers(config.allowlist)
+  /** @type {string[]} */
   const files = []
 
   for (const scanDirectory of config.scanDirectories) {
