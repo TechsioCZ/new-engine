@@ -22,10 +22,10 @@ export const Media: CollectionConfig = {
   },
   fields: [
     {
-      name: "alt",
       label: fieldLabels.altText,
-      type: "text",
+      name: "alt",
       required: true,
+      type: "text",
     },
   ],
   hooks: {

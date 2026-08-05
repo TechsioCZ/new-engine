@@ -85,7 +85,7 @@ export function createCatalogQueryOptionsFactory<
 
       return {
         queryFn: async ({ signal }) =>
-          service.getCatalogProducts(listParams, signal),
+          await service.getCatalogProducts(listParams, signal),
         queryKey: resolvedQueryKeys.list(listParams),
         ...resolvedCacheConfig[cacheStrategy],
         ...options?.queryOptions,

@@ -20,15 +20,15 @@ interface ProfileFormData {
   phone: string
 }
 
-export function ProfileForm() {
+export const ProfileForm = () => {
   const { customer } = useAuth()
   const updateCustomer = useUpdateCustomer()
   const toaster = useToast()
 
   const defaultValues: ProfileFormData = {
-    first_name: customer?.first_name || "",
-    last_name: customer?.last_name || "",
-    phone: formatPhoneNumber(customer?.phone || ""),
+    first_name: customer?.first_name ?? "",
+    last_name: customer?.last_name ?? "",
+    phone: formatPhoneNumber(customer?.phone ?? ""),
   }
   const form = useForm({
     defaultValues,
@@ -41,15 +41,15 @@ export function ProfileForm() {
       updateCustomer.mutate(cleanedData, {
         onError: () => {
           toaster.create({
-            title: "Chyba",
             description: "Nepodařilo se aktualizovat profil.",
+            title: "Chyba",
             type: "error",
           })
         },
         onSuccess: () => {
           toaster.create({
-            title: "Profil aktualizován",
             description: "Vaše údaje byly úspěšně uloženy.",
+            title: "Profil aktualizován",
             type: "success",
           })
         },
@@ -108,7 +108,7 @@ export function ProfileForm() {
         id="email"
         label="E-mail (nelze změnit)"
         readOnly
-        value={customer?.email || ""}
+        value={customer?.email ?? ""}
       />
 
       <Button

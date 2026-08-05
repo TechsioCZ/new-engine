@@ -241,15 +241,17 @@ const GLSSettingsPage = () => {
 
   const { data, isLoading, error } = useQuery({
     queryFn: async () =>
-      sdk.client.fetch<{ config: GLSConfigResponse }>("/admin/gls-config"),
+      await sdk.client.fetch<{ config: GLSConfigResponse }>(
+        "/admin/gls-config",
+      ),
     queryKey: ["gls-config"],
   })
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (payload: GLSConfigInput) =>
-      sdk.client.fetch("/admin/gls-config", {
-        method: "POST",
+      await sdk.client.fetch("/admin/gls-config", {
         body: payload,
+        method: "POST",
       }),
     onError: (err) => {
       toast.error(
@@ -456,7 +458,7 @@ const GLSSettingsPage = () => {
                     updateField(
                       "client_number",
                       e.target.value
-                        ? Number.parseInt(e.target.value, 10)
+                        ? Math.trunc(Number(e.target.value))
                         : null,
                     )
                   }}
@@ -525,7 +527,7 @@ const GLSSettingsPage = () => {
                 onChange={(e) => {
                   updateField(
                     "print_position",
-                    Number.parseInt(e.target.value, 10) || 1,
+                    Math.trunc(Number(e.target.value)) || 1,
                   )
                 }}
                 type="number"

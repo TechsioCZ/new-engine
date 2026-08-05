@@ -66,8 +66,8 @@ export const StoreUpdateEmployee = z
     is_admin: z.boolean().optional(),
     raw_spending_limit: z
       .object({
-        value: z.number().optional(),
         precision: z.number().optional(),
+        value: z.number().optional(),
       })
       .optional(),
     spending_limit: z.number().optional(),

@@ -187,7 +187,7 @@ export const RemoveVsDismiss: Story = {
                   size="sm"
                   variant="danger"
                   onClick={() => {
-                    toaster.remove(toastIds.instant!)
+                    toaster.remove(toastIds.instant)
                     setToastIds((prev) => ({ ...prev, instant: null }))
                   }}
                 >
@@ -218,7 +218,7 @@ export const RemoveVsDismiss: Story = {
                   size="sm"
                   variant="warning"
                   onClick={() => {
-                    toaster.dismiss(toastIds.animated!)
+                    toaster.dismiss(toastIds.animated)
                     setToastIds((prev) => ({ ...prev, animated: null }))
                   }}
                 >
@@ -311,10 +311,10 @@ export const BatchOperations: Story = {
               onClick={() => {
                 const newIds = Array.from({ length: 3 }, (_, i) =>
                   toaster.create({
-                    title: `Toast ${i + 1}`,
                     description: `This is toast number ${i + 1}`,
-                    type: ["success", "info", "warning"][i] as any,
                     duration: 5000,
+                    title: `Toast ${i + 1}`,
+                    type: ["success", "info", "warning"][i] as any,
                   }),
                 )
                 setToastIds(newIds)
@@ -376,7 +376,7 @@ export const PromiseExample: Story = {
     const toaster = useToast()
 
     const simulateAsyncOperation = async () =>
-      new Promise((resolve, reject) => {
+      await new Promise((resolve, reject) => {
         setTimeout(() => {
           const shouldSucceed = Math.random() > 0.5
           if (shouldSucceed) {
@@ -413,7 +413,7 @@ export const PromiseExample: Story = {
                     type: "success",
                   })
                 })
-                .catch((error) => {
+                .catch((error: unknown) => {
                   toaster.update(toastId, {
                     description: error.message,
                     duration: 5000,

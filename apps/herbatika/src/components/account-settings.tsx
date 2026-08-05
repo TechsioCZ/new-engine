@@ -20,7 +20,7 @@ import { useUpdateCustomer } from "@/lib/storefront/customers"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 
-export function AccountSettings() {
+export const AccountSettings = () => {
   const tAuth = useTranslations("auth")
   const tForm = useTranslations("form")
   const authQuery = useAuth()

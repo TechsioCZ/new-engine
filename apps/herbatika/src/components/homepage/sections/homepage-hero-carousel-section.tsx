@@ -23,11 +23,11 @@ interface HeroBannerCardProps {
   onPointerDownCapture: PointerEventHandler<HTMLAnchorElement>
 }
 
-function HeroBannerCard({
+const HeroBannerCard = ({
   banner,
   onClickCapture,
   onPointerDownCapture,
-}: HeroBannerCardProps) {
+}: HeroBannerCardProps) => {
   const tContent = useTranslations("content")
   const label = banner.title ?? banner.imageAlt ?? banner.badge
   const ariaLabel =
@@ -127,13 +127,13 @@ function usePageRestoreKey() {
   return restoreKey
 }
 
-function HeroCarousel({
+const HeroCarousel = ({
   banners,
   restoreKey,
   slidesClassName = "h-homepage-hero-carousel",
   slidesPerPage = 1,
   spacing = HERO_SLIDE_SPACING,
-}: HeroCarouselProps) {
+}: HeroCarouselProps) => {
   const didDragRef = useRef(false)
   const handleSlidePointerDownCapture: PointerEventHandler<
     HTMLAnchorElement
@@ -191,9 +191,9 @@ function HeroCarousel({
   )
 }
 
-export function HomepageHeroCarouselSection({
+export const HomepageHeroCarouselSection = ({
   banners,
-}: HomepageHeroCarouselSectionProps) {
+}: HomepageHeroCarouselSectionProps) => {
   const restoreKey = usePageRestoreKey()
 
   return (

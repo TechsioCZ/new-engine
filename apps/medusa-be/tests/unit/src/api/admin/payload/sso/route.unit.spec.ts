@@ -1,5 +1,4 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import type { CryptoKey } from "jose"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { AdminPayloadSsoSchemaType } from "../../../../../../../src/api/admin/payload/sso/route"
@@ -48,10 +47,10 @@ const restoreEnv = () => {
  * request/response interfaces while still validating the shape the route
  * handler actually reads from at runtime.
  */
-function assertMockShape<T>(
+function assertMockShape(
   candidate: unknown,
   requiredKeys: readonly string[],
-): asserts candidate is T {
+): asserts candidate is unknown {
   if (typeof candidate !== "object" || candidate === null) {
     throw new TypeError("Expected a mock object")
   }

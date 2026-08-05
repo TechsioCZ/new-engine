@@ -24,7 +24,7 @@ interface CategoryFacetsPanelProps {
   statusItems: AsideFilterChipItem[]
 }
 
-export function CategoryFacetsPanel({
+export const CategoryFacetsPanel = ({
   activeFilterCount,
   brandItems,
   currencyCode,
@@ -41,7 +41,7 @@ export function CategoryFacetsPanel({
   selectedPriceRange,
   showBrandFilter = true,
   statusItems,
-}: CategoryFacetsPanelProps) {
+}: CategoryFacetsPanelProps) => {
   const t = useTranslations("catalog")
   const filterProps = {
     activeFilterCount,

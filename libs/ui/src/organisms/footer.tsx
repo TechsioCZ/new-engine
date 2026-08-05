@@ -168,14 +168,14 @@ interface FooterBottomProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
 }
 
-export function Footer({
+export const Footer = ({
   children,
   size,
   sectionFlow,
   direction,
   layout,
   className,
-}: FooterProps) {
+}: FooterProps) => {
   const { root } = footerVariants({ direction, size })
 
   return (
@@ -216,11 +216,11 @@ function FooterLink(props: FooterNativeLinkProps): ReactNode
 function FooterLink<T extends ElementType>(
   props: FooterCustomLinkProps<T>,
 ): ReactNode
-function FooterLink<T extends ElementType = "a">({
+const FooterLink = <T extends ElementType = "a">({
   children,
   className,
   ...linkProps
-}: FooterLinkProps<T>) {
+}: FooterLinkProps<T>) => {
   const { size } = useContext(FooterContext)
   const { link } = footerVariants({ size })
 

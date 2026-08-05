@@ -39,7 +39,7 @@ const resolveProductInfoLink = (
 
   if (brandTitle) {
     const brandHandle = asString(brand?.handle)
-    const brandSlug = createBrandSlug(brandHandle || brandTitle)
+    const brandSlug = createBrandSlug(brandHandle ?? brandTitle)
 
     return {
       href: brandSlug ? `/znacka/${brandSlug}` : null,
@@ -78,7 +78,7 @@ interface ProductDetailPurchasePanelProps {
   vipCreditLabel: string | null
 }
 
-export function ProductDetailPurchasePanel({
+export const ProductDetailPurchasePanel = ({
   canAddToCart,
   currentAmountLabel,
   displayOriginalLabel,
@@ -96,7 +96,7 @@ export function ProductDetailPurchasePanel({
   unitPriceLabel,
   variantItems,
   vipCreditLabel,
-}: ProductDetailPurchasePanelProps) {
+}: ProductDetailPurchasePanelProps) => {
   const locale = useLocale()
   const tCart = useTranslations("cart")
   const tCatalog = useTranslations("catalog")

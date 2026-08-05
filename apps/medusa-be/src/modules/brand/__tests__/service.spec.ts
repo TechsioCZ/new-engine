@@ -17,8 +17,6 @@ moduleIntegrationTestRunner<BrandModuleService>({
     describe("brand persistence", () => {
       it("persists snake_case GPSR fields", async () => {
         const brand = await service.createBrands({
-          title: "GPSR Brand",
-          handle: "gpsr-brand",
           gpsr_contact_email: "contact@example.com",
           gpsr_european_reseller_contact_email: "reseller@example.com",
           gpsr_european_reseller_manufacturing_company_name: "Reseller Co",
@@ -26,6 +24,8 @@ moduleIntegrationTestRunner<BrandModuleService>({
           gpsr_manufactured_outside_eu: true,
           gpsr_manufacturing_company_name: "Manufacturer Co",
           gpsr_postal_address: "Main Street 1",
+          handle: "gpsr-brand",
+          title: "GPSR Brand",
         })
 
         const persisted = await service.retrieveBrand(brand.id)
@@ -40,7 +40,7 @@ moduleIntegrationTestRunner<BrandModuleService>({
         expect(persisted.gpsr_european_reseller_postal_address).toBe(
           "Reseller Street 1",
         )
-        expect(persisted.gpsr_manufactured_outside_eu).toBe(true)
+        expect(persisted.gpsr_manufactured_outside_eu).toBeTruthy()
         expect(persisted.gpsr_manufacturing_company_name).toBe(
           "Manufacturer Co",
         )
@@ -49,8 +49,8 @@ moduleIntegrationTestRunner<BrandModuleService>({
 
       it("reconciles attributes inside the brand module", async () => {
         const brand = await service.createBrands({
-          title: "Attribute Brand",
           handle: "attribute-brand",
+          title: "Attribute Brand",
         })
 
         await service.setBrandAttributes(brand.id, [
@@ -73,7 +73,7 @@ moduleIntegrationTestRunner<BrandModuleService>({
           ]),
         )
 
-        expect(values).toEqual(
+        expect(values).toStrictEqual(
           new Map([
             ["Country", "SK"],
             ["Founded", "2020"],
@@ -83,8 +83,8 @@ moduleIntegrationTestRunner<BrandModuleService>({
 
       it("soft-deletes removed attributes and reuses them when explicitly reintroduced", async () => {
         const brand = await service.createBrands({
-          title: "Restore Attribute Brand",
           handle: "restore-attribute-brand",
+          title: "Restore Attribute Brand",
         })
 
         await service.setBrandAttributes(brand.id, [
@@ -136,8 +136,8 @@ moduleIntegrationTestRunner<BrandModuleService>({
 
       it("preserves attributes whose type is soft-deleted during replacement", async () => {
         const brand = await service.createBrands({
-          title: "Deleted Type Attribute Brand",
           handle: "deleted-type-attribute-brand",
+          title: "Deleted Type Attribute Brand",
         })
 
         await service.setBrandAttributes(brand.id, [

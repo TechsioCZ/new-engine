@@ -205,7 +205,7 @@ export type RadioGroupProps = VariantProps<typeof radioGroupVariants> &
     onValueChange?: ((value: string | null) => void) | undefined
   }
 
-export function RadioGroup({
+export const RadioGroup = ({
   id: providedId,
   disabled = false,
   required = false,
@@ -218,9 +218,9 @@ export function RadioGroup({
   className,
   ref,
   ...machineProps
-}: RadioGroupProps) {
+}: RadioGroupProps) => {
   const generatedId = useId()
-  const id = providedId || generatedId
+  const id = providedId ?? generatedId
   const invalid = validateStatus === "error"
 
   const service = useMachine(zagRadioGroup.machine, {
@@ -404,7 +404,7 @@ RadioGroup.ItemControl = function RadioGroupItemControl({
       <span
         aria-hidden="true"
         className={styles.itemIndicator()}
-        data-disabled={itemState.disabled || undefined}
+        data-disabled={itemState.disabled ?? undefined}
         data-state={itemState.checked ? "checked" : "unchecked"}
       />
       {children}
@@ -475,7 +475,7 @@ RadioGroup.ItemDescription = function RadioGroupItemDescription({
   return (
     <div
       className={styles.itemDescription({ className })}
-      data-disabled={itemState.disabled || undefined}
+      data-disabled={itemState.disabled ?? undefined}
       ref={ref}
       {...props}
     >

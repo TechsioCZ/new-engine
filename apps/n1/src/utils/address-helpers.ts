@@ -40,16 +40,16 @@ function addressToFormData(
 
   // Convert address to form data (format phone/postal for display and validation)
   return {
-    address_1: address.address_1 || "",
-    address_2: address.address_2 || "",
-    city: address.city || "",
-    company: address.company || "",
-    country_code: address.country_code || DEFAULT_COUNTRY_CODE,
-    first_name: address.first_name || "",
-    last_name: address.last_name || "",
-    phone: formatPhoneNumber(address.phone || ""),
-    postal_code: formatPostalCode(address.postal_code || ""),
-    province: address.province || "",
+    address_1: address.address_1 ?? "",
+    address_2: address.address_2 ?? "",
+    city: address.city ?? "",
+    company: address.company ?? "",
+    country_code: address.country_code ?? DEFAULT_COUNTRY_CODE,
+    first_name: address.first_name ?? "",
+    last_name: address.last_name ?? "",
+    phone: formatPhoneNumber(address.phone ?? ""),
+    postal_code: formatPostalCode(address.postal_code ?? ""),
+    province: address.province ?? "",
   }
 }
 
@@ -104,15 +104,15 @@ export function accessPointToAddress(
   billingAddress: AddressFormData,
 ): AddressFormData {
   return {
-    address_1: accessPoint.address?.street || "",
+    address_1: accessPoint.address?.street ?? "",
     address_2: "",
-    city: accessPoint.address?.city || "",
+    city: accessPoint.address?.city ?? "",
     company: accessPoint.name,
     country_code:
-      accessPoint.address?.country?.toLowerCase() || DEFAULT_COUNTRY_CODE,
+      accessPoint.address?.country?.toLowerCase() ?? DEFAULT_COUNTRY_CODE,
     first_name: billingAddress.first_name,
     last_name: billingAddress.last_name,
-    postal_code: accessPoint.address?.zipCode || "",
+    postal_code: accessPoint.address?.zipCode ?? "",
     province: "",
     ...(billingAddress.phone ? { phone: billingAddress.phone } : {}),
   }

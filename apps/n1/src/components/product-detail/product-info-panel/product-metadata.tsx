@@ -8,7 +8,7 @@ export const ProductMetadata = ({ rows }: { rows: MetadataRows[] }) => (
     {rows.map((row) => (
       <div className="flex justify-between" key={row.label}>
         <span>{row.label}</span>
-        <span>{row.value || "—"}</span>
+        <span>{row.value ?? "—"}</span>
       </div>
     ))}
   </div>

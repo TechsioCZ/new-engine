@@ -221,20 +221,22 @@ describe(PaykitComgatePaymentProvider, () => {
 
   it("maps successful Comgate webhook events with Medusa major-unit amount", async () => {
     const client = createMockPaykitClient()
-    client.handleWebhook = vi.fn().mockResolvedValue([
-      {
-        data: {
-          amount: 1050,
-          currency: "czk",
-          id: "comgate-payment-1",
-          metadata: {
-            session_id: "payses_123",
+    vi.spyOn(client, "handleWebhook")
+      .mockImplementation()
+      .mockResolvedValue([
+        {
+          data: {
+            amount: 1050,
+            currency: "czk",
+            id: "comgate-payment-1",
+            metadata: {
+              session_id: "payses_123",
+            },
+            status: "succeeded",
           },
-          status: "succeeded",
+          type: "payment.updated",
         },
-        type: "payment.updated",
-      },
-    ])
+      ])
     const provider = new PaykitComgatePaymentProvider(createMockContainer(), {
       client,
     })

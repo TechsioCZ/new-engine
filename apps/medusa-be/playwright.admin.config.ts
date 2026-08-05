@@ -31,8 +31,8 @@ const findBundledChromeForTesting = (root: string, prefix: string) => {
 
   const browserDirectories = readdirSync(root)
     .filter((entry) => entry.startsWith(prefix))
-    .sort()
-    .reverse()
+    .toSorted()
+    .toReversed()
 
   for (const browserDirectory of browserDirectories) {
     const executablePath = findFirstExistingPath([
@@ -55,8 +55,6 @@ const findBundledChromeForTesting = (root: string, prefix: string) => {
       return executablePath
     }
   }
-
-  return
 }
 
 const chromiumExecutablePath =

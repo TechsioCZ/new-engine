@@ -53,9 +53,9 @@ const isMissingPackageImportError = (
   const message = getErrorMessage(error)
 
   return (
-    message.includes(`Cannot find package '${packageName}'`) ||
-    message.includes(`Cannot find package "${packageName}"`) ||
-    message.includes(`Cannot find module '${packageName}'`) ||
+    (message.includes(`Cannot find package '${packageName}'`) ??
+      message.includes(`Cannot find package "${packageName}"`) ??
+      message.includes(`Cannot find module '${packageName}'`)) ||
     message.includes(`Cannot find module "${packageName}"`)
   )
 }
@@ -146,7 +146,7 @@ export const createPaykitClientWithProvider = async (
     client: {
       customers: paykit.customers,
       handleWebhook: async (payload) =>
-        callPaykitProviderWebhook(provider, payload, webhookOptions),
+        await callPaykitProviderWebhook(provider, payload, webhookOptions),
       payments: paykit.payments,
       refunds: paykit.refunds,
     },

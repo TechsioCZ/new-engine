@@ -1,10 +1,7 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
-import type {
-  CatalogFacets,
-  UseCatalogProductsResult,
-} from "@techsio/storefront-data/catalog/types"
+import type { UseCatalogProductsResult } from "@techsio/storefront-data/catalog/types"
 
 import type {
   CatalogProductsParams,

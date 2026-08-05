@@ -21,8 +21,8 @@ export async function generateMetadata({
   }
 
   return {
-    description: page.meta?.description || undefined,
-    title: page.meta?.title || page.title,
+    description: page.meta?.description ?? undefined,
+    title: page.meta?.title ?? page.title,
   }
 }
 

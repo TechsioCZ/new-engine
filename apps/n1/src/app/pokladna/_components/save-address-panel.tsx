@@ -12,7 +12,7 @@ import {
   useCheckoutForm,
 } from "../_context/checkout-context"
 
-export function SaveAddressPanel() {
+export const SaveAddressPanel = () => {
   const { customer, selectedAddressId } = useCheckoutContext()
   const form = useCheckoutForm()
 
@@ -111,7 +111,7 @@ export function SaveAddressPanel() {
           )}
         </div>
       )}
-      {saveStatus === "error" && (errorMessage || "Nepodařilo se uložit")}
+      {saveStatus === "error" && (errorMessage ?? "Nepodařilo se uložit")}
     </div>
   )
 }

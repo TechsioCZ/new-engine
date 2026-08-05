@@ -19,8 +19,7 @@
  */
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
-import { dirname, join, resolve } from "node:path"
-import { fileURLToPath } from "node:url"
+import { join, resolve } from "node:path"
 
 const __dirname = import.meta.dirname
 const REPO_ROOT = resolve(__dirname, "..", "..", "..", "..")
@@ -351,7 +350,7 @@ function resolveValue(name, lightDecls, darkDecls, component) {
 }
 
 function buildValueLookup(component, lightDecls, darkDecls) {
-  return (name, _originalValue) => {
+  return function (name, _originalValue) {
     if (!isFigmaBoundForComponent(name, component)) {
       return null
     }

@@ -241,7 +241,7 @@ export const importStorefrontTextCatalogStep = createStep(
     )
     const { compensation, result } = await service.runInTransaction(
       async (sharedContext) =>
-        importStorefrontTextCatalogInTransaction({
+        await importStorefrontTextCatalogInTransaction({
           catalog,
           input,
           service,
@@ -260,8 +260,8 @@ export const importStorefrontTextCatalogStep = createStep(
       STOREFRONT_TEXT_MODULE,
     )
 
-    await service.runInTransaction(async (sharedContext) =>
-      restoreImportedCatalog(service, compensation, sharedContext),
-    )
+    await service.runInTransaction(async (sharedContext) => {
+      await restoreImportedCatalog(service, compensation, sharedContext)
+    })
   },
 )

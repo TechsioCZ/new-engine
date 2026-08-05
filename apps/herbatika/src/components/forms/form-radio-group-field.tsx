@@ -26,7 +26,7 @@ interface FormRadioGroupFieldProps {
   onValueChange?: (value: string) => void
 }
 
-export function FormRadioGroupField({
+export const FormRadioGroupField = ({
   className,
   id,
   items,
@@ -37,7 +37,7 @@ export function FormRadioGroupField({
   size = "md",
   validationMode = "blur",
   variant = "outline",
-}: FormRadioGroupFieldProps) {
+}: FormRadioGroupFieldProps) => {
   const field = useFieldContext<string>()
   const value = typeof field.state.value === "string" ? field.state.value : ""
   const fieldFeedback = resolveVisibleFieldFeedback({
@@ -59,7 +59,7 @@ export function FormRadioGroupField({
       required={required}
       size={size}
       validateStatus={fieldFeedback.validateStatus}
-      value={value || null}
+      value={value ?? null}
       variant={variant}
     >
       <RadioGroup.Label>{label}</RadioGroup.Label>

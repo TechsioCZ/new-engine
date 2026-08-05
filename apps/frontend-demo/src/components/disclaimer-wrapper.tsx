@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 
 import { Disclaimer } from "./disclaimer"
 
-export function DisclaimerWrapper() {
+export const DisclaimerWrapper = () => {
   const [dismissed, setDismissed] = useState<boolean | null>(null)
 
   useEffect(() => {

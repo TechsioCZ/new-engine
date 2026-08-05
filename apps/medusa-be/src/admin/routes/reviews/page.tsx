@@ -157,7 +157,7 @@ const ReviewsPage = () => {
     ...(status ? { status } : {}),
   }
   const { data, isLoading } = useQuery({
-    queryFn: async () => listReviews(params),
+    queryFn: async () => await listReviews(params),
     queryKey: reviewQueryKeys.list(params),
   })
   const reviews = data?.reviews ?? []

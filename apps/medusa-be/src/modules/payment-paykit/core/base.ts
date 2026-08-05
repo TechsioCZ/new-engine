@@ -280,8 +280,6 @@ export abstract class PaykitPaymentProviderBase<
     if (contextBilling) {
       return contextBilling
     }
-
-    return
   }
 
   private mapPaykitBillingInfo(
@@ -357,12 +355,12 @@ export abstract class PaykitPaymentProviderBase<
     return {
       address: {
         name:
-          joinName(billing["first_name"], billing["last_name"]) ||
-          joinName(
-            input.context?.customer?.first_name,
-            input.context?.customer?.last_name,
-          ) ||
-          input.context?.customer?.email ||
+          (joinName(billing["first_name"], billing["last_name"]) ??
+            joinName(
+              input.context?.customer?.first_name,
+              input.context?.customer?.last_name,
+            ) ??
+            input.context?.customer?.email) ||
           input.context?.customer?.id ||
           "Customer",
         line1: billing["address_1"],
@@ -772,7 +770,7 @@ export abstract class PaykitPaymentProviderBase<
 
     try {
       const name =
-        joinName(customer.first_name, customer.last_name) ||
+        joinName(customer.first_name, customer.last_name) ??
         customer.email.split("@")[0]
       const metadata = this.toStringMetadata({
         medusa_customer_id: customer.id,
@@ -822,7 +820,7 @@ export abstract class PaykitPaymentProviderBase<
     try {
       const billing = this.mapBillingInfo(input)
       const name = customer
-        ? joinName(customer.first_name, customer.last_name) || customer.email
+        ? (joinName(customer.first_name, customer.last_name) ?? customer.email)
         : undefined
       const providerCustomer = await client.customers.update(id, {
         ...(billing ? { billing } : {}),

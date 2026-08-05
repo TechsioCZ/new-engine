@@ -114,7 +114,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const galleryItems = resolveGalleryItems(
     productImages,
     product?.title,
-    product?.handle?.trim() || product?.id || handle,
+    product?.handle?.trim() ?? product?.id ?? handle,
   )
   const productHighlights = resolveProductHighlights(productSummaryText)
   const otherSectionTitle = tCatalog("product_detail.sections.other")

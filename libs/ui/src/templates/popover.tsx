@@ -38,7 +38,7 @@ export type PopoverTemplateProps = Omit<PopoverRootProps, "children"> & {
   triggerRef?: Ref<HTMLButtonElement> | undefined
 }
 
-export function PopoverTemplate({
+export const PopoverTemplate = ({
   children,
   contentClassName,
   contentProps,
@@ -53,32 +53,30 @@ export function PopoverTemplate({
   triggerProps,
   triggerRef,
   ...rootProps
-}: PopoverTemplateProps) {
-  return (
-    <Popover.Root {...rootProps}>
-      <Popover.Trigger
-        {...triggerProps}
-        className={triggerClassName}
-        disabled={disabled}
-        ref={triggerRef}
+}: PopoverTemplateProps) => (
+  <Popover.Root {...rootProps}>
+    <Popover.Trigger
+      {...triggerProps}
+      className={triggerClassName}
+      disabled={disabled}
+      ref={triggerRef}
+    >
+      {trigger}
+    </Popover.Trigger>
+    <Popover.Positioner>
+      <Popover.Content
+        {...contentProps}
+        className={contentClassName}
+        ref={contentRef}
       >
-        {trigger}
-      </Popover.Trigger>
-      <Popover.Positioner>
-        <Popover.Content
-          {...contentProps}
-          className={contentClassName}
-          ref={contentRef}
-        >
-          {showCloseButton && <Popover.CloseTrigger />}
-          {showArrow && <Popover.Arrow />}
-          {title && <Popover.Title>{title}</Popover.Title>}
-          {description && (
-            <Popover.Description>{description}</Popover.Description>
-          )}
-          {children}
-        </Popover.Content>
-      </Popover.Positioner>
-    </Popover.Root>
-  )
-}
+        {showCloseButton && <Popover.CloseTrigger />}
+        {showArrow && <Popover.Arrow />}
+        {title && <Popover.Title>{title}</Popover.Title>}
+        {description && (
+          <Popover.Description>{description}</Popover.Description>
+        )}
+        {children}
+      </Popover.Content>
+    </Popover.Positioner>
+  </Popover.Root>
+)

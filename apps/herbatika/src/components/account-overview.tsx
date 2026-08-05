@@ -10,7 +10,7 @@ import {
 import { useAuth } from "@/lib/storefront/auth"
 import { useOrders } from "@/lib/storefront/orders"
 
-export function AccountOverview() {
+export const AccountOverview = () => {
   const tAuth = useTranslations("auth")
   const tForm = useTranslations("form")
   const authQuery = useAuth()

@@ -177,8 +177,9 @@ async function downloadLabelPdfsInChunks(
   ) {
     const chunk = labels.slice(index, index + PACKETA_LABEL_DOWNLOAD_CHUNK_SIZE)
     const chunkPdfs = await Promise.all(
-      chunk.map(async (label) =>
-        packetaClient.downloadLabelPdf(label.packet_id, labelFormat, 0),
+      chunk.map(
+        async (label) =>
+          await packetaClient.downloadLabelPdf(label.packet_id, labelFormat, 0),
       ),
     )
 

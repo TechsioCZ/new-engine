@@ -54,9 +54,9 @@ function buildDryRunResponse({
       (deployment: DeploymentRef) => deployment.service_id,
     ),
     checked_deployments: input.deployments.map((deployment: DeploymentRef) => ({
+      deployment_hash: deployment.deployment_hash,
       service_id: deployment.service_id,
       service_slug: deployment.service_slug,
-      deployment_hash: deployment.deployment_hash,
       status: deployment.status ?? "HEALTHY",
       status_reason: null,
     })),
@@ -172,9 +172,9 @@ export async function executeVerify(
     deploy_service_ids: deployServiceIds,
     deployments: input.deployments.map(
       ({ deployment_hash, service_id, service_slug }: DeploymentRef) => ({
+        deployment_hash,
         service_id,
         service_slug,
-        deployment_hash,
       }),
     ),
     environment_name: input.environmentName,

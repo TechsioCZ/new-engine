@@ -4,9 +4,7 @@ import { useTranslation } from "react-i18next"
 import { useSearchParams } from "react-router-dom"
 
 interface FilterGroupProps {
-  filters: {
-    [key: string]: ReactNode
-  }
+  filters: Record<string, ReactNode>
 }
 
 export const FilterGroup = ({ filters }: FilterGroupProps) => {

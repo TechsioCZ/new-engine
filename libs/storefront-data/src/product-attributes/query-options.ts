@@ -72,7 +72,7 @@ export function createProductAttributeQueryOptionsFactory<
             throw new Error("Product id is required for Product Attributes.")
           }
 
-          return service.getProductAttributes(detailParams, signal)
+          return await service.getProductAttributes(detailParams, signal)
         },
         queryKey: resolvedQueryKeys.detail(detailParams),
         ...resolvedCacheConfig[cacheStrategy],

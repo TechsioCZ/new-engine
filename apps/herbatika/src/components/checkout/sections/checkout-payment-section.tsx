@@ -108,7 +108,7 @@ const createPaymentProviderOption = ({
   }
 }
 
-export function CheckoutPaymentSection({
+export const CheckoutPaymentSection = ({
   canInitiatePayment,
   isBusy,
   isInitiatingPayment,
@@ -116,7 +116,7 @@ export function CheckoutPaymentSection({
   paymentProviders,
   selectedPaymentProviderId,
   selectionMessage,
-}: CheckoutPaymentSectionProps) {
+}: CheckoutPaymentSectionProps) => {
   const tCheckout = useTranslations("checkout")
 
   return (
@@ -156,16 +156,14 @@ export function CheckoutPaymentSection({
   )
 }
 
-function PaymentSelectionMessage({ message }: { message: string }) {
-  return (
-    <StatusText
-      aria-live="polite"
-      className="text-xs leading-relaxed"
-      showIcon
-      size="sm"
-      status="error"
-    >
-      {message}
-    </StatusText>
-  )
-}
+const PaymentSelectionMessage = ({ message }: { message: string }) => (
+  <StatusText
+    aria-live="polite"
+    className="text-xs leading-relaxed"
+    showIcon
+    size="sm"
+    status="error"
+  >
+    {message}
+  </StatusText>
+)

@@ -18,9 +18,9 @@ figma.connect(
     imports: ['import { Pagination } from "@libs/ui/molecules/pagination"'],
     props: {
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
     },
   },

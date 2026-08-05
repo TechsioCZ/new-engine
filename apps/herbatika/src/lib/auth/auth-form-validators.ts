@@ -96,8 +96,6 @@ const createPasswordValidator =
     if (!passwordHasNumber(value)) {
       return messages.passwordNumber
     }
-
-    return
   }
 
 const createPasswordConfirmationValidator =
@@ -168,7 +166,7 @@ export const createRegisterValidators = (messages: AuthValidationMessages) => {
     company_identifier: createWholesaleValidator(addressValidators.companyId),
     company_name: createWholesaleValidator(addressValidators.company),
     confirm_password: {
-      onChangeListenTo: ["password"] as Array<keyof RegisterFormValues>,
+      onChangeListenTo: ["password"] as (keyof RegisterFormValues)[],
       ...createChangeBlurContextualFieldValidators(
         ({
           value,
@@ -215,7 +213,7 @@ export const createResetPasswordValidators = (
 
   return {
     confirm_password: {
-      onChangeListenTo: ["password"] as Array<keyof ResetPasswordFormValues>,
+      onChangeListenTo: ["password"] as (keyof ResetPasswordFormValues)[],
       ...createChangeBlurContextualFieldValidators(
         ({
           value,

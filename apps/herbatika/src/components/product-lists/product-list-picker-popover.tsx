@@ -29,12 +29,12 @@ interface ProductListPickerListRowProps {
   row: ProductListPickerRow
 }
 
-function ProductListPickerListRow({
+const ProductListPickerListRow = ({
   isMutating,
   isPending,
   onAdd,
   row,
-}: ProductListPickerListRowProps) {
+}: ProductListPickerListRowProps) => {
   const tAuth = useTranslations("auth")
 
   return (
@@ -85,11 +85,11 @@ function ProductListPickerListRow({
   )
 }
 
-export function ProductListPickerPopover({
+export const ProductListPickerPopover = ({
   product,
   quantity,
   selectedVariantId,
-}: ProductListPickerPopoverProps) {
+}: ProductListPickerPopoverProps) => {
   const tAuth = useTranslations("auth")
   const picker = useProductListPicker({
     product,

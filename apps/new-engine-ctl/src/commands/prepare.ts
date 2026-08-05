@@ -38,7 +38,6 @@ async function writePrepareOutputs(
     await appendGitHubOutput("preview_db_name", result.response.preview_db_name)
     await appendGitHubOutput("preview_db_user", result.response.preview_db_user)
     await appendGitHubOutput("preview_db_password", result.previewDbPassword)
-    return
   }
 }
 

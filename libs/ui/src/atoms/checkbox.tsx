@@ -51,13 +51,13 @@ export interface CheckboxProps extends InputHTMLAttributes<HTMLInputElement> {
   invalid?: boolean | undefined
 }
 
-export function Checkbox({
+export const Checkbox = ({
   className,
   indeterminate,
   invalid,
   ref,
   ...props
-}: CheckboxProps) {
+}: CheckboxProps) => {
   const setIndeterminate = (node: HTMLInputElement | null) => {
     if (node) {
       node.indeterminate = indeterminate ?? false
@@ -71,9 +71,9 @@ export function Checkbox({
 
   return (
     <input
-      aria-invalid={invalid || undefined}
+      aria-invalid={invalid ?? undefined}
       className={checkboxVariants({ className })}
-      data-invalid={invalid || undefined}
+      data-invalid={invalid ?? undefined}
       ref={setIndeterminate}
       type="checkbox"
       {...props}

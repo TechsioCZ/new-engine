@@ -82,7 +82,7 @@ interface BatchReconciliationResult {
 }
 
 interface ProductRecordMutationPlan {
-  creates: Array<{ measurement_unit_id: string; product_id: string }>
+  creates: { measurement_unit_id: string; product_id: string }[]
   productIdsToRestore: Set<string>
   productIdsToSoftDelete: Set<string>
   productTargetById: Map<string, ProductMeasurementRecord | null>
@@ -90,19 +90,19 @@ interface ProductRecordMutationPlan {
 }
 
 interface VariantRecordMutationPlan {
-  creates: Array<{
+  creates: {
     product_measurement_id: string
     product_unit_quantity: number
     product_variant_id: string
-  }>
+  }[]
   restoreIds: Set<string>
   softDeleteIds: Set<string>
-  updates: Array<{
+  updates: {
     id: string
     product_measurement_id: string
     product_unit_quantity: number
     product_variant_id: string
-  }>
+  }[]
   variantTargetById: Map<string, ProductVariantMeasurementRecord | null>
 }
 
@@ -119,7 +119,7 @@ interface ReconciliationSummary {
 const normalizeUnitSymbol = (value: string) =>
   value.trim().normalize("NFKC").toLowerCase()
 
-const normalizeQuantity = (value: number) => Number(value).toString()
+const normalizeQuantity = (value: number) => value.toString()
 
 const compareText = (left: string, right: string) => {
   if (left === right) {
@@ -306,7 +306,7 @@ async function ensureMeasurementUnits(
   let restored = 0
   let reused = 0
 
-  for (const { semanticKey, source } of [...canonical.values()].sort(
+  for (const { semanticKey, source } of [...canonical.values()].toSorted(
     (left, right) => compareText(left.semanticKey, right.semanticKey),
   )) {
     const ensured = await ensureMeasurementUnit(
@@ -338,7 +338,7 @@ async function restoreSeedMeasurementUnit(
     [
       `measurement-unit:${candidate.id}`,
       `measurement-unit-code:${normalizeUnitCode(candidate.code)}`,
-    ].sort(),
+    ].toSorted(),
     async () => {
       const latestUnits = await listAllMeasurementUnits(service)
       const latest = findReusableSeedMeasurementUnit(
@@ -472,7 +472,7 @@ function findPersistedVariant(
     )
   }
 
-  return candidates[0] as ExistingProductVariant
+  return candidates[0]!
 }
 
 function resolveProductInput(
@@ -540,10 +540,7 @@ async function resolveProducts(
   }
 
   return owned.map((product) =>
-    resolveProductInput(
-      product,
-      productByHandle.get(product.handle) as ProductDTO,
-    ),
+    resolveProductInput(product, productByHandle.get(product.handle)!),
   )
 }
 
@@ -918,7 +915,7 @@ function planOmittedVariantMeasurement({
   variant: ExistingProductVariant
 }) {
   const active = matching.find(
-    (record) => !(record.deleted_at || plan.softDeleteIds.has(record.id)),
+    (record) => !(record.deleted_at ?? plan.softDeleteIds.has(record.id)),
   )
   if (active) {
     plan.variantTargetById.set(variant.id, active)
@@ -1491,7 +1488,7 @@ export const reconcileProductMeasurementsStep = createStep(
             (unit) => `measurement-unit:${unit.id}`,
           ),
         ]),
-      ].sort()
+      ].toSorted()
       await locking.execute(
         lockKeys,
         async () => {

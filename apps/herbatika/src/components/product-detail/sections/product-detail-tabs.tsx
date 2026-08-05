@@ -24,27 +24,23 @@ interface ProductDetailTabsProps {
   sections: ProductDetailContentSection[]
 }
 
-function ProductDetailReviewsSlot({
+const ProductDetailReviewsSlot = ({
   productId,
 }: {
   productId?: string | null
-}) {
-  return (
-    <Suspense fallback={null}>
-      <ProductDetailReviews
-        {...(productId === undefined ? {} : { productId })}
-      />
-    </Suspense>
-  )
-}
+}) => (
+  <Suspense fallback={null}>
+    <ProductDetailReviews {...(productId === undefined ? {} : { productId })} />
+  </Suspense>
+)
 
-export function ProductDetailTabs({
+export const ProductDetailTabs = ({
   activeSectionValue,
   defaultSectionValue,
   onSectionValueChange,
   productId,
   sections,
-}: ProductDetailTabsProps) {
+}: ProductDetailTabsProps) => {
   const tCatalog = useTranslations("catalog")
   const selectedSectionValue = activeSectionValue ?? defaultSectionValue
   const tabSections = productId

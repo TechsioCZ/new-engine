@@ -397,7 +397,7 @@ export function createProductListHooks<
 
     return omitUndefined({
       queryFn: async ({ signal }: { signal?: AbortSignal }) =>
-        service.listProductLists(listParams, signal),
+        await service.listProductLists(listParams, signal),
       queryKey: resolvedQueryKeys.list(buildListKey(input, listParams)),
       ...resolvedCacheConfig.userData,
       ...options?.queryOptions,
@@ -418,7 +418,7 @@ export function createProductListHooks<
           throw new Error("Product list id is required")
         }
 
-        return service.getProductList(detailParams, signal)
+        return await service.getProductList(detailParams, signal)
       },
       queryKey: resolvedQueryKeys.detail(buildDetailKey(input, detailParams)),
       ...resolvedCacheConfig.userData,
@@ -442,7 +442,7 @@ export function createProductListHooks<
     return omitUndefined({
       queryKey: resolvedQueryKeys.list(buildListKey(input, listParams)),
       queryFn: async ({ signal }: { signal?: AbortSignal }) =>
-        service.listProductLists(listParams, signal),
+        await service.listProductLists(listParams, signal),
       ...prefetchCacheOptions,
       meta: options?.prefetchedBy
         ? { prefetchedBy: options.prefetchedBy }
@@ -466,7 +466,7 @@ export function createProductListHooks<
     return omitUndefined({
       queryKey: resolvedQueryKeys.detail(buildDetailKey(input, detailParams)),
       queryFn: async ({ signal }: { signal?: AbortSignal }) =>
-        service.getProductList(detailParams, signal),
+        await service.getProductList(detailParams, signal),
       ...prefetchCacheOptions,
       meta: options?.prefetchedBy
         ? { prefetchedBy: options.prefetchedBy }
@@ -474,7 +474,7 @@ export function createProductListHooks<
     })
   }
 
-  const invalidateProductLists = async (
+  const invalidateProductLists = (
     queryClient: ReturnType<typeof useQueryClient>,
   ) =>
     queryClient.invalidateQueries({
@@ -661,7 +661,9 @@ export function createProductListHooks<
       const id = prefetchId ?? JSON.stringify(queryOptions.queryKey)
 
       return schedulePrefetch(
-        async () => prefetchProductLists(input),
+        async () => {
+          await prefetchProductLists(input)
+        },
         id,
         delay,
       )
@@ -732,7 +734,13 @@ export function createProductListHooks<
       )
       const id = prefetchId ?? JSON.stringify(queryOptions.queryKey)
 
-      return schedulePrefetch(async () => prefetchProductList(input), id, delay)
+      return schedulePrefetch(
+        async () => {
+          await prefetchProductList(input)
+        },
+        id,
+        delay,
+      )
     }
 
     return {

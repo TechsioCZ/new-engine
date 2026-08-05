@@ -13,22 +13,22 @@ figma.connect(
     props: {
       disabled: figma.enum("state", {
         default: false,
+        disabled: true,
         error: false,
         success: false,
         warning: false,
-        disabled: true,
       }),
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
       variant: figma.enum("state", {
         default: "default",
+        disabled: "default",
         error: "error",
         success: "success",
         warning: "warning",
-        disabled: "default",
       }),
     },
   },

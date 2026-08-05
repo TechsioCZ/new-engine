@@ -4,7 +4,7 @@ import path from "node:path"
 
 function readArg(name) {
   const index = process.argv.indexOf(name)
-  return index !== -1 ? (process.argv[index + 1] ?? null) : null
+  return index === -1 ? null : (process.argv[index + 1] ?? null)
 }
 
 const inputPath = readArg("--input")
@@ -24,13 +24,15 @@ try {
   }
 
   const entries = Object.fromEntries(
-    Object.entries(index.entries).sort(([leftKey, left], [rightKey, right]) => {
-      const leftId = String(left?.id ?? leftKey)
-      const rightId = String(right?.id ?? rightKey)
-      return leftId === rightId
-        ? leftKey.localeCompare(rightKey)
-        : leftId.localeCompare(rightId)
-    }),
+    Object.entries(index.entries).toSorted(
+      ([leftKey, left], [rightKey, right]) => {
+        const leftId = String(left?.id ?? leftKey)
+        const rightId = String(right?.id ?? rightKey)
+        return leftId === rightId
+          ? leftKey.localeCompare(rightKey)
+          : leftId.localeCompare(rightId)
+      },
+    ),
   )
   const canonicalIndex = { ...index, entries }
   const temporaryPath = `${outputPath}.${process.pid}.tmp`
