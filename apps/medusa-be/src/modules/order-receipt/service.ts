@@ -27,7 +27,6 @@ import type {
   OrderReceiptAddress,
   OrderReceiptAttachment,
   OrderReceiptOrder,
-  PdfCommand,
   PdfFont,
 } from "./helpers"
 
@@ -84,22 +83,23 @@ interface ReceiptTablePage {
   tableTop: number
 }
 
-function normalizeCustomerLine(value?: string | null) {
-  return String(value ?? "")
-    .replaceAll(/\u00A0/g, " ")
-    .replaceAll(/\s+/g, " ")
-    .trim()
-}
+const normalizeCustomerLine = (value?: string | null) =>
+  (value ?? "").replaceAll("\u00A0", " ").replaceAll(/\s+/gu, " ").trim()
 
-function customerBlock(
+const customerBlock = (
   address?: OrderReceiptAddress | null,
   email?: string | null,
-) {
-  const lines = [...getAddressLines(address), email]
-    .map(normalizeCustomerLine)
-    .filter((line) => line.length > 0)
+) => {
+  const lines: string[] = []
 
-  return lines.length ? lines : ["Zákazník"]
+  for (const value of [...getAddressLines(address), email]) {
+    const line = normalizeCustomerLine(value)
+    if (line.length > 0) {
+      lines.push(line)
+    }
+  }
+
+  return lines.length > 0 ? lines : ["Zákazník"]
 }
 
 interface CustomerTextRow {
@@ -108,7 +108,7 @@ interface CustomerTextRow {
   value: string
 }
 
-function markCustomerOverflow(row: CustomerTextRow): CustomerTextRow {
+const markCustomerOverflow = (row: CustomerTextRow): CustomerTextRow => {
   const marker = "."
 
   if (
@@ -120,20 +120,20 @@ function markCustomerOverflow(row: CustomerTextRow): CustomerTextRow {
 
   let { value } = row
   while (
-    value &&
+    value.length > 0 &&
     estimateTextWidth(`${value}${marker}`, row.size, row.font) >
       CUSTOMER_MAX_WIDTH
   ) {
     value = value.slice(0, -1).trimEnd()
   }
 
-  return { ...row, value: value ? `${value}${marker}` : marker }
+  return { ...row, value: value.length > 0 ? `${value}${marker}` : marker }
 }
 
-function customerTextRows(
+const customerTextRows = (
   address?: OrderReceiptAddress | null,
   email?: string | null,
-) {
+) => {
   const rows = customerBlock(address, email).flatMap((lineValue, index) => {
     const font = index === 0 ? FONT_BOLD : FONT_NORMAL
     const size = index === 0 ? 12 : 10
@@ -160,29 +160,28 @@ function customerTextRows(
   return visibleRows
 }
 
-function buildTableRows(order: OrderReceiptOrder): ReceiptTableRow[] {
-  return (order.items ?? []).map((item) => ({
-    quantity: getItemQuantity(item),
-    taxLabel: getItemTaxLabel(item),
-    title: getItemTitle(item) || "Položka",
-    total: getItemSubtotal(item),
-    unitPriceNet: getItemUnitPrice(item),
-  }))
-}
+const buildTableRows = (order: OrderReceiptOrder): ReceiptTableRow[] =>
+  (order.items ?? []).map((item) => {
+    const title = getItemTitle(item) ?? ""
 
-function renderTableHeader(commands: PdfCommand[], tableTop: number) {
+    return {
+      quantity: getItemQuantity(item),
+      taxLabel: getItemTaxLabel(item),
+      title: title.length > 0 ? title : "Položka",
+      total: getItemSubtotal(item),
+      unitPriceNet: getItemUnitPrice(item),
+    }
+  })
+
+const renderTableHeader = (commands: string[], tableTop: number) => {
   commands.push(
     pdfText("ks", LEFT, tableTop + 14, { size: 9 }),
     pdfText("Položka", LEFT + 32, tableTop + 14, { size: 9 }),
-  )
-  commands.push(
     pdfText("DPH", 335, tableTop + 14, { align: "right", size: 9 }),
     pdfText("Cena za MJ bez DPH", 430, tableTop + 14, {
       align: "right",
       size: 8,
     }),
-  )
-  commands.push(
     pdfText("Celkem bez DPH", RIGHT, tableTop + 14, {
       align: "right",
       size: 9,
@@ -191,37 +190,33 @@ function renderTableHeader(commands: PdfCommand[], tableTop: number) {
   )
 }
 
-function renderTableRows(
-  commands: PdfCommand[],
+const renderTableRows = (
+  commands: string[],
   tableRows: ReceiptTableRow[],
   tableTop: number,
   currency?: string | null,
-) {
-  tableRows.forEach((row, index) => {
+) => {
+  for (const [index, row] of tableRows.entries()) {
     const y = tableTop - TABLE_ROW_TOP_OFFSET - index * TABLE_ROW_HEIGHT
 
     commands.push(
       pdfText(row.quantity, LEFT, y, { size: 9 }),
       pdfText(truncate(row.title, 36), LEFT + 32, y, { size: 9 }),
-    )
-    commands.push(
       pdfText(row.taxLabel, 335, y, { align: "right", size: 9 }),
       pdfText(formatMoney(row.unitPriceNet, currency), 430, y, {
         align: "right",
         size: 8,
       }),
-    )
-    commands.push(
       pdfText(formatMoney(row.total, currency), RIGHT, y, {
         align: "right",
         size: 9,
       }),
     )
-  })
+  }
 }
 
-function renderSummary(
-  commands: PdfCommand[],
+const renderSummary = (
+  commands: string[],
   {
     currency,
     discountTotal,
@@ -239,7 +234,7 @@ function renderSummary(
     taxTotal: number
     total: number
   },
-) {
+) => {
   const summaryLabelX = 336
   commands.push(
     pdfText("Cena bez DPH (zboží)", summaryLabelX, summaryY, { size: 10 }),
@@ -277,8 +272,6 @@ function renderSummary(
       align: "right",
       size: 10,
     }),
-  )
-  commands.push(
     pdfLine({
       x1: summaryLabelX,
       x2: RIGHT,
@@ -293,7 +286,7 @@ function renderSummary(
   )
 }
 
-function renderFooter(commands: PdfCommand[]) {
+const renderFooter = (commands: string[]) => {
   commands.push(
     pdfText("Děkujeme za objednávku.", LEFT, 66, { size: 8 }),
     pdfText("Doklad byl vygenerován automaticky.", LEFT, 53, {
@@ -302,8 +295,8 @@ function renderFooter(commands: PdfCommand[]) {
   )
 }
 
-function renderFirstPageHeader(
-  commands: PdfCommand[],
+const renderFirstPageHeader = (
+  commands: string[],
   {
     billingAddress,
     order,
@@ -315,42 +308,38 @@ function renderFirstPageHeader(
     billingAddress?: OrderReceiptAddress | null
     order: OrderReceiptOrder
     orderNumber: string
-    paymentQrCommands: PdfCommand[]
+    paymentQrCommands: string[]
     supplierName: string
     supplierY: number
   },
-) {
+) => {
   commands.push(
     pdfText("Faktura", 330, TOP, { font: FONT_BOLD, size: 24 }),
     pdfText(orderNumber, 330, TOP - 28, { font: FONT_NORMAL, size: 22 }),
-  )
-  commands.push(
     pdfText("Daňový doklad", 330, TOP - 58, { size: 10 }),
-    ...paymentQrCommands,
   )
+  for (const command of paymentQrCommands) {
+    commands.push(command)
+  }
   commands.push(
     pdfText("Datum vystavení", 330, TOP - 104, { size: 10 }),
     pdfText(formatDate(order.created_at), RIGHT, TOP - 104, {
       align: "right",
       size: 10,
     }),
-  )
-
-  commands.push(
     pdfText("Dodavatel", LEFT, supplierY, { size: 11 }),
     pdfText(supplierName, LEFT, supplierY - 23, { font: FONT_BOLD, size: 12 }),
-  )
-  commands.push(
     pdfText("Faktura vystavena automaticky.", LEFT, supplierY - 40, {
       size: 10,
     }),
     pdfText("Objednávka", LEFT, supplierY - 81, { size: 10 }),
-  )
-  commands.push(
     pdfText(orderNumber, 205, supplierY - 81, { align: "right", size: 10 }),
     pdfText("Odběratel", CUSTOMER_X, CUSTOMER_LABEL_Y, { size: 11 }),
   )
-  customerTextRows(billingAddress, order.email).forEach((row, index) => {
+  for (const [index, row] of customerTextRows(
+    billingAddress,
+    order.email,
+  ).entries()) {
     commands.push(
       pdfText(
         row.value,
@@ -362,17 +351,19 @@ function renderFirstPageHeader(
         },
       ),
     )
-  })
+  }
 }
 
-function renderContinuationHeader(commands: PdfCommand[], orderNumber: string) {
+const renderContinuationHeader = (commands: string[], orderNumber: string) => {
   commands.push(
     pdfText("Faktura", LEFT, TOP, { font: FONT_BOLD, size: 16 }),
     pdfText(orderNumber, RIGHT, TOP, { align: "right", size: 12 }),
   )
 }
 
-function paginateTableRows(tableRows: ReceiptTableRow[]): ReceiptTablePage[] {
+const paginateTableRows = (
+  tableRows: ReceiptTableRow[],
+): ReceiptTablePage[] => {
   const pages: ReceiptTablePage[] = []
   let offset = 0
   let tableTop = FIRST_PAGE_TABLE_TOP
@@ -420,8 +411,10 @@ function paginateTableRows(tableRows: ReceiptTableRow[]): ReceiptTablePage[] {
   return pages
 }
 
-function buildPdfBuffer(pageCommands: PdfCommand[][]) {
-  const pageStreams = pageCommands.map((commands) => `${commands.join("\n")}\n`)
+const buildPdfBuffer = (pageCommands: string[][]) => {
+  const pageStreams: string[] = pageCommands.map(
+    (commands) => `${commands.join("\n")}\n`,
+  )
   const pages = pageStreams.map((stream, index) => ({
     contentObjectId: 5 + pageStreams.length + index,
     objectId: 3 + index,
@@ -469,12 +462,12 @@ function buildPdfBuffer(pageCommands: PdfCommand[][]) {
   return Buffer.from(pdf, "utf-8")
 }
 
-function buildPaginatedPdf(
+const buildPaginatedPdf = (
   order: OrderReceiptOrder,
   tableRows: ReceiptTableRow[],
-  paymentQrCommands: PdfCommand[],
+  paymentQrCommands: string[],
   supplierY: number,
-) {
+) => {
   const orderNumber = getOrderNumber(order)
   const billingAddress = order.billing_address ?? order.shipping_address
   const currency = order.currency_code
@@ -483,9 +476,12 @@ function buildPaginatedPdf(
   const discountTotal = getDiscountTotal(order)
   const shippingTotal = getShippingSubtotalTotal(order)
   const total = getTotal(order)
-  const supplierName = process.env["STORE_NAME"] || "N1 Shop"
-  const pages = paginateTableRows(tableRows).map((page) => {
-    const commands: PdfCommand[] = []
+  const storeName = process.env["STORE_NAME"]
+  const supplierName =
+    storeName === undefined || storeName.length === 0 ? "N1 Shop" : storeName
+  const pages: string[][] = []
+  for (const page of paginateTableRows(tableRows)) {
+    const commands: string[] = []
 
     if (page.isFirstPage) {
       renderFirstPageHeader(commands, {
@@ -501,7 +497,7 @@ function buildPaginatedPdf(
     }
 
     renderTableHeader(commands, page.tableTop)
-    if (page.rows.length) {
+    if (page.rows.length > 0) {
       renderTableRows(commands, page.rows, page.tableTop, currency)
     } else {
       commands.push(
@@ -537,203 +533,13 @@ function buildPaginatedPdf(
       renderFooter(commands)
     }
 
-    return commands
-  })
+    pages.push(commands)
+  }
 
   return buildPdfBuffer(pages)
 }
 
-function buildPdf(order: OrderReceiptOrder) {
-  const orderNumber = getOrderNumber(order)
-  const billingAddress = order.billing_address ?? order.shipping_address
-  const currency = order.currency_code
-  const subtotal = getSubtotal(order)
-  const taxTotal = getTaxTotal(order)
-  const discountTotal = getDiscountTotal(order)
-  const shippingTotal = getShippingSubtotalTotal(order)
-  const total = getTotal(order)
-  const supplierName = process.env["STORE_NAME"] || "N1 Shop"
-  const paymentQrCommands = buildPaymentQrCommands(order)
-  const supplierY = paymentQrCommands.length
-    ? SUPPLIER_Y_WITH_PAYMENT_QR
-    : SUPPLIER_Y
-  const tableRows = buildTableRows(order)
-
-  if (tableRows.length > FIRST_PAGE_ROWS_WITH_SUMMARY) {
-    return buildPaginatedPdf(order, tableRows, paymentQrCommands, supplierY)
-  }
-
-  const commands: PdfCommand[] = []
-
-  commands.push(
-    pdfText("Faktura", 330, TOP, { font: FONT_BOLD, size: 24 }),
-    pdfText(orderNumber, 330, TOP - 28, { font: FONT_NORMAL, size: 22 }),
-  )
-  commands.push(
-    pdfText("Daňový doklad", 330, TOP - 58, { size: 10 }),
-    ...paymentQrCommands,
-  )
-  commands.push(
-    pdfText("Datum vystavení", 330, TOP - 104, { size: 10 }),
-    pdfText(formatDate(order.created_at), RIGHT, TOP - 104, {
-      align: "right",
-      size: 10,
-    }),
-  )
-
-  commands.push(
-    pdfText("Dodavatel", LEFT, supplierY, { size: 11 }),
-    pdfText(supplierName, LEFT, supplierY - 23, { font: FONT_BOLD, size: 12 }),
-  )
-  commands.push(
-    pdfText("Faktura vystavena automaticky.", LEFT, supplierY - 40, {
-      size: 10,
-    }),
-    pdfText("Objednávka", LEFT, supplierY - 81, { size: 10 }),
-  )
-  commands.push(
-    pdfText(orderNumber, 205, supplierY - 81, { align: "right", size: 10 }),
-    pdfText("Odběratel", CUSTOMER_X, CUSTOMER_LABEL_Y, { size: 11 }),
-  )
-  customerTextRows(billingAddress, order.email).forEach((row, index) => {
-    commands.push(
-      pdfText(
-        row.value,
-        CUSTOMER_X,
-        CUSTOMER_START_Y - index * CUSTOMER_LINE_HEIGHT,
-        {
-          font: row.font,
-          size: row.size,
-        },
-      ),
-    )
-  })
-
-  const tableTop = FIRST_PAGE_TABLE_TOP
-  commands.push(
-    pdfText("ks", LEFT, tableTop + 14, { size: 9 }),
-    pdfText("Položka", LEFT + 32, tableTop + 14, { size: 9 }),
-  )
-  commands.push(
-    pdfText("DPH", 335, tableTop + 14, { align: "right", size: 9 }),
-    pdfText("Cena za MJ bez DPH", 430, tableTop + 14, {
-      align: "right",
-      size: 8,
-    }),
-  )
-  commands.push(
-    pdfText("Celkem bez DPH", RIGHT, tableTop + 14, {
-      align: "right",
-      size: 9,
-    }),
-    pdfLine({ x1: LEFT, x2: RIGHT, y1: tableTop, y2: tableTop }),
-  )
-
-  if (!tableRows.length) {
-    commands.push(
-      pdfText("Bez položek", LEFT + 32, tableTop - 24, { size: 10 }),
-    )
-  }
-
-  tableRows.forEach((row, index) => {
-    const y = tableTop - 24 - index * 22
-
-    commands.push(
-      pdfText(row.quantity, LEFT, y, { size: 9 }),
-      pdfText(truncate(row.title, 36), LEFT + 32, y, { size: 9 }),
-    )
-    commands.push(
-      pdfText(row.taxLabel, 335, y, { align: "right", size: 9 }),
-      pdfText(formatMoney(row.unitPriceNet, currency), 430, y, {
-        align: "right",
-        size: 8,
-      }),
-    )
-    commands.push(
-      pdfText(formatMoney(row.total, currency), RIGHT, y, {
-        align: "right",
-        size: 9,
-      }),
-    )
-  })
-
-  const tableBottom = Math.max(238, tableTop - 34 - tableRows.length * 22)
-  commands.push(
-    pdfLine({ x1: LEFT, x2: RIGHT, y1: tableBottom, y2: tableBottom }),
-  )
-
-  const summaryY = tableBottom - 38
-  const summaryLabelX = 336
-  commands.push(
-    pdfText("Cena bez DPH (zboží)", summaryLabelX, summaryY, { size: 10 }),
-    pdfText(formatMoney(subtotal, currency), RIGHT, summaryY, {
-      align: "right",
-      size: 10,
-    }),
-  )
-  if (discountTotal > 0) {
-    commands.push(
-      pdfText("Sleva", summaryLabelX, summaryY - 16, { size: 10 }),
-      pdfText(
-        `-${formatMoney(discountTotal, currency)}`,
-        RIGHT,
-        summaryY - 16,
-        {
-          align: "right",
-          size: 10,
-        },
-      ),
-    )
-  }
-  if (shippingTotal > 0) {
-    commands.push(
-      pdfText("Doprava", summaryLabelX, summaryY - 32, { size: 10 }),
-      pdfText(formatMoney(shippingTotal, currency), RIGHT, summaryY - 32, {
-        align: "right",
-        size: 10,
-      }),
-    )
-  }
-  commands.push(
-    pdfText("DPH", summaryLabelX, summaryY - 48, { size: 10 }),
-    pdfText(formatMoney(taxTotal, currency), RIGHT, summaryY - 48, {
-      align: "right",
-      size: 10,
-    }),
-  )
-  commands.push(
-    pdfLine({
-      x1: summaryLabelX,
-      x2: RIGHT,
-      y1: summaryY - 58,
-      y2: summaryY - 58,
-    }),
-    pdfText(formatMoney(total, currency), RIGHT, summaryY - 86, {
-      align: "right",
-      font: FONT_BOLD,
-      size: 22,
-    }),
-  )
-
-  commands.push(
-    pdfText("Děkujeme za objednávku.", LEFT, 66, { size: 8 }),
-    pdfText("Doklad byl vygenerován automaticky.", LEFT, 53, {
-      size: 8,
-    }),
-  )
-
-  return buildPdfBuffer([commands])
-}
-
-function buildPaymentQrCommands(order: OrderReceiptOrder): PdfCommand[] {
-  return orderPaymentQr.buildPdfCommands(getQrPaymentSpayd(order), {
-    moduleSize: PAYMENT_QR_MODULE_SIZE,
-    top: TOP,
-    x: PAYMENT_QR_X,
-  })
-}
-
-function getQrPaymentSpayd(order: OrderReceiptOrder) {
+const getQrPaymentSpayd = (order: OrderReceiptOrder) => {
   for (const collection of order.payment_collections ?? []) {
     for (const payment of collection.payments ?? []) {
       if (!PAYMENT_QR_PROVIDER_IDS.has(payment.provider_id ?? "")) {
@@ -742,7 +548,7 @@ function getQrPaymentSpayd(order: OrderReceiptOrder) {
 
       const spayd = payment.data?.["payment_qr_spayd"]
 
-      if (typeof spayd === "string" && spayd.trim()) {
+      if (typeof spayd === "string" && spayd.trim().length > 0) {
         return spayd
       }
     }
@@ -751,15 +557,87 @@ function getQrPaymentSpayd(order: OrderReceiptOrder) {
   return null
 }
 
+const buildPaymentQrCommands = (order: OrderReceiptOrder): string[] =>
+  orderPaymentQr.buildPdfCommands(getQrPaymentSpayd(order), {
+    moduleSize: PAYMENT_QR_MODULE_SIZE,
+    top: TOP,
+    x: PAYMENT_QR_X,
+  })
+
+const buildPdf = (order: OrderReceiptOrder) => {
+  const orderNumber = getOrderNumber(order)
+  const billingAddress = order.billing_address ?? order.shipping_address
+  const currency = order.currency_code
+  const paymentQrCommands = buildPaymentQrCommands(order)
+  const supplierY =
+    paymentQrCommands.length > 0 ? SUPPLIER_Y_WITH_PAYMENT_QR : SUPPLIER_Y
+  const tableRows = buildTableRows(order)
+  const storeName = process.env["STORE_NAME"]
+  const supplierName =
+    storeName === undefined || storeName.length === 0 ? "N1 Shop" : storeName
+
+  if (tableRows.length > FIRST_PAGE_ROWS_WITH_SUMMARY) {
+    return buildPaginatedPdf(order, tableRows, paymentQrCommands, supplierY)
+  }
+
+  const commands: string[] = []
+  renderFirstPageHeader(commands, {
+    ...(billingAddress === undefined ? {} : { billingAddress }),
+    order,
+    orderNumber,
+    paymentQrCommands,
+    supplierName,
+    supplierY,
+  })
+  renderTableHeader(commands, FIRST_PAGE_TABLE_TOP)
+
+  if (tableRows.length > 0) {
+    renderTableRows(commands, tableRows, FIRST_PAGE_TABLE_TOP, currency)
+  } else {
+    commands.push(
+      pdfText(
+        "Bez položek",
+        LEFT + 32,
+        FIRST_PAGE_TABLE_TOP - TABLE_ROW_TOP_OFFSET,
+        { size: 10 },
+      ),
+    )
+  }
+
+  const tableBottom = Math.max(
+    SUMMARY_TABLE_BOTTOM_MIN,
+    FIRST_PAGE_TABLE_TOP -
+      TABLE_BOTTOM_OFFSET -
+      tableRows.length * TABLE_ROW_HEIGHT,
+  )
+  commands.push(
+    pdfLine({ x1: LEFT, x2: RIGHT, y1: tableBottom, y2: tableBottom }),
+  )
+  renderSummary(commands, {
+    ...(currency === undefined ? {} : { currency }),
+    discountTotal: getDiscountTotal(order),
+    shippingTotal: getShippingSubtotalTotal(order),
+    subtotal: getSubtotal(order),
+    summaryY: tableBottom - SUMMARY_OFFSET,
+    taxTotal: getTaxTotal(order),
+    total: getTotal(order),
+  })
+  renderFooter(commands)
+
+  return buildPdfBuffer([commands])
+}
+
 class OrderReceiptModuleService {
+  readonly buildPdf = buildPdf
+
   async generateOrderReceiptAttachment(
     order: OrderReceiptOrder,
   ): Promise<OrderReceiptAttachment> {
-    return {
-      content: buildPdf(order),
+    return await Promise.resolve({
+      content: this.buildPdf(order),
       content_type: "application/pdf",
       filename: getOrderReceiptFilename(order),
-    }
+    })
   }
 }
 
