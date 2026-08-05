@@ -42,8 +42,8 @@ jobs:
         run: pnpm --filter @techsio/std build
       - name: Check Oxfmt
         run: pnpm format:check
-      - name: Run type-aware Oxlint
-        run: pnpm lint:oxlint
+      - name: Run blocking Ultracite policy
+        run: pnpm lint:ultracite
       - name: Run scoped Medusa ESLint
         run: pnpm lint:medusa
 
@@ -238,10 +238,6 @@ jobs:
           cache: pnpm
       - name: Install dependencies without lifecycle scripts
         run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies
-      - name: Trial Ultracite policy checks
-        id: ultracite
-        continue-on-error: true
-        run: pnpm exec ultracite check .
       - name: Trial React Doctor on changed React code
         id: react-doctor
         continue-on-error: true
@@ -274,14 +270,12 @@ jobs:
       - name: Advisory summary
         if: always()
         env:
-          ULTRACITE: ${{ steps.ultracite.outcome }}
           REACT_DOCTOR: ${{ steps.react-doctor.outcome }}
           KONSISTENT: ${{ steps.konsistent.outcome }}
           DANGER: ${{ steps.dangerfile.outputs.configured == 'true' && steps.danger.outcome || 'not configured' }}
         run: |
           {
             printf '%s\n' "## Advisory trials"
-            printf '%s\n' "- Ultracite: $ULTRACITE"
             printf '%s\n' "- React Doctor: $REACT_DOCTOR"
             printf '%s\n' "- konsistent: $KONSISTENT"
             printf '%s\n' "- Danger: $DANGER"

@@ -12,10 +12,10 @@ Applications: Next.js (`frontend-demo`, `herbatika`, `n1`, `payload`), Medusa (`
 - Use the repository Nx wrapper: `./node_modules/.bin/nubx --node nx ...`.
 - Root TypeScript 7 checks: `node scripts/typescript/audit.mjs`, `pnpm typecheck:tsc`, and native `pnpm typecheck:tsgo`.
 - Exact Oxc checks: `pnpm exec oxfmt --check .` and `pnpm exec oxlint . --type-aware`.
-- Optional Ultracite trial: `pnpm exec ultracite check <changed-paths>`; report failures, but do not treat it as the blocking lint command.
+- Blocking Ultracite check: `pnpm exec ultracite check <changed-paths>`; root `pnpm lint:ultracite` checks the full repository.
 - Run the narrowest relevant project tests, typechecks, builds, token checks, Storybook checks, or integration suites.
 - CI install contract: `pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies`.
-- `quality-gate` is the blocking merge check. Ultracite, React Doctor, konsistent, and Danger are advisory trials until separately promoted.
+- `quality-gate` is the blocking merge check. Ultracite is part of the blocking lint lane; standalone React Doctor, konsistent, and Danger remain advisory trials.
 
 ## Anti-Slop Laws
 

@@ -17,7 +17,7 @@ The required GitHub check is `quality-gate`. It runs with `if: always()` and fai
 
 Blocking lanes:
 
-1. Oxfmt check, type-aware Oxlint, and scoped Medusa ESLint.
+1. Ultracite's full type-aware Oxlint policy, Oxfmt check, and scoped Medusa ESLint.
 2. dependency-cruiser, ast-grep, production-mode Knip, and JSCPD at the one-percent threshold.
 3. TypeScript policy/isolation audit plus every source-project wrapper checked by root `tsc` `7.0.2` and native `tsgo`.
 4. UI design-token usage and definition validation.
@@ -43,13 +43,13 @@ pnpm typecheck:tsgo
 Exact blocking Oxc commands:
 
 ```sh
-pnpm exec oxfmt --check .
-pnpm exec oxlint . --type-aware
+pnpm exec oxfmt --config oxfmt.config.ts --check .
+pnpm lint:ultracite
 ```
 
 ## Advisory trials
 
-Ultracite, React Doctor, konsistent, and Danger are explicitly advisory. Their steps use `continue-on-error`, report outcomes in the workflow summary, and are excluded from `quality-gate`. Promote a trial only in a dedicated change that fixes or explicitly configures its findings first.
+React Doctor's standalone repository scan, konsistent, and Danger remain advisory. Ultracite is blocking through `format-and-lint` and therefore participates in `quality-gate`.
 
 ## Review expectations
 
