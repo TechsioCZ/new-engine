@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query"
+import { isRecord } from "@techsio/std/object"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import type { ReactNode } from "react"
@@ -9,10 +10,7 @@ import { createCartQueryKeys } from "../src/cart/query-keys"
 import type { CartService, UpdateCartInputBase } from "../src/cart/types"
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createCustomerHooks } from "../src/customers/hooks"
-import type {
-  CustomerAddressListInputBase,
-  CustomerService,
-} from "../src/customers/types"
+import type { CustomerService } from "../src/customers/types"
 import { createOrderHooks } from "../src/orders/hooks"
 import type {
   OrderDetailInputBase,
@@ -28,11 +26,12 @@ import type {
 import type { StorefrontAddressValidationIssue } from "../src/shared/address"
 import { server } from "./msw-server"
 
-const createWrapper =
-  (client: QueryClient) =>
-  ({ children }: { children: ReactNode }) => (
+const createWrapper = (client: QueryClient) => {
+  const Wrapper = ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
+  return Wrapper
+}
 
 const trackedClients: QueryClient[] = []
 
@@ -44,72 +43,305 @@ const createTestClient = (
   return client
 }
 
-afterEach(() => {
-  for (const client of trackedClients) {
-    client.clear()
+// ---- Cart address helper fixtures -----------------------------------------
+
+interface AddressInput {
+  firstName: string
+  lastName: string
+  address1: string
+  city: string
+  postalCode: string
+  countryCode: string
+  company?: string
+}
+
+interface AddressPayload {
+  first_name: string
+  last_name: string
+  address_1: string
+  city: string
+  postal_code: string
+  country_code: string
+  company?: string
+}
+
+interface Cart {
+  id: string
+  region_id?: string | null
+  shipping_address?: AddressPayload
+  billing_address?: AddressPayload
+}
+
+interface CartUpdateParams {
+  email?: string
+  region_id?: string
+  shipping_address?: AddressPayload
+  billing_address?: AddressPayload
+}
+
+type UpdateInput = UpdateCartInputBase &
+  CartUpdateParams & {
+    shippingAddress: AddressInput
+    billingAddress?: AddressInput
+    useSameAddress?: boolean
   }
-  trackedClients.length = 0
+
+const isCartAddressPayload = (value: unknown): value is AddressPayload => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const { company } = value
+  const hasRequiredStrings =
+    typeof value["first_name"] === "string" &&
+    typeof value["last_name"] === "string" &&
+    typeof value["address_1"] === "string"
+  const hasLocationStrings =
+    typeof value["city"] === "string" &&
+    typeof value["postal_code"] === "string" &&
+    typeof value["country_code"] === "string"
+  const hasValidCompany = company === undefined || typeof company === "string"
+  return hasRequiredStrings && hasLocationStrings && hasValidCompany
+}
+
+const isCart = (value: unknown): value is Cart => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const regionId = value["region_id"]
+  const shippingAddress = value["shipping_address"]
+  const billingAddress = value["billing_address"]
+  const hasValidId = typeof value["id"] === "string"
+  const hasValidRegionId =
+    regionId === undefined || regionId === null || typeof regionId === "string"
+  const hasValidShippingAddress =
+    shippingAddress === undefined || isCartAddressPayload(shippingAddress)
+  const hasValidBillingAddress =
+    billingAddress === undefined || isCartAddressPayload(billingAddress)
+  const hasValidAddresses = hasValidShippingAddress && hasValidBillingAddress
+  return hasValidId && hasValidRegionId && hasValidAddresses
+}
+
+const isCartUpdateParams = (value: unknown): value is CartUpdateParams => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const { email } = value
+  const regionId = value["region_id"]
+  const shippingAddress = value["shipping_address"]
+  const billingAddress = value["billing_address"]
+  const hasValidEmail = email === undefined || typeof email === "string"
+  const hasValidRegionId =
+    regionId === undefined || typeof regionId === "string"
+  const hasValidShippingAddress =
+    shippingAddress === undefined || isCartAddressPayload(shippingAddress)
+  const hasValidBillingAddress =
+    billingAddress === undefined || isCartAddressPayload(billingAddress)
+  const hasValidStrings = hasValidEmail && hasValidRegionId
+  const hasValidAddresses = hasValidShippingAddress && hasValidBillingAddress
+  return hasValidStrings && hasValidAddresses
+}
+
+const buildUpdateParams = (input: UpdateInput): CartUpdateParams => ({
+  ...(input.email !== undefined && input.email !== ""
+    ? { email: input.email }
+    : {}),
+  ...(input.region_id !== undefined && input.region_id !== ""
+    ? { region_id: input.region_id }
+    : {}),
+  ...(input.shipping_address
+    ? { shipping_address: input.shipping_address }
+    : {}),
+  ...(input.billing_address ? { billing_address: input.billing_address } : {}),
 })
 
+const buildAddressPayload = (input: AddressInput): AddressPayload => ({
+  address_1: input.address1,
+  city: input.city,
+  country_code: input.countryCode,
+  first_name: input.firstName,
+  last_name: input.lastName,
+  postal_code: input.postalCode,
+  ...(input.company !== undefined && input.company !== ""
+    ? { company: input.company }
+    : {}),
+})
+
+// ---- Product list fixtures -------------------------------------------------
+
+interface Product {
+  id: string
+  title: string
+}
+
+interface ProductListParams {
+  limit: number
+  offset: number
+  region_id?: string
+}
+
+interface ProductDetailParams {
+  handle: string
+}
+
+const isProduct = (value: unknown): value is Product =>
+  isRecord(value) &&
+  typeof value["id"] === "string" &&
+  typeof value["title"] === "string"
+
+const isProductListResponse = (
+  value: unknown,
+): value is {
+  products: Product[]
+  count: number
+  limit: number
+  offset: number
+} => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const { products } = value
+  const hasValidProducts = Array.isArray(products) && products.every(isProduct)
+  const hasValidNumbers =
+    typeof value["count"] === "number" &&
+    typeof value["limit"] === "number" &&
+    typeof value["offset"] === "number"
+  return hasValidProducts && hasValidNumbers
+}
+
+const buildListParams = (input: ProductListInputBase): ProductListParams => {
+  const limit = input.limit ?? 2
+  const page = input.page ?? 1
+  const offset = (page - 1) * limit
+
+  return {
+    limit,
+    offset,
+    ...(input.region_id !== undefined && input.region_id !== ""
+      ? { region_id: input.region_id }
+      : {}),
+  }
+}
+
+// ---- Order fixtures ---------------------------------------------------------
+
+interface Order {
+  id: string
+}
+
+interface OrderListParams {
+  limit: number
+  offset: number
+}
+
+interface OrderDetailParams {
+  id: string
+}
+
+const isOrder = (value: unknown): value is Order =>
+  isRecord(value) && typeof value["id"] === "string"
+
+const isOrderListResponse = (
+  value: unknown,
+): value is { orders: Order[]; count: number } => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const { orders } = value
+  return (
+    Array.isArray(orders) &&
+    orders.every(isOrder) &&
+    typeof value["count"] === "number"
+  )
+}
+
+const buildOrderListParams = (input: OrderListInputBase): OrderListParams => {
+  const limit = input.limit ?? 20
+  const page = input.page ?? 1
+  const offset = (page - 1) * limit
+  return { limit, offset }
+}
+
+const buildDetailParams = (input: OrderDetailInputBase): OrderDetailParams => {
+  if (input.id === undefined || input.id === "") {
+    throw new Error("Order id is required for order queries")
+  }
+  return { id: input.id }
+}
+
+// ---- Customer fixtures -------------------------------------------------------
+
+interface Address {
+  id: string
+  address_1?: string
+}
+interface Customer {
+  id: string
+}
+
+interface CreateParams {
+  address_1?: string
+}
+
+const isAddress = (value: unknown): value is Address => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const address1 = value["address_1"]
+  return (
+    typeof value["id"] === "string" &&
+    (address1 === undefined || typeof address1 === "string")
+  )
+}
+
+const isCustomer = (value: unknown): value is Customer =>
+  isRecord(value) && typeof value["id"] === "string"
+
+const isCreateParams = (value: unknown): value is CreateParams => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const address1 = value["address_1"]
+  return address1 === undefined || typeof address1 === "string"
+}
+
+const isCustomerAddressListResponse = (
+  value: unknown,
+): value is { addresses: Address[] } => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const { addresses } = value
+  return Array.isArray(addresses) && addresses.every(isAddress)
+}
+
 describe("storefront-data hook smoke tests", () => {
+  afterEach(() => {
+    for (const client of trackedClients) {
+      client.clear()
+    }
+    trackedClients.length = 0
+  })
+
   const baseUrl = "https://storefront.test"
 
   describe("cart address helper", () => {
-    interface AddressInput {
-      firstName: string
-      lastName: string
-      address1: string
-      city: string
-      postalCode: string
-      countryCode: string
-      company?: string
-    }
-
-    interface AddressPayload {
-      first_name: string
-      last_name: string
-      address_1: string
-      city: string
-      postal_code: string
-      country_code: string
-      company?: string
-    }
-
-    interface Cart {
-      id: string
-      region_id?: string | null
-      shipping_address?: AddressPayload
-      billing_address?: AddressPayload
-    }
-
-    interface UpdateParams {
-      email?: string
-      region_id?: string
-      shipping_address?: AddressPayload
-      billing_address?: AddressPayload
-    }
-
-    type UpdateInput = UpdateCartInputBase &
-      UpdateParams & {
-        shippingAddress: AddressInput
-        billingAddress?: AddressInput
-        useSameAddress?: boolean
-      }
-
-    let lastUpdatePayload: UpdateParams | null = null
+    let lastUpdatePayload: CartUpdateParams | null = null
 
     beforeEach(() => {
       lastUpdatePayload = null
       server.use(
         http.post(`${baseUrl}/carts/:cartId`, async ({ request, params }) => {
-          const payload = (await request.json()) as UpdateParams
-          lastUpdatePayload = payload
+          const rawPayload: unknown = await request.json()
+          if (!isCartUpdateParams(rawPayload)) {
+            throw new TypeError("Invalid cart update payload")
+          }
+          lastUpdatePayload = rawPayload
           return HttpResponse.json({
             cart: {
-              billing_address: payload.billing_address,
+              billing_address: rawPayload.billing_address,
               id: String(params["cartId"]),
-              region_id: payload.region_id ?? null,
-              shipping_address: payload.shipping_address,
+              region_id: rawPayload.region_id ?? null,
+              shipping_address: rawPayload.shipping_address,
             },
           })
         }),
@@ -119,54 +351,46 @@ describe("storefront-data hook smoke tests", () => {
     it("maps shipping and billing addresses", async () => {
       const cartService: CartService<
         Cart,
-        UpdateParams,
-        UpdateParams,
+        CartUpdateParams,
+        CartUpdateParams,
         never,
         never,
         unknown
       > = {
-        createCart: async () => ({ id: "cart_test" }),
-        retrieveCart: async () => null,
+        createCart: async () => {
+          await Promise.resolve()
+          return { id: "cart_test" }
+        },
+        retrieveCart: async () => {
+          await Promise.resolve()
+          return null
+        },
         updateCart: async (cartId, params) => {
           const response = await fetch(`${baseUrl}/carts/${cartId}`, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
             body: JSON.stringify(params),
+            headers: { "content-type": "application/json" },
+            method: "POST",
           })
-          const data = await response.json()
-          return data.cart as Cart
+          const data: unknown = await response.json()
+          if (!isRecord(data)) {
+            throw new TypeError("Invalid cart response")
+          }
+          const { cart } = data
+          if (!isCart(cart)) {
+            throw new TypeError("Invalid cart response")
+          }
+          return cart
         },
       }
-
-      const buildUpdateParams = (input: UpdateInput): UpdateParams => ({
-        ...(input.email ? { email: input.email } : {}),
-        ...(input.region_id ? { region_id: input.region_id } : {}),
-        ...(input.shipping_address
-          ? { shipping_address: input.shipping_address }
-          : {}),
-        ...(input.billing_address
-          ? { billing_address: input.billing_address }
-          : {}),
-      })
-
-      const buildAddressPayload = (input: AddressInput): AddressPayload => ({
-        address_1: input.address1,
-        city: input.city,
-        country_code: input.countryCode,
-        first_name: input.firstName,
-        last_name: input.lastName,
-        postal_code: input.postalCode,
-        ...(input.company ? { company: input.company } : {}),
-      })
 
       const cartQueryKeys = createCartQueryKeys("smoke-cart")
 
       const { useUpdateCartAddress } = createCartHooks<
         Cart,
         UpdateInput,
-        UpdateParams,
+        CartUpdateParams,
         UpdateInput,
-        UpdateParams,
+        CartUpdateParams,
         never,
         never,
         never,
@@ -178,27 +402,27 @@ describe("storefront-data hook smoke tests", () => {
         addressAdapter: {
           normalize: (input) => ({
             ...input,
+            address1: input.address1.trim(),
             firstName: input.firstName.trim(),
             lastName: input.lastName.trim(),
-            address1: input.address1.trim(),
           }),
           toPayload: (input) => buildAddressPayload(input),
           validate: (input, context) => {
             const issues: StorefrontAddressValidationIssue[] = []
             if (!input.firstName) {
               issues.push({
-                scope: context.scope,
-                field: "firstName",
                 code: "required",
+                field: "firstName",
                 message: "first name required",
+                scope: context.scope,
               })
             }
             if (!input.lastName) {
               issues.push({
-                scope: context.scope,
-                field: "lastName",
                 code: "required",
+                field: "lastName",
                 message: "last name required",
+                scope: context.scope,
               })
             }
             return issues.length ? issues : null
@@ -260,35 +484,6 @@ describe("storefront-data hook smoke tests", () => {
   })
 
   describe("infinite products", () => {
-    interface Product {
-      id: string
-      title: string
-    }
-
-    interface ProductListParams {
-      limit: number
-      offset: number
-      region_id?: string
-    }
-
-    interface ProductDetailParams {
-      handle: string
-    }
-
-    const buildListParams = (
-      input: ProductListInputBase,
-    ): ProductListParams => {
-      const limit = input.limit ?? 2
-      const page = input.page ?? 1
-      const offset = (page - 1) * limit
-
-      return {
-        limit,
-        offset,
-        ...(input.region_id ? { region_id: input.region_id } : {}),
-      }
-    }
-
     it("fetches pages separately from list cache", async () => {
       const offsets: number[] = []
       let requestCount = 0
@@ -320,7 +515,10 @@ describe("storefront-data hook smoke tests", () => {
         ProductListParams,
         ProductDetailParams
       > = {
-        getProductByHandle: async () => null,
+        getProductByHandle: async () => {
+          await Promise.resolve()
+          return null
+        },
         getProducts: async (params) => {
           const query = new URLSearchParams({
             limit: String(params.limit),
@@ -328,7 +526,11 @@ describe("storefront-data hook smoke tests", () => {
             region_id: params.region_id ?? "",
           })
           const response = await fetch(`${baseUrl}/products?${query}`)
-          return await response.json()
+          const data: unknown = await response.json()
+          if (!isProductListResponse(data)) {
+            throw new TypeError("Invalid products list response")
+          }
+          return data
         },
       }
 
@@ -415,7 +617,10 @@ describe("storefront-data hook smoke tests", () => {
         ProductListParams,
         ProductDetailParams
       > = {
-        getProductByHandle: async () => null,
+        getProductByHandle: async () => {
+          await Promise.resolve()
+          return null
+        },
         getProducts: async (params) => {
           const query = new URLSearchParams({
             limit: String(params.limit),
@@ -423,7 +628,11 @@ describe("storefront-data hook smoke tests", () => {
             region_id: params.region_id ?? "",
           })
           const response = await fetch(`${baseUrl}/products?${query}`)
-          return await response.json()
+          const data: unknown = await response.json()
+          if (!isProductListResponse(data)) {
+            throw new TypeError("Invalid products list response")
+          }
+          return data
         },
       }
 
@@ -468,35 +677,6 @@ describe("storefront-data hook smoke tests", () => {
   })
 
   describe("orders", () => {
-    interface Order {
-      id: string
-    }
-
-    interface OrderListParams {
-      limit: number
-      offset: number
-    }
-
-    interface OrderDetailParams {
-      id: string
-    }
-
-    const buildListParams = (input: OrderListInputBase): OrderListParams => {
-      const limit = input.limit ?? 20
-      const page = input.page ?? 1
-      const offset = (page - 1) * limit
-      return { limit, offset }
-    }
-
-    const buildDetailParams = (
-      input: OrderDetailInputBase,
-    ): OrderDetailParams => {
-      if (!input.id) {
-        throw new Error("Order id is required for order queries")
-      }
-      return { id: input.id }
-    }
-
     it("fetches order list and detail", async () => {
       server.use(
         http.get(`${baseUrl}/orders`, ({ request }) => {
@@ -518,8 +698,15 @@ describe("storefront-data hook smoke tests", () => {
       const service: OrderService<Order, OrderListParams, OrderDetailParams> = {
         getOrder: async (params) => {
           const response = await fetch(`${baseUrl}/orders/${params.id}`)
-          const data = await response.json()
-          return data.order as Order
+          const data: unknown = await response.json()
+          if (!isRecord(data)) {
+            throw new TypeError("Invalid order response")
+          }
+          const { order } = data
+          if (!isOrder(order)) {
+            throw new TypeError("Invalid order response")
+          }
+          return order
         },
         getOrders: async (params) => {
           const query = new URLSearchParams({
@@ -527,13 +714,17 @@ describe("storefront-data hook smoke tests", () => {
             offset: String(params.offset),
           })
           const response = await fetch(`${baseUrl}/orders?${query}`)
-          return await response.json()
+          const data: unknown = await response.json()
+          if (!isOrderListResponse(data)) {
+            throw new TypeError("Invalid orders list response")
+          }
+          return data
         },
       }
 
       const { useOrders, useOrder } = createOrderHooks({
         buildDetailParams,
-        buildListParams,
+        buildListParams: buildOrderListParams,
         queryKeyNamespace: "smoke-orders",
         service,
       })
@@ -565,18 +756,7 @@ describe("storefront-data hook smoke tests", () => {
   })
 
   describe("customers", () => {
-    interface Address {
-      id: string
-      address_1?: string
-    }
-    interface Customer {
-      id: string
-    }
-
     type ListParams = Record<string, never>
-    interface CreateParams {
-      address_1?: string
-    }
     interface UpdateParams {
       address_1?: string
     }
@@ -597,7 +777,11 @@ describe("storefront-data hook smoke tests", () => {
           }),
         ),
         http.post(`${baseUrl}/customers/me/addresses`, async ({ request }) => {
-          lastCreateBody = (await request.json()) as CreateParams
+          const rawBody: unknown = await request.json()
+          if (!isCreateParams(rawBody)) {
+            throw new TypeError("Invalid create address payload")
+          }
+          lastCreateBody = rawBody
           return HttpResponse.json({
             address: { address_1: "New", id: "addr_2" },
           })
@@ -605,7 +789,11 @@ describe("storefront-data hook smoke tests", () => {
         http.post(
           `${baseUrl}/customers/me/addresses/:id`,
           async ({ request, params }) => {
-            lastUpdateBody = (await request.json()) as Record<string, unknown>
+            const rawBody: unknown = await request.json()
+            if (!isRecord(rawBody)) {
+              throw new TypeError("Invalid update address payload")
+            }
+            lastUpdateBody = rawBody
             return HttpResponse.json({
               address: { address_1: "Updated", id: String(params["id"]) },
             })
@@ -615,7 +803,11 @@ describe("storefront-data hook smoke tests", () => {
           HttpResponse.json({}),
         ),
         http.post(`${baseUrl}/customers/me`, async ({ request }) => {
-          lastUpdateBody = (await request.json()) as Record<string, unknown>
+          const rawBody: unknown = await request.json()
+          if (!isRecord(rawBody)) {
+            throw new TypeError("Invalid update customer payload")
+          }
+          lastUpdateBody = rawBody
           return HttpResponse.json({ customer: { id: "cust_1" } })
         }),
       )
@@ -632,12 +824,19 @@ describe("storefront-data hook smoke tests", () => {
       > = {
         createAddress: async (params) => {
           const response = await fetch(`${baseUrl}/customers/me/addresses`, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
             body: JSON.stringify(params),
+            headers: { "content-type": "application/json" },
+            method: "POST",
           })
-          const data = await response.json()
-          return data.address as Address
+          const data: unknown = await response.json()
+          if (!isRecord(data)) {
+            throw new TypeError("Invalid address response")
+          }
+          const { address } = data
+          if (!isAddress(address)) {
+            throw new TypeError("Invalid address response")
+          }
+          return address
         },
         deleteAddress: async (addressId) => {
           await fetch(`${baseUrl}/customers/me/addresses/${addressId}`, {
@@ -646,28 +845,46 @@ describe("storefront-data hook smoke tests", () => {
         },
         getAddresses: async () => {
           const response = await fetch(`${baseUrl}/customers/me/addresses`)
-          return await response.json()
+          const data: unknown = await response.json()
+          if (!isCustomerAddressListResponse(data)) {
+            throw new TypeError("Invalid addresses list response")
+          }
+          return data
         },
         updateAddress: async (addressId, params) => {
           const response = await fetch(
             `${baseUrl}/customers/me/addresses/${addressId}`,
             {
-              method: "POST",
-              headers: { "content-type": "application/json" },
               body: JSON.stringify(params),
+              headers: { "content-type": "application/json" },
+              method: "POST",
             },
           )
-          const data = await response.json()
-          return data.address as Address
+          const data: unknown = await response.json()
+          if (!isRecord(data)) {
+            throw new TypeError("Invalid address response")
+          }
+          const { address } = data
+          if (!isAddress(address)) {
+            throw new TypeError("Invalid address response")
+          }
+          return address
         },
         updateCustomer: async (params) => {
           const response = await fetch(`${baseUrl}/customers/me`, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
             body: JSON.stringify(params),
+            headers: { "content-type": "application/json" },
+            method: "POST",
           })
-          const data = await response.json()
-          return data.customer as Customer
+          const data: unknown = await response.json()
+          if (!isRecord(data)) {
+            throw new TypeError("Invalid customer response")
+          }
+          const { customer } = data
+          if (!isCustomer(customer)) {
+            throw new TypeError("Invalid customer response")
+          }
+          return customer
         },
       }
 
