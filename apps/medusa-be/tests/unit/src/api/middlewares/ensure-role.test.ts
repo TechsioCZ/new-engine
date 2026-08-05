@@ -1,16 +1,64 @@
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock(import("@medusajs/framework/utils"), () => ({
-  ContainerRegistrationKeys: {
-    QUERY: "query",
-  },
-}))
+vi.mock(import("@medusajs/framework/utils"), async (importOriginal) => {
+  const original = await importOriginal()
 
-const createResponse = () =>
-  ({
-    json: vi.fn().mockReturnThis(),
-    status: vi.fn().mockReturnThis(),
-  }) as any
+  return {
+    ...original,
+    ContainerRegistrationKeys: {
+      ...original.ContainerRegistrationKeys,
+      QUERY: "query" as const,
+    },
+  }
+})
+
+interface GraphResult {
+  data: unknown[]
+}
+
+type Graph = (query: unknown) => Promise<GraphResult>
+
+const assertAuthenticatedRequest: (
+  candidate: unknown,
+) => asserts candidate is AuthenticatedMedusaRequest = (candidate) => {
+  if (typeof candidate !== "object" || candidate === null) {
+    throw new TypeError("Expected a mock request object")
+  }
+
+  if (!("auth_context" in candidate) || !("scope" in candidate)) {
+    throw new TypeError("Mock request is missing required properties")
+  }
+}
+
+interface ResponseMethods {
+  json: (...args: unknown[]) => unknown
+  status: (...args: unknown[]) => unknown
+}
+
+const assertMedusaResponse: <T extends ResponseMethods>(
+  candidate: T,
+) => asserts candidate is T & MedusaResponse = (candidate) => {
+  if (
+    typeof candidate.json !== "function" ||
+    typeof candidate.status !== "function"
+  ) {
+    throw new TypeError("Mock response requires json and status functions")
+  }
+}
+
+const createResponse = () => {
+  const response = {
+    json: vi.fn<(...args: unknown[]) => unknown>().mockReturnThis(),
+    status: vi.fn<(...args: unknown[]) => unknown>().mockReturnThis(),
+  }
+
+  assertMedusaResponse(response)
+  return response
+}
 
 const createRequest = ({
   customerId = "cus_1",
@@ -18,10 +66,10 @@ const createRequest = ({
   params = {},
 }: {
   customerId?: string
-  graph: ReturnType<typeof vi.fn>
+  graph: Graph
   params?: Record<string, string>
-}) =>
-  ({
+}) => {
+  const request: unknown = {
     auth_context: {
       app_metadata: {
         customer_id: customerId,
@@ -29,7 +77,7 @@ const createRequest = ({
     },
     params,
     scope: {
-      resolve: vi.fn((key: string) => {
+      resolve: vi.fn<(key: string) => { graph: Graph }>((key) => {
         if (key === "query") {
           return { graph }
         }
@@ -37,7 +85,13 @@ const createRequest = ({
         throw new Error(`Unexpected dependency: ${key}`)
       }),
     },
-  }) as any
+  }
+
+  assertAuthenticatedRequest(request)
+  return request
+}
+
+const createNext = () => vi.fn<() => void>(() => {})
 
 describe("ensureRole", () => {
   beforeEach(() => {
@@ -47,7 +101,7 @@ describe("ensureRole", () => {
   it("allows the current company's admin employee", async () => {
     const { ensureRole } =
       await import("../../../../../src/api/middlewares/ensure-role")
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<Graph>().mockResolvedValue({
       data: [
         {
           employees: [
@@ -62,7 +116,7 @@ describe("ensureRole", () => {
     })
     const req = createRequest({ graph, params: { id: "comp_1" } })
     const res = createResponse()
-    const next = vi.fn()
+    const next = createNext()
 
     await ensureRole("company_admin")(req, res, next)
 
@@ -83,7 +137,7 @@ describe("ensureRole", () => {
   it("rejects a customer that is not an admin employee of the route company", async () => {
     const { ensureRole } =
       await import("../../../../../src/api/middlewares/ensure-role")
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<Graph>().mockResolvedValue({
       data: [
         {
           employees: [
@@ -98,7 +152,7 @@ describe("ensureRole", () => {
     })
     const req = createRequest({ graph, params: { id: "comp_1" } })
     const res = createResponse()
-    const next = vi.fn()
+    const next = createNext()
 
     await ensureRole("company_admin")(req, res, next)
 
@@ -110,7 +164,7 @@ describe("ensureRole", () => {
   it("rejects empty route companies instead of treating them as implicitly admin-manageable", async () => {
     const { ensureRole } =
       await import("../../../../../src/api/middlewares/ensure-role")
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<Graph>().mockResolvedValue({
       data: [
         {
           employees: [],
@@ -120,7 +174,7 @@ describe("ensureRole", () => {
     })
     const req = createRequest({ graph, params: { id: "comp_1" } })
     const res = createResponse()
-    const next = vi.fn()
+    const next = createNext()
 
     await ensureRole("company_admin")(req, res, next)
 
@@ -132,7 +186,7 @@ describe("ensureRole", () => {
   it("allows route company members for member-scoped store reads", async () => {
     const { ensureCompanyMember } =
       await import("../../../../../src/api/middlewares/ensure-role")
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<Graph>().mockResolvedValue({
       data: [
         {
           employees: [
@@ -147,7 +201,7 @@ describe("ensureRole", () => {
     })
     const req = createRequest({ graph, params: { id: "comp_1" } })
     const res = createResponse()
-    const next = vi.fn()
+    const next = createNext()
 
     await ensureCompanyMember(req, res, next)
 
@@ -158,7 +212,7 @@ describe("ensureRole", () => {
   it("rejects non-members for route company member-scoped store reads", async () => {
     const { ensureCompanyMember } =
       await import("../../../../../src/api/middlewares/ensure-role")
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<Graph>().mockResolvedValue({
       data: [
         {
           employees: [
@@ -173,7 +227,7 @@ describe("ensureRole", () => {
     })
     const req = createRequest({ graph, params: { id: "comp_1" } })
     const res = createResponse()
-    const next = vi.fn()
+    const next = createNext()
 
     await ensureCompanyMember(req, res, next)
 
@@ -185,12 +239,12 @@ describe("ensureRole", () => {
   it("uses current customer employee admin state when no company id is in the route", async () => {
     const { ensureRole } =
       await import("../../../../../src/api/middlewares/ensure-role")
-    const graph = vi.fn().mockResolvedValue({
+    const graph = vi.fn<Graph>().mockResolvedValue({
       data: [{ employee: { is_admin: true } }],
     })
     const req = createRequest({ graph })
     const res = createResponse()
-    const next = vi.fn()
+    const next = createNext()
 
     await ensureRole("company_admin")(req, res, next)
 
