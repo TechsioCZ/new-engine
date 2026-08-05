@@ -18,12 +18,13 @@ import {
   useDataTable,
 } from "@medusajs/ui"
 import type {
+  DataTableColumnDef,
   DataTableFilteringState,
   DataTablePaginationState,
   DataTableRowSelectionState,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
@@ -56,7 +57,6 @@ import {
   preparePacketaLabelDownload,
 } from "./packeta-labels"
 import {
-  ORDER_DASHBOARD_BUSINESS_STATUS_GROUP_IDS,
   ORDER_DASHBOARD_BUSINESS_STATUS_IDS,
   ORDER_DASHBOARD_CARRIER_KEYS,
   ORDER_DASHBOARD_MANUAL_STATUS_IDS,
@@ -83,6 +83,8 @@ const PACKETA_ELIGIBILITY_QUERY_KEY = "order-dashboard-packeta-eligibility"
 const CARRIER_FILTER_ID = "carrier.value"
 const BUSINESS_STATUS_GROUP_FILTER_ID = "business_status.group"
 const BUSINESS_STATUS_FILTER_ID = "business_status.id"
+const REQUEST_FAILED_KEY = "toast.requestFailed"
+const NO_SELECTION_KEY = "toast.noSelection"
 
 const columnHelper = createDataTableColumnHelper<OrderDashboardOrder>()
 const filterHelper = createDataTableFilterHelper<OrderDashboardOrder>()
@@ -101,6 +103,16 @@ const labelFormats: OrderDashboardLabelFormat[] = ["A6", "A7"]
 const packetaLabelStartPositions = [1, 2, 3, 4] as const
 
 type PacketaLabelStartPosition = (typeof packetaLabelStartPositions)[number]
+
+const isOrderDashboardLabelFormat = (
+  value: unknown,
+): value is OrderDashboardLabelFormat => value === "A6" || value === "A7"
+
+const isPacketaLabelStartPosition = (
+  value: number,
+): value is PacketaLabelStartPosition =>
+  value === 1 || value === 2 || value === 3 || value === 4
+
 interface PendingPacketaLabelsDownload {
   labelFormat: OrderDashboardLabelFormat
   orderIds: string[]
@@ -121,18 +133,810 @@ const fulfillmentStatusColors = {
 } as const satisfies Record<string, StatusBadgeColor>
 
 // This admin route coordinates table state, batch actions, modals, and detail panels.
-const OrderDashboardPage = () => {
+const OrderDetailField = ({
+  children,
+  label,
+}: {
+  children: ReactNode
+  label: string
+}) => (
+  <div className="min-w-0">
+    <Text className="text-ui-fg-muted" leading="compact" size="small">
+      {label}
+    </Text>
+    <Text className="break-words" leading="compact" size="small" weight="plus">
+      {children}
+    </Text>
+  </div>
+)
+
+const formatOptionLabel = (value: string) =>
+  value
+    .split("_")
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ")
+
+const getLanguage = (
+  resolvedLanguage: string | undefined,
+  language: string | undefined,
+) => resolvedLanguage ?? language ?? "en"
+
+const isKnownFulfillmentStatus = (
+  status: string,
+): status is keyof typeof fulfillmentStatusColors =>
+  status in fulfillmentStatusColors
+
+const getFulfillmentStatusDisplay = (
+  order: OrderDashboardOrder,
+  t: TranslationFunction,
+) => {
+  const status = order.fulfillment_status?.toLowerCase()
+
+  if (status === undefined || status === "") {
+    return {
+      color: "grey" as const,
+      label: order.has_active_fulfillment
+        ? t("detail.activeFulfillment")
+        : t("detail.noActiveFulfillment"),
+    }
+  }
+
+  if (isKnownFulfillmentStatus(status)) {
+    return {
+      color: fulfillmentStatusColors[status],
+      label: t(`fulfillmentStatus.${status}`),
+    }
+  }
+
+  return {
+    color: "grey" as const,
+    label: formatOptionLabel(status),
+  }
+}
+
+const getManualStatusTarget = (
+  value: ManualStatusValue | "",
+): ManualStatusTarget | undefined =>
+  value === "clear" ? null : value || undefined
+
+const getManualStatusLabel = (
+  status: ManualStatusTarget,
+  t: TranslationFunction,
+) => (status === null ? t("manualStatus.clear") : t(`manualStatus.${status}`))
+
+const getBulkManualStatusBlockReason = (
+  order: OrderDashboardOrder,
+  status: ManualStatusTarget,
+  t: TranslationFunction,
+) => {
+  const currentManualStatus = order.manual_status ?? null
+
+  if (currentManualStatus === status) {
+    return status === null
+      ? t("manualStatusBlocker.alreadyClear")
+      : t("manualStatusBlocker.alreadyStatus", {
+          status: getManualStatusLabel(status, t),
+        })
+  }
+
+  if (status === null || status === "canceled") {
+    return null
+  }
+
+  if (order.status === "canceled") {
+    return t("manualStatusBlocker.canceledStayCanceled")
+  }
+
+  if (
+    order.business_status.id === "delivered" ||
+    order.business_status.id === "shipped"
+  ) {
+    return t("manualStatusBlocker.higherPriority", {
+      status: t(order.business_status.translation_key),
+    })
+  }
+
+  return null
+}
+
+const getBulkManualStatusPreview = (
+  orders: OrderDashboardOrder[],
+  status: ManualStatusTarget,
+  t: TranslationFunction,
+) => {
+  const skipped: OrderDashboardBlockingOrder[] = []
+  const updatable: OrderDashboardOrder[] = []
+
+  for (const order of orders) {
+    const reason = getBulkManualStatusBlockReason(order, status, t)
+
+    if (reason !== null && reason !== undefined && reason !== "") {
+      skipped.push({
+        id: order.id,
+        order_display_id: order.order_display_id,
+        reason,
+      })
+      continue
+    }
+
+    updatable.push(order)
+  }
+
+  return { skipped, updatable }
+}
+
+const formatOrderDeliveryAddress = (address: string[]) =>
+  address.filter(Boolean).join(", ") || "-"
+
+const getCarrierFilter = (filtering: DataTableFilteringState) =>
+  isOrderDashboardCarrierKey(filtering[CARRIER_FILTER_ID])
+    ? filtering[CARRIER_FILTER_ID]
+    : undefined
+
+const getBusinessStatusFilter = (
+  filtering: DataTableFilteringState,
+): OrderDashboardBusinessStatusId | undefined => {
+  const value = filtering[BUSINESS_STATUS_FILTER_ID]
+  return isOrderDashboardBusinessStatusId(value) ? value : undefined
+}
+
+const isOrderDashboardBusinessStatusGroupId = (
+  value: unknown,
+): value is OrderDashboardBusinessStatusGroupId => value === "action_required"
+
+const getBusinessStatusGroupFilter = (
+  filtering: DataTableFilteringState,
+): OrderDashboardBusinessStatusGroupId | undefined => {
+  const value = filtering[BUSINESS_STATUS_GROUP_FILTER_ID]
+  return isOrderDashboardBusinessStatusGroupId(value) ? value : undefined
+}
+
+const isManualStatus = (
+  value: unknown,
+): value is OrderDashboardManualStatusId =>
+  value === "processing" ||
+  value === "waiting_for_supplier" ||
+  value === "canceled"
+
+const isOrderDashboardQueueId = (
+  value: unknown,
+): value is OrderDashboardQueueId =>
+  value === "all" ||
+  value === "action_required" ||
+  isOrderDashboardBusinessStatusId(value)
+
+const omitBusinessStatusGroupFilter = (
+  filtering: DataTableFilteringState,
+): DataTableFilteringState =>
+  Object.fromEntries(
+    Object.entries(filtering).filter(
+      ([filterId]) => filterId !== BUSINESS_STATUS_GROUP_FILTER_ID,
+    ),
+  )
+
+const omitQueueFilters = (
+  filtering: DataTableFilteringState,
+): DataTableFilteringState =>
+  Object.fromEntries(
+    Object.entries(filtering).filter(
+      ([filterId]) =>
+        filterId !== BUSINESS_STATUS_FILTER_ID &&
+        filterId !== BUSINESS_STATUS_GROUP_FILTER_ID,
+    ),
+  )
+
+const normalizeFiltering = (filtering: DataTableFilteringState) =>
+  filtering[BUSINESS_STATUS_FILTER_ID] === undefined
+    ? filtering
+    : omitBusinessStatusGroupFilter(filtering)
+
+const getFilteringForQueue = (
+  filtering: DataTableFilteringState,
+  queueId: OrderDashboardQueueId,
+) => {
+  const remaining = omitQueueFilters(filtering)
+
+  if (queueId === "all") {
+    return remaining
+  }
+
+  return queueId === "action_required"
+    ? { ...remaining, [BUSINESS_STATUS_GROUP_FILTER_ID]: queueId }
+    : { ...remaining, [BUSINESS_STATUS_FILTER_ID]: queueId }
+}
+
+const getQueueCount = (
+  queueId: OrderDashboardQueueId,
+  summary?: OrderDashboardSummaryResponse,
+) => {
+  if (summary === undefined) {
+    return null
+  }
+
+  if (queueId === "all") {
+    return summary.total_count
+  }
+
+  if (queueId === "action_required") {
+    return summary.action_required_count
+  }
+
+  return summary.status_counts[queueId]
+}
+
+const getQueueLabel = (
+  queueId: OrderDashboardQueueId,
+  t: TranslationFunction,
+) => {
+  if (queueId === "all" || queueId === "action_required") {
+    return t(`queues.${queueId}`)
+  }
+
+  return t(`statuses.${queueId}`)
+}
+
+const getTargetStatusBlockedOrders = (
+  selectedOrders: OrderDashboardOrder[],
+  targetStatus: OrderDashboardTargetStatus,
+  t: TranslationFunction,
+): OrderDashboardBlockingOrder[] =>
+  selectedOrders.flatMap((order) => {
+    const reason = getOrderDashboardTransitionBlockReason(
+      order,
+      targetStatus,
+      (key, values) => (values === undefined ? t(key) : t(key, values)),
+    )
+
+    return reason !== undefined && reason !== ""
+      ? [
+          {
+            id: order.id,
+            order_display_id: order.order_display_id,
+            reason,
+          },
+        ]
+      : []
+  })
+
+const getTargetStatusOptions = (
+  selectedOrders: OrderDashboardOrder[],
+  t: TranslationFunction,
+): TargetStatusOption[] =>
+  ORDER_DASHBOARD_TARGET_STATUSES.map((targetStatus) => ({
+    blockedOrders: getTargetStatusBlockedOrders(
+      selectedOrders,
+      targetStatus,
+      t,
+    ),
+    label: t(`targetStatus.${targetStatus}`),
+    value: targetStatus,
+  }))
+
+const getSelectedStatusBlockedMessage = (
+  statusLabel: string,
+  blockedOrders: OrderDashboardBlockingOrder[],
+  t: TranslationFunction,
+) => {
+  const [firstBlockedOrder] = blockedOrders
+
+  if (blockedOrders.length === 1 && firstBlockedOrder !== undefined) {
+    return t("targetStatusBlocker.selectedBlockedOne", {
+      order: firstBlockedOrder.order_display_id,
+      reason: firstBlockedOrder.reason,
+      status: statusLabel,
+    })
+  }
+
+  return t("targetStatusBlocker.selectedBlockedMany", {
+    count: blockedOrders.length,
+    status: statusLabel,
+  })
+}
+
+const getFailureMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback
+
+const getOptionalFailureMessage = (
+  error: Error | null,
+  fallback: string,
+): string | null => (error === null ? null : getFailureMessage(error, fallback))
+
+const ManualStatusControl = ({
+  manualStatus,
+  orderId,
+}: {
+  manualStatus?: OrderDashboardManualStatusId | null
+  orderId: string
+}) => {
+  const { t } = useTranslation("orderDashboard")
+  const queryClient = useQueryClient()
+  const mutation = useMutation({
+    mutationFn: async (value: ManualStatusValue) =>
+      await updateOrderDashboardManualStatus({
+        orderIds: [orderId],
+        status: value === "clear" ? null : value,
+      }),
+    onError: (error) => {
+      toast.error(getFailureMessage(error, t(REQUEST_FAILED_KEY)))
+    },
+    onSuccess: (result) => {
+      if (result.count > 0) {
+        toast.success(t("toast.businessStatusUpdated", { count: result.count }))
+      } else {
+        toast.error(result.skipped[0]?.reason ?? t("toast.manualStatusSkipped"))
+      }
+
+      void queryClient.invalidateQueries({
+        queryKey: [ORDER_DASHBOARD_QUERY_KEY],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: [ORDER_DASHBOARD_SUMMARY_QUERY_KEY],
+      })
+    },
+  })
+
+  return (
+    <Select
+      disabled={mutation.isPending}
+      onValueChange={(value) => {
+        if (value === "clear" || isManualStatus(value)) {
+          mutation.mutate(value)
+        }
+      }}
+      value={manualStatus ?? "clear"}
+    >
+      <Select.Trigger className="w-[180px]">
+        <Select.Value />
+      </Select.Trigger>
+      <Select.Content>
+        <Select.Item value="clear">{t("manualStatus.none")}</Select.Item>
+        {ORDER_DASHBOARD_MANUAL_STATUS_IDS.map((status) => (
+          <Select.Item key={status} value={status}>
+            {t(`manualStatus.${status}`)}
+          </Select.Item>
+        ))}
+      </Select.Content>
+    </Select>
+  )
+}
+
+const hasText = (value: string | null | undefined): value is string =>
+  value !== undefined && value !== null && value !== ""
+
+const getOrderItemKey = (item: OrderDashboardOrder["items"][number]) =>
+  item.id ?? [item.title, item.sku, item.variant].filter(hasText).join("-")
+
+const getVisibleRowSelection = (
+  orders: OrderDashboardOrder[],
+  selectedOrdersById: ReadonlyMap<string, OrderDashboardOrder>,
+): DataTableRowSelectionState => {
+  const rowSelection: DataTableRowSelectionState = {}
+
+  for (const order of orders) {
+    if (selectedOrdersById.has(order.id)) {
+      rowSelection[order.id] = true
+    }
+  }
+
+  return rowSelection
+}
+
+const getSelectedOrders = (
+  selectedOrdersById: ReadonlyMap<string, OrderDashboardOrder>,
+  visibleOrders: OrderDashboardOrder[],
+): OrderDashboardOrder[] => {
+  const visibleOrdersById = new Map(
+    visibleOrders.map((order) => [order.id, order]),
+  )
+
+  return [...selectedOrdersById].map(
+    ([orderId, selectedOrder]) =>
+      visibleOrdersById.get(orderId) ?? selectedOrder,
+  )
+}
+
+const OrderDashboardDetailPanel = ({
+  onClose,
+  order,
+}: {
+  onClose: () => void
+  order: OrderDashboardOrder
+}) => {
+  const { i18n, t } = useTranslation("orderDashboard")
+  const locale = formatLocaleCode(
+    getLanguage(i18n.resolvedLanguage, i18n.language),
+  )
+  const manualStatusLabel = order.manual_status
+    ? t(`manualStatus.${order.manual_status}`)
+    : t("manualStatus.none")
+  const fulfillmentStatus = getFulfillmentStatusDisplay(order, t)
+
+  return (
+    <div className="bg-ui-bg-subtle px-6 py-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <Text leading="compact" size="small" weight="plus">
+            {t("detail.title", { order: order.order_display_id })}
+          </Text>
+          <Text className="text-ui-fg-subtle" leading="compact" size="small">
+            {order.customer}
+            {order.email !== undefined &&
+            order.email !== null &&
+            order.email !== ""
+              ? ` - ${order.email}`
+              : ""}
+          </Text>
+        </div>
+        <Button
+          onClick={onClose}
+          size="small"
+          type="button"
+          variant="secondary"
+        >
+          {t("actions.closeDetails")}
+        </Button>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <OrderDetailField label={t("detail.address")}>
+          {formatOrderDeliveryAddress(order.delivery_address)}
+        </OrderDetailField>
+        <OrderDetailField label={t("detail.carrier")}>
+          {getCarrierLabel(order)}
+        </OrderDetailField>
+        <OrderDetailField label={t("detail.payment")}>
+          {order.payment_status ?? "-"} -{" "}
+          {formatPaymentMethodLabel(order.payment_method)}
+        </OrderDetailField>
+        <OrderDetailField label={t("detail.total")}>
+          {formatOrderTotal(order, locale)}
+        </OrderDetailField>
+        <OrderDetailField label={t("detail.orderStatus")}>
+          {order.status ?? "-"}
+        </OrderDetailField>
+        <OrderDetailField label={t("detail.businessStatus")}>
+          {t(order.business_status.translation_key)}
+        </OrderDetailField>
+        <OrderDetailField label={t("detail.manualStatus")}>
+          {manualStatusLabel}
+        </OrderDetailField>
+        <OrderDetailField label={t("detail.fulfillment")}>
+          {fulfillmentStatus.label}
+        </OrderDetailField>
+      </div>
+
+      <div className="mt-4">
+        <Text leading="compact" size="small" weight="plus">
+          {t("detail.items")}
+        </Text>
+        <div className="mt-2 divide-y overflow-hidden rounded-md border border-ui-border-base bg-ui-bg-base">
+          {order.items.length > 0 ? (
+            order.items.map((item) => (
+              <div
+                className="grid gap-2 px-3 py-2 sm:grid-cols-[1fr_auto]"
+                key={getOrderItemKey(item)}
+              >
+                <div className="min-w-0">
+                  <Text leading="compact" size="small">
+                    {item.title}
+                  </Text>
+                  {hasText(item.sku) || hasText(item.variant) ? (
+                    <Text
+                      className="text-ui-fg-subtle"
+                      leading="compact"
+                      size="small"
+                    >
+                      {[item.sku, item.variant].filter(Boolean).join(" - ")}
+                    </Text>
+                  ) : null}
+                </div>
+                <Text
+                  className="text-ui-fg-subtle"
+                  leading="compact"
+                  size="small"
+                >
+                  {t("detail.quantity", { count: item.quantity })}
+                </Text>
+              </div>
+            ))
+          ) : (
+            <Text className="px-3 py-2 text-ui-fg-subtle" size="small">
+              {t("detail.noItems")}
+            </Text>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const StatusBlockersTooltipContent = ({
+  blockedOrders,
+}: {
+  blockedOrders: OrderDashboardBlockingOrder[]
+}) => {
+  const { t } = useTranslation("orderDashboard")
+  const visibleOrders = blockedOrders.slice(0, 5)
+  const hiddenCount = blockedOrders.length - visibleOrders.length
+
+  return (
+    <div className="flex flex-col gap-1">
+      {visibleOrders.map((order) => (
+        <Text key={`${order.id}-${order.reason}`} size="small">
+          {order.order_display_id}: {order.reason}
+        </Text>
+      ))}
+      {hiddenCount > 0 ? (
+        <Text className="text-ui-fg-muted" size="small">
+          {t("tableMessages.moreBlocked", { count: hiddenCount })}
+        </Text>
+      ) : null}
+    </div>
+  )
+}
+
+const StatusSelectItem = ({
+  onBlockedAttempt,
+  option,
+}: {
+  onBlockedAttempt: (blockedOrders: OrderDashboardBlockingOrder[]) => void
+  option: TargetStatusOption
+}) => {
+  const { t } = useTranslation("orderDashboard")
+  const blockedCount = option.blockedOrders.length
+  const isBlocked = blockedCount > 0
+  const item = (
+    <Select.Item
+      className={
+        isBlocked
+          ? "data-[disabled]:pointer-events-auto data-[disabled]:cursor-not-allowed data-[disabled]:text-ui-fg-disabled"
+          : undefined
+      }
+      disabled={isBlocked}
+      onClick={() => {
+        if (isBlocked) {
+          onBlockedAttempt(option.blockedOrders)
+        }
+      }}
+      onPointerDown={(event) => {
+        if (isBlocked) {
+          event.preventDefault()
+          onBlockedAttempt(option.blockedOrders)
+        }
+      }}
+      value={option.value}
+    >
+      <span className="flex min-w-0 items-center justify-between gap-3">
+        <span className="truncate">{option.label}</span>
+        {isBlocked ? (
+          <span className="shrink-0 text-ui-fg-muted">
+            {t("tableMessages.blockedCount", { count: blockedCount })}
+          </span>
+        ) : null}
+      </span>
+    </Select.Item>
+  )
+
+  if (!isBlocked) {
+    return item
+  }
+
+  return (
+    <Tooltip
+      content={
+        <StatusBlockersTooltipContent blockedOrders={option.blockedOrders} />
+      }
+      maxWidth={360}
+      side="right"
+    >
+      {item}
+    </Tooltip>
+  )
+}
+
+const BlockingOrdersPanel = ({
+  blockedOrders,
+}: {
+  blockedOrders: OrderDashboardBlockingOrder[]
+}) => {
+  const { t } = useTranslation("orderDashboard")
+  const visibleOrders = blockedOrders.slice(0, 20)
+  const hiddenCount = blockedOrders.length - visibleOrders.length
+
+  return (
+    <div className="flex flex-col gap-2 bg-ui-bg-subtle px-6 py-4">
+      <Text
+        className="text-ui-fg-error"
+        leading="compact"
+        size="small"
+        weight="plus"
+      >
+        {t("table.blockedOrdersTitle")}
+      </Text>
+      <div className="flex flex-col gap-1">
+        {visibleOrders.map((order) => (
+          <Text
+            key={`${order.id}-${order.reason}`}
+            leading="compact"
+            size="small"
+          >
+            {order.order_display_id}: {order.reason}
+          </Text>
+        ))}
+        {hiddenCount > 0 ? (
+          <Text className="text-ui-fg-muted" leading="compact" size="small">
+            {t("tableMessages.moreBlocked", { count: hiddenCount })}
+          </Text>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+interface GetOrderDashboardColumnsOptions {
+  locale: string | undefined
+  onDetailOrderToggle: (
+    updater: (currentOrderId: string | null) => string | null,
+  ) => void
+  t: TranslationFunction
+}
+
+const getOrderDashboardColumns = ({
+  locale,
+  onDetailOrderToggle,
+  t,
+}: GetOrderDashboardColumnsOptions): DataTableColumnDef<OrderDashboardOrder>[] => [
+  columnHelper.select(),
+  columnHelper.accessor("order_display_id", {
+    cell: ({ row }) => (
+      <Link
+        className="txt-compact-small-plus text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
+        to={`/orders/${row.original.id}`}
+      >
+        {row.original.order_display_id}
+      </Link>
+    ),
+    header: t("columns.order"),
+  }),
+  columnHelper.accessor("created_at", {
+    cell: ({ getValue }) => (
+      <Text leading="compact" size="small">
+        {formatOrderDate(getValue(), locale)}
+      </Text>
+    ),
+    header: t("columns.created"),
+  }),
+  columnHelper.accessor("customer", {
+    cell: ({ row }) => (
+      <div className="flex min-w-0 flex-col gap-y-1">
+        <Text leading="compact" size="small" weight="plus">
+          {row.original.customer}
+        </Text>
+        {row.original.email !== undefined &&
+        row.original.email !== null &&
+        row.original.email !== "" ? (
+          <Text
+            className="max-w-[220px] truncate text-ui-fg-subtle"
+            leading="compact"
+            size="small"
+          >
+            {row.original.email}
+          </Text>
+        ) : null}
+      </div>
+    ),
+    header: t("columns.customer"),
+  }),
+  columnHelper.accessor("carrier.value", {
+    cell: ({ row }) => (
+      <Text leading="compact" size="small">
+        {getCarrierLabel(row.original)}
+      </Text>
+    ),
+    header: t("columns.carrier"),
+  }),
+  columnHelper.accessor("delivery_address", {
+    cell: ({ row }) => {
+      const address = formatOrderDeliveryAddress(row.original.delivery_address)
+
+      return (
+        <Text
+          className="max-w-[240px] truncate text-ui-fg-subtle"
+          leading="compact"
+          size="small"
+          title={address}
+        >
+          {address}
+        </Text>
+      )
+    },
+    header: t("columns.address"),
+  }),
+  columnHelper.accessor("business_status.id", {
+    cell: ({ row }) => (
+      <Badge color={row.original.business_status.tone} size="2xsmall">
+        {t(row.original.business_status.translation_key)}
+      </Badge>
+    ),
+    header: t("columns.businessStatus"),
+  }),
+  columnHelper.accessor("fulfillment_status", {
+    cell: ({ row }) => {
+      const fulfillmentStatus = getFulfillmentStatusDisplay(row.original, t)
+
+      return (
+        <StatusBadge className="text-nowrap" color={fulfillmentStatus.color}>
+          {fulfillmentStatus.label}
+        </StatusBadge>
+      )
+    },
+    header: t("columns.fulfillment"),
+  }),
+  columnHelper.display({
+    cell: ({ row }) => (
+      <ManualStatusControl
+        {...(row.original.manual_status === undefined
+          ? {}
+          : { manualStatus: row.original.manual_status })}
+        orderId={row.original.id}
+      />
+    ),
+    header: t("columns.manualStatus"),
+    id: "manual_status",
+  }),
+  columnHelper.accessor("payment_status", {
+    cell: ({ row }) => (
+      <div className="flex flex-col gap-y-1">
+        <Text leading="compact" size="small">
+          {row.original.payment_status ?? "-"}
+        </Text>
+        <Text className="text-ui-fg-subtle" leading="compact" size="small">
+          {formatPaymentMethodLabel(row.original.payment_method)}
+        </Text>
+      </div>
+    ),
+    header: t("columns.payment"),
+  }),
+  columnHelper.accessor("total", {
+    align: "right",
+    cell: ({ row }) => (
+      <Text leading="compact" size="small" weight="plus">
+        {formatOrderTotal(row.original, locale)}
+      </Text>
+    ),
+    header: t("columns.total"),
+  }),
+  columnHelper.display({
+    cell: ({ row }) => (
+      <Button
+        onClick={() => {
+          onDetailOrderToggle((currentOrderId) =>
+            currentOrderId === row.original.id ? null : row.original.id,
+          )
+        }}
+        size="small"
+        type="button"
+        variant="transparent"
+      >
+        {t("actions.details")}
+      </Button>
+    ),
+    header: t("columns.details"),
+    id: "details",
+  }),
+]
+
+const useOrderDashboardPage = () => {
   const { i18n, t } = useTranslation("orderDashboard")
   const queryClient = useQueryClient()
-  const locale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
+  const locale = formatLocaleCode(
+    getLanguage(i18n.resolvedLanguage, i18n.language),
+  )
   const [pagination, setPagination] = useState<DataTablePaginationState>({
     pageIndex: 0,
     pageSize: ORDER_DASHBOARD_PAGE_SIZE,
   })
   const [filtering, setFiltering] = useState<DataTableFilteringState>({})
-  const [rowSelection, setRowSelection] = useState<DataTableRowSelectionState>(
-    {},
-  )
   const [selectedOrdersById, setSelectedOrdersById] = useState<
     Map<string, OrderDashboardOrder>
   >(() => new Map())
@@ -196,16 +1000,10 @@ const OrderDashboardPage = () => {
     queryKey: [ORDER_DASHBOARD_SUMMARY_QUERY_KEY],
   })
 
-  const orders = useMemo(
-    () => ordersQuery.data?.orders ?? [],
-    [ordersQuery.data?.orders],
-  )
-  const selectedOrders = [...selectedOrdersById.values()]
+  const orders = ordersQuery.data?.orders ?? []
+  const selectedOrders = getSelectedOrders(selectedOrdersById, orders)
   const selectedOrderIds = [...selectedOrdersById.keys()]
-  const selectedOrderIdSet = useMemo(
-    () => new Set(selectedOrdersById.keys()),
-    [selectedOrdersById],
-  )
+  const rowSelection = getVisibleRowSelection(orders, selectedOrdersById)
   const selectedPacketaCarrierOrderIds =
     getPacketaCarrierOrderIds(selectedOrders)
   const packetaEligibilityQuery = useQuery({
@@ -225,7 +1023,9 @@ const OrderDashboardPage = () => {
   const packetaEligibleCount = packetaLabelPreview.printableOrders.length
   const detailOrder =
     orders.find((order) => order.id === detailOrderId) ??
-    (detailOrderId ? selectedOrdersById.get(detailOrderId) : undefined)
+    (detailOrderId !== null && detailOrderId !== ""
+      ? selectedOrdersById.get(detailOrderId)
+      : undefined)
   const targetStatusOptions = getTargetStatusOptions(selectedOrders, t)
   const selectedTargetStatusOption = targetStatus
     ? targetStatusOptions.find((option) => option.value === targetStatus)
@@ -233,7 +1033,8 @@ const OrderDashboardPage = () => {
   const selectedTargetStatusBlockers =
     selectedTargetStatusOption?.blockedOrders ?? []
   const selectedStatusBlockedMessage =
-    selectedTargetStatusOption && selectedTargetStatusBlockers.length > 0
+    selectedTargetStatusOption !== undefined &&
+    selectedTargetStatusBlockers.length > 0
       ? getSelectedStatusBlockedMessage(
           selectedTargetStatusOption.label,
           selectedTargetStatusBlockers,
@@ -276,150 +1077,18 @@ const OrderDashboardPage = () => {
     }),
   ]
 
-  const columns = [
-    columnHelper.select(),
-    columnHelper.accessor("order_display_id", {
-      cell: ({ row }) => (
-        <Link
-          className="txt-compact-small-plus text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
-          to={`/orders/${row.original.id}`}
-        >
-          {row.original.order_display_id}
-        </Link>
-      ),
-      header: t("columns.order"),
-    }),
-    columnHelper.accessor("created_at", {
-      cell: ({ getValue }) => (
-        <Text leading="compact" size="small">
-          {formatOrderDate(getValue(), locale)}
-        </Text>
-      ),
-      header: t("columns.created"),
-    }),
-    columnHelper.accessor("customer", {
-      cell: ({ row }) => (
-        <div className="flex min-w-0 flex-col gap-y-1">
-          <Text leading="compact" size="small" weight="plus">
-            {row.original.customer}
-          </Text>
-          {row.original.email ? (
-            <Text
-              className="max-w-[220px] truncate text-ui-fg-subtle"
-              leading="compact"
-              size="small"
-            >
-              {row.original.email}
-            </Text>
-          ) : null}
-        </div>
-      ),
-      header: t("columns.customer"),
-    }),
-    columnHelper.accessor("carrier.value", {
-      cell: ({ row }) => (
-        <Text leading="compact" size="small">
-          {getCarrierLabel(row.original)}
-        </Text>
-      ),
-      header: t("columns.carrier"),
-    }),
-    columnHelper.accessor("delivery_address", {
-      cell: ({ row }) => {
-        const address = formatOrderDeliveryAddress(
-          row.original.delivery_address,
-        )
-
-        return (
-          <Text
-            className="max-w-[240px] truncate text-ui-fg-subtle"
-            leading="compact"
-            size="small"
-            title={address}
-          >
-            {address}
-          </Text>
-        )
-      },
-      header: t("columns.address"),
-    }),
-    columnHelper.accessor("business_status.id", {
-      cell: ({ row }) => (
-        <Badge color={row.original.business_status.tone} size="2xsmall">
-          {t(row.original.business_status.translation_key)}
-        </Badge>
-      ),
-      header: t("columns.businessStatus"),
-    }),
-    columnHelper.accessor("fulfillment_status", {
-      cell: ({ row }) => {
-        const fulfillmentStatus = getFulfillmentStatusDisplay(row.original, t)
-
-        return (
-          <StatusBadge className="text-nowrap" color={fulfillmentStatus.color}>
-            {fulfillmentStatus.label}
-          </StatusBadge>
-        )
-      },
-      header: t("columns.fulfillment"),
-    }),
-    columnHelper.display({
-      cell: ({ row }) => (
-        <ManualStatusControl
-          {...(row.original.manual_status === undefined
-            ? {}
-            : { manualStatus: row.original.manual_status })}
-          orderId={row.original.id}
-        />
-      ),
-      header: t("columns.manualStatus"),
-      id: "manual_status",
-    }),
-    columnHelper.accessor("payment_status", {
-      cell: ({ row }) => (
-        <div className="flex flex-col gap-y-1">
-          <Text leading="compact" size="small">
-            {row.original.payment_status ?? "-"}
-          </Text>
-          <Text className="text-ui-fg-subtle" leading="compact" size="small">
-            {formatPaymentMethodLabel(row.original.payment_method)}
-          </Text>
-        </div>
-      ),
-      header: t("columns.payment"),
-    }),
-    columnHelper.accessor("total", {
-      cell: ({ row }) => (
-        <Text leading="compact" size="small" weight="plus">
-          {formatOrderTotal(row.original, locale)}
-        </Text>
-      ),
-      header: t("columns.total"),
-      headerAlign: "right",
-    }),
-    columnHelper.display({
-      cell: ({ row }) => (
-        <Button
-          onClick={() => {
-            setDetailOrderId((currentOrderId) =>
-              currentOrderId === row.original.id ? null : row.original.id,
-            )
-          }}
-          size="small"
-          type="button"
-          variant="transparent"
-        >
-          {t("actions.details")}
-        </Button>
-      ),
-      header: t("columns.details"),
-      id: "details",
-    }),
-  ]
+  const columns = getOrderDashboardColumns({
+    locale,
+    onDetailOrderToggle: setDetailOrderId,
+    t,
+  })
 
   const clearSelection = () => {
-    setRowSelection({})
     setSelectedOrdersById(new Map())
+    setTargetStatus("")
+    setManualStatus("")
+    setIsManualStatusPromptOpen(false)
+    setIsFulfillmentModalOpen(false)
   }
 
   const handleRowSelectionChange = (
@@ -438,21 +1107,25 @@ const OrderDashboardPage = () => {
         ? nextSelection(rowSelection)
         : nextSelection
 
-    setRowSelection(resolvedSelection)
-    setSelectedOrdersById((currentOrdersById) => {
-      const nextOrdersById = new Map(currentOrdersById)
+    const nextOrdersById = new Map(selectedOrdersById)
 
-      for (const order of orders) {
-        if (resolvedSelection[order.id]) {
-          nextOrdersById.set(order.id, order)
-        } else {
-          nextOrdersById.delete(order.id)
-        }
+    for (const order of orders) {
+      if (resolvedSelection[order.id]) {
+        nextOrdersById.set(order.id, order)
+      } else {
+        nextOrdersById.delete(order.id)
       }
+    }
 
-      return nextOrdersById
-    })
+    setSelectedOrdersById(nextOrdersById)
     setBlockingOrders([])
+
+    if (nextOrdersById.size === 0) {
+      setTargetStatus("")
+      setManualStatus("")
+      setIsManualStatusPromptOpen(false)
+      setIsFulfillmentModalOpen(false)
+    }
   }
 
   const table = useDataTable({
@@ -480,7 +1153,6 @@ const OrderDashboardPage = () => {
     pagination: {
       onPaginationChange: (nextPagination) => {
         setPagination(nextPagination)
-        setRowSelection({})
         setBlockingOrders([])
       },
       state: pagination,
@@ -525,7 +1197,7 @@ const OrderDashboardPage = () => {
   const orderStatusMutation = useMutation({
     mutationFn: updateOrderDashboardStatuses,
     onError: (error) => {
-      toast.error(getFailureMessage(error, t("toast.requestFailed")))
+      toast.error(getFailureMessage(error, t(REQUEST_FAILED_KEY)))
     },
     onSuccess: (result) => {
       toast.success(t("toast.statusUpdated", { count: result.count }))
@@ -538,7 +1210,7 @@ const OrderDashboardPage = () => {
   const manualStatusMutation = useMutation({
     mutationFn: updateOrderDashboardManualStatus,
     onError: (error) => {
-      toast.error(getFailureMessage(error, t("toast.requestFailed")))
+      toast.error(getFailureMessage(error, t(REQUEST_FAILED_KEY)))
     },
     onSuccess: (result) => {
       setBlockingOrders(result.skipped)
@@ -563,7 +1235,7 @@ const OrderDashboardPage = () => {
   const expeditionPdfMutation = useMutation({
     mutationFn: downloadOrderDashboardExpeditionPdf,
     onError: (error) => {
-      toast.error(getFailureMessage(error, t("toast.requestFailed")))
+      toast.error(getFailureMessage(error, t(REQUEST_FAILED_KEY)))
     },
     onSuccess: () => {
       toast.success(t("toast.pdfReady"))
@@ -573,7 +1245,7 @@ const OrderDashboardPage = () => {
   const packetaLabelsMutation = useMutation({
     mutationFn: downloadOrderDashboardPacketaLabels,
     onError: (error) => {
-      toast.error(getFailureMessage(error, t("toast.requestFailed")))
+      toast.error(getFailureMessage(error, t(REQUEST_FAILED_KEY)))
     },
     onSuccess: () => {
       toast.success(t("toast.packetaLabelsReady"))
@@ -581,12 +1253,12 @@ const OrderDashboardPage = () => {
   })
 
   const handleOrderStatusApply = () => {
-    if (!selectedOrderIds.length) {
-      toast.error(t("toast.noSelection"))
+    if (selectedOrderIds.length === 0) {
+      toast.error(t(NO_SELECTION_KEY))
       return
     }
 
-    if (!targetStatus) {
+    if (targetStatus === "") {
       toast.error(t("toast.missingOrderStatus"))
       return
     }
@@ -604,12 +1276,12 @@ const OrderDashboardPage = () => {
   }
 
   const handleManualStatusApply = () => {
-    if (!selectedOrderIds.length) {
-      toast.error(t("toast.noSelection"))
+    if (selectedOrderIds.length === 0) {
+      toast.error(t(NO_SELECTION_KEY))
       return
     }
 
-    if (!manualStatus) {
+    if (manualStatus === "") {
       toast.error(t("toast.missingBusinessStatus"))
       return
     }
@@ -630,8 +1302,8 @@ const OrderDashboardPage = () => {
   }
 
   const handleExpeditionPdf = () => {
-    if (!selectedOrderIds.length) {
-      toast.error(t("toast.noSelection"))
+    if (selectedOrderIds.length === 0) {
+      toast.error(t(NO_SELECTION_KEY))
       return
     }
 
@@ -645,12 +1317,12 @@ const OrderDashboardPage = () => {
     )
     const labelFormatSnapshot = labelFormat
 
-    if (!selectedOrdersSnapshot.length) {
-      toast.error(t("toast.noSelection"))
+    if (selectedOrdersSnapshot.length === 0) {
+      toast.error(t(NO_SELECTION_KEY))
       return
     }
 
-    if (!selectedPacketaCarrierOrderIdsSnapshot.length) {
+    if (selectedPacketaCarrierOrderIdsSnapshot.length === 0) {
       toast.error(t("toast.noPacketaSelection"))
       return
     }
@@ -697,14 +1369,14 @@ const OrderDashboardPage = () => {
       })
       setIsPacketaLabelPositionPromptOpen(true)
     } catch (error) {
-      toast.error(getFailureMessage(error, t("toast.requestFailed")))
+      toast.error(getFailureMessage(error, t(REQUEST_FAILED_KEY)))
     } finally {
       setIsPreparingPacketaLabels(false)
     }
   }
 
   const handlePacketaLabelPositionConfirm = () => {
-    if (!pendingPacketaLabelsDownload) {
+    if (pendingPacketaLabelsDownload === null) {
       return
     }
 
@@ -717,8 +1389,8 @@ const OrderDashboardPage = () => {
   }
 
   const handleFulfillmentOpen = () => {
-    if (!selectedOrderIds.length) {
-      toast.error(t("toast.noSelection"))
+    if (selectedOrderIds.length === 0) {
+      toast.error(t(NO_SELECTION_KEY))
       return
     }
 
@@ -751,9 +1423,10 @@ const OrderDashboardPage = () => {
     setBlockingOrders([])
   }
 
-  const errorMessage = ordersQuery.error
-    ? getFailureMessage(ordersQuery.error, t("toast.requestFailed"))
-    : null
+  const errorMessage = getOptionalFailureMessage(
+    ordersQuery.error,
+    t(REQUEST_FAILED_KEY),
+  )
   const pendingUnpaidCount = summaryQuery.data?.pending_unpaid_count ?? 0
 
   useEffect(() => {
@@ -762,74 +1435,8 @@ const OrderDashboardPage = () => {
     )
   }, [pendingUnpaidCount, summaryQuery.isLoading])
 
-  useEffect(() => {
-    if (selectedCount > 0) {
-      return
-    }
-
-    if (targetStatus) {
-      setTargetStatus("")
-    }
-
-    if (manualStatus) {
-      setManualStatus("")
-    }
-
-    if (isManualStatusPromptOpen) {
-      setIsManualStatusPromptOpen(false)
-    }
-
-    if (isFulfillmentModalOpen) {
-      setIsFulfillmentModalOpen(false)
-    }
-  }, [
-    isFulfillmentModalOpen,
-    isManualStatusPromptOpen,
-    manualStatus,
-    selectedCount,
-    targetStatus,
-  ])
-
-  // Row selection only depends on selected IDs; refreshed order objects keep the
-  // same visible rows selected without retriggering this effect.
-  useEffect(() => {
-    const visibleSelection = getVisibleRowSelection(orders, selectedOrderIdSet)
-
-    setRowSelection((currentSelection) =>
-      isSameRowSelection(currentSelection, visibleSelection)
-        ? currentSelection
-        : visibleSelection,
-    )
-  }, [orders, selectedOrderIdSet])
-
-  useEffect(() => {
-    if (!(orders.length && selectedOrderIdSet.size)) {
-      return
-    }
-
-    setSelectedOrdersById((currentSelection) => {
-      let hasChanged = false
-      const nextSelection = new Map(currentSelection)
-
-      for (const order of orders) {
-        if (!nextSelection.has(order.id)) {
-          continue
-        }
-
-        if (nextSelection.get(order.id) === order) {
-          continue
-        }
-
-        nextSelection.set(order.id, order)
-        hasChanged = true
-      }
-
-      return hasChanged ? nextSelection : currentSelection
-    })
-  }, [orders, selectedOrderIdSet])
-
-  return (
-    <Container className="divide-y p-0">
+  const renderDashboardDialogs = () => (
+    <>
       <Prompt
         onOpenChange={setIsManualStatusPromptOpen}
         open={isManualStatusPromptOpen}
@@ -944,7 +1551,11 @@ const OrderDashboardPage = () => {
             </Text>
             <Select
               onValueChange={(value) => {
-                setPacketaLabelStartPosition(Number(value))
+                const position = Number(value)
+
+                if (isPacketaLabelStartPosition(position)) {
+                  setPacketaLabelStartPosition(position)
+                }
               }}
               value={String(packetaLabelStartPosition)}
             >
@@ -982,7 +1593,11 @@ const OrderDashboardPage = () => {
         selectedOrderIds={selectedOrderIds}
         selectedOrders={selectedOrders}
       />
+    </>
+  )
 
+  const renderDashboardContent = () => (
+    <>
       <div className="px-6 py-4">
         <Heading level="h1">{t("title")}</Heading>
       </div>
@@ -1027,7 +1642,7 @@ const OrderDashboardPage = () => {
               ) : null}
             </div>
             <Button
-              disabled={!selectedCount || expeditionPdfMutation.isPending}
+              disabled={selectedCount === 0 || expeditionPdfMutation.isPending}
               isLoading={expeditionPdfMutation.isPending}
               onClick={handleExpeditionPdf}
               size="small"
@@ -1038,14 +1653,16 @@ const OrderDashboardPage = () => {
             </Button>
             <Select
               onValueChange={(value) => {
-                setLabelFormat(value)
+                if (isOrderDashboardLabelFormat(value)) {
+                  setLabelFormat(value)
+                }
               }}
               value={labelFormat}
             >
               <Select.Trigger
                 className="w-[84px]"
                 disabled={
-                  isPreparingPacketaLabels ?? packetaLabelsMutation.isPending
+                  isPreparingPacketaLabels || packetaLabelsMutation.isPending
                 }
               >
                 <Select.Value />
@@ -1060,13 +1677,16 @@ const OrderDashboardPage = () => {
             </Select>
             <Button
               disabled={
-                (!selectedCount || isPreparingPacketaLabels) ??
+                selectedCount === 0 ||
+                isPreparingPacketaLabels ||
                 packetaLabelsMutation.isPending
               }
               isLoading={
-                isPreparingPacketaLabels ?? packetaLabelsMutation.isPending
+                isPreparingPacketaLabels || packetaLabelsMutation.isPending
               }
-              onClick={handlePacketaLabels}
+              onClick={() => {
+                void handlePacketaLabels()
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -1074,7 +1694,7 @@ const OrderDashboardPage = () => {
               {t("actions.packetaLabels")}
             </Button>
             <Button
-              disabled={!selectedCount}
+              disabled={selectedCount === 0}
               onClick={handleFulfillmentOpen}
               size="small"
               type="button"
@@ -1096,7 +1716,7 @@ const OrderDashboardPage = () => {
                   (status) => status.value === value,
                 )
 
-                if (option?.blockedOrders.length) {
+                if (option !== undefined && option.blockedOrders.length > 0) {
                   setTargetStatus("")
                   setBlockingOrders(option.blockedOrders)
                   return
@@ -1107,7 +1727,10 @@ const OrderDashboardPage = () => {
               }}
               value={targetStatus}
             >
-              <Select.Trigger className="w-[180px]" disabled={!selectedCount}>
+              <Select.Trigger
+                className="w-[180px]"
+                disabled={selectedCount === 0}
+              >
                 <Select.Value
                   placeholder={t("actions.targetStatusPlaceholder")}
                 />
@@ -1124,7 +1747,8 @@ const OrderDashboardPage = () => {
             </Select>
             <Button
               disabled={
-                !(selectedCount && targetStatus) ||
+                selectedCount === 0 ||
+                targetStatus === "" ||
                 selectedTargetStatusBlockers.length > 0 ||
                 orderStatusMutation.isPending
               }
@@ -1163,7 +1787,7 @@ const OrderDashboardPage = () => {
               </Select.Content>
             </Select>
             <Button
-              disabled={!selectedCount || manualStatusMutation.isPending}
+              disabled={selectedCount === 0 || manualStatusMutation.isPending}
               isLoading={manualStatusMutation.isPending}
               onClick={handleManualStatusApply}
               size="small"
@@ -1174,27 +1798,28 @@ const OrderDashboardPage = () => {
             </Button>
           </div>
         </div>
-        {selectedStatusBlockedMessage ? (
+        {selectedStatusBlockedMessage !== null &&
+        selectedStatusBlockedMessage !== "" ? (
           <Text className="text-ui-fg-error" leading="compact" size="small">
             {selectedStatusBlockedMessage}
           </Text>
         ) : null}
       </div>
 
-      {blockingOrders.length ? (
+      {blockingOrders.length > 0 ? (
         <BlockingOrdersPanel blockedOrders={blockingOrders} />
       ) : null}
 
-      {detailOrder ? (
+      {detailOrder === undefined ? null : (
         <OrderDashboardDetailPanel
           onClose={() => {
             setDetailOrderId(null)
           }}
           order={detailOrder}
         />
-      ) : null}
+      )}
 
-      {ordersQuery.data?.carrier_filter_limit_reached ? (
+      {ordersQuery.data?.carrier_filter_limit_reached === true ? (
         <div className="bg-ui-bg-subtle px-6 py-2">
           <Text className="text-ui-fg-warning" leading="compact" size="small">
             {t("table.carrierFilterLimit", {
@@ -1204,13 +1829,7 @@ const OrderDashboardPage = () => {
         </div>
       ) : null}
 
-      {errorMessage ? (
-        <div className="px-6 py-4">
-          <Text className="text-ui-fg-error" leading="compact" size="small">
-            {errorMessage}
-          </Text>
-        </div>
-      ) : (
+      {errorMessage === null || errorMessage === "" ? (
         <DataTable instance={table}>
           <DataTable.FilterBar alwaysShow>
             <DataTable.ColumnVisibilityMenu tooltip={t("columns.order")} />
@@ -1227,648 +1846,28 @@ const OrderDashboardPage = () => {
           />
           <DataTable.Pagination />
         </DataTable>
+      ) : (
+        <div className="px-6 py-4">
+          <Text className="text-ui-fg-error" leading="compact" size="small">
+            {errorMessage}
+          </Text>
+        </div>
       )}
+    </>
+  )
+
+  const renderDashboard = () => (
+    <Container className="divide-y p-0">
+      {renderDashboardDialogs()}
+      {renderDashboardContent()}
     </Container>
   )
+
+  return renderDashboard()
 }
 
-const ManualStatusControl = ({
-  manualStatus,
-  orderId,
-}: {
-  manualStatus?: OrderDashboardManualStatusId | null
-  orderId: string
-}) => {
-  const { t } = useTranslation("orderDashboard")
-  const queryClient = useQueryClient()
-  const mutation = useMutation({
-    mutationFn: async (value: ManualStatusValue) =>
-      await updateOrderDashboardManualStatus({
-        orderIds: [orderId],
-        status: value === "clear" ? null : value,
-      }),
-    onError: (error) => {
-      toast.error(getFailureMessage(error, t("toast.requestFailed")))
-    },
-    onSuccess: (result) => {
-      if (result.count > 0) {
-        toast.success(t("toast.businessStatusUpdated", { count: result.count }))
-      } else {
-        toast.error(result.skipped[0]?.reason ?? t("toast.manualStatusSkipped"))
-      }
-
-      void queryClient.invalidateQueries({
-        queryKey: [ORDER_DASHBOARD_QUERY_KEY],
-      })
-      void queryClient.invalidateQueries({
-        queryKey: [ORDER_DASHBOARD_SUMMARY_QUERY_KEY],
-      })
-    },
-  })
-
-  return (
-    <Select
-      disabled={mutation.isPending}
-      onValueChange={(value) => {
-        if (value === "clear" || isManualStatus(value)) {
-          mutation.mutate(value)
-        }
-      }}
-      value={manualStatus ?? "clear"}
-    >
-      <Select.Trigger className="w-[180px]">
-        <Select.Value />
-      </Select.Trigger>
-      <Select.Content>
-        <Select.Item value="clear">{t("manualStatus.none")}</Select.Item>
-        {ORDER_DASHBOARD_MANUAL_STATUS_IDS.map((status) => (
-          <Select.Item key={status} value={status}>
-            {t(`manualStatus.${status}`)}
-          </Select.Item>
-        ))}
-      </Select.Content>
-    </Select>
-  )
-}
-
-const OrderDashboardDetailPanel = ({
-  onClose,
-  order,
-}: {
-  onClose: () => void
-  order: OrderDashboardOrder
-}) => {
-  const { i18n, t } = useTranslation("orderDashboard")
-  const locale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
-  const manualStatusLabel = order.manual_status
-    ? t(`manualStatus.${order.manual_status}`)
-    : t("manualStatus.none")
-  const fulfillmentStatus = getFulfillmentStatusDisplay(order, t)
-
-  return (
-    <div className="bg-ui-bg-subtle px-6 py-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <Text leading="compact" size="small" weight="plus">
-            {t("detail.title", { order: order.order_display_id })}
-          </Text>
-          <Text className="text-ui-fg-subtle" leading="compact" size="small">
-            {order.customer}
-            {order.email ? ` - ${order.email}` : ""}
-          </Text>
-        </div>
-        <Button
-          onClick={onClose}
-          size="small"
-          type="button"
-          variant="secondary"
-        >
-          {t("actions.closeDetails")}
-        </Button>
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <OrderDetailField label={t("detail.address")}>
-          {formatOrderDeliveryAddress(order.delivery_address)}
-        </OrderDetailField>
-        <OrderDetailField label={t("detail.carrier")}>
-          {getCarrierLabel(order)}
-        </OrderDetailField>
-        <OrderDetailField label={t("detail.payment")}>
-          {order.payment_status ?? "-"} -{" "}
-          {formatPaymentMethodLabel(order.payment_method)}
-        </OrderDetailField>
-        <OrderDetailField label={t("detail.total")}>
-          {formatOrderTotal(order, locale)}
-        </OrderDetailField>
-        <OrderDetailField label={t("detail.orderStatus")}>
-          {order.status ?? "-"}
-        </OrderDetailField>
-        <OrderDetailField label={t("detail.businessStatus")}>
-          {t(order.business_status.translation_key)}
-        </OrderDetailField>
-        <OrderDetailField label={t("detail.manualStatus")}>
-          {manualStatusLabel}
-        </OrderDetailField>
-        <OrderDetailField label={t("detail.fulfillment")}>
-          {fulfillmentStatus.label}
-        </OrderDetailField>
-      </div>
-
-      <div className="mt-4">
-        <Text leading="compact" size="small" weight="plus">
-          {t("detail.items")}
-        </Text>
-        <div className="mt-2 divide-y overflow-hidden rounded-md border border-ui-border-base bg-ui-bg-base">
-          {order.items.length ? (
-            order.items.map((item, index) => (
-              <div
-                className="grid gap-2 px-3 py-2 sm:grid-cols-[1fr_auto]"
-                key={item.id ?? `${item.title}-${index}`}
-              >
-                <div className="min-w-0">
-                  <Text leading="compact" size="small">
-                    {item.title}
-                  </Text>
-                  {item.sku || item.variant ? (
-                    <Text
-                      className="text-ui-fg-subtle"
-                      leading="compact"
-                      size="small"
-                    >
-                      {[item.sku, item.variant].filter(Boolean).join(" - ")}
-                    </Text>
-                  ) : null}
-                </div>
-                <Text
-                  className="text-ui-fg-subtle"
-                  leading="compact"
-                  size="small"
-                >
-                  {t("detail.quantity", { count: item.quantity })}
-                </Text>
-              </div>
-            ))
-          ) : (
-            <Text className="px-3 py-2 text-ui-fg-subtle" size="small">
-              {t("detail.noItems")}
-            </Text>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-const OrderDetailField = ({
-  children,
-  label,
-}: {
-  children: ReactNode
-  label: string
-}) => {
-  return (
-    <div className="min-w-0">
-      <Text className="text-ui-fg-muted" leading="compact" size="small">
-        {label}
-      </Text>
-      <Text
-        className="break-words"
-        leading="compact"
-        size="small"
-        weight="plus"
-      >
-        {children}
-      </Text>
-    </div>
-  )
-}
-
-function getManualStatusTarget(
-  value: ManualStatusValue | "",
-): ManualStatusTarget | undefined {
-  if (!value) {
-    return
-  }
-
-  return value === "clear" ? null : value
-}
-
-function getManualStatusLabel(
-  status: ManualStatusTarget,
-  t: TranslationFunction,
-) {
-  return status === null ? t("manualStatus.clear") : t(`manualStatus.${status}`)
-}
-
-function getFulfillmentStatusDisplay(
-  order: OrderDashboardOrder,
-  t: TranslationFunction,
-) {
-  const status = order.fulfillment_status?.toLowerCase()
-
-  if (!status) {
-    return {
-      color: "grey" as const,
-      label: order.has_active_fulfillment
-        ? t("detail.activeFulfillment")
-        : t("detail.noActiveFulfillment"),
-    }
-  }
-
-  if (isKnownFulfillmentStatus(status)) {
-    return {
-      color: fulfillmentStatusColors[status],
-      label: t(`fulfillmentStatus.${status}`),
-    }
-  }
-
-  return {
-    color: "grey" as const,
-    label: formatOptionLabel(status),
-  }
-}
-
-function isKnownFulfillmentStatus(
-  status: string,
-): status is keyof typeof fulfillmentStatusColors {
-  return status in fulfillmentStatusColors
-}
-
-function getBulkManualStatusBlockReason(
-  order: OrderDashboardOrder,
-  status: ManualStatusTarget,
-  t: TranslationFunction,
-) {
-  const currentManualStatus = order.manual_status ?? null
-
-  if (currentManualStatus === status) {
-    return status === null
-      ? t("manualStatusBlocker.alreadyClear")
-      : t("manualStatusBlocker.alreadyStatus", {
-          status: getManualStatusLabel(status, t),
-        })
-  }
-
-  if (status === null || status === "canceled") {
-    return
-  }
-
-  if (order.status === "canceled") {
-    return t("manualStatusBlocker.canceledStayCanceled")
-  }
-
-  if (
-    order.business_status.id === "delivered" ||
-    order.business_status.id === "shipped"
-  ) {
-    return t("manualStatusBlocker.higherPriority", {
-      status: t(order.business_status.translation_key),
-    })
-  }
-}
-
-function getBulkManualStatusPreview(
-  orders: OrderDashboardOrder[],
-  status: ManualStatusTarget,
-  t: TranslationFunction,
-) {
-  const skipped: OrderDashboardBlockingOrder[] = []
-  const updatable: OrderDashboardOrder[] = []
-
-  for (const order of orders) {
-    const reason = getBulkManualStatusBlockReason(order, status, t)
-
-    if (reason) {
-      skipped.push({
-        id: order.id,
-        order_display_id: order.order_display_id,
-        reason,
-      })
-      continue
-    }
-
-    updatable.push(order)
-  }
-
-  return { skipped, updatable }
-}
-
-const StatusSelectItem = ({
-  onBlockedAttempt,
-  option,
-}: {
-  onBlockedAttempt: (blockedOrders: OrderDashboardBlockingOrder[]) => void
-  option: TargetStatusOption
-}) => {
-  const { t } = useTranslation("orderDashboard")
-  const blockedCount = option.blockedOrders.length
-  const isBlocked = blockedCount > 0
-  const item = (
-    <Select.Item
-      className={
-        isBlocked
-          ? "data-[disabled]:pointer-events-auto data-[disabled]:cursor-not-allowed data-[disabled]:text-ui-fg-disabled"
-          : undefined
-      }
-      disabled={isBlocked}
-      onClick={() => {
-        if (isBlocked) {
-          onBlockedAttempt(option.blockedOrders)
-        }
-      }}
-      onPointerDown={(event) => {
-        if (isBlocked) {
-          event.preventDefault()
-          onBlockedAttempt(option.blockedOrders)
-        }
-      }}
-      value={option.value}
-    >
-      <span className="flex min-w-0 items-center justify-between gap-3">
-        <span className="truncate">{option.label}</span>
-        {isBlocked ? (
-          <span className="shrink-0 text-ui-fg-muted">
-            {t("tableMessages.blockedCount", { count: blockedCount })}
-          </span>
-        ) : null}
-      </span>
-    </Select.Item>
-  )
-
-  if (!isBlocked) {
-    return item
-  }
-
-  return (
-    <Tooltip
-      content={
-        <StatusBlockersTooltipContent blockedOrders={option.blockedOrders} />
-      }
-      maxWidth={360}
-      side="right"
-    >
-      {item}
-    </Tooltip>
-  )
-}
-
-const StatusBlockersTooltipContent = ({
-  blockedOrders,
-}: {
-  blockedOrders: OrderDashboardBlockingOrder[]
-}) => {
-  const { t } = useTranslation("orderDashboard")
-  const visibleOrders = blockedOrders.slice(0, 5)
-  const hiddenCount = blockedOrders.length - visibleOrders.length
-
-  return (
-    <div className="flex flex-col gap-1">
-      {visibleOrders.map((order) => (
-        <Text key={`${order.id}-${order.reason}`} size="small">
-          {order.order_display_id}: {order.reason}
-        </Text>
-      ))}
-      {hiddenCount > 0 ? (
-        <Text className="text-ui-fg-muted" size="small">
-          {t("tableMessages.moreBlocked", { count: hiddenCount })}
-        </Text>
-      ) : null}
-    </div>
-  )
-}
-
-const BlockingOrdersPanel = ({
-  blockedOrders,
-}: {
-  blockedOrders: OrderDashboardBlockingOrder[]
-}) => {
-  const { t } = useTranslation("orderDashboard")
-  const visibleOrders = blockedOrders.slice(0, 20)
-  const hiddenCount = blockedOrders.length - visibleOrders.length
-
-  return (
-    <div className="flex flex-col gap-2 bg-ui-bg-subtle px-6 py-4">
-      <Text
-        className="text-ui-fg-error"
-        leading="compact"
-        size="small"
-        weight="plus"
-      >
-        {t("table.blockedOrdersTitle")}
-      </Text>
-      <div className="flex flex-col gap-1">
-        {visibleOrders.map((order) => (
-          <Text
-            key={`${order.id}-${order.reason}`}
-            leading="compact"
-            size="small"
-          >
-            {order.order_display_id}: {order.reason}
-          </Text>
-        ))}
-        {hiddenCount > 0 ? (
-          <Text className="text-ui-fg-muted" leading="compact" size="small">
-            {t("tableMessages.moreBlocked", { count: hiddenCount })}
-          </Text>
-        ) : null}
-      </div>
-    </div>
-  )
-}
-
-function getVisibleRowSelection(
-  orders: OrderDashboardOrder[],
-  selectedOrderIdSet: ReadonlySet<string>,
-) {
-  const visibleSelection: DataTableRowSelectionState = {}
-
-  for (const order of orders) {
-    if (selectedOrderIdSet.has(order.id)) {
-      visibleSelection[order.id] = true
-    }
-  }
-
-  return visibleSelection
-}
-
-function isSameRowSelection(
-  left: DataTableRowSelectionState,
-  right: DataTableRowSelectionState,
-) {
-  const leftKeys = Object.keys(left)
-  const rightKeys = Object.keys(right)
-
-  if (leftKeys.length !== rightKeys.length) {
-    return false
-  }
-
-  return leftKeys.every((key) => left[key] === right[key])
-}
-
-function formatOrderDeliveryAddress(address: string[]) {
-  return address.filter(Boolean).join(", ") || "-"
-}
-
-function getCarrierFilter(filtering: DataTableFilteringState) {
-  const value = filtering[CARRIER_FILTER_ID]
-  return isOrderDashboardCarrierKey(value) ? value : undefined
-}
-
-function getBusinessStatusFilter(
-  filtering: DataTableFilteringState,
-): OrderDashboardBusinessStatusId | undefined {
-  const value = filtering[BUSINESS_STATUS_FILTER_ID]
-  return isOrderDashboardBusinessStatusId(value) ? value : undefined
-}
-
-function getBusinessStatusGroupFilter(
-  filtering: DataTableFilteringState,
-): OrderDashboardBusinessStatusGroupId | undefined {
-  const value = filtering[BUSINESS_STATUS_GROUP_FILTER_ID]
-  return isOrderDashboardBusinessStatusGroupId(value) ? value : undefined
-}
-
-function isManualStatus(value: unknown): value is OrderDashboardManualStatusId {
-  return (
-    typeof value === "string" &&
-    ORDER_DASHBOARD_MANUAL_STATUS_IDS.includes(
-      value as OrderDashboardManualStatusId,
-    )
-  )
-}
-
-function isOrderDashboardBusinessStatusGroupId(
-  value: unknown,
-): value is OrderDashboardBusinessStatusGroupId {
-  return (
-    typeof value === "string" &&
-    ORDER_DASHBOARD_BUSINESS_STATUS_GROUP_IDS.includes(
-      value as OrderDashboardBusinessStatusGroupId,
-    )
-  )
-}
-
-function isOrderDashboardQueueId(
-  value: unknown,
-): value is OrderDashboardQueueId {
-  return (
-    typeof value === "string" &&
-    ORDER_DASHBOARD_QUEUE_IDS.includes(value as OrderDashboardQueueId)
-  )
-}
-
-function normalizeFiltering(filtering: DataTableFilteringState) {
-  const nextFiltering = { ...filtering }
-
-  if (nextFiltering[BUSINESS_STATUS_FILTER_ID]) {
-    delete nextFiltering[BUSINESS_STATUS_GROUP_FILTER_ID]
-  }
-
-  return nextFiltering
-}
-
-function getFilteringForQueue(
-  filtering: DataTableFilteringState,
-  queueId: OrderDashboardQueueId,
-) {
-  const nextFiltering = { ...filtering }
-
-  delete nextFiltering[BUSINESS_STATUS_GROUP_FILTER_ID]
-  delete nextFiltering[BUSINESS_STATUS_FILTER_ID]
-
-  if (queueId === "all") {
-    return nextFiltering
-  }
-
-  if (queueId === "action_required") {
-    nextFiltering[BUSINESS_STATUS_GROUP_FILTER_ID] = queueId
-    return nextFiltering
-  }
-
-  nextFiltering[BUSINESS_STATUS_FILTER_ID] = queueId
-  return nextFiltering
-}
-
-function getQueueCount(
-  queueId: OrderDashboardQueueId,
-  summary?: OrderDashboardSummaryResponse,
-) {
-  if (!summary) {
-    return null
-  }
-
-  if (queueId === "all") {
-    return summary.total_count
-  }
-
-  if (queueId === "action_required") {
-    return summary.action_required_count
-  }
-
-  return summary.status_counts[queueId]
-}
-
-function getQueueLabel(queueId: OrderDashboardQueueId, t: TranslationFunction) {
-  if (queueId === "all" || queueId === "action_required") {
-    return t(`queues.${queueId}`)
-  }
-
-  return t(`statuses.${queueId}`)
-}
-
-function getTargetStatusOptions(
-  selectedOrders: OrderDashboardOrder[],
-  t: TranslationFunction,
-): TargetStatusOption[] {
-  return ORDER_DASHBOARD_TARGET_STATUSES.map((targetStatus) => ({
-    blockedOrders: getTargetStatusBlockedOrders(
-      selectedOrders,
-      targetStatus,
-      t,
-    ),
-    label: t(`targetStatus.${targetStatus}`),
-    value: targetStatus,
-  }))
-}
-
-function getTargetStatusBlockedOrders(
-  selectedOrders: OrderDashboardOrder[],
-  targetStatus: OrderDashboardTargetStatus,
-  t: TranslationFunction,
-): OrderDashboardBlockingOrder[] {
-  return selectedOrders.flatMap((order) => {
-    const reason = getOrderDashboardTransitionBlockReason(
-      order,
-      targetStatus,
-      t,
-    )
-
-    return reason
-      ? [
-          {
-            id: order.id,
-            order_display_id: order.order_display_id,
-            reason,
-          },
-        ]
-      : []
-  })
-}
-
-function getSelectedStatusBlockedMessage(
-  statusLabel: string,
-  blockedOrders: OrderDashboardBlockingOrder[],
-  t: TranslationFunction,
-) {
-  if (blockedOrders.length === 1) {
-    const order = blockedOrders[0]
-    if (!order) {
-      return null
-    }
-    return t("targetStatusBlocker.selectedBlockedOne", {
-      order: order.order_display_id,
-      reason: order.reason,
-      status: statusLabel,
-    })
-  }
-
-  return t("targetStatusBlocker.selectedBlockedMany", {
-    count: blockedOrders.length,
-    status: statusLabel,
-  })
-}
-
-function formatOptionLabel(value: string) {
-  return value
-    .split("_")
-    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-    .join(" ")
-}
-
-function getFailureMessage(error: unknown, fallback: string) {
-  return error instanceof Error ? error.message : fallback
-}
+const OrderDashboardPageContent = useOrderDashboardPage
+const orderDashboardPage = () => <OrderDashboardPageContent />
 
 export const config = defineRouteConfig({
   label: "menuItem",
@@ -1877,4 +1876,4 @@ export const config = defineRouteConfig({
   translationNs: "orderDashboard",
 })
 
-export default OrderDashboardPage
+export default orderDashboardPage
