@@ -133,7 +133,7 @@ techsio-ui-kit-ai/
 ├── hooks/
 │   ├── hooks.json               # SessionStart installer + --no-verify guard
 │   └── pre-push                 # the real gate (git hands it the exact refs/SHAs)
-└── scripts/                     # install-git-hook.mjs, pre-push-validate-gate.mjs, sync-skills.mjs
+└── scripts/                     # install-git-hook.mjs, pre-push-validate-gate.mts, sync-skills.mjs
 ```
 
 ## License
