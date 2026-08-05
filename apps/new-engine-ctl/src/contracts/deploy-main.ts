@@ -23,7 +23,7 @@ export const deployMainCommandInputSchema = z
   .superRefine((value, ctx) => {
     if (!(value.dryRun || value.baseUrl)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Zane operator base URL is required.",
         path: ["baseUrl"],
       })
@@ -31,7 +31,7 @@ export const deployMainCommandInputSchema = z
 
     if (!(value.dryRun || value.apiToken)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Zane operator API token is required.",
         path: ["apiToken"],
       })

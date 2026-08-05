@@ -7,7 +7,7 @@ import {
   toPaymentReminderOrderResponse,
 } from "../../../../../utils/order-payment-reminders"
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+const getUnpaidOrders = async (req: MedusaRequest, res: MedusaResponse) => {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const limit = Number(req.query["limit"] ?? 5)
   const normalizedLimit = Number.isFinite(limit) ? limit : 5
@@ -17,3 +17,5 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     orders: unpaidOrders.map(toPaymentReminderOrderResponse),
   })
 }
+
+export { getUnpaidOrders as GET }

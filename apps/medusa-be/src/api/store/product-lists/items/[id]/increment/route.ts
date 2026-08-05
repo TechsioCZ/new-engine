@@ -11,10 +11,10 @@ import {
 import { StoreProductListItemParamsSchema } from "../../../validators"
 import type { StoreIncrementProductListItemQuantitySchemaType } from "../../../validators"
 
-export async function POST(
+const incrementProductListItem = async (
   req: AuthenticatedMedusaRequest<StoreIncrementProductListItemQuantitySchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const { id: itemId } = StoreProductListItemParamsSchema.parse(req.params)
 
   const { result: item } = await incrementProductListItemWorkflow(
@@ -35,3 +35,5 @@ export async function POST(
     item: toProductListItemResponse(itemWithSelection ?? item),
   })
 }
+
+export { incrementProductListItem as POST }
