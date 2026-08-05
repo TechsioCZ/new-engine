@@ -20,7 +20,7 @@ interface CartSpendTotal {
 
 interface CustomerSpendContext {
   employee?: EmployeeSpendContext | null
-  orders?: Array<OrderSpendContext | null> | null
+  orders?: (OrderSpendContext | null)[] | null
 }
 
 function getSpendWindow(company: CompanySpendContext): {
@@ -36,10 +36,10 @@ function getSpendWindow(company: CompanySpendContext): {
 
   switch (resetFrequency) {
     case ModuleCompanySpendingLimitResetFrequency.NEVER: {
-      return { start: new Date(0), end: now }
+      return { end: now, start: new Date(0) }
     } // Never resets
     case ModuleCompanySpendingLimitResetFrequency.DAILY: {
-      return { start: new Date(now.setHours(0, 0, 0, 0)), end: now }
+      return { end: now, start: new Date(now.setHours(0, 0, 0, 0)) }
     } // Window is the current day up to now
     case ModuleCompanySpendingLimitResetFrequency.WEEKLY: {
       const startOfWeek = new Date(now)
@@ -49,15 +49,15 @@ function getSpendWindow(company: CompanySpendContext): {
     }
     case ModuleCompanySpendingLimitResetFrequency.MONTHLY: {
       return {
-        start: new Date(now.getFullYear(), now.getMonth(), 1),
         end: now,
+        start: new Date(now.getFullYear(), now.getMonth(), 1),
       }
     } // Window is the current month up to now
     case ModuleCompanySpendingLimitResetFrequency.YEARLY: {
-      return { start: new Date(now.getFullYear(), 0, 1), end: now }
+      return { end: now, start: new Date(now.getFullYear(), 0, 1) }
     } // Window is the current year up to now
     default: {
-      return { start: new Date(0), end: now }
+      return { end: now, start: new Date(0) }
     } // Default to never resetting
   }
 }

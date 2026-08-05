@@ -578,7 +578,7 @@ describe(PayloadModuleService, () => {
       const { service, cacheService } = createServiceWithCache()
       const categories = [
         {
-          articles: [{ title: "Article 1", slug: "article-1" }],
+          articles: [{ slug: "article-1", title: "Article 1" }],
           id: 1,
           slug: "news",
           title: "News",

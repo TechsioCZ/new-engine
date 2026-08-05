@@ -604,14 +604,14 @@ export function createMedusaStorefrontServerReadPreset<
       MedusaCatalogListInput,
       TCatalogFacets
     >(config.sdk, config.catalog?.serviceConfig),
-    categories: createMedusaCategoryService<TCategory, MedusaCategoryListInput>(
+    categories: createMedusaCategoryService<TCategory>(
       config.sdk,
       config.categories?.serviceConfig,
     ),
-    collections: createMedusaCollectionService<
-      TCollection,
-      MedusaCollectionListInput
-    >(config.sdk, config.collections?.serviceConfig),
+    collections: createMedusaCollectionService<TCollection>(
+      config.sdk,
+      config.collections?.serviceConfig,
+    ),
     orders:
       config.orders?.service ??
       createMedusaOrderService(config.sdk, config.orders?.serviceConfig),
@@ -633,7 +633,7 @@ export function createMedusaStorefrontServerReadPreset<
         config.sdk,
         config.productLocationAvailability?.serviceConfig,
       ),
-    products: createMedusaProductService<TProduct, MedusaProductListInput>(
+    products: createMedusaProductService<TProduct>(
       config.sdk,
       config.products?.serviceConfig,
     ),
@@ -654,73 +654,73 @@ export function createMedusaStorefrontServerReadPreset<
     TCatalogFacets
   > = {
     catalog: createCatalogQueryOptionsFactory({
-      service: services.catalog,
-      queryKeys: queryKeys.catalog,
-      queryKeyNamespace: namespace,
       cacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.catalog,
+      service: services.catalog,
       ...config.catalog?.hooks,
     }),
     categories: createCategoryQueryOptionsFactory({
-      service: services.categories,
-      queryKeys: queryKeys.categories,
-      queryKeyNamespace: namespace,
       cacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.categories,
+      service: services.categories,
       ...config.categories?.hooks,
     }),
     collections: createCollectionQueryOptionsFactory({
-      service: services.collections,
-      queryKeys: queryKeys.collections,
-      queryKeyNamespace: namespace,
       cacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.collections,
+      service: services.collections,
       ...config.collections?.hooks,
     }),
     orders: createOrderQueryOptionsFactory({
-      service: services.orders,
-      queryKeys: queryKeys.orders,
-      queryKeyNamespace: namespace,
       cacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.orders,
+      service: services.orders,
       ...config.orders?.hooks,
     }),
     productAttributes: createProductAttributeQueryOptionsFactory({
-      service: services.productAttributes,
-      queryKeys: queryKeys.productAttributes,
-      queryKeyNamespace: namespace,
       cacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.productAttributes,
+      service: services.productAttributes,
       ...config.productAttributes?.hooks,
     }),
     productLists: createProductListQueryOptionsFactory({
-      service: services.productLists,
-      queryKeys: queryKeys.productLists,
-      queryKeyNamespace: namespace,
       cacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.productLists,
+      service: services.productLists,
       ...config.productLists?.hooks,
     }),
     productLocationAvailability:
       createProductLocationAvailabilityQueryOptionsFactory({
-        service: services.productLocationAvailability,
-        queryKeys: queryKeys.productLocationAvailability,
-        queryKeyNamespace: namespace,
         cacheConfig,
+        queryKeyNamespace: namespace,
+        queryKeys: queryKeys.productLocationAvailability,
+        service: services.productLocationAvailability,
       }),
     products: createProductQueryOptionsFactory({
-      service: services.products,
-      queryKeys: queryKeys.products,
-      queryKeyNamespace: namespace,
       cacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.products,
+      service: services.products,
       ...config.products?.hooks,
     }),
     regions: createRegionQueryOptionsFactory({
-      service: services.regions,
-      queryKeys: queryKeys.regions,
-      queryKeyNamespace: namespace,
       cacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.regions,
+      service: services.regions,
       ...config.regions?.hooks,
     }),
     reviews: createProductReviewQueryOptionsFactory({
-      service: services.reviews,
-      queryKeys: queryKeys.reviews,
-      queryKeyNamespace: namespace,
       cacheConfig,
+      queryKeyNamespace: namespace,
+      queryKeys: queryKeys.reviews,
+      service: services.reviews,
       ...config.reviews?.hooks,
     }),
   }

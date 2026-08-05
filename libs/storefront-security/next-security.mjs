@@ -198,14 +198,14 @@ export function createStorefrontSecurityConfig(options = {}) {
     headers() {
       return [
         {
-          source,
           headers: buildStorefrontResponseHeaders({
-            isProduction,
             contentSecurityPolicy,
+            extendHeaders: normalizedExtend.headers,
+            isProduction,
             permissionsPolicyDirectives,
             replaceHeaders: normalizedReplace.headers,
-            extendHeaders: normalizedExtend.headers,
           }),
+          source,
         },
       ]
     },

@@ -534,7 +534,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
     switch (documentType) {
       case "label": {
         return data.label_url
-          ? { type: "label", url: data.label_url, format: "png" }
+          ? { format: "png", type: "label", url: data.label_url }
           : null
       }
       case "tracking": {

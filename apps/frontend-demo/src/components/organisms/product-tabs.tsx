@@ -67,10 +67,10 @@ export function ProductTabs({ product }: ProductTabsProps) {
             </thead>
             <tbody>
               {[
-                { size: "S", chest: "90-95", length: "68" },
-                { size: "M", chest: "96-101", length: "70" },
-                { size: "L", chest: "102-107", length: "72" },
-                { size: "XL", chest: "108-113", length: "74" },
+                { chest: "90-95", length: "68", size: "S" },
+                { chest: "96-101", length: "70", size: "M" },
+                { chest: "102-107", length: "72", size: "L" },
+                { chest: "108-113", length: "74", size: "XL" },
               ].map(({ size, chest, length }) => (
                 <tr
                   className="border-product-tabs-spec-border border-b"

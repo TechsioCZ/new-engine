@@ -76,37 +76,37 @@ const fileSystemData: TreeNode[] = [
   {
     children: [
       {
-        id: "components",
-        name: "components",
         children: [
           {
-            id: "atoms",
-            name: "atoms",
             children: [
               { id: "button.tsx", name: "button.tsx" },
               { id: "input.tsx", name: "input.tsx" },
               { id: "icon.tsx", name: "icon.tsx" },
             ],
+            id: "atoms",
+            name: "atoms",
           },
           {
-            id: "molecules",
-            name: "molecules",
             children: [
               { id: "dialog.tsx", name: "dialog.tsx" },
               { id: "combobox.tsx", name: "combobox.tsx" },
               { id: "tree-comp.tsx", name: "tree-comp.tsx" },
             ],
+            id: "molecules",
+            name: "molecules",
           },
         ],
+        id: "components",
+        name: "components",
       },
       {
-        id: "utils",
-        name: "utils",
-        disabled: true,
         children: [
           { id: "helpers.ts", name: "helpers.ts" },
           { id: "constants.ts", name: "constants.ts" },
         ],
+        disabled: true,
+        id: "utils",
+        name: "utils",
       },
       { id: "index.ts", name: "index.ts" },
     ],
@@ -140,24 +140,24 @@ const navigationData: TreeNode[] = [
   {
     children: [
       {
-        id: "electronics",
-        name: "Electronics",
-        selectable: false,
         children: [
           { id: "phones", name: "Phones" },
           { id: "laptops", name: "Laptops" },
           { id: "tablets", name: "Tablets" },
         ],
+        id: "electronics",
+        name: "Electronics",
+        selectable: false,
       },
       {
-        id: "clothing",
-        name: "Clothing",
-        selectable: false,
         children: [
           { id: "mens", name: "Men's" },
           { id: "womens", name: "Women's" },
           { id: "kids", name: "Kids" },
         ],
+        id: "clothing",
+        name: "Clothing",
+        selectable: false,
       },
     ],
     id: "products",
@@ -737,11 +737,11 @@ export const ExpandVsSelectionTest: Story = {
 
       const addLog = (message: string) => {
         const timestamp = new Date().toLocaleTimeString("en-US", {
-          hour12: false,
+          fractionalSecondDigits: 3,
           hour: "2-digit",
+          hour12: false,
           minute: "2-digit",
           second: "2-digit",
-          fractionalSecondDigits: 3,
         })
         setLogs((prev) => [`[${timestamp}] ${message}`, ...prev].slice(0, 15))
       }
@@ -887,14 +887,8 @@ export const WithHoverEvents: Story = {
 
     const treeData = [
       {
-        id: "obleceni",
-        name: "Oblečení",
-        handle: "obleceni",
         children: [
           {
-            id: "trika",
-            name: "Trika a tílka",
-            handle: "trika-a-tilka",
             children: [
               {
                 id: "kratke",
@@ -907,25 +901,31 @@ export const WithHoverEvents: Story = {
                 handle: "dlouhe-rukavy",
               },
             ],
+            handle: "trika-a-tilka",
+            id: "trika",
+            name: "Trika a tílka",
           },
           {
+            handle: "mikiny",
             id: "mikiny",
             name: "Mikiny",
-            handle: "mikiny",
           },
         ],
+        handle: "obleceni",
+        id: "obleceni",
+        name: "Oblečení",
       },
       {
-        id: "cyklo",
-        name: "Cyklo",
-        handle: "cyklo",
         children: [
           {
+            handle: "cyklo-obleceni",
             id: "cyklo-obleceni",
             name: "Oblečení",
-            handle: "cyklo-obleceni",
           },
         ],
+        handle: "cyklo",
+        id: "cyklo",
+        name: "Cyklo",
       },
     ]
 
@@ -987,9 +987,9 @@ export const WithHoverEvents: Story = {
                   className={
                     log.includes("HOVER")
                       ? "text-success"
-                      : log.includes("LEAVE")
+                      : (log.includes("LEAVE")
                         ? "text-warning"
-                        : "text-info"
+                        : "text-info")
                   }
                 >
                   {log}

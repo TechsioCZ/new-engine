@@ -33,7 +33,7 @@ function createSdkMock(overrides?: {
   return {
     auth: {
       login: vi.fn().mockResolvedValue("token_1"),
-      logout: overrides?.logout ?? vi.fn().mockResolvedValue(undefined),
+      logout: overrides?.logout ?? vi.fn().mockResolvedValue(),
       refresh: vi.fn().mockResolvedValue("token_2"),
       register: vi.fn().mockResolvedValue("token_1"),
     },
@@ -68,8 +68,8 @@ describe(createMedusaAuthService, () => {
       fetchCustomer: vi.fn().mockResolvedValue({
         customer: {
           addresses: [
-            { id: "addr_2", created_at: "2026-02-21T12:00:00.000Z" },
-            { id: "addr_1", created_at: "2026-02-21T10:00:00.000Z" },
+            { created_at: "2026-02-21T12:00:00.000Z", id: "addr_2" },
+            { created_at: "2026-02-21T10:00:00.000Z", id: "addr_1" },
           ],
           id: "cus_1",
         } as HttpTypes.StoreCustomer,

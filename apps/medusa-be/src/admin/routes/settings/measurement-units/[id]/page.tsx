@@ -183,7 +183,7 @@ const MeasurementUnitDetailPage = () => {
         throw new Error("Measurement unit id is required")
       }
 
-      return retrieveMeasurementUnit(id)
+      return await retrieveMeasurementUnit(id)
     },
     queryKey: measurementUnitQueryKeys.detail(id),
   })
@@ -200,14 +200,14 @@ const MeasurementUnitDetailPage = () => {
         throw new Error("Measurement unit id is required")
       }
 
-      return listMeasurementUnitAssignedProducts(id, params)
+      return await listMeasurementUnitAssignedProducts(id, params)
     },
     queryKey: measurementUnitQueryKeys.products(id, params),
   })
 
   const removeMutation = useMutation({
     mutationFn: async (productId: string) =>
-      deleteProductMeasurement(productId),
+      await deleteProductMeasurement(productId),
     onError: (error) => {
       toast.error(
         error instanceof Error
@@ -233,7 +233,7 @@ const MeasurementUnitDetailPage = () => {
   })
 
   const restoreMutation = useMutation({
-    mutationFn: async (unitId: string) => restoreMeasurementUnit(unitId),
+    mutationFn: async (unitId: string) => await restoreMeasurementUnit(unitId),
     onError: (error) => {
       toast.error(
         error instanceof Error ? error.message : t("errors.restoreFailed"),

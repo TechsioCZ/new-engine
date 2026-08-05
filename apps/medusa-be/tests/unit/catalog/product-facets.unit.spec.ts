@@ -11,8 +11,8 @@ describe("product facet document builder", () => {
       },
       categories: [
         {
-          id: "pcat_01",
           handle: "ucinne-zlozky-od-a-po-z-horcik",
+          id: "pcat_01",
           name: "Horčík",
         },
       ],
@@ -23,8 +23,8 @@ describe("product facet document builder", () => {
         ],
         flags: [
           {
-            code: "action",
             active: true,
+            code: "action",
           },
         ],
         top_offer: {

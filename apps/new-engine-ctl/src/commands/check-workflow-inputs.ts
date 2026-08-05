@@ -35,12 +35,12 @@ function validateMode(mode: WorkflowInputMode): void {
     case "preview-prepare": {
       if (process.env.REQUIRES_PREVIEW_DB === "true") {
         requireEnv({
-          name: "ZANE_OPERATOR_BASE_URL",
           description: "preview DB operator base URL",
+          name: "ZANE_OPERATOR_BASE_URL",
         })
         requireEnv({
-          name: "ZANE_OPERATOR_API_TOKEN",
           description: "preview DB operator API token",
+          name: "ZANE_OPERATOR_API_TOKEN",
         })
         maskEnv("ZANE_OPERATOR_BASE_URL")
         maskEnv("ZANE_OPERATOR_API_TOKEN")
@@ -50,18 +50,18 @@ function validateMode(mode: WorkflowInputMode): void {
     case "preview-deploy":
     case "preview-verify": {
       requireEnv({
-        name: "ZANE_OPERATOR_BASE_URL",
         description: "Zane operator base URL",
+        name: "ZANE_OPERATOR_BASE_URL",
       })
       requireEnv({
-        name: "ZANE_OPERATOR_API_TOKEN",
         description: "Zane operator API token",
+        name: "ZANE_OPERATOR_API_TOKEN",
       })
       requireAndMaskZaneProjectSlug()
       if (mode === "preview-deploy") {
         requireEnv({
-          name: "ZANE_PRODUCTION_ENVIRONMENT_NAME",
           description: "production Zane environment name",
+          name: "ZANE_PRODUCTION_ENVIRONMENT_NAME",
         })
       }
       maskEnv("ZANE_OPERATOR_BASE_URL")
@@ -75,17 +75,17 @@ function validateMode(mode: WorkflowInputMode): void {
     case "main-deploy":
     case "main-verify": {
       requireEnv({
-        name: "ZANE_OPERATOR_BASE_URL",
         description: "Zane operator base URL",
+        name: "ZANE_OPERATOR_BASE_URL",
       })
       requireEnv({
-        name: "ZANE_OPERATOR_API_TOKEN",
         description: "Zane operator API token",
+        name: "ZANE_OPERATOR_API_TOKEN",
       })
       requireAndMaskZaneProjectSlug()
       requireEnv({
-        name: "ZANE_PRODUCTION_ENVIRONMENT_NAME",
         description: "production Zane environment name",
+        name: "ZANE_PRODUCTION_ENVIRONMENT_NAME",
       })
       maskEnv("ZANE_OPERATOR_BASE_URL")
       maskEnv("ZANE_OPERATOR_API_TOKEN")
@@ -95,12 +95,12 @@ function validateMode(mode: WorkflowInputMode): void {
     }
     case "preview-teardown": {
       requireEnv({
-        name: "ZANE_OPERATOR_BASE_URL",
         description: "preview DB operator base URL",
+        name: "ZANE_OPERATOR_BASE_URL",
       })
       requireEnv({
-        name: "ZANE_OPERATOR_API_TOKEN",
         description: "preview DB operator API token",
+        name: "ZANE_OPERATOR_API_TOKEN",
       })
       requireAndMaskZaneProjectSlug()
       maskEnv("ZANE_OPERATOR_BASE_URL")

@@ -91,7 +91,7 @@ async function loadYamlContract<T>(
 export async function loadManifest(
   stackManifestPath: string,
 ): Promise<StackManifest> {
-  return loadYamlContract(stackManifestPath, (value) =>
+  return await loadYamlContract(stackManifestPath, (value) =>
     stackManifestSchema.parse(value),
   )
 }
@@ -99,7 +99,7 @@ export async function loadManifest(
 export async function loadStackInputs(
   stackInputsPath: string,
 ): Promise<StackInputs> {
-  return loadYamlContract(stackInputsPath, (value) =>
+  return await loadYamlContract(stackInputsPath, (value) =>
     stackInputsSchema.parse(value),
   )
 }

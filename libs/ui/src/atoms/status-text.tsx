@@ -28,28 +28,28 @@ const statusTextVariants = tv({
   },
   variants: {
     status: {
+      default: "text-status-text-fg",
       error: "text-status-text-fg-error",
       success: "text-status-text-fg-success",
       warning: "text-status-text-fg-warning",
-      default: "text-status-text-fg",
     },
     /* for long text */
     align: {
+      center: {},
       start: {
         icon: "mt-status-text-icon-offset-long-text self-start",
       },
-      center: {},
     },
     size: {
-      sm: {
-        base: "gap-status-text-sm text-status-text-sm",
+      lg: {
+        base: "items-start gap-status-text-lg text-status-text-lg",
+        icon: "mt-status-text-icon-offset",
       },
       md: {
         base: "gap-status-text-md text-status-text-md",
       },
-      lg: {
-        base: "items-start gap-status-text-lg text-status-text-lg",
-        icon: "mt-status-text-icon-offset",
+      sm: {
+        base: "gap-status-text-sm text-status-text-sm",
       },
     },
   },

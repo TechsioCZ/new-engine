@@ -38,17 +38,17 @@ medusaIntegrationTestRunner({
       const res = await createStoreUser({ api, storeHeaders })
       customerToken = res.token
       storeHeaders.headers.Authorization = `Bearer ${customerToken}`
-      region = await regionSeeder({ api, adminHeaders, data: {} })
+      region = await regionSeeder({ adminHeaders, api, data: {} })
 
       salesChannel = await salesChannelSeeder({
-        api,
         adminHeaders,
+        api,
         data: {},
       })
 
       product = await productSeeder({
-        api,
         adminHeaders,
+        api,
         data: {
           sales_channels: [{ id: salesChannel.id }],
         },
@@ -62,12 +62,12 @@ medusaIntegrationTestRunner({
 
       cart = await cartSeeder({
         api,
-        storeHeaders,
         data: {
+          items: [{ quantity: 1, variant_id: product.variants[0].id }],
           region_id: region.id,
           sales_channel_id: salesChannel.id,
-          items: [{ quantity: 1, variant_id: product.variants[0].id }],
         },
+        storeHeaders,
       })
     })
 
@@ -79,21 +79,18 @@ medusaIntegrationTestRunner({
           storeHeaders,
         )
 
-        expect(response.status).toEqual(200)
-        expect(response.data.quote).toEqual(
+        expect(response.status).toBe(200)
+        expect(response.data.quote).toStrictEqual(
           expect.objectContaining({
-            id: expect.any(String),
             cart_id: cart.id,
-            draft_order_id: expect.any(String),
             draft_order: expect.objectContaining({
-              status: "draft",
-              version: 1,
               items: [
                 expect.objectContaining({
                   quantity: cart.items[0].quantity,
                   unit_price: cart.items[0].unit_price,
                 }),
               ],
+              status: "draft",
               summary: expect.objectContaining({
                 paid_total: 0,
                 refunded_total: 0,
@@ -102,7 +99,10 @@ medusaIntegrationTestRunner({
                 current_order_total: 100,
                 original_order_total: 100,
               }),
+              version: 1,
             }),
+            draft_order_id: expect.any(String),
+            id: expect.any(String),
             order_change: expect.objectContaining({
               actions: [],
             }),
@@ -121,15 +121,15 @@ medusaIntegrationTestRunner({
           data: { quote },
         } = await api.get(`/store/quotes/${newQuote.id}`, storeHeaders)
 
-        expect(quote).toEqual(
+        expect(quote).toStrictEqual(
           expect.objectContaining({
-            id: expect.any(String),
             cart: expect.objectContaining({
               id: cart.id,
             }),
             draft_order: expect.objectContaining({
               id: newQuote.draft_order_id,
             }),
+            id: expect.any(String),
           }),
         )
       })
@@ -141,9 +141,9 @@ medusaIntegrationTestRunner({
           .get("/store/quotes/does-not-exist", storeHeaders)
           .catch(getHttpError)
 
-        expect(data).toEqual({
-          type: "not_found",
+        expect(data).toStrictEqual({
           message: "Quote id not found: does-not-exist",
+          type: "not_found",
         })
       })
     })
@@ -154,12 +154,12 @@ medusaIntegrationTestRunner({
       beforeEach(async () => {
         cart2 = await cartSeeder({
           api,
-          storeHeaders,
           data: {
+            items: [{ quantity: 1, variant_id: product.variants[0].id }],
             region_id: region.id,
             sales_channel_id: salesChannel.id,
-            items: [{ quantity: 1, variant_id: product.variants[0].id }],
           },
+          storeHeaders,
         })
       })
 
@@ -176,25 +176,25 @@ medusaIntegrationTestRunner({
           data: { quotes },
         } = await api.get("/store/quotes", storeHeaders)
 
-        expect(quotes).toEqual(
+        expect(quotes).toStrictEqual(
           expect.arrayContaining([
             expect.objectContaining({
-              id: quote1.id,
               cart: expect.objectContaining({
                 id: cart.id,
               }),
               draft_order: expect.objectContaining({
                 id: quote1.draft_order_id,
               }),
+              id: quote1.id,
             }),
             expect.objectContaining({
-              id: quote2.id,
               cart: expect.objectContaining({
                 id: cart2.id,
               }),
               draft_order: expect.objectContaining({
                 id: quote2.draft_order_id,
               }),
+              id: quote2.id,
             }),
           ]),
         )
@@ -223,22 +223,22 @@ medusaIntegrationTestRunner({
           storeHeaders,
         )
 
-        expect(quote).toEqual(
+        expect(quote).toStrictEqual(
           expect.objectContaining({
-            id: quote1.id,
             draft_order: expect.objectContaining({
               id: quote1.draft_order_id,
-              status: "pending",
               is_draft_order: false,
-              summary: expect.objectContaining({
-                pending_difference: 100,
-              }),
               payment_collections: [
                 expect.objectContaining({
                   amount: 100,
                 }),
               ],
+              status: "pending",
+              summary: expect.objectContaining({
+                pending_difference: 100,
+              }),
             }),
+            id: quote1.id,
           }),
         )
       })
@@ -252,9 +252,9 @@ medusaIntegrationTestRunner({
           .post(`/store/quotes/${quote1.id}/accept`, {}, storeHeaders)
           .catch(getHttpError)
 
-        expect(response.data).toEqual({
-          type: "invalid_data",
+        expect(response.data).toStrictEqual({
           message: "Cannot accept quote when quote status is accepted",
+          type: "invalid_data",
         })
       })
     })
@@ -281,7 +281,7 @@ medusaIntegrationTestRunner({
           storeHeaders,
         )
 
-        expect(quote).toEqual(
+        expect(quote).toStrictEqual(
           expect.objectContaining({
             id: quote1.id,
             status: "customer_rejected",

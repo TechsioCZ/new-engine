@@ -172,35 +172,35 @@ function buildRuntimeProviderAdapters(
         state,
       }) => {
         const provisioned = await provisionMeiliKeys({
-          projectSlug,
-          environmentName,
-          serviceSlug: need.sourceServiceSlug,
-          stackInputs,
-          providerId: need.providerId,
-          baseUrl,
           apiToken,
+          baseUrl,
           dryRun,
+          environmentName,
           needBackendKey: outputIds.includes("backend_key"),
           needFrontendKey: outputIds.includes("frontend_key"),
+          projectSlug,
+          providerId: need.providerId,
+          serviceSlug: need.sourceServiceSlug,
+          stackInputs,
         })
         if (provisioned.backend_key) {
           setRuntimeProviderOutput({
-            state,
-            providerId: need.providerId,
-            outputId: "backend_key",
-            value: provisioned.backend_key,
             envVar: provisioned.backend_env_var,
+            outputId: "backend_key",
+            providerId: need.providerId,
+            state,
+            value: provisioned.backend_key,
           })
           state.meili.backendCreated = provisioned.backend_created
           state.meili.backendUpdated = provisioned.backend_updated
         }
         if (provisioned.frontend_key) {
           setRuntimeProviderOutput({
-            state,
-            providerId: need.providerId,
-            outputId: "frontend_key",
-            value: provisioned.frontend_key,
             envVar: provisioned.frontend_env_var,
+            outputId: "frontend_key",
+            providerId: need.providerId,
+            state,
+            value: provisioned.frontend_key,
           })
           state.meili.frontendCreated = provisioned.frontend_created
           state.meili.frontendUpdated = provisioned.frontend_updated
@@ -215,30 +215,30 @@ function buildRuntimeProviderAdapters(
         ),
       reusePersisted: ({ need, stackInputs, targets, state }) => {
         const reused = reusePersistedMeiliKeysFromTargets({
-          targets,
-          stackInputs,
-          providerId: need.providerId,
           backendConsumerIds: need.outputConsumerIds.backend_key ?? [],
           frontendConsumerIds: need.outputConsumerIds.frontend_key ?? [],
+          providerId: need.providerId,
+          stackInputs,
+          targets,
         })
         setRuntimeProviderOutput({
-          state,
-          providerId: need.providerId,
-          outputId: "backend_key",
-          value: reused.backendKey,
           envVar:
             getRuntimeProviderOutputEnvVar(
               state,
               need.providerId,
               "backend_key",
             ) || "MEILISEARCH_API_KEY",
+          outputId: "backend_key",
+          providerId: need.providerId,
+          state,
+          value: reused.backendKey,
         })
         setRuntimeProviderOutput({
-          state,
-          providerId: need.providerId,
-          outputId: "frontend_key",
-          value: reused.frontendKey,
           envVar: reused.frontendEnvVar,
+          outputId: "frontend_key",
+          providerId: need.providerId,
+          state,
+          value: reused.frontendKey,
         })
       },
     },
@@ -257,23 +257,23 @@ function buildRuntimeProviderAdapters(
         state,
       }) => {
         const provisioned = await provisionMedusaPublishableKey({
-          projectSlug,
+          apiToken,
+          baseUrl,
+          dryRun,
           environmentName,
+          needFrontendKey: outputIds.includes("frontend_key"),
+          projectSlug,
+          providerId: need.providerId,
           serviceSlug: need.sourceServiceSlug,
           stackInputs,
-          providerId: need.providerId,
-          baseUrl,
-          apiToken,
-          dryRun,
-          needFrontendKey: outputIds.includes("frontend_key"),
         })
         if (provisioned.frontend_key) {
           setRuntimeProviderOutput({
-            state,
-            providerId: need.providerId,
-            outputId: "frontend_key",
-            value: provisioned.frontend_key,
             envVar: provisioned.frontend_env_var,
+            outputId: "frontend_key",
+            providerId: need.providerId,
+            state,
+            value: provisioned.frontend_key,
           })
         }
       },
@@ -285,17 +285,17 @@ function buildRuntimeProviderAdapters(
         ),
       reusePersisted: ({ need, stackInputs, targets, state }) => {
         const reused = reusePersistedMedusaPublishableKeyFromTargets({
-          targets,
-          stackInputs,
-          providerId: need.providerId,
           consumerIds: need.outputConsumerIds.frontend_key ?? [],
+          providerId: need.providerId,
+          stackInputs,
+          targets,
         })
         setRuntimeProviderOutput({
-          state,
-          providerId: need.providerId,
-          outputId: "frontend_key",
-          value: reused.frontendKey,
           envVar: reused.frontendEnvVar,
+          outputId: "frontend_key",
+          providerId: need.providerId,
+          state,
+          value: reused.frontendKey,
         })
       },
     },
@@ -467,14 +467,17 @@ export async function reuseRuntimeProviderOutputs(input: {
       continue
     }
 
-    const consumerServiceIds = new Set([
-      ...new Set(Object.values(need.outputConsumerIds).flat()),
-    ])
+    const consumerServiceIds = new Set(
+      new Set(Object.values(need.outputConsumerIds).flat()),
+    )
     const targets = await executeResolveTargetsPayload({
+      apiToken: input.apiToken,
+      baseUrl: input.baseUrl,
+      dryRun: false,
       payload: {
+        environment_name: input.environmentName,
         lane: input.lane,
         project_slug: input.projectSlug,
-        environment_name: input.environmentName,
         services: input.planServices
           .filter((service) => consumerServiceIds.has(service.id))
           .map((service) => ({
@@ -482,9 +485,6 @@ export async function reuseRuntimeProviderOutputs(input: {
             service_slug: service.service_slug,
           })),
       },
-      baseUrl: input.baseUrl,
-      apiToken: input.apiToken,
-      dryRun: false,
     })
     adapter.reusePersisted({
       need,

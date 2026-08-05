@@ -33,7 +33,7 @@ const QrPaymentsSettingsPage = () => {
 
   const { data, error, isLoading } = useQuery({
     queryFn: async () =>
-      sdk.client.fetch<{ config: QrPaymentConfigResponse }>(
+      await sdk.client.fetch<{ config: QrPaymentConfigResponse }>(
         "/admin/qr-payment-config",
       ),
     queryKey: ["qr-payment-config"],
@@ -41,9 +41,9 @@ const QrPaymentsSettingsPage = () => {
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (payload: QrPaymentConfigInput) =>
-      sdk.client.fetch("/admin/qr-payment-config", {
-        method: "POST",
+      await sdk.client.fetch("/admin/qr-payment-config", {
         body: payload,
+        method: "POST",
       }),
     onError: (err) => {
       toast.error(`Failed to save configuration: ${err.message}`)
