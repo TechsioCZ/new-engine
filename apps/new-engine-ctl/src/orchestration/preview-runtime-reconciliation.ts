@@ -22,10 +22,10 @@ export interface PreviewRuntimeContext {
 export interface PreviewServiceEnvSyncService {
   service_id: string
   service_slug: string
-  env: Array<{
+  env: {
     env_var: string
     source: PreviewSharedEnvVariableInput["source"]
-  }>
+  }[]
 }
 
 export type ServiceReconciliationLane = "preview" | "main"
@@ -52,32 +52,29 @@ export interface PreviewServiceSpecSyncService {
   }
 }
 
-function buildPreviewGitSourceSpec(input: {
+const buildPreviewGitSourceSpec = (input: {
   lane: ServiceReconciliationLane
   previewGitBranch?: string
-}): PreviewServiceSpecSyncService["git_source"] {
-  return {
-    sync_from_source: true,
-    ...(input.lane === "preview" && input.previewGitBranch
-      ? { branch_name: input.previewGitBranch }
-      : {}),
-  }
-}
+}): PreviewServiceSpecSyncService["git_source"] => ({
+  sync_from_source: true,
+  ...(input.lane === "preview" && input.previewGitBranch !== undefined
+    ? { branch_name: input.previewGitBranch }
+    : {}),
+})
 
-function resolveSourceEnvironmentName(
+const resolveSourceEnvironmentName = (
   source: PreviewRuntimeSourceDefinition,
   context: PreviewRuntimeContext,
-): string | undefined {
-  return source.environment_scope === "source"
+): string | undefined =>
+  source.environment_scope === "source"
     ? context.sourceEnvironmentName
     : undefined
-}
 
-function requireServiceSlug(
+const requireServiceSlug = (
   manifest: StackManifest,
   serviceId: string,
   label: string,
-): string {
+): string => {
   try {
     return getDeployableService(manifest, serviceId).serviceSlug
   } catch (error) {
@@ -86,11 +83,11 @@ function requireServiceSlug(
   }
 }
 
-function buildResolvedSource(input: {
+const buildResolvedSource = (input: {
   manifest: StackManifest
   source: PreviewRuntimeSourceDefinition
   context: PreviewRuntimeContext
-}): PreviewSharedEnvVariableInput["source"] {
+}): PreviewSharedEnvVariableInput["source"] => {
   const { manifest, source, context } = input
 
   switch (source.kind) {
@@ -128,27 +125,27 @@ function buildResolvedSource(input: {
     case "service_internal_origin": {
       return {
         kind: source.kind,
+        port: source.port,
         service_slug: requireServiceSlug(
           manifest,
           source.service_id ?? "",
           `preview runtime source ${source.kind}`,
         ),
         source_environment_name: resolveSourceEnvironmentName(source, context),
-        port: source.port,
         trailing_slash: source.trailing_slash,
       }
     }
     case "service_internal_bucket_url": {
       return {
+        bucket_shared_env_key: source.bucket_shared_env_key,
         kind: source.kind,
+        port: source.port,
         service_slug: requireServiceSlug(
           manifest,
           source.service_id ?? "",
           `preview runtime source ${source.kind}`,
         ),
         source_environment_name: resolveSourceEnvironmentName(source, context),
-        port: source.port,
-        bucket_shared_env_key: source.bucket_shared_env_key,
       }
     }
     default: {
@@ -157,64 +154,70 @@ function buildResolvedSource(input: {
   }
 }
 
-function requireNonEmptyLiteralSource(input: {
+const requireNonEmptyLiteralSource = (input: {
   label: string
   source: PreviewSharedEnvVariableInput["source"]
-}): PreviewSharedEnvVariableInput["source"] {
-  if (input.source.kind === "literal" && !input.source.value) {
+}): PreviewSharedEnvVariableInput["source"] => {
+  if (input.source.kind === "literal" && input.source.value.length === 0) {
     throw new Error(`${input.label} resolved to an empty literal value.`)
   }
 
   return input.source
 }
 
-function resolveLaneBuildStageTarget(
+const resolveLaneBuildStageTarget = (
   definition: ServiceReconciliationDefinition,
   lane: ServiceReconciliationLane,
-): string | null | undefined {
+): string | null | undefined => {
   const buildStageTargets = definition.builder.build_stage_target_by_lane
   return lane === "preview" ? buildStageTargets.preview : buildStageTargets.main
 }
 
-export function buildPreviewSharedEnvSyncVariables(input: {
+export const buildPreviewSharedEnvSyncVariables = (input: {
   stackInputs: StackInputs
   manifest: StackManifest
   deployServiceIds: string[]
   context: PreviewRuntimeContext
-}): PreviewSharedEnvVariableInput[] {
-  return getPreviewSharedEnvDefinitions(input.stackInputs)
-    .filter((definition) =>
-      definition.consumed_by_service_ids.some((serviceId) =>
-        input.deployServiceIds.includes(serviceId),
-      ),
-    )
-    .map((definition) => {
-      const source = buildResolvedSource({
-        context: input.context,
-        manifest: input.manifest,
-        source: definition.source,
-      })
-
-      return {
-        key: definition.key,
-        source: requireNonEmptyLiteralSource({
-          label: `preview shared env ${definition.key}`,
-          source,
-        }),
-      }
-    })
-}
-
-export function buildPreviewRequiredSharedEnvKeys(input: {
-  stackInputs: StackInputs
-  deployServiceIds: string[]
-}): string[] {
-  const keys: string[] = []
-  const seen = new Set<string>()
+}): PreviewSharedEnvVariableInput[] => {
+  const deployServiceIds = new Set(input.deployServiceIds)
+  const variables: PreviewSharedEnvVariableInput[] = []
 
   for (const definition of getPreviewSharedEnvDefinitions(input.stackInputs)) {
     const isConsumed = definition.consumed_by_service_ids.some((serviceId) =>
-      input.deployServiceIds.includes(serviceId),
+      deployServiceIds.has(serviceId),
+    )
+    if (!isConsumed) {
+      continue
+    }
+
+    const source = buildResolvedSource({
+      context: input.context,
+      manifest: input.manifest,
+      source: definition.source,
+    })
+    variables.push({
+      key: definition.key,
+      source: requireNonEmptyLiteralSource({
+        label: `preview shared env ${definition.key}`,
+        source,
+      }),
+    })
+  }
+
+  return variables
+}
+
+export const buildPreviewRequiredSharedEnvKeys = (input: {
+  stackInputs: StackInputs
+  deployServiceIds: string[]
+}): string[] => {
+  const keys: string[] = []
+  const seen = new Set<string>()
+  const deployServiceIds = new Set(input.deployServiceIds)
+
+  for (const definition of getPreviewSharedEnvDefinitions(input.stackInputs)) {
+    const isConsumed = definition.consumed_by_service_ids.some((serviceId) =>
+      deployServiceIds.has(serviceId),
     )
     if (!isConsumed || seen.has(definition.key)) {
       continue
@@ -227,16 +230,17 @@ export function buildPreviewRequiredSharedEnvKeys(input: {
   return keys
 }
 
-export function buildPreviewServiceEnvSyncServices(input: {
+export const buildPreviewServiceEnvSyncServices = (input: {
   stackInputs: StackInputs
   manifest: StackManifest
   deployServiceIds: string[]
   context: PreviewRuntimeContext
-}): PreviewServiceEnvSyncService[] {
+}): PreviewServiceEnvSyncService[] => {
   const grouped = new Map<string, PreviewServiceEnvSyncService>()
+  const deployServiceIds = new Set(input.deployServiceIds)
 
   for (const definition of getPreviewServiceEnvDefinitions(input.stackInputs)) {
-    if (!input.deployServiceIds.includes(definition.service_id)) {
+    if (!deployServiceIds.has(definition.service_id)) {
       continue
     }
 
@@ -270,7 +274,7 @@ export function buildPreviewServiceEnvSyncServices(input: {
   return [...grouped.values()]
 }
 
-export function buildPreviewRequiredServiceEnvKeys(input: {
+export const buildPreviewRequiredServiceEnvKeys = (input: {
   stackInputs: StackInputs
   manifest: StackManifest
   deployServiceIds: string[]
@@ -278,7 +282,7 @@ export function buildPreviewRequiredServiceEnvKeys(input: {
   service_id: string
   service_slug: string
   env_keys: string[]
-}[] {
+}[] => {
   const grouped = new Map<
     string,
     {
@@ -288,9 +292,10 @@ export function buildPreviewRequiredServiceEnvKeys(input: {
       seen: Set<string>
     }
   >()
+  const deployServiceIds = new Set(input.deployServiceIds)
 
   for (const definition of getPreviewServiceEnvDefinitions(input.stackInputs)) {
-    if (!input.deployServiceIds.includes(definition.service_id)) {
+    if (!deployServiceIds.has(definition.service_id)) {
       continue
     }
 
@@ -316,13 +321,13 @@ export function buildPreviewRequiredServiceEnvKeys(input: {
   return [...grouped.values()].map(({ seen: _seen, ...value }) => value)
 }
 
-export function buildServiceReconciliationSpecs(input: {
+export const buildServiceReconciliationSpecs = (input: {
   stackInputs: StackInputs
   manifest: StackManifest
   lane: ServiceReconciliationLane
   serviceIds: string[]
   previewGitBranch?: string
-}): PreviewServiceSpecSyncService[] {
+}): PreviewServiceSpecSyncService[] => {
   const definitionByServiceId = new Map(
     getServiceReconciliationDefinitions(input.stackInputs).map((definition) => [
       definition.service_id,
@@ -366,12 +371,12 @@ export function buildServiceReconciliationSpecs(input: {
         input.lane,
       )
       serviceSpec.builder =
-        buildStageTarget !== undefined
+        buildStageTarget === undefined
           ? {
-              build_stage_target: buildStageTarget,
               sync_from_source: true,
             }
           : {
+              build_stage_target: buildStageTarget,
               sync_from_source: true,
             }
     }
