@@ -1,14 +1,18 @@
+import type { MedusaResponse } from "@medusajs/framework/http"
+import type { wrapProductsWithTaxPrices as WrapProductsWithTaxPrices } from "@medusajs/medusa/api/store/products/helpers"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import { GET } from "../../../src/api/store/catalog/products/route"
+
 const { wrapProductsWithTaxPrices } = vi.hoisted(() => ({
-  wrapProductsWithTaxPrices: vi.fn().mockResolvedValue(),
+  wrapProductsWithTaxPrices: vi
+    .fn<WrapProductsWithTaxPrices>()
+    .mockResolvedValue(),
 }))
 
 vi.mock(import("@medusajs/medusa/api/store/products/helpers"), () => ({
   wrapProductsWithTaxPrices,
 }))
-
-import { GET } from "../../../src/api/store/catalog/products/route"
 
 interface TestProduct {
   id: string
@@ -33,8 +37,71 @@ interface MeiliPriceRange {
   min?: number
 }
 
-const FACET_PRICE_MIN_FILTER_REGEX = /\bfacet_price >= ([0-9.]+)\b/
-const FACET_PRICE_MAX_FILTER_REGEX = /\bfacet_price <= ([0-9.]+)\b/
+interface MeiliSearchOptions {
+  paginationOptions: {
+    limit: number
+    offset: number
+  }
+  additionalOptions?: {
+    attributesToRetrieve?: string[]
+  }
+  filter?: string | string[]
+}
+
+interface CatalogProduct {
+  id: string
+  title: string
+}
+
+interface FacetCount {
+  count: number
+  id: string
+  label: string
+}
+
+interface CatalogResponseBody {
+  count: number
+  facets: {
+    brand: FacetCount[]
+    ingredient: FacetCount[]
+    price: {
+      max: number | null
+      min: number | null
+    }
+    status: FacetCount[]
+  }
+  limit: number
+  page: number
+  products: CatalogProduct[]
+  totalPages: number
+}
+
+type MeiliSearch = (
+  index: string,
+  query: string,
+  options: MeiliSearchOptions,
+) => Promise<{
+  estimatedTotalHits: number
+  facetDistribution: Record<string, Record<string, number>>
+  facetStats: {
+    facet_price: {
+      max: number | undefined
+      min: number | undefined
+    }
+  }
+  hits: { id: string }[]
+}>
+
+type QueryGraph = (config: GraphConfig) => Promise<{ data: unknown[] }>
+type ScopeResolve = (key: string) => unknown
+
+type MockResponse = MedusaResponse & {
+  json: ReturnType<typeof vi.fn<(body: CatalogResponseBody) => MockResponse>>
+  status: ReturnType<typeof vi.fn<(code: number) => MockResponse>>
+}
+
+const FACET_PRICE_MIN_FILTER_REGEX = /\bfacet_price >= (?<minimum>[0-9.]+)\b/u
+const FACET_PRICE_MAX_FILTER_REGEX = /\bfacet_price <= (?<maximum>[0-9.]+)\b/u
 
 const getFilterIds = (value: unknown): string[] => {
   if (Array.isArray(value)) {
@@ -46,7 +113,7 @@ const getFilterIds = (value: unknown): string[] => {
   }
 
   if (
-    value &&
+    value !== null &&
     typeof value === "object" &&
     !Array.isArray(value) &&
     "$in" in value
@@ -84,15 +151,15 @@ const getMeiliFilterValues = (filter: unknown, field: string): string[] => {
   }
 
   const values: string[] = []
-  const pattern = new RegExp(`${field} = "([^"]+)"`, "g")
+  const pattern = new RegExp(`${field} = "(?<value>[^"]+)"`, "gu")
   for (const expression of expressions) {
     if (typeof expression !== "string") {
       continue
     }
 
     for (const match of expression.matchAll(pattern)) {
-      const value = match[1]
-      if (value) {
+      const { value } = match.groups ?? {}
+      if (value !== undefined && value !== "") {
         values.push(value)
       }
     }
@@ -115,13 +182,15 @@ const getMeiliPriceRange = (filter: unknown): MeiliPriceRange => {
       continue
     }
 
-    const minMatch = FACET_PRICE_MIN_FILTER_REGEX.exec(expression)
-    if (minMatch?.[1]) {
-      min = Number(minMatch[1])
+    const minValue =
+      FACET_PRICE_MIN_FILTER_REGEX.exec(expression)?.groups?.["minimum"]
+    if (minValue !== undefined && minValue !== "") {
+      min = Number(minValue)
     }
-    const maxMatch = FACET_PRICE_MAX_FILTER_REGEX.exec(expression)
-    if (maxMatch?.[1]) {
-      max = Number(maxMatch[1])
+    const maxValue =
+      FACET_PRICE_MAX_FILTER_REGEX.exec(expression)?.groups?.["maximum"]
+    if (maxValue !== undefined && maxValue !== "") {
+      max = Number(maxValue)
     }
   }
 
@@ -152,11 +221,31 @@ const productMatchesSearchFilters = (
   return matchesStatus && matchesSalesChannel && isAboveMin && isBelowMax
 }
 
-const createMockResponse = () =>
-  ({
-    json: vi.fn().mockReturnThis(),
-    status: vi.fn().mockReturnThis(),
-  }) as any
+const assertMockShape: (
+  candidate: unknown,
+  requiredKeys: readonly string[],
+) => asserts candidate is object = (candidate, requiredKeys) => {
+  if (typeof candidate !== "object" || candidate === null) {
+    throw new TypeError("Expected a mock object")
+  }
+
+  for (const key of requiredKeys) {
+    if (!(key in candidate)) {
+      throw new TypeError(`Mock object missing required key: ${key}`)
+    }
+  }
+}
+
+const createMockResponse = (): MockResponse => {
+  const json = vi.fn<(body: CatalogResponseBody) => MockResponse>()
+  const status = vi.fn<(code: number) => MockResponse>()
+  const candidate: unknown = { json, status }
+  assertMockShape(candidate, ["json", "status"])
+  const response: MockResponse = candidate
+  json.mockReturnValue(response)
+  status.mockReturnValue(response)
+  return response
+}
 
 const createCatalogHarness = ({
   products,
@@ -169,97 +258,83 @@ const createCatalogHarness = ({
 }) => {
   const productById = new Map(products.map((product) => [product.id, product]))
 
-  const meiliSearch = vi.fn(
-    async (
-      _index: string,
-      _query: string,
-      options: {
-        paginationOptions: {
-          limit: number
-          offset: number
-        }
-        additionalOptions?: {
-          attributesToRetrieve?: string[]
-        }
-        filter?: string | string[]
+  const meiliSearch = vi.fn<MeiliSearch>(async (_index, _query, options) => {
+    await Promise.resolve()
+    const statusFilters = getMeiliFilterValues(
+      options.filter,
+      "facet_product_status",
+    )
+    const salesChannelFilters = getMeiliFilterValues(
+      options.filter,
+      "facet_sales_channel_ids",
+    )
+    const priceRange = getMeiliPriceRange(options.filter)
+    const filteredProducts = products.filter((product) =>
+      productMatchesSearchFilters(
+        product,
+        statusFilters,
+        salesChannelFilters,
+        priceRange,
+      ),
+    )
+
+    const hits = filteredProducts
+      .slice(
+        options.paginationOptions.offset,
+        options.paginationOptions.offset + options.paginationOptions.limit,
+      )
+      .map((product) => ({ id: product.id }))
+
+    const visiblePrices = filteredProducts
+      .map((product) => product.facetPrice)
+      .filter((price): price is number => typeof price === "number")
+
+    const hiddenBrandCount = filteredProducts.filter(
+      (product) => product.brandFacets?.includes("brand-hidden") === true,
+    ).length
+    const visibleBrandCount = filteredProducts.filter(
+      (product) => product.brandFacets?.includes("brand-visible") === true,
+    ).length
+    const visibleIngredientCount = filteredProducts.filter(
+      (product) =>
+        product.ingredientFacets?.includes("ingredient-visible") === true,
+    ).length
+
+    return {
+      estimatedTotalHits: filteredProducts.length,
+      facetDistribution: {
+        facet_brand: {
+          ...(hiddenBrandCount > 0 ? { "brand-hidden": hiddenBrandCount } : {}),
+          ...(visibleBrandCount > 0
+            ? { "brand-visible": visibleBrandCount }
+            : {}),
+        },
+        facet_form: {},
+        facet_ingredient:
+          visibleIngredientCount > 0
+            ? { "ingredient-visible": visibleIngredientCount }
+            : {},
+        facet_status: {
+          action: filteredProducts.filter(
+            (product) => product.statusFacets?.includes("action") === true,
+          ).length,
+          "in-stock": filteredProducts.filter(
+            (product) => product.statusFacets?.includes("in-stock") === true,
+          ).length,
+        },
       },
-    ) => {
-      const statusFilters = getMeiliFilterValues(
-        options.filter,
-        "facet_product_status",
-      )
-      const salesChannelFilters = getMeiliFilterValues(
-        options.filter,
-        "facet_sales_channel_ids",
-      )
-      const priceRange = getMeiliPriceRange(options.filter)
-      const filteredProducts = products.filter((product) =>
-        productMatchesSearchFilters(
-          product,
-          statusFilters,
-          salesChannelFilters,
-          priceRange,
-        ),
-      )
-
-      const hits = filteredProducts
-        .slice(
-          options.paginationOptions.offset,
-          options.paginationOptions.offset + options.paginationOptions.limit,
-        )
-        .map((product) => ({ id: product.id }))
-
-      const visiblePrices = filteredProducts
-        .map((product) => product.facetPrice)
-        .filter((price): price is number => typeof price === "number")
-
-      const hiddenBrandCount = filteredProducts.filter((product) =>
-        product.brandFacets?.includes("brand-hidden"),
-      ).length
-      const visibleBrandCount = filteredProducts.filter((product) =>
-        product.brandFacets?.includes("brand-visible"),
-      ).length
-      const visibleIngredientCount = filteredProducts.filter((product) =>
-        product.ingredientFacets?.includes("ingredient-visible"),
-      ).length
-
-      return {
-        estimatedTotalHits: filteredProducts.length,
-        facetDistribution: {
-          facet_brand: {
-            ...(hiddenBrandCount > 0
-              ? { "brand-hidden": hiddenBrandCount }
-              : {}),
-            ...(visibleBrandCount > 0
-              ? { "brand-visible": visibleBrandCount }
-              : {}),
-          },
-          facet_form: {},
-          facet_ingredient:
-            visibleIngredientCount > 0
-              ? { "ingredient-visible": visibleIngredientCount }
-              : {},
-          facet_status: {
-            action: filteredProducts.filter((product) =>
-              product.statusFacets?.includes("action"),
-            ).length,
-            "in-stock": filteredProducts.filter((product) =>
-              product.statusFacets?.includes("in-stock"),
-            ).length,
-          },
+      facetStats: {
+        facet_price: {
+          max: visiblePrices.length ? Math.max(...visiblePrices) : undefined,
+          min: visiblePrices.length ? Math.min(...visiblePrices) : undefined,
         },
-        facetStats: {
-          facet_price: {
-            max: visiblePrices.length ? Math.max(...visiblePrices) : undefined,
-            min: visiblePrices.length ? Math.min(...visiblePrices) : undefined,
-          },
-        },
-        hits,
-      }
-    },
-  )
+      },
+      hits,
+    }
+  })
 
-  const queryGraph = vi.fn(async (config: GraphConfig) => {
+  const queryGraph = vi.fn<QueryGraph>(async (config) => {
+    await Promise.resolve()
     const filters = config.filters ?? {}
 
     if (config.entity === "product_sales_channel") {
@@ -289,8 +364,10 @@ const createCatalogHarness = ({
       return {
         data: productIds
           .map((productId) => productById.get(productId))
-          .filter((product): product is TestProduct => Boolean(product))
-          .filter((product) => !status || product.status === status)
+          .filter((product): product is TestProduct => product !== undefined)
+          .filter(
+            (product) => status === undefined || product.status === status,
+          )
           .map((product) => ({
             brand: null,
             categories: [],
@@ -307,7 +384,13 @@ const createCatalogHarness = ({
     return { data: [] }
   })
 
-  const req = {
+  const scopeResolve = vi.fn<ScopeResolve>((key) => {
+    if (key === "meilisearch") {
+      return { search: meiliSearch }
+    }
+    return { graph: queryGraph }
+  })
+  const reqCandidate: unknown = {
     filterableFields: {
       sales_channel_id: [salesChannelId],
       status: "published",
@@ -316,12 +399,7 @@ const createCatalogHarness = ({
       fields: [],
     },
     scope: {
-      resolve: vi.fn((key: string) => {
-        if (key === "meilisearch") {
-          return { search: meiliSearch }
-        }
-        return { graph: queryGraph }
-      }),
+      resolve: scopeResolve,
     },
     validatedQuery: {
       limit: 12,
@@ -330,8 +408,14 @@ const createCatalogHarness = ({
       sort: "recommended",
       ...query,
     },
-  } as any
-
+  }
+  assertMockShape(reqCandidate, [
+    "filterableFields",
+    "queryConfig",
+    "scope",
+    "validatedQuery",
+  ])
+  const req: Parameters<typeof GET>[0] = reqCandidate
   const res = createMockResponse()
 
   return {
@@ -339,11 +423,18 @@ const createCatalogHarness = ({
     queryGraph,
     req,
     res,
+    scopeResolve,
   }
 }
 
-const getJsonPayload = (res: ReturnType<typeof createMockResponse>) =>
-  res.json.mock.calls[0][0]
+const getJsonPayload = (res: MockResponse): CatalogResponseBody => {
+  const [firstCall] = res.json.mock.calls
+  const [payload] = firstCall ?? []
+  if (payload === undefined) {
+    throw new Error("Expected the route to send a JSON response")
+  }
+  return payload
+}
 
 describe("GET /store/catalog/products", () => {
   const originalMeilisearchEnabled = process.env["MEILISEARCH_ENABLED"]
@@ -364,16 +455,17 @@ describe("GET /store/catalog/products", () => {
 
   it("returns unavailable without loading Meilisearch when search is disabled", async () => {
     process.env["MEILISEARCH_ENABLED"] = "0"
-    const { req, res, meiliSearch, queryGraph } = createCatalogHarness({
-      products: [
-        {
-          id: "prod_visible",
-          salesChannelIds: ["sc_visible"],
-          status: "published",
-          title: "Visible product",
-        },
-      ],
-    })
+    const { req, res, meiliSearch, queryGraph, scopeResolve } =
+      createCatalogHarness({
+        products: [
+          {
+            id: "prod_visible",
+            salesChannelIds: ["sc_visible"],
+            status: "published",
+            title: "Visible product",
+          },
+        ],
+      })
 
     await GET(req, res)
 
@@ -381,7 +473,7 @@ describe("GET /store/catalog/products", () => {
     expect(res.json).toHaveBeenCalledWith({
       message: "Catalog search is disabled",
     })
-    expect(req.scope.resolve).not.toHaveBeenCalled()
+    expect(scopeResolve).not.toHaveBeenCalled()
     expect(meiliSearch).not.toHaveBeenCalled()
     expect(queryGraph).not.toHaveBeenCalled()
   })
