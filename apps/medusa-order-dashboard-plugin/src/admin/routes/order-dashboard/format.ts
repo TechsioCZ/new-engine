@@ -231,7 +231,7 @@ function isOrderDashboardTransitionSourceStatus(
 function formatTransitionStatusLabel(status: string, t: TranslationFunction) {
   return isOrderDashboardTargetStatus(status)
     ? t(`targetStatus.${status}`)
-    : status.replaceAll(/_/g, " ")
+    : status.replaceAll("_", " ")
 }
 
 function formatTransitionStatusSubject(status: string, t: TranslationFunction) {

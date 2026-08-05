@@ -10,10 +10,10 @@ import {
 } from "../../../utils"
 import type { AdminCreateProductAttributeOptionSchemaType } from "../../../validators"
 
-export async function POST(
+export const POST = async (
   req: AuthenticatedMedusaRequest<AdminCreateProductAttributeOptionSchemaType>,
   res: MedusaResponse,
-) {
+) => {
   const definitionId = req.params["id"] ?? ""
   await retrieveProductAttributeDefinitionOrThrow(req.scope, definitionId)
   const { result } = await createProductAttributeOptionWorkflow(req.scope).run({

@@ -34,13 +34,13 @@ export const formatPhoneNumber = (value: string): string => {
     formatted += country
   }
   if (firstPart) {
-    formatted += " " + firstPart
+    formatted += ` ${firstPart}`
   }
   if (secondPart) {
-    formatted += " " + secondPart
+    formatted += ` ${secondPart}`
   }
   if (thirdPart) {
-    formatted += " " + thirdPart
+    formatted += ` ${thirdPart}`
   }
 
   return formatted

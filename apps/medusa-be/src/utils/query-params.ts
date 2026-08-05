@@ -6,7 +6,7 @@ const trimOrUndefined = (value: unknown): unknown => {
     return value
   }
   const trimmed = value.trim()
-  return trimmed ? trimmed : undefined
+  return trimmed || undefined
 }
 
 /** Convert numeric string values to numbers, leaving invalid values unchanged. */
@@ -15,8 +15,8 @@ const toOptionalNumber = (value: unknown): unknown => {
     return value
   }
   const trimmed = value.trim()
-  if (!trimmed) {
-    return
+  if (trimmed.length === 0) {
+    return undefined
   }
   const numberValue = Number(trimmed)
   return Number.isNaN(numberValue) ? value : numberValue

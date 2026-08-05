@@ -68,7 +68,7 @@ export function useCheckoutPayment(
             "VALIDATION_ERROR",
           )
         }
-        return createPaymentCollection(cartId, providerId)
+        return await createPaymentCollection(cartId, providerId)
       },
       onError: (error) => {
         if (process.env.NODE_ENV === "development") {

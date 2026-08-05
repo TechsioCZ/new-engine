@@ -100,12 +100,12 @@ export const createShippingOptionsStep = createStep(
           prices: [
             ...option.prices.flatMap((price) =>
               price.currencyCode
-                ? [{ currency_code: price.currencyCode, amount: price.amount }]
+                ? [{ amount: price.amount, currency_code: price.currencyCode }]
                 : [],
             ),
             ...option.regions.map((region) => ({
-              region_id: region.id,
               amount: region.amount,
+              region_id: region.id,
             })),
           ],
           provider_id: option.providerId,
@@ -158,15 +158,15 @@ export const createShippingOptionsStep = createStep(
                 price.currencyCode
                   ? [
                       {
-                        currency_code: price.currencyCode,
                         amount: price.amount,
+                        currency_code: price.currencyCode,
                       },
                     ]
                   : [],
               ),
               ...inputOption.regions.map((region) => ({
-                region_id: region.id,
                 amount: region.amount,
+                region_id: region.id,
               })),
             ],
             provider_id: inputOption.providerId,

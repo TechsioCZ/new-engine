@@ -1008,7 +1008,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
   } = useQuery({
     enabled: !!order?.id,
     queryFn: async () =>
-      sdk.client.fetch<CommercialValuesSnapshotResponse>(
+      await sdk.client.fetch<CommercialValuesSnapshotResponse>(
         `/admin/orders/${order?.id}/commercial-values`,
       ),
     queryKey,
@@ -1026,7 +1026,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
 
   const previewMutation = useMutation({
     mutationFn: async ({ payload }: CommercialValuesPreviewVariables) =>
-      sdk.client.fetch<CommercialValuesPreviewResponse>(
+      await sdk.client.fetch<CommercialValuesPreviewResponse>(
         `/admin/orders/${order?.id}/commercial-values/preview`,
         {
           body: payload,
@@ -1055,7 +1055,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
 
   const confirmMutation = useMutation({
     mutationFn: async (payload: CommercialValuesPayload) =>
-      sdk.client.fetch<CommercialValuesConfirmResponse>(
+      await sdk.client.fetch<CommercialValuesConfirmResponse>(
         `/admin/orders/${order?.id}/commercial-values/confirm`,
         {
           body: payload,

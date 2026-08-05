@@ -6,20 +6,19 @@ interface ErrorBody {
   message: string
 }
 
-export function jsonResponse(status: number, payload: unknown): Response {
-  return Response.json(payload, { status })
-}
+export const jsonResponse = (status: number, payload: unknown): Response =>
+  Response.json(payload, { status })
 
-export function jsonError(
+export const jsonError = (
   status: number,
   error: string,
   message: string,
-): Response {
+): Response => {
   const body: ErrorBody = { error, message }
   return jsonResponse(status, body)
 }
 
-export function mapHandlerError(error: unknown, context: string): Response {
+export const mapHandlerError = (error: unknown, context: string): Response => {
   if (error instanceof UpstreamHttpError) {
     const logLevel = error.status >= 500 ? console.error : console.warn
     logLevel(

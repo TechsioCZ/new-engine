@@ -74,13 +74,14 @@ export const listReviews = async (params: {
   order_by?: string
   q?: string
   status?: ReviewStatus
-}) => sdk.client.fetch<ReviewsResponse>(`/admin/reviews?${toSearch(params)}`)
+}) =>
+  await sdk.client.fetch<ReviewsResponse>(`/admin/reviews?${toSearch(params)}`)
 
 export const retrieveReview = async (id: string) =>
-  sdk.client.fetch<ReviewResponse>(`/admin/reviews/${id}`)
+  await sdk.client.fetch<ReviewResponse>(`/admin/reviews/${id}`)
 
 export const updateReview = async (id: string, input: ReviewInput) =>
-  sdk.client.fetch<ReviewResponse>(`/admin/reviews/${id}`, {
+  await sdk.client.fetch<ReviewResponse>(`/admin/reviews/${id}`, {
     body: input,
     method: "PATCH",
   })
@@ -89,7 +90,7 @@ export const updateReviewStatus = async (input: {
   ids: string[]
   status: ReviewStatus
 }) =>
-  sdk.client.fetch<UpdateReviewStatusResponse>("/admin/reviews/status", {
+  await sdk.client.fetch<UpdateReviewStatusResponse>("/admin/reviews/status", {
     body: input,
     method: "POST",
   })

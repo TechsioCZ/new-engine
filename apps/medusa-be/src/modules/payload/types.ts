@@ -71,6 +71,6 @@ export interface PayloadBulkResult<T> {
 /** Generic error envelope for API responses. */
 export interface PayloadApiResponse<T> {
   data?: T
-  errors?: Array<{ message: string; field?: string }>
+  errors?: { message: string; field?: string }[]
   message?: string
 }

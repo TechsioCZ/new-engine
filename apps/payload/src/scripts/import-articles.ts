@@ -201,7 +201,7 @@ const normalizeHeader = (value: string) =>
   value
     .trim()
     .replace(HEADER_WHITESPACE_PATTERN, "_")
-    .replaceAll(/-/g, "_")
+    .replaceAll("-", "_")
     .toLowerCase()
 
 const normalizeRow = (row: Row): Row => {
@@ -307,12 +307,12 @@ const toRichText = (value: string): ArticleContent => {
   const paragraphs = (lines.length > 0 ? lines : [" "]).map((line) => ({
     children: [
       {
-        type: "text",
         detail: 0,
         format: 0,
         mode: "normal",
         style: "",
         text: line,
+        type: "text",
         version: 1,
       },
     ],
@@ -571,7 +571,7 @@ const ensureCategory = async ({
   const existing = await findExistingBySlug(payload, "article-categories", slug)
   if (existing) {
     const writeLocale = resolveWriteLocale(locale, supportedLocales)
-    const id = existing.id
+    const { id } = existing
     if (!overwrite && hasLocaleValue(existing.title, locale)) {
       categoryCache.set(cacheKey, id)
       return id
@@ -613,7 +613,7 @@ const ensureCategory = async ({
     overrideAccess: true,
   })
 
-  const id = category.id
+  const { id } = category
   categoryCache.set(cacheKey, id)
   return id
 }
@@ -715,9 +715,9 @@ const readRows = async (filePath: string, sheetName?: string) => {
       const header =
         headerValue === null || headerValue === undefined
           ? ""
-          : typeof headerValue === "object"
+          : (typeof headerValue === "object"
             ? serializeCellObject(headerValue)
-            : String(headerValue).trim()
+            : String(headerValue).trim())
       if (header) {
         data[header] = getCellValue(row.getCell(columnIndex))
       }

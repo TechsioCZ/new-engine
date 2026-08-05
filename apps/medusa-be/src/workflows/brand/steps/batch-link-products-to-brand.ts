@@ -41,9 +41,12 @@ export const prepareBatchLinkProductsToBrandStep = createStep(
       ...delta.add,
       ...delta.remove,
     ])
-    const currentIds = affectedLinks
-      .filter((link) => link.brand_id === input.brand_id)
-      .map((link) => link.product_id)
+    const currentIds: string[] = []
+    for (const link of affectedLinks) {
+      if (link.brand_id === input.brand_id) {
+        currentIds.push(link.product_id)
+      }
+    }
     const resolvedDelta = resolveBrandProductDelta(currentIds, delta)
     const { add } = resolvedDelta
     const { remove } = resolvedDelta

@@ -5,7 +5,7 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 export interface LinkStockLocationFulfillmentProviderStepInput {
   stockLocations: StockLocationDTO[]
-  fulfillmentProviderIds?: Array<string | null | undefined>
+  fulfillmentProviderIds?: (string | null | undefined)[]
 }
 
 const LinkStockLocationFulfillmentProviderStepId =

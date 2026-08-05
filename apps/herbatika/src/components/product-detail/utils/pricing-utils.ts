@@ -58,7 +58,7 @@ export const resolvePriceState = (
     currentLabel: formatCurrencyAmount(resolvedCalculatedAmount, currencyCode),
     originalAmount: normalizedOriginalAmount,
     originalLabel:
-      normalizedOriginalAmount &&
+      normalizedOriginalAmount !== null &&
       normalizedOriginalAmount > resolvedCalculatedAmount
         ? formatCurrencyAmount(normalizedOriginalAmount, currencyCode)
         : null,
@@ -72,7 +72,7 @@ export const resolvePriceState = (
 export const resolveDisplayOriginalAmount = (
   priceState: ProductPriceState | null,
 ): number | null => {
-  if (!priceState?.currentAmount) {
+  if (typeof priceState?.currentAmount !== "number") {
     return null
   }
 

@@ -43,7 +43,7 @@ export async function getOrders(
     if (process.env.NODE_ENV === "development") {
       console.error("[OrderService] Failed to fetch orders:", error)
     }
-    throw new Error("Nepodařilo se načíst objednávky", { cause: err })
+    throw new Error("Nepodařilo se načíst objednávky", { cause: error })
   }
 }
 
@@ -60,6 +60,6 @@ export async function getOrderById(orderId: string): Promise<StoreOrder> {
     if (process.env.NODE_ENV === "development") {
       console.error("[OrderService] Failed to fetch order:", error)
     }
-    throw new Error("Nepodařilo se načíst objednávku", { cause: err })
+    throw new Error("Nepodařilo se načíst objednávku", { cause: error })
   }
 }

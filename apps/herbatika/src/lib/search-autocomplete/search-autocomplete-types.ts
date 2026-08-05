@@ -51,9 +51,9 @@ export interface RawSearchAutocompleteProductHit {
   metadata?: unknown
   brand?: RawSearchAutocompleteBrandRef
   categories?: RawSearchAutocompleteCategoryRef[]
-  variants?: Array<{
+  variants?: {
     calculated_price?: RawSearchAutocompleteCalculatedPrice
-  }>
+  }[]
 }
 
 export const SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH = 2

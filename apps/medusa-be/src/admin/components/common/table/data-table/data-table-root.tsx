@@ -366,7 +366,7 @@ export const DataTableRoot = <TData,>({
             {commands?.map((command, index) => (
               <Fragment key={`${command.label}-${command.shortcut}`}>
                 <CommandBar.Command
-                  action={async () => handleAction(command.action)}
+                  action={async () =>{  await handleAction(command.action); }}
                   label={command.label}
                   shortcut={command.shortcut}
                 />

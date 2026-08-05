@@ -50,7 +50,7 @@ function getErrorStatus(error: unknown): number | null {
       typeof errorWithResponse.response === "object" &&
       "status" in errorWithResponse.response
     ) {
-      const response = errorWithResponse.response
+      const { response } = errorWithResponse
       if (typeof response.status === "number") {
         return response.status
       }

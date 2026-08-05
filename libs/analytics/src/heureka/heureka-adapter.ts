@@ -29,9 +29,9 @@ export interface UseHeurekaAdapterConfig {
  * })
  * ```
  */
-export function useHeurekaAdapter(
+export const useHeurekaAdapter = (
   config: UseHeurekaAdapterConfig,
-): AnalyticsAdapter {
+): AnalyticsAdapter => {
   const { apiKey, debug } = config
   const adapterKey = "heureka" as const
 

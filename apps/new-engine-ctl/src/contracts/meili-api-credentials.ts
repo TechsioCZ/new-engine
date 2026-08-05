@@ -17,7 +17,7 @@ export const meiliApiCredentialsCommandInputSchema = z
   .superRefine((value, ctx) => {
     if (!(value.dryRun || value.meiliUrl)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Meilisearch URL is required.",
         path: ["meiliUrl"],
       })
@@ -25,7 +25,7 @@ export const meiliApiCredentialsCommandInputSchema = z
 
     if (!(value.dryRun || value.masterKey)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Meilisearch master key is required.",
         path: ["masterKey"],
       })

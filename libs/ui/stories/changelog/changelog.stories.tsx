@@ -150,17 +150,15 @@ const CHANGELOG = `
 - Opted into per-component versioning; paired 1:1 with the tree-view-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 `.trim()
 
-function Changelog() {
-  return (
-    <div className="min-h-screen bg-base p-400">
-      <div className="mx-auto max-w-container rounded-2xl bg-surface p-300 shadow-2">
-        <pre className="whitespace-pre-wrap font-sans text-fg-primary text-sm leading-relaxed">
-          {CHANGELOG}
-        </pre>
-      </div>
+const Changelog = () => (
+  <div className="min-h-screen bg-base p-400">
+    <div className="mx-auto max-w-container rounded-2xl bg-surface p-300 shadow-2">
+      <pre className="whitespace-pre-wrap font-sans text-fg-primary text-sm leading-relaxed">
+        {CHANGELOG}
+      </pre>
     </div>
-  )
-}
+  </div>
+)
 
 const meta: Meta<typeof Changelog> = {
   component: Changelog,

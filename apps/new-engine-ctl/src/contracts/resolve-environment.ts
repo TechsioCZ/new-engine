@@ -25,10 +25,11 @@ export const resolveEnvironmentCommandInputSchema = z
   .superRefine((value, ctx) => {
     if (
       value.lane === "preview" &&
-      !(value.environmentName || value.prNumber)
+      value.environmentName.length === 0 &&
+      value.prNumber === undefined
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Preview lane requires PR number or environment name.",
         path: ["prNumber"],
       })
@@ -39,7 +40,7 @@ export const resolveEnvironmentCommandInputSchema = z
       !(value.dryRun || value.sourceEnvironmentName)
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Preview lane requires canonical source environment name.",
         path: ["sourceEnvironmentName"],
       })
@@ -47,7 +48,7 @@ export const resolveEnvironmentCommandInputSchema = z
 
     if (value.lane === "main" && !value.environmentName) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Main lane requires environment name.",
         path: ["environmentName"],
       })
@@ -55,7 +56,7 @@ export const resolveEnvironmentCommandInputSchema = z
 
     if (!(value.dryRun || value.baseUrl)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Zane operator base URL is required.",
         path: ["baseUrl"],
       })
@@ -63,7 +64,7 @@ export const resolveEnvironmentCommandInputSchema = z
 
     if (!(value.dryRun || value.apiToken)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Zane operator API token is required.",
         path: ["apiToken"],
       })

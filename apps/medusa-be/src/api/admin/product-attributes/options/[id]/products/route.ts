@@ -9,13 +9,13 @@ import {
 } from "../../../utils"
 import type { AdminGetProductAttributeOptionProductsSchemaType } from "../../../validators"
 
-export async function GET(
+export const GET = async (
   req: AuthenticatedMedusaRequest<
     unknown,
     AdminGetProductAttributeOptionProductsSchemaType
   >,
   res: MedusaResponse,
-) {
+) => {
   const optionId = req.params["id"] ?? ""
   await retrieveProductAttributeOptionOrThrow(req.scope, optionId)
 
