@@ -142,6 +142,41 @@ const noopUnsubscribe = () => {
   // Intentionally empty unsubscribe callback.
 }
 
+const CART_ID_REQUIRED_ERROR = "Cart id is required"
+
+interface ConditionalCartHookAdapter {
+  adapt: <TTarget>(input: unknown, target?: (value: TTarget) => void) => TTarget
+  resolve: <TArgs extends unknown[], TResult>(
+    custom: ((...args: TArgs) => TResult) | undefined,
+    fallback: (...args: TArgs) => unknown,
+  ) => (...args: TArgs) => TResult
+}
+
+class ConditionalCartHookAdapterImpl implements ConditionalCartHookAdapter {
+  readonly #owner = this
+
+  adapt<TTarget>(input: unknown, _target?: (value: TTarget) => void): TTarget
+  adapt(input: unknown): unknown {
+    void this.#owner
+    return input
+  }
+
+  resolve<TArgs extends unknown[], TResult>(
+    custom: ((...args: TArgs) => TResult) | undefined,
+    fallback: (...args: TArgs) => unknown,
+  ): (...args: TArgs) => TResult
+  resolve<TArgs extends unknown[], TResult>(
+    custom: ((...args: TArgs) => TResult) | undefined,
+    fallback: (...args: TArgs) => unknown,
+  ): ((...args: TArgs) => TResult) | ((...args: TArgs) => unknown) {
+    void this.#owner
+    return custom ?? fallback
+  }
+}
+
+const conditionalCartHookAdapter: ConditionalCartHookAdapter =
+  new ConditionalCartHookAdapterImpl()
+
 type ObservableStorageValueStore = StorageValueStore & {
   subscribe: NonNullable<StorageValueStore["subscribe"]>
   getSnapshot: NonNullable<StorageValueStore["getSnapshot"]>
@@ -159,7 +194,7 @@ const normalizeCartCreatePayload = <TInput extends CartCreateInputBase>(
   const payload = omitKeys(normalizedInput, cartPayloadOmitKeys)
   const { salesChannelId } = normalizedInput
 
-  if (!salesChannelId) {
+  if (salesChannelId === undefined || salesChannelId.length === 0) {
     return payload
   }
 
@@ -176,7 +211,7 @@ const normalizeCartUpdatePayload = <TInput extends UpdateCartInputBase>(
   const payload = omitKeys(normalizedInput, cartPayloadOmitKeys)
   const { salesChannelId } = normalizedInput
 
-  if (!salesChannelId) {
+  if (salesChannelId === undefined || salesChannelId.length === 0) {
     return payload
   }
 
@@ -203,11 +238,12 @@ const normalizeUpdateLineItemPayload = <TInput extends UpdateLineItemInputBase>(
   )
 
 const getItemCount = (cart: CartLike | null): number => {
-  if (!cart?.items?.length) {
+  const items = cart?.items
+  if (items === undefined || items.length === 0) {
     return 0
   }
 
-  return cart.items.reduce((acc, item) => acc + (item.quantity ?? 0), 0)
+  return items.reduce((acc, item) => acc + (item.quantity ?? 0), 0)
 }
 
 type BuildCreateParamsOption<
@@ -318,7 +354,7 @@ export type CartMutationOptions<
   TContext = unknown,
 > = MutationOptions<TData, TVariables, TContext>
 
-export function createCartHooks<
+export const createCartHooks = <
   TCart extends CartLike,
   TCreateInput extends CartCreateInputBase,
   TCreateParams = NormalizedCartCreatePayload<TCreateInput>,
@@ -359,29 +395,36 @@ export function createCartHooks<
   TCompleteResult,
   TAddressInput,
   TAddressPayload
->) {
+>) => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys = queryKeys ?? createCartQueryKeys(queryKeyNamespace)
   // CreateCartHooksConfig conditional types require custom builders whenever
   // default normalized payloads are incompatible with custom param types.
   const buildCreate: ParamBuilder<TCreateInput, TCreateParams> =
-    buildCreateParams ??
-    ((input: TCreateInput) =>
-      normalizeCartCreatePayload(input) as TCreateParams)
+    conditionalCartHookAdapter.resolve(
+      buildCreateParams,
+      normalizeCartCreatePayload,
+    )
   const buildUpdate: ParamBuilder<TUpdateInput, TUpdateParams> =
-    buildUpdateParams ??
-    ((input: TUpdateInput) =>
-      normalizeCartUpdatePayload(input) as TUpdateParams)
+    conditionalCartHookAdapter.resolve(
+      buildUpdateParams,
+      normalizeCartUpdatePayload,
+    )
   const buildAdd: ParamBuilder<TAddInput, TAddParams> =
-    buildAddParams ??
-    ((input: TAddInput) => normalizeAddLineItemPayload(input) as TAddParams)
+    conditionalCartHookAdapter.resolve(
+      buildAddParams,
+      normalizeAddLineItemPayload,
+    )
   const buildCreateInputFromAdd: ParamBuilder<TAddInput, TCreateInput> =
-    buildCreateInputFromAddInput ??
-    ((input: TAddInput) => input as TAddInput & TCreateInput)
+    conditionalCartHookAdapter.resolve(
+      buildCreateInputFromAddInput,
+      (input: TAddInput) => input,
+    )
   const buildUpdateItem: ParamBuilder<TUpdateItemInput, TUpdateItemParams> =
-    buildUpdateItemParams ??
-    ((input: TUpdateItemInput) =>
-      normalizeUpdateLineItemPayload(input) as TUpdateItemParams)
+    conditionalCartHookAdapter.resolve(
+      buildUpdateItemParams,
+      normalizeUpdateLineItemPayload,
+    )
 
   const normalizeAddressInput = (
     input: TAddressInput,
@@ -400,13 +443,10 @@ export function createCartHooks<
     )
   }
 
-  const buildAddressPayload = (
-    input: TAddressInput,
-    scope: "shipping" | "billing",
-  ): TAddressPayload =>
-    addressAdapter?.toPayload
-      ? addressAdapter.toPayload(input, { scope })
-      : (input as TAddressInput & TAddressPayload)
+  const buildAddressPayload = conditionalCartHookAdapter.resolve(
+    addressAdapter?.toPayload,
+    (input: TAddressInput) => input,
+  )
 
   const readStoredCartId = (): string | null => {
     if (!cartStorage) {
@@ -446,26 +486,27 @@ export function createCartHooks<
   }
 
   const callUpdateCart = async (cartId: string, params: TUpdateParams) => {
-    if (!service.updateCart) {
+    const { updateCart } = service
+    if (updateCart === undefined) {
       throw new Error("updateCart service is not configured")
     }
-    return service.updateCart.call(service, cartId, params)
+    return await updateCart(cartId, params)
   }
 
   const requireCartId = (inputCartId?: string | null): string => {
     const cartId = resolveCartId(inputCartId)
-    if (!cartId) {
-      throw new Error("Cart id is required")
+    if (cartId === null || cartId.length === 0) {
+      throw new Error(CART_ID_REQUIRED_ERROR)
     }
     return cartId
   }
 
   const resolveBillingAddressInput = (
-    useSameAddress: boolean | undefined,
     billingAddress: TAddressInput | undefined,
     normalizedShipping: TAddressInput,
+    useSameAddress = false,
   ): TAddressInput | undefined => {
-    if (useSameAddress || !billingAddress) {
+    if (useSameAddress || billingAddress === undefined) {
       return normalizedShipping
     }
     return normalizeAddressInput(billingAddress, "billing")
@@ -481,9 +522,9 @@ export function createCartHooks<
       "shipping",
     )
     const resolvedBillingInput = resolveBillingAddressInput(
-      useSameAddress,
       billingAddress,
       normalizedShipping,
+      useSameAddress,
     )
 
     return {
@@ -498,7 +539,7 @@ export function createCartHooks<
     billingInput: TAddressInput | undefined,
   ) => {
     validateAddressInput(shippingInput, "shipping")
-    if (!billingInput) {
+    if (billingInput === undefined) {
       return
     }
     validateAddressInput(billingInput, "billing")
@@ -511,28 +552,28 @@ export function createCartHooks<
     >,
     normalizedShipping: TAddressInput,
     resolvedBillingInput: TAddressInput | undefined,
-  ) =>
-    ({
-      ...(restInput as TUpdateInput),
-      billing_address: resolvedBillingInput
-        ? buildAddressPayload(resolvedBillingInput, "billing")
-        : undefined,
-      shipping_address: buildAddressPayload(normalizedShipping, "shipping"),
-    }) as TUpdateInput & {
-      shipping_address?: TAddressPayload
-      billing_address?: TAddressPayload
-    }
+  ): TUpdateInput =>
+    conditionalCartHookAdapter.adapt<TUpdateInput>({
+      ...restInput,
+      billing_address:
+        resolvedBillingInput === undefined
+          ? undefined
+          : buildAddressPayload(resolvedBillingInput, { scope: "billing" }),
+      shipping_address: buildAddressPayload(normalizedShipping, {
+        scope: "shipping",
+      }),
+    })
 
   const invalidateCart = async (
     queryClient: ReturnType<typeof useQueryClient>,
     cart: CartLike | null,
   ): Promise<void> => {
     const cartId = cart?.id
-    if (!(invalidateOnSuccess && cartId)) {
-      return Promise.resolve()
+    if (!invalidateOnSuccess || cartId === undefined || cartId.length === 0) {
+      return
     }
 
-    return invalidateCartCaches(queryClient, resolvedQueryKeys, cartId)
+    await invalidateCartCaches(queryClient, resolvedQueryKeys, cartId)
   }
 
   const syncMutationCart = async (
@@ -559,7 +600,9 @@ export function createCartHooks<
   }
 
   const createCartFromInput = async (input: CartInputBase): Promise<TCart> => {
-    const created = await service.createCart(buildCreate(input as TCreateInput))
+    const created = await service.createCart(
+      buildCreate(conditionalCartHookAdapter.adapt<TCreateInput>(input)),
+    )
     persistCartId(created.id)
     return created
   }
@@ -575,32 +618,43 @@ export function createCartHooks<
 
     const createIfAllowed = async (): Promise<TCart | null> => {
       if (!canCreate) {
-        return Promise.resolve(null)
+        return null
       }
-      return createCartFromInput(input)
+      return await createCartFromInput(input)
     }
 
     const resolveRegionUpdate = async (cart: TCart): Promise<TCart> => {
+      const inputRegionId = input.region_id
+      const cartRegionId = cart.region_id
+      const { updateCart } = service
+
+      if (!autoUpdateRegion || updateCart === undefined) {
+        return cart
+      }
+      if (inputRegionId === undefined || inputRegionId.length === 0) {
+        return cart
+      }
       if (
-        autoUpdateRegion &&
-        input.region_id &&
-        cart.region_id &&
-        cart.region_id !== input.region_id &&
-        service.updateCart
+        cartRegionId === undefined ||
+        cartRegionId === null ||
+        cartRegionId.length === 0 ||
+        cartRegionId === inputRegionId
       ) {
-        return service.updateCart(
-          cart.id,
-          buildUpdate({
-            ...(input as TUpdateInput),
-            region_id: input.region_id,
-          }),
-        )
+        return cart
       }
 
-      return Promise.resolve(cart)
+      return await updateCart(
+        cart.id,
+        buildUpdate(
+          conditionalCartHookAdapter.adapt<TUpdateInput>({
+            ...input,
+            region_id: inputRegionId,
+          }),
+        ),
+      )
     }
 
-    if (!resolvedCartId) {
+    if (resolvedCartId === null || resolvedCartId.length === 0) {
       return await createIfAllowed()
     }
 
@@ -609,12 +663,12 @@ export function createCartHooks<
 
       if (!cart) {
         clearCartId()
-        return createIfAllowed()
+        return await createIfAllowed()
       }
 
-      return resolveRegionUpdate(cart)
+      return await resolveRegionUpdate(cart)
     } catch (error) {
-      if (!isNotFoundError?.(error)) {
+      if (isNotFoundError?.(error) !== true) {
         throw error
       }
 
@@ -629,7 +683,7 @@ export function createCartHooks<
     previousCartId: string | null,
     previousRegionId: string | null,
   ) => {
-    if (!cart?.id) {
+    if (cart === null || cart.id.length === 0) {
       return
     }
 
@@ -654,10 +708,10 @@ export function createCartHooks<
     }
   }
 
-  function useCart(
+  const useCart = (
     input: CartInputBase,
     options?: { queryOptions?: ReadQueryOptions<TCart | null> },
-  ): UseCartResult<TCart> {
+  ): UseCartResult<TCart> => {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
     const storedCartId = useStoredCartId()
@@ -672,11 +726,11 @@ export function createCartHooks<
     const query = useQuery({
       enabled,
       queryFn: async ({ signal }) =>
-        loadCart({
-          input: resolvedInput,
-          cartId,
-          canCreate,
+        await loadCart({
           autoUpdateRegion,
+          canCreate,
+          cartId,
+          input: resolvedInput,
           signal,
         }),
       queryKey: resolvedQueryKeys.active({
@@ -708,10 +762,10 @@ export function createCartHooks<
     }
   }
 
-  function useSuspenseCart(
+  const useSuspenseCart = (
     input: CartInputBase,
     options?: { queryOptions?: SuspenseQueryOptions<TCart | null> },
-  ): UseSuspenseCartResult<TCart> {
+  ): UseSuspenseCartResult<TCart> => {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
     const storedCartId = useStoredCartId()
@@ -724,11 +778,11 @@ export function createCartHooks<
 
     const query = useSuspenseQuery({
       queryFn: async ({ signal }) =>
-        loadCart({
-          input: resolvedInput,
-          cartId,
-          canCreate,
+        await loadCart({
           autoUpdateRegion,
+          canCreate,
+          cartId,
+          input: resolvedInput,
           signal,
         }),
       queryKey: resolvedQueryKeys.active({
@@ -760,56 +814,60 @@ export function createCartHooks<
     }
   }
 
-  function useCreateCart(options?: CartMutationOptions<TCart, TCreateInput>) {
+  const useCreateCart = (
+    options?: CartMutationOptions<TCart, TCreateInput>,
+  ) => {
     const queryClient = useQueryClient()
     return useMutation({
       mutationFn: async (input: TCreateInput) =>
-        service.createCart(buildCreate(input)),
+        await service.createCart(buildCreate(input)),
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
+      },
       onSuccess: async (cart, variables, context) => {
         persistCartId(cart.id)
         await syncMutationCart(queryClient, cart)
         options?.onSuccess?.(cart, variables, context)
       },
-      onError: (error, variables, context) => {
-        options?.onError?.(error, variables, context)
-      },
-      onSettled: (data, error, variables, context) => {
-        options?.onSettled?.(data, error, variables, context)
-      },
     })
   }
 
-  function useUpdateCart(options?: CartMutationOptions<TCart, TUpdateInput>) {
+  const useUpdateCart = (
+    options?: CartMutationOptions<TCart, TUpdateInput>,
+  ) => {
     const queryClient = useQueryClient()
     return useMutation({
       mutationFn: async (input: TUpdateInput) => {
-        if (!service.updateCart) {
+        if (service.updateCart === undefined) {
           throw new Error("updateCart service is not configured")
         }
         const cartId = resolveCartId(input.cartId)
-        if (!cartId) {
-          throw new Error("Cart id is required")
+        if (cartId === null || cartId.length === 0) {
+          throw new Error(CART_ID_REQUIRED_ERROR)
         }
-        return service.updateCart(cartId, buildUpdate(input))
+        return await service.updateCart(cartId, buildUpdate(input))
+      },
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
       },
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
+      },
       onSuccess: async (cart, variables, context) => {
         await syncMutationCart(queryClient, cart)
         options?.onSuccess?.(cart, variables, context)
       },
-      onError: (error, variables, context) => {
-        options?.onError?.(error, variables, context)
-      },
-      onSettled: (data, error, variables, context) => {
-        options?.onSettled?.(data, error, variables, context)
-      },
     })
   }
 
-  function useUpdateCartAddress(
+  const useUpdateCartAddress = (
     options?: CartMutationOptions<TCart, CartAddressInputBase<TAddressInput>>,
-  ) {
+  ) => {
     const queryClient = useQueryClient()
     return useMutation({
       mutationFn: async (input: CartAddressInputBase<TAddressInput>) => {
@@ -825,28 +883,28 @@ export function createCartHooks<
           resolvedBillingInput,
         )
 
-        return callUpdateCart(cartId, buildUpdate(updateInput))
-      },
-      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: async (cart, variables, context) => {
-        await syncMutationCart(queryClient, cart)
-        options?.onSuccess?.(cart, variables, context)
+        return await callUpdateCart(cartId, buildUpdate(updateInput))
       },
       onError: (error, variables, context) => {
         options?.onError?.(error, variables, context)
       },
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSettled: (data, error, variables, context) => {
         options?.onSettled?.(data, error, variables, context)
+      },
+      onSuccess: async (cart, variables, context) => {
+        await syncMutationCart(queryClient, cart)
+        options?.onSuccess?.(cart, variables, context)
       },
     })
   }
 
-  function useAddLineItem(options?: CartMutationOptions<TCart, TAddInput>) {
+  const useAddLineItem = (options?: CartMutationOptions<TCart, TAddInput>) => {
     const contextRegion = useRegionContext()
     const queryClient = useQueryClient()
     return useMutation({
       mutationFn: async (input: TAddInput) => {
-        if (!service.addLineItem) {
+        if (service.addLineItem === undefined) {
           throw new Error("addLineItem service is not configured")
         }
 
@@ -856,9 +914,9 @@ export function createCartHooks<
         const canCreate =
           autoCreate && (!requireRegion || Boolean(resolvedInput.region_id))
 
-        if (!cartId) {
+        if (cartId === null || cartId.length === 0) {
           if (!canCreate) {
-            throw new Error("Cart id is required")
+            throw new Error(CART_ID_REQUIRED_ERROR)
           }
           const created = await service.createCart(
             buildCreate(buildCreateInputFromAdd(resolvedInput)),
@@ -875,148 +933,147 @@ export function createCartHooks<
         persistCartId(updated.id)
         return updated
       },
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
+      },
       onSuccess: async (cart, variables, context) => {
         await syncMutationCart(queryClient, cart)
         options?.onSuccess?.(cart, variables, context)
       },
-      onError: (error, variables, context) => {
-        options?.onError?.(error, variables, context)
-      },
-      onSettled: (data, error, variables, context) => {
-        options?.onSettled?.(data, error, variables, context)
-      },
     })
   }
 
-  function useUpdateLineItem(
+  const useUpdateLineItem = (
     options?: CartMutationOptions<TCart, TUpdateItemInput>,
-  ) {
+  ) => {
     const queryClient = useQueryClient()
     return useMutation({
       mutationFn: async (input: TUpdateItemInput) => {
-        if (!service.updateLineItem) {
+        if (service.updateLineItem === undefined) {
           throw new Error("updateLineItem service is not configured")
         }
         const cartId = resolveCartId(input.cartId)
-        if (!cartId) {
-          throw new Error("Cart id is required")
+        if (cartId === null || cartId.length === 0) {
+          throw new Error(CART_ID_REQUIRED_ERROR)
         }
-        return service.updateLineItem(
+        return await service.updateLineItem(
           cartId,
           input.lineItemId,
           buildUpdateItem(input),
         )
       },
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
+      },
       onSuccess: async (cart, variables, context) => {
         await syncMutationCart(queryClient, cart)
         options?.onSuccess?.(cart, variables, context)
       },
-      onError: (error, variables, context) => {
-        options?.onError?.(error, variables, context)
-      },
-      onSettled: (data, error, variables, context) => {
-        options?.onSettled?.(data, error, variables, context)
-      },
     })
   }
 
-  function useRemoveLineItem(
+  const useRemoveLineItem = (
     options?: CartMutationOptions<TCart, RemoveLineItemInputBase>,
-  ) {
+  ) => {
     const queryClient = useQueryClient()
     return useMutation({
       mutationFn: async (input: RemoveLineItemInputBase) => {
-        if (!service.removeLineItem) {
+        if (service.removeLineItem === undefined) {
           throw new Error("removeLineItem service is not configured")
         }
         const cartId = resolveCartId(input.cartId)
-        if (!cartId) {
-          throw new Error("Cart id is required")
+        if (cartId === null || cartId.length === 0) {
+          throw new Error(CART_ID_REQUIRED_ERROR)
         }
-        return service.removeLineItem(cartId, input.lineItemId)
-      },
-      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: async (cart, variables, context) => {
-        await syncMutationCart(queryClient, cart)
-        options?.onSuccess?.(cart, variables, context)
+        return await service.removeLineItem(cartId, input.lineItemId)
       },
       onError: (error, variables, context) => {
         options?.onError?.(error, variables, context)
       },
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSettled: (data, error, variables, context) => {
         options?.onSettled?.(data, error, variables, context)
+      },
+      onSuccess: async (cart, variables, context) => {
+        await syncMutationCart(queryClient, cart)
+        options?.onSuccess?.(cart, variables, context)
       },
     })
   }
 
-  function useTransferCart(
+  const useTransferCart = (
     options?: CartMutationOptions<TCart, TransferCartInputBase>,
-  ) {
+  ) => {
     const queryClient = useQueryClient()
     return useMutation({
       mutationFn: async (input: TransferCartInputBase) => {
-        if (!service.transferCart) {
+        if (service.transferCart === undefined) {
           throw new Error("transferCart service is not configured")
         }
         const cartId = resolveCartId(input.cartId)
-        if (!cartId) {
-          throw new Error("Cart id is required")
+        if (cartId === null || cartId.length === 0) {
+          throw new Error(CART_ID_REQUIRED_ERROR)
         }
-        return service.transferCart(cartId)
-      },
-      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: async (cart, variables, context) => {
-        await syncMutationCart(queryClient, cart)
-        options?.onSuccess?.(cart, variables, context)
+        return await service.transferCart(cartId)
       },
       onError: (error, variables, context) => {
         options?.onError?.(error, variables, context)
       },
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSettled: (data, error, variables, context) => {
         options?.onSettled?.(data, error, variables, context)
+      },
+      onSuccess: async (cart, variables, context) => {
+        await syncMutationCart(queryClient, cart)
+        options?.onSuccess?.(cart, variables, context)
       },
     })
   }
 
-  function useCompleteCart(
+  const useCompleteCart = (
     options?: CartMutationOptions<TCompleteResult, { cartId?: string }> & {
       clearCartOnSuccess?: boolean
     },
-  ) {
-    return useMutation({
+  ) =>
+    useMutation({
       mutationFn: async (input: { cartId?: string }) => {
-        if (!service.completeCart) {
+        if (service.completeCart === undefined) {
           throw new Error("completeCart service is not configured")
         }
         const cartId = resolveCartId(input.cartId)
-        if (!cartId) {
-          throw new Error("Cart id is required")
+        if (cartId === null || cartId.length === 0) {
+          throw new Error(CART_ID_REQUIRED_ERROR)
         }
-        return service.completeCart(cartId)
+        return await service.completeCart(cartId)
+      },
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
       },
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
+      },
       onSuccess: (data, variables, context) => {
         if (options?.clearCartOnSuccess === true) {
           clearCartId()
         }
         options?.onSuccess?.(data, variables, context)
       },
-      onError: (error, variables, context) => {
-        options?.onError?.(error, variables, context)
-      },
-      onSettled: (data, error, variables, context) => {
-        options?.onSettled?.(data, error, variables, context)
-      },
     })
-  }
 
-  function usePrefetchCart(options?: {
+  const usePrefetchCart = (options?: {
     cacheStrategy?: CacheStrategy
     skipIfCached?: boolean
     skipMode?: PrefetchSkipMode
-  }) {
+  }) => {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
     const cacheStrategy = options?.cacheStrategy ?? "realtime"
@@ -1053,11 +1110,11 @@ export function createCartHooks<
 
       await queryClient.prefetchQuery({
         queryFn: async ({ signal }) =>
-          loadCart({
-            input: resolvedInput,
-            cartId,
-            canCreate,
+          await loadCart({
             autoUpdateRegion: resolvedInput.autoUpdateRegion ?? true,
+            canCreate,
+            cartId,
+            input: resolvedInput,
             signal,
           }),
         queryKey,
