@@ -1,50 +1,53 @@
 import { existsSync, readFileSync } from "node:fs"
-import { join } from "node:path"
+import path from "node:path"
 import { parseEnv } from "node:util"
 
 import { loadEnv } from "@medusajs/framework/utils"
 import { defineConfig } from "vitest/config"
 
-// The backend tsconfig emits this file as CommonJS, so import.meta.dirname is
-// not valid here.
-const projectRoot = __dirname
+const projectRoot = process.cwd()
 const testType = process.env["TEST_TYPE"] ?? "unit"
 const isHttpIntegration = testType === "integration:http"
 const isModuleIntegration = testType === "integration:modules"
 const isHttpE2E = testType === "e2e:http"
 const isIntegration = isHttpIntegration || isModuleIntegration || isHttpE2E
 
-function loadLocalEnvOverrides(path: string) {
-  if (!existsSync(path)) {
+const loadLocalEnvOverrides = (envPath: string) => {
+  if (!existsSync(envPath)) {
     return
   }
 
-  Object.assign(process.env, parseEnv(readFileSync(path, "utf-8")))
+  Object.assign(process.env, parseEnv(readFileSync(envPath, "utf-8")))
 }
 
 if (isIntegration) {
   loadEnv("test", projectRoot)
-  loadLocalEnvOverrides(join(projectRoot, ".env.test.local"))
+  loadLocalEnvOverrides(path.join(projectRoot, ".env.test.local"))
 }
 
-let include = [
-  "tests/unit/**/*.unit.spec.ts",
-  "src/api/**/__tests__/**/*.unit.spec.ts",
-  "src/migration-scripts/**/__tests__/**/*.unit.spec.ts",
-  "src/modules/**/__tests__/**/*.unit.spec.ts",
-  "src/workflows/**/__tests__/**/*.unit.spec.ts",
+const unitTestPatterns = [
+  "tests/unit/**/*.unit.{spec,test}.ts",
+  "src/api/**/__tests__/**/*.unit.{spec,test}.ts",
+  "src/migration-scripts/**/__tests__/**/*.unit.{spec,test}.ts",
+  "src/modules/**/__tests__/**/*.unit.{spec,test}.ts",
+  "src/workflows/**/__tests__/**/*.unit.{spec,test}.ts",
+]
+const httpIntegrationTestPatterns = [
+  "integration-tests/http/**/*.{spec,test}.ts",
+]
+const httpE2ETestPatterns = ["e2e-tests/http/**/*.{spec,test}.ts"]
+const moduleIntegrationTestPatterns = [
+  "src/modules/*/__tests__/**/*.{spec,test}.ts",
 ]
 
+let include = unitTestPatterns
+
 if (isHttpIntegration) {
-  include = ["integration-tests/http/**/*.spec.ts"]
-}
-
-if (isHttpE2E) {
-  include = ["e2e-tests/http/**/*.spec.ts"]
-}
-
-if (isModuleIntegration) {
-  include = ["src/modules/*/__tests__/**/*.spec.ts"]
+  include = httpIntegrationTestPatterns
+} else if (isHttpE2E) {
+  include = httpE2ETestPatterns
+} else if (isModuleIntegration) {
+  include = moduleIntegrationTestPatterns
 }
 
 export default defineConfig({
@@ -55,7 +58,7 @@ export default defineConfig({
       "node_modules",
       "dist",
       ".medusa",
-      ...(isModuleIntegration ? ["**/*.unit.spec.ts"] : []),
+      ...(isModuleIntegration ? ["**/*.unit.{spec,test}.ts"] : []),
     ],
     fileParallelism: !isIntegration,
     globals: isIntegration,
