@@ -32,10 +32,10 @@ export const deleteProductListStep = createStep(
     await container
       .resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
       .createProductLists({
-        id: list.id,
         access_type: list.access_type ?? "private",
         description: list.description ?? null,
         handle: list.handle,
+        id: list.id,
         metadata: list.metadata ?? null,
         title: list.title,
         type: list.type,

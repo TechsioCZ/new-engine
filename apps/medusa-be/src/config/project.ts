@@ -19,10 +19,10 @@ export function buildAdminConfig(env: MedusaConfigEnv): MedusaAdminConfig {
         ...(env.adminAllowedHosts === undefined
           ? {}
           : { allowedHosts: env.adminAllowedHosts }),
-        hmr: false,
         headers: {
           "Cache-Control": "no-store",
         },
+        hmr: false,
       },
     }),
   }
@@ -31,15 +31,15 @@ export function buildAdminConfig(env: MedusaConfigEnv): MedusaAdminConfig {
 export function buildProjectConfig(env: MedusaConfigEnv): MedusaProjectConfig {
   return {
     ...(env.databaseUrl ? { databaseUrl: env.databaseUrl } : {}),
+    cookieOptions: env.cookieOptions,
     databaseSchema: env.databaseSchema,
     http: {
-      storeCors: env.storeCors,
       adminCors: env.adminCors,
       authCors: env.authCors,
+      storeCors: env.storeCors,
       ...(env.jwtSecret ? { jwtSecret: env.jwtSecret } : {}),
       ...(env.cookieSecret ? { cookieSecret: env.cookieSecret } : {}),
     },
-    cookieOptions: env.cookieOptions,
     ...(env.redisSessionsEnabled && env.redisUrl
       ? {
           redisUrl: env.redisUrl,

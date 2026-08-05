@@ -8,8 +8,8 @@ import { UpsertPriceListsBatchSchema } from "./validators"
 
 export const symmyPriceListsBatchUpsertRoutes: MiddlewareRoute[] = [
   {
-    methods: ["POST"],
     matcher: "/api/symmy/v1/price-lists/batch-upsert",
+    methods: ["POST"],
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformBody(UpsertPriceListsBatchSchema),

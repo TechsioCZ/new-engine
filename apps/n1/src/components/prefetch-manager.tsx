@@ -43,7 +43,9 @@ export function PrefetchManager() {
       }
     }, PREFETCH_DELAY)
 
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+    }
   }, [regionId, pathname, prefetchRootCategories])
 
   return null

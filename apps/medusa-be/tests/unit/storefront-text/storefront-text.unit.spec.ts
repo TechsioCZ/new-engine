@@ -30,8 +30,8 @@ import { STOREFRONT_TEXT_LOCK_KEY } from "../../../src/workflows/storefront-text
 
 describe("storefront text registry", () => {
   it("accepts only configured market and locale pairs", () => {
-    expect(isStorefrontTextMarketLocalePair("cz", "cs-CZ")).toBe(true)
-    expect(isStorefrontTextMarketLocalePair("cz", "sk-SK")).toBe(false)
+    expect(isStorefrontTextMarketLocalePair("cz", "cs-CZ")).toBeTruthy()
+    expect(isStorefrontTextMarketLocalePair("cz", "sk-SK")).toBeFalsy()
   })
 
   it("creates seed rows with a default and no override", () => {
@@ -45,8 +45,8 @@ describe("storefront text registry", () => {
     const defaults = getStorefrontTextDefaultMessages({ market: "cz" })
     const nestedCatalog = nestStorefrontTextMessages(defaults)
 
-    expect(parseStorefrontTextCatalog(nestedCatalog)).toEqual(defaults)
-    expect(flattenStorefrontTextCatalog(nestedCatalog)).toEqual(defaults)
+    expect(parseStorefrontTextCatalog(nestedCatalog)).toStrictEqual(defaults)
+    expect(flattenStorefrontTextCatalog(nestedCatalog)).toStrictEqual(defaults)
   })
 
   it("validates a versioned catalog against its target market", () => {
@@ -158,12 +158,12 @@ describe("storefront text registry", () => {
 
     expect(new Set(keys).size).toBe(keys.length)
     for (const definition of STOREFRONT_TEXT_DEFINITIONS) {
-      expect(definition.key.startsWith(`${definition.namespace}.`)).toBe(true)
+      expect(definition.key.startsWith(`${definition.namespace}.`)).toBeTruthy()
     }
     for (let index = 0; index < sortedKeys.length - 1; index += 1) {
-      expect(sortedKeys[index + 1]?.startsWith(`${sortedKeys[index]}.`)).toBe(
-        false
-      )
+      expect(
+        sortedKeys[index + 1]?.startsWith(`${sortedKeys[index]}.`)
+      ).toBeFalsy()
     }
   })
 
@@ -190,7 +190,7 @@ describe("storefront text registry", () => {
             overrideValue: localizedValue ?? "",
           }),
           `${definition.key} (${market.market})`
-        ).toEqual({ success: true })
+        ).toStrictEqual({ success: true })
       }
     }
   })
@@ -204,7 +204,7 @@ describe("storefront text registry", () => {
       Object.fromEntries(
         searchPlaceholderRows.map((row) => [row.market, row.default_value])
       )
-    ).toEqual({
+    ).toStrictEqual({
       cz: "Napište, co hledáte...",
       hu: "Írja be, mit keres...",
       ro: "Scrieți ce căutați...",
@@ -221,7 +221,7 @@ describe("storefront text registry", () => {
       Object.fromEntries(
         catalogSortRows.map((row) => [row.market, row.default_value])
       )
-    ).toEqual({
+    ).toStrictEqual({
       cz: "Doporučujeme",
       hu: "Ajánlott",
       ro: "Recomandate",
@@ -238,7 +238,7 @@ describe("storefront text registry", () => {
       Object.fromEntries(
         inStockRows.map((row) => [row.market, row.default_value])
       )
-    ).toEqual({
+    ).toStrictEqual({
       cz: "Skladem",
       hu: "Raktáron",
       ro: "În stoc",
@@ -255,7 +255,7 @@ describe("storefront text registry", () => {
       Object.fromEntries(
         selectPickupPointRows.map((row) => [row.market, row.default_value])
       )
-    ).toEqual({
+    ).toStrictEqual({
       cz: "Vybrat výdejní místo",
       hu: "Átvételi pont kiválasztása",
       ro: "Alege punctul de ridicare",
@@ -272,7 +272,7 @@ describe("storefront text registry", () => {
       Object.fromEntries(
         verifyingPaymentRows.map((row) => [row.market, row.default_value])
       )
-    ).toEqual({
+    ).toStrictEqual({
       cz: "Ověřujeme platbu",
       hu: "A fizetés ellenőrzése",
       ro: "Verificăm plata",
@@ -289,7 +289,7 @@ describe("storefront text registry", () => {
       Object.fromEntries(
         cardGatewayRows.map((row) => [row.market, row.default_value])
       )
-    ).toEqual({
+    ).toStrictEqual({
       cz: "Platba kartou online ({providerName})",
       hu: "Online bankkártyás fizetés ({providerName})",
       ro: "Plată online cu cardul ({providerName})",
@@ -306,7 +306,7 @@ describe("storefront text registry", () => {
       Object.fromEntries(
         freeShippingRows.map((row) => [row.market, row.default_value])
       )
-    ).toEqual({
+    ).toStrictEqual({
       cz: "Nakupte ještě za {missingAmount} a získejte <strong>dopravu zdarma.</strong>",
       hu: "Vásároljon még {missingAmount} értékben, és kapjon <strong>ingyenes szállítást.</strong>",
       ro: "Mai adăugați produse în valoare de {missingAmount} și beneficiați de <strong>transport gratuit.</strong>",
@@ -323,7 +323,7 @@ describe("storefront text registry", () => {
       Object.fromEntries(
         completedOrderTitleRows.map((row) => [row.market, row.default_value])
       )
-    ).toEqual({
+    ).toStrictEqual({
       cz: "Objednávka dokončena",
       hu: "Rendelés befejezve",
       ro: "Comandă finalizată",
@@ -340,7 +340,7 @@ describe("storefront text registry", () => {
       Object.fromEntries(
         marketingConsentRows.map((row) => [row.market, row.default_value])
       )
-    ).toEqual({
+    ).toStrictEqual({
       cz: "Souhlasím se zasíláním marketingových sdělení",
       hu: "Hozzájárulok marketinginformációk küldéséhez",
       ro: "Sunt de acord să primesc comunicări de marketing",
@@ -355,7 +355,7 @@ describe("storefront text registry", () => {
 
     expect(
       Object.fromEntries(homeRows.map((row) => [row.market, row.default_value]))
-    ).toEqual({
+    ).toStrictEqual({
       cz: "Domů",
       hu: "Főoldal",
       ro: "Acasă",
@@ -372,7 +372,7 @@ describe("storefront text registry", () => {
       Object.fromEntries(
         searchResultRows.map((row) => [row.market, row.default_value])
       )
-    ).toEqual({
+    ).toStrictEqual({
       cz: "Vyhledávání",
       hu: "Keresés",
       ro: "Căutare",
@@ -426,7 +426,7 @@ describe("storefront text values", () => {
         ],
         "cs-CZ"
       )
-    ).toEqual(defaultMessages)
+    ).toStrictEqual(defaultMessages)
   })
 })
 
@@ -440,7 +440,7 @@ describe("storefront text ICU validation", () => {
         locale: "hu-HU",
         overrideValue: "{count, plural, =0 {Szűrő} other {Szűrő (#)}}",
       })
-    ).toEqual({ success: true })
+    ).toStrictEqual({ success: true })
   })
 
   it("rejects invalid ICU syntax", () => {
@@ -478,7 +478,7 @@ describe("storefront text admin validation", () => {
         locale: "sk-SK",
         market: "cz",
       }).success
-    ).toBe(false)
+    ).toBeFalsy()
   })
 
   it("accepts a non-empty override and null as an explicit reset", () => {
@@ -486,25 +486,25 @@ describe("storefront text admin validation", () => {
       AdminUpdateStorefrontTextSchema.safeParse({
         override_value: "Do košíku",
       }).success
-    ).toBe(true)
+    ).toBeTruthy()
     expect(
       AdminUpdateStorefrontTextSchema.safeParse({
         override_value: null,
       }).success
-    ).toBe(true)
+    ).toBeTruthy()
   })
 
   it("rejects empty updates and blank overrides", () => {
-    expect(AdminUpdateStorefrontTextSchema.safeParse({}).success).toBe(false)
+    expect(AdminUpdateStorefrontTextSchema.safeParse({}).success).toBeFalsy()
     expect(
       AdminUpdateStorefrontTextSchema.safeParse({ override_value: " " }).success
-    ).toBe(false)
+    ).toBeFalsy()
   })
 
   it("validates catalog export and import inputs", () => {
     expect(
       AdminGetStorefrontTextCatalogSchema.safeParse({ market: "cz" }).success
-    ).toBe(true)
+    ).toBeTruthy()
     expect(
       AdminImportStorefrontTextCatalogSchema.safeParse({
         catalog: {
@@ -515,7 +515,7 @@ describe("storefront text admin validation", () => {
         },
         market: "cz",
       }).success
-    ).toBe(true)
+    ).toBeTruthy()
     expect(
       AdminImportStorefrontTextCatalogSchema.safeParse({
         catalog: {
@@ -527,7 +527,7 @@ describe("storefront text admin validation", () => {
         market: "cz",
         status: "draft",
       }).success
-    ).toBe(false)
+    ).toBeFalsy()
     expect(
       AdminImportStorefrontTextCatalogSchema.safeParse({
         catalog: {
@@ -538,7 +538,7 @@ describe("storefront text admin validation", () => {
         },
         market: "cz",
       }).success
-    ).toBe(false)
+    ).toBeFalsy()
   })
 
   it("preserves reserved message keys for workflow validation", () => {
@@ -553,7 +553,7 @@ describe("storefront text admin validation", () => {
       market: "cz",
     })
 
-    expect(result.success).toBe(true)
+    expect(result.success).toBeTruthy()
     if (!result.success) {
       return
     }
@@ -565,7 +565,7 @@ describe("storefront text admin validation", () => {
       parsedMessages !== null &&
         typeof parsedMessages === "object" &&
         Object.hasOwn(parsedMessages, "__proto__")
-    ).toBe(true)
+    ).toBeTruthy()
   })
 })
 
@@ -610,7 +610,6 @@ describe("storefront text admin catalog", () => {
       expect.objectContaining({
         locale: "cs-CZ",
         market: "cz",
-        schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
         messages: expect.objectContaining({
           cart: expect.objectContaining({
             add_to_cart: "Přidat",
@@ -618,6 +617,7 @@ describe("storefront text admin catalog", () => {
             adding_to_cart: defaultMessages["cart.adding_to_cart"],
           }),
         }),
+        schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
       })
     )
     expect(

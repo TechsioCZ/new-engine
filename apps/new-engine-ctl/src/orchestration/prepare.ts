@@ -16,14 +16,14 @@ import { loadManifest } from "./deploy-inputs.js"
 const DEFAULT_PREVIEW_DB_PREFIX = "medusa_pr_"
 const DEFAULT_PREVIEW_DB_APP_USER_PREFIX = "medusa_pr_app_"
 
-export type PrepareExecutionResult = {
+export interface PrepareExecutionResult {
   response: PrepareResponse
   previewDbPassword: string
 }
 
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
+  await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
 function buildPreviewEnvironmentName(input: PrepareCommandInput): string {
@@ -68,8 +68,8 @@ async function resolveRequiresPreviewDb(
     input.baseUrl,
     input.apiToken
   ).readPreviewCommitState({
-    project_slug: input.projectSlug,
     environment_name: buildPreviewEnvironmentName(input),
+    project_slug: input.projectSlug,
   })
 
   return !(
@@ -88,11 +88,11 @@ async function executePreviewPrepare(
     const response = prepareResponseSchema.parse({
       lane: "preview",
       prepared: false,
-      requires_preview_db: false,
       preview_db_created: false,
       preview_db_name: "",
-      preview_db_user: "",
       preview_db_password_redacted: false,
+      preview_db_user: "",
+      requires_preview_db: false,
     })
 
     if (input.outputJson) {
@@ -100,17 +100,17 @@ async function executePreviewPrepare(
     }
 
     return {
-      response,
       previewDbPassword: "",
+      response,
     }
   }
 
   const previewDb = input.dryRun
     ? {
+        app_password: `dry-run:preview-db:${prNumber}`,
+        app_user: `${DEFAULT_PREVIEW_DB_APP_USER_PREFIX}${prNumber}`,
         created: true,
         db_name: `${DEFAULT_PREVIEW_DB_PREFIX}${prNumber}`,
-        app_user: `${DEFAULT_PREVIEW_DB_APP_USER_PREFIX}${prNumber}`,
-        app_password: `dry-run:preview-db:${prNumber}`,
       }
     : (
         await new ZaneOperatorClient(
@@ -122,11 +122,11 @@ async function executePreviewPrepare(
   const response = prepareResponseSchema.parse({
     lane: "preview",
     prepared: true,
-    requires_preview_db: true,
     preview_db_created: previewDb.created,
     preview_db_name: previewDb.db_name,
-    preview_db_user: previewDb.app_user,
     preview_db_password_redacted: true,
+    preview_db_user: previewDb.app_user,
+    requires_preview_db: true,
   })
 
   if (input.outputJson) {
@@ -134,8 +134,8 @@ async function executePreviewPrepare(
   }
 
   return {
-    response,
     previewDbPassword: previewDb.app_password,
+    response,
   }
 }
 
@@ -144,8 +144,8 @@ async function executeMainPrepare(
 ): Promise<PrepareExecutionResult> {
   const response = prepareResponseSchema.parse({
     lane: "main",
-    prepared: false,
     note: "main_prepare_not_used",
+    prepared: false,
   })
 
   if (input.outputJson) {
@@ -153,8 +153,8 @@ async function executeMainPrepare(
   }
 
   return {
-    response,
     previewDbPassword: "",
+    response,
   }
 }
 

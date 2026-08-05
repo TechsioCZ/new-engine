@@ -10,18 +10,18 @@ const REGION_RETRY_ATTEMPTS = 5
 
 const getRegionQueryOptions = () =>
   queryOptions({
-    queryKey: queryKeys.regions(),
+    gcTime: REGION_GC_TIME,
     queryFn: async () => {
       const response = await sdk.store.region.list()
       return response.regions
     },
-    staleTime: REGION_STALE_TIME,
-    gcTime: REGION_GC_TIME,
+    queryKey: queryKeys.regions(),
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
     retry: REGION_RETRY_ATTEMPTS,
     retryDelay: (attemptIndex) =>
       Math.min(1000 * 2 ** attemptIndex, REGION_RETRY_CAP),
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
+    staleTime: REGION_STALE_TIME,
   })
 
 export function useRegion() {
@@ -32,12 +32,12 @@ export function useRegion() {
     regions[0]
 
   return {
-    regions,
-    selectedRegion,
-    regionId: selectedRegion?.id,
     countryCode: selectedRegion?.countries?.[0]?.iso_2 || "cz",
     currencyCode: selectedRegion?.currency_code || "czk",
     isLoading,
+    regionId: selectedRegion?.id,
+    regions,
+    selectedRegion,
   }
 }
 
@@ -49,10 +49,10 @@ export function useSuspenseRegion() {
     regions[0]
 
   return {
-    regions,
-    selectedRegion,
-    regionId: selectedRegion?.id,
     countryCode: selectedRegion?.countries?.[0]?.iso_2 || "cz",
     currencyCode: selectedRegion?.currency_code || "czk",
+    regionId: selectedRegion?.id,
+    regions,
+    selectedRegion,
   }
 }

@@ -21,7 +21,7 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const __dirname = import.meta.dirname
 const REPO_ROOT = resolve(__dirname, "..", "..", "..", "..")
 const COMP_DIR_ATOMS = join(REPO_ROOT, "libs/ui/src/tokens/components/atoms")
 const FRAG_DIR_LIGHT = join(REPO_ROOT, "libs/ui/src/tokens/figma/light")
@@ -60,10 +60,13 @@ function assertSafeComponentName(name) {
 
 function stripFragmentHeader(fragText) {
   const closing = fragText.indexOf("*/")
-  if (closing === -1) return fragText
+  if (closing === -1) {
+    return fragText
+  }
   let i = closing + 2
-  while (i < fragText.length && (fragText[i] === "\n" || fragText[i] === " "))
+  while (i < fragText.length && (fragText[i] === "\n" || fragText[i] === " ")) {
     i++
+  }
   return fragText.slice(i)
 }
 
@@ -86,10 +89,10 @@ function processComponent(component) {
   }
 
   const fragText = stripFragmentHeader(
-    readFileSync(darkFragPath, "utf8")
+    readFileSync(darkFragPath, "utf-8")
   ).trim()
 
-  let comp = readFileSync(compFile, "utf8")
+  let comp = readFileSync(compFile, "utf-8")
 
   // If a previous FIGMA-GENERATED region exists, REPLACE it (markers and
   // all) with the fresh fragText. Splicing the stripped inner back used
@@ -113,22 +116,15 @@ function processComponent(component) {
 
   // Normalise overall (used by the @utility-heuristic fallback only; the
   // string-capture path normalises its prefix/suffix independently below).
-  comp = comp.replace(/\n{3,}/g, "\n\n").trimEnd() + "\n"
+  comp = `${comp.replace(/\n{3,}/g, "\n\n").trimEnd()}\n`
 
   // Insertion: prefer the captured strings around the removed region.
   // Otherwise fall back to the heuristic — insert before the first
   // @utility/@keyframes/@layer directive (so hand-authored utilities
   // stay at the file end), or append at EOF when nothing matches.
   let out
-  if (preferredPrefix !== null) {
-    out =
-      preferredPrefix.replace(/\n{3,}/g, "\n\n").trimEnd() +
-      "\n\n" +
-      fragText +
-      "\n\n" +
-      preferredSuffix.replace(/^\n+/, "")
-  } else {
-    const insertAtMatch = comp.match(/^(@utility|@keyframes|@layer)/m)
+  if (preferredPrefix === null) {
+    const insertAtMatch = /^(@utility|@keyframes|@layer)/m.exec(comp)
     if (insertAtMatch) {
       const insertAt = insertAtMatch.index
       out =
@@ -140,16 +136,27 @@ function processComponent(component) {
     } else {
       out = comp.trimEnd() + "\n\n" + fragText + "\n"
     }
+  } else {
+    out =
+      preferredPrefix.replace(/\n{3,}/g, "\n\n").trimEnd() +
+      "\n\n" +
+      fragText +
+      "\n\n" +
+      preferredSuffix.replace(/^\n+/, "")
   }
   // Collapse 3+ blank lines
-  out = out.replace(/\n{3,}/g, "\n\n")
+  out = out.replaceAll(/\n{3,}/g, "\n\n")
 
   writeFileSync(compFile, out)
   console.log(`✓ patched ${compFile}`)
 
   // Clean up scratch fragments
-  if (existsSync(lightFragPath)) unlinkSync(lightFragPath)
-  if (existsSync(darkFragPath)) unlinkSync(darkFragPath)
+  if (existsSync(lightFragPath)) {
+    unlinkSync(lightFragPath)
+  }
+  if (existsSync(darkFragPath)) {
+    unlinkSync(darkFragPath)
+  }
 }
 
 function main() {
@@ -158,7 +165,9 @@ function main() {
     console.error("usage: apply-reverse-blocks.mjs <comp> [<comp> ...]")
     process.exit(1)
   }
-  for (const c of args) processComponent(c)
+  for (const c of args) {
+    processComponent(c)
+  }
 }
 
 main()

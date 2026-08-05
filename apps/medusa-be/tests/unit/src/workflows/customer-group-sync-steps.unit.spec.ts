@@ -9,10 +9,7 @@ import { COMPANY_MODULE } from "../../../../src/modules/company"
 
 const COMPANY_CUSTOMER_GROUP_ENTRY_POINT = "company_customer_group"
 
-vi.mock("@medusajs/framework/workflows-sdk", () => ({
-  createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
-  ),
+vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: class StepResponse<
     TPayload = unknown,
     TCompensationInput = unknown,
@@ -25,15 +22,18 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
       this.compensateInput = compensateInput
     }
   },
+  createStep: vi.fn((_name, invoke, compensate) =>
+    Object.assign(invoke, { compensate })
+  ),
 }))
 
-type CustomerService = {
+interface CustomerService {
   addCustomerToGroup: ReturnType<typeof vi.fn>
   removeCustomerFromGroup: ReturnType<typeof vi.fn>
   retrieveCustomerGroup: ReturnType<typeof vi.fn>
 }
 
-type LinkService = {
+interface LinkService {
   create: ReturnType<typeof vi.fn>
   delete: ReturnType<typeof vi.fn>
   dismiss: ReturnType<typeof vi.fn>
@@ -41,7 +41,7 @@ type LinkService = {
   restore: ReturnType<typeof vi.fn>
 }
 
-type CompanyService = {
+interface CompanyService {
   createEmployees: ReturnType<typeof vi.fn>
   deleteEmployees: ReturnType<typeof vi.fn>
   listCompanies: ReturnType<typeof vi.fn>
@@ -51,7 +51,7 @@ type CompanyService = {
   updateEmployees: ReturnType<typeof vi.fn>
 }
 
-type AuthService = {
+interface AuthService {
   updateProviderIdentities: ReturnType<typeof vi.fn>
 }
 
@@ -101,10 +101,10 @@ const makeCompanyService = (
   createEmployees: vi.fn(),
   deleteEmployees: vi.fn(),
   listCompanies: vi.fn().mockResolvedValue([]),
+  restoreEmployees: vi.fn(),
   retrieveCompany: vi
     .fn()
     .mockResolvedValue({ deleted_at: null, id: "comp_1" }),
-  restoreEmployees: vi.fn(),
   softDeleteEmployees: vi.fn(),
   updateEmployees: vi.fn(),
   ...overrides,
@@ -167,10 +167,10 @@ describe("customer-group sync steps", () => {
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
-        data: [{ id: "emp_1", company: { id: "comp_1" } }],
+        data: [{ company: { id: "comp_1" }, id: "emp_1" }],
       })
       .mockResolvedValueOnce({
-        data: [{ id: "comp_1", customer_group: { id: "cgrp_1" } }],
+        data: [{ customer_group: { id: "cgrp_1" }, id: "comp_1" }],
       })
     const container = makeContainer({ customerService, graph })
 
@@ -186,7 +186,7 @@ describe("customer-group sync steps", () => {
       customer_group_id: "cgrp_1",
       customer_id: "cus_1",
     })
-    expect(result.compensateInput).toEqual({
+    expect(result.compensateInput).toStrictEqual({
       customer_id: "cus_1",
       group_id: "cgrp_1",
     })
@@ -211,7 +211,7 @@ describe("customer-group sync steps", () => {
         ],
       })
       .mockResolvedValueOnce({ data: [] })
-    const container = makeContainer({ customerService, linkService, graph })
+    const container = makeContainer({ customerService, graph, linkService })
 
     const result = await asMockStep<{
       company_id: string
@@ -237,7 +237,7 @@ describe("customer-group sync steps", () => {
       { customer_group_id: "cgrp_new", customer_id: "cus_1" },
       { customer_group_id: "cgrp_new", customer_id: "cus_2" },
     ])
-    expect(result.compensateInput).toEqual({
+    expect(result.compensateInput).toStrictEqual({
       company_id: "comp_1",
       customer_ids: ["cus_1", "cus_2"],
       dismissed_deleted_owner_links: [],
@@ -275,8 +275,8 @@ describe("customer-group sync steps", () => {
       })
     const container = makeContainer({
       companyService,
-      linkService,
       graph,
+      linkService,
     })
 
     await asMockStep<{
@@ -335,8 +335,8 @@ describe("customer-group sync steps", () => {
       })
     const container = makeContainer({
       companyService,
-      linkService,
       graph,
+      linkService,
     })
 
     await expect(
@@ -368,7 +368,7 @@ describe("customer-group sync steps", () => {
         },
       ],
     })
-    const container = makeContainer({ customerService, linkService, graph })
+    const container = makeContainer({ customerService, graph, linkService })
 
     const result = await asMockStep<string>(removeCompanyCustomerGroupLinkStep)(
       "comp_1",
@@ -383,7 +383,7 @@ describe("customer-group sync steps", () => {
       company: { company_id: "comp_1" },
       customer: { customer_group_id: "cgrp_1" },
     })
-    expect(result.compensateInput).toEqual({
+    expect(result.compensateInput).toStrictEqual({
       company_id: "comp_1",
       customer_ids: ["cus_1", "cus_2"],
       group_id: "cgrp_1",
@@ -407,7 +407,7 @@ describe("customer-group sync steps", () => {
         },
       ],
     })
-    const container = makeContainer({ customerService, linkService, graph })
+    const container = makeContainer({ customerService, graph, linkService })
 
     const result = await asMockStep<{
       company_id: string
@@ -422,7 +422,7 @@ describe("customer-group sync steps", () => {
       { customer_group_id: "cgrp_1", customer_id: "cus_2" },
     ])
     expect(linkService.dismiss).not.toHaveBeenCalled()
-    expect(result.compensateInput).toEqual({
+    expect(result.compensateInput).toStrictEqual({
       company_id: "comp_1",
       customer_ids: ["cus_1", "cus_2"],
       group_id: "cgrp_1",
@@ -443,7 +443,7 @@ describe("customer-group sync steps", () => {
         },
       ],
     })
-    const container = makeContainer({ customerService, linkService, graph })
+    const container = makeContainer({ customerService, graph, linkService })
 
     await expect(
       asMockStep<{
@@ -585,7 +585,7 @@ describe("customer-group sync steps", () => {
     expect(companyService.softDeleteEmployees).toHaveBeenCalledWith([
       "emp_deleted",
     ])
-    expect(result.compensateInput).toEqual({
+    expect(result.compensateInput).toStrictEqual({
       deleted_employees: [
         {
           company_id: "comp_deleted",
@@ -887,7 +887,7 @@ describe("customer-group sync steps", () => {
       spending_limit: 50,
     })
     expect(companyService.createEmployees).not.toHaveBeenCalled()
-    expect(result.compensateInput).toEqual({
+    expect(result.compensateInput).toStrictEqual({
       action: "restored",
       employee_id: "emp_deleted",
       previous_is_admin: true,
@@ -978,7 +978,7 @@ describe("customer-group sync steps", () => {
       company: { employee_id: "emp_new" },
       customer: { customer_id: "cus_1" },
     })
-    expect(result.compensateInput).toEqual({
+    expect(result.compensateInput).toStrictEqual({
       action: "created",
       customer_id: "cus_1",
       employee_id: "emp_new",
@@ -1047,7 +1047,7 @@ describe("customer-group sync steps", () => {
       company: { employee_id: "emp_new" },
       customer: { customer_id: "cus_1" },
     })
-    expect(result.compensateInput).toEqual({
+    expect(result.compensateInput).toStrictEqual({
       action: "created",
       customer_id: "cus_1",
       employee_id: "emp_new",

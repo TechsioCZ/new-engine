@@ -14,7 +14,7 @@ import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { CheckoutSelectBenefits } from "../checkout-select-benefits"
 import { resolveAvailabilityText } from "../utils/resolve-availability-text"
 
-type CheckoutOrderSummarySectionProps = {
+interface CheckoutOrderSummarySectionProps {
   cartItems: HttpTypes.StoreCartLineItem[]
   cartItemsWithoutTaxAmount: number
   cartTaxAmount: number

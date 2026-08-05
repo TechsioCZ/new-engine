@@ -14,7 +14,7 @@ import { useState } from "react"
 
 import { sdk } from "../lib/sdk"
 
-type PaymentReminderOrder = {
+interface PaymentReminderOrder {
   id: string
   display_id: number
   order_display_id: string
@@ -25,22 +25,22 @@ type PaymentReminderOrder = {
   total_formatted?: string
 }
 
-type UnpaidOrdersResponse = {
+interface UnpaidOrdersResponse {
   orders: PaymentReminderOrder[]
 }
 
-type OrderEmailTemplate = {
+interface OrderEmailTemplate {
   label: string
   subject: string
   template: string
   trigger_type: string
 }
 
-type OrderEmailTemplatesResponse = {
+interface OrderEmailTemplatesResponse {
   templates: OrderEmailTemplate[]
 }
 
-type OrderEmailResponse = {
+interface OrderEmailResponse {
   order: PaymentReminderOrder
   sent: boolean
   template: OrderEmailTemplate
@@ -52,7 +52,7 @@ const UNPAID_ORDERS_QUERY_KEY = ["unpaid-orders-payment-reminders"]
 const ORDER_EMAIL_TEMPLATES_QUERY_KEY = ["order-email-templates"]
 const DEFAULT_ORDER_EMAIL_TEMPLATE = "order-payment-reminder"
 
-const sendOrderEmail = ({
+const sendOrderEmail = async ({
   orderId,
   template,
 }: {
@@ -88,7 +88,7 @@ const OrderEmailSendControl = ({
     templates[0]?.template ?? DEFAULT_ORDER_EMAIL_TEMPLATE
   )
   const mutation = useMutation({
-    mutationFn: () => sendOrderEmail({ orderId, template }),
+    mutationFn: async () => sendOrderEmail({ orderId, template }),
     onError: (error) => {
       toast.error(
         error instanceof Error ? error.message : "Failed to send order email"
@@ -117,7 +117,9 @@ const OrderEmailSendControl = ({
       <Button
         disabled={disabled || !templates.length}
         isLoading={mutation.isPending}
-        onClick={() => mutation.mutate()}
+        onClick={() => {
+          mutation.mutate()
+        }}
         size="small"
         type="button"
         variant="secondary"
@@ -130,7 +132,7 @@ const OrderEmailSendControl = ({
 
 const DetailReminderWidget = ({ order }: { order: AdminOrder }) => {
   const { data } = useQuery({
-    queryFn: () =>
+    queryFn: async () =>
       sdk.client.fetch<OrderEmailTemplatesResponse>(
         "/admin/orders/email-templates"
       ),
@@ -163,14 +165,14 @@ const ListReminderWidget = () => {
     error: loadError,
     isLoading,
   } = useQuery({
-    queryFn: () =>
+    queryFn: async () =>
       sdk.client.fetch<UnpaidOrdersResponse>(
         "/admin/orders/payment-reminders/unpaid?limit=5"
       ),
     queryKey: UNPAID_ORDERS_QUERY_KEY,
   })
   const templatesQuery = useQuery({
-    queryFn: () =>
+    queryFn: async () =>
       sdk.client.fetch<OrderEmailTemplatesResponse>(
         "/admin/orders/email-templates"
       ),

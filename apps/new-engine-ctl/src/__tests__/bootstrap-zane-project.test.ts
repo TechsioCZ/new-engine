@@ -8,7 +8,7 @@ import { parse } from "yaml"
 
 import { executeBootstrapZaneProjectPlan } from "../orchestration/bootstrap/zane-project.js"
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..")
+const repoRoot = resolve(import.meta.dirname, "../../../..")
 const stackManifestPath = join(
   repoRoot,
   "apps/new-engine-ctl/config/stack-manifest.yaml"
@@ -75,15 +75,10 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
   await writeFile(
     inspectJsonPath,
     JSON.stringify({
-      project_slug: projectSlug,
+      environment_exists: true,
       environment_name: "production",
       project_exists: true,
-      environment_exists: true,
-      settings: {
-        root_domain: publicDomain,
-        app_domain: `control.${publicDomain}`,
-      },
-      shared_variables: [],
+      project_slug: projectSlug,
       services: serviceSlugs.map((serviceSlug) => ({
         service_slug: serviceSlug,
         exists: true,
@@ -96,78 +91,83 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
             serviceSlug === "medusa-db" ? "zn-medusa-db.global" : null,
         },
       })),
+      settings: {
+        app_domain: `control.${publicDomain}`,
+        root_domain: publicDomain,
+      },
+      shared_variables: [],
     }),
-    "utf8"
+    "utf-8"
   )
 
   try {
     const plan = await executeBootstrapZaneProjectPlan({
-      projectSlug,
-      projectDescription: "Test project",
+      branchName: "main",
       environmentName: "production",
       inspectJsonPath,
-      repositoryUrl: "https://github.com/example/new-engine.git",
-      branchName: "main",
+      phase: "env",
+      projectDescription: "Test project",
+      projectSlug,
       publicDomain,
       publicUrlAffix,
-      stackManifestPath,
+      repositoryUrl: "https://github.com/example/new-engine.git",
       stackInputsPath,
-      phase: "env",
+      stackManifestPath,
     })
 
     expect(plan.status).toBe("ready")
-    expect(plan.services.map((service) => service.service_id)).toEqual(
+    expect(plan.services.map((service) => service.service_id)).toStrictEqual(
       serviceSlugs
     )
-    expect(plan.services.some((service) => service.service_id === "n1")).toBe(
-      false
-    )
+    expect(
+      plan.services.some((service) => service.service_id === "n1")
+    ).toBeFalsy()
 
     const inspectWithN1JsonPath = join(
       temporaryDirectory,
       "inspect-with-n1.json"
     )
     const inspectWithN1 = JSON.parse(
-      await readFile(inspectJsonPath, "utf8")
+      await readFile(inspectJsonPath, "utf-8")
     ) as {
       services: Record<string, unknown>[]
     }
     inspectWithN1.services.push({
-      service_slug: "n1",
-      exists: true,
       details: {
+        global_network_alias: null,
         id: "n1",
+        network_alias: "zn-n1",
         slug: "n1",
         type: "git",
-        network_alias: "zn-n1",
-        global_network_alias: null,
       },
+      exists: true,
+      service_slug: "n1",
     })
     await writeFile(
       inspectWithN1JsonPath,
       JSON.stringify(inspectWithN1),
-      "utf8"
+      "utf-8"
     )
 
     const planWithN1 = await executeBootstrapZaneProjectPlan({
-      projectSlug,
-      projectDescription: "Test project",
+      branchName: "main",
       environmentName: "production",
       inspectJsonPath: inspectWithN1JsonPath,
-      repositoryUrl: "https://github.com/example/new-engine.git",
-      branchName: "main",
+      phase: "env",
+      projectDescription: "Test project",
+      projectSlug,
       publicDomain,
       publicUrlAffix,
-      stackManifestPath,
+      repositoryUrl: "https://github.com/example/new-engine.git",
       stackInputsPath,
-      phase: "env",
+      stackManifestPath,
     })
     const n1 = planWithN1.services.find(
       (service) => service.service_id === "n1"
     )
     expect(n1).toMatchObject({
-      service_slug: "n1",
       dockerfile_path: "./docker/development/n1/Dockerfile",
+      service_slug: "n1",
     })
     expect(n1?.desired_env).not.toHaveProperty(
       "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"
@@ -175,7 +175,7 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     expect(n1?.desired_env).not.toHaveProperty(
       "NEXT_PUBLIC_MEILISEARCH_API_KEY"
     )
-    expect(n1?.cleanup_env_keys).not.toEqual(
+    expect(n1?.cleanup_env_keys).not.toStrictEqual(
       expect.arrayContaining([
         "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
         "NEXT_PUBLIC_MEILISEARCH_API_KEY",
@@ -186,15 +186,15 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
       (service) => service.service_id === "medusa-be"
     )
     expect(medusa?.desired_env).toMatchObject({
-      STOREFRONT_URL: "https://storefront.example.test",
-      STORE_NAME: "Herbatika",
-      STORE_CORS: `http://localhost:3001,https://storefront.example.test,${herbatikaPublicOrigin}`,
       ADMIN_CORS: `http://localhost:5173,${medusaBePublicOrigin}`,
       AUTH_CORS: `http://127.0.0.1:3001,${medusaBePublicOrigin}`,
       FEATURE_PAYMENT_QR_ENABLED: "1",
       GOPAY_WEBHOOK_URL: `${medusaBePublicOrigin}/hooks/payment/paykit_gopay`,
       HERBATICA_REVIEWS_XML_PATH: "https://assets.example.test/reviews.xml",
       RESEND_FROM_EMAIL: "noreply@example.test",
+      STOREFRONT_URL: "https://storefront.example.test",
+      STORE_CORS: `http://localhost:3001,https://storefront.example.test,${herbatikaPublicOrigin}`,
+      STORE_NAME: "Herbatika",
     })
     expect(medusa?.desired_env).toHaveProperty(
       "WORKFLOW_QUEUE_RUNNER_BATCH_SIZE"
@@ -215,7 +215,7 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     expect(herbatika?.desired_env).not.toHaveProperty(
       "MEILISEARCH_SEARCH_API_KEY"
     )
-    expect(herbatika?.cleanup_env_keys).toEqual(
+    expect(herbatika?.cleanup_env_keys).toStrictEqual(
       expect.arrayContaining([
         "MEILISEARCH_HOST",
         "MEILISEARCH_SEARCH_API_KEY",
@@ -226,13 +226,13 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     )
 
     const compose = parse(
-      await readFile(join(repoRoot, "docker-compose.yaml"), "utf8"),
+      await readFile(join(repoRoot, "docker-compose.yaml"), "utf-8"),
       { merge: true }
     ) as {
       services: Record<string, { environment: Record<string, unknown> }>
     }
     const composeMedusaEnv = compose.services["medusa-be"]?.environment
-    const composeHerbatikaEnv = compose.services["herbatika"]?.environment
+    const composeHerbatikaEnv = compose.services.herbatika?.environment
     if (!(composeMedusaEnv && composeHerbatikaEnv)) {
       throw new Error("Compose storefront/backend environments are missing.")
     }
@@ -253,9 +253,9 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
         )
     )
 
-    expect(missingMedusaEnvKeys).toEqual([])
-    expect(missingHerbatikaEnvKeys).toEqual([])
+    expect(missingMedusaEnvKeys).toStrictEqual([])
+    expect(missingHerbatikaEnvKeys).toStrictEqual([])
   } finally {
-    await rm(temporaryDirectory, { recursive: true, force: true })
+    await rm(temporaryDirectory, { force: true, recursive: true })
   }
 })

@@ -19,10 +19,10 @@ import { useParams } from "react-router-dom"
 import {
   deleteProductVariantMeasurement,
   measurementUnitQueryKeys,
-  type ProductVariantMeasurementResponse,
   retrieveProductVariantMeasurement,
   setProductVariantMeasurement,
 } from "../lib/measurement-units"
+import type { ProductVariantMeasurementResponse } from "../lib/measurement-units"
 
 type ProductVariantMeasurementWidgetProps = Partial<
   DetailWidgetProps<{
@@ -134,7 +134,7 @@ const ProductVariantMeasurementDrawer = ({
   }
 
   const saveMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: async () =>
       setProductVariantMeasurement(productId, productVariantId, {
         product_unit_quantity: quantityNumber,
       }),
@@ -151,7 +151,7 @@ const ProductVariantMeasurementDrawer = ({
   })
 
   const deleteMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: async () =>
       deleteProductVariantMeasurement(productId, productVariantId),
     onError: (error) => {
       toast.error(
@@ -179,7 +179,9 @@ const ProductVariantMeasurementDrawer = ({
               </Label>
               <Input
                 id="variant-measurement-quantity"
-                onChange={(event) => setQuantity(event.target.value)}
+                onChange={(event) => {
+                  setQuantity(event.target.value)
+                }}
                 placeholder={t("placeholders.quantity")}
                 step="any"
                 type="number"
@@ -210,7 +212,9 @@ const ProductVariantMeasurementDrawer = ({
             <Button
               disabled={!data?.variant_measurement || deleteMutation.isPending}
               isLoading={deleteMutation.isPending}
-              onClick={() => deleteMutation.mutate()}
+              onClick={() => {
+                deleteMutation.mutate()
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -219,7 +223,9 @@ const ProductVariantMeasurementDrawer = ({
             </Button>
             <div className="flex justify-end gap-2">
               <Button
-                onClick={() => onOpenChange(false)}
+                onClick={() => {
+                  onOpenChange(false)
+                }}
                 size="small"
                 type="button"
                 variant="secondary"
@@ -235,7 +241,9 @@ const ProductVariantMeasurementDrawer = ({
                   )
                 }
                 isLoading={saveMutation.isPending}
-                onClick={() => saveMutation.mutate()}
+                onClick={() => {
+                  saveMutation.mutate()
+                }}
                 size="small"
                 type="button"
               >
@@ -260,7 +268,7 @@ const ProductVariantMeasurementWidget = ({
 
   const { data, error, isLoading } = useQuery({
     enabled: !!productId && !!productVariantId,
-    queryFn: () => {
+    queryFn: async () => {
       if (!(productId && productVariantId)) {
         throw new Error("Product and variant ids are required")
       }
@@ -285,7 +293,9 @@ const ProductVariantMeasurementWidget = ({
             <Heading level="h2">{t("widget.variantTitle")}</Heading>
           </div>
           <Button
-            onClick={() => setOpen(true)}
+            onClick={() => {
+              setOpen(true)
+            }}
             size="small"
             type="button"
             variant="secondary"

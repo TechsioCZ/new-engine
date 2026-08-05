@@ -29,9 +29,9 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const { rows: orders, metadata } = result
 
   res.json({
-    orders,
     count: metadata.count,
-    offset: metadata.skip,
     limit: metadata.take,
+    offset: metadata.skip,
+    orders,
   })
 }

@@ -19,7 +19,7 @@ const mocks = vi.hoisted(() => {
   return { MockMedusaError }
 })
 
-vi.mock("@medusajs/framework/utils", () => ({
+vi.mock(import("@medusajs/framework/utils"), () => ({
   ContainerRegistrationKeys: {
     LINK: "link",
     QUERY: "query",
@@ -31,10 +31,7 @@ vi.mock("@medusajs/framework/utils", () => ({
   },
 }))
 
-vi.mock("@medusajs/framework/workflows-sdk", () => ({
-  createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
-  ),
+vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: class StepResponse<
     TPayload = unknown,
     TCompensationInput = unknown,
@@ -47,34 +44,37 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
       this.compensateInput = compensateInput
     }
   },
+  createStep: vi.fn((_name, invoke, compensate) =>
+    Object.assign(invoke, { compensate })
+  ),
 }))
 
-vi.mock("../../../../../src/modules/company", () => ({
+vi.mock(import("../../../../../src/modules/company"), () => ({
   COMPANY_MODULE: "company",
 }))
 
-type CompanyService = {
+interface CompanyService {
   restoreEmployees: ReturnType<typeof vi.fn>
   softDeleteEmployees: ReturnType<typeof vi.fn>
 }
 
-type CustomerService = {
+interface CustomerService {
   addCustomerToGroup: ReturnType<typeof vi.fn>
   removeCustomerFromGroup: ReturnType<typeof vi.fn>
 }
 
-type AuthService = {
+interface AuthService {
   updateProviderIdentities: ReturnType<typeof vi.fn>
 }
 
-type LinkService = {
+interface LinkService {
   delete: ReturnType<typeof vi.fn>
   restore: ReturnType<typeof vi.fn>
 }
 
 type MockContainer = ReturnType<typeof makeContainer>
 
-type MockStep = {
+interface MockStep {
   (
     input:
       | string
@@ -322,13 +322,13 @@ describe("deleteEmployeesStep", () => {
       "emp_1",
       "emp_2",
     ])
-    expect(result.compensateInput).toEqual({
+    expect(result.compensateInput).toStrictEqual({
+      employee_ids: ["emp_1", "emp_2"],
       employee_link_delete_input: {
         company: {
           employee_id: ["emp_1", "emp_2"],
         },
       },
-      employee_ids: ["emp_1", "emp_2"],
       provider_identity_ids: ["authpi_1"],
       removed_customer_groups: [
         {
@@ -403,7 +403,7 @@ describe("deleteEmployeesStep", () => {
     )
 
     expect(authService.updateProviderIdentities).not.toHaveBeenCalled()
-    expect(result.compensateInput?.provider_identity_ids).toEqual([])
+    expect(result.compensateInput?.provider_identity_ids).toStrictEqual([])
   })
 
   it("restores deleted employees and admin metadata on compensation", async () => {
@@ -424,12 +424,12 @@ describe("deleteEmployeesStep", () => {
 
     await asMockStep(deleteEmployeesStep).compensate(
       {
+        employee_ids: ["emp_1"],
         employee_link_delete_input: {
           company: {
             employee_id: ["emp_1"],
           },
         },
-        employee_ids: ["emp_1"],
         provider_identity_ids: ["authpi_1"],
         removed_customer_groups: [
           {

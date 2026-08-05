@@ -18,63 +18,76 @@ export function mapPacketaStatusCode(
   switch (key) {
     case "1":
     case "received data":
-    case "receiveddata":
+    case "receiveddata": {
       return "received_data"
+    }
 
     case "2":
     case "arrived":
     case "arrived at target":
-    case "arrivedattarget":
+    case "arrivedattarget": {
       return "arrived"
+    }
 
     case "3":
     case "prepared for departure":
-    case "preparedfordeparture":
+    case "preparedfordeparture": {
       return "prepared_for_departure"
+    }
 
     case "4":
     case "handed to carrier":
-    case "handedtocarrier":
+    case "handedtocarrier": {
       return "handed_to_carrier"
+    }
 
     case "5":
-    case "departed":
+    case "departed": {
       return "departed"
+    }
 
     case "6":
     case "ready for pickup":
-    case "readyforpickup":
+    case "readyforpickup": {
       return "ready_for_pickup"
+    }
 
     case "7":
-    case "delivered":
+    case "delivered": {
       return "delivered"
+    }
 
     case "8":
     case "collected":
-    case "pickedup":
+    case "pickedup": {
       return "collected"
+    }
 
     case "9":
     case "posted back":
-    case "postedback":
+    case "postedback": {
       return "posted_back"
+    }
 
     case "10":
-    case "returned":
+    case "returned": {
       return "returned"
+    }
 
     case "11":
     case "cancelled":
-    case "canceled":
+    case "canceled": {
       return "cancelled"
+    }
 
     case "12":
     case "customs declaration":
-    case "customsdeclarationprocess":
+    case "customsdeclarationprocess": {
       return "customs_declaration"
+    }
 
-    default:
+    default: {
       return "unknown"
+    }
   }
 }

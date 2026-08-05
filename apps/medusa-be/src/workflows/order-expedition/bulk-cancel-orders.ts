@@ -6,7 +6,7 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 import { cancelOrderWorkflow } from "@medusajs/medusa/core-flows"
 
-type BulkCancelOrdersWorkflowInput = {
+interface BulkCancelOrdersWorkflowInput {
   order_ids: string[]
 }
 

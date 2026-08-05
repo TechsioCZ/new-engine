@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next"
 import { ApprovalStatusType, ApprovalType } from "../../../../types"
 import { useUpdateApproval } from "../../../hooks/api"
 
-export type ApprovalActionCart = {
+export interface ApprovalActionCart {
   approval_status: {
     status: ApprovalStatusType
   }
@@ -37,10 +37,10 @@ export const ApprovalActions = ({ cart }: { cart: ApprovalActionCart }) => {
   const approveCart = async () => {
     setIsApproving(true)
     const confirmed = await dialog({
-      title: t("prompts.approveTitle"),
-      description: t("prompts.approveDescription"),
-      confirmText: t("actions.approve"),
       cancelText: t("actions.cancel"),
+      confirmText: t("actions.approve"),
+      description: t("prompts.approveDescription"),
+      title: t("prompts.approveTitle"),
     })
 
     if (confirmed && awaitingSalesManagerApproval) {
@@ -54,10 +54,10 @@ export const ApprovalActions = ({ cart }: { cart: ApprovalActionCart }) => {
   const rejectCart = async () => {
     setIsRejecting(true)
     const confirmed = await dialog({
-      title: t("prompts.rejectTitle"),
-      description: t("prompts.rejectDescription"),
-      confirmText: t("actions.reject"),
       cancelText: t("actions.cancel"),
+      confirmText: t("actions.reject"),
+      description: t("prompts.rejectDescription"),
+      title: t("prompts.rejectTitle"),
     })
 
     if (confirmed && awaitingSalesManagerApproval) {

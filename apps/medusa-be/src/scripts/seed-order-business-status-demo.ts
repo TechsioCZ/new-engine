@@ -2,14 +2,14 @@ import type { ExecArgs, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createOrderWorkflow } from "@medusajs/medusa/core-flows"
 
-import {
-  type ManualOrderBusinessStatusId,
-  ORDER_BUSINESS_STATUS_METADATA_KEY,
-  type OrderBusinessStatusId,
+import { ORDER_BUSINESS_STATUS_METADATA_KEY } from "../utils/order-business-status"
+import type {
+  ManualOrderBusinessStatusId,
+  OrderBusinessStatusId,
 } from "../utils/order-business-status"
 import seedOrderExpeditionDemo from "./seed-order-expedition-demo"
 
-type DemoVariant = {
+interface DemoVariant {
   id: string
   sku?: string | null
   title?: string | null
@@ -20,35 +20,35 @@ type DemoVariant = {
   } | null
 }
 
-type DemoRegion = {
+interface DemoRegion {
   id: string
   currency_code?: string | null
 }
 
-type DemoSalesChannel = {
+interface DemoSalesChannel {
   id: string
 }
 
-type DemoOrder = {
+interface DemoOrder {
   id: string
   email?: string | null
   metadata?: Record<string, unknown> | null
 }
 
-type QueryService = {
+interface QueryService {
   graph: (input: {
     entity: string
     fields: string[]
   }) => Promise<{ data?: unknown }>
 }
 
-type DatabaseConnection = {
+interface DatabaseConnection {
   raw: <T = unknown>(sql: string, bindings?: unknown[]) => Promise<T>
 }
 
 type RawRows<T> = T[] | { rows?: T[] }
 
-type BusinessStatusDemo = {
+interface BusinessStatusDemo {
   key: string
   email: string
   expectedStatus: OrderBusinessStatusId
@@ -58,7 +58,7 @@ type BusinessStatusDemo = {
   fulfillment?: "shipped" | "delivered"
 }
 
-type UpsertCompletedPaymentCollectionInput = {
+interface UpsertCompletedPaymentCollectionInput {
   demo: BusinessStatusDemo
   index: number
   order: DemoOrder
@@ -66,7 +66,7 @@ type UpsertCompletedPaymentCollectionInput = {
   region: DemoRegion
 }
 
-type UpsertDemoFulfillmentInput = {
+interface UpsertDemoFulfillmentInput {
   demo: BusinessStatusDemo
   order: DemoOrder
   pgConnection: DatabaseConnection
@@ -80,58 +80,58 @@ const DEMO_ITEM_AMOUNT_STEP = 25
 const DEMO_SHIPPING_AMOUNT = 99
 const BUSINESS_STATUS_DEMOS: BusinessStatusDemo[] = [
   {
-    key: "awaiting-payment",
     email: "business-status.demo.awaiting-payment@example.test",
     expectedStatus: "awaiting_payment",
+    key: "awaiting-payment",
     orderStatus: "pending",
     paid: false,
   },
   {
-    key: "paid",
     email: "business-status.demo.paid@example.test",
     expectedStatus: "paid",
+    key: "paid",
     orderStatus: "pending",
     paid: true,
   },
   {
-    key: "processing",
     email: "business-status.demo.processing@example.test",
     expectedStatus: "processing",
+    key: "processing",
     manualStatus: "processing",
     orderStatus: "pending",
     paid: true,
   },
   {
-    key: "waiting-for-supplier",
     email: "business-status.demo.waiting-for-supplier@example.test",
     expectedStatus: "waiting_for_supplier",
+    key: "waiting-for-supplier",
     manualStatus: "waiting_for_supplier",
     orderStatus: "pending",
     paid: true,
   },
   {
-    key: "shipped-over-processing",
     email: "business-status.demo.shipped@example.test",
     expectedStatus: "shipped",
     fulfillment: "shipped",
+    key: "shipped-over-processing",
     manualStatus: "processing",
     orderStatus: "pending",
     paid: true,
   },
   {
-    key: "delivered-over-supplier",
     email: "business-status.demo.delivered@example.test",
     expectedStatus: "delivered",
     fulfillment: "delivered",
+    key: "delivered-over-supplier",
     manualStatus: "waiting_for_supplier",
     orderStatus: "pending",
     paid: true,
   },
   {
-    key: "canceled-over-paid-shipped",
     email: "business-status.demo.canceled@example.test",
     expectedStatus: "canceled",
     fulfillment: "shipped",
+    key: "canceled-over-paid-shipped",
     manualStatus: "canceled",
     orderStatus: "canceled",
     paid: true,
@@ -336,8 +336,8 @@ async function normalizeDemoOrder({
   if (demo.fulfillment) {
     await upsertDemoFulfillment({
       demo,
-      pgConnection,
       order,
+      pgConnection,
       stockLocationId,
       timestamp: createdAt,
     })
@@ -353,7 +353,7 @@ async function upsertCompletedPaymentCollection({
 }: UpsertCompletedPaymentCollectionInput) {
   const paymentCollectionId = getPaymentCollectionId(demo)
   const amount = getDemoOrderTotal(index)
-  const rawAmount = { value: amount, precision: 20 }
+  const rawAmount = { precision: 20, value: amount }
   const metadata = {
     order_business_status_demo: true,
     order_business_status_demo_key: demo.key,
@@ -625,7 +625,7 @@ function getDemoOrderTotal(index: number) {
 }
 
 function getDemoIdSlug(demo: BusinessStatusDemo) {
-  return demo.key.replace(/-/g, "_")
+  return demo.key.replaceAll(/-/g, "_")
 }
 
 function getPaymentCollectionId(demo: BusinessStatusDemo) {

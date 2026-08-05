@@ -8,7 +8,7 @@ import type { SortOption } from "@/utils/product-filters"
 
 export type ExtendedSortOption = SortOption | "relevance"
 
-export type PageRange = {
+export interface PageRange {
   start: number
   end: number
   isRange: boolean
@@ -21,7 +21,7 @@ function parsePageRange(pageParam: string): PageRange {
     : Math.max(parsedSinglePage, 1)
 
   if (!pageParam.includes("-")) {
-    return { start: singlePage, end: singlePage, isRange: false }
+    return { end: singlePage, isRange: false, start: singlePage }
   }
 
   const [start = Number.NaN, end = Number.NaN] = pageParam
@@ -34,10 +34,10 @@ function parsePageRange(pageParam: string): PageRange {
     end >= 1 &&
     start <= end
   ) {
-    return { start, end, isRange: true }
+    return { end, isRange: true, start }
   }
 
-  return { start: singlePage, end: singlePage, isRange: false }
+  return { end: singlePage, isRange: false, start: singlePage }
 }
 
 function parseFilterSet(value: string | null) {
@@ -70,14 +70,14 @@ export function useUrlFilters() {
   const setFilters = (newFilters: FilterState) => {
     const params = createParams()
 
-    const categoriesArray = Array.from(newFilters.categories)
+    const categoriesArray = [...newFilters.categories]
     if (categoriesArray.length > 0) {
       params.set("categories", categoriesArray.join(","))
     } else {
       params.delete("categories")
     }
 
-    const sizesArray = Array.from(newFilters.sizes)
+    const sizesArray = [...newFilters.sizes]
     if (sizesArray.length > 0) {
       params.set("sizes", sizesArray.join(","))
     } else {
@@ -150,17 +150,17 @@ export function useUrlFilters() {
   }
 
   return {
-    filters,
-    setFilters,
-    sortBy,
-    setSortBy,
-    page,
-    setPage,
-    getPageUrl,
-    pageRange,
-    setPageRange,
     extendPageRange,
+    filters,
+    getPageUrl,
+    page,
+    pageRange,
     searchQuery,
+    setFilters,
+    setPage,
+    setPageRange,
     setSearchQuery,
+    setSortBy,
+    sortBy,
   }
 }

@@ -16,18 +16,20 @@ type CapturePaymentInputWithAmount = CapturePaymentInput & {
   amount?: unknown
 }
 
-describe("PaykitStripePaymentProvider", () => {
+describe(PaykitStripePaymentProvider, () => {
   it("validates required Stripe options", () => {
-    expect(() => PaykitStripePaymentProvider.validateOptions({})).toThrow(
+    expect(() => {
+      PaykitStripePaymentProvider.validateOptions({})
+    }).toThrow(
       "PayKit Stripe missing required option(s): apiKey, webhookSecret"
     )
 
-    expect(() =>
+    expect(() => {
       PaykitStripePaymentProvider.validateOptions({
         apiKey: "sk_test_123",
         webhookSecret: "whsec_123",
       })
-    ).not.toThrow()
+    }).not.toThrow()
   })
 
   it("uses configured Stripe clients through the public payment flow", async () => {
@@ -38,16 +40,16 @@ describe("PaykitStripePaymentProvider", () => {
 
     await provider.initiatePayment({
       amount: 10.5,
-      currency_code: "czk",
-      data: {
-        session_id: "payses_123",
-        item_id: "cart_123",
-      },
       context: {
         customer: {
-          id: "cus_123",
           email: "customer@example.com",
+          id: "cus_123",
         },
+      },
+      currency_code: "czk",
+      data: {
+        item_id: "cart_123",
+        session_id: "payses_123",
       },
     })
 
@@ -63,11 +65,11 @@ describe("PaykitStripePaymentProvider", () => {
     const client = createMockPaykitClient({
       payments: {
         create: vi.fn().mockResolvedValue({
-          id: "stripe-payment-1",
           amount: 1050,
           currency: "czk",
-          status: "requires_action",
+          id: "stripe-payment-1",
           payment_url: "https://checkout.stripe.example/session",
+          status: "requires_action",
         }),
       },
     })
@@ -77,19 +79,19 @@ describe("PaykitStripePaymentProvider", () => {
 
     const result = await provider.initiatePayment({
       amount: 10.5,
+      context: {
+        customer: {
+          email: "customer@example.com",
+          id: "cus_123",
+        },
+      },
       currency_code: "czk",
       data: {
-        session_id: "payses_123",
         item_id: "cart_123",
         provider_metadata: {
           success_url: "https://shop.example/checkout/success",
         },
-      },
-      context: {
-        customer: {
-          id: "cus_123",
-          email: "customer@example.com",
-        },
+        session_id: "payses_123",
       },
     })
 
@@ -98,16 +100,16 @@ describe("PaykitStripePaymentProvider", () => {
         amount: 1050,
       })
     )
-    expect(result).toEqual({
-      id: "stripe-payment-1",
-      status: PaymentSessionStatus.REQUIRES_MORE,
+    expect(result).toStrictEqual({
       data: {
-        id: "stripe-payment-1",
         amount: 1050,
         currency: "czk",
-        status: "requires_action",
+        id: "stripe-payment-1",
         payment_url: "https://checkout.stripe.example/session",
+        status: "requires_action",
       },
+      id: "stripe-payment-1",
+      status: PaymentSessionStatus.REQUIRES_MORE,
     })
   })
 
@@ -119,16 +121,16 @@ describe("PaykitStripePaymentProvider", () => {
 
     await provider.initiatePayment({
       amount: 10.123,
-      currency_code: "bhd",
-      data: {
-        session_id: "payses_123",
-        item_id: "cart_123",
-      },
       context: {
         customer: {
-          id: "cus_123",
           email: "customer@example.com",
+          id: "cus_123",
         },
+      },
+      currency_code: "bhd",
+      data: {
+        item_id: "cart_123",
+        session_id: "payses_123",
       },
     })
 
@@ -145,22 +147,22 @@ describe("PaykitStripePaymentProvider", () => {
         // PayKit Stripe 1.3.2 returns this incomplete PaymentIntent-derived
         // shape and would otherwise bypass the Checkout Session mapping.
         retrieve: vi.fn().mockResolvedValue({
-          id: "cs_test_123",
           amount: 1050,
           currency: "czk",
+          id: "cs_test_123",
           metadata: {},
           status: "succeeded",
         }),
       },
       stripeCheckoutSessions: {
         retrieve: vi.fn().mockResolvedValue({
-          id: "cs_test_123",
           amount_total: 1050,
           currency: "czk",
           customer: "cus_123",
+          id: "cs_test_123",
           metadata: {
-            session_id: "payses_123",
             __paykit: JSON.stringify({ itemId: "cart_123" }),
+            session_id: "payses_123",
           },
           payment_intent: {
             id: "pi_123",
@@ -181,8 +183,7 @@ describe("PaykitStripePaymentProvider", () => {
           id: "cs_test_123",
         },
       })
-    ).resolves.toEqual({
-      status: PaymentSessionStatus.CAPTURED,
+    ).resolves.toStrictEqual({
       data: expect.objectContaining({
         id: "cs_test_123",
         amount: 1050,
@@ -198,6 +199,7 @@ describe("PaykitStripePaymentProvider", () => {
         payment_url: "https://checkout.stripe.example/session",
         status: "succeeded",
       }),
+      status: PaymentSessionStatus.CAPTURED,
     })
     expect(client.payments.retrieve).not.toHaveBeenCalled()
     expect(client.stripeCheckoutSessions?.retrieve).toHaveBeenCalledWith(
@@ -210,9 +212,9 @@ describe("PaykitStripePaymentProvider", () => {
     const client = createMockPaykitClient({
       payments: {
         retrieve: vi.fn().mockResolvedValue({
-          id: "pi_test_123",
           amount: 1050,
           currency: "czk",
+          id: "pi_test_123",
           metadata: {
             session_id: "payses_123",
           },
@@ -233,12 +235,12 @@ describe("PaykitStripePaymentProvider", () => {
           id: "pi_test_123",
         },
       })
-    ).resolves.toEqual({
-      status: PaymentSessionStatus.CAPTURED,
+    ).resolves.toStrictEqual({
       data: expect.objectContaining({
         id: "pi_test_123",
         status: "succeeded",
       }),
+      status: PaymentSessionStatus.CAPTURED,
     })
     expect(client.payments.retrieve).toHaveBeenCalledWith("pi_test_123")
     expect(client.stripeCheckoutSessions?.retrieve).not.toHaveBeenCalled()
@@ -251,17 +253,17 @@ describe("PaykitStripePaymentProvider", () => {
       },
       stripeCheckoutSessions: {
         retrieve: vi.fn().mockResolvedValue({
-          id: "cs_test_manual",
           amount_total: 1050,
           currency: "czk",
+          id: "cs_test_manual",
           metadata: {
             session_id: "payses_123",
           },
           payment_intent: {
-            id: "pi_manual",
             amount: 1050,
             currency: "czk",
             customer: "cus_123",
+            id: "pi_manual",
             metadata: {},
             status: "requires_capture",
           },
@@ -280,14 +282,14 @@ describe("PaykitStripePaymentProvider", () => {
           id: "cs_test_manual",
         },
       })
-    ).resolves.toEqual({
-      status: PaymentSessionStatus.AUTHORIZED,
+    ).resolves.toStrictEqual({
       data: expect.objectContaining({
         id: "cs_test_manual",
         payment_intent_id: "pi_manual",
         requires_action: false,
         status: "requires_capture",
       }),
+      status: PaymentSessionStatus.AUTHORIZED,
     })
   })
 
@@ -295,9 +297,9 @@ describe("PaykitStripePaymentProvider", () => {
     const client = createMockPaykitClient({
       stripeCheckoutSessions: {
         retrieve: vi.fn().mockResolvedValue({
-          id: "cs_test_payment_method",
           amount_total: 1050,
           currency: "czk",
+          id: "cs_test_payment_method",
           payment_intent: {
             id: "pi_payment_method",
             status: "requires_payment_method",
@@ -317,14 +319,14 @@ describe("PaykitStripePaymentProvider", () => {
           id: "cs_test_payment_method",
         },
       })
-    ).resolves.toEqual({
-      status: PaymentSessionStatus.PENDING,
+    ).resolves.toStrictEqual({
       data: expect.objectContaining({
         id: "cs_test_payment_method",
         payment_intent_id: "pi_payment_method",
         requires_action: true,
         status: "pending",
       }),
+      status: PaymentSessionStatus.PENDING,
     })
   })
 
@@ -332,9 +334,9 @@ describe("PaykitStripePaymentProvider", () => {
     const client = createMockPaykitClient({
       payments: {
         retrieve: vi.fn().mockResolvedValue({
-          id: "cs_test_null",
           amount: 1050,
           currency: "czk",
+          id: "cs_test_null",
           metadata: {},
           status: "succeeded",
         }),
@@ -413,9 +415,9 @@ describe("PaykitStripePaymentProvider", () => {
 
     await provider.capturePayment({
       data: {
-        id: "stripe-payment-1",
         amount: 1050,
         currency: "czk",
+        id: "stripe-payment-1",
       },
     })
 
@@ -433,14 +435,14 @@ describe("PaykitStripePaymentProvider", () => {
     await expect(
       provider.capturePayment({
         data: {
-          id: "stripe-payment-1",
           amount: { invalid: true },
           currency: "czk",
+          id: "stripe-payment-1",
         },
       })
     ).rejects.toMatchObject({
-      type: MedusaError.Types.INVALID_DATA,
       message: "PayKit stored payment amount must be numeric",
+      type: MedusaError.Types.INVALID_DATA,
     })
   })
 
@@ -453,17 +455,17 @@ describe("PaykitStripePaymentProvider", () => {
     const input: CapturePaymentInputWithAmount = {
       amount: { invalid: true },
       data: {
-        id: "stripe-payment-1",
         amount: 1050,
         currency: "czk",
+        id: "stripe-payment-1",
       },
     }
 
     await expect(
       provider.capturePayment(input as CapturePaymentInput)
     ).rejects.toMatchObject({
-      type: MedusaError.Types.INVALID_DATA,
       message: "PayKit capture amount must be numeric",
+      type: MedusaError.Types.INVALID_DATA,
     })
   })
 
@@ -471,9 +473,9 @@ describe("PaykitStripePaymentProvider", () => {
     const client = createMockPaykitClient({
       payments: {
         capture: vi.fn().mockResolvedValue({
-          id: "pi_manual",
           amount: 1050,
           currency: "czk",
+          id: "pi_manual",
           status: "succeeded",
         }),
       },
@@ -484,17 +486,17 @@ describe("PaykitStripePaymentProvider", () => {
 
     const result = await provider.capturePayment({
       data: {
-        id: "cs_test_manual",
-        payment_intent_id: "pi_manual",
         amount: 1050,
         currency: "czk",
+        id: "cs_test_manual",
+        payment_intent_id: "pi_manual",
       },
     })
 
     expect(client.payments.capture).toHaveBeenCalledWith("pi_manual", {
       amount: 1050,
     })
-    expect(result.data).toEqual(
+    expect(result.data).toStrictEqual(
       expect.objectContaining({
         id: "cs_test_manual",
         payment_intent_id: "pi_manual",
@@ -507,9 +509,9 @@ describe("PaykitStripePaymentProvider", () => {
     const client = createMockPaykitClient({
       payments: {
         capture: vi.fn().mockResolvedValue({
-          id: "pi_manual",
           amount: 1050,
           currency: "czk",
+          id: "pi_manual",
           status: "succeeded",
         }),
       },
@@ -528,9 +530,9 @@ describe("PaykitStripePaymentProvider", () => {
 
     const result = await provider.capturePayment({
       data: {
-        id: "cs_test_manual",
         amount: 1050,
         currency: "czk",
+        id: "cs_test_manual",
       },
     })
 
@@ -541,7 +543,7 @@ describe("PaykitStripePaymentProvider", () => {
     expect(client.payments.capture).toHaveBeenCalledWith("pi_manual", {
       amount: 1050,
     })
-    expect(result.data).toEqual(
+    expect(result.data).toStrictEqual(
       expect.objectContaining({
         id: "cs_test_manual",
         payment_intent_id: "pi_manual",
@@ -558,19 +560,19 @@ describe("PaykitStripePaymentProvider", () => {
     const result = await provider.refundPayment({
       amount: 10.5,
       data: {
+        currency: "czk",
         id: "cs_test_123",
         payment_intent_id: "pi_123",
-        currency: "czk",
       },
     })
 
     expect(client.refunds?.create).toHaveBeenCalledWith({
-      payment_id: "pi_123",
       amount: 1050,
-      reason: null,
       metadata: null,
+      payment_id: "pi_123",
+      reason: null,
     })
-    expect(result.data).toEqual(
+    expect(result.data).toStrictEqual(
       expect.objectContaining({
         id: "cs_test_123",
         payment_intent_id: "pi_123",
@@ -582,15 +584,15 @@ describe("PaykitStripePaymentProvider", () => {
   it("expires checkout sessions during cancel instead of canceling a PaymentIntent with cs id", async () => {
     const client = createMockPaykitClient({
       stripeCheckoutSessions: {
-        retrieve: vi.fn().mockResolvedValue({
-          id: "cs_test_open",
-          payment_status: "unpaid",
-          status: "open",
-        }),
         expire: vi.fn().mockResolvedValue({
           id: "cs_test_open",
           payment_status: "unpaid",
           status: "expired",
+        }),
+        retrieve: vi.fn().mockResolvedValue({
+          id: "cs_test_open",
+          payment_status: "unpaid",
+          status: "open",
         }),
       },
     })
@@ -612,7 +614,7 @@ describe("PaykitStripePaymentProvider", () => {
       "cs_test_open"
     )
     expect(client.payments.cancel).not.toHaveBeenCalled()
-    expect(result.data).toEqual(
+    expect(result.data).toStrictEqual(
       expect.objectContaining({
         id: "cs_test_open",
         status: "canceled",
@@ -623,6 +625,7 @@ describe("PaykitStripePaymentProvider", () => {
   it("does not expire completed paid checkout sessions during cancel", async () => {
     const client = createMockPaykitClient({
       stripeCheckoutSessions: {
+        expire: vi.fn(),
         retrieve: vi.fn().mockResolvedValue({
           id: "cs_test_paid",
           amount_total: 1050,
@@ -636,7 +639,6 @@ describe("PaykitStripePaymentProvider", () => {
           payment_status: "paid",
           status: "complete",
         }),
-        expire: vi.fn(),
       },
     })
     const provider = new PaykitStripePaymentProvider(createMockContainer(), {
@@ -651,7 +653,7 @@ describe("PaykitStripePaymentProvider", () => {
 
     expect(client.stripeCheckoutSessions?.expire).not.toHaveBeenCalled()
     expect(client.payments.cancel).not.toHaveBeenCalled()
-    expect(result.data).toEqual(
+    expect(result.data).toStrictEqual(
       expect.objectContaining({
         id: "cs_test_paid",
         payment_intent_id: "pi_paid",
@@ -663,12 +665,12 @@ describe("PaykitStripePaymentProvider", () => {
   it("does not expire already-expired checkout sessions during cancel", async () => {
     const client = createMockPaykitClient({
       stripeCheckoutSessions: {
+        expire: vi.fn(),
         retrieve: vi.fn().mockResolvedValue({
           id: "cs_test_expired",
           payment_status: "unpaid",
           status: "expired",
         }),
-        expire: vi.fn(),
       },
     })
     const provider = new PaykitStripePaymentProvider(createMockContainer(), {
@@ -683,7 +685,7 @@ describe("PaykitStripePaymentProvider", () => {
 
     expect(client.stripeCheckoutSessions?.expire).not.toHaveBeenCalled()
     expect(client.payments.cancel).not.toHaveBeenCalled()
-    expect(result.data).toEqual(
+    expect(result.data).toStrictEqual(
       expect.objectContaining({
         id: "cs_test_expired",
         status: "canceled",
@@ -695,13 +697,14 @@ describe("PaykitStripePaymentProvider", () => {
     const client = createMockPaykitClient({
       payments: {
         cancel: vi.fn().mockResolvedValue({
-          id: "pi_manual",
           amount: 1050,
           currency: "czk",
+          id: "pi_manual",
           status: "canceled",
         }),
       },
       stripeCheckoutSessions: {
+        expire: vi.fn(),
         retrieve: vi.fn().mockResolvedValue({
           id: "cs_test_manual",
           payment_intent: {
@@ -713,7 +716,6 @@ describe("PaykitStripePaymentProvider", () => {
           payment_status: "unpaid",
           status: "complete",
         }),
-        expire: vi.fn(),
       },
     })
     const provider = new PaykitStripePaymentProvider(createMockContainer(), {
@@ -728,7 +730,7 @@ describe("PaykitStripePaymentProvider", () => {
 
     expect(client.stripeCheckoutSessions?.expire).not.toHaveBeenCalled()
     expect(client.payments.cancel).toHaveBeenCalledWith("pi_manual")
-    expect(result.data).toEqual(
+    expect(result.data).toStrictEqual(
       expect.objectContaining({
         id: "cs_test_manual",
         payment_intent_id: "pi_manual",
@@ -741,16 +743,16 @@ describe("PaykitStripePaymentProvider", () => {
     const client = createMockPaykitClient()
     client.handleWebhook = vi.fn().mockResolvedValue([
       {
-        type: "payment.updated",
         data: {
-          id: "stripe-payment-1",
           amount: 1050,
           currency: "czk",
-          status: "requires_capture",
+          id: "stripe-payment-1",
           metadata: {
             session_id: "payses_123",
           },
+          status: "requires_capture",
         },
+        type: "payment.updated",
       },
     ])
     const provider = new PaykitStripePaymentProvider(createMockContainer(), {
@@ -760,16 +762,16 @@ describe("PaykitStripePaymentProvider", () => {
     await expect(
       provider.getWebhookActionAndData({
         data: {},
-        rawData: "",
         headers: {
           "stripe-signature": "sig_123",
         },
+        rawData: "",
       })
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       action: PaymentActions.AUTHORIZED,
       data: {
-        session_id: "payses_123",
         amount: 10.5,
+        session_id: "payses_123",
       },
     })
   })
@@ -778,16 +780,16 @@ describe("PaykitStripePaymentProvider", () => {
     const client = createMockPaykitClient()
     client.handleWebhook = vi.fn().mockResolvedValue([
       {
-        type: "payment.succeeded",
         data: {
-          id: "stripe-payment-1",
           amount: 1050,
           currency: "czk",
-          status: "succeeded",
+          id: "stripe-payment-1",
           metadata: {
             session_id: "payses_123",
           },
+          status: "succeeded",
         },
+        type: "payment.succeeded",
       },
     ])
     const provider = new PaykitStripePaymentProvider(createMockContainer(), {
@@ -797,16 +799,16 @@ describe("PaykitStripePaymentProvider", () => {
     await expect(
       provider.getWebhookActionAndData({
         data: {},
-        rawData: "",
         headers: {
           "stripe-signature": "sig_123",
         },
+        rawData: "",
       })
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       action: PaymentActions.SUCCESSFUL,
       data: {
-        session_id: "payses_123",
         amount: 10.5,
+        session_id: "payses_123",
       },
     })
   })
@@ -815,23 +817,23 @@ describe("PaykitStripePaymentProvider", () => {
     const client = createMockPaykitClient()
     client.handleWebhook = vi.fn().mockResolvedValue([
       {
-        type: "stripe.payment_intent.succeeded",
-        is_raw: true,
         data: {
           id: "evt_123",
         },
+        is_raw: true,
+        type: "stripe.payment_intent.succeeded",
       },
       {
-        type: "payment.succeeded",
         data: {
-          id: "stripe-payment-1",
           amount: 1050,
           currency: "czk",
-          status: "succeeded",
+          id: "stripe-payment-1",
           metadata: {
             session_id: "payses_123",
           },
+          status: "succeeded",
         },
+        type: "payment.succeeded",
       },
     ])
     const provider = new PaykitStripePaymentProvider(createMockContainer(), {
@@ -841,16 +843,16 @@ describe("PaykitStripePaymentProvider", () => {
     await expect(
       provider.getWebhookActionAndData({
         data: {},
-        rawData: "",
         headers: {
           "stripe-signature": "sig_123",
         },
+        rawData: "",
       })
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       action: PaymentActions.SUCCESSFUL,
       data: {
-        session_id: "payses_123",
         amount: 10.5,
+        session_id: "payses_123",
       },
     })
   })
@@ -859,15 +861,15 @@ describe("PaykitStripePaymentProvider", () => {
     const client = createMockPaykitClient()
     client.handleWebhook = vi.fn().mockResolvedValue([
       {
-        type: "invoice.generated",
         data: {
-          id: "cs_test_123",
           amount_paid: 1050,
           currency: "czk",
+          id: "cs_test_123",
           metadata: {
             session_id: "payses_123",
           },
         },
+        type: "invoice.generated",
       },
     ])
     const provider = new PaykitStripePaymentProvider(createMockContainer(), {
@@ -877,16 +879,16 @@ describe("PaykitStripePaymentProvider", () => {
     await expect(
       provider.getWebhookActionAndData({
         data: {},
-        rawData: "",
         headers: {
           "stripe-signature": "sig_123",
         },
+        rawData: "",
       })
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       action: PaymentActions.SUCCESSFUL,
       data: {
-        session_id: "payses_123",
         amount: 10.5,
+        session_id: "payses_123",
       },
     })
   })

@@ -3,9 +3,11 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import {
   getProductAttributeService,
-  type ProductAttributeDefinitionRecord,
-  type ProductAttributeOptionRecord,
   withProductAttributeTransaction,
+} from "../../../utils/product-attributes"
+import type {
+  ProductAttributeDefinitionRecord,
+  ProductAttributeOptionRecord,
 } from "../../../utils/product-attributes"
 import type {
   ProductAttributeDefinitionIdsInput,
@@ -14,7 +16,7 @@ import type {
 
 const PURGE_QUERY_BATCH_SIZE = 100
 
-type PurgeableRecord = {
+interface PurgeableRecord {
   deleted_at?: Date | null
   id: string
 }
@@ -47,7 +49,7 @@ const assertRecordsExistAndAreDeleted = ({
 }
 
 const listAllRecordIds = async (
-  listPage: (skip: number, take: number) => Promise<Array<{ id: string }>>
+  listPage: (skip: number, take: number) => Promise<{ id: string }[]>
 ) => {
   const ids: string[] = []
   while (true) {
@@ -66,18 +68,18 @@ export const permanentlyDeleteProductAttributeDefinitions = async (
   const service = getProductAttributeService(container)
 
   return await withProductAttributeTransaction(service, async (context) => {
-    const definitions = (await service.listProductAttributeDefinitions(
+    const definitions = await service.listProductAttributeDefinitions(
       { id: { $in: input.ids } },
       { take: Math.max(input.ids.length, 1), withDeleted: true },
       context
-    )) as ProductAttributeDefinitionRecord[]
+    )
     assertRecordsExistAndAreDeleted({
       ids: input.ids,
       kind: "definition",
       records: definitions,
     })
 
-    const assignmentIds = await listAllRecordIds((skip, take) =>
+    const assignmentIds = await listAllRecordIds(async (skip, take) =>
       service.listProductAttributes(
         { definition_id: { $in: input.ids } },
         {
@@ -90,7 +92,7 @@ export const permanentlyDeleteProductAttributeDefinitions = async (
         context
       )
     )
-    const optionIds = await listAllRecordIds((skip, take) =>
+    const optionIds = await listAllRecordIds(async (skip, take) =>
       service.listProductAttributeOptions(
         { definition_id: { $in: input.ids } },
         {
@@ -127,18 +129,18 @@ export const permanentlyDeleteProductAttributeOptions = async (
   const service = getProductAttributeService(container)
 
   return await withProductAttributeTransaction(service, async (context) => {
-    const options = (await service.listProductAttributeOptions(
+    const options = await service.listProductAttributeOptions(
       { id: { $in: input.ids } },
       { take: Math.max(input.ids.length, 1), withDeleted: true },
       context
-    )) as ProductAttributeOptionRecord[]
+    )
     assertRecordsExistAndAreDeleted({
       ids: input.ids,
       kind: "option",
       records: options,
     })
 
-    const assignmentIds = await listAllRecordIds((skip, take) =>
+    const assignmentIds = await listAllRecordIds(async (skip, take) =>
       service.listProductAttributes(
         { option_id: { $in: input.ids } },
         {

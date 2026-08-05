@@ -18,11 +18,11 @@ export type Action = {
     }
 )
 
-export type ActionGroup = {
+export interface ActionGroup {
   actions: Action[]
 }
 
-type ActionMenuProps = {
+interface ActionMenuProps {
   groups: ActionGroup[]
 }
 
@@ -79,7 +79,12 @@ export const ActionMenu = ({ groups }: ActionMenuProps) => (
                     )}
                     disabled={action.disabled ?? false}
                   >
-                    <Link onClick={(e) => e.stopPropagation()} to={action.to}>
+                    <Link
+                      onClick={(e) => {
+                        e.stopPropagation()
+                      }}
+                      to={action.to}
+                    >
                       {action.icon}
                       <span>{action.label}</span>
                     </Link>

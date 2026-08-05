@@ -4,10 +4,10 @@ import { resolveMedusaBackendUrl } from "@/lib/storefront/runtime-env"
 
 const MEDUSA_BACKEND_URL = resolveMedusaBackendUrl()
 const MEDUSA_PUBLISHABLE_KEY =
-  process.env["NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"] ?? ""
+  process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
 const AUTH_SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 14
 
-type ErrorPayload = {
+interface ErrorPayload {
   message: string
   details?: unknown
 }
@@ -40,14 +40,12 @@ const fallbackErrorMessage = (status: number) => {
 export const buildErrorResponse = async (response: Response) => {
   const payload = await parseResponseJson(response)
   const messageFromPayload =
-    payload && typeof payload["message"] === "string"
-      ? payload["message"]
-      : null
+    payload && typeof payload.message === "string" ? payload.message : null
 
   return NextResponse.json<ErrorPayload>(
     {
-      message: messageFromPayload ?? fallbackErrorMessage(response.status),
       details: payload ?? undefined,
+      message: messageFromPayload ?? fallbackErrorMessage(response.status),
     },
     { status: response.status || 500 }
   )
@@ -64,8 +62,8 @@ export const conflict = (message: string) =>
 export const serverError = (message: string, details?: unknown) =>
   NextResponse.json<ErrorPayload>(
     {
-      message,
       details,
+      message,
     },
     { status: 500 }
   )
@@ -85,25 +83,25 @@ export const setSessionTokenCookie = (
   token: string
 ) => {
   response.cookies.set({
-    name: AUTH_SESSION_COOKIE_NAME,
-    value: token,
     httpOnly: true,
+    maxAge: AUTH_SESSION_COOKIE_MAX_AGE_SECONDS,
+    name: AUTH_SESSION_COOKIE_NAME,
     path: "/",
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    maxAge: AUTH_SESSION_COOKIE_MAX_AGE_SECONDS,
+    value: token,
   })
 }
 
 export const clearSessionTokenCookie = (response: NextResponse) => {
   response.cookies.set({
-    name: AUTH_SESSION_COOKIE_NAME,
-    value: "",
     httpOnly: true,
+    maxAge: 0,
+    name: AUTH_SESSION_COOKIE_NAME,
     path: "/",
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    maxAge: 0,
+    value: "",
   })
 }
 

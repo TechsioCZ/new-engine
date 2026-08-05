@@ -7,13 +7,19 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // Formatters
 export const formatPhoneNumber = (value: string): string => {
-  const cleaned = value.replace(/\D/g, "")
-  if (cleaned.length === 0) return ""
+  const cleaned = value.replaceAll(/\D/g, "")
+  if (cleaned.length === 0) {
+    return ""
+  }
 
   // For Czech phone numbers without country code
   if (cleaned.length <= 9) {
-    if (cleaned.length <= 3) return cleaned
-    if (cleaned.length <= 6) return `${cleaned.slice(0, 3)} ${cleaned.slice(3)}`
+    if (cleaned.length <= 3) {
+      return cleaned
+    }
+    if (cleaned.length <= 6) {
+      return `${cleaned.slice(0, 3)} ${cleaned.slice(3)}`
+    }
     return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6, 9)}`
   }
 
@@ -24,17 +30,27 @@ export const formatPhoneNumber = (value: string): string => {
   const thirdPart = cleaned.slice(9, 12)
 
   let formatted = "+"
-  if (country) formatted += country
-  if (firstPart) formatted += " " + firstPart
-  if (secondPart) formatted += " " + secondPart
-  if (thirdPart) formatted += " " + thirdPart
+  if (country) {
+    formatted += country
+  }
+  if (firstPart) {
+    formatted += " " + firstPart
+  }
+  if (secondPart) {
+    formatted += " " + secondPart
+  }
+  if (thirdPart) {
+    formatted += " " + thirdPart
+  }
 
   return formatted
 }
 
 export const formatPostalCode = (value: string): string => {
-  const cleaned = value.replace(/\D/g, "")
-  if (cleaned.length <= 3) return cleaned
+  const cleaned = value.replaceAll(/\D/g, "")
+  if (cleaned.length <= 3) {
+    return cleaned
+  }
   return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 5)}`
 }
 
@@ -42,27 +58,27 @@ export const formatPostalCode = (value: string): string => {
 export const validateEmail = (email: string): boolean => EMAIL_REGEX.test(email)
 
 const validatePhone = (phone: string): boolean => {
-  const cleaned = phone.replace(/\D/g, "")
+  const cleaned = phone.replaceAll(/\D/g, "")
   return cleaned.length >= 9
 }
 
 const validatePostalCode = (postalCode: string): boolean => {
-  const cleaned = postalCode.replace(/\D/g, "")
+  const cleaned = postalCode.replaceAll(/\D/g, "")
   return cleaned.length === 5
 }
 
 // Validation error messages
 export const ADDRESS_ERRORS = {
-  firstName: "Jméno je povinné",
-  lastName: "Příjmení je povinné",
+  city: "Město je povinné",
   email: "Email je povinný",
   emailInvalid: "Neplatný formát emailu",
+  firstName: "Jméno je povinné",
+  lastName: "Příjmení je povinné",
   phone: "Telefon je povinný",
   phoneInvalid: "Telefon musí mít alespoň 9 číslic",
-  street: "Ulice je povinná",
-  city: "Město je povinné",
   postalCode: "PSČ je povinné",
   postalCodeInvalid: "PSČ musí mít 5 číslic",
+  street: "Ulice je povinná",
 } as const
 
 // Address validation options
@@ -78,14 +94,21 @@ export const validateAddress = (
   options: AddressValidationOptions = { requireEmail: true, requirePhone: true }
 ): Record<string, string> => {
   const errors: Record<string, string> = {}
-  const prefix = options.prefix ? `${options.prefix}` : ""
+  const prefix = options.prefix ? options.prefix : ""
 
   // Required fields for all addresses
-  if (!address.firstName)
+  if (!address.firstName) {
     errors[`${prefix}FirstName`] = ADDRESS_ERRORS.firstName
-  if (!address.lastName) errors[`${prefix}LastName`] = ADDRESS_ERRORS.lastName
-  if (!address.street) errors[`${prefix}Street`] = ADDRESS_ERRORS.street
-  if (!address.city) errors[`${prefix}City`] = ADDRESS_ERRORS.city
+  }
+  if (!address.lastName) {
+    errors[`${prefix}LastName`] = ADDRESS_ERRORS.lastName
+  }
+  if (!address.street) {
+    errors[`${prefix}Street`] = ADDRESS_ERRORS.street
+  }
+  if (!address.city) {
+    errors[`${prefix}City`] = ADDRESS_ERRORS.city
+  }
 
   // Postal code validation
   if (!address.postalCode) {

@@ -7,18 +7,6 @@ import { Link } from "../../src/atoms/link"
 import { Dialog } from "../../src/molecules/dialog"
 
 const meta: Meta<typeof Dialog> = {
-  title: "Molecules/Dialog",
-  component: Dialog,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component:
-          "A modal dialog component built with Zag.js that provides accessible dialog functionality with customizable content.",
-      },
-    },
-  },
-  tags: ["autodocs"],
   argTypes: {
     // Text inputs
     triggerText: {
@@ -99,22 +87,34 @@ const meta: Meta<typeof Dialog> = {
     },
   },
   args: {
-    triggerText: "Open Dialog",
-    title: "Edit Profile",
-    description: `This dialog includes both a title and a description for additional context.
-      The description provides more context about the dialog's purpose.`,
-    placement: "center",
-    size: "md",
     behavior: "modal",
-    position: "fixed",
-    role: "dialog",
     closeOnEscape: true,
     closeOnInteractOutside: true,
-    preventScroll: true,
-    trapFocus: true,
-    portal: true,
+    description: `This dialog includes both a title and a description for additional context.
+      The description provides more context about the dialog's purpose.`,
     hideCloseButton: false,
+    placement: "center",
+    portal: true,
+    position: "fixed",
+    preventScroll: true,
+    role: "dialog",
+    size: "md",
+    title: "Edit Profile",
+    trapFocus: true,
+    triggerText: "Open Dialog",
   },
+  component: Dialog,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "A modal dialog component built with Zag.js that provides accessible dialog functionality with customizable content.",
+      },
+    },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/Dialog",
 }
 
 export default meta
@@ -138,7 +138,9 @@ export const AllVariants: Story = {
       <VariantContainer>
         <VariantGroup title="Dialog Behaviors">
           <Button
-            onClick={() => setModalOpen(true)}
+            onClick={() => {
+              setModalOpen(true)
+            }}
             variant="primary"
             size="sm"
           >
@@ -146,7 +148,9 @@ export const AllVariants: Story = {
           </Button>
           <Dialog
             open={modalOpen}
-            onOpenChange={({ open }) => setModalOpen(open)}
+            onOpenChange={({ open }) => {
+              setModalOpen(open)
+            }}
             customTrigger
             title="Modal Dialog"
             description="This is a modal dialog that blocks interaction with background content."
@@ -155,11 +159,18 @@ export const AllVariants: Story = {
                 <Button
                   variant="secondary"
                   theme="outlined"
-                  onClick={() => setModalOpen(false)}
+                  onClick={() => {
+                    setModalOpen(false)
+                  }}
                 >
                   Cancel
                 </Button>
-                <Button variant="primary" onClick={() => setModalOpen(false)}>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    setModalOpen(false)
+                  }}
+                >
                   Confirm
                 </Button>
               </>
@@ -169,7 +180,9 @@ export const AllVariants: Story = {
           </Dialog>
 
           <Button
-            onClick={() => setModelessOpen(true)}
+            onClick={() => {
+              setModelessOpen(true)
+            }}
             variant="secondary"
             size="sm"
           >
@@ -177,13 +190,20 @@ export const AllVariants: Story = {
           </Button>
           <Dialog
             open={modelessOpen}
-            onOpenChange={({ open }) => setModelessOpen(open)}
+            onOpenChange={({ open }) => {
+              setModelessOpen(open)
+            }}
             customTrigger
             behavior="modeless"
             title="Modeless Dialog"
             description="This dialog allows interaction with background content."
             actions={
-              <Button variant="primary" onClick={() => setModelessOpen(false)}>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setModelessOpen(false)
+                }}
+              >
                 Close
               </Button>
             }
@@ -202,12 +222,20 @@ export const AllVariants: Story = {
             <p>This is a standard dialog with default settings.</p>
           </Dialog>
 
-          <Button onClick={() => setAlertOpen(true)} variant="danger" size="sm">
+          <Button
+            onClick={() => {
+              setAlertOpen(true)
+            }}
+            variant="danger"
+            size="sm"
+          >
             Alert Dialog
           </Button>
           <Dialog
             open={alertOpen}
-            onOpenChange={({ open }) => setAlertOpen(open)}
+            onOpenChange={({ open }) => {
+              setAlertOpen(open)
+            }}
             customTrigger
             role="alertdialog"
             title="Confirm Action"
@@ -219,11 +247,18 @@ export const AllVariants: Story = {
                 <Button
                   variant="secondary"
                   theme="outlined"
-                  onClick={() => setAlertOpen(false)}
+                  onClick={() => {
+                    setAlertOpen(false)
+                  }}
                 >
                   Cancel
                 </Button>
-                <Button variant="danger" onClick={() => setAlertOpen(false)}>
+                <Button
+                  variant="danger"
+                  onClick={() => {
+                    setAlertOpen(false)
+                  }}
+                >
                   Delete
                 </Button>
               </>
@@ -246,7 +281,9 @@ export const AllVariants: Story = {
           </Dialog>
 
           <Button
-            onClick={() => setNoCloseOpen(true)}
+            onClick={() => {
+              setNoCloseOpen(true)
+            }}
             variant="primary"
             size="sm"
           >
@@ -254,13 +291,20 @@ export const AllVariants: Story = {
           </Button>
           <Dialog
             open={noCloseOpen}
-            onOpenChange={({ open }) => setNoCloseOpen(open)}
+            onOpenChange={({ open }) => {
+              setNoCloseOpen(open)
+            }}
             customTrigger
             title="No Close Button"
             description="This dialog hides the close button."
             hideCloseButton={true}
             actions={
-              <Button variant="primary" onClick={() => setNoCloseOpen(false)}>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setNoCloseOpen(false)
+                }}
+              >
                 Done
               </Button>
             }
@@ -300,12 +344,19 @@ export const AlertDialog: Story = {
 
     return (
       <>
-        <Button onClick={() => setOpen(true)} variant="danger">
+        <Button
+          onClick={() => {
+            setOpen(true)
+          }}
+          variant="danger"
+        >
           Delete Account
         </Button>
         <Dialog
           open={open}
-          onOpenChange={({ open }) => setOpen(open)}
+          onOpenChange={({ open }) => {
+            setOpen(open)
+          }}
           customTrigger
           role="alertdialog"
           title="Are you absolutely sure?"
@@ -317,11 +368,18 @@ export const AlertDialog: Story = {
               <Button
                 variant="secondary"
                 theme="outlined"
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  setOpen(false)
+                }}
               >
                 Cancel
               </Button>
-              <Button variant="danger" onClick={() => setOpen(false)}>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  setOpen(false)
+                }}
+              >
                 Yes, delete account
               </Button>
             </>
@@ -335,9 +393,14 @@ export const AlertDialog: Story = {
 // Dialog with rich content
 export const RichContent: Story = {
   args: {
-    triggerText: "View Details",
-    title: "Product Information",
-    description: "Complete details about the selected product.",
+    actions: (
+      <>
+        <Button variant="secondary" theme="outlined">
+          Add to Wishlist
+        </Button>
+        <Button variant="primary">Add to Cart</Button>
+      </>
+    ),
     children: (
       <div className="space-y-300">
         <div className="flex gap-200">
@@ -375,57 +438,50 @@ export const RichContent: Story = {
         </div>
       </div>
     ),
-    actions: (
-      <>
-        <Button variant="secondary" theme="outlined">
-          Add to Wishlist
-        </Button>
-        <Button variant="primary">Add to Cart</Button>
-      </>
-    ),
+    description: "Complete details about the selected product.",
+    title: "Product Information",
+    triggerText: "View Details",
   },
 }
 
 // Minimal dialog
 export const Minimal: Story = {
   args: {
-    triggerText: "Simple Dialog",
-    title: "Simple Message",
     children: <p>This is a minimal dialog with just basic content.</p>,
+    title: "Simple Message",
+    triggerText: "Simple Dialog",
   },
 }
 
 // Test different behaviors
 export const BehaviorTests: Story = {
-  render: () => {
-    return (
-      <div className="grid grid-cols-2 gap-200">
-        <Dialog
-          triggerText="No Escape Close"
-          title="Escape Disabled"
-          description="This dialog won't close when you press Escape."
-          closeOnEscape={false}
-          children={<p>Press Escape - nothing happens!</p>}
-        />
+  render: () => (
+    <div className="grid grid-cols-2 gap-200">
+      <Dialog
+        triggerText="No Escape Close"
+        title="Escape Disabled"
+        description="This dialog won't close when you press Escape."
+        closeOnEscape={false}
+        children={<p>Press Escape - nothing happens!</p>}
+      />
 
-        <Dialog
-          triggerText="No Outside Click"
-          title="Outside Click Disabled"
-          description="This dialog won't close when you click outside."
-          closeOnInteractOutside={false}
-          children={<p>Click outside - nothing happens!</p>}
-        />
+      <Dialog
+        triggerText="No Outside Click"
+        title="Outside Click Disabled"
+        description="This dialog won't close when you click outside."
+        closeOnInteractOutside={false}
+        children={<p>Click outside - nothing happens!</p>}
+      />
 
-        <Dialog
-          triggerText="Allow Body Scroll"
-          title="Scroll Allowed"
-          description="Body scroll is not prevented when this dialog is open."
-          preventScroll={false}
-          children={<p>Body scroll is still enabled!</p>}
-        />
-      </div>
-    )
-  },
+      <Dialog
+        triggerText="Allow Body Scroll"
+        title="Scroll Allowed"
+        description="Body scroll is not prevented when this dialog is open."
+        preventScroll={false}
+        children={<p>Body scroll is still enabled!</p>}
+      />
+    </div>
+  ),
 }
 
 // Drawer - Left placement
@@ -435,19 +491,31 @@ export const DrawerLeft: Story = {
 
     return (
       <>
-        <Button onClick={() => setOpen(true)} variant="primary">
+        <Button
+          onClick={() => {
+            setOpen(true)
+          }}
+          variant="primary"
+        >
           Open Left Drawer
         </Button>
         <Dialog
           open={open}
-          onOpenChange={({ open }) => setOpen(open)}
+          onOpenChange={({ open }) => {
+            setOpen(open)
+          }}
           customTrigger
           placement="left"
           size="md"
           title="Left Drawer"
           description="This is a drawer sliding in from the left side"
           actions={
-            <Button variant="primary" onClick={() => setOpen(false)}>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setOpen(false)
+              }}
+            >
               Close
             </Button>
           }
@@ -470,12 +538,19 @@ export const DrawerRight: Story = {
 
     return (
       <>
-        <Button onClick={() => setOpen(true)} variant="primary">
+        <Button
+          onClick={() => {
+            setOpen(true)
+          }}
+          variant="primary"
+        >
           Open Right Drawer
         </Button>
         <Dialog
           open={open}
-          onOpenChange={({ open }) => setOpen(open)}
+          onOpenChange={({ open }) => {
+            setOpen(open)
+          }}
           customTrigger
           placement="right"
           size="md"
@@ -502,12 +577,19 @@ export const DrawerTop: Story = {
 
     return (
       <>
-        <Button onClick={() => setOpen(true)} variant="primary">
+        <Button
+          onClick={() => {
+            setOpen(true)
+          }}
+          variant="primary"
+        >
           Open Top Drawer
         </Button>
         <Dialog
           open={open}
-          onOpenChange={({ open }) => setOpen(open)}
+          onOpenChange={({ open }) => {
+            setOpen(open)
+          }}
           customTrigger
           placement="top"
           size="sm"
@@ -547,12 +629,19 @@ export const DrawerBottom: Story = {
 
     return (
       <>
-        <Button onClick={() => setOpen(true)} variant="primary">
+        <Button
+          onClick={() => {
+            setOpen(true)
+          }}
+          variant="primary"
+        >
           Open Bottom Drawer
         </Button>
         <Dialog
           open={open}
-          onOpenChange={({ open }) => setOpen(open)}
+          onOpenChange={({ open }) => {
+            setOpen(open)
+          }}
           customTrigger
           placement="bottom"
           size="md"
@@ -583,12 +672,20 @@ export const DrawerSizes: Story = {
     return (
       <VariantContainer>
         <VariantGroup title="Left Drawer Sizes">
-          <Button onClick={() => setLeftXs(true)} variant="primary" size="sm">
+          <Button
+            onClick={() => {
+              setLeftXs(true)
+            }}
+            variant="primary"
+            size="sm"
+          >
             XS (20rem)
           </Button>
           <Dialog
             open={leftXs}
-            onOpenChange={({ open }) => setLeftXs(open)}
+            onOpenChange={({ open }) => {
+              setLeftXs(open)
+            }}
             customTrigger
             placement="left"
             size="xs"
@@ -597,12 +694,20 @@ export const DrawerSizes: Story = {
             <p>This drawer is 20rem wide</p>
           </Dialog>
 
-          <Button onClick={() => setLeftSm(true)} variant="primary" size="sm">
+          <Button
+            onClick={() => {
+              setLeftSm(true)
+            }}
+            variant="primary"
+            size="sm"
+          >
             SM (24rem)
           </Button>
           <Dialog
             open={leftSm}
-            onOpenChange={({ open }) => setLeftSm(open)}
+            onOpenChange={({ open }) => {
+              setLeftSm(open)
+            }}
             customTrigger
             placement="left"
             size="sm"
@@ -611,12 +716,20 @@ export const DrawerSizes: Story = {
             <p>This drawer is 24rem wide</p>
           </Dialog>
 
-          <Button onClick={() => setLeftMd(true)} variant="primary" size="sm">
+          <Button
+            onClick={() => {
+              setLeftMd(true)
+            }}
+            variant="primary"
+            size="sm"
+          >
             MD (32rem)
           </Button>
           <Dialog
             open={leftMd}
-            onOpenChange={({ open }) => setLeftMd(open)}
+            onOpenChange={({ open }) => {
+              setLeftMd(open)
+            }}
             customTrigger
             placement="left"
             size="md"
@@ -625,12 +738,20 @@ export const DrawerSizes: Story = {
             <p>This drawer is 32rem wide</p>
           </Dialog>
 
-          <Button onClick={() => setLeftLg(true)} variant="primary" size="sm">
+          <Button
+            onClick={() => {
+              setLeftLg(true)
+            }}
+            variant="primary"
+            size="sm"
+          >
             LG (40rem)
           </Button>
           <Dialog
             open={leftLg}
-            onOpenChange={({ open }) => setLeftLg(open)}
+            onOpenChange={({ open }) => {
+              setLeftLg(open)
+            }}
             customTrigger
             placement="left"
             size="lg"
@@ -639,12 +760,20 @@ export const DrawerSizes: Story = {
             <p>This drawer is 40rem wide</p>
           </Dialog>
 
-          <Button onClick={() => setLeftXl(true)} variant="primary" size="sm">
+          <Button
+            onClick={() => {
+              setLeftXl(true)
+            }}
+            variant="primary"
+            size="sm"
+          >
             XL (48rem)
           </Button>
           <Dialog
             open={leftXl}
-            onOpenChange={({ open }) => setLeftXl(open)}
+            onOpenChange={({ open }) => {
+              setLeftXl(open)
+            }}
             customTrigger
             placement="left"
             size="xl"
@@ -653,12 +782,20 @@ export const DrawerSizes: Story = {
             <p>This drawer is 48rem wide</p>
           </Dialog>
 
-          <Button onClick={() => setLeftFull(true)} variant="primary" size="sm">
+          <Button
+            onClick={() => {
+              setLeftFull(true)
+            }}
+            variant="primary"
+            size="sm"
+          >
             Full Width
           </Button>
           <Dialog
             open={leftFull}
-            onOpenChange={({ open }) => setLeftFull(open)}
+            onOpenChange={({ open }) => {
+              setLeftFull(open)
+            }}
             customTrigger
             placement="left"
             size="full"
@@ -680,7 +817,9 @@ export const MobileMenuDrawer: Story = {
     return (
       <>
         <Button
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            setOpen(true)
+          }}
           variant="primary"
           icon="icon-[mdi--menu]"
         >
@@ -688,7 +827,9 @@ export const MobileMenuDrawer: Story = {
         </Button>
         <Dialog
           open={open}
-          onOpenChange={({ open }) => setOpen(open)}
+          onOpenChange={({ open }) => {
+            setOpen(open)
+          }}
           customTrigger
           placement="left"
           size="sm"
@@ -752,7 +893,9 @@ export const PortalComparison: Story = {
               </p>
               <Dialog
                 open={withPortal}
-                onOpenChange={({ open }) => setWithPortal(open)}
+                onOpenChange={({ open }) => {
+                  setWithPortal(open)
+                }}
                 triggerText="Open Dialog"
                 title="Dialog with Portal"
                 description="This dialog uses Portal and escapes the container's overflow constraints"
@@ -784,7 +927,9 @@ export const PortalComparison: Story = {
               </p>
               <Dialog
                 open={withoutPortal}
-                onOpenChange={({ open }) => setWithoutPortal(open)}
+                onOpenChange={({ open }) => {
+                  setWithoutPortal(open)
+                }}
                 triggerText="Open Dialog"
                 title="Dialog without Portal"
                 description="This dialog stays within the container and respects overflow"

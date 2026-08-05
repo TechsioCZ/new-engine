@@ -4,12 +4,10 @@ import { fn } from "storybook/test"
 
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
-import {
-  RadioGroup,
-  type RadioGroupProps,
-} from "../../src/molecules/radio-group"
+import { RadioGroup } from "../../src/molecules/radio-group"
+import type { RadioGroupProps } from "../../src/molecules/radio-group"
 
-type RadioOption = {
+interface RadioOption {
   value: string
   label: string
   description?: string
@@ -18,38 +16,38 @@ type RadioOption = {
 
 const shippingOptions: RadioOption[] = [
   {
-    value: "standard",
-    label: "Standard shipping",
     description: "Delivers in 3-5 business days.",
+    label: "Standard shipping",
+    value: "standard",
   },
   {
-    value: "express",
-    label: "Express shipping",
     description: "Delivers next business day.",
+    label: "Express shipping",
+    value: "express",
   },
   {
-    value: "pickup",
-    label: "Store pickup",
     description: "Ready in 2 hours.",
     disabled: true,
+    label: "Store pickup",
+    value: "pickup",
   },
 ]
 
 const planOptions: RadioOption[] = [
   {
-    value: "starter",
-    label: "Starter",
     description: "Best for new projects and quick prototypes.",
+    label: "Starter",
+    value: "starter",
   },
   {
-    value: "growth",
-    label: "Growth",
     description: "Adds team features and faster support.",
+    label: "Growth",
+    value: "growth",
   },
   {
-    value: "scale",
-    label: "Scale",
     description: "Priority onboarding and dedicated success manager.",
+    label: "Scale",
+    value: "scale",
   },
 ]
 
@@ -92,47 +90,25 @@ function BasicRadioGroup({
 }
 
 const meta: Meta<typeof RadioGroup> = {
-  title: "Molecules/RadioGroup",
-  component: RadioGroup,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component:
-          "A compound radio-group component built with Zag.js. It supports controlled/uncontrolled state, form submission, validation, visual variants, horizontal or vertical layouts, and rich item content.",
-      },
-    },
-  },
-  tags: ["autodocs"],
   argTypes: {
-    size: {
+    defaultValue: {
       control: { type: "select" },
-      options: ["sm", "md", "lg"],
-      description: "Size of the radio group content.",
-      table: { defaultValue: { summary: "md" } },
-    },
-    variant: {
-      control: { type: "inline-radio" },
-      options: ["outline", "subtle", "solid"],
-      description: "Visual treatment for the radio control.",
-      table: { defaultValue: { summary: "outline" } },
-    },
-    orientation: {
-      control: { type: "inline-radio" },
-      options: ["vertical", "horizontal"],
-      description: "Layout orientation for radio items.",
-      table: { defaultValue: { summary: "vertical" } },
-    },
-    validateStatus: {
-      control: { type: "select" },
-      options: ["default", "error", "success", "warning"],
-      description: "Validation state shown in helper text and accessibility.",
-      table: { defaultValue: { summary: "default" } },
+      description: "Initial selected value for uncontrolled usage.",
+      options: ["standard", "express", "pickup", null],
     },
     disabled: {
       control: "boolean",
       description: "Disable the entire radio group.",
       table: { defaultValue: { summary: "false" } },
+    },
+    onValueChange: {
+      description: "Called when the selected value changes.",
+    },
+    orientation: {
+      control: { type: "inline-radio" },
+      description: "Layout orientation for radio items.",
+      options: ["vertical", "horizontal"],
+      table: { defaultValue: { summary: "vertical" } },
     },
     readOnly: {
       control: "boolean",
@@ -144,26 +120,48 @@ const meta: Meta<typeof RadioGroup> = {
       description: "Mark the field as required.",
       table: { defaultValue: { summary: "false" } },
     },
-    defaultValue: {
+    size: {
       control: { type: "select" },
-      options: ["standard", "express", "pickup", null],
-      description: "Initial selected value for uncontrolled usage.",
+      description: "Size of the radio group content.",
+      options: ["sm", "md", "lg"],
+      table: { defaultValue: { summary: "md" } },
     },
-    onValueChange: {
-      description: "Called when the selected value changes.",
+    validateStatus: {
+      control: { type: "select" },
+      description: "Validation state shown in helper text and accessibility.",
+      options: ["default", "error", "success", "warning"],
+      table: { defaultValue: { summary: "default" } },
+    },
+    variant: {
+      control: { type: "inline-radio" },
+      description: "Visual treatment for the radio control.",
+      options: ["outline", "subtle", "solid"],
+      table: { defaultValue: { summary: "outline" } },
     },
   },
   args: {
-    size: "md",
-    variant: "outline",
-    orientation: "vertical",
-    validateStatus: "default",
+    defaultValue: "standard",
     disabled: false,
+    onValueChange: fn(),
+    orientation: "vertical",
     readOnly: false,
     required: false,
-    defaultValue: "standard",
-    onValueChange: fn(),
+    size: "md",
+    validateStatus: "default",
+    variant: "outline",
   },
+  component: RadioGroup,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "A compound radio-group component built with Zag.js. It supports controlled/uncontrolled state, form submission, validation, visual variants, horizontal or vertical layouts, and rich item content.",
+      },
+    },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/RadioGroup",
 }
 
 export default meta
@@ -289,16 +287,30 @@ export const Controlled: Story = {
 
         <div className="flex items-center gap-150">
           <Button
-            onClick={() => setValue("starter")}
+            onClick={() => {
+              setValue("starter")
+            }}
             size="sm"
             theme="outlined"
           >
             Set Starter
           </Button>
-          <Button onClick={() => setValue("scale")} size="sm" theme="outlined">
+          <Button
+            onClick={() => {
+              setValue("scale")
+            }}
+            size="sm"
+            theme="outlined"
+          >
             Set Scale
           </Button>
-          <Button onClick={() => setValue(null)} size="sm" theme="borderless">
+          <Button
+            onClick={() => {
+              setValue(null)
+            }}
+            size="sm"
+            theme="borderless"
+          >
             Clear
           </Button>
         </div>

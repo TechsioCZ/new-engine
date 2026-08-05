@@ -5,8 +5,8 @@ import { PostAdminOrderEmailSchema } from "./validators"
 
 export const adminOrderEmailRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["POST"],
     matcher: "/admin/orders/:id/email",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(PostAdminOrderEmailSchema)],
   },
 ]

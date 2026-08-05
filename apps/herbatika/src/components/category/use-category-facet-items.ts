@@ -8,7 +8,7 @@ import type { NuqsPlpQueryState } from "@/lib/storefront/plp-query-state"
 
 import { buildFacetChipItems } from "./category-selection-utils"
 
-type UseCategoryFacetItemsProps = {
+interface UseCategoryFacetItemsProps {
   catalogFacets: CatalogFacets
   queryState: NuqsPlpQueryState
   seedFacets: CatalogFacets

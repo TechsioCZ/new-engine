@@ -10,12 +10,8 @@ import {
 } from "@medusajs/ui"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import {
-  Link,
-  type LoaderFunctionArgs,
-  type UIMatch,
-  useParams,
-} from "react-router-dom"
+import { Link, useParams } from "react-router-dom"
+import type { LoaderFunctionArgs, UIMatch } from "react-router-dom"
 
 import type { StoreQuoteResponse } from "../../../../types"
 import { JsonViewSection } from "../../../components/common/json-view-section"
@@ -37,17 +33,20 @@ import {
 } from "../components"
 
 export async function loader({ params }: LoaderFunctionArgs) {
-  const quoteId = params["quoteId"]
+  const { quoteId } = params
 
   if (!quoteId) {
     return { quote: undefined }
   }
 
-  return sdk.client.fetch<StoreQuoteResponse>(`/admin/quotes/${quoteId}`, {
-    query: {
-      fields: "id",
-    },
-  })
+  return await sdk.client.fetch<StoreQuoteResponse>(
+    `/admin/quotes/${quoteId}`,
+    {
+      query: {
+        fields: "id",
+      },
+    }
+  )
 }
 
 export const handle = {
@@ -104,34 +103,34 @@ const QuoteDetails = () => {
 
   const handleSendQuote = async () => {
     const res = await prompt({
-      title: t("prompts.sendTitle"),
-      description: t("prompts.sendDescription"),
-      confirmText: t("actions.continue"),
       cancelText: t("actions.cancel"),
+      confirmText: t("actions.continue"),
+      description: t("prompts.sendDescription"),
+      title: t("prompts.sendTitle"),
       variant: "confirmation",
     })
 
     if (res) {
       await sendQuote(undefined, {
-        onSuccess: () => toast.success(t("toasts.quoteSent")),
         onError: (e) => toast.error(e.message),
+        onSuccess: () => toast.success(t("toasts.quoteSent")),
       })
     }
   }
 
   const handleRejectQuote = async () => {
     const res = await prompt({
-      title: t("prompts.rejectTitle"),
-      description: t("prompts.rejectDescription"),
-      confirmText: t("actions.continue"),
       cancelText: t("actions.cancel"),
+      confirmText: t("actions.continue"),
+      description: t("prompts.rejectDescription"),
+      title: t("prompts.rejectTitle"),
       variant: "confirmation",
     })
 
     if (res) {
       await rejectQuote(undefined, {
-        onSuccess: () => toast.success(t("toasts.quoteRejected")),
         onError: (e) => toast.error(e.message),
+        onSuccess: () => toast.success(t("toasts.quoteRejected")),
       })
     }
   }
@@ -149,20 +148,7 @@ const QuoteDetails = () => {
   }
 
   const quoteCustomer = quote.draft_order?.customer
-  const quoteEmployee = (
-    quoteCustomer as
-      | (typeof quoteCustomer & {
-          employee?: {
-            company?: {
-              currency_code?: string | null
-              id?: string | null
-              name?: string | null
-            } | null
-            spending_limit?: number | null
-          } | null
-        })
-      | undefined
-  )?.employee
+  const quoteEmployee = quoteCustomer?.employee
   const quoteCompany = quoteEmployee?.company
 
   return (
@@ -197,7 +183,7 @@ const QuoteDetails = () => {
                 {showRejectQuote && (
                   <Button
                     disabled={isSendingQuote}
-                    onClick={() => handleRejectQuote()}
+                    onClick={async () => handleRejectQuote()}
                     size="small"
                     variant="secondary"
                   >
@@ -208,7 +194,7 @@ const QuoteDetails = () => {
                 {showSendQuote && (
                   <Button
                     disabled={isSendingQuote}
-                    onClick={() => handleSendQuote()}
+                    onClick={async () => handleSendQuote()}
                     size="small"
                     variant="secondary"
                   >
@@ -237,7 +223,9 @@ const QuoteDetails = () => {
 
               <Link
                 className="text-pretty text-blue-500 text-sm"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation()
+                }}
                 to={`/customers/${quote.draft_order?.customer?.id}`}
               >
                 {quote.draft_order?.customer?.email}
@@ -283,7 +271,9 @@ const QuoteDetails = () => {
               {quoteCompany?.id ? (
                 <Link
                   className="text-pretty text-blue-500 text-sm"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                  }}
                   to={`/companies/${quoteCompany.id}`}
                 >
                   {quoteCompany.name}

@@ -21,7 +21,7 @@ export type CommercialDiscountIntent =
       amount: number
     }
 
-export type CommercialAdjustmentInput = {
+export interface CommercialAdjustmentInput {
   amount: number
   code?: string | null | undefined
   description?: string | null | undefined
@@ -56,10 +56,10 @@ function parseCommercialDiscountIntent(
   }
 
   if (value["type"] === "amount") {
-    const amount = value["amount"]
+    const { amount } = value
 
     return typeof amount === "number" && Number.isFinite(amount)
-      ? { type: "amount", amount }
+      ? { amount, type: "amount" }
       : null
   }
 
@@ -87,7 +87,7 @@ export function decodeCommercialDiscountIntent(
   const markerIndex = description.lastIndexOf(
     DISCOUNT_INTENT_DESCRIPTION_MARKER
   )
-  if (markerIndex < 0) {
+  if (markerIndex === -1) {
     return null
   }
 
@@ -103,7 +103,7 @@ export function decodeCommercialDiscountIntent(
   }
 }
 
-export type CommercialValuesItemInput = {
+export interface CommercialValuesItemInput {
   current_subtotal?: number | null | undefined
   current_tax_total?: number | null | undefined
   item_id: string
@@ -116,7 +116,7 @@ export type CommercialValuesItemInput = {
   is_tax_inclusive?: boolean | null | undefined
 }
 
-export type CommercialValuesCalculationInput = {
+export interface CommercialValuesCalculationInput {
   currency_code: string
   current_total?: number | null | undefined
   expected_order_version: number
@@ -127,7 +127,7 @@ export type CommercialValuesCalculationInput = {
   shipping_methods?: CommercialValuesShippingMethodInput[] | undefined
 }
 
-type CommercialValuesRequest = {
+interface CommercialValuesRequest {
   expected_order_version: number
   internal_note?: string | undefined
   items: Array<{
@@ -146,7 +146,7 @@ export type CommercialValuesConfirmRequest = CommercialValuesRequest & {
   confirmation_mode?: "confirm" | "request" | undefined
 }
 
-type CommercialValuesSnapshotItem = {
+interface CommercialValuesSnapshotItem {
   existing_adjustments: CommercialAdjustmentInput[]
   is_discountable: boolean
   item_id: string
@@ -161,7 +161,7 @@ type CommercialValuesSnapshotItem = {
   variant_title?: string | null | undefined
 }
 
-type CommercialValuesSnapshotShippingMethod = {
+interface CommercialValuesSnapshotShippingMethod {
   current_subtotal: number
   current_tax_total: number
   existing_adjustments: CommercialAdjustmentInput[]
@@ -179,7 +179,7 @@ export type CommercialValuesEditBlocker =
       order_change_id: string
     }
 
-export type CommercialValuesSnapshot = {
+export interface CommercialValuesSnapshot {
   active_order_change?: {
     change_type?: string | null | undefined
     id: string
@@ -199,7 +199,7 @@ export type CommercialValuesSnapshot = {
   }
 }
 
-type CommercialValuesPreviewItem = {
+interface CommercialValuesPreviewItem {
   final_line_total: number
   final_line_total_with_tax: number
   is_tax_inclusive: boolean
@@ -214,7 +214,7 @@ type CommercialValuesPreviewItem = {
   tax_total: number
 }
 
-type CommercialValuesPreviewShippingMethod = {
+interface CommercialValuesPreviewShippingMethod {
   current_subtotal: number
   current_tax_total: number
   final_total: number
@@ -227,7 +227,7 @@ type CommercialValuesPreviewShippingMethod = {
   tax_total: number
 }
 
-export type CommercialValuesPreview = {
+export interface CommercialValuesPreview {
   currency_code: string
   delta: number
   expected_order_version: number
@@ -241,7 +241,7 @@ export type CommercialValuesPreview = {
   shipping_methods: CommercialValuesPreviewShippingMethod[]
 }
 
-export type CommercialValuesConfirmResponse = {
+export interface CommercialValuesConfirmResponse {
   mode: "confirmed" | "requested"
   order_change_id: string
   order_preview: unknown
@@ -261,7 +261,7 @@ type ItemCalculation = CommercialValuesPreviewItem & {
   source_item: CommercialValuesItemInput
 }
 
-export type CommercialValuesShippingMethodInput = {
+export interface CommercialValuesShippingMethodInput {
   current_subtotal: number
   current_tax_total?: number | null | undefined
   discount?: CommercialDiscountIntent | null | undefined
@@ -276,7 +276,7 @@ type ShippingCalculation = CommercialValuesPreviewShippingMethod & {
   source_shipping_method: CommercialValuesShippingMethodInput
 }
 
-type DiscountAllocationTarget = {
+interface DiscountAllocationTarget {
   discountable_base: number
   input_index: number
 }
@@ -602,6 +602,9 @@ function calculateItem(
     discountable_base:
       item.is_discountable === false ? 0 : lineAfterItemDiscount,
     final_line_total: lineAfterItemDiscount,
+    final_line_total_with_tax: item.is_tax_inclusive
+      ? lineAfterItemDiscount
+      : lineAfterItemDiscount + taxTotal,
     input_index: inputIndex,
     is_tax_inclusive: item.is_tax_inclusive ?? false,
     item_id: item.item_id,
@@ -614,9 +617,6 @@ function calculateItem(
     requested_unit_price: item.unit_price,
     source_item: item,
     tax_total: taxTotal,
-    final_line_total_with_tax: item.is_tax_inclusive
-      ? lineAfterItemDiscount
-      : lineAfterItemDiscount + taxTotal,
   }
 }
 

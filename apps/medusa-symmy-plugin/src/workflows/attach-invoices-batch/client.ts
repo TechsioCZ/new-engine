@@ -8,27 +8,25 @@ import {
   uploadFilesWorkflow,
 } from "@medusajs/medusa/core-flows"
 
-import {
-  type InvoiceOrderLookupKeys,
-  invoicesBatchClientMapperHelper,
-} from "./client-mapper-helper"
+import { invoicesBatchClientMapperHelper } from "./client-mapper-helper"
+import type { InvoiceOrderLookupKeys } from "./client-mapper-helper"
 import type { InvoiceInput } from "./types"
 
 type Metadata = Record<string, unknown>
 
-export type ExistingOrder = {
+export interface ExistingOrder {
   id: string
   display_id: number
   metadata: Metadata | null
 }
 
-export type ExistingOrderIndex = {
+export interface ExistingOrderIndex {
   byId: Map<string, ExistingOrder>
   byDisplayId: Map<string, ExistingOrder>
   byErpId: Map<string, ExistingOrder>
 }
 
-export type UploadedInvoice = {
+export interface UploadedInvoice {
   id: string
   url: string
 }
@@ -58,9 +56,9 @@ export class InvoicesBatchClient {
       erpIds
     )
     const [byIdOrders, byDisplayIdOrders, metadataOrders] = await Promise.all([
-      this.queryOrders({ id: Array.from(orderIds) }),
-      this.queryOrders({ display_id: Array.from(displayIds) }),
-      this.queryOrders({ id: Array.from(metadataOrderIds) }),
+      this.queryOrders({ id: [...orderIds] }),
+      this.queryOrders({ display_id: [...displayIds] }),
+      this.queryOrders({ id: [...metadataOrderIds] }),
     ])
     return this.mapper.buildOrderIndex([
       ...byIdOrders,
@@ -104,13 +102,13 @@ export class InvoicesBatchClient {
     await updateOrderWorkflow(this.container).run({
       input: {
         id: order.id,
-        user_id: userId ?? "symmy-plugin",
         metadata: this.mapper.buildUpdatedMetadata(
           order.metadata,
           invoice,
           invoiceUrl,
           uploaded
         ),
+        user_id: userId ?? "symmy-plugin",
       },
     })
     return invoiceUrl
@@ -124,7 +122,7 @@ export class InvoicesBatchClient {
     }
     const { data } = await this.query.graph({
       entity: "order",
-      fields: Array.from(ORDER_FIELDS),
+      fields: [...ORDER_FIELDS],
       filters,
     })
     return (data ?? []) as ExistingOrder[]
@@ -143,7 +141,7 @@ export class InvoicesBatchClient {
       fields: ["id"],
       filters: {
         metadata: {
-          [key]: Array.from(values),
+          [key]: [...values],
         },
       },
     })

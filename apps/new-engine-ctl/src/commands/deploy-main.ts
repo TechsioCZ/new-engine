@@ -24,41 +24,39 @@ export function createDeployMainCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
     )
     .action(async (options) => {
       const input = deployMainCommandInputSchema.parse({
-        projectSlug:
-          options.projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
-        environmentName: options.environmentName,
-        servicesCsv: options.servicesCsv,
-        gitCommitSha: options.gitCommitSha,
-        outputJson: options.outputJson,
-        baseUrl: options.baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
-        apiToken:
-          options.apiToken ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
-        dryRun: Boolean(options.dryRun),
+        apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
         approveDowntimeRisk: Boolean(options.approveDowntimeRisk),
+        baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
+        dryRun: Boolean(options.dryRun),
+        environmentName: options.environmentName,
+        gitCommitSha: options.gitCommitSha,
         meiliApiCredentialsProviderId:
-          process.env["ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID"] ??
+          process.env.ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID ??
           "meili_api_credentials",
+        outputJson: options.outputJson,
         pollIntervalSeconds:
           typeof options.pollIntervalSeconds === "string" &&
           options.pollIntervalSeconds.trim()
             ? Number(options.pollIntervalSeconds)
             : undefined,
+        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+        servicesCsv: options.servicesCsv,
+        stackInputsPath: options.stackInputsPath,
+        stackManifestPath: options.stackManifestPath,
         waitTimeoutSeconds:
           typeof options.waitTimeoutSeconds === "string" &&
           options.waitTimeoutSeconds.trim()
             ? Number(options.waitTimeoutSeconds)
             : undefined,
-        stackManifestPath: options.stackManifestPath,
-        stackInputsPath: options.stackInputsPath,
       })
       const result = await executeDeployMain(input)
       const deploymentsJson = JSON.stringify({

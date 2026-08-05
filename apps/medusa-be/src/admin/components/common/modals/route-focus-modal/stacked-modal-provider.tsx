@@ -1,4 +1,5 @@
-import { type PropsWithChildren, useState } from "react"
+import { useState } from "react"
+import type { PropsWithChildren } from "react"
 
 import { StackedModalContext } from "./stacked-modal-context"
 
@@ -42,8 +43,8 @@ export const StackedModalProvider = ({
     <StackedModalContext.Provider
       value={{
         getIsOpen,
-        setIsOpen,
         register,
+        setIsOpen,
         unregister,
       }}
     >

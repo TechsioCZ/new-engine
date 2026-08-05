@@ -38,11 +38,8 @@ import { ZaneEnvironmentManager } from "./zane-environments"
 import { UpstreamHttpError } from "./zane-errors"
 import { ZaneMedusaPublishableKeyProvisioner } from "./zane-medusa-publishable-key"
 import { ZaneMeiliApiCredentialsProvisioner } from "./zane-meili-api-credentials"
-import {
-  type HttpMethod,
-  type ZaneSession,
-  ZaneUpstreamClient,
-} from "./zane-upstream"
+import { ZaneUpstreamClient } from "./zane-upstream"
+import type { HttpMethod, ZaneSession } from "./zane-upstream"
 
 export type {
   ArchiveEnvironmentInput,
@@ -73,11 +70,11 @@ interface ZaneDeploymentListResponse {
 }
 
 interface ZaneEnvironmentWithVariables extends ZaneEnvironment {
-  variables: Array<{
+  variables: {
     id: string
     key: string
     value: string
-  }>
+  }[]
 }
 
 interface PreviewRuntimeSourceContext {
@@ -113,17 +110,20 @@ function assertServiceType(value: unknown, label: string): ServiceType {
 
   switch (rawServiceType.toUpperCase()) {
     case "DOCKER":
-    case "DOCKER_REGISTRY":
+    case "DOCKER_REGISTRY": {
       return "docker"
+    }
     case "GIT":
-    case "GIT_REPOSITORY":
+    case "GIT_REPOSITORY": {
       return "git"
-    default:
+    }
+    default: {
       throw new UpstreamHttpError(
         502,
         "zane_service_type_invalid",
         `${label} must be docker or git`
       )
+    }
   }
 }
 
@@ -163,8 +163,8 @@ function toMeiliProvisionOutputInput(
     )
   }
 
-  const uid = output.policy["uid"]
-  const description = output.policy["description"]
+  const { uid } = output.policy
+  const { description } = output.policy
   if (typeof uid !== "string" || !uid.trim()) {
     throw new BadRequestError(`${label}.policy.uid must be a non-empty string`)
   }
@@ -177,16 +177,16 @@ function toMeiliProvisionOutputInput(
   return {
     envVar: output.envVar,
     policy: {
-      uid: uid.trim(),
-      description: description.trim(),
       actions: assertStringArrayInput(
-        output.policy["actions"],
+        output.policy.actions,
         `${label}.policy.actions`
       ),
+      description: description.trim(),
       indexes: assertStringArrayInput(
-        output.policy["indexes"],
+        output.policy.indexes,
         `${label}.policy.indexes`
       ),
+      uid: uid.trim(),
     },
   }
 }
@@ -201,7 +201,7 @@ function toMedusaPublishableKeyProvisionOutputInput(
     )
   }
 
-  const title = output.policy["title"]
+  const { title } = output.policy
   if (
     title !== null &&
     title !== undefined &&
@@ -231,12 +231,10 @@ function normalizeServiceCards(payload: unknown): ZaneServiceCard[] {
   return payload.map((item, index) => {
     const object = assertObject(item, `service_list[${index}]`)
     return {
-      id: assertString(object["id"], `service_list[${index}].id`),
-      slug: assertString(object["slug"], `service_list[${index}].slug`),
-      type: assertServiceType(object["type"], `service_list[${index}].type`),
-      ...(typeof object["status"] === "string"
-        ? { status: object["status"] }
-        : {}),
+      id: assertString(object.id, `service_list[${index}].id`),
+      slug: assertString(object.slug, `service_list[${index}].slug`),
+      type: assertServiceType(object.type, `service_list[${index}].type`),
+      ...(typeof object.status === "string" ? { status: object.status } : {}),
     }
   })
 }
@@ -249,17 +247,17 @@ function normalizeDockerfileBuilderOptions(
   }
 
   return {
-    ...(typeof value["dockerfile_path"] === "string" ||
-    value["dockerfile_path"] === null
-      ? { dockerfile_path: value["dockerfile_path"] }
+    ...(typeof value.dockerfile_path === "string" ||
+    value.dockerfile_path === null
+      ? { dockerfile_path: value.dockerfile_path }
       : {}),
-    ...(typeof value["build_context_dir"] === "string" ||
-    value["build_context_dir"] === null
-      ? { build_context_dir: value["build_context_dir"] }
+    ...(typeof value.build_context_dir === "string" ||
+    value.build_context_dir === null
+      ? { build_context_dir: value.build_context_dir }
       : {}),
-    ...(typeof value["build_stage_target"] === "string" ||
-    value["build_stage_target"] === null
-      ? { build_stage_target: value["build_stage_target"] }
+    ...(typeof value.build_stage_target === "string" ||
+    value.build_stage_target === null
+      ? { build_stage_target: value.build_stage_target }
       : {}),
   }
 }
@@ -273,14 +271,14 @@ function normalizeEnvVariables(value: unknown): ZaneEnvVariable[] | undefined {
   for (const entry of value) {
     if (
       isRecord(entry) &&
-      typeof entry["id"] === "string" &&
-      typeof entry["key"] === "string" &&
-      typeof entry["value"] === "string"
+      typeof entry.id === "string" &&
+      typeof entry.key === "string" &&
+      typeof entry.value === "string"
     ) {
       variables.push({
-        id: entry["id"],
-        key: entry["key"],
-        value: entry["value"],
+        id: entry.id,
+        key: entry.key,
+        value: entry.value,
       })
     }
   }
@@ -299,16 +297,16 @@ function normalizeEnvironmentReference(
 
   if (
     !isRecord(value) ||
-    typeof value["id"] !== "string" ||
-    typeof value["name"] !== "string"
+    typeof value.id !== "string" ||
+    typeof value.name !== "string"
   ) {
     return undefined
   }
 
-  const variables = normalizeEnvVariables(value["variables"])
+  const variables = normalizeEnvVariables(value.variables)
   return {
-    id: value["id"],
-    name: value["name"],
+    id: value.id,
+    name: value.name,
     ...(variables === undefined ? {} : { variables }),
   }
 }
@@ -320,8 +318,8 @@ function normalizeGitAppRef(
     return null
   }
 
-  return isRecord(value) && typeof value["id"] === "string"
-    ? { id: value["id"] }
+  return isRecord(value) && typeof value.id === "string"
+    ? { id: value.id }
     : undefined
 }
 
@@ -333,22 +331,22 @@ function normalizeHealthcheck(
   }
   if (
     !isRecord(value) ||
-    typeof value["type"] !== "string" ||
-    typeof value["value"] !== "string" ||
-    typeof value["timeout_seconds"] !== "number" ||
-    typeof value["interval_seconds"] !== "number"
+    typeof value.type !== "string" ||
+    typeof value.value !== "string" ||
+    typeof value.timeout_seconds !== "number" ||
+    typeof value.interval_seconds !== "number"
   ) {
     return undefined
   }
 
   return {
-    type: value["type"],
-    value: value["value"],
-    timeout_seconds: value["timeout_seconds"],
-    interval_seconds: value["interval_seconds"],
-    ...(typeof value["associated_port"] === "number" ||
-    value["associated_port"] === null
-      ? { associated_port: value["associated_port"] }
+    interval_seconds: value.interval_seconds,
+    timeout_seconds: value.timeout_seconds,
+    type: value.type,
+    value: value.value,
+    ...(typeof value.associated_port === "number" ||
+    value.associated_port === null
+      ? { associated_port: value.associated_port }
       : {}),
   }
 }
@@ -363,25 +361,23 @@ function normalizeResourceLimits(
     return undefined
   }
 
-  const memory = value["memory"]
+  const { memory } = value
 
   return {
-    ...(typeof value["cpus"] === "number" ||
-    typeof value["cpus"] === "string" ||
-    value["cpus"] === null
-      ? { cpus: value["cpus"] }
+    ...(typeof value.cpus === "number" ||
+    typeof value.cpus === "string" ||
+    value.cpus === null
+      ? { cpus: value.cpus }
       : {}),
     ...(memory === null
       ? { memory: null }
       : isRecord(memory)
         ? {
             memory: {
-              ...(typeof memory["unit"] === "string"
-                ? { unit: memory["unit"] }
-                : {}),
-              ...(typeof memory["value"] === "number" ||
-              typeof memory["value"] === "string"
-                ? { value: memory["value"] }
+              ...(typeof memory.unit === "string" ? { unit: memory.unit } : {}),
+              ...(typeof memory.value === "number" ||
+              typeof memory.value === "string"
+                ? { value: memory.value }
                 : {}),
             },
           }
@@ -395,64 +391,57 @@ function normalizeServiceDetails(
 ): ZaneServiceDetails {
   const object = assertObject(payload, label)
   const dockerfileBuilderOptions = normalizeDockerfileBuilderOptions(
-    object["dockerfile_builder_options"]
+    object.dockerfile_builder_options
   )
-  const environment = normalizeEnvironmentReference(object["environment"])
-  const gitApp = normalizeGitAppRef(object["git_app"])
-  const healthcheck = normalizeHealthcheck(object["healthcheck"])
-  const resourceLimits = normalizeResourceLimits(object["resource_limits"])
+  const environment = normalizeEnvironmentReference(object.environment)
+  const gitApp = normalizeGitAppRef(object.git_app)
+  const healthcheck = normalizeHealthcheck(object.healthcheck)
+  const resourceLimits = normalizeResourceLimits(object.resource_limits)
 
   return {
-    id: assertString(object["id"], `${label}.id`),
-    slug: assertString(object["slug"], `${label}.slug`),
-    type: assertServiceType(object["type"], `${label}.type`),
+    deploy_token: assertString(object.deploy_token, `${label}.deploy_token`),
+    env_variables: Array.isArray(object.env_variables)
+      ? (object.env_variables as ZaneEnvVariable[])
+      : [],
     global_network_alias:
-      typeof object["global_network_alias"] === "string"
-        ? object["global_network_alias"]
+      typeof object.global_network_alias === "string"
+        ? object.global_network_alias
         : null,
-    deploy_token: assertString(object["deploy_token"], `${label}.deploy_token`),
-    env_variables: Array.isArray(object["env_variables"])
-      ? (object["env_variables"] as ZaneEnvVariable[])
+    id: assertString(object.id, `${label}.id`),
+    slug: assertString(object.slug, `${label}.slug`),
+    type: assertServiceType(object.type, `${label}.type`),
+    urls: Array.isArray(object.urls)
+      ? (object.urls as ZaneServiceDetails["urls"])
       : [],
-    urls: Array.isArray(object["urls"])
-      ? (object["urls"] as ZaneServiceDetails["urls"])
-      : [],
-    ...(typeof object["network_alias"] === "string"
-      ? { network_alias: object["network_alias"] }
+    ...(typeof object.network_alias === "string"
+      ? { network_alias: object.network_alias }
       : {}),
-    ...(typeof object["commit_sha"] === "string"
-      ? { commit_sha: object["commit_sha"] }
+    ...(typeof object.commit_sha === "string"
+      ? { commit_sha: object.commit_sha }
       : {}),
-    ...(typeof object["repository_url"] === "string"
-      ? { repository_url: object["repository_url"] }
+    ...(typeof object.repository_url === "string"
+      ? { repository_url: object.repository_url }
       : {}),
-    ...(typeof object["branch_name"] === "string"
-      ? { branch_name: object["branch_name"] }
+    ...(typeof object.branch_name === "string"
+      ? { branch_name: object.branch_name }
       : {}),
-    ...(typeof object["builder"] === "string"
-      ? { builder: object["builder"] }
-      : {}),
-    ...(typeof object["command"] === "string"
-      ? { command: object["command"] }
-      : {}),
+    ...(typeof object.builder === "string" ? { builder: object.builder } : {}),
+    ...(typeof object.command === "string" ? { command: object.command } : {}),
     ...(environment === undefined ? {} : { environment }),
-    ...(Array.isArray(object["system_env_variables"])
+    ...(Array.isArray(object.system_env_variables)
       ? {
-          system_env_variables: object[
-            "system_env_variables"
-          ] as ZaneEnvVariable[],
+          system_env_variables:
+            object.system_env_variables as ZaneEnvVariable[],
         }
       : {}),
-    ...(Array.isArray(object["volumes"])
+    ...(Array.isArray(object.volumes)
       ? {
-          volumes: object["volumes"] as NonNullable<
-            ZaneServiceDetails["volumes"]
-          >,
+          volumes: object.volumes as NonNullable<ZaneServiceDetails["volumes"]>,
         }
       : {}),
-    ...(Array.isArray(object["unapplied_changes"])
+    ...(Array.isArray(object.unapplied_changes)
       ? {
-          unapplied_changes: object["unapplied_changes"] as NonNullable<
+          unapplied_changes: object.unapplied_changes as NonNullable<
             ZaneServiceDetails["unapplied_changes"]
           >,
         }
@@ -500,14 +489,12 @@ export class ZaneClient {
 
   private createEnvironmentManager(): ZaneEnvironmentManager {
     return new ZaneEnvironmentManager({
-      baseUrl: this.#upstream.baseUrl,
       authenticate: async () => await this.authenticate(),
+      baseUrl: this.#upstream.baseUrl,
       buildHeaders: (session, method) =>
         this.buildUpstreamHeaders(session, method),
       getEnvironment: async (session, projectSlug, environmentName) =>
         await this.getEnvironment(session, projectSlug, environmentName),
-      listServiceCards: async (session, projectSlug, environmentName) =>
-        await this.listServiceCards(session, projectSlug, environmentName),
       getServiceDetails: async (
         session,
         projectSlug,
@@ -520,6 +507,8 @@ export class ZaneClient {
           environmentName,
           serviceSlug
         ),
+      listServiceCards: async (session, projectSlug, environmentName) =>
+        await this.listServiceCards(session, projectSlug, environmentName),
       request: async (session, method, path, payload, options) =>
         await this.request(session, method, path, payload, options),
     })
@@ -527,24 +516,10 @@ export class ZaneClient {
 
   private createDeployOps(): ZaneDeployOps {
     return new ZaneDeployOps({
-      baseUrl: this.#upstream.baseUrl,
       authenticate: async () => await this.authenticate(),
+      baseUrl: this.#upstream.baseUrl,
       buildHeaders: (_session, method) =>
         this.buildUpstreamHeaders(undefined, method),
-      listServiceCards: async (session, projectSlug, environmentName) =>
-        await this.listServiceCards(session, projectSlug, environmentName),
-      getServiceDetails: async (
-        session,
-        projectSlug,
-        environmentName,
-        serviceSlug
-      ) =>
-        await this.getServiceDetails(
-          session,
-          projectSlug,
-          environmentName,
-          serviceSlug
-        ),
       getDeployment: async (
         session,
         projectSlug,
@@ -559,6 +534,18 @@ export class ZaneClient {
           serviceSlug,
           deploymentHash
         ),
+      getServiceDetails: async (
+        session,
+        projectSlug,
+        environmentName,
+        serviceSlug
+      ) =>
+        await this.getServiceDetails(
+          session,
+          projectSlug,
+          environmentName,
+          serviceSlug
+        ),
       listDeployments: async (
         session,
         projectSlug,
@@ -571,6 +558,8 @@ export class ZaneClient {
           environmentName,
           serviceSlug
         ),
+      listServiceCards: async (session, projectSlug, environmentName) =>
+        await this.listServiceCards(session, projectSlug, environmentName),
       request: async (session, method, path, payload, options) =>
         await this.request(session, method, path, payload, options),
     })
@@ -619,10 +608,6 @@ export class ZaneClient {
   private createDeployVerifier(): ZaneDeployVerifier {
     return new ZaneDeployVerifier({
       authenticate: async () => await this.authenticate(),
-      getEnvironment: async (session, projectSlug, environmentName) =>
-        await this.getEnvironment(session, projectSlug, environmentName),
-      listServiceCards: async (session, projectSlug, environmentName) =>
-        await this.listServiceCards(session, projectSlug, environmentName),
       getDeployment: async (
         session,
         projectSlug,
@@ -637,6 +622,8 @@ export class ZaneClient {
           serviceSlug,
           deploymentHash
         ),
+      getEnvironment: async (session, projectSlug, environmentName) =>
+        await this.getEnvironment(session, projectSlug, environmentName),
       listDeployments: async (
         session,
         projectSlug,
@@ -649,6 +636,8 @@ export class ZaneClient {
           environmentName,
           serviceSlug
         ),
+      listServiceCards: async (session, projectSlug, environmentName) =>
+        await this.listServiceCards(session, projectSlug, environmentName),
     })
   }
 
@@ -666,13 +655,13 @@ export class ZaneClient {
     excluded_preview_service_slugs: string[]
     present_service_slugs: string[]
     missing_preview_service_slugs: string[]
-    warnings: Array<{
+    warnings: {
       code:
         | "preview_excluded_services_present"
         | "preview_extra_services_present"
       message: string
       service_slugs: string[]
-    }>
+    }[]
   }> {
     const manager = this.createEnvironmentManager()
 
@@ -707,23 +696,23 @@ export class ZaneClient {
     )
 
     return {
-      project_slug: input.projectSlug,
-      environment_name: input.environmentName,
-      environment_exists: environment !== null,
       baseline_complete:
         this.getSharedEnvironmentVariable(
           environment,
           previewBaselineCompleteEnvKey
         ) === "true",
-      target_commit_sha:
-        this.getSharedEnvironmentVariable(
-          environment,
-          previewTargetCommitEnvKey
-        ) ?? null,
+      environment_exists: environment !== null,
+      environment_name: input.environmentName,
       last_deployed_commit_sha:
         this.getSharedEnvironmentVariable(
           environment,
           previewLastDeployedCommitEnvKey
+        ) ?? null,
+      project_slug: input.projectSlug,
+      target_commit_sha:
+        this.getSharedEnvironmentVariable(
+          environment,
+          previewTargetCommitEnvKey
         ) ?? null,
     }
   }
@@ -756,27 +745,27 @@ export class ZaneClient {
     )
 
     const targetCommitSha = await this.upsertSharedEnvironmentVariable({
-      session,
-      projectSlug: input.projectSlug,
-      environmentName: input.environmentName,
       envByKey,
+      environmentName: input.environmentName,
       key: previewTargetCommitEnvKey,
+      projectSlug: input.projectSlug,
+      session,
       value: input.targetCommitSha,
     })
     const lastDeployedCommitSha = await this.upsertSharedEnvironmentVariable({
-      session,
-      projectSlug: input.projectSlug,
-      environmentName: input.environmentName,
       envByKey,
+      environmentName: input.environmentName,
       key: previewLastDeployedCommitEnvKey,
+      projectSlug: input.projectSlug,
+      session,
       value: input.lastDeployedCommitSha,
     })
     const baselineComplete = await this.upsertSharedEnvironmentVariable({
-      session,
-      projectSlug: input.projectSlug,
-      environmentName: input.environmentName,
       envByKey,
+      environmentName: input.environmentName,
       key: previewBaselineCompleteEnvKey,
+      projectSlug: input.projectSlug,
+      session,
       value:
         typeof input.baselineComplete === "boolean"
           ? String(input.baselineComplete)
@@ -784,27 +773,27 @@ export class ZaneClient {
     })
 
     return {
-      project_slug: input.projectSlug,
-      environment_name: input.environmentName,
-      environment_exists: true,
       baseline_complete:
         (baselineComplete ??
           this.getSharedEnvironmentVariable(
             environment,
             previewBaselineCompleteEnvKey
           )) === "true",
-      target_commit_sha:
-        targetCommitSha ??
-        this.getSharedEnvironmentVariable(
-          environment,
-          previewTargetCommitEnvKey
-        ) ??
-        null,
+      environment_exists: true,
+      environment_name: input.environmentName,
       last_deployed_commit_sha:
         lastDeployedCommitSha ??
         this.getSharedEnvironmentVariable(
           environment,
           previewLastDeployedCommitEnvKey
+        ) ??
+        null,
+      project_slug: input.projectSlug,
+      target_commit_sha:
+        targetCommitSha ??
+        this.getSharedEnvironmentVariable(
+          environment,
+          previewTargetCommitEnvKey
         ) ??
         null,
     }
@@ -816,10 +805,10 @@ export class ZaneClient {
     project_slug: string
     environment_name: string
     environment_exists: boolean
-    secrets: Array<{
+    secrets: {
       secret_id: string
       value: string
-    }>
+    }[]
     missing_secret_ids: string[]
   }> {
     const session = await this.authenticate()
@@ -841,7 +830,7 @@ export class ZaneClient {
       environment.variables.map((variable) => [variable.key, variable])
     )
     const serviceDetailsBySlug = new Map<string, ZaneServiceDetails>()
-    const secrets: Array<{ secret_id: string; value: string }> = []
+    const secrets: { secret_id: string; value: string }[] = []
     const missingSecretIds: string[] = []
 
     for (const secret of input.secrets) {
@@ -856,11 +845,11 @@ export class ZaneClient {
 
         if (secret.value) {
           const persisted = await this.syncResolvedPreviewSharedVariables({
-            session,
-            projectSlug: input.projectSlug,
-            environmentName: input.environmentName,
-            environment,
             envByKey,
+            environment,
+            environmentName: input.environmentName,
+            projectSlug: input.projectSlug,
+            session,
             variables: [
               {
                 key: secret.persistedEnvVar,
@@ -958,11 +947,11 @@ export class ZaneClient {
     }
 
     return {
-      project_slug: input.projectSlug,
-      environment_name: input.environmentName,
       environment_exists: true,
-      secrets,
+      environment_name: input.environmentName,
       missing_secret_ids: missingSecretIds,
+      project_slug: input.projectSlug,
+      secrets,
     }
   }
 
@@ -970,10 +959,10 @@ export class ZaneClient {
     project_slug: string
     environment_name: string
     environment_exists: boolean
-    variables: Array<{
+    variables: {
       key: string
       value: string
-    }>
+    }[]
   }> {
     const session = await this.authenticate()
     const environment = await this.getEnvironment(
@@ -994,18 +983,18 @@ export class ZaneClient {
       environment.variables.map((variable) => [variable.key, variable])
     )
     const variables = await this.syncResolvedPreviewSharedVariables({
-      session,
-      projectSlug: input.projectSlug,
-      environmentName: input.environmentName,
-      environment,
       envByKey,
+      environment,
+      environmentName: input.environmentName,
+      projectSlug: input.projectSlug,
+      session,
       variables: input.variables,
     })
 
     return {
-      project_slug: input.projectSlug,
-      environment_name: input.environmentName,
       environment_exists: true,
+      environment_name: input.environmentName,
+      project_slug: input.projectSlug,
       variables,
     }
   }
@@ -1015,12 +1004,12 @@ export class ZaneClient {
     environment_name: string
     noop: boolean
     applied_service_ids: string[]
-    applied_changes: Array<{
+    applied_changes: {
       service_id: string
       service_slug: string
       key: string
       change_type: "ADD" | "UPDATE" | "SKIP"
-    }>
+    }[]
   }> {
     const session = await this.authenticate()
     const environment = await this.getEnvironment(
@@ -1043,8 +1032,6 @@ export class ZaneClient {
     const serviceDetailsByRef = new Map<string, ZaneServiceDetails>()
     const envOverrides = await Promise.all(
       input.services.map(async (service) => ({
-        service_id: service.service_id,
-        service_slug: service.service_slug,
         env: Object.fromEntries(
           await Promise.all(
             service.env.map(async (envVar) => [
@@ -1062,13 +1049,15 @@ export class ZaneClient {
             ])
           )
         ),
+        service_id: service.service_id,
+        service_slug: service.service_slug,
       }))
     )
 
     const ops = this.createDeployOps()
     const targets = await ops.resolveTargets({
-      projectSlug: input.projectSlug,
       environmentName: input.environmentName,
+      projectSlug: input.projectSlug,
       services: input.services.map((service) => ({
         service_id: service.service_id,
         service_slug: service.service_slug,
@@ -1076,10 +1065,10 @@ export class ZaneClient {
     })
 
     return await ops.applyEnvOverrides({
-      projectSlug: input.projectSlug,
-      environmentName: input.environmentName,
-      targets: targets.services,
       envOverrides,
+      environmentName: input.environmentName,
+      projectSlug: input.projectSlug,
+      targets: targets.services,
     })
   }
 
@@ -1107,12 +1096,12 @@ export class ZaneClient {
     environment_name: string
     noop: boolean
     applied_service_ids: string[]
-    applied_changes: Array<{
+    applied_changes: {
       service_id: string
       service_slug: string
       key: string
       change_type: "ADD" | "UPDATE" | "SKIP"
-    }>
+    }[]
   }> {
     const ops = this.createDeployOps()
 
@@ -1171,10 +1160,10 @@ export class ZaneClient {
         }
 
         const provisionInput: ProvisionMeiliKeysInput = {
-          projectSlug: input.projectSlug,
           environmentName: input.environmentName,
-          serviceSlug: input.serviceSlug,
+          projectSlug: input.projectSlug,
           readinessPath: input.readinessPath,
+          serviceSlug: input.serviceSlug,
           ...(backendOutput
             ? {
                 backendOutput: toMeiliProvisionOutputInput(
@@ -1195,11 +1184,7 @@ export class ZaneClient {
         const result = await provider.provisionMeiliKeys(provisionInput)
 
         return {
-          project_slug: result.project_slug,
           environment_name: result.environment_name,
-          provider_id: input.providerId,
-          service_slug: result.service_slug,
-          source_url: result.meili_url,
           outputs: [
             ...(backendOutput
               ? [
@@ -1224,6 +1209,10 @@ export class ZaneClient {
                 ]
               : []),
           ],
+          project_slug: result.project_slug,
+          provider_id: input.providerId,
+          service_slug: result.service_slug,
+          source_url: result.meili_url,
         }
       }
       case "medusa_publishable_key": {
@@ -1238,22 +1227,18 @@ export class ZaneClient {
         }
 
         const result = await provider.provisionPublishableKey({
-          projectSlug: input.projectSlug,
           environmentName: input.environmentName,
-          serviceSlug: input.serviceSlug,
-          readinessPath: input.readinessPath,
           frontendOutput: toMedusaPublishableKeyProvisionOutputInput(
             frontendOutput,
             "outputs[frontend_key]"
           ),
+          projectSlug: input.projectSlug,
+          readinessPath: input.readinessPath,
+          serviceSlug: input.serviceSlug,
         })
 
         return {
-          project_slug: result.project_slug,
           environment_name: result.environment_name,
-          provider_id: input.providerId,
-          service_slug: result.service_slug,
-          source_url: result.medusa_url,
           outputs: [
             {
               output_id: "frontend_key",
@@ -1263,12 +1248,17 @@ export class ZaneClient {
               updated: result.frontend_updated,
             },
           ],
+          project_slug: result.project_slug,
+          provider_id: input.providerId,
+          service_slug: result.service_slug,
+          source_url: result.medusa_url,
         }
       }
-      default:
+      default: {
         throw new BadRequestError(
           `Unsupported runtime provider: ${input.providerId}`
         )
+      }
     }
   }
 
@@ -1285,13 +1275,13 @@ export class ZaneClient {
     checked_env_override_service_ids: string[]
     checked_persisted_env_service_ids: string[]
     checked_deployment_service_ids: string[]
-    checked_deployments: Array<{
+    checked_deployments: {
       service_id: string
       service_slug: string
       deployment_hash: string
       status: string
       status_reason: string | null
-    }>
+    }[]
   }> {
     const verifier = this.createDeployVerifier()
 
@@ -1389,28 +1379,28 @@ export class ZaneClient {
     environment: ZaneEnvironmentWithVariables
     envByKey: Map<string, { id: string; key: string; value: string }>
     variables: SyncPreviewSharedEnvInput["variables"]
-  }): Promise<Array<{ key: string; value: string }>> {
+  }): Promise<{ key: string; value: string }[]> {
     const serviceDetailsByRef = new Map<string, ZaneServiceDetails>()
-    const variables: Array<{ key: string; value: string }> = []
+    const variables: { key: string; value: string }[] = []
 
     for (const variable of input.variables) {
       const resolvedValue = await this.resolvePreviewSharedVariableValue({
-        session: input.session,
-        projectSlug: input.projectSlug,
-        environmentName: input.environmentName,
-        environment: input.environment,
         envByKey: input.envByKey,
-        source: variable.source,
+        environment: input.environment,
+        environmentName: input.environmentName,
         label: variable.key,
+        projectSlug: input.projectSlug,
         serviceDetailsByRef,
+        session: input.session,
+        source: variable.source,
       })
 
       const persistedValue = await this.upsertSharedEnvironmentVariable({
-        session: input.session,
-        projectSlug: input.projectSlug,
-        environmentName: input.environmentName,
         envByKey: input.envByKey,
+        environmentName: input.environmentName,
         key: variable.key,
+        projectSlug: input.projectSlug,
+        session: input.session,
         value: resolvedValue,
       })
 
@@ -1502,7 +1492,7 @@ export class ZaneClient {
         const serviceDetails =
           await this.getCachedPreviewRuntimeServiceDetails(input)
         const alias = serviceDetails.network_alias?.trim()
-        const port = input.source.port
+        const { port } = input.source
         if (!(alias && port)) {
           throw this.createPreviewRuntimeSourceMissingError(
             input,
@@ -1519,7 +1509,7 @@ export class ZaneClient {
         const serviceDetails =
           await this.getCachedPreviewRuntimeServiceDetails(input)
         const alias = serviceDetails.network_alias?.trim()
-        const port = input.source.port
+        const { port } = input.source
         const bucketSharedEnvKey = input.source.bucketSharedEnvKey?.trim()
         if (!(alias && port && bucketSharedEnvKey)) {
           throw this.createPreviewRuntimeSourceMissingError(

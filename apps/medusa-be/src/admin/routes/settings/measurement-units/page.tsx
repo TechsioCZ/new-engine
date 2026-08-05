@@ -28,12 +28,14 @@ import {
   deleteMeasurementUnit,
   isMeasurementUnitStatus,
   listMeasurementUnits,
-  type MeasurementUnit,
-  type MeasurementUnitInput,
-  type MeasurementUnitStatus,
   measurementUnitQueryKeys,
   restoreMeasurementUnit,
   updateMeasurementUnit,
+} from "../../../lib/measurement-units"
+import type {
+  MeasurementUnit,
+  MeasurementUnitInput,
+  MeasurementUnitStatus,
 } from "../../../lib/measurement-units"
 import { getPaginationTranslations } from "../../../lib/table"
 import { useDebouncedValue } from "../../../lib/use-debounced-value"
@@ -89,12 +91,12 @@ const MeasurementUnitFormFields = ({
         <Label htmlFor="measurement-unit-name">{t("fields.name")}</Label>
         <Input
           id="measurement-unit-name"
-          onChange={(event) =>
+          onChange={(event) => {
             setForm((current) => ({
               ...current,
               name: event.target.value,
             }))
-          }
+          }}
           placeholder={t("placeholders.name")}
           required
           value={form.name}
@@ -105,12 +107,12 @@ const MeasurementUnitFormFields = ({
           <Label htmlFor="measurement-unit-code">{t("fields.code")}</Label>
           <Input
             id="measurement-unit-code"
-            onChange={(event) =>
+            onChange={(event) => {
               setForm((current) => ({
                 ...current,
                 code: event.target.value,
               }))
-            }
+            }}
             placeholder={t("placeholders.code")}
             required
             value={form.code}
@@ -120,12 +122,12 @@ const MeasurementUnitFormFields = ({
           <Label htmlFor="measurement-unit-symbol">{t("fields.symbol")}</Label>
           <Input
             id="measurement-unit-symbol"
-            onChange={(event) =>
+            onChange={(event) => {
               setForm((current) => ({
                 ...current,
                 symbol: event.target.value,
               }))
-            }
+            }}
             placeholder={t("placeholders.symbol")}
             required
             value={form.symbol}
@@ -138,12 +140,12 @@ const MeasurementUnitFormFields = ({
         </Label>
         <Input
           id="measurement-unit-base-quantity"
-          onChange={(event) =>
+          onChange={(event) => {
             setForm((current) => ({
               ...current,
               base_quantity: event.target.value,
             }))
-          }
+          }}
           placeholder={t("placeholders.baseQuantity")}
           required
           step="any"
@@ -157,12 +159,12 @@ const MeasurementUnitFormFields = ({
         </Label>
         <Textarea
           id="measurement-unit-description"
-          onChange={(event) =>
+          onChange={(event) => {
             setForm((current) => ({
               ...current,
               description: event.target.value,
             }))
-          }
+          }}
           placeholder={t("placeholders.description")}
           value={form.description ?? ""}
         />
@@ -227,7 +229,9 @@ const MeasurementUnitCreateModal = ({
           <FocusModal.Footer>
             <div className="flex justify-end gap-2">
               <Button
-                onClick={() => onOpenChange(false)}
+                onClick={() => {
+                  onOpenChange(false)
+                }}
                 size="small"
                 type="button"
                 variant="secondary"
@@ -267,7 +271,7 @@ const MeasurementUnitFormDrawer = ({
   const formIsValid = getFormIsValid(form)
 
   const mutation = useMutation({
-    mutationFn: (input: MeasurementUnitInput) =>
+    mutationFn: async (input: MeasurementUnitInput) =>
       updateMeasurementUnit(unit.id, input),
     onError: (error) => {
       toast.error(
@@ -304,7 +308,9 @@ const MeasurementUnitFormDrawer = ({
           <Drawer.Footer>
             <div className="flex justify-end gap-2">
               <Button
-                onClick={() => onOpenChange(false)}
+                onClick={() => {
+                  onOpenChange(false)
+                }}
                 size="small"
                 type="button"
                 variant="secondary"
@@ -350,7 +356,7 @@ const MeasurementUnitsSettingsPage = () => {
   )
 
   const { data, error, isLoading } = useQuery({
-    queryFn: () => listMeasurementUnits(params),
+    queryFn: async () => listMeasurementUnits(params),
     queryKey: measurementUnitQueryKeys.list(params),
   })
 
@@ -476,7 +482,9 @@ const MeasurementUnitsSettingsPage = () => {
                   </Link>
                 </Button>
                 <Button
-                  onClick={() => restoreMutation.mutate(unit.id)}
+                  onClick={() => {
+                    restoreMutation.mutate(unit.id)
+                  }}
                   size="small"
                   type="button"
                   variant="secondary"
@@ -493,7 +501,9 @@ const MeasurementUnitsSettingsPage = () => {
                 </Button>
                 <IconButton
                   aria-label={t("actions.edit")}
-                  onClick={() => setEditingUnit(unit)}
+                  onClick={() => {
+                    setEditingUnit(unit)
+                  }}
                   size="small"
                   type="button"
                   variant="transparent"
@@ -506,7 +516,7 @@ const MeasurementUnitsSettingsPage = () => {
                     deleteMutation.isPending &&
                     deleteMutation.variables === unit.id
                   }
-                  onClick={() => handleDelete(unit)}
+                  onClick={async () => handleDelete(unit)}
                   size="small"
                   type="button"
                   variant="transparent"
@@ -531,7 +541,12 @@ const MeasurementUnitsSettingsPage = () => {
               {t("pagination.results", { count })}
             </Text>
           </div>
-          <Button onClick={() => setCreateOpen(true)} type="button">
+          <Button
+            onClick={() => {
+              setCreateOpen(true)
+            }}
+            type="button"
+          >
             {t("actions.add")}
           </Button>
         </div>
@@ -587,13 +602,15 @@ const MeasurementUnitsSettingsPage = () => {
           canNextPage={pageIndex + 1 < pageCount}
           canPreviousPage={pageIndex > 0}
           count={count}
-          nextPage={() => setPageIndex((current) => current + 1)}
+          nextPage={() => {
+            setPageIndex((current) => current + 1)
+          }}
           pageCount={pageCount}
           pageIndex={pageIndex}
           pageSize={PAGE_SIZE}
-          previousPage={() =>
+          previousPage={() => {
             setPageIndex((current) => Math.max(current - 1, 0))
-          }
+          }}
           translations={getPaginationTranslations(t)}
         />
       </Container>

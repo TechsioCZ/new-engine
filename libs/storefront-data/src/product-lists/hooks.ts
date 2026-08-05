@@ -10,15 +10,12 @@ import { omitUndefined } from "@techsio/std/object"
 
 import type { CartQueryKeys } from "../cart/types"
 import {
-  type CacheConfig,
-  type CacheStrategy,
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
-import {
-  type ActiveCartQueryKeyMatcher,
-  syncCartCaches,
-} from "../shared/cart-cache-sync"
+import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
+import { syncCartCaches } from "../shared/cart-cache-sync"
+import type { ActiveCartQueryKeyMatcher } from "../shared/cart-cache-sync"
 import { toErrorMessage } from "../shared/error-utils"
 import type { QueryResult } from "../shared/hook-result-types"
 import type {
@@ -26,7 +23,8 @@ import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
-import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
+import { shouldSkipPrefetch } from "../shared/prefetch"
+import type { PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import type { StorageValueStore } from "../shared/storage-value-store"
 import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
@@ -73,21 +71,21 @@ type SuspenseDetailInput<TInput extends ProductListDetailInputBase> = Omit<
   id: NonNullable<TInput["id"]>
 }
 
-export type ProductListPrefetchHookOptions = {
+export interface ProductListPrefetchHookOptions {
   cacheStrategy?: CacheStrategy
   defaultDelay?: number
   skipIfCached?: boolean
   skipMode?: PrefetchSkipMode
 }
 
-export type ProductListPrefetchOptions = {
+export interface ProductListPrefetchOptions {
   cacheStrategy?: CacheStrategy
   prefetchedBy?: string
   skipIfCached?: boolean
   skipMode?: PrefetchSkipMode
 }
 
-export type CreateProductListHooksConfig<
+export interface CreateProductListHooksConfig<
   TProductList,
   TProductListItem,
   TCart extends ProductListCartLike,
@@ -97,7 +95,7 @@ export type CreateProductListHooksConfig<
   TDetailParams,
   TListKeyParams = TListParams & { customerId?: string | null },
   TDetailKeyParams = TDetailParams & { customerId?: string | null },
-> = {
+> {
   service: ProductListService<
     TProductList,
     TProductListItem,
@@ -124,13 +122,13 @@ export type CreateProductListHooksConfig<
   isActiveCartQueryKey?: ActiveCartQueryKeyMatcher | undefined
 }
 
-export type ProductListHooks<
+export interface ProductListHooks<
   TProductList,
   TProductListItem,
   TCart extends ProductListCartLike,
   TListInput extends ProductListListInputBase,
   TDetailInput extends ProductListDetailInputBase,
-> = {
+> {
   getListQueryOptions: (
     input: TListInput,
     options?: {
@@ -398,9 +396,9 @@ export function createProductListHooks<
     const listParams = buildList(input)
 
     return omitUndefined({
-      queryKey: resolvedQueryKeys.list(buildListKey(input, listParams)),
-      queryFn: ({ signal }: { signal?: AbortSignal }) =>
+      queryFn: async ({ signal }: { signal?: AbortSignal }) =>
         service.listProductLists(listParams, signal),
+      queryKey: resolvedQueryKeys.list(buildListKey(input, listParams)),
       ...resolvedCacheConfig.userData,
       ...options?.queryOptions,
     })
@@ -415,14 +413,14 @@ export function createProductListHooks<
     const detailParams = buildDetail(input)
 
     return omitUndefined({
-      queryKey: resolvedQueryKeys.detail(buildDetailKey(input, detailParams)),
-      queryFn: ({ signal }: { signal?: AbortSignal }) => {
+      queryFn: async ({ signal }: { signal?: AbortSignal }) => {
         if (!input.id) {
           throw new Error("Product list id is required")
         }
 
         return service.getProductList(detailParams, signal)
       },
+      queryKey: resolvedQueryKeys.detail(buildDetailKey(input, detailParams)),
       ...resolvedCacheConfig.userData,
       ...options?.queryOptions,
     })
@@ -443,7 +441,7 @@ export function createProductListHooks<
 
     return omitUndefined({
       queryKey: resolvedQueryKeys.list(buildListKey(input, listParams)),
-      queryFn: ({ signal }: { signal?: AbortSignal }) =>
+      queryFn: async ({ signal }: { signal?: AbortSignal }) =>
         service.listProductLists(listParams, signal),
       ...prefetchCacheOptions,
       meta: options?.prefetchedBy
@@ -467,7 +465,7 @@ export function createProductListHooks<
 
     return omitUndefined({
       queryKey: resolvedQueryKeys.detail(buildDetailKey(input, detailParams)),
-      queryFn: ({ signal }: { signal?: AbortSignal }) =>
+      queryFn: async ({ signal }: { signal?: AbortSignal }) =>
         service.getProductList(detailParams, signal),
       ...prefetchCacheOptions,
       meta: options?.prefetchedBy
@@ -476,7 +474,7 @@ export function createProductListHooks<
     })
   }
 
-  const invalidateProductLists = (
+  const invalidateProductLists = async (
     queryClient: ReturnType<typeof useQueryClient>
   ) =>
     queryClient.invalidateQueries({
@@ -497,14 +495,14 @@ export function createProductListHooks<
     const { data, isLoading, isFetching, isSuccess, error } = query
 
     return {
-      productLists: data?.productLists ?? [],
       count: data?.count ?? 0,
+      error: toErrorMessage(error),
+      isFetching,
+      isLoading,
+      isSuccess,
       limit: data?.limit ?? input.limit ?? defaultPageSize,
       offset: data?.offset ?? input.offset ?? 0,
-      isLoading,
-      isFetching,
-      isSuccess,
-      error: toErrorMessage(error),
+      productLists: data?.productLists ?? [],
       query,
     }
   }
@@ -525,14 +523,14 @@ export function createProductListHooks<
     const { data, isFetching } = query
 
     return {
-      productLists: data.productLists,
       count: data.count,
+      error: null,
+      isFetching,
+      isLoading: false,
+      isSuccess: true,
       limit: data.limit,
       offset: data.offset,
-      isLoading: false,
-      isFetching,
-      isSuccess: true,
-      error: null,
+      productLists: data.productLists,
       query,
     }
   }
@@ -551,11 +549,11 @@ export function createProductListHooks<
     const { data, isLoading, isFetching, isSuccess, error } = query
 
     return {
-      productList: data ?? null,
-      isLoading,
-      isFetching,
-      isSuccess,
       error: toErrorMessage(error),
+      isFetching,
+      isLoading,
+      isSuccess,
+      productList: data ?? null,
       query,
     }
   }
@@ -579,11 +577,11 @@ export function createProductListHooks<
     const { data, isFetching } = query
 
     return {
-      productList: data ?? null,
-      isLoading: false,
-      isFetching,
-      isSuccess: true,
       error: null,
+      isFetching,
+      isLoading: false,
+      isSuccess: true,
+      productList: data ?? null,
       query,
     }
   }
@@ -638,9 +636,9 @@ export function createProductListHooks<
 
       if (
         shouldSkipPrefetch({
+          cacheOptions: prefetchCacheOptions,
           queryClient,
           queryKey: queryOptions.queryKey,
-          cacheOptions: prefetchCacheOptions,
           skipIfCached: skipIfCachedResolved,
           skipMode: skipModeResolved,
         })
@@ -663,18 +661,16 @@ export function createProductListHooks<
       const id = prefetchId ?? JSON.stringify(queryOptions.queryKey)
 
       return schedulePrefetch(
-        () => {
-          return prefetchProductLists(input)
-        },
+        async () => prefetchProductLists(input),
         id,
         delay
       )
     }
 
     return {
-      prefetchProductLists,
-      delayedPrefetch,
       cancelPrefetch,
+      delayedPrefetch,
+      prefetchProductLists,
     }
   }
 
@@ -712,9 +708,9 @@ export function createProductListHooks<
 
       if (
         shouldSkipPrefetch({
+          cacheOptions: prefetchCacheOptions,
           queryClient,
           queryKey: queryOptions.queryKey,
-          cacheOptions: prefetchCacheOptions,
           skipIfCached: skipIfCachedResolved,
           skipMode: skipModeResolved,
         })
@@ -737,18 +733,16 @@ export function createProductListHooks<
       const id = prefetchId ?? JSON.stringify(queryOptions.queryKey)
 
       return schedulePrefetch(
-        () => {
-          return prefetchProductList(input)
-        },
+        async () => prefetchProductList(input),
         id,
         delay
       )
     }
 
     return {
-      prefetchProductList,
-      delayedPrefetch,
       cancelPrefetch,
+      delayedPrefetch,
+      prefetchProductList,
     }
   }
 
@@ -1042,25 +1036,25 @@ export function createProductListHooks<
   }
 
   return {
-    getListQueryOptions,
     getDetailQueryOptions,
-    useProductLists,
-    useSuspenseProductLists,
-    useProductList,
-    useSuspenseProductList,
-    useProductListDetails,
-    usePrefetchProductLists,
-    usePrefetchProductList,
-    useCreateFavoriteProductList,
-    useCreateCustomProductList,
-    useUpdateProductList,
-    useDeleteProductList,
-    useAddProductListItem,
+    getListQueryOptions,
     useAddFavoriteProductListItem,
-    useCreateProductListCart,
-    useUpdateProductListItem,
+    useAddProductListItem,
     useChangeProductListItemQuantity,
-    useIncrementProductListItem,
+    useCreateCustomProductList,
+    useCreateFavoriteProductList,
+    useCreateProductListCart,
+    useDeleteProductList,
     useDeleteProductListItem,
+    useIncrementProductListItem,
+    usePrefetchProductList,
+    usePrefetchProductLists,
+    useProductList,
+    useProductListDetails,
+    useProductLists,
+    useSuspenseProductList,
+    useSuspenseProductLists,
+    useUpdateProductList,
+    useUpdateProductListItem,
   }
 }

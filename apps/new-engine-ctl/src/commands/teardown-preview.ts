@@ -10,19 +10,17 @@ function parseOptionalNumber(value: unknown): number | undefined {
 
 function buildTeardownPreviewInput(options: Record<string, unknown>) {
   return teardownPreviewCommandInputSchema.parse({
-    projectSlug:
-      options["projectSlug"] ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
-    prNumber: Number(options["prNumber"]),
-    baseUrl: options["baseUrl"] ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
-    apiToken:
-      options["apiToken"] ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
+    apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
+    baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
+    dryRun: Boolean(options.dryRun),
+    outputJson: options.outputJson,
+    prNumber: Number(options.prNumber),
     previewEnvPrefix:
-      options["envPrefix"] ?? process.env["ZANE_PREVIEW_ENV_PREFIX"] ?? "pr-",
-    outputJson: options["outputJson"],
-    dryRun: Boolean(options["dryRun"]),
-    timeoutSeconds: parseOptionalNumber(options["timeoutSeconds"]),
-    retryCount: parseOptionalNumber(options["retryCount"]),
-    retryDelaySeconds: parseOptionalNumber(options["retryDelaySeconds"]),
+      options.envPrefix ?? process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
+    projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+    retryCount: parseOptionalNumber(options.retryCount),
+    retryDelaySeconds: parseOptionalNumber(options.retryDelaySeconds),
+    timeoutSeconds: parseOptionalNumber(options.timeoutSeconds),
   })
 }
 

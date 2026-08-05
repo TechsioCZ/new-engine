@@ -5,7 +5,7 @@ const IBAN_REGEX = /^[A-Z]{2}\d{2}[A-Z0-9]{1,30}$/
 export const PostAdminQrPaymentConfigSchema = z.object({
   iban: z
     .string()
-    .transform((value) => value.replace(/\s+/g, "").toUpperCase())
+    .transform((value) => value.replaceAll(/\s+/g, "").toUpperCase())
     .pipe(z.string().regex(IBAN_REGEX, "Invalid IBAN"))
     .nullable()
     .optional(),

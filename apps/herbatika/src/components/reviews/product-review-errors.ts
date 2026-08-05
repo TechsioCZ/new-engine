@@ -20,24 +20,24 @@ const DUPLICATE_REVIEW_MESSAGE_RULES = [
 ] as const
 const REVIEW_VALIDATION_MESSAGE_RULES = [
   {
-    patterns: ["rating"],
     messageKey: "ratingRequired",
+    patterns: ["rating"],
   },
   {
+    messageKey: "contentRequired",
     patterns: ["content"],
-    messageKey: "contentRequired",
   },
   {
+    messageKey: "contentRequired",
     patterns: ["text"],
-    messageKey: "contentRequired",
   },
   {
-    patterns: ["title"],
     messageKey: "titleInvalid",
+    patterns: ["title"],
   },
 ] as const
 
-export type ProductReviewErrorMessages = {
+export interface ProductReviewErrorMessages {
   authRequired: string
   contentRequired: string
   duplicate: string

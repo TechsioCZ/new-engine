@@ -13,10 +13,12 @@ import { fileURLToPath, pathToFileURL } from "node:url"
 
 import { globSync } from "glob"
 
-const ROOT = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..")
+const ROOT = path.resolve(import.meta.dirname, "..")
 
 // Tailwind v4 namespace to utility prefix mappings
 const NAMESPACE_MAPPINGS = {
+  blur: ["blur"],
+  border: ["border"],
   color: [
     "bg",
     "text",
@@ -32,6 +34,11 @@ const NAMESPACE_MAPPINGS = {
     "decoration",
   ],
   container: ["w", "h", "min-w", "min-h", "max-w", "max-h"],
+  font: ["font"],
+  "font-weight": ["font"],
+  opacity: ["opacity"],
+  radius: ["rounded"],
+  shadow: ["shadow", "drop-shadow", "inset-shadow"],
   spacing: [
     "p",
     "px",
@@ -71,13 +78,6 @@ const NAMESPACE_MAPPINGS = {
     "inset-y",
   ],
   text: ["text"],
-  "font-weight": ["font"],
-  font: ["font"],
-  radius: ["rounded"],
-  shadow: ["shadow", "drop-shadow", "inset-shadow"],
-  blur: ["blur"],
-  opacity: ["opacity"],
-  border: ["border"],
 }
 
 // Standard Tailwind utilities to ignore (not custom tokens)
@@ -135,15 +135,16 @@ const IGNORE_PATTERNS = [
 ]
 
 // Precompute prefix helpers for mapping
-const KNOWN_PREFIXES = Object.values(NAMESPACE_MAPPINGS)
-  .flat()
-  .slice()
-  .sort((a, b) => b.length - a.length)
+const KNOWN_PREFIXES = [...Object.values(NAMESPACE_MAPPINGS).flat()].sort(
+  (a, b) => b.length - a.length
+)
 const PREFIX_TO_NAMESPACES = (() => {
   const map = new Map()
   for (const [ns, prefixes] of Object.entries(NAMESPACE_MAPPINGS)) {
     for (const p of prefixes) {
-      if (!map.has(p)) map.set(p, [])
+      if (!map.has(p)) {
+        map.set(p, [])
+      }
       map.get(p).push(ns)
     }
   }
@@ -157,7 +158,7 @@ const CLASS_STRING_REGEX = /\S+/g
  */
 function extractTailwindClasses(content) {
   const classes = new Set()
-  const classContent = content.replace(
+  const classContent = content.replaceAll(
     /figma\.enum\(\s*["'][^"']+["']\s*,\s*\{[\s\S]*?\}\s*\)/g,
     ""
   )
@@ -255,7 +256,7 @@ function extractTailwindClasses(content) {
     }
   }
 
-  return Array.from(classes).filter((cls) => cls.length > 0)
+  return [...classes].filter((cls) => cls.length > 0)
 }
 
 /**
@@ -283,7 +284,9 @@ function mapClassToPossibleTokens(className) {
     }
   }
 
-  if (!(prefix && value)) return []
+  if (!(prefix && value)) {
+    return []
+  }
 
   const possibleTokens = []
 
@@ -299,8 +302,7 @@ function mapClassToPossibleTokens(className) {
 
   // Add specific namespace alternatives for spacing-related utilities
   if (["p", "px", "py", "pt", "pr", "pb", "pl", "ps", "pe"].includes(prefix)) {
-    possibleTokens.push(`--padding-${value}`)
-    possibleTokens.push(`--spacing-${value}`)
+    possibleTokens.push(`--padding-${value}`, `--spacing-${value}`)
   }
 
   if (
@@ -325,13 +327,11 @@ function mapClassToPossibleTokens(className) {
       "-me",
     ].includes(prefix)
   ) {
-    possibleTokens.push(`--margin-${value}`)
-    possibleTokens.push(`--spacing-${value}`)
+    possibleTokens.push(`--margin-${value}`, `--spacing-${value}`)
   }
 
   if (["gap", "gap-x", "gap-y"].includes(prefix)) {
-    possibleTokens.push(`--gap-${value}`)
-    possibleTokens.push(`--spacing-${value}`)
+    possibleTokens.push(`--gap-${value}`, `--spacing-${value}`)
   }
 
   if (["w", "min-w", "max-w"].includes(prefix)) {
@@ -343,8 +343,7 @@ function mapClassToPossibleTokens(className) {
   }
 
   if (["space-x", "space-y"].includes(prefix)) {
-    possibleTokens.push(`--space-${value}`)
-    possibleTokens.push(`--spacing-${value}`)
+    possibleTokens.push(`--space-${value}`, `--spacing-${value}`)
   }
 
   if (
@@ -352,8 +351,7 @@ function mapClassToPossibleTokens(className) {
       prefix
     )
   ) {
-    possibleTokens.push(`--inset-${value}`)
-    possibleTokens.push(`--spacing-${value}`)
+    possibleTokens.push(`--inset-${value}`, `--spacing-${value}`)
   }
 
   return [...new Set(possibleTokens)]
@@ -367,7 +365,7 @@ function loadDefinedTokens() {
   const tokenFiles = globSync("src/tokens/**/*.css", { cwd: ROOT })
 
   for (const file of tokenFiles) {
-    const content = fs.readFileSync(path.join(ROOT, file), "utf8")
+    const content = fs.readFileSync(path.join(ROOT, file), "utf-8")
     // Match CSS custom properties defined in tokens
     const tokenMatches = content.matchAll(/--([a-z][a-z0-9-]*)\s*:/g)
     for (const match of tokenMatches) {
@@ -381,7 +379,7 @@ function loadDefinedTokens() {
     ignore: ["**/*.stories.tsx", "**/*.test.tsx", "**/*.spec.tsx"],
   })
   for (const file of componentFiles) {
-    const content = fs.readFileSync(path.join(ROOT, file), "utf8")
+    const content = fs.readFileSync(path.join(ROOT, file), "utf-8")
     // style={{ '--var': value }} or object entries '--var': value
     for (const m of content.matchAll(/["'](--[a-z][a-z0-9-]*)["']\s*:/gi)) {
       tokens.add(m[1])
@@ -418,7 +416,7 @@ function extractTokensFromArbitraryUtility(className) {
   for (const m of className.matchAll(/\((--[a-z][a-z0-9-]*)/gi)) {
     tokens.add(m[1])
   }
-  return Array.from(tokens)
+  return [...tokens]
 }
 
 /**
@@ -439,7 +437,7 @@ function validateTokenUsage() {
   const errorsByFile = new Map()
 
   for (const file of componentFiles) {
-    const content = fs.readFileSync(path.join(ROOT, file), "utf8")
+    const content = fs.readFileSync(path.join(ROOT, file), "utf-8")
     const classes = extractTailwindClasses(content)
     const fileErrors = []
 
@@ -470,15 +468,21 @@ function validateTokenUsage() {
           })
         }
         // If tokens are all external or any defined, consider it valid and continue
-        if (tokensNeedingCheck.length === 0 || anyDefined) continue
+        if (tokensNeedingCheck.length === 0 || anyDefined) {
+          continue
+        }
       }
 
       // 2) Ignore standard classes
-      if (shouldIgnoreClass(className)) continue
+      if (shouldIgnoreClass(className)) {
+        continue
+      }
 
       // 3) Map to possible tokens via namespace rules
       const possibleTokens = mapClassToPossibleTokens(className)
-      if (possibleTokens.length === 0) continue
+      if (possibleTokens.length === 0) {
+        continue
+      }
 
       // Check if ANY of the possible tokens exists
       const hasMatchingToken = possibleTokens.some((token) =>

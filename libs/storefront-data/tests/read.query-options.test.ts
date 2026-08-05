@@ -1,36 +1,40 @@
 import { QueryClient } from "@tanstack/react-query"
+import { vi, describe, expect, it } from "vitest"
 
 import { createCollectionQueryOptionsFactory } from "../src/collections/query-options"
 import { createOrderQueryOptionsFactory } from "../src/orders/query-options"
 
 describe("read query options factories", () => {
   it("builds reusable collection query options for list and detail reads", async () => {
-    type Collection = { id: string; title: string }
-    type ListInput = {
+    interface Collection {
+      id: string
+      title: string
+    }
+    interface ListInput {
       page?: number
       limit?: number
       enabled?: boolean
     }
-    type ListParams = {
+    interface ListParams {
       page?: number
       limit?: number
     }
-    type DetailInput = {
+    interface DetailInput {
       id?: string
       enabled?: boolean
     }
-    type DetailParams = {
+    interface DetailParams {
       id?: string
     }
 
     const service = {
-      getCollections: vi.fn(async (params: ListParams) => ({
-        collections: [{ id: `col_${params.page ?? 1}`, title: "Spring" }],
-        count: 1,
-      })),
       getCollection: vi.fn(async (params: DetailParams) => ({
         id: params.id ?? "missing",
         title: "Detail",
+      })),
+      getCollections: vi.fn(async (params: ListParams) => ({
+        collections: [{ id: `col_${params.page ?? 1}`, title: "Spring" }],
+        count: 1,
       })),
     }
 
@@ -42,14 +46,14 @@ describe("read query options factories", () => {
         DetailInput,
         DetailParams
       >({
-        service,
-        queryKeyNamespace: "collection-query-options",
+        buildDetailParams: (input) =>
+          input.id === undefined ? {} : { id: input.id },
         buildListParams: (input) => ({
           ...(input.page === undefined ? {} : { page: input.page }),
           ...(input.limit === undefined ? {} : { limit: input.limit }),
         }),
-        buildDetailParams: (input) =>
-          input.id === undefined ? {} : { id: input.id },
+        queryKeyNamespace: "collection-query-options",
+        service,
       })
 
     const queryClient = new QueryClient({
@@ -58,20 +62,20 @@ describe("read query options factories", () => {
 
     await queryClient.prefetchQuery(
       getListQueryOptions({
-        page: 2,
-        limit: 4,
         enabled: true,
+        limit: 4,
+        page: 2,
       })
     )
     await queryClient.prefetchQuery(
       getDetailQueryOptions({
-        id: "col_1",
         enabled: true,
+        id: "col_1",
       })
     )
 
     expect(service.getCollections).toHaveBeenCalledWith(
-      { page: 2, limit: 4 },
+      { limit: 4, page: 2 },
       expect.any(AbortSignal)
     )
     expect(service.getCollection).toHaveBeenCalledWith(
@@ -81,31 +85,33 @@ describe("read query options factories", () => {
   })
 
   it("builds reusable order query options with user-data cache defaults", async () => {
-    type Order = { id: string }
-    type ListInput = {
+    interface Order {
+      id: string
+    }
+    interface ListInput {
       page?: number
       limit?: number
       enabled?: boolean
     }
-    type ListParams = {
+    interface ListParams {
       page?: number
       limit?: number
     }
-    type DetailInput = {
+    interface DetailInput {
       id?: string
       enabled?: boolean
     }
-    type DetailParams = {
+    interface DetailParams {
       id?: string
     }
 
     const service = {
+      getOrder: vi.fn(async (params: DetailParams) => ({
+        id: params.id ?? "missing",
+      })),
       getOrders: vi.fn(async (params: ListParams) => ({
         orders: [{ id: `order_${params.page ?? 1}` }],
         count: 1,
-      })),
-      getOrder: vi.fn(async (params: DetailParams) => ({
-        id: params.id ?? "missing",
       })),
     }
 
@@ -117,24 +123,24 @@ describe("read query options factories", () => {
         DetailInput,
         DetailParams
       >({
-        service,
-        queryKeyNamespace: "order-query-options",
+        buildDetailParams: (input) =>
+          input.id === undefined ? {} : { id: input.id },
         buildListParams: (input) => ({
           ...(input.page === undefined ? {} : { page: input.page }),
           ...(input.limit === undefined ? {} : { limit: input.limit }),
         }),
-        buildDetailParams: (input) =>
-          input.id === undefined ? {} : { id: input.id },
+        queryKeyNamespace: "order-query-options",
+        service,
       })
 
     const listQuery = getListQueryOptions({
-      page: 3,
-      limit: 5,
       enabled: true,
+      limit: 5,
+      page: 3,
     })
     const detailQuery = getDetailQueryOptions({
-      id: "ord_1",
       enabled: true,
+      id: "ord_1",
     })
 
     expect(listQuery.staleTime).toBe(5 * 60 * 1000)
@@ -148,7 +154,7 @@ describe("read query options factories", () => {
     await queryClient.prefetchQuery(detailQuery)
 
     expect(service.getOrders).toHaveBeenCalledWith(
-      { page: 3, limit: 5 },
+      { limit: 5, page: 3 },
       expect.any(AbortSignal)
     )
     expect(service.getOrder).toHaveBeenCalledWith(

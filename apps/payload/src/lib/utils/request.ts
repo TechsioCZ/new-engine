@@ -2,7 +2,7 @@ import type { PayloadRequest } from "payload"
 
 const RETURN_HTML_HEADER = "x-payload-return-html"
 
-type RequestTimeout = {
+interface RequestTimeout {
   controller: AbortController
   clearTimeout: () => void
 }
@@ -10,11 +10,15 @@ type RequestTimeout = {
 /** Create an abortable request timeout and a cleanup handler. */
 export const createRequestTimeout = (timeoutMs: number): RequestTimeout => {
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+  const timeoutId = setTimeout(() => {
+    controller.abort()
+  }, timeoutMs)
 
   return {
+    clearTimeout: () => {
+      clearTimeout(timeoutId)
+    },
     controller,
-    clearTimeout: () => clearTimeout(timeoutId),
   }
 }
 

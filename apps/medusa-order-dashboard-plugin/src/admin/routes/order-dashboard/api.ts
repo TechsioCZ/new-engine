@@ -45,7 +45,7 @@ const FULFILLMENT_SHIPPING_OPTION_FIELDS = [
   "shipping_profile_id",
 ].join(",")
 
-type ListOrderDashboardOrdersInput = {
+interface ListOrderDashboardOrdersInput {
   businessStatusGroup?: OrderDashboardBusinessStatusGroupId
   businessStatus?: OrderDashboardBusinessStatusId
   carrier?: OrderDashboardCarrierKey
@@ -53,7 +53,7 @@ type ListOrderDashboardOrdersInput = {
   offset: number
 }
 
-export function listOrderDashboardOrders({
+export async function listOrderDashboardOrders({
   businessStatusGroup,
   businessStatus,
   carrier,
@@ -64,8 +64,8 @@ export function listOrderDashboardOrders({
     "/admin/order-expedition/orders",
     {
       query: {
-        business_status_group: businessStatusGroup,
         business_status: businessStatus,
+        business_status_group: businessStatusGroup,
         carrier,
         limit,
         offset,
@@ -74,13 +74,13 @@ export function listOrderDashboardOrders({
   )
 }
 
-export function getOrderDashboardSummary() {
+export async function getOrderDashboardSummary() {
   return sdk.client.fetch<OrderDashboardSummaryResponse>(
     "/admin/order-expedition/summary"
   )
 }
 
-export function updateOrderDashboardStatuses(input: {
+export async function updateOrderDashboardStatuses(input: {
   orderIds: string[]
   targetStatus: OrderDashboardTargetStatus
 }) {
@@ -96,7 +96,7 @@ export function updateOrderDashboardStatuses(input: {
   )
 }
 
-export function updateOrderDashboardManualStatus(input: {
+export async function updateOrderDashboardManualStatus(input: {
   orderIds: string[]
   status: OrderDashboardManualStatusId | null
 }) {
@@ -112,7 +112,7 @@ export function updateOrderDashboardManualStatus(input: {
   )
 }
 
-export function downloadOrderDashboardExpeditionPdf(orderIds: string[]) {
+export async function downloadOrderDashboardExpeditionPdf(orderIds: string[]) {
   return downloadPdf(
     "/admin/order-expedition/pdf",
     {
@@ -122,7 +122,7 @@ export function downloadOrderDashboardExpeditionPdf(orderIds: string[]) {
   )
 }
 
-export function downloadOrderDashboardPacketaLabels(input: {
+export async function downloadOrderDashboardPacketaLabels(input: {
   labelFormat: OrderDashboardLabelFormat
   labelOffset?: number
   orderIds: string[]
@@ -219,7 +219,7 @@ export async function listOrderDashboardShippingOptions(
   return shippingOptions
 }
 
-export function createOrderDashboardFulfillment(input: {
+export async function createOrderDashboardFulfillment(input: {
   items: OrderDashboardFulfillmentCreateItem[]
   locationId: string
   noNotification: boolean
@@ -256,7 +256,7 @@ async function downloadPdf(
 
   anchor.href = url
   anchor.download = filename
-  document.body.appendChild(anchor)
+  document.body.append(anchor)
   anchor.click()
   anchor.remove()
   URL.revokeObjectURL(url)

@@ -3,13 +3,14 @@
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
 import { useTranslations } from "next-intl"
-import { type ComponentPropsWithoutRef, Fragment } from "react"
+import { Fragment } from "react"
+import type { ComponentPropsWithoutRef } from "react"
 
 import NextLink from "@/components/app-link"
 
 type NextLinkProps = ComponentPropsWithoutRef<typeof NextLink>
 
-export type HerbatikaBreadcrumbItem = {
+export interface HerbatikaBreadcrumbItem {
   label: string
   href?: NextLinkProps["href"]
   icon?: IconType

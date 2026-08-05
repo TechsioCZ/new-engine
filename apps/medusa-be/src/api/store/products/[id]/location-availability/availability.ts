@@ -5,7 +5,7 @@ import type {
 
 export type StockLocationRecord = Pick<StockLocationDTO, "id" | "name">
 
-export type VariantInventoryItemLink = {
+export interface VariantInventoryItemLink {
   inventory_item_id: string
   required_quantity: number
   variant_id: string
@@ -18,18 +18,18 @@ export type InventoryLevel = Pick<
   available_quantity?: number | null
 }
 
-export type LocationAvailability = {
+export interface LocationAvailability {
   available_quantity: number
   location_id: string
   location_name: string
 }
 
-export type VariantLocationAvailability = {
+export interface VariantLocationAvailability {
   location_availability: LocationAvailability[]
   variant_id: string
 }
 
-export type ProductLocationAvailability = {
+export interface ProductLocationAvailability {
   product_id: string
   variants: VariantLocationAvailability[]
 }

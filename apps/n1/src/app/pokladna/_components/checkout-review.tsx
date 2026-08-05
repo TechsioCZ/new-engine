@@ -15,7 +15,7 @@ import { formatAmount } from "@/utils/format/format-product"
 
 import { PriceSummaryRow } from "./price-summary-row"
 
-type CheckoutReviewProps = {
+interface CheckoutReviewProps {
   order: StoreOrder
 }
 
@@ -44,10 +44,10 @@ export function CheckoutReview({ order }: CheckoutReviewProps) {
             <p className="mt-100 text-fg-secondary text-sm">
               {formatDateString(order.created_at as string, {
                 day: "numeric",
-                month: "long",
-                year: "numeric",
                 hour: "2-digit",
                 minute: "2-digit",
+                month: "long",
+                year: "numeric",
               })}
             </p>
           </div>

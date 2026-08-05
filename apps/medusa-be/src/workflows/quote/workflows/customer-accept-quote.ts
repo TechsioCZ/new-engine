@@ -21,9 +21,9 @@ export const customerAcceptQuoteWorkflow = createWorkflow(
     const quote = useRemoteQueryStep({
       entry_point: "quote",
       fields: ["id", "customer_id", "draft_order_id", "status"],
-      variables: { id: input.quote_id, customer_id: input.customer_id },
       list: false,
       throw_if_key_not_found: true,
+      variables: { customer_id: input.customer_id, id: input.quote_id },
     })
 
     validateQuoteAcceptanceStep({ quote })
@@ -34,8 +34,8 @@ export const customerAcceptQuoteWorkflow = createWorkflow(
 
     confirmOrderEditRequestWorkflow.runAsStep({
       input: {
-        order_id: quote.draft_order_id,
         confirmed_by: input.customer_id,
+        order_id: quote.draft_order_id,
       },
     })
 

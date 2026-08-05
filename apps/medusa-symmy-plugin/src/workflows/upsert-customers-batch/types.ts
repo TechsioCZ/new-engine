@@ -5,7 +5,7 @@ export type CustomerIdentifierType =
   | "vat_id"
   | "company_registration_number"
 
-export type CustomerAddressInput = {
+export interface CustomerAddressInput {
   address_id?: string
   first_name?: string
   last_name?: string
@@ -18,7 +18,7 @@ export type CustomerAddressInput = {
   phone?: string
 }
 
-export type CustomerInput = {
+export interface CustomerInput {
   identifier_type: CustomerIdentifierType
   email?: string
   customer_id?: string
@@ -31,18 +31,18 @@ export type CustomerInput = {
   metadata?: Record<string, unknown>
 }
 
-export type UpsertCustomersBatchInput = {
+export interface UpsertCustomersBatchInput {
   customers: CustomerInput[]
 }
 
-export type UpsertCustomersBatchResult = {
+export interface UpsertCustomersBatchResult {
   email?: string | undefined
   status: "created" | "updated" | "failed"
   customer_id?: string
   error?: string
 }
 
-export type UpsertCustomersBatchOutput = {
+export interface UpsertCustomersBatchOutput {
   success: boolean
   processed: number
   failed: number

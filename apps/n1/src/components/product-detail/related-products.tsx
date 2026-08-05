@@ -3,7 +3,7 @@ import { transformProduct } from "@/utils/transform/transform-product"
 
 import { ProductGrid } from "../molecules/product-grid"
 
-type RelatedProductsProps = {
+interface RelatedProductsProps {
   categories?: string[] | undefined
 }
 

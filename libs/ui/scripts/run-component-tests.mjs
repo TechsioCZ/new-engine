@@ -5,7 +5,7 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 // Runs Playwright component visual tests inside Docker for reproducible snapshots.
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const __dirname = import.meta.dirname
 const uiRoot = path.resolve(__dirname, "..")
 const repoRoot = path.resolve(uiRoot, "../..")
 
@@ -13,9 +13,9 @@ const dockerfilePath = path.resolve(
   repoRoot,
   "docker/development/playwright/Dockerfile"
 )
-const dockerfileContents = fs.readFileSync(dockerfilePath, "utf8")
-const playwrightVersion = dockerfileContents.match(
-  /^ARG\s+PLAYWRIGHT_VERSION\s*=\s*([^\s]+)\s*$/m
+const dockerfileContents = fs.readFileSync(dockerfilePath, "utf-8")
+const playwrightVersion = /^ARG\s+PLAYWRIGHT_VERSION\s*=\s*([^\s]+)\s*$/m.exec(
+  dockerfileContents
 )?.[1]
 const dockerfileHash = crypto
   .createHash("sha256")
@@ -54,8 +54,8 @@ console.log(`Using Docker image: ${imageName}`)
 
 const run = (command, args, options = {}) => {
   const result = spawnSync(command, args, {
-    stdio: "inherit",
     shell: process.platform === "win32",
+    stdio: "inherit",
     ...options,
   })
   if (result.error) {
@@ -71,8 +71,8 @@ const run = (command, args, options = {}) => {
 
 const runSilent = (command, args) =>
   spawnSync(command, args, {
-    stdio: "pipe",
     shell: process.platform === "win32",
+    stdio: "pipe",
   })
 
 const cleanup = () => {
@@ -94,8 +94,8 @@ const getProcessOutcome = (result, contextLabel) => {
     console.error(`${contextLabel} failed to spawn:`, result.error.message)
   }
   return {
-    status: result.status ?? (result.signal || result.error ? 1 : 0),
     signal: result.signal,
+    status: result.status ?? (result.signal || result.error ? 1 : 0),
   }
 }
 

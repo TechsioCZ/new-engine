@@ -1,6 +1,6 @@
 import type { StockUpdateInput, UpdateStockBatchResult } from "./types"
 
-export type ResolvedUpdate = {
+export interface ResolvedUpdate {
   index: number
   input: StockUpdateInput
   identifier: string
@@ -8,14 +8,14 @@ export type ResolvedUpdate = {
   locationId: string
 }
 
-export type ExistingLevel = {
+export interface ExistingLevel {
   id: string
   inventory_item_id: string
   location_id: string
   reserved_quantity: number
 }
 
-export type LevelDTO = {
+export interface LevelDTO {
   id?: string
   inventory_item_id?: string
   location_id?: string
@@ -24,7 +24,7 @@ export type LevelDTO = {
   available_quantity?: number
 }
 
-export type ResolverMaps = {
+export interface ResolverMaps {
   skuMap: Map<string, string>
   eanMap: Map<string, string>
   variantIdMap: Map<string, string>
@@ -32,14 +32,14 @@ export type ResolverMaps = {
   defaultLocationId: string | null
 }
 
-export type StockBatchPayload = {
+export interface StockBatchPayload {
   create: Record<string, unknown>[]
   update: Record<string, unknown>[]
   createOwners: ResolvedUpdate[]
   updateOwners: ResolvedUpdate[]
 }
 
-type StockIdentifierSets = {
+interface StockIdentifierSets {
   skus: Set<string>
   eans: Set<string>
   variantIds: Set<string>
@@ -76,7 +76,7 @@ export class StockBatchClientMapperHelper {
         inventoryItemIds.add(update.inventory_item_id)
       }
     }
-    return { skus, eans, variantIds, inventoryItemIds }
+    return { eans, inventoryItemIds, skus, variantIds }
   }
 
   lookupInventoryItem(
@@ -84,22 +84,25 @@ export class StockBatchClientMapperHelper {
     maps: ResolverMaps
   ): { identifier: string; inventoryItemId: string | undefined } {
     switch (update.identifier_type) {
-      case "sku":
+      case "sku": {
         return {
           identifier: update.sku ?? "",
           inventoryItemId: maps.skuMap.get(update.sku ?? ""),
         }
-      case "ean":
+      }
+      case "ean": {
         return {
           identifier: update.ean ?? "",
           inventoryItemId: maps.eanMap.get(update.ean ?? ""),
         }
-      case "variant_id":
+      }
+      case "variant_id": {
         return {
           identifier: update.variant_id ?? "",
           inventoryItemId: maps.variantIdMap.get(update.variant_id ?? ""),
         }
-      case "inventory_item_id":
+      }
+      case "inventory_item_id": {
         return {
           identifier: update.inventory_item_id ?? "",
           inventoryItemId: maps.validInventoryItemIds.has(
@@ -108,8 +111,10 @@ export class StockBatchClientMapperHelper {
             ? update.inventory_item_id
             : undefined,
         }
-      default:
+      }
+      default: {
         return { identifier: "", inventoryItemId: undefined }
+      }
     }
   }
 
@@ -126,28 +131,28 @@ export class StockBatchClientMapperHelper {
       )
       if (!inventoryItemId) {
         results[index] = {
-          identifier_type: update.identifier_type,
-          identifier,
-          status: "not_found",
           error: `No inventory item found for ${update.identifier_type}=${identifier}`,
+          identifier,
+          identifier_type: update.identifier_type,
+          status: "not_found",
         }
         continue
       }
       const locationId = update.location_id ?? maps.defaultLocationId
       if (!locationId) {
         results[index] = {
-          identifier_type: update.identifier_type,
-          identifier,
-          status: "failed",
-          inventory_item_id: inventoryItemId,
           error: "No location_id provided and no default stock location exists",
+          identifier,
+          identifier_type: update.identifier_type,
+          inventory_item_id: inventoryItemId,
+          status: "failed",
         }
         continue
       }
       resolved.push({
+        identifier,
         index,
         input: update,
-        identifier,
         inventoryItemId,
         locationId,
       })
@@ -157,10 +162,10 @@ export class StockBatchClientMapperHelper {
 
   collectLevelLookupKeys(resolved: ResolvedUpdate[]) {
     return {
-      inventoryItemIds: Array.from(
-        new Set(resolved.map((item) => item.inventoryItemId))
-      ),
-      locationIds: Array.from(new Set(resolved.map((item) => item.locationId))),
+      inventoryItemIds: [
+        ...new Set(resolved.map((item) => item.inventoryItemId)),
+      ],
+      locationIds: [...new Set(resolved.map((item) => item.locationId))],
     }
   }
 
@@ -213,10 +218,10 @@ export class StockBatchClientMapperHelper {
         stocked_quantity: item.input.stocked_quantity,
       }
       if (typeof item.input.reserved_quantity === "number") {
-        payload["reserved_quantity"] = item.input.reserved_quantity
+        payload.reserved_quantity = item.input.reserved_quantity
       }
       if (existing) {
-        payload["id"] = existing.id
+        payload.id = existing.id
         update.push(payload)
         updateOwners.push(item)
       } else {
@@ -225,7 +230,7 @@ export class StockBatchClientMapperHelper {
       }
     }
 
-    return { create, update, createOwners, updateOwners }
+    return { create, createOwners, update, updateOwners }
   }
 
   fillResultsFromLevels(
@@ -238,11 +243,11 @@ export class StockBatchClientMapperHelper {
       const level = levels[i]
       if (!level) {
         results[owner.index] = {
-          identifier_type: owner.input.identifier_type,
-          identifier: owner.identifier,
-          status: "failed",
-          inventory_item_id: owner.inventoryItemId,
           error: "Level not returned from batch workflow",
+          identifier: owner.identifier,
+          identifier_type: owner.input.identifier_type,
+          inventory_item_id: owner.inventoryItemId,
+          status: "failed",
         }
         continue
       }
@@ -257,12 +262,12 @@ export class StockBatchClientMapperHelper {
         level.available_quantity ?? Math.max(stocked - reserved, 0)
 
       results[owner.index] = {
-        identifier_type: owner.input.identifier_type,
-        identifier: owner.identifier,
-        status: "updated",
-        inventory_item_id: owner.inventoryItemId,
-        stocked_quantity: stocked,
         available_quantity: available,
+        identifier: owner.identifier,
+        identifier_type: owner.input.identifier_type,
+        inventory_item_id: owner.inventoryItemId,
+        status: "updated",
+        stocked_quantity: stocked,
       }
     }
   }

@@ -6,10 +6,8 @@ import { toErrorMessage } from "../shared/error-utils"
 import type { ReadQueryOptions } from "../shared/hook-types"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createProductLocationAvailabilityQueryKeys } from "./query-keys"
-import {
-  createProductLocationAvailabilityQueryOptionsFactory,
-  type ProductLocationAvailabilityQueryOptionsFactory,
-} from "./query-options"
+import { createProductLocationAvailabilityQueryOptionsFactory } from "./query-options"
+import type { ProductLocationAvailabilityQueryOptionsFactory } from "./query-options"
 import type {
   ProductLocationAvailabilityInputBase,
   ProductLocationAvailabilityQueryKeys,
@@ -17,11 +15,11 @@ import type {
   UseProductLocationAvailabilityResult,
 } from "./types"
 
-export type CreateProductLocationAvailabilityHooksConfig<
+export interface CreateProductLocationAvailabilityHooksConfig<
   TResponse,
   TInput extends ProductLocationAvailabilityInputBase,
   TParams,
-> = {
+> {
   service: ProductLocationAvailabilityService<TResponse, TParams>
   buildDetailParams?: (input: TInput) => TParams
   queryKeys?: ProductLocationAvailabilityQueryKeys<TParams>
@@ -29,10 +27,10 @@ export type CreateProductLocationAvailabilityHooksConfig<
   cacheConfig?: CacheConfig
 }
 
-export type ProductLocationAvailabilityHooks<
+export interface ProductLocationAvailabilityHooks<
   TResponse,
   TInput extends ProductLocationAvailabilityInputBase,
-> = {
+> {
   getDetailQueryOptions: ProductLocationAvailabilityQueryOptionsFactory<
     TResponse,
     TInput
@@ -66,10 +64,10 @@ export function createProductLocationAvailabilityHooks<
     createProductLocationAvailabilityQueryKeys<TParams>(queryKeyNamespace)
   const { getDetailQueryOptions } =
     createProductLocationAvailabilityQueryOptionsFactory({
-      service,
       buildDetailParams,
-      queryKeys: resolvedQueryKeys,
       cacheConfig: resolvedCacheConfig,
+      queryKeys: resolvedQueryKeys,
+      service,
     })
 
   function useProductLocationAvailability(
@@ -87,11 +85,11 @@ export function createProductLocationAvailabilityHooks<
     })
 
     return {
-      productLocationAvailability: query.data ?? null,
-      isLoading: query.isLoading,
-      isFetching: query.isFetching,
-      isSuccess: query.isSuccess,
       error: toErrorMessage(query.error),
+      isFetching: query.isFetching,
+      isLoading: query.isLoading,
+      isSuccess: query.isSuccess,
+      productLocationAvailability: query.data ?? null,
       query,
     }
   }

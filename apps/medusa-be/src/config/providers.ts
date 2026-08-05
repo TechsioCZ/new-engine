@@ -1,9 +1,11 @@
 import { Modules } from "@medusajs/framework/utils"
 
-import { type MedusaConfigEnv, requireRedisUrl } from "./env"
-import { assertUnhandledConfigValue, type MedusaModuleConfig } from "./types"
+import { requireRedisUrl } from "./env"
+import type { MedusaConfigEnv } from "./env"
+import { assertUnhandledConfigValue } from "./types"
+import type { MedusaModuleConfig } from "./types"
 
-type ModuleProviderConfig = {
+interface ModuleProviderConfig {
   id: string
   is_default?: boolean
   options?: Record<string, unknown>
@@ -14,7 +16,7 @@ export function buildNotificationProvider(
   env: MedusaConfigEnv
 ): ModuleProviderConfig {
   switch (env.notificationProvider) {
-    case "local":
+    case "local": {
       return {
         resolve: "@medusajs/medusa/notification-local",
         id: "local",
@@ -23,7 +25,8 @@ export function buildNotificationProvider(
           channels: ["email", "feed"],
         },
       }
-    case "resend":
+    }
+    case "resend": {
       return {
         resolve: "./src/modules/resend",
         id: "resend",
@@ -33,8 +36,10 @@ export function buildNotificationProvider(
           from: env.resendFromEmail,
         },
       }
-    default:
+    }
+    default: {
       return assertUnhandledConfigValue(env.notificationProvider)
+    }
   }
 }
 
@@ -47,12 +52,12 @@ export function buildNotificationProviders(
     return [
       provider,
       {
-        resolve: "@medusajs/medusa/notification-local",
         id: "local-feed",
         options: {
-          name: "Local Feed Notification Provider",
           channels: ["feed"],
+          name: "Local Feed Notification Provider",
         },
+        resolve: "@medusajs/medusa/notification-local",
       },
     ]
   }
@@ -62,7 +67,7 @@ export function buildNotificationProviders(
 
 export function buildCachingModule(env: MedusaConfigEnv): MedusaModuleConfig {
   switch (env.cacheProvider) {
-    case "inmemory":
+    case "inmemory": {
       return {
         resolve: "@medusajs/medusa/caching",
         options: {
@@ -71,7 +76,8 @@ export function buildCachingModule(env: MedusaConfigEnv): MedusaModuleConfig {
           },
         },
       }
-    case "redis":
+    }
+    case "redis": {
       return {
         resolve: "@medusajs/medusa/caching",
         options: {
@@ -87,19 +93,22 @@ export function buildCachingModule(env: MedusaConfigEnv): MedusaModuleConfig {
           ],
         },
       }
-    default:
+    }
+    default: {
       return assertUnhandledConfigValue(env.cacheProvider)
+    }
   }
 }
 
 export function buildEventBusModule(env: MedusaConfigEnv): MedusaModuleConfig {
   switch (env.eventBusProvider) {
-    case "local":
+    case "local": {
       return {
         resolve: "./src/modules/local-providers/event-bus-local",
         key: Modules.EVENT_BUS,
       }
-    case "redis":
+    }
+    case "redis": {
       return {
         resolve: "@medusajs/event-bus-redis",
         key: Modules.EVENT_BUS,
@@ -107,8 +116,10 @@ export function buildEventBusModule(env: MedusaConfigEnv): MedusaModuleConfig {
           redisUrl: requireRedisUrl(env),
         },
       }
-    default:
+    }
+    default: {
       return assertUnhandledConfigValue(env.eventBusProvider)
+    }
   }
 }
 
@@ -116,11 +127,12 @@ export function buildWorkflowEngineModule(
   env: MedusaConfigEnv
 ): MedusaModuleConfig {
   switch (env.workflowEngineProvider) {
-    case "inmemory":
+    case "inmemory": {
       return {
         resolve: "@medusajs/medusa/workflow-engine-inmemory",
       }
-    case "redis":
+    }
+    case "redis": {
       return {
         resolve: "@medusajs/medusa/workflow-engine-redis",
         options: {
@@ -129,20 +141,23 @@ export function buildWorkflowEngineModule(
           },
         },
       }
-    default:
+    }
+    default: {
       return assertUnhandledConfigValue(env.workflowEngineProvider)
+    }
   }
 }
 
 function buildLockingProvider(env: MedusaConfigEnv): ModuleProviderConfig {
   switch (env.lockingProvider) {
-    case "postgres":
+    case "postgres": {
       return {
         resolve: "@medusajs/medusa/locking-postgres",
         id: "locking-postgres",
         is_default: true,
       }
-    case "redis":
+    }
+    case "redis": {
       return {
         resolve: "@medusajs/medusa/locking-redis",
         id: "locking-redis",
@@ -151,23 +166,25 @@ function buildLockingProvider(env: MedusaConfigEnv): ModuleProviderConfig {
           redisUrl: requireRedisUrl(env),
         },
       }
-    default:
+    }
+    default: {
       return assertUnhandledConfigValue(env.lockingProvider)
+    }
   }
 }
 
 export function buildLockingModule(env: MedusaConfigEnv): MedusaModuleConfig {
   return {
-    resolve: "@medusajs/medusa/locking",
     options: {
       providers: [buildLockingProvider(env)],
     },
+    resolve: "@medusajs/medusa/locking",
   }
 }
 
 function buildFileProvider(env: MedusaConfigEnv): ModuleProviderConfig {
   switch (env.fileProvider) {
-    case "local":
+    case "local": {
       return {
         resolve: "./src/modules/local-providers/file-local",
         id: "local",
@@ -177,7 +194,8 @@ function buildFileProvider(env: MedusaConfigEnv): ModuleProviderConfig {
           upload_dir: env.fileLocalUploadDir,
         },
       }
-    case "s3":
+    }
+    case "s3": {
       return {
         resolve: "@medusajs/medusa/file-s3",
         id: "s3",
@@ -193,16 +211,18 @@ function buildFileProvider(env: MedusaConfigEnv): ModuleProviderConfig {
           },
         },
       }
-    default:
+    }
+    default: {
       return assertUnhandledConfigValue(env.fileProvider)
+    }
   }
 }
 
 export function buildFileModule(env: MedusaConfigEnv): MedusaModuleConfig {
   return {
-    resolve: "@medusajs/medusa/file",
     options: {
       providers: [buildFileProvider(env)],
     },
+    resolve: "@medusajs/medusa/file",
   }
 }

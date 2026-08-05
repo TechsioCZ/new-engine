@@ -10,7 +10,7 @@ import { getEnvString } from "../utils/env"
 import { createRequestTimeout } from "../utils/request"
 
 /** Payload invalidation payload sent to Medusa. */
-type MedusaInvalidatePayload = {
+interface MedusaInvalidatePayload {
   collection: string
   doc?: {
     id?: string
@@ -20,7 +20,7 @@ type MedusaInvalidatePayload = {
 }
 
 /** Minimal CMS document shape for invalidation metadata. */
-type CmsDoc = {
+interface CmsDoc {
   id?: string | number
   slug?: string | Record<string, unknown>
 }
@@ -49,7 +49,7 @@ const resolveSlug = (
   }
 
   if (doc.slug && typeof doc.slug === "object" && locale) {
-    const localized = (doc.slug as Record<string, unknown>)[locale]
+    const localized = doc.slug[locale]
     return typeof localized === "string" ? localized : undefined
   }
 
@@ -87,12 +87,12 @@ const notifyMedusa = async (
       .digest("hex")
 
     const response = await fetch(`${baseUrl}/hooks/cms/invalidate`, {
-      method: "POST",
+      body,
       headers: {
         "Content-Type": "application/json",
         "x-payload-signature": signature,
       },
-      body,
+      method: "POST",
       signal: controller.signal,
     })
 
@@ -133,7 +133,7 @@ export const createMedusaCacheHook = (
 
     const isDelete = op === "delete"
     const locale = isDelete ? undefined : (req?.locale ?? undefined)
-    const cmsDoc = doc as CmsDoc | undefined
+    const cmsDoc = doc
     const slug = resolveSlug(cmsDoc, locale)
     const payload: MedusaInvalidatePayload = {
       collection,

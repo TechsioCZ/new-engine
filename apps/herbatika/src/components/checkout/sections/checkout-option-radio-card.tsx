@@ -1,8 +1,9 @@
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { RadioCard } from "@techsio/ui-kit/molecules/radio-card"
 import type { ReactNode } from "react"
 
-type CheckoutOptionRadioCardItem = {
+interface CheckoutOptionRadioCardItem {
   actionLabel?: string
   addon?: ReactNode
   bodyText?: string
@@ -15,7 +16,7 @@ type CheckoutOptionRadioCardItem = {
   value: string
 }
 
-type CheckoutOptionRadioCardProps = {
+interface CheckoutOptionRadioCardProps {
   expandedValue?: string | null
   label: string
   onValueChange: (value: string) => void

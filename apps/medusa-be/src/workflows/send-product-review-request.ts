@@ -27,18 +27,18 @@ import {
 import {
   buildProductReviewRequestUrl,
   getReviewRequestMessage,
-  type ReviewRequestOrder,
 } from "../utils/order-review-requests"
+import type { ReviewRequestOrder } from "../utils/order-review-requests"
 import { sendNotificationStep } from "./steps/send-notification"
 import { deleteWorkflowQueueItemStep } from "./workflow-queue/steps/delete-workflow-queue-item"
 
-export type SendProductReviewRequestWorkflowInput = {
+export interface SendProductReviewRequestWorkflowInput {
   order_id: string
   queue_item_id?: string
   store_name?: string
 }
 
-type ReviewRequestOrderItem = {
+interface ReviewRequestOrderItem {
   product_handle?: string | null
   product_id?: string | null
   product_title?: string | null
@@ -50,7 +50,7 @@ type ReviewRequestOrderWithItems = ReviewRequestOrder & {
   items?: ReviewRequestOrderItem[] | null
 }
 
-type EmailLogDTO = {
+interface EmailLogDTO {
   order_id: string | null
 }
 
@@ -61,7 +61,7 @@ type EmailLogService = EmailLogModuleService & {
   ) => Promise<EmailLogDTO[]>
 }
 
-type ReviewTokenDTO = {
+interface ReviewTokenDTO {
   email: string
   id: string
   order_id: string
@@ -71,14 +71,14 @@ type ReviewTokenDTO = {
 
 type ProductReviewModuleServiceWithTokens = ProductReviewModuleService & {
   createReviewTokens: (
-    data: Array<{
+    data: {
       customer_id: string | null
       email: string
       expires_at: Date
       order_id: string
       product_id: string
       token: string
-    }>
+    }[]
   ) => Promise<ReviewTokenDTO[]>
   listReviewTokens: (
     filters?: Record<string, unknown>,
@@ -86,7 +86,7 @@ type ProductReviewModuleServiceWithTokens = ProductReviewModuleService & {
   ) => Promise<ReviewTokenDTO[]>
 }
 
-type ReviewRequestProduct = {
+interface ReviewRequestProduct {
   image_url?: string | null
   product_id: string
   review_url: string
@@ -354,9 +354,9 @@ const buildProductReviewRequestNotificationStep = createStep(
       {
         channel: "email",
         data: {
+          items: formatReviewItems(products),
           message,
           order_display_id: getOrderDisplayId(order),
-          items: formatReviewItems(products),
           order_id: order.id,
           product_reviews: products,
           products: formatReviewProducts(products),

@@ -17,44 +17,6 @@ import { Button } from "../atoms/button"
 import { tv } from "../utils"
 
 const headerVariants = tv({
-  slots: {
-    root: [
-      "@container w-full bg-header-bg",
-      "flex justify-between",
-      "relative",
-    ],
-    desktop: "flex @max-header-desktop:hidden w-full",
-    mobile: [
-      "absolute top-full @header-desktop:hidden *:flex *:flex-col data-[position=right]:right-0 data-[position=left]:left-0 data-[open=false]:hidden",
-    ],
-    container: [
-      "grid w-full gap-header-container",
-      "data-[position=start]:justify-items-start",
-      "data-[position=center]:justify-items-center-safe",
-      "data-[position=end]:justify-items-end-safe",
-    ],
-    nav: ["flex flex-1 items-center", "@max-header-desktop:bg-header-bg"],
-    navItem: [
-      "bg-header-nav-item-bg hover:bg-header-nav-item-bg-hover",
-      "data-[active=true]:text-header-nav-fg-active",
-      "data-[active=true]:font-header-nav-active",
-      "min-w-max",
-      "transition-colors duration-200 motion-reduce:transition-none",
-    ],
-    actions: ["flex items-center", "shrink-0"],
-    actionItem: [
-      "text-header-actions-fg",
-      "hover:text-header-actions-fg-hover",
-      "transition-colors duration-200 motion-reduce:transition-none",
-    ],
-    hamburger: [
-      "@header-desktop:hidden",
-      "items-center",
-      "text-header-hamburger-fg hover:text-header-hamburger-fg-hover",
-      "transition-colors duration-200 motion-reduce:transition-none",
-      "cursor-pointer",
-    ],
-  },
   compoundSlots: [
     {
       slots: ["navItem"],
@@ -64,42 +26,80 @@ const headerVariants = tv({
       ],
     },
   ],
+  defaultVariants: {
+    direction: "horizontal",
+    size: "md",
+  },
+  slots: {
+    actionItem: [
+      "text-header-actions-fg",
+      "hover:text-header-actions-fg-hover",
+      "transition-colors duration-200 motion-reduce:transition-none",
+    ],
+    actions: ["flex items-center", "shrink-0"],
+    container: [
+      "grid w-full gap-header-container",
+      "data-[position=start]:justify-items-start",
+      "data-[position=center]:justify-items-center-safe",
+      "data-[position=end]:justify-items-end-safe",
+    ],
+    desktop: "flex @max-header-desktop:hidden w-full",
+    hamburger: [
+      "@header-desktop:hidden",
+      "items-center",
+      "text-header-hamburger-fg hover:text-header-hamburger-fg-hover",
+      "transition-colors duration-200 motion-reduce:transition-none",
+      "cursor-pointer",
+    ],
+    mobile: [
+      "absolute top-full @header-desktop:hidden *:flex *:flex-col data-[position=right]:right-0 data-[position=left]:left-0 data-[open=false]:hidden",
+    ],
+    nav: ["flex flex-1 items-center", "@max-header-desktop:bg-header-bg"],
+    navItem: [
+      "bg-header-nav-item-bg hover:bg-header-nav-item-bg-hover",
+      "data-[active=true]:text-header-nav-fg-active",
+      "data-[active=true]:font-header-nav-active",
+      "min-w-max",
+      "transition-colors duration-200 motion-reduce:transition-none",
+    ],
+    root: [
+      "@container w-full bg-header-bg",
+      "flex justify-between",
+      "relative",
+    ],
+  },
   variants: {
     direction: {
-      vertical: {
-        root: ["flex-col"],
-      },
       horizontal: {
         root: ["flex-row"],
       },
+      vertical: {
+        root: ["flex-col"],
+      },
     },
     size: {
-      sm: {
-        nav: "gap-header-nav-sm",
-        navItem: "p-header-item-sm text-header-item-sm",
-        actions: "gap-header-actions-sm",
-        actionItem: "p-header-item-sm text-header-item-sm",
-        hamburger: "p-header-hamburger-sm text-header-hamburger-sm",
-      },
-      md: {
-        nav: "gap-header-nav-md",
-        navItem: "p-header-item-md text-header-item-md",
-        actions: "gap-header-actions-md",
-        actionItem: "p-header-item-md text-header-item-md",
-        hamburger: "p-header-hamburger-md text-header-hamburger-md",
-      },
       lg: {
+        actionItem: "p-header-item-lg text-header-item-lg",
+        actions: "gap-header-actions-lg",
+        hamburger: "p-header-hamburger-lg text-header-hamburger-lg",
         nav: "gap-header-nav-lg",
         navItem: "p-header-item-lg text-header-item-lg",
-        actions: "gap-header-actions-lg",
-        actionItem: "p-header-item-lg text-header-item-lg",
-        hamburger: "p-header-hamburger-lg text-header-hamburger-lg",
+      },
+      md: {
+        actionItem: "p-header-item-md text-header-item-md",
+        actions: "gap-header-actions-md",
+        hamburger: "p-header-hamburger-md text-header-hamburger-md",
+        nav: "gap-header-nav-md",
+        navItem: "p-header-item-md text-header-item-md",
+      },
+      sm: {
+        actionItem: "p-header-item-sm text-header-item-sm",
+        actions: "gap-header-actions-sm",
+        hamburger: "p-header-hamburger-sm text-header-hamburger-sm",
+        nav: "gap-header-nav-sm",
+        navItem: "p-header-item-sm text-header-item-sm",
       },
     },
-  },
-  defaultVariants: {
-    size: "md",
-    direction: "horizontal",
   },
 })
 
@@ -170,18 +170,20 @@ export function Header({
   ...props
 }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const toggleMobileMenu = () => setIsMobileMenuOpen((prev) => !prev)
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen((prev) => !prev)
+  }
   const { root } = headerVariants({
-    size,
     direction,
+    size,
   })
 
   return (
     <HeaderContext.Provider
       value={{
-        size,
         isMobileMenuOpen,
         setIsMobileMenuOpen,
+        size,
         toggleMobileMenu,
       }}
     >

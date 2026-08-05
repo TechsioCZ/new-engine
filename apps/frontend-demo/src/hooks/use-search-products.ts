@@ -5,7 +5,7 @@ import type { Product } from "@/types/product"
 
 import { useRegions } from "./use-region"
 
-type UseSearchProductsOptions = {
+interface UseSearchProductsOptions {
   limit?: number
   fields?: string
 }
@@ -29,17 +29,17 @@ export function useSearchProducts(options?: UseSearchProductsOptions) {
 
     try {
       const response = await getProducts({
-        q: query,
         fields: options?.fields || "id, handle, title",
         limit: options?.limit || 10,
-        sort: "newest",
+        q: query,
         region_id: selectedRegion?.id,
+        sort: "newest",
       })
 
       setSearchResults(response.products)
       return response.products
-    } catch (err) {
-      const searchError = err as Error
+    } catch (error) {
+      const searchError = error as Error
       console.error("Search error:", searchError)
       setError(searchError)
       setSearchResults([])
@@ -55,10 +55,10 @@ export function useSearchProducts(options?: UseSearchProductsOptions) {
   }
 
   return {
-    searchResults,
-    isSearching,
-    error,
-    searchProducts,
     clearResults,
+    error,
+    isSearching,
+    searchProducts,
+    searchResults,
   }
 }

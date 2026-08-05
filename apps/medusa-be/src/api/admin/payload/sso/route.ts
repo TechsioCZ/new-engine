@@ -32,7 +32,7 @@ export type AdminPayloadSsoSchemaType = z.infer<typeof AdminPayloadSsoSchema>
 type AdminUserAuthContext = Pick<AuthContext, "actor_id" | "actor_type">
 
 /** Normalize multiline private keys loaded from environment variables. */
-const normalizeKey = (value: string) => value.replace(/\\n/g, "\n").trim()
+const normalizeKey = (value: string) => value.replaceAll(/\\n/g, "\n").trim()
 
 /** Allow only same-origin relative return paths to avoid open redirects. */
 const sanitizeReturnTo = (value: string | undefined) => {

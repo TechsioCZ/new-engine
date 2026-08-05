@@ -1,10 +1,8 @@
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import { useTranslations } from "next-intl"
 
-import {
-  type CarrierPickupAddress,
-  formatCarrierPickupAddress,
-} from "@/components/checkout/carrier-pickup-address.utils"
+import { formatCarrierPickupAddress } from "@/components/checkout/carrier-pickup-address.utils"
+import type { CarrierPickupAddress } from "@/components/checkout/carrier-pickup-address.utils"
 import { resolveCheckoutAddressFieldName } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
 import { SupportingText } from "@/components/text/supporting-text"
@@ -13,7 +11,7 @@ import { useCheckoutFieldValidators } from "@/lib/storefront/use-checkout-field-
 import { CheckoutLoginPrompt } from "./checkout-login-prompt"
 import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle"
 
-type CheckoutPickupPointDetailsSectionProps = {
+interface CheckoutPickupPointDetailsSectionProps {
   checkoutDetailsForm: CheckoutDetailsFormController
   countryItems: SelectItem[]
   isAuthenticated: boolean
@@ -27,7 +25,7 @@ export function CheckoutPickupPointDetailsSection({
   pickupAddress,
 }: CheckoutPickupPointDetailsSectionProps) {
   const tCheckout = useTranslations("checkout")
-  const isCompanyPurchase = checkoutDetailsForm.values.isCompanyPurchase
+  const { isCompanyPurchase } = checkoutDetailsForm.values
   const tForm = useTranslations("form")
   const fieldValidators = useCheckoutFieldValidators()
 

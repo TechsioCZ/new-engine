@@ -5,11 +5,11 @@ import type { QueryCompany, QueryEmployee } from "./query"
 /* Admin */
 
 /* Company */
-export type AdminCompanyResponse = {
+export interface AdminCompanyResponse {
   company: QueryCompany
 }
 
-export type AdminCreateCompaniesResponse = {
+export interface AdminCreateCompaniesResponse {
   companies: QueryCompany[]
 }
 
@@ -17,7 +17,7 @@ export type AdminCompaniesResponse = PaginatedResponse<{
   companies: QueryCompany[]
 }>
 
-export type AdminCreateCompany = {
+export interface AdminCreateCompany {
   name: string
   phone: string
   email: string
@@ -34,7 +34,7 @@ export type AdminUpdateCompany = Partial<AdminCreateCompany>
 
 /* Employee */
 
-export type AdminEmployeeResponse = {
+export interface AdminEmployeeResponse {
   employee: QueryEmployee
 }
 
@@ -42,7 +42,7 @@ export type AdminEmployeesResponse = PaginatedResponse<{
   employees: QueryEmployee[]
 }>
 
-export type AdminCreateEmployee = {
+export interface AdminCreateEmployee {
   spending_limit: number
   is_admin: boolean
   company_id: string

@@ -44,11 +44,11 @@ export const symmyProcessStockBatchStep = createStep(
       logger.warn(`[symmy-plugin] Failed to apply inventory batch: ${message}`)
       for (const owner of [...payload.createOwners, ...payload.updateOwners]) {
         results[owner.index] = {
-          identifier_type: owner.input.identifier_type,
-          identifier: owner.identifier,
-          status: "failed",
-          inventory_item_id: owner.inventoryItemId,
           error: message,
+          identifier: owner.identifier,
+          identifier_type: owner.input.identifier_type,
+          inventory_item_id: owner.inventoryItemId,
+          status: "failed",
         }
       }
     }
@@ -57,10 +57,10 @@ export const symmyProcessStockBatchStep = createStep(
     const failed = results.length - updatedCount
 
     const output: UpdateStockBatchOutput = {
-      success: failed === 0,
-      updated: updatedCount,
       failed,
       results,
+      success: failed === 0,
+      updated: updatedCount,
     }
     return new StepResponse(output)
   }

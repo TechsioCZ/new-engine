@@ -6,24 +6,24 @@ import type {
 } from "../shared/hook-result-types"
 import type { QueryKey } from "../shared/query-keys"
 
-export type CategoryListInputBase = {
+export interface CategoryListInputBase {
   page?: number
   limit?: number
   offset?: number
   enabled?: boolean
 }
 
-export type CategoryDetailInputBase = {
+export interface CategoryDetailInputBase {
   id?: string
   enabled?: boolean
 }
 
-export type CategoryListResponse<TCategory> = {
+export interface CategoryListResponse<TCategory> {
   categories: TCategory[]
   count?: number
 }
 
-export type CategoryService<TCategory, TListParams, TDetailParams> = {
+export interface CategoryService<TCategory, TListParams, TDetailParams> {
   getCategories: (
     params: TListParams,
     signal?: AbortSignal
@@ -34,7 +34,7 @@ export type CategoryService<TCategory, TListParams, TDetailParams> = {
   ) => Promise<TCategory | null>
 }
 
-export type CategoryQueryKeys<TListParams, TDetailParams> = {
+export interface CategoryQueryKeys<TListParams, TDetailParams> {
   all: () => QueryKey
   list: (params: TListParams) => QueryKey
   detail: (params: TDetailParams) => QueryKey

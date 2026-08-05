@@ -2,12 +2,10 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { IEventBusModuleService } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 
-import {
-  SYMMY_IMPORT_JOB_MODULE,
-  type SymmyImportJobModuleService,
-} from "../modules/import-job"
+import { SYMMY_IMPORT_JOB_MODULE } from "../modules/import-job"
+import type { SymmyImportJobModuleService } from "../modules/import-job"
 
-type EnqueueImportJobInput = {
+interface EnqueueImportJobInput {
   type: string
   payload: Record<string, unknown>
   total: number
@@ -33,16 +31,16 @@ export const enqueueImportJob = async (
   const eventBus = req.scope.resolve<IEventBusModuleService>(Modules.EVENT_BUS)
 
   const job = await importJobService.createQueuedJob({
-    type,
+    idempotencyKey: getIdempotencyKey(req),
     payload,
     total,
-    idempotencyKey: getIdempotencyKey(req),
+    type,
   })
 
   if (job.status === "queued") {
     await eventBus.emit({
-      name: requestedEvent,
       data: { job_id: job.id },
+      name: requestedEvent,
     })
   }
 

@@ -64,7 +64,9 @@ export function CompanyApprovalSettingsDrawer({
               description={t("approvalSettings.adminApprovalDescription")}
               fieldName="requires_admin_approval"
               label={t("approvalSettings.adminApprovalLabel")}
-              onChange={() => setRequiresAdminApproval(!requiresAdminApproval)}
+              onChange={() => {
+                setRequiresAdminApproval(!requiresAdminApproval)
+              }}
             />
           </div>
 
@@ -76,15 +78,17 @@ export function CompanyApprovalSettingsDrawer({
               )}
               fieldName="requires_sales_manager_approval"
               label={t("approvalSettings.salesManagerApprovalLabel")}
-              onChange={() =>
+              onChange={() => {
                 setRequiresSalesManagerApproval(!requiresSalesManagerApproval)
-              }
+              }}
             />
           </div>
         </Drawer.Body>
         <Drawer.Footer>
           <Button
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              setOpen(false)
+            }}
             size="small"
             variant="secondary"
           >

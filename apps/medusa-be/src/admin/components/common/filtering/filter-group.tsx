@@ -3,7 +3,7 @@ import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { useSearchParams } from "react-router-dom"
 
-type FilterGroupProps = {
+interface FilterGroupProps {
   filters: {
     [key: string]: ReactNode
   }
@@ -34,7 +34,7 @@ export const FilterGroup = ({ filters }: FilterGroupProps) => {
   )
 }
 
-type AddFilterMenuProps = {
+interface AddFilterMenuProps {
   availableKeys: string[]
 }
 

@@ -13,8 +13,8 @@ import {
 
 export const adminStorefrontTextRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/admin/storefront-texts",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(AdminGetStorefrontTextsSchema, {
         isList: true,
@@ -22,22 +22,22 @@ export const adminStorefrontTextRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/admin/storefront-texts/catalog",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(AdminGetStorefrontTextCatalogSchema, {}),
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/storefront-texts/catalog",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminImportStorefrontTextCatalogSchema),
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/storefront-texts/:id/update",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(AdminUpdateStorefrontTextSchema)],
   },
 ]

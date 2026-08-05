@@ -5,7 +5,7 @@ const COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/
 
 const countryDisplayNamesByLocale = new Map<string, Intl.DisplayNames>()
 
-export type CountryRegionInput = {
+export interface CountryRegionInput {
   activeCountryCode?: string | null
   countryCode?: string | null
   regionId?: string | null

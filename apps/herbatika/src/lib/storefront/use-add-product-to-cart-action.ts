@@ -5,10 +5,12 @@ import { useTranslations } from "next-intl"
 import { useAppToast } from "@/hooks/use-app-toast"
 
 import {
-  type AddProductToCartInput,
   resolveAddProductToCartErrorMessage,
-  type UseAddProductToCartProps,
   useAddProductToCart,
+} from "./use-add-product-to-cart"
+import type {
+  AddProductToCartInput,
+  UseAddProductToCartProps,
 } from "./use-add-product-to-cart"
 
 export function useAddProductToCartAction(props: UseAddProductToCartProps) {

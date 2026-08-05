@@ -30,8 +30,8 @@ export const createEmployeesStep = createStep(
     } = await query.graph(
       {
         entity: "employee",
-        filters: { id: createdEmployee.id },
         fields: ["id", "company.*"],
+        filters: { id: createdEmployee.id },
       },
       { throwIfKeyNotFound: true }
     )

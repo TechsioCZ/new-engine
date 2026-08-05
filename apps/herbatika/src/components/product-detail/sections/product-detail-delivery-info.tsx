@@ -7,12 +7,10 @@ import { useFormatter, useTranslations } from "next-intl"
 
 import type { ProductOfferState } from "@/components/product-detail/product-detail.types"
 import { SupportingText } from "@/components/text/supporting-text"
-import {
-  formatLocationAvailability,
-  type ProductLocationAvailabilityState,
-} from "@/lib/storefront/product-location-availability"
+import { formatLocationAvailability } from "@/lib/storefront/product-location-availability"
+import type { ProductLocationAvailabilityState } from "@/lib/storefront/product-location-availability"
 
-type ProductDetailDeliveryInfoProps = {
+interface ProductDetailDeliveryInfoProps {
   freeShippingThresholdLabel: string | null
   locationAvailabilityState: ProductLocationAvailabilityState
   offerState: ProductOfferState

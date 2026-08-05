@@ -11,7 +11,7 @@ import type {
   FaqLink,
 } from "./faq-page.data"
 
-type FaqAccordionProps = {
+interface FaqAccordionProps {
   defaultValue?: string[]
   items: FaqItem[]
 }

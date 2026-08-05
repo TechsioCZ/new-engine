@@ -19,7 +19,7 @@ import {
   resolveProductListItemQuantity,
 } from "./account-product-lists.utils"
 
-type AccountProductListItemRowProps = {
+interface AccountProductListItemRowProps {
   canChangeQuantity: boolean
   isAddingToCart: boolean
   isDeleting: boolean
@@ -89,7 +89,7 @@ export function AccountProductListItemRow({
   const quantity = resolveProductListItemQuantity(item)
   const availability = resolveProductListItemAvailability(item, itemProduct)
   const availabilityLabel = resolveAvailabilityLabel(availability, tAuth)
-  const canAddToCart = availability.canAddToCart
+  const { canAddToCart } = availability
   const availabilityBadgeId = useId()
   const [localQuantity, setLocalQuantity] = useState(quantity)
   const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -226,7 +226,9 @@ export function AccountProductListItemRow({
           iconSize="md"
           isLoading={isDeleting}
           loadingText={tAuth("product_lists.item.removing")}
-          onClick={() => onDelete(item)}
+          onClick={() => {
+            onDelete(item)
+          }}
           size="current"
           theme="unstyled"
           variant="danger"

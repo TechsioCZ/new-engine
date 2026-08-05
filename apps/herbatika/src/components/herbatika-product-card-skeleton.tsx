@@ -2,7 +2,7 @@
 
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 
-type HerbatikaProductCardSkeletonProps = {
+interface HerbatikaProductCardSkeletonProps {
   variant?: "default" | "compact"
 }
 

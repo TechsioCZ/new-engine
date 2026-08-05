@@ -1,5 +1,5 @@
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
-import { vi } from "vitest"
+import { vi, beforeEach, describe, expect, it } from "vitest"
 
 import {
   adminHeaders,
@@ -20,8 +20,8 @@ type TestValue = any
 vi.setConfig({ testTimeout: 60 * 1000 })
 
 medusaIntegrationTestRunner({
-  inApp: true,
   env: {},
+  inApp: true,
   testSuite: ({ api, getContainer }) => {
     let storeHeaders: TestValue
     let cart: TestValue

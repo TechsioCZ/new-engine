@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
+import { vi, describe, expect, it } from "vitest"
 
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createCustomerHooks } from "../src/customers/hooks"
@@ -16,35 +17,37 @@ const createWrapper =
 
 describe("phase 3 regressions", () => {
   it("resolves shared pagination behavior for page and offset inputs", () => {
-    expect(resolveSharedPagination({ page: 3, limit: 5 }, 20)).toEqual({
-      page: 3,
+    expect(resolveSharedPagination({ limit: 5, page: 3 }, 20)).toStrictEqual({
       limit: 5,
       offset: 10,
+      page: 3,
     })
 
-    expect(resolveSharedPagination({ offset: 9, limit: 3 }, 20)).toEqual({
-      page: 4,
+    expect(resolveSharedPagination({ limit: 3, offset: 9 }, 20)).toStrictEqual({
       limit: 3,
       offset: 9,
+      page: 4,
     })
   })
 
   it("strips enabled before passing params to order service", async () => {
-    type Order = { id: string }
-    type ListInput = {
+    interface Order {
+      id: string
+    }
+    interface ListInput {
       page?: number
       limit?: number
       enabled?: boolean
     }
-    type ListParams = {
+    interface ListParams {
       page?: number
       limit?: number
     }
-    type DetailInput = {
+    interface DetailInput {
       id?: string
       enabled?: boolean
     }
-    type DetailParams = {
+    interface DetailParams {
       id?: string
     }
 
@@ -52,16 +55,16 @@ describe("phase 3 regressions", () => {
     const seenDetailParams: DetailParams[] = []
 
     const service = {
+      getOrder: vi.fn(async (params: DetailParams) => {
+        seenDetailParams.push(params)
+        return { id: "order_1" }
+      }),
       getOrders: vi.fn(async (params: ListParams) => {
         seenListParams.push(params)
         return {
           orders: [{ id: "order_1" }],
           count: 1,
         }
-      }),
-      getOrder: vi.fn(async (params: DetailParams) => {
-        seenDetailParams.push(params)
-        return { id: "order_1" } as Order
       }),
     }
 
@@ -72,14 +75,14 @@ describe("phase 3 regressions", () => {
       DetailInput,
       DetailParams
     >({
-      service,
-      queryKeyNamespace: "phase3-orders",
+      buildDetailParams: (input) =>
+        input.id === undefined ? {} : { id: input.id },
       buildListParams: (input) => ({
         ...(input.page === undefined ? {} : { page: input.page }),
         ...(input.limit === undefined ? {} : { limit: input.limit }),
       }),
-      buildDetailParams: (input) =>
-        input.id === undefined ? {} : { id: input.id },
+      queryKeyNamespace: "phase3-orders",
+      service,
     })
 
     const queryClient = new QueryClient({
@@ -87,46 +90,48 @@ describe("phase 3 regressions", () => {
     })
     const wrapper = createWrapper(queryClient)
 
-    renderHook(() => useOrders({ page: 2, limit: 5, enabled: true }), {
+    renderHook(() => useOrders({ enabled: true, limit: 5, page: 2 }), {
       wrapper,
     })
-    renderHook(() => useOrder({ id: "order_1", enabled: true }), { wrapper })
+    renderHook(() => useOrder({ enabled: true, id: "order_1" }), { wrapper })
 
     await waitFor(() => {
-      expect(service.getOrders).toHaveBeenCalledTimes(1)
-      expect(service.getOrder).toHaveBeenCalledTimes(1)
+      expect(service.getOrders).toHaveBeenCalledOnce()
+      expect(service.getOrder).toHaveBeenCalledOnce()
     })
 
-    expect(seenListParams[0]).toEqual({ page: 2, limit: 5 })
-    expect(seenDetailParams[0]).toEqual({ id: "order_1" })
+    expect(seenListParams[0]).toStrictEqual({ limit: 5, page: 2 })
+    expect(seenDetailParams[0]).toStrictEqual({ id: "order_1" })
   })
 
   it("exposes reusable order query options for TanStack prefetchQuery", async () => {
-    type Order = { id: string }
-    type ListInput = {
+    interface Order {
+      id: string
+    }
+    interface ListInput {
       page?: number
       limit?: number
       enabled?: boolean
     }
-    type ListParams = {
+    interface ListParams {
       page?: number
       limit?: number
     }
-    type DetailInput = {
+    interface DetailInput {
       id?: string
       enabled?: boolean
     }
-    type DetailParams = {
+    interface DetailParams {
       id?: string
     }
 
     const service = {
+      getOrder: vi.fn(async (params: DetailParams) => ({
+        id: params.id ?? "missing",
+      })),
       getOrders: vi.fn(async (params: ListParams) => ({
         orders: [{ id: `order_page_${params.page ?? 1}` }],
         count: 1,
-      })),
-      getOrder: vi.fn(async (params: DetailParams) => ({
-        id: params.id ?? "missing",
       })),
     }
 
@@ -137,14 +142,14 @@ describe("phase 3 regressions", () => {
       DetailInput,
       DetailParams
     >({
-      service,
-      queryKeyNamespace: "phase3-order-query-options",
+      buildDetailParams: (input) =>
+        input.id === undefined ? {} : { id: input.id },
       buildListParams: (input) => ({
         ...(input.page === undefined ? {} : { page: input.page }),
         ...(input.limit === undefined ? {} : { limit: input.limit }),
       }),
-      buildDetailParams: (input) =>
-        input.id === undefined ? {} : { id: input.id },
+      queryKeyNamespace: "phase3-order-query-options",
+      service,
     })
 
     const queryClient = new QueryClient({
@@ -153,20 +158,20 @@ describe("phase 3 regressions", () => {
 
     await queryClient.prefetchQuery(
       getListQueryOptions({
-        page: 2,
-        limit: 5,
         enabled: true,
+        limit: 5,
+        page: 2,
       })
     )
     await queryClient.prefetchQuery(
       getDetailQueryOptions({
-        id: "order_1",
         enabled: true,
+        id: "order_1",
       })
     )
 
     expect(service.getOrders).toHaveBeenCalledWith(
-      { page: 2, limit: 5 },
+      { limit: 5, page: 2 },
       expect.any(AbortSignal)
     )
     expect(service.getOrder).toHaveBeenCalledWith(
@@ -176,31 +181,36 @@ describe("phase 3 regressions", () => {
   })
 
   it("exposes reusable product query options for list and detail reads", async () => {
-    type Product = { handle: string }
-    type ListInput = {
+    interface Product {
+      handle: string
+    }
+    interface ListInput {
       page?: number
       limit?: number
       offset?: number
       region_id?: string
       enabled?: boolean
     }
-    type ListParams = {
+    interface ListParams {
       page?: number
       limit?: number
       offset?: number
       region_id?: string
     }
-    type DetailInput = {
+    interface DetailInput {
       handle: string
       region_id?: string
       enabled?: boolean
     }
-    type DetailParams = {
+    interface DetailParams {
       handle: string
       region_id?: string
     }
 
     const service = {
+      getProductByHandle: vi.fn(async (params: DetailParams) => ({
+        handle: params.handle,
+      })),
       getProducts: vi.fn(async (params: ListParams) => ({
         products: [{ handle: `list-${params.page ?? 1}` }],
         count: 1,
@@ -213,9 +223,6 @@ describe("phase 3 regressions", () => {
         limit: params.limit ?? 20,
         offset: 0,
       })),
-      getProductByHandle: vi.fn(async (params: DetailParams) => ({
-        handle: params.handle,
-      })),
     }
 
     const { getListQueryOptions, getDetailQueryOptions } = createProductHooks<
@@ -225,9 +232,10 @@ describe("phase 3 regressions", () => {
       DetailInput,
       DetailParams
     >({
-      service,
-      queryKeyNamespace: "phase3-product-query-options",
-      requireRegion: false,
+      buildDetailParams: (input) => ({
+        handle: input.handle,
+        ...(input.region_id ? { region_id: input.region_id } : {}),
+      }),
       buildListParams: (input) => ({
         ...(input.page === undefined ? {} : { page: input.page }),
         ...(input.limit === undefined ? {} : { limit: input.limit }),
@@ -240,10 +248,9 @@ describe("phase 3 regressions", () => {
         ...(input.offset === undefined ? {} : { offset: input.offset }),
         ...(input.region_id ? { region_id: input.region_id } : {}),
       }),
-      buildDetailParams: (input) => ({
-        handle: input.handle,
-        ...(input.region_id ? { region_id: input.region_id } : {}),
-      }),
+      queryKeyNamespace: "phase3-product-query-options",
+      requireRegion: false,
+      service,
     })
 
     const queryClient = new QueryClient({
@@ -253,11 +260,11 @@ describe("phase 3 regressions", () => {
     await queryClient.prefetchQuery(
       getListQueryOptions(
         {
-          page: 3,
+          enabled: true,
           limit: 4,
           offset: 8,
+          page: 3,
           region_id: "reg_1",
-          enabled: true,
         },
         {
           useGlobalFetcher: true,
@@ -266,14 +273,14 @@ describe("phase 3 regressions", () => {
     )
     await queryClient.prefetchQuery(
       getDetailQueryOptions({
+        enabled: true,
         handle: "hoodie",
         region_id: "reg_1",
-        enabled: true,
       })
     )
 
     expect(service.getProductsGlobal).toHaveBeenCalledWith(
-      { page: 3, limit: 4, offset: 8, region_id: "reg_1" },
+      { limit: 4, offset: 8, page: 3, region_id: "reg_1" },
       expect.any(AbortSignal)
     )
     expect(service.getProductByHandle).toHaveBeenCalledWith(
@@ -283,36 +290,38 @@ describe("phase 3 regressions", () => {
   })
 
   it("excludes enabled from suspense product inputs at type level", () => {
-    type Product = { handle: string }
-    type ListInput = {
+    interface Product {
+      handle: string
+    }
+    interface ListInput {
       page?: number
       limit?: number
       region_id?: string
       enabled?: boolean
     }
-    type ListParams = {
+    interface ListParams {
       page?: number
       limit?: number
       region_id?: string
     }
-    type DetailInput = {
+    interface DetailInput {
       handle: string
       region_id?: string
       enabled?: boolean
     }
-    type DetailParams = {
+    interface DetailParams {
       handle: string
       region_id?: string
     }
 
     const service = {
+      getProductByHandle: vi.fn(async () => null as Product | null),
       getProducts: vi.fn(async () => ({
         products: [] as Product[],
         count: 0,
         limit: 20,
         offset: 0,
       })),
-      getProductByHandle: vi.fn(async () => null as Product | null),
     }
 
     const { useSuspenseProducts, useSuspenseProduct } = createProductHooks<
@@ -322,26 +331,26 @@ describe("phase 3 regressions", () => {
       DetailInput,
       DetailParams
     >({
-      service,
-      queryKeyNamespace: "phase3-suspense-input-types",
-      requireRegion: false,
+      buildDetailParams: (input) => ({
+        handle: input.handle,
+        ...(input.region_id ? { region_id: input.region_id } : {}),
+      }),
       buildListParams: (input) => ({
         ...(input.page === undefined ? {} : { page: input.page }),
         ...(input.limit === undefined ? {} : { limit: input.limit }),
         ...(input.region_id ? { region_id: input.region_id } : {}),
       }),
-      buildDetailParams: (input) => ({
-        handle: input.handle,
-        ...(input.region_id ? { region_id: input.region_id } : {}),
-      }),
+      queryKeyNamespace: "phase3-suspense-input-types",
+      requireRegion: false,
+      service,
     })
 
     type SuspenseListInput = Parameters<typeof useSuspenseProducts>[0]
     type SuspenseDetailInput = Parameters<typeof useSuspenseProduct>[0]
 
     const validListInput: SuspenseListInput = {
-      page: 1,
       limit: 10,
+      page: 1,
       region_id: "reg_1",
     }
     const validDetailInput: SuspenseDetailInput = {
@@ -352,7 +361,7 @@ describe("phase 3 regressions", () => {
     void validDetailInput
 
     // @ts-expect-error -- suspense list contracts intentionally reject enabled
-    const invalidListInput: SuspenseListInput = { page: 1, enabled: false }
+    const invalidListInput: SuspenseListInput = { enabled: false, page: 1 }
     const invalidDetailInput: SuspenseDetailInput = {
       handle: "hoodie",
       // @ts-expect-error -- suspense detail contracts intentionally reject enabled
@@ -361,19 +370,23 @@ describe("phase 3 regressions", () => {
     void invalidListInput
     void invalidDetailInput
 
-    expect(true).toBe(true)
+    expect(true).toBeTruthy()
   })
 
   it("keeps runtime guard for delete address mutation while requiring addressId", async () => {
-    type Customer = { id: string }
-    type Address = { id: string }
+    interface Customer {
+      id: string
+    }
+    interface Address {
+      id: string
+    }
 
     const service = {
-      getAddresses: vi.fn(async () => ({ addresses: [] as Address[] })),
-      createAddress: vi.fn(async () => ({ id: "addr_created" }) as Address),
-      updateAddress: vi.fn(async () => ({ id: "addr_updated" }) as Address),
+      createAddress: vi.fn(async () => ({ id: "addr_created" })),
       deleteAddress: vi.fn(async () => {}),
-      updateCustomer: vi.fn(async () => ({ id: "cus_1" }) as Customer),
+      getAddresses: vi.fn(async () => ({ addresses: [] as Address[] })),
+      updateAddress: vi.fn(async () => ({ id: "addr_updated" })),
+      updateCustomer: vi.fn(async () => ({ id: "cus_1" })),
     }
 
     const { useDeleteCustomerAddress } = createCustomerHooks<
@@ -381,8 +394,8 @@ describe("phase 3 regressions", () => {
       Address,
       { enabled?: boolean }
     >({
-      service,
       queryKeyNamespace: "phase3-customers",
+      service,
     })
 
     const queryClient = new QueryClient({

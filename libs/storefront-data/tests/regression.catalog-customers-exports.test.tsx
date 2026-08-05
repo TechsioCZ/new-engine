@@ -3,35 +3,40 @@ import { join } from "node:path"
 
 import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
+import { vi, describe, expect, it } from "vitest"
 
 import { createCatalogHooks } from "../src/catalog/hooks"
 import { createMedusaCatalogService } from "../src/catalog/medusa-service"
 import { createCatalogQueryKeys } from "../src/catalog/query-keys"
 import { createMedusaCustomerService } from "../src/customers/medusa-service"
 
-type CatalogProduct = { id: string }
-type CatalogFacets = { status: string[] }
-type CatalogListInput = {
+interface CatalogProduct {
+  id: string
+}
+interface CatalogFacets {
+  status: string[]
+}
+interface CatalogListInput {
   page?: number
   limit?: number
   region_id?: string
   country_code?: string
   enabled?: boolean
 }
-type CatalogListParams = {
+interface CatalogListParams {
   page: number
   limit: number
   region_id?: string
   country_code?: string
 }
 
-type SdkLike = {
+interface SdkLike {
   client: {
     fetch: ReturnType<typeof vi.fn>
   }
 }
 
-type CustomerSdkLike = {
+interface CustomerSdkLike {
   store: {
     customer: {
       listAddress: ReturnType<typeof vi.fn>
@@ -51,12 +56,12 @@ describe("phase 1 regressions", () => {
       getCatalogProducts: vi.fn(async (params: CatalogListParams) => {
         seenParams.push(params)
         return {
-          products: [{ id: "prod_1" }],
           count: 1,
-          page: params.page,
-          limit: params.limit,
-          totalPages: 1,
           facets: { status: [] },
+          limit: params.limit,
+          page: params.page,
+          products: [{ id: "prod_1" }],
+          totalPages: 1,
         }
       }),
     }
@@ -68,39 +73,39 @@ describe("phase 1 regressions", () => {
       CatalogListParams,
       CatalogFacets
     >({
-      service,
-      fallbackFacets: { status: [] },
-      queryKeyNamespace: namespace,
       buildListParams: (input) => ({
         page: input.page ?? 1,
         limit: input.limit ?? 12,
         ...(input.region_id ? { region_id: input.region_id } : {}),
         ...(input.country_code ? { country_code: input.country_code } : {}),
       }),
+      fallbackFacets: { status: [] },
+      queryKeyNamespace: namespace,
       requireRegion: true,
+      service,
     })
 
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     })
 
-    const region = { region_id: "reg_cz", country_code: "cz" }
-    await prefetchCatalogProducts(queryClient, { page: 1, limit: 2 }, region)
+    const region = { country_code: "cz", region_id: "reg_cz" }
+    await prefetchCatalogProducts(queryClient, { limit: 2, page: 1 }, region)
 
     expect(seenParams).toHaveLength(1)
-    expect(seenParams[0]).toEqual({
-      page: 1,
-      limit: 2,
-      region_id: "reg_cz",
+    expect(seenParams[0]).toStrictEqual({
       country_code: "cz",
+      limit: 2,
+      page: 1,
+      region_id: "reg_cz",
     })
 
     const queryKeys = createCatalogQueryKeys<CatalogListParams>(namespace)
     const queryKey = queryKeys.list({
-      page: 1,
-      limit: 2,
-      region_id: "reg_cz",
       country_code: "cz",
+      limit: 2,
+      page: 1,
+      region_id: "reg_cz",
     })
     expect(queryClient.getQueryData(queryKey)).toBeTruthy()
   })
@@ -109,12 +114,12 @@ describe("phase 1 regressions", () => {
     const sdk: SdkLike = {
       client: {
         fetch: vi.fn().mockResolvedValue({
-          products: [],
           count: 0,
-          page: 1,
-          limit: 12,
-          totalPages: 0,
           facets: {},
+          limit: 12,
+          page: 1,
+          products: [],
+          totalPages: 0,
         }),
       },
     }
@@ -122,8 +127,8 @@ describe("phase 1 regressions", () => {
     const service = createMedusaCatalogService(sdk as never)
 
     const malformedInput: Record<string, unknown> = {
-      page: 1,
       limit: 12,
+      page: 1,
       status: [" active ", null, 5, "draft", ""],
     }
 
@@ -133,8 +138,8 @@ describe("phase 1 regressions", () => {
 
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/catalog/products", {
       query: expect.objectContaining({
-        page: 1,
         limit: 12,
+        page: 1,
         status: "active,draft",
       }),
       signal: null,
@@ -145,9 +150,6 @@ describe("phase 1 regressions", () => {
     const sdk: CustomerSdkLike = {
       store: {
         customer: {
-          listAddress: vi.fn().mockResolvedValue({
-            addresses: [{ id: "addr_old_1" }, { id: "addr_old_2" }],
-          }),
           createAddress: vi.fn().mockResolvedValue({
             customer: {
               addresses: [
@@ -157,9 +159,12 @@ describe("phase 1 regressions", () => {
               ],
             },
           }),
-          updateAddress: vi.fn(),
           deleteAddress: vi.fn(),
+          listAddress: vi.fn().mockResolvedValue({
+            addresses: [{ id: "addr_old_1" }, { id: "addr_old_2" }],
+          }),
           update: vi.fn(),
+          updateAddress: vi.fn(),
         },
       },
     }
@@ -178,16 +183,6 @@ describe("phase 1 regressions", () => {
     const sdk: CustomerSdkLike = {
       store: {
         customer: {
-          listAddress: vi
-            .fn()
-            .mockResolvedValueOnce({
-              addresses: [{ id: "addr_old_1" }, { id: "addr_old_2" }],
-              count: 3,
-            })
-            .mockResolvedValueOnce({
-              addresses: [{ id: "addr_old_3" }],
-              count: 3,
-            }),
           createAddress: vi.fn().mockResolvedValue({
             customer: {
               addresses: [
@@ -198,9 +193,19 @@ describe("phase 1 regressions", () => {
               ],
             },
           }),
-          updateAddress: vi.fn(),
           deleteAddress: vi.fn(),
+          listAddress: vi
+            .fn()
+            .mockResolvedValueOnce({
+              addresses: [{ id: "addr_old_1" }, { id: "addr_old_2" }],
+              count: 3,
+            })
+            .mockResolvedValueOnce({
+              addresses: [{ id: "addr_old_3" }],
+              count: 3,
+            }),
           update: vi.fn(),
+          updateAddress: vi.fn(),
         },
       },
     }
@@ -228,7 +233,6 @@ describe("phase 1 regressions", () => {
     const sdk: CustomerSdkLike = {
       store: {
         customer: {
-          listAddress: vi.fn().mockRejectedValue(new Error("not available")),
           createAddress: vi.fn().mockResolvedValue({
             customer: {
               addresses: [
@@ -253,9 +257,10 @@ describe("phase 1 regressions", () => {
               ] as HttpTypes.StoreCustomerAddress[],
             },
           }),
-          updateAddress: vi.fn(),
           deleteAddress: vi.fn(),
+          listAddress: vi.fn().mockRejectedValue(new Error("not available")),
           update: vi.fn(),
+          updateAddress: vi.fn(),
         },
       },
     }
@@ -272,24 +277,26 @@ describe("phase 1 regressions", () => {
 
   it("defines explicit package exports and blocks root get-query-client alias", () => {
     const packageJson = JSON.parse(
-      readFileSync(join(process.cwd(), "package.json"), "utf8")
+      readFileSync(join(process.cwd(), "package.json"), "utf-8")
     ) as {
       exports?: Record<string, unknown>
     }
 
     expect(packageJson.exports).toBeTruthy()
     expect(packageJson.exports?.["."]).toBeNull()
-    expect(packageJson.exports?.["./client/provider"]).toEqual({
-      types: "./dist/src/client/provider.d.ts",
+    expect(packageJson.exports?.["./client/provider"]).toStrictEqual({
       import: "./dist/client/provider.js",
+      types: "./dist/src/client/provider.d.ts",
     })
-    expect(packageJson.exports?.["./server/get-query-client"]).toEqual({
-      types: "./dist/src/server/get-query-client.d.ts",
+    expect(packageJson.exports?.["./server/get-query-client"]).toStrictEqual({
       import: "./dist/server/get-query-client.js",
+      types: "./dist/src/server/get-query-client.d.ts",
     })
-    expect(packageJson.exports?.["./product-lists/query-options"]).toEqual({
-      types: "./dist/src/product-lists/query-options.d.ts",
+    expect(
+      packageJson.exports?.["./product-lists/query-options"]
+    ).toStrictEqual({
       import: "./dist/product-lists/query-options.js",
+      types: "./dist/src/product-lists/query-options.d.ts",
     })
     expect(packageJson.exports?.["./get-query-client"]).toBeUndefined()
     expect(packageJson.exports?.["./medusa/cart-flow"]).toBeUndefined()

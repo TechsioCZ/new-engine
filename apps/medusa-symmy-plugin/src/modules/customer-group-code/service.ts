@@ -2,7 +2,7 @@ import { MedusaService } from "@medusajs/framework/utils"
 
 import SymmyCustomerGroupCode from "./models/symmy-customer-group-code"
 
-export type SymmyCustomerGroupCodeDTO = {
+export interface SymmyCustomerGroupCodeDTO {
   id: string
   code: string | null
   erp_code: string | null
@@ -11,7 +11,7 @@ export type SymmyCustomerGroupCodeDTO = {
   updated_at?: Date | string
 }
 
-export type UpsertSymmyCustomerGroupCodeInput = {
+export interface UpsertSymmyCustomerGroupCodeInput {
   code?: string | undefined
   erpCode?: string | undefined
   customerGroupId: string
@@ -25,7 +25,7 @@ export class SymmyCustomerGroupCodeModuleService extends MedusaService({
       return []
     }
 
-    const values = Array.from(codes)
+    const values = [...codes]
     const [byCode, byErpCode] = await Promise.all([
       this.listSymmyCustomerGroupCodes({ code: values }),
       this.listSymmyCustomerGroupCodes({ erp_code: values }),
@@ -39,7 +39,7 @@ export class SymmyCustomerGroupCodeModuleService extends MedusaService({
       byId.set(mapping.id, mapping)
     }
 
-    return Array.from(byId.values())
+    return [...byId.values()]
   }
 
   async upsertCode({
@@ -49,12 +49,12 @@ export class SymmyCustomerGroupCodeModuleService extends MedusaService({
   }: UpsertSymmyCustomerGroupCodeInput): Promise<SymmyCustomerGroupCodeDTO> {
     const existing = await this.findExistingMapping({
       code,
-      erpCode,
       customerGroupId,
+      erpCode,
     })
     const payload = {
-      customer_group_id: customerGroupId,
       code: code ?? null,
+      customer_group_id: customerGroupId,
       erp_code: erpCode ?? null,
     }
 
@@ -101,6 +101,6 @@ export class SymmyCustomerGroupCodeModuleService extends MedusaService({
       )[0] as SymmyCustomerGroupCodeDTO | undefined
     }
 
-    return undefined
+    return
   }
 }

@@ -1,6 +1,6 @@
 export type SearchAutocompleteSuggestionType = "product" | "category" | "brand"
 
-export type SearchAutocompleteSuggestion = {
+export interface SearchAutocompleteSuggestion {
   id: string
   type: SearchAutocompleteSuggestionType
   title: string
@@ -11,7 +11,7 @@ export type SearchAutocompleteSuggestion = {
   inStock?: boolean
 }
 
-export type SearchAutocompleteResponse = {
+export interface SearchAutocompleteResponse {
   query: string
   products: SearchAutocompleteSuggestion[]
   categories: SearchAutocompleteSuggestion[]
@@ -20,30 +20,30 @@ export type SearchAutocompleteResponse = {
 
 export type SearchAutocompleteStatus = "idle" | "loading" | "success" | "error"
 
-export type RawSearchAutocompleteFacetItem = {
+export interface RawSearchAutocompleteFacetItem {
   id?: unknown
   label?: unknown
   count?: unknown
 }
 
-export type RawSearchAutocompleteCategoryRef = {
+export interface RawSearchAutocompleteCategoryRef {
   id?: unknown
   name?: unknown
   handle?: unknown
 }
 
-export type RawSearchAutocompleteBrandRef = {
+export interface RawSearchAutocompleteBrandRef {
   id?: unknown
   title?: unknown
   handle?: unknown
 }
 
-type RawSearchAutocompleteCalculatedPrice = {
+interface RawSearchAutocompleteCalculatedPrice {
   calculated_amount?: unknown
   currency_code?: unknown
 }
 
-export type RawSearchAutocompleteProductHit = {
+export interface RawSearchAutocompleteProductHit {
   id?: unknown
   title?: unknown
   handle?: unknown
@@ -63,8 +63,8 @@ export const SEARCH_AUTOCOMPLETE_DEBOUNCE_MS = 220
 export const createEmptySearchAutocompleteResponse = (
   query: string
 ): SearchAutocompleteResponse => ({
-  query,
-  products: [],
-  categories: [],
   brands: [],
+  categories: [],
+  products: [],
+  query,
 })

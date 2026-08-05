@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest"
 
 import { nestStorefrontMessages } from "../src/core/messages"
 
-describe("nestStorefrontMessages", () => {
+describe(nestStorefrontMessages, () => {
   it("converts dotted backend keys to nested messages", () => {
     expect(
       nestStorefrontMessages({
         "cart.add_to_cart": "Add to cart",
         "checkout.steps.summary": "Summary",
       })
-    ).toEqual({
+    ).toStrictEqual({
       cart: {
         add_to_cart: "Add to cart",
       },
@@ -35,7 +35,7 @@ describe("nestStorefrontMessages", () => {
       nestStorefrontMessages({
         "toString.title": "Title",
       })
-    ).toEqual({
+    ).toStrictEqual({
       toString: {
         title: "Title",
       },

@@ -1,10 +1,8 @@
 import type { MedusaRequest } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
-import {
-  filterProductRecords,
-  type ProductRecord,
-} from "../../review-normalizers"
+import { filterProductRecords } from "../../review-normalizers"
+import type { ProductRecord } from "../../review-normalizers"
 
 export const getProductsById = async (
   req: MedusaRequest,

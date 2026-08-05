@@ -16,7 +16,7 @@ export type ColorMode = "light" | "dark"
 /** What the user can pick for the mode axis. `system` follows the OS. */
 export type ModeSetting = ColorMode | "system"
 
-export type BrandConfig = {
+export interface BrandConfig {
   /** Human label shown in togglers. */
   label: string
   /** Concrete modes this brand ships. Light-only brands omit "dark". */
@@ -30,7 +30,7 @@ export type BrandConfig = {
 
 export const THEMES = {
   base: { label: "Default", modes: ["light", "dark"] },
-  neo: { label: "Neo (Red)", modes: ["light", "dark"], attr: "neo" },
+  neo: { attr: "neo", label: "Neo (Red)", modes: ["light", "dark"] },
 } as const satisfies Record<string, BrandConfig>
 
 export type BrandKey = keyof typeof THEMES

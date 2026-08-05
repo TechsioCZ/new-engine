@@ -1,11 +1,6 @@
 import type { FetchError } from "@medusajs/js-sdk"
-import {
-  type UseMutationOptions,
-  type UseQueryOptions,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type { UseMutationOptions, UseQueryOptions } from "@tanstack/react-query"
 
 import type {
   AdminApproval,
@@ -71,14 +66,14 @@ export const useApprovals = (
   options?: UseQueryOptions<AdminApprovalsResponse, FetchError>
 ) => {
   const fetchApprovals = async () =>
-    sdk.client.fetch<AdminApprovalsResponse>("/admin/approvals", {
+    await sdk.client.fetch<AdminApprovalsResponse>("/admin/approvals", {
       method: "GET",
       ...(query ? { query } : {}),
     })
 
   return useQuery({
-    queryKey: approvalQueryKey.list(query),
     queryFn: fetchApprovals,
+    queryKey: approvalQueryKey.list(query),
     ...options,
   })
 }
@@ -90,7 +85,7 @@ export const useUpdateApproval = (
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (payload: AdminUpdateApproval) =>
+    mutationFn: async (payload: AdminUpdateApproval) =>
       sdk.client.fetch<AdminApproval>(`/admin/approvals/${approvalId}`, {
         body: payload,
         method: "POST",

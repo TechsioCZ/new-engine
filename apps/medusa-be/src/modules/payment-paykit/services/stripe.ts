@@ -15,10 +15,8 @@ import { omitInternalMetadata, PAYKIT_METADATA_KEY } from "@paykit-sdk/core"
 import { isRecord } from "@techsio/std/object"
 
 import { PAYKIT_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
-import {
-  type PaykitInjectedDependencies,
-  PaykitPaymentProviderBase,
-} from "../core/base"
+import { PaykitPaymentProviderBase } from "../core/base"
+import type { PaykitInjectedDependencies } from "../core/base"
 import {
   createPaykitClientWithProvider,
   getStripeProviderOptions,
@@ -68,7 +66,7 @@ const getStripeCheckoutSessionRetriever = (
   }
 
   return {
-    retrieve: (id, options) =>
+    retrieve: async (id, options) =>
       retrieve.call(
         sessions,
         id,
@@ -76,7 +74,7 @@ const getStripeCheckoutSessionRetriever = (
       ) as Promise<PaykitStripeCheckoutSession>,
     ...(typeof expire === "function"
       ? {
-          expire: (id) =>
+          expire: async (id) =>
             expire.call(sessions, id) as Promise<PaykitStripeCheckoutSession>,
         }
       : {}),
@@ -188,20 +186,27 @@ const mapStripePaymentIntentStatus = (
 ): PaykitPayment["status"] | undefined => {
   switch (status) {
     case "requires_payment_method":
-    case "requires_confirmation":
+    case "requires_confirmation": {
       return "pending"
-    case "requires_action":
+    }
+    case "requires_action": {
       return "requires_action"
-    case "requires_capture":
+    }
+    case "requires_capture": {
       return "requires_capture"
-    case "succeeded":
+    }
+    case "succeeded": {
       return "succeeded"
-    case "canceled":
+    }
+    case "canceled": {
       return "canceled"
-    case "processing":
+    }
+    case "processing": {
       return "processing"
-    default:
+    }
+    default: {
       return
+    }
   }
 }
 
@@ -244,7 +249,6 @@ const toPaykitPaymentFromStripeCheckoutSession = (
     paymentIntent?.next_action?.redirect_to_url?.url ?? session.url ?? undefined
 
   return {
-    id: session.id,
     amount:
       paymentIntent?.amount ??
       session.amount_total ??
@@ -252,9 +256,9 @@ const toPaykitPaymentFromStripeCheckoutSession = (
       undefined,
     currency: paymentIntent?.currency ?? session.currency ?? undefined,
     customer: getStripeCheckoutCustomer(session, paymentIntent),
-    status: getStripeCheckoutStatus(session, paymentIntent),
-    metadata: omitInternalMetadata(metadata),
+    id: session.id,
     item_id: getStripeCheckoutItemId(metadata),
+    metadata: omitInternalMetadata(metadata),
     payment_intent_id: getStripeCheckoutPaymentIntentId(session, paymentIntent),
     requires_action:
       paymentIntentStatus === "requires_action" ||
@@ -264,6 +268,7 @@ const toPaykitPaymentFromStripeCheckoutSession = (
         session.status === "open" &&
         session.payment_status !== "paid" &&
         session.payment_status !== "no_payment_required"),
+    status: getStripeCheckoutStatus(session, paymentIntent),
     ...(paymentUrl ? { payment_url: paymentUrl } : {}),
   }
 }
@@ -375,9 +380,9 @@ const withPreservedStripePaymentData = (
   ...data,
   ...toPaykitPaymentData(payment),
   id: providerPaymentId,
-  ...(operationPaymentId !== providerPaymentId
-    ? { payment_intent_id: operationPaymentId }
-    : {}),
+  ...(operationPaymentId === providerPaymentId
+    ? {}
+    : { payment_intent_id: operationPaymentId }),
 })
 
 export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<PaykitStripeOptions> {
@@ -489,10 +494,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
     const normalizedAmount =
       explicitAmount === undefined
         ? this.normalizePaymentDataAmount(amount, currencyCode)
-        : this.normalizeAmount(
-            explicitAmount as InitiatePaymentInput["amount"],
-            currencyCode
-          )
+        : this.normalizeAmount(explicitAmount, currencyCode)
     const payment = await client.payments.capture(operationPaymentId, {
       amount: normalizedAmount,
     })
@@ -529,10 +531,10 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
       client
     )
     const refund = await client.refunds.create({
-      payment_id: operationPaymentId,
       amount,
-      reason: null,
       metadata: null,
+      payment_id: operationPaymentId,
+      reason: null,
     })
 
     if (!refund.id) {
@@ -546,9 +548,9 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
       data: {
         ...input.data,
         id: providerPaymentId,
-        ...(operationPaymentId !== providerPaymentId
-          ? { payment_intent_id: operationPaymentId }
-          : {}),
+        ...(operationPaymentId === providerPaymentId
+          ? {}
+          : { payment_intent_id: operationPaymentId }),
         refund: toPaykitRefundData(refund),
         refund_id: refund.id,
       },
@@ -558,7 +560,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
   override async cancelPayment(
     input: CancelPaymentInput
   ): Promise<CancelPaymentOutput> {
-    return this.cancelOrExpirePayment(input.data)
+    return await this.cancelOrExpirePayment(input.data)
   }
 
   override async deletePayment(
@@ -568,7 +570,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
       return input.data === undefined ? {} : { data: input.data }
     }
 
-    return this.cancelOrExpirePayment(input.data)
+    return await this.cancelOrExpirePayment(input.data)
   }
 
   private async cancelOrExpirePayment(

@@ -8,19 +8,19 @@ import type { ShippingMethodData } from "@/services/cart-service"
 import {
   accessPointToShippingData,
   isPPLParcelOption,
-  type PplAccessPointData,
 } from "@/utils/address-helpers"
+import type { PplAccessPointData } from "@/utils/address-helpers"
 import { formatToTaxIncluded } from "@/utils/format/format-product"
 
 import { SelectedParcelCard } from "./selected-parcel-card"
 
-type ShippingMethodSectionProps = {
+interface ShippingMethodSectionProps {
   shipping: UseCheckoutShippingReturn
   selectedAccessPoint: PplAccessPointData | null
   onOpenPickupDialog: (optionId: string) => void
 }
 
-type ShippingOptionCardProps = {
+interface ShippingOptionCardProps {
   option: HttpTypes.StoreCartShippingOption
   selected: boolean
   isUpdating?: boolean
@@ -87,7 +87,7 @@ export function ShippingMethodSection({
 }: ShippingMethodSectionProps) {
   let content: ReactNode
 
-  const selectedOption = shipping.selectedOption
+  const { selectedOption } = shipping
 
   const showParcelCard =
     selectedOption &&
@@ -134,7 +134,9 @@ export function ShippingMethodSection({
       {showParcelCard && (
         <SelectedParcelCard
           accessPoint={selectedAccessPoint}
-          onChangeClick={() => onOpenPickupDialog(selectedOption.id)}
+          onChangeClick={() => {
+            onOpenPickupDialog(selectedOption.id)
+          }}
         />
       )}
     </section>

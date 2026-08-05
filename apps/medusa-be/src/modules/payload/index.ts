@@ -11,4 +11,4 @@ export default Module(PAYLOAD_MODULE, {
 })
 
 export * from "./service"
-export * from "./types"
+export type * from "./types"

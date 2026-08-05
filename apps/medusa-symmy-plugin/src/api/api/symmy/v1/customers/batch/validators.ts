@@ -5,23 +5,35 @@ const CUSTOMER_ADDRESSES_MAX = 50
 const CUSTOMER_GROUP_CODES_MAX = 100
 
 const CustomerAddressInputSchema = z.object({
-  address_id: z.string().min(1).optional(),
-  first_name: z.string().optional(),
-  last_name: z.string().optional(),
-  company: z.string().optional(),
   address_1: z.string().min(1),
   address_2: z.string().optional(),
+  address_id: z.string().min(1).optional(),
   city: z.string().min(1),
-  postal_code: z.string().min(1),
+  company: z.string().optional(),
   country_code: z
     .string()
     .min(1)
     .transform((value) => value.toLowerCase()),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
   phone: z.string().optional(),
+  postal_code: z.string().min(1),
 })
 
 const CustomerInputSchema = z
   .object({
+    addresses: z
+      .array(CustomerAddressInputSchema)
+      .max(CUSTOMER_ADDRESSES_MAX)
+      .optional(),
+    company_name: z.string().optional(),
+    customer_group_codes: z
+      .array(z.string().min(1))
+      .max(CUSTOMER_GROUP_CODES_MAX)
+      .optional(),
+    customer_id: z.string().min(1).optional(),
+    email: z.string().email().optional(),
+    first_name: z.string().min(1),
     identifier_type: z.enum([
       "email",
       "erp_id",
@@ -29,21 +41,9 @@ const CustomerInputSchema = z
       "vat_id",
       "company_registration_number",
     ]),
-    email: z.string().email().optional(),
-    customer_id: z.string().min(1).optional(),
-    first_name: z.string().min(1),
     last_name: z.string().min(1),
-    phone: z.string().optional(),
-    company_name: z.string().optional(),
-    addresses: z
-      .array(CustomerAddressInputSchema)
-      .max(CUSTOMER_ADDRESSES_MAX)
-      .optional(),
-    customer_group_codes: z
-      .array(z.string().min(1))
-      .max(CUSTOMER_GROUP_CODES_MAX)
-      .optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
+    phone: z.string().optional(),
   })
   .superRefine((value, ctx) => {
     if (value.identifier_type === "email" && !value.email) {

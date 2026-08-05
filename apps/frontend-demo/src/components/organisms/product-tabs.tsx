@@ -4,7 +4,8 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Rating } from "@techsio/ui-kit/atoms/rating"
 import { Accordion } from "@techsio/ui-kit/molecules/accordion"
-import { type TabItem, TabsTemplate } from "@techsio/ui-kit/templates/tabs"
+import { TabsTemplate } from "@techsio/ui-kit/templates/tabs"
+import type { TabItem } from "@techsio/ui-kit/templates/tabs"
 import { slugify } from "@techsio/ui-kit/utils"
 
 import { SafeHtmlContent } from "@/components/safe-html-content"
@@ -17,27 +18,25 @@ interface ProductTabsProps {
 export function ProductTabs({ product }: ProductTabsProps) {
   const mockReviews = [
     {
-      id: "1",
       author: "Sára M.",
-      rating: 5,
-      date: "před 2 týdny",
       comment: "Naprosto skvělé! Kvalita je úzasná a dokonale to sedí.",
+      date: "před 2 týdny",
+      id: "1",
+      rating: 5,
       verified: true,
     },
     {
-      id: "2",
       author: "Jan D.",
-      rating: 4,
-      date: "před měsícem",
       comment: "Skvělý produkt, přesně podle popisu. Doporučuji.",
+      date: "před měsícem",
+      id: "2",
+      rating: 4,
       verified: true,
     },
   ]
 
   const detailAccordionItems = [
     {
-      value: "shipping",
-      title: "Doprava a vracení",
       content: (
         <div className="space-y-product-tabs-features-gap text-product-tabs-content-fg text-product-tabs-content-size">
           <p>• Doprava zdarma při objednávce nad 1250 Kč</p>
@@ -46,10 +45,10 @@ export function ProductTabs({ product }: ProductTabsProps) {
           <p>• Vrácení je možné v originálním stavu s visčkami</p>
         </div>
       ),
+      title: "Doprava a vracení",
+      value: "shipping",
     },
     {
-      value: "sizing",
-      title: "Tabulka velikostí",
       content: (
         <div className="space-y-product-tabs-features-gap text-product-tabs-content-fg text-product-tabs-content-size">
           <p>
@@ -90,10 +89,10 @@ export function ProductTabs({ product }: ProductTabsProps) {
           </table>
         </div>
       ),
+      title: "Tabulka velikostí",
+      value: "sizing",
     },
     {
-      value: "care",
-      title: "Péče o produkt",
       content: (
         <div className="space-y-product-tabs-features-gap text-product-tabs-content-fg text-product-tabs-content-size">
           <p>• Prát v pračce na 30°C s podobnými barvami</p>
@@ -103,13 +102,13 @@ export function ProductTabs({ product }: ProductTabsProps) {
           <p>• Nečistit chemicky</p>
         </div>
       ),
+      title: "Péče o produkt",
+      value: "care",
     },
   ]
 
   const tabs: TabItem[] = [
     {
-      value: "description",
-      label: "Popis",
       content: (
         <div className="space-y-product-tabs-content-gap">
           <SafeHtmlContent
@@ -138,10 +137,10 @@ export function ProductTabs({ product }: ProductTabsProps) {
           )}
         </div>
       ),
+      label: "Popis",
+      value: "description",
     },
     {
-      value: "details",
-      label: "Detaily produktu",
       content: (
         <div className="space-y-product-tabs-section-gap">
           {product.specifications && product.specifications.length > 0 && (
@@ -181,10 +180,10 @@ export function ProductTabs({ product }: ProductTabsProps) {
           </div>
         </div>
       ),
+      label: "Detaily produktu",
+      value: "details",
     },
     {
-      value: "reviews",
-      label: "Recenze",
       content: (
         <div className="space-y-product-tabs-section-gap">
           {mockReviews.length > 0 ? (
@@ -240,6 +239,8 @@ export function ProductTabs({ product }: ProductTabsProps) {
           )}
         </div>
       ),
+      label: "Recenze",
+      value: "reviews",
     },
   ]
 

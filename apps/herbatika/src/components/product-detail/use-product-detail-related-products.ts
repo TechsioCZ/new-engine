@@ -19,7 +19,7 @@ import {
   RELATED_PRODUCTS_LIMIT,
 } from "@/lib/storefront/related-products-config"
 
-type UseProductDetailRelatedProductsProps = {
+interface UseProductDetailRelatedProductsProps {
   product: Product | null
 }
 

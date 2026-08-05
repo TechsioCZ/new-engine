@@ -2,7 +2,7 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import { assertCustomerOwnsProductList } from "../../../utils/product-list-links"
 
-export type AssertCustomerOwnsProductListStepInput = {
+export interface AssertCustomerOwnsProductListStepInput {
   customer_id: string
   list_id: string
 }

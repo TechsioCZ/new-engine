@@ -3,14 +3,13 @@ import { NextResponse } from "next/server"
 import { getMedusaBackendUrl } from "@/lib/medusa-backend-url"
 
 const MEDUSA_API_URL = getMedusaBackendUrl()
-const MEDUSA_API_KEY = process.env["NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"] || ""
+const MEDUSA_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 const BATCH_SIZE = 100
-const SITE_URL = process.env["NEXT_PUBLIC_SITE_URL"] || "https://example.com"
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://example.com"
 const DEFAULT_REGION_ID =
-  process.env["NEXT_PUBLIC_DEFAULT_REGION_ID"] ||
-  "reg_01JYERR9Q887DKZ9JAR7SMJHA5"
+  process.env.NEXT_PUBLIC_DEFAULT_REGION_ID || "reg_01JYERR9Q887DKZ9JAR7SMJHA5"
 
-type MedusaVariant = {
+interface MedusaVariant {
   id: string
   title: string
   sku?: string
@@ -24,7 +23,7 @@ type MedusaVariant = {
   }
 }
 
-type MedusaProduct = {
+interface MedusaProduct {
   id: string
   title: string
   handle: string
@@ -34,7 +33,7 @@ type MedusaProduct = {
   categories?: Array<{ name: string }>
 }
 
-type MedusaResponse = {
+interface MedusaResponse {
   products: MedusaProduct[]
   count: number
 }
@@ -67,11 +66,11 @@ async function fetchAllProducts(): Promise<MedusaProduct[]> {
 
 function escapeXml(str: string): string {
   return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;")
+    .replaceAll(/&/g, "&amp;")
+    .replaceAll(/</g, "&lt;")
+    .replaceAll(/>/g, "&gt;")
+    .replaceAll(/"/g, "&quot;")
+    .replaceAll(/'/g, "&apos;")
 }
 
 function buildShopItem(product: MedusaProduct, variant: MedusaVariant): string {
@@ -131,8 +130,8 @@ export async function GET() {
     const xml = generateXmlFeed([])
     return new NextResponse(xml, {
       headers: {
-        "Content-Type": "application/xml; charset=utf-8",
         "Cache-Control": "public, max-age=3600, s-maxage=3600",
+        "Content-Type": "application/xml; charset=utf-8",
       },
     })
   }
@@ -143,8 +142,8 @@ export async function GET() {
 
     return new NextResponse(xml, {
       headers: {
-        "Content-Type": "application/xml; charset=utf-8",
         "Cache-Control": "public, max-age=3600, s-maxage=3600",
+        "Content-Type": "application/xml; charset=utf-8",
       },
     })
   } catch (error) {
@@ -152,8 +151,8 @@ export async function GET() {
     const xml = generateXmlFeed([])
     return new NextResponse(xml, {
       headers: {
-        "Content-Type": "application/xml; charset=utf-8",
         "Cache-Control": "public, max-age=3600, s-maxage=3600",
+        "Content-Type": "application/xml; charset=utf-8",
       },
     })
   }

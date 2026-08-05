@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
+import { vi, describe, expect, it } from "vitest"
 
 import { createAuthHooks } from "../src/auth/hooks"
 import { createAuthQueryKeys } from "../src/auth/query-keys"
@@ -28,10 +29,6 @@ const createWrapper =
 describe("storefront-data missing hook coverage", () => {
   describe.each([
     {
-      domain: "categories",
-      namespace: "test-categories",
-      listInput: { page: 1, limit: 2, enabled: true },
-      detailInput: { id: "cat_1", enabled: true },
       createHooks: (args: {
         service: {
           getList: () => Promise<{ items: { id: string }[]; count: number }>
@@ -70,12 +67,12 @@ describe("storefront-data missing hook coverage", () => {
           useDetailHook: () => useCategory({ id: "cat_1", enabled: true }),
         }
       },
+      detailInput: { enabled: true, id: "cat_1" },
+      domain: "categories",
+      listInput: { enabled: true, limit: 2, page: 1 },
+      namespace: "test-categories",
     },
     {
-      domain: "collections",
-      namespace: "test-collections",
-      listInput: { page: 1, limit: 1, enabled: true },
-      detailInput: { id: "col_1", enabled: true },
       createHooks: (args: {
         service: {
           getList: () => Promise<{ items: { id: string }[]; count: number }>
@@ -114,12 +111,12 @@ describe("storefront-data missing hook coverage", () => {
           useDetailHook: () => useCollection({ id: "col_1", enabled: true }),
         }
       },
+      detailInput: { enabled: true, id: "col_1" },
+      domain: "collections",
+      listInput: { enabled: true, limit: 1, page: 1 },
+      namespace: "test-collections",
     },
     {
-      domain: "regions",
-      namespace: "test-regions",
-      listInput: { page: 1, limit: 1, enabled: true },
-      detailInput: { id: "reg_1", enabled: true },
       createHooks: (args: {
         service: {
           getList: () => Promise<{ items: { id: string }[]; count: number }>
@@ -157,6 +154,10 @@ describe("storefront-data missing hook coverage", () => {
           useDetailHook: () => useRegion({ id: "reg_1", enabled: true }),
         }
       },
+      detailInput: { enabled: true, id: "reg_1" },
+      domain: "regions",
+      listInput: { enabled: true, limit: 1, page: 1 },
+      namespace: "test-regions",
     },
   ])("enabled stripping ($domain)", ({ domain, createHooks }) => {
     it(`strips enabled from ${domain} list/detail params`, async () => {
@@ -164,21 +165,21 @@ describe("storefront-data missing hook coverage", () => {
       let detailSawEnabled = false
 
       const service = {
+        getDetail: async () => ({ id: `${domain}_1` }),
         getList: async () => ({
           items: [{ id: `${domain}_1` }],
           count: 1,
         }),
-        getDetail: async () => ({ id: `${domain}_1` }),
       }
 
       const { useListHook, useDetailHook } = createHooks({
-        service,
-        onListInput: (input) => {
-          listSawEnabled = "enabled" in input
-        },
         onDetailInput: (input) => {
           detailSawEnabled = "enabled" in input
         },
+        onListInput: (input) => {
+          listSawEnabled = "enabled" in input
+        },
+        service,
       })
 
       const queryClient = new QueryClient({
@@ -190,17 +191,17 @@ describe("storefront-data missing hook coverage", () => {
         wrapper,
       })
       await waitFor(() => {
-        expect(listResult.current.isSuccess).toBe(true)
+        expect(listResult.current.isSuccess).toBeTruthy()
       })
-      expect(listSawEnabled).toBe(false)
+      expect(listSawEnabled).toBeFalsy()
 
       const { result: detailResult } = renderHook(() => useDetailHook(), {
         wrapper,
       })
       await waitFor(() => {
-        expect(detailResult.current.isSuccess).toBe(true)
+        expect(detailResult.current.isSuccess).toBeTruthy()
       })
-      expect(detailSawEnabled).toBe(false)
+      expect(detailSawEnabled).toBeFalsy()
     })
   })
 
@@ -210,13 +211,13 @@ describe("storefront-data missing hook coverage", () => {
     const service = {
       getCustomer: async () => customer,
       login: async () => null,
-      register: async () => null,
       logout: async () => undefined,
+      register: async () => null,
     }
 
     const { useAuth } = createAuthHooks({
-      service,
       queryKeyNamespace: "test-auth",
+      service,
     })
 
     const queryClient = new QueryClient({
@@ -227,32 +228,32 @@ describe("storefront-data missing hook coverage", () => {
     const { result } = renderHook(() => useAuth(), { wrapper })
 
     await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true)
+      expect(result.current.isSuccess).toBeTruthy()
     })
 
-    expect(result.current.isAuthenticated).toBe(true)
-    expect(result.current.customer).toEqual(customer)
+    expect(result.current.isAuthenticated).toBeTruthy()
+    expect(result.current.customer).toStrictEqual(customer)
   })
 
   it("clears auth cache on logout", async () => {
     const service = {
       getCustomer: async () => ({ id: "cus_1" }),
       login: async () => null,
-      register: async () => null,
       logout: async () => undefined,
+      register: async () => null,
     }
 
     const queryKeyNamespace = "test-auth-logout"
     const authQueryKeys = createAuthQueryKeys(queryKeyNamespace)
     const { useLogout } = createAuthHooks({
-      service,
       queryKeyNamespace,
+      service,
     })
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     const wrapper = createWrapper(queryClient)
@@ -277,22 +278,22 @@ describe("storefront-data missing hook coverage", () => {
       login: async (_input: { email: string; password: string }) => ({
         ok: true,
       }),
-      register: async () => ({ ok: true }),
       logout: async () => undefined,
+      register: async () => ({ ok: true }),
     }
 
     const queryKeyNamespace = "test-auth-invalidation"
     const customerDomainKey = createQueryKey(queryKeyNamespace, "customer")
     const ordersDomainKey = createQueryKey(queryKeyNamespace, "orders")
     const { useLogin } = createAuthHooks({
-      service,
       queryKeyNamespace,
+      service,
     })
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries")
@@ -325,19 +326,19 @@ describe("storefront-data missing hook coverage", () => {
     const service = {
       getCustomer: async () => ({ id: "cus_1" }),
       login,
-      register: async () => ({ ok: true }),
       logout: async () => undefined,
+      register: async () => ({ ok: true }),
     }
 
     const { useLogin } = createAuthHooks({
-      service,
       queryKeyNamespace: "test-auth-login-no-retry",
+      service,
     })
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: 3, retryDelay: 1 },
+        queries: { retry: false },
       },
     })
     const wrapper = createWrapper(queryClient)
@@ -352,42 +353,47 @@ describe("storefront-data missing hook coverage", () => {
       ).rejects.toThrow("Invalid email or password")
     })
 
-    expect(login).toHaveBeenCalledTimes(1)
+    expect(login).toHaveBeenCalledOnce()
   })
 
   it("calculates checkout shipping prices and writes cart updates", async () => {
-    type Cart = {
+    interface Cart {
       id: string
       region_id?: string | null
       shipping_methods?: { shipping_option_id?: string }[]
     }
 
-    type ShippingOption = {
+    interface ShippingOption {
       id: string
       price_type?: string | null
       amount?: number | null
     }
 
-    type PaymentProvider = { id: string }
-    type PaymentCollection = { id: string; payment_sessions?: unknown[] }
+    interface PaymentProvider {
+      id: string
+    }
+    interface PaymentCollection {
+      id: string
+      payment_sessions?: unknown[]
+    }
 
     const service = {
-      listShippingOptions: async () => [
-        { id: "opt_fixed", price_type: "flat", amount: 500 },
-        { id: "opt_calc", price_type: "calculated" },
-      ],
-      calculateShippingOption: async (optionId: string) => ({
-        id: optionId,
-        price_type: "calculated",
-        amount: 1200,
-      }),
       addShippingMethod: async (cartId: string, optionId: string) => ({
         id: cartId,
         region_id: "reg_1",
         shipping_methods: [{ shipping_option_id: optionId }],
       }),
-      listPaymentProviders: async () => [{ id: "pay_1" }],
+      calculateShippingOption: async (optionId: string) => ({
+        id: optionId,
+        price_type: "calculated",
+        amount: 1200,
+      }),
       initiatePaymentSession: async () => ({ id: "pay_col_1" }),
+      listPaymentProviders: async () => [{ id: "pay_1" }],
+      listShippingOptions: async () => [
+        { id: "opt_fixed", price_type: "flat", amount: 500 },
+        { id: "opt_calc", price_type: "calculated" },
+      ],
     }
 
     const cartQueryKeys = createCartQueryKeys("test-checkout-cart")
@@ -398,15 +404,15 @@ describe("storefront-data missing hook coverage", () => {
       PaymentCollection,
       unknown
     >({
-      service,
-      queryKeyNamespace: "test-checkout",
       cartQueryKeys,
+      queryKeyNamespace: "test-checkout",
+      service,
     })
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     const wrapper = createWrapper(queryClient)
@@ -420,9 +426,9 @@ describe("storefront-data missing hook coverage", () => {
     const { result } = renderHook(
       () =>
         useCheckoutShipping({
-          cartId: cart.id,
-          cart,
           calculatePrices: true,
+          cart,
+          cartId: cart.id,
         }),
       { wrapper }
     )
@@ -432,12 +438,12 @@ describe("storefront-data missing hook coverage", () => {
     })
 
     await waitFor(() => {
-      expect(result.current.isCalculating).toBe(false)
+      expect(result.current.isCalculating).toBeFalsy()
     })
 
-    expect(result.current.shippingPrices).toEqual({
-      opt_fixed: 500,
+    expect(result.current.shippingPrices).toStrictEqual({
       opt_calc: 1200,
+      opt_fixed: 500,
     })
 
     act(() => {
@@ -448,14 +454,16 @@ describe("storefront-data missing hook coverage", () => {
       const cached = queryClient.getQueryData(
         cartQueryKeys.active({ cartId: cart.id, regionId: "reg_1" })
       )
-      expect(cached).toEqual({
+      expect(cached).toStrictEqual({
         id: cart.id,
         region_id: "reg_1",
         shipping_methods: [{ shipping_option_id: "opt_calc" }],
       })
     })
 
-    expect(queryClient.getQueryData(cartQueryKeys.detail(cart.id))).toEqual({
+    expect(
+      queryClient.getQueryData(cartQueryKeys.detail(cart.id))
+    ).toStrictEqual({
       id: cart.id,
       region_id: "reg_1",
       shipping_methods: [{ shipping_option_id: "opt_calc" }],
@@ -463,31 +471,36 @@ describe("storefront-data missing hook coverage", () => {
   })
 
   it("lists checkout payment providers and patches then invalidates cart on payment", async () => {
-    type Cart = {
+    interface Cart {
       id: string
       region_id?: string | null
       shipping_methods?: { shipping_option_id?: string }[]
       payment_collection?: { payment_sessions?: unknown[] }
     }
 
-    type ShippingOption = {
+    interface ShippingOption {
       id: string
       price_type?: string | null
       amount?: number | null
     }
 
-    type PaymentProvider = { id: string }
-    type PaymentCollection = { id: string; payment_sessions?: unknown[] }
+    interface PaymentProvider {
+      id: string
+    }
+    interface PaymentCollection {
+      id: string
+      payment_sessions?: unknown[]
+    }
 
     const service = {
-      listShippingOptions: async () => [] as ShippingOption[],
       addShippingMethod: async (cartId: string) => ({
         id: cartId,
         region_id: "reg_1",
         shipping_methods: [],
       }),
-      listPaymentProviders: async () => [{ id: "provider_1" }],
       initiatePaymentSession: async () => ({ id: "pay_col_1" }),
+      listPaymentProviders: async () => [{ id: "provider_1" }],
+      listShippingOptions: async () => [] as ShippingOption[],
     }
 
     const cartQueryKeys = createCartQueryKeys("test-checkout-payment-cart")
@@ -498,15 +511,15 @@ describe("storefront-data missing hook coverage", () => {
       PaymentCollection,
       unknown
     >({
-      service,
-      queryKeyNamespace: "test-checkout-payment",
       cartQueryKeys,
+      queryKeyNamespace: "test-checkout-payment",
+      service,
     })
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries")
@@ -526,9 +539,9 @@ describe("storefront-data missing hook coverage", () => {
     const { result } = renderHook(
       () =>
         useCheckoutPayment({
+          cart,
           cartId: cart.id,
           regionId: "reg_1",
-          cart,
         }),
       { wrapper }
     )
@@ -537,7 +550,7 @@ describe("storefront-data missing hook coverage", () => {
       expect(result.current.paymentProviders).toHaveLength(1)
     })
 
-    expect(result.current.canInitiatePayment).toBe(true)
+    expect(result.current.canInitiatePayment).toBeTruthy()
 
     act(() => {
       result.current.initiatePayment("provider_1")
@@ -548,13 +561,13 @@ describe("storefront-data missing hook coverage", () => {
         queryClient.getQueryData<Cart>(
           cartQueryKeys.active({ cartId: cart.id, regionId: "reg_1" })
         )
-      ).toEqual({
+      ).toStrictEqual({
         ...cart,
         payment_collection: { id: "pay_col_1" },
       })
       expect(
         queryClient.getQueryData<Cart>(cartQueryKeys.detail(cart.id))
-      ).toEqual({
+      ).toStrictEqual({
         ...cart,
         payment_collection: { id: "pay_col_1" },
       })
@@ -565,31 +578,36 @@ describe("storefront-data missing hook coverage", () => {
   })
 
   it("derives checkout payment state from cached cart when render-time cart is missing", async () => {
-    type Cart = {
+    interface Cart {
       id: string
       region_id?: string | null
       shipping_methods?: { shipping_option_id?: string }[]
       payment_collection?: { id?: string; payment_sessions?: unknown[] }
     }
 
-    type ShippingOption = {
+    interface ShippingOption {
       id: string
       price_type?: string | null
       amount?: number | null
     }
 
-    type PaymentProvider = { id: string }
-    type PaymentCollection = { id: string; payment_sessions?: unknown[] }
+    interface PaymentProvider {
+      id: string
+    }
+    interface PaymentCollection {
+      id: string
+      payment_sessions?: unknown[]
+    }
 
     const service = {
-      listShippingOptions: async () => [] as ShippingOption[],
       addShippingMethod: async (cartId: string) => ({
         id: cartId,
         region_id: "reg_1",
         shipping_methods: [],
       }),
-      listPaymentProviders: async () => [{ id: "provider_1" }],
       initiatePaymentSession: async () => ({ id: "pay_col_1" }),
+      listPaymentProviders: async () => [{ id: "provider_1" }],
+      listShippingOptions: async () => [] as ShippingOption[],
     }
 
     const cartQueryKeys = createCartQueryKeys(
@@ -602,15 +620,15 @@ describe("storefront-data missing hook coverage", () => {
       PaymentCollection,
       unknown
     >({
-      service,
-      queryKeyNamespace: "test-checkout-payment-cached-cart",
       cartQueryKeys,
+      queryKeyNamespace: "test-checkout-payment-cached-cart",
+      service,
     })
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     const wrapper = createWrapper(queryClient)
@@ -619,12 +637,12 @@ describe("storefront-data missing hook coverage", () => {
       cartQueryKeys.active({ cartId: "cart_1", regionId: "reg_1" }),
       {
         id: "cart_1",
-        region_id: "reg_1",
-        shipping_methods: [{ shipping_option_id: "opt_fixed" }],
         payment_collection: {
           id: "pay_col_cached",
           payment_sessions: [{ id: "session_1" }],
         },
+        region_id: "reg_1",
+        shipping_methods: [{ shipping_option_id: "opt_fixed" }],
       } satisfies Cart
     )
 
@@ -641,37 +659,40 @@ describe("storefront-data missing hook coverage", () => {
       expect(result.current.paymentProviders).toHaveLength(1)
     })
 
-    expect(result.current.canInitiatePayment).toBe(true)
-    expect(result.current.hasPaymentCollection).toBe(true)
-    expect(result.current.hasPaymentSessions).toBe(true)
+    expect(result.current.canInitiatePayment).toBeTruthy()
+    expect(result.current.hasPaymentCollection).toBeTruthy()
+    expect(result.current.hasPaymentSessions).toBeTruthy()
   })
 
   it("initiates checkout payment without forwarding render-time cart", async () => {
-    type Cart = {
+    interface Cart {
       id: string
       region_id?: string | null
       shipping_methods?: { shipping_option_id?: string }[]
       payment_collection?: { payment_sessions?: unknown[] }
     }
 
-    type ShippingOption = {
+    interface ShippingOption {
       id: string
       price_type?: string | null
       amount?: number | null
     }
 
-    type PaymentProvider = { id: string }
-    type PaymentCollection = { id: string; payment_sessions?: unknown[] }
+    interface PaymentProvider {
+      id: string
+    }
+    interface PaymentCollection {
+      id: string
+      payment_sessions?: unknown[]
+    }
 
     let receivedCart: Cart | null | undefined = { id: "initial" }
     const service = {
-      listShippingOptions: async () => [] as ShippingOption[],
       addShippingMethod: async (cartId: string) => ({
         id: cartId,
         region_id: "reg_1",
         shipping_methods: [],
       }),
-      listPaymentProviders: async () => [{ id: "provider_1" }],
       initiatePaymentSession: async (
         _cartId: string,
         _providerId: string,
@@ -680,6 +701,8 @@ describe("storefront-data missing hook coverage", () => {
         receivedCart = cart
         return { id: "pay_col_1" }
       },
+      listPaymentProviders: async () => [{ id: "provider_1" }],
+      listShippingOptions: async () => [] as ShippingOption[],
     }
 
     const { useCheckoutPayment } = createCheckoutHooks<
@@ -689,15 +712,15 @@ describe("storefront-data missing hook coverage", () => {
       PaymentCollection,
       unknown
     >({
-      service,
-      queryKeyNamespace: "test-checkout-payment-latest-cart",
       cartQueryKeys: createCartQueryKeys("test-checkout-payment-latest-cart"),
+      queryKeyNamespace: "test-checkout-payment-latest-cart",
+      service,
     })
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     const wrapper = createWrapper(queryClient)
@@ -711,9 +734,9 @@ describe("storefront-data missing hook coverage", () => {
     const { result } = renderHook(
       () =>
         useCheckoutPayment({
+          cart: staleRenderCart,
           cartId: staleRenderCart.id,
           regionId: "reg_1",
-          cart: staleRenderCart,
         }),
       { wrapper }
     )
@@ -730,9 +753,16 @@ describe("storefront-data missing hook coverage", () => {
   })
 
   it("applies category prefetch skip semantics by freshness and cache presence", async () => {
-    type Category = { id: string }
-    type ListParams = { limit: number; offset: number }
-    type DetailParams = { id: string }
+    interface Category {
+      id: string
+    }
+    interface ListParams {
+      limit: number
+      offset: number
+    }
+    interface DetailParams {
+      id: string
+    }
 
     const buildListParams = (input: {
       page?: number
@@ -758,12 +788,12 @@ describe("storefront-data missing hook coverage", () => {
       queryKeyNamespace
     )
     const { usePrefetchCategories } = createCategoryHooks({
-      service,
       buildListParams,
-      queryKeys,
       cacheConfig: createCacheConfig({
         static: { staleTime: 0 },
       }),
+      queryKeys,
+      service,
     })
 
     const queryClient = new QueryClient({
@@ -771,7 +801,7 @@ describe("storefront-data missing hook coverage", () => {
     })
     const wrapper = createWrapper(queryClient)
 
-    const input = { page: 1, limit: 2 }
+    const input = { limit: 2, page: 1 }
     const listParams = buildListParams(input)
     queryClient.setQueryData(queryKeys.list(listParams), {
       categories: [],
@@ -809,9 +839,16 @@ describe("storefront-data missing hook coverage", () => {
   })
 
   it("applies collection prefetch skip semantics by freshness and cache presence", async () => {
-    type Collection = { id: string }
-    type ListParams = { limit: number; offset: number }
-    type DetailParams = { id: string }
+    interface Collection {
+      id: string
+    }
+    interface ListParams {
+      limit: number
+      offset: number
+    }
+    interface DetailParams {
+      id: string
+    }
 
     const buildListParams = (input: {
       page?: number
@@ -825,11 +862,11 @@ describe("storefront-data missing hook coverage", () => {
 
     let fetchCount = 0
     const service = {
+      getCollection: async () => null as Collection | null,
       getCollections: async (params: ListParams) => {
         fetchCount += 1
         return { collections: [{ id: `col_${params.offset}` }], count: 1 }
       },
-      getCollection: async () => null as Collection | null,
     }
 
     const queryKeyNamespace = "test-prefetch-collections"
@@ -837,12 +874,12 @@ describe("storefront-data missing hook coverage", () => {
       queryKeyNamespace
     )
     const { usePrefetchCollections } = createCollectionHooks({
-      service,
       buildListParams,
-      queryKeys,
       cacheConfig: createCacheConfig({
         static: { staleTime: 0 },
       }),
+      queryKeys,
+      service,
     })
 
     const queryClient = new QueryClient({
@@ -850,7 +887,7 @@ describe("storefront-data missing hook coverage", () => {
     })
     const wrapper = createWrapper(queryClient)
 
-    const input = { page: 1, limit: 2 }
+    const input = { limit: 2, page: 1 }
     const listParams = buildListParams(input)
     queryClient.setQueryData(queryKeys.list(listParams), {
       collections: [],
@@ -888,15 +925,17 @@ describe("storefront-data missing hook coverage", () => {
   })
 
   it("applies product prefetch skip semantics by freshness and cache presence", async () => {
-    type Product = { id: string }
+    interface Product {
+      id: string
+    }
 
-    type ProductListParams = {
+    interface ProductListParams {
       limit: number
       offset: number
       region_id?: string
     }
 
-    type ProductDetailParams = {
+    interface ProductDetailParams {
       handle: string
       region_id?: string
     }
@@ -918,6 +957,7 @@ describe("storefront-data missing hook coverage", () => {
     let fetchCount = 0
 
     const service = {
+      getProductByHandle: async () => null as Product | null,
       getProducts: async (params: ProductListParams) => {
         fetchCount += 1
         return {
@@ -927,7 +967,6 @@ describe("storefront-data missing hook coverage", () => {
           offset: params.offset,
         }
       },
-      getProductByHandle: async () => null as Product | null,
     }
 
     const queryKeyNamespace = "test-prefetch"
@@ -937,14 +976,14 @@ describe("storefront-data missing hook coverage", () => {
     >(queryKeyNamespace)
 
     const { usePrefetchProducts } = createProductHooks({
-      service,
       buildListParams,
-      queryKeys,
       cacheConfig: createCacheConfig({
         semiStatic: {
           staleTime: 0,
         },
       }),
+      queryKeys,
+      service,
     })
 
     const queryClient = new QueryClient({
@@ -954,14 +993,14 @@ describe("storefront-data missing hook coverage", () => {
 
     const { result } = renderHook(() => usePrefetchProducts(), { wrapper })
 
-    const input = { page: 1, limit: 2, region_id: "reg_1" }
+    const input = { limit: 2, page: 1, region_id: "reg_1" }
     const listParams = buildListParams(input)
 
     queryClient.setQueryData(queryKeys.list(listParams), {
-      products: [],
       count: 0,
       limit: listParams.limit,
       offset: listParams.offset,
+      products: [],
     })
 
     await act(async () => {
@@ -991,13 +1030,12 @@ describe("storefront-data missing hook coverage", () => {
       defaultOptions: { queries: { retry: false } },
     })
     const queryKey = createQueryKey("test-prefetch-inflight", "products", {
-      page: 1,
       limit: 2,
+      page: 1,
     })
 
     let resolveFetch: (() => void) | undefined
     const fetchPromise = queryClient.fetchQuery({
-      queryKey,
       queryFn: async () => {
         await new Promise<void>((resolve) => {
           resolveFetch = resolve
@@ -1010,6 +1048,7 @@ describe("storefront-data missing hook coverage", () => {
           offset: 0,
         }
       },
+      queryKey,
     })
 
     await waitFor(() => {
@@ -1020,23 +1059,23 @@ describe("storefront-data missing hook coverage", () => {
 
     expect(
       shouldSkipPrefetch({
+        cacheOptions: { staleTime: 0 },
         queryClient,
         queryKey,
-        cacheOptions: { staleTime: 0 },
         skipIfCached: true,
         skipMode: "fresh",
       })
-    ).toBe(true)
+    ).toBeTruthy()
 
     expect(
       shouldSkipPrefetch({
+        cacheOptions: { staleTime: 0 },
         queryClient,
         queryKey,
-        cacheOptions: { staleTime: 0 },
         skipIfCached: true,
         skipMode: "any",
       })
-    ).toBe(true)
+    ).toBeTruthy()
 
     resolveFetch?.()
     await fetchPromise

@@ -14,7 +14,7 @@ import {
 } from "@medusajs/framework/utils"
 import { createOrderWorkflow } from "@medusajs/medusa/core-flows"
 
-type DemoVariant = {
+interface DemoVariant {
   id: string
   sku?: string | null
   title?: string | null
@@ -25,18 +25,18 @@ type DemoVariant = {
   } | null
 }
 
-type DemoRegion = {
+interface DemoRegion {
   id: string
   name?: string | null
   currency_code?: string | null
 }
 
-type DemoSalesChannel = {
+interface DemoSalesChannel {
   id: string
   name?: string | null
 }
 
-type DemoOrder = {
+interface DemoOrder {
   carrierName: string
   carrierData: Record<string, unknown>
   city: string
@@ -59,18 +59,18 @@ type DemoProductInput = {
   handle: string
 } & Record<string, unknown>
 
-type QueryService = {
+interface QueryService {
   graph: (input: {
     entity: string
     fields: string[]
   }) => Promise<{ data?: unknown }>
 }
 
-type DatabaseConnection = {
+interface DatabaseConnection {
   raw: (sql: string, bindings?: unknown[]) => Promise<unknown>
 }
 
-type ExistingDemoOrder = {
+interface ExistingDemoOrder {
   id: string
   display_id?: number | null
   email?: string | null

@@ -8,7 +8,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { linkSalesChannelsToApiKeyWorkflow } from "@medusajs/medusa/core-flows"
 
-export type LinkSalesChannelsApiKeyStepInput = {
+export interface LinkSalesChannelsApiKeyStepInput {
   publishableApiKey: ApiKeyDTO
   salesChannels: SalesChannelDTO[]
   salesChannelNames?: string[]
@@ -65,8 +65,8 @@ export const linkSalesChannelsApiKeyStep = createStep(
     if (add.length || remove.length) {
       await linkSalesChannelsToApiKeyWorkflow(container).run({
         input: {
-          id: input.publishableApiKey.id,
           add,
+          id: input.publishableApiKey.id,
           remove,
         },
       })

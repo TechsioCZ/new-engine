@@ -34,9 +34,9 @@ describe("storefront text lock error handling", () => {
     (error) => {
       const response = createResponse()
 
-      expect(() => handleStorefrontTextLockError(error, response.res)).toThrow(
-        error
-      )
+      expect(() => {
+        handleStorefrontTextLockError(error, response.res)
+      }).toThrow(error)
       expect(response.status).not.toHaveBeenCalled()
       expect(response.json).not.toHaveBeenCalled()
     }

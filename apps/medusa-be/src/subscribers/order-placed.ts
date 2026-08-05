@@ -6,11 +6,11 @@ import { syncOrderNoteWorkflow } from "../workflows/order-note/upsert-order-note
 import { sendAccountSetupWorkflow } from "../workflows/send-account-setup"
 import { sendOrderReceiptWorkflow } from "../workflows/send-order-receipt"
 
-type OrderPlacedEvent = {
+interface OrderPlacedEvent {
   id: string
 }
 
-type OrderWithMetadata = {
+interface OrderWithMetadata {
   id: string
   metadata?: Record<string, unknown> | null
 }
@@ -48,7 +48,7 @@ export default async function orderPlacedHandler({
     fields: ["id", "metadata"],
     filters: { id: data.id },
   })
-  const note = order ? getOrderNote(order as OrderWithMetadata) : undefined
+  const note = order ? getOrderNote(order) : undefined
 
   if (note) {
     try {

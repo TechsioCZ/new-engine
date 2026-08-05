@@ -55,12 +55,21 @@ import { allCategories, rootCategories } from "@/data/static/categories"
 import { ALL_CATEGORIES_MAP } from "@/lib/constants"
 
 const headerImgs = {
-  panske: {
-    cyklo: panskeCyklo,
-    moto: panskeMoto,
-    obleceni: panskeObleceni,
-    ski: panskeSki,
-    snbSkate: panskeSnbSkate,
+  cyklo: {
+    boty: cykloBoty,
+    chranice: cykloChranice,
+    doplnky: cykloDoplnky,
+    elektrokola: cykloElektrokola,
+    kola: cykloKola,
+    komponenty: cykloKomponenty,
+    naradi: cykloNaradi,
+    obleceni: cykloObleceni,
+    preprava: cykloPreprava,
+    prilby: cykloPrilby,
+    sedla: cykloSedla,
+    tasky: cykloTasky,
+    vyziva: cykloVyziva,
+    zapletenaKola: cykloZapletenaKola,
   },
   damske: {
     cyklo: damskeCyklo,
@@ -76,62 +85,53 @@ const headerImgs = {
     ski: detskeSki,
     snbSkate: detskeSnbSkate,
   },
+  moto: {
+    boty: motoBoty,
+    bryle: motoBryle,
+    chranice: motoChranice,
+    doplnky: motoDoplnky,
+    obleceni: motoObleceni,
+    prilby: motoPrilby,
+  },
   obleceni: {
     bryle: obleceniBryle,
     bundy: obleceniBundy,
+    doplnky: obleceniDoplnky,
     kalhoty: obleceniKalhoty,
     kosile: obleceniKosile,
     kratasy: obleceniKratasy,
     mikiny: obleceniMikiny,
     plavky: obleceniPlavky,
     saty: obleceniSaty,
-    doplnky: obleceniDoplnky,
     svetry: obleceniSvetry,
     trika: obleceniTrika,
   },
-  cyklo: {
-    boty: cykloBoty,
-    doplnky: cykloDoplnky,
-    elektrokola: cykloElektrokola,
-    chranice: cykloChranice,
-    kola: cykloKola,
-    komponenty: cykloKomponenty,
-    naradi: cykloNaradi,
-    obleceni: cykloObleceni,
-    preprava: cykloPreprava,
-    prilby: cykloPrilby,
-    sedla: cykloSedla,
-    tasky: cykloTasky,
-    vyziva: cykloVyziva,
-    zapletenaKola: cykloZapletenaKola,
+  panske: {
+    cyklo: panskeCyklo,
+    moto: panskeMoto,
+    obleceni: panskeObleceni,
+    ski: panskeSki,
+    snbSkate: panskeSnbSkate,
   },
-  moto: {
-    boty: motoBoty,
-    bryle: motoBryle,
-    doplnky: motoDoplnky,
-    chranice: motoChranice,
-    obleceni: motoObleceni,
-    prilby: motoPrilby,
+  ski: {
+    doplnky: skiDoplnky,
+    obleceni: skiObleceni,
   },
   snbSkate: {
     brusle: snbBrusle,
     skate: snbSkate,
     snowboard: snbSnowboard,
   },
-  ski: {
-    doplnky: skiDoplnky,
-    obleceni: skiObleceni,
-  },
 }
 
-type SubMenuItem = {
+interface SubMenuItem {
   name: string
   href: string
   image?: StaticImageData | undefined
   categoryIds?: string[] // Optional for backward compatibility
 }
 
-export type SubmenuCategory = {
+export interface SubmenuCategory {
   name: string
   href: string
   items: SubMenuItem[]
@@ -143,11 +143,11 @@ export type SubmenuCategory = {
 
 // Exception mapping for special category names
 const CATEGORY_IMAGE_EXCEPTIONS: Record<string, string> = {
+  "doplnky-komponenty": "doplnky",
+  "saty-a-sukne": "saty",
   skateboarding: "skateboard",
   snowboarding: "snowboard",
-  "saty-a-sukne": "saty",
   "trika-a-tilka": "trika",
-  "doplnky-komponenty": "doplnky",
 }
 const CATEGORY_SUFFIX_REGEX = /-category-\d+$/
 
@@ -180,7 +180,7 @@ const getImageForCategory = (
   // Try to find matching image in headerImgs structure
   const parentImages = headerImgs[parentKey]
   if (!parentImages || typeof parentImages !== "object") {
-    if (process.env["NODE_ENV"] === "development") {
+    if (process.env.NODE_ENV === "development") {
       console.warn(
         `[Header] No images found for parent category: ${parentHandle} (key: ${parentKey})`
       )
@@ -192,7 +192,7 @@ const getImageForCategory = (
   const childKey = handleToImageKey(childHandle) as keyof typeof parentImages
 
   const image = parentImages[childKey] as StaticImageData | undefined
-  if (!image && process.env["NODE_ENV"] === "development") {
+  if (!image && process.env.NODE_ENV === "development") {
     console.warn(
       `[Header] No image found for category: ${parentHandle}/${childHandle} (keys: ${parentKey}/${String(childKey)})`
     )
@@ -224,7 +224,6 @@ export const submenuItems: SubmenuCategory[] = rootCategories.map((rootCat) => {
   )
 
   return {
-    name: rootCat.name,
     href: `/kategorie/${rootCat.handle}`,
     items: directChildren.map((child) => ({
       name: child.name,
@@ -232,5 +231,6 @@ export const submenuItems: SubmenuCategory[] = rootCategories.map((rootCat) => {
       image: getImageForCategory(rootCat.handle, child.handle),
       categoryIds: ALL_CATEGORIES_MAP[child.handle] || [],
     })),
+    name: rootCat.name,
   }
 })

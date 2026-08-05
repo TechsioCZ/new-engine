@@ -205,7 +205,9 @@ export function HerbatikaHeader() {
       <Header.Desktop
         className="relative min-h-header-nav bg-primary"
         onBlurCapture={handleDesktopBlur}
-        onMouseLeave={() => setActiveRootHandle(null)}
+        onMouseLeave={() => {
+          setActiveRootHandle(null)
+        }}
       >
         <Header.Container className="mx-auto flex min-h-header-nav max-w-max-w items-center justify-between px-header-lg 2xl:px-header-2xl">
           <Header.Nav
@@ -228,11 +230,15 @@ export function HerbatikaHeader() {
                   className="h-full shrink-0"
                   href={item.href}
                   key={item.href}
-                  onFocus={() => handleActivateDesktopItem(item.href)}
+                  onFocus={() => {
+                    handleActivateDesktopItem(item.href)
+                  }}
                 >
                   <Header.NavItem
                     className="flex h-full items-center whitespace-nowrap leading-none lg:max-header-tablet:p-header-item-desktop-lg lg:max-header-tablet:text-header-item-desktop-lg"
-                    onMouseEnter={() => handleActivateDesktopItem(item.href)}
+                    onMouseEnter={() => {
+                      handleActivateDesktopItem(item.href)
+                    }}
                   >
                     {item.label}
                   </Header.NavItem>
@@ -265,7 +271,9 @@ export function HerbatikaHeader() {
 
         <HerbatikaDesktopSubmenu
           activeRootHandle={activeRootHandle}
-          onClose={() => setActiveRootHandle(null)}
+          onClose={() => {
+            setActiveRootHandle(null)
+          }}
         />
       </Header.Desktop>
 

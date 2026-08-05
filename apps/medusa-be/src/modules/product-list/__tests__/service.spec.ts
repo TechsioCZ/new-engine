@@ -8,8 +8,8 @@ import ProductListItem from "../models/product-list-item"
 import type ProductListModuleService from "../service"
 
 moduleIntegrationTestRunner<ProductListModuleService>({
-  moduleName: PRODUCT_LIST_MODULE,
   moduleModels: [ProductList, ProductListItem],
+  moduleName: PRODUCT_LIST_MODULE,
   resolve: "./src/modules/product-list",
   testSuite: ({ service }) => {
     describe("createFavoriteProductList", () => {

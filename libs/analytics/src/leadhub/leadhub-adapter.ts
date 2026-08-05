@@ -66,10 +66,10 @@ export function useLeadhubAdapter(
         lhi("SetCart", {
           products: [
             {
+              currency: params.currency,
               product_id: params.productId,
               quantity: params.quantity,
               value: params.value,
-              currency: params.currency,
             },
           ],
         })
@@ -107,7 +107,6 @@ export function useLeadhubAdapter(
       (lhi, params) => {
         lhi("Purchase", {
           ...(params.email === undefined ? {} : { email: params.email }),
-          value: params.value,
           currency: params.currency,
           order_id: params.orderId,
           products: params.products.map((p) => ({
@@ -116,6 +115,7 @@ export function useLeadhubAdapter(
             value: p.price,
             currency: p.currency,
           })),
+          value: params.value,
         })
       },
       debug,

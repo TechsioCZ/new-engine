@@ -1,21 +1,21 @@
 export type ProductIdentifierType = "sku" | "ean" | "erp_id"
 export type VariantIdentifierType = "sku" | "ean" | "variant_id"
 
-export type PriceInput = {
+export interface PriceInput {
   currency_code: string
   amount: number
 }
 
-export type CategoryRefInput = {
+export interface CategoryRefInput {
   handle?: string
   name?: string
 }
 
-export type ImageInput = {
+export interface ImageInput {
   url: string
 }
 
-export type VariantInput = {
+export interface VariantInput {
   identifier_type: VariantIdentifierType
   sku?: string
   ean?: string
@@ -28,7 +28,7 @@ export type VariantInput = {
   metadata?: Record<string, unknown>
 }
 
-export type ProductInput = {
+export interface ProductInput {
   identifier_type: ProductIdentifierType
   sku?: string
   ean?: string
@@ -48,11 +48,11 @@ export type ProductInput = {
   metadata?: Record<string, unknown>
 }
 
-export type UpsertProductsBatchInput = {
+export interface UpsertProductsBatchInput {
   products: ProductInput[]
 }
 
-export type UpsertProductsBatchResult = {
+export interface UpsertProductsBatchResult {
   identifier_type: ProductIdentifierType
   sku?: string
   ean?: string
@@ -63,7 +63,7 @@ export type UpsertProductsBatchResult = {
   error?: string
 }
 
-export type UpsertProductsBatchOutput = {
+export interface UpsertProductsBatchOutput {
   success: boolean
   processed: number
   failed: number

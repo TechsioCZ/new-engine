@@ -6,9 +6,7 @@ import payloadModule, {
 } from "../../../../../src/modules/payload/index"
 import PayloadModuleService from "../../../../../src/modules/payload/service"
 
-vi.mock("@medusajs/framework/utils", () => ({
-  Module: vi.fn(() => ({ __module: true })),
-  MedusaService: vi.fn(() => class {}),
+vi.mock(import("@medusajs/framework/utils"), () => ({
   MedusaError: class MedusaError extends Error {
     static Types = {
       INVALID_DATA: "invalid_data",
@@ -18,6 +16,8 @@ vi.mock("@medusajs/framework/utils", () => ({
       super(message)
     }
   },
+  MedusaService: vi.fn(() => class {}),
+  Module: vi.fn(() => ({ __module: true })),
   Modules: { CACHING: "caching" },
 }))
 

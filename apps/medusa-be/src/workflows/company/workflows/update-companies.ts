@@ -6,7 +6,7 @@ import {
 import type { ModuleUpdateCompany } from "../../../types"
 import { updateCompaniesStep, validateCompanyActiveStep } from "../steps"
 
-type UpdateCompaniesWorkflowInput = {
+interface UpdateCompaniesWorkflowInput {
   id: string
   update: Omit<ModuleUpdateCompany, "id">
 }

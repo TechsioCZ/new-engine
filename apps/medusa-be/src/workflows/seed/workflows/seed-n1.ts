@@ -6,72 +6,45 @@ import {
 
 import { toCreateProductsStepInput } from "../../../utils/products"
 import { buildInventoryItemsInput } from "../helpers/build-inventory-items-input"
-import {
-  type CreateFulfillmentSetStepInput,
-  createFulfillmentSetStep,
-} from "../steps/create-fulfillment-set"
-import {
-  type CreateInventoryLevelsStepInput,
-  createInventoryLevelsStep,
-} from "../steps/create-inventory-levels"
-import {
-  type CreateProductsStepInput,
-  createProductsStep,
-} from "../steps/create-products"
-import {
-  type CreatePublishableKeyStepInput,
-  createPublishableKeyStep,
-} from "../steps/create-publishable-key"
-import {
-  type CreateRegionsStepInput,
-  createRegionsStep,
-} from "../steps/create-regions"
-import {
-  type CreateSalesChannelsStepInput,
-  createSalesChannelsStep,
-} from "../steps/create-sales-channels"
-import {
-  type CreateShippingOptionsStepInput,
-  type CreateShippingOptionsStepSeedInput,
-  createShippingOptionsStep,
+import { createFulfillmentSetStep } from "../steps/create-fulfillment-set"
+import type { CreateFulfillmentSetStepInput } from "../steps/create-fulfillment-set"
+import { createInventoryLevelsStep } from "../steps/create-inventory-levels"
+import type { CreateInventoryLevelsStepInput } from "../steps/create-inventory-levels"
+import { createProductsStep } from "../steps/create-products"
+import type { CreateProductsStepInput } from "../steps/create-products"
+import { createPublishableKeyStep } from "../steps/create-publishable-key"
+import type { CreatePublishableKeyStepInput } from "../steps/create-publishable-key"
+import { createRegionsStep } from "../steps/create-regions"
+import type { CreateRegionsStepInput } from "../steps/create-regions"
+import { createSalesChannelsStep } from "../steps/create-sales-channels"
+import type { CreateSalesChannelsStepInput } from "../steps/create-sales-channels"
+import { createShippingOptionsStep } from "../steps/create-shipping-options"
+import type {
+  CreateShippingOptionsStepInput,
+  CreateShippingOptionsStepSeedInput,
 } from "../steps/create-shipping-options"
-import {
-  type CreateDefaultShippingProfileStepInput,
-  createDefaultShippingProfileStep,
-} from "../steps/create-shipping-profile"
-import {
-  type CreateStockLocationStepInput,
-  createStockLocationSeedStep,
-} from "../steps/create-stock-location"
-import {
-  type CreateTaxRegionsStepInput,
-  createTaxRegionsStep,
-} from "../steps/create-tax-regions"
-import {
-  type LinkSalesChannelsApiKeyStepInput,
-  linkSalesChannelsApiKeyStep,
-} from "../steps/link-sales-channels-api-key"
-import {
-  type LinkSalesChannelsStockLocationStepInput,
-  linkSalesChannelsStockLocationStep,
-} from "../steps/link-sales-channels-stock-location"
-import {
-  type LinkStockLocationFulfillmentProviderStepInput,
-  linkStockLocationFulfillmentProviderSeedStep,
-} from "../steps/link-stock-location-fulfillment-provider"
-import {
-  type LinkStockLocationFulfillmentSetStepInput,
-  linkStockLocationFulfillmentSetStep,
-} from "../steps/link-stock-location-fulfillment-set"
-import {
-  type UpdateStoreCurrenciesStepCurrenciesInput,
-  updateStoreCurrenciesStep,
-} from "../steps/update-store-currencies"
-import seedCategoriesWorkflow, { type CategoryRaw } from "./seed-categories"
+import { createDefaultShippingProfileStep } from "../steps/create-shipping-profile"
+import type { CreateDefaultShippingProfileStepInput } from "../steps/create-shipping-profile"
+import { createStockLocationSeedStep } from "../steps/create-stock-location"
+import type { CreateStockLocationStepInput } from "../steps/create-stock-location"
+import { createTaxRegionsStep } from "../steps/create-tax-regions"
+import type { CreateTaxRegionsStepInput } from "../steps/create-tax-regions"
+import { linkSalesChannelsApiKeyStep } from "../steps/link-sales-channels-api-key"
+import type { LinkSalesChannelsApiKeyStepInput } from "../steps/link-sales-channels-api-key"
+import { linkSalesChannelsStockLocationStep } from "../steps/link-sales-channels-stock-location"
+import type { LinkSalesChannelsStockLocationStepInput } from "../steps/link-sales-channels-stock-location"
+import { linkStockLocationFulfillmentProviderSeedStep } from "../steps/link-stock-location-fulfillment-provider"
+import type { LinkStockLocationFulfillmentProviderStepInput } from "../steps/link-stock-location-fulfillment-provider"
+import { linkStockLocationFulfillmentSetStep } from "../steps/link-stock-location-fulfillment-set"
+import type { LinkStockLocationFulfillmentSetStepInput } from "../steps/link-stock-location-fulfillment-set"
+import { updateStoreCurrenciesStep } from "../steps/update-store-currencies"
+import type { UpdateStoreCurrenciesStepCurrenciesInput } from "../steps/update-store-currencies"
+import seedCategoriesWorkflow from "./seed-categories"
+import type { CategoryRaw } from "./seed-categories"
 
 const seedN1WorkflowId = "seed-n1-workflow"
 /** Raw product record from database - contains JSON strings for nested data */
-type RawProductRecord = {
+interface RawProductRecord {
   title: string
   handle: string
   description?: string
@@ -83,7 +56,7 @@ type RawProductRecord = {
   brand: string
 }
 
-export type SeedN1WorkflowInput = {
+export interface SeedN1WorkflowInput {
   workflowDefaults: {
     fulfillmentProviderId: string
     shippingOptionPriceAmount: number
@@ -137,7 +110,6 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
         input,
       },
       (data) => ({
-        stockLocations: data.createStockLocationResult.result,
         fulfillmentProviderIds: [
           ...new Set(
             data.input.shippingOptions.map(
@@ -147,6 +119,7 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
             )
           ),
         ],
+        stockLocations: data.createStockLocationResult.result,
       })
     )
 
@@ -168,13 +141,13 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
   const linkStockLocationsFulfillmentSetInput: LinkStockLocationFulfillmentSetStepInput =
     transform(
       {
+        createFulfillmentSetsResult,
         createStockLocationResult,
         input,
-        createFulfillmentSetsResult,
       },
       (data) => ({
-        stockLocations: data.createStockLocationResult.result,
         fulfillmentSet: data.createFulfillmentSetsResult.fulfillmentSet,
+        stockLocations: data.createStockLocationResult.result,
       })
     )
 
@@ -184,21 +157,19 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
 
   const createShippingOptionsInput: CreateShippingOptionsStepInput = transform(
     {
-      input,
-      createFulfillmentSetsResult,
       createDefaultShippingProfileResult,
+      createFulfillmentSetsResult,
       createRegionsResult,
+      input,
     },
     (data) =>
       data.input.shippingOptions.map((option) => {
         const shippingOption: CreateShippingOptionsStepInput[number] = {
           name: option.name,
+          prices: option.prices,
           providerId:
             option.providerId ??
             data.input.workflowDefaults.fulfillmentProviderId,
-          serviceZoneId: data.createFulfillmentSetsResult.serviceZone.id,
-          shippingProfileId:
-            data.createDefaultShippingProfileResult.shippingProfile.id,
           regions: data.createRegionsResult.result.map((region) => ({
             ...region,
             amount:
@@ -209,9 +180,11 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
               )?.amount ??
               data.input.workflowDefaults.shippingOptionPriceAmount,
           })),
-          type: option.type,
-          prices: option.prices,
           rules: option.rules,
+          serviceZoneId: data.createFulfillmentSetsResult.serviceZone.id,
+          shippingProfileId:
+            data.createDefaultShippingProfileResult.shippingProfile.id,
+          type: option.type,
         }
         if (option.data !== undefined) {
           shippingOption.data = option.data
@@ -231,8 +204,8 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
         salesChannelsResult,
       },
       (data) => ({
-        stockLocations: data.createStockLocationResult.result,
         salesChannels: data.salesChannelsResult.result,
+        stockLocations: data.createStockLocationResult.result,
       })
     )
 
@@ -252,8 +225,8 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
         salesChannelsResult,
       },
       (data) => ({
-        salesChannels: data.salesChannelsResult.result,
         publishableApiKey: data.createPublishableKeyResult.publishableApiKey,
+        salesChannels: data.salesChannelsResult.result,
       })
     )
 
@@ -277,20 +250,20 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
   // create inventory levels
   const createInventoryLevelsInput: CreateInventoryLevelsStepInput = transform(
     {
-      createStockLocationResult,
       createProductsStepInput,
+      createStockLocationResult,
     },
     (data) => ({
-      stockLocations: data.createStockLocationResult.result,
       inventoryItems: buildInventoryItemsInput(data.createProductsStepInput),
+      stockLocations: data.createStockLocationResult.result,
     })
   )
 
   createInventoryLevelsStep(createInventoryLevelsInput)
 
   return new WorkflowResponse({
-    publishableKey: createPublishableKeyResult.result,
     products: createProductsStepResult.result,
+    publishableKey: createPublishableKeyResult.result,
     result: "N1 seed done",
   })
 }

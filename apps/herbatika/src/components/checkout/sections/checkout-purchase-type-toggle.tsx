@@ -1,6 +1,6 @@
 import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group"
 
-type CheckoutPurchaseTypeToggleProps = {
+interface CheckoutPurchaseTypeToggleProps {
   companyLabel: string
   groupLabel: string
   id: string

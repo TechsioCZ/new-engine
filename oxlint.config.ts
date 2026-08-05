@@ -1,21 +1,28 @@
 import { defineConfig } from "oxlint"
+import core from "ultracite/oxlint/core"
+import jsPlugins from "ultracite/oxlint/js-plugins"
+import next from "ultracite/oxlint/next"
+import nextJsPlugins from "ultracite/oxlint/next/js-plugins"
+import react from "ultracite/oxlint/react"
+import tanstack from "ultracite/oxlint/tanstack"
+import tanstackJsPlugins from "ultracite/oxlint/tanstack/js-plugins"
+import vitest from "ultracite/oxlint/vitest"
 
 export default defineConfig({
-  categories: {
-    correctness: "error",
-  },
+  extends: [
+    core,
+    react,
+    next,
+    tanstack,
+    vitest,
+    jsPlugins,
+    nextJsPlugins,
+    tanstackJsPlugins,
+  ],
   ignorePatterns: [
-    "**/node_modules/**",
-    "**/dist/**",
-    "**/build/**",
-    "**/out/**",
-    "**/.next/**",
+    ...core.ignorePatterns,
     "**/.medusa/**",
     "**/__admin-extensions__.js",
-    "**/coverage/**",
-    "**/storybook-static/**",
-    "**/playwright-report/**",
-    "**/test-results/**",
     "apps/payload/src/app/(payload)/importMap.js",
     "apps/payload/src/payload-types.ts",
     // Committed migration history is generated and immutable.
@@ -24,22 +31,5 @@ export default defineConfig({
   options: {
     reportUnusedDisableDirectives: "error",
     typeAware: true,
-  },
-  rules: {
-    "no-async-promise-executor": "error",
-    "no-constant-binary-expression": "error",
-    "no-debugger": "error",
-    "no-duplicate-imports": ["error", { allowSeparateTypeImports: true }],
-    "no-fallthrough": "error",
-    "no-self-compare": "error",
-    "no-template-curly-in-string": "error",
-    "no-unreachable": "error",
-    "no-unsafe-finally": "error",
-    "no-unsafe-negation": "error",
-    "no-unsafe-optional-chaining": "error",
-    "no-unused-private-class-members": "error",
-    "oxc/const-comparisons": "error",
-    "unicorn/no-useless-length-check": "error",
-    "unicorn/no-useless-spread": "error",
   },
 })

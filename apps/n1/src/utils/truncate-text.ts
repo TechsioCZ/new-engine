@@ -3,5 +3,5 @@ export function truncateText(text: string, maxWords = 3): string {
   if (words.length <= maxWords) {
     return text
   }
-  return `${words.slice(0, maxWords).join(" ")}`
+  return words.slice(0, maxWords).join(" ")
 }

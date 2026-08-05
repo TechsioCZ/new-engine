@@ -1,18 +1,18 @@
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
-type ProductCategoryRecord = {
+interface ProductCategoryRecord {
   handle: string
   id: string
 }
 
-type ProductRecord = {
+interface ProductRecord {
   categories?: { id: string }[]
   handle: string
   id: string
 }
 
-type ProductService = {
+interface ProductService {
   listProductCategories: (
     filters: Record<string, unknown>
   ) => Promise<ProductCategoryRecord[]>
@@ -108,13 +108,10 @@ export default async function linkProductsToCategories({
 
   // Get all categories
   const categories = await productService.listProductCategories({})
-  const categoryMap = categories.reduce(
-    (acc, cat) => {
-      acc[cat.handle] = cat.id
-      return acc
-    },
-    {} as Record<string, string>
-  )
+  const categoryMap = categories.reduce<Record<string, string>>((acc, cat) => {
+    acc[cat.handle] = cat.id
+    return acc
+  }, {})
 
   logger.info(`Found ${categories.length} categories`)
 

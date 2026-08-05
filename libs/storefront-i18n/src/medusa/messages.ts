@@ -2,14 +2,14 @@ import type { Client } from "@medusajs/js-sdk"
 
 import type { FlatStorefrontMessages } from "../core/messages"
 
-export type LoadMedusaStorefrontMessagesInput = {
+export interface LoadMedusaStorefrontMessagesInput {
   cache?: RequestCache
   endpoint?: string
   locale: string
   market: string
 }
 
-type StorefrontMessagesResponse = {
+interface StorefrontMessagesResponse {
   locale: string
   market: string
   messages: FlatStorefrontMessages

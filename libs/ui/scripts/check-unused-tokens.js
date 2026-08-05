@@ -7,8 +7,8 @@
  * in both CSS and JS/TS files with better accuracy and performance.
  */
 
-import fs from "fs"
-import path from "path"
+import fs from "node:fs"
+import path from "node:path"
 
 import { globSync } from "glob"
 
@@ -20,6 +20,8 @@ const SOURCE_FILE_PATTERN = "**/*.{ts,tsx,js,jsx,css}"
 
 // Tailwind v4 namespace to utility class prefixes mapping
 const NAMESPACE_TO_UTILITIES = {
+  aspect: ["aspect"],
+  border: ["border"],
   color: [
     "bg",
     "text",
@@ -38,6 +40,18 @@ const NAMESPACE_TO_UTILITIES = {
     "shadow",
     "ring-offset",
   ],
+  font: ["font"],
+  "font-weight": ["font"],
+  gap: ["gap"],
+  height: ["h"],
+  leading: ["leading"],
+  "line-height": ["leading"],
+  margin: ["m", "mx", "my", "mt", "mb", "ml", "mr"],
+  opacity: ["opacity"],
+  padding: ["p", "px", "py", "pt", "pb", "pl", "pr"],
+  radius: ["rounded"],
+  ring: ["ring"],
+  shadow: ["shadow"],
   spacing: [
     "p",
     "px",
@@ -71,21 +85,7 @@ const NAMESPACE_TO_UTILITIES = {
     "left",
   ],
   text: ["text"],
-  "font-weight": ["font"],
-  font: ["font"],
-  border: ["border"],
-  radius: ["rounded"],
-  shadow: ["shadow"],
-  opacity: ["opacity"],
   width: ["w"],
-  height: ["h"],
-  gap: ["gap"],
-  padding: ["p", "px", "py", "pt", "pb", "pl", "pr"],
-  margin: ["m", "mx", "my", "mt", "mb", "ml", "mr"],
-  "line-height": ["leading"],
-  ring: ["ring"],
-  aspect: ["aspect"],
-  leading: ["leading"],
 }
 
 // Cache for file contents to avoid re-reading
@@ -148,8 +148,7 @@ function generatePossibleUtilities(token) {
   })
 
   // Also check for direct CSS variable usage
-  utilities.push(`var(${token})`)
-  utilities.push(token)
+  utilities.push(`var(${token})`, token)
 
   return [...new Set(utilities)]
 }
@@ -173,8 +172,8 @@ function extractTokensFromFile(filePath) {
       if (match) {
         tokens.set(match[1], {
           file: filePath,
-          line: index + 1,
           inThemeBlock: block.includes("@theme"),
+          line: index + 1,
         })
       }
     })
@@ -200,7 +199,7 @@ function extractTokensFromFile(filePath) {
 function createSearchPatterns(utilities) {
   return utilities.flatMap((utility) => {
     // Escape special regex characters
-    const escaped = utility.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    const escaped = utility.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")
 
     // Create patterns that match utility usage in various contexts
     return [
@@ -239,23 +238,25 @@ function isTokenUsed(token, allTokens) {
   const sameFileContent = readFileWithCache(tokenInfo.file)
   // Count how many times the token appears in the file
   const tokenRegex = new RegExp(
-    token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+    token.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&"),
     "g"
   )
   const matches = sameFileContent.match(tokenRegex) || []
   // If it appears more than once (definition + usage), it's a helper token
   if (matches.length > 1) {
-    return { used: true, location: tokenInfo.file, type: "helper-token" }
+    return { location: tokenInfo.file, type: "helper-token", used: true }
   }
 
   // Check usage in other CSS files
   for (const file of tokenFiles) {
-    if (file === tokenInfo.file) continue // Skip the file where it's defined
+    if (file === tokenInfo.file) {
+      continue
+    } // Skip the file where it's defined
 
     const content = readFileWithCache(file)
     // Check for direct token usage in calc(), var(), or other CSS functions
     if (content.includes(token)) {
-      return { used: true, location: file, type: "css-reference" }
+      return { location: file, type: "css-reference", used: true }
     }
   }
 
@@ -299,22 +300,22 @@ function isTokenUsed(token, allTokens) {
         const specialMatches = [
           content.match(
             new RegExp(
-              `\\(length:${token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)`
+              `\\(length:${token.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)`
             )
           ),
           content.match(
             new RegExp(
-              `\\(width:${token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)`
+              `\\(width:${token.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)`
             )
           ),
           content.match(
             new RegExp(
-              `\\(height:${token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)`
+              `\\(height:${token.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)`
             )
           ),
           content.match(
             new RegExp(
-              `\\(size:${token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)`
+              `\\(size:${token.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\)`
             )
           ),
         ].filter((m) => m !== null)
@@ -325,10 +326,10 @@ function isTokenUsed(token, allTokens) {
             console.log(`    Special syntax matched: ${match[0]}`)
           }
           return {
-            used: true,
             location: file,
-            type: "tailwind-v4-syntax",
             match: match[0],
+            type: "tailwind-v4-syntax",
+            used: true,
           }
         }
       }
@@ -344,10 +345,10 @@ function isTokenUsed(token, allTokens) {
             console.log(`    Match: "${match[0]}"`)
           }
           return {
-            used: true,
             location: file,
-            type: "utility-class",
             match: match[0],
+            type: "utility-class",
+            used: true,
           }
         }
       }
@@ -363,10 +364,14 @@ function isTokenUsed(token, allTokens) {
 function generateReport(unusedTokens, allTokens) {
   const report = []
 
-  report.push("# Unused Tokens Report\n")
-  report.push(`Generated on: ${new Date().toISOString()}\n`)
-  report.push(`Total tokens analyzed: ${allTokens.size}`)
-  report.push(`Unused tokens found: ${unusedTokens.length}\n`)
+  report.push(
+    "# Unused Tokens Report\n",
+    `Generated on: ${new Date().toISOString()}\n`
+  )
+  report.push(
+    `Total tokens analyzed: ${allTokens.size}`,
+    `Unused tokens found: ${unusedTokens.length}\n`
+  )
 
   // Group by file
   const byFile = {}
@@ -385,8 +390,10 @@ function generateReport(unusedTokens, allTokens) {
       const possibleUtils = generatePossibleUtilities(token)
         .slice(0, 5)
         .join(", ")
-      report.push(`- Line ${line}: \`${token}\``)
-      report.push(`  - Namespace: ${namespace || "none"}`)
+      report.push(
+        `- Line ${line}: \`${token}\``,
+        `  - Namespace: ${namespace || "none"}`
+      )
       report.push(`  - Expected utilities: ${possibleUtils}...`)
     })
   })
@@ -445,7 +452,9 @@ async function main() {
 
   for (const [token, info] of allTokens) {
     // Debug specific token
-    if (debugToken && token !== debugToken) continue
+    if (debugToken && token !== debugToken) {
+      continue
+    }
 
     checked++
     if (!debugMode && checked % 25 === 0) {
@@ -466,7 +475,9 @@ async function main() {
       if (debugMode) {
         console.log(`✅ Found in: ${usage.location}`)
         console.log(`   Type: ${usage.type}`)
-        if (usage.match) console.log(`   Match: "${usage.match}"`)
+        if (usage.match) {
+          console.log(`   Match: "${usage.match}"`)
+        }
       }
     } else {
       unusedTokens.push({ token, ...info })

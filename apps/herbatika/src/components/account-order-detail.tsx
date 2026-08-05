@@ -14,7 +14,7 @@ import { useAuth } from "@/lib/storefront/auth"
 import { resolveOrderDisplayId } from "@/lib/storefront/order-format"
 import { useOrder } from "@/lib/storefront/orders"
 
-type AccountOrderDetailProps = {
+interface AccountOrderDetailProps {
   orderId: string
 }
 
@@ -23,8 +23,8 @@ export function AccountOrderDetail({ orderId }: AccountOrderDetailProps) {
   const tNavigation = useTranslations("navigation")
   const authQuery = useAuth()
   const orderQuery = useOrder({
-    id: orderId,
     enabled: authQuery.isAuthenticated,
+    id: orderId,
   })
 
   if (authQuery.isLoading || orderQuery.isLoading) {
@@ -70,17 +70,17 @@ export function AccountOrderDetail({ orderId }: AccountOrderDetailProps) {
     )
   }
 
-  const order = orderQuery.order
+  const { order } = orderQuery
 
   return (
     <div className="space-y-400">
       <HerbatikaBreadcrumb
         items={[
-          { label: tNavigation("breadcrumbs.home"), href: "/" },
-          { label: tAuth("account_label"), href: "/account" },
+          { href: "/", label: tNavigation("breadcrumbs.home") },
+          { href: "/account", label: tAuth("account_label") },
           {
-            label: tAuth("account.navigation.orders"),
             href: "/account/orders",
+            label: tAuth("account.navigation.orders"),
           },
           { label: resolveOrderDisplayId(order) },
         ]}

@@ -9,19 +9,14 @@
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the breadcrumb-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import {
-  Fragment,
-  type ElementType,
-  type ReactElement,
-  type ReactNode,
-  type Ref,
-} from "react"
+import { Fragment } from "react"
+import type { ElementType, ReactElement, ReactNode, Ref } from "react"
 
 import type { IconProps, IconType } from "../atoms/icon"
-import {
-  Breadcrumb,
-  type BreadcrumbLinkProps,
-  type BreadcrumbRootProps,
+import { Breadcrumb } from "../molecules/breadcrumb"
+import type {
+  BreadcrumbLinkProps,
+  BreadcrumbRootProps,
 } from "../molecules/breadcrumb"
 
 export type BreadcrumbTemplateLinkProps<T extends ElementType> = Omit<
@@ -35,7 +30,7 @@ const BreadcrumbTemplateLink = Breadcrumb.Link as (
   props: BreadcrumbTemplateRenderLinkProps
 ) => ReactElement
 
-export type BreadcrumbTemplateItem = {
+export interface BreadcrumbTemplateItem {
   label: ReactNode
   href?: string | undefined
   icon?: IconType | undefined

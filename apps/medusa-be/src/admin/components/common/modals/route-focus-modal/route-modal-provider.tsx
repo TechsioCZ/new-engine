@@ -1,4 +1,5 @@
-import { type PropsWithChildren, useState } from "react"
+import { useState } from "react"
+import type { PropsWithChildren } from "react"
 import { useNavigate } from "react-router-dom"
 
 import { RouteModalProviderContext } from "./route-modal-context"
@@ -21,9 +22,9 @@ export const RouteModalProvider = ({
   }
 
   const value = {
+    __internal: { closeOnEscape },
     handleSuccess,
     setCloseOnEscape,
-    __internal: { closeOnEscape },
   }
 
   return (

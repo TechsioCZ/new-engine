@@ -9,12 +9,10 @@ import {
   parseResponseJson,
   serverError,
 } from "../_lib"
-import {
-  createWholesaleCompanyRequest,
-  type ParsedWholesaleRegistration,
-} from "./wholesale"
+import { createWholesaleCompanyRequest } from "./wholesale"
+import type { ParsedWholesaleRegistration } from "./wholesale"
 
-export type ParsedRegisterPayload = {
+export interface ParsedRegisterPayload {
   email: string
   password: string
   firstName?: string
@@ -24,11 +22,11 @@ export type ParsedRegisterPayload = {
 
 export const refreshCustomerToken = async (loginToken: string) => {
   const refreshResponse = await fetch(buildMedusaUrl("/auth/token/refresh"), {
-    method: "POST",
+    cache: "no-store",
     headers: {
       authorization: `Bearer ${loginToken}`,
     },
-    cache: "no-store",
+    method: "POST",
   })
 
   if (!refreshResponse.ok) {
@@ -36,8 +34,8 @@ export const refreshCustomerToken = async (loginToken: string) => {
   }
 
   const refreshPayload = await parseResponseJson(refreshResponse)
-  return refreshPayload && typeof refreshPayload["token"] === "string"
-    ? refreshPayload["token"]
+  return refreshPayload && typeof refreshPayload.token === "string"
+    ? refreshPayload.token
     : loginToken
 }
 
@@ -49,21 +47,21 @@ export const createCustomerIdentity = async ({
   const registerResponse = await fetch(
     buildMedusaUrl("/auth/customer/emailpass/register"),
     {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
       body: JSON.stringify({
         email,
         password,
       }),
       cache: "no-store",
+      headers: {
+        "content-type": "application/json",
+      },
+      method: "POST",
     }
   )
 
   const registerConflict = isConflictStatus(registerResponse.status)
   if (!(registerResponse.ok || registerConflict)) {
-    return buildErrorResponse(registerResponse)
+    return await buildErrorResponse(registerResponse)
   }
 
   if (registerConflict && wholesale) {
@@ -82,15 +80,15 @@ export const loginCustomerIdentity = async ({
   const loginResponse = await fetch(
     buildMedusaUrl("/auth/customer/emailpass"),
     {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
       body: JSON.stringify({
         email,
         password,
       }),
       cache: "no-store",
+      headers: {
+        "content-type": "application/json",
+      },
+      method: "POST",
     }
   )
 
@@ -103,8 +101,8 @@ export const loginCustomerIdentity = async ({
 
   const loginPayload = await parseResponseJson(loginResponse)
   const loginToken =
-    loginPayload && typeof loginPayload["token"] === "string"
-      ? loginPayload["token"]
+    loginPayload && typeof loginPayload.token === "string"
+      ? loginPayload.token
       : null
 
   if (!loginToken) {
@@ -151,21 +149,21 @@ export const createCustomerProfile = async ({
   const createCustomerResponse = await fetch(
     buildMedusaUrl("/store/customers"),
     {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${loginToken}`,
-        ...getPublishableHeaders(),
-      },
       body: JSON.stringify(buildCustomerProfile(payload)),
       cache: "no-store",
+      headers: {
+        authorization: `Bearer ${loginToken}`,
+        "content-type": "application/json",
+        ...getPublishableHeaders(),
+      },
+      method: "POST",
     }
   )
 
   const customerConflict = isConflictStatus(createCustomerResponse.status)
   return createCustomerResponse.ok || customerConflict
     ? null
-    : buildErrorResponse(createCustomerResponse)
+    : await buildErrorResponse(createCustomerResponse)
 }
 
 export const createWholesaleProfile = async ({
@@ -178,7 +176,7 @@ export const createWholesaleProfile = async ({
   wholesale: ParsedWholesaleRegistration | null
 }) =>
   wholesale
-    ? createWholesaleCompanyRequest({
+    ? await createWholesaleCompanyRequest({
         email,
         token: sessionToken,
         wholesale,

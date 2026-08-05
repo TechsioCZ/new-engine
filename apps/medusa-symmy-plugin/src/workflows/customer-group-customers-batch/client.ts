@@ -2,23 +2,21 @@ import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { linkCustomerGroupsToCustomerWorkflow } from "@medusajs/medusa/core-flows"
 
-import {
-  SYMMY_CUSTOMER_GROUP_CODE_MODULE,
-  type SymmyCustomerGroupCodeModuleService,
-} from "../../modules/customer-group-code"
+import { SYMMY_CUSTOMER_GROUP_CODE_MODULE } from "../../modules/customer-group-code"
+import type { SymmyCustomerGroupCodeModuleService } from "../../modules/customer-group-code"
 import type {
   CustomerGroupCustomerIdentifier,
   CustomerGroupCustomerIdentifierType,
 } from "./types"
 
-type ExistingCustomer = {
+interface ExistingCustomer {
   id: string
   email: string | null
   metadata: Record<string, unknown> | null
   groups: { id: string }[]
 }
 
-type CustomerIndex = {
+interface CustomerIndex {
   byId: Map<string, ExistingCustomer>
   byEmail: Map<string, ExistingCustomer>
   byErpId: Map<string, ExistingCustomer>
@@ -86,9 +84,9 @@ export class CustomerGroupCustomersBatchClient {
 
     const erpCustomerIds = await this.queryCustomerIdsByErpId(erpIds)
     const [byId, byEmail, byErpId] = await Promise.all([
-      this.queryCustomers({ id: Array.from(ids) }),
-      this.queryCustomers({ email: Array.from(emails) }),
-      this.queryCustomers({ id: Array.from(erpCustomerIds) }),
+      this.queryCustomers({ id: [...ids] }),
+      this.queryCustomers({ email: [...emails] }),
+      this.queryCustomers({ id: [...erpCustomerIds] }),
     ])
 
     return this.buildCustomerIndex([...byId, ...byEmail, ...byErpId])
@@ -124,8 +122,8 @@ export class CustomerGroupCustomersBatchClient {
 
     await linkCustomerGroupsToCustomerWorkflow(this.container).run({
       input: {
-        id: customer.id,
         add: [groupId],
+        id: customer.id,
         remove: [],
       },
     })
@@ -143,7 +141,7 @@ export class CustomerGroupCustomersBatchClient {
     }
     const { data } = await this.query.graph({
       entity: "customer",
-      fields: Array.from(CUSTOMER_FIELDS),
+      fields: [...CUSTOMER_FIELDS],
       filters,
     })
     return (data ?? []) as ExistingCustomer[]
@@ -161,7 +159,7 @@ export class CustomerGroupCustomersBatchClient {
       fields: ["id"],
       filters: {
         metadata: {
-          erp_id: Array.from(erpIds),
+          erp_id: [...erpIds],
         },
       },
     })
@@ -185,7 +183,7 @@ export class CustomerGroupCustomersBatchClient {
       }
     }
 
-    return { byId, byEmail, byErpId }
+    return { byEmail, byErpId, byId }
   }
 
   private getIdentifierFieldValue(

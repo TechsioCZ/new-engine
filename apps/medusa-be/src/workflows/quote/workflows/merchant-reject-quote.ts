@@ -16,9 +16,9 @@ export const merchantRejectQuoteWorkflow = createWorkflow(
     const quote: QueryQuote = useRemoteQueryStep({
       entry_point: "quote",
       fields: ["id", "status"],
-      variables: { id: input.quote_id },
       list: false,
       throw_if_key_not_found: true,
+      variables: { id: input.quote_id },
     })
 
     validateQuoteRejectionStep({ quote })

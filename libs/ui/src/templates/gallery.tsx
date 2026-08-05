@@ -12,12 +12,13 @@
 import type { ElementType, ReactNode } from "react"
 
 import type { IconType } from "../atoms/icon"
-import { Carousel, type CarouselRootProps } from "../molecules/carousel"
-import {
-  Gallery,
-  type GalleryItem,
-  type GalleryProps,
-  type GalleryRenderThumbnailParams,
+import { Carousel } from "../molecules/carousel"
+import type { CarouselRootProps } from "../molecules/carousel"
+import { Gallery } from "../organisms/gallery"
+import type {
+  GalleryItem,
+  GalleryProps,
+  GalleryRenderThumbnailParams,
 } from "../organisms/gallery"
 
 function resolveSlides(
@@ -30,7 +31,7 @@ function resolveSlides(
 
   return items.map((item, index) => ({
     ...item,
-    content: renderSlide({ item, index }),
+    content: renderSlide({ index, item }),
   }))
 }
 
@@ -119,18 +120,18 @@ export function GalleryTemplate<T extends ElementType = "img">({
     carouselWidth ?? (fitParent ? "100%" : undefined)
   const resolvedCarouselHeight = carouselHeight
   const resolvedCarouselProps = {
-    orientation: resolvedOrientation,
-    aspectRatio: aspectRatio ?? "portrait",
-    size: size ?? "full",
-    objectFit: objectFit ?? "cover",
-    loop: loop ?? true,
-    autoplay,
     allowMouseDrag,
-    imageAs,
-    onPageChange,
+    aspectRatio: aspectRatio ?? "portrait",
+    autoplay,
     className: carouselClassName,
-    width: resolvedCarouselWidth,
     height: resolvedCarouselHeight,
+    imageAs,
+    loop: loop ?? true,
+    objectFit: objectFit ?? "cover",
+    onPageChange,
+    orientation: resolvedOrientation,
+    size: size ?? "full",
+    width: resolvedCarouselWidth,
   } satisfies Omit<CarouselRootProps<T>, "children" | "slideCount" | "page">
 
   return (

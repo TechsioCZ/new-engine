@@ -23,9 +23,9 @@ export const removeAdminRoleStep = createStep(
       await getProviderIdentityIdsWithoutActiveAdminRole({
         candidates: [
           {
-            ...(input.customer_id !== undefined
-              ? { customer_id: input.customer_id }
-              : {}),
+            ...(input.customer_id === undefined
+              ? {}
+              : { customer_id: input.customer_id }),
             email: input.email,
           },
         ],

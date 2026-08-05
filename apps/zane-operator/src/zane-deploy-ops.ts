@@ -1,6 +1,7 @@
 import { computeEffectiveEnvVariables } from "./zane-effective-service-state"
 import { UpstreamHttpError } from "./zane-errors"
-import { parseErrorMessage, type ZaneSession } from "./zane-upstream"
+import { parseErrorMessage } from "./zane-upstream"
+import type { ZaneSession } from "./zane-upstream"
 
 interface ResolveTargetInput {
   service_id: string
@@ -131,15 +132,15 @@ function coercePendingEnvVariable(
 ): { key: string; value: string } | null {
   if (
     !value ||
-    typeof value["key"] !== "string" ||
-    typeof value["value"] !== "string"
+    typeof value.key !== "string" ||
+    typeof value.value !== "string"
   ) {
     return null
   }
 
   return {
-    key: value["key"],
-    value: value["value"],
+    key: value.key,
+    value: value.value,
   }
 }
 
@@ -185,21 +186,24 @@ function assertServiceType(value: unknown, label: string): ServiceType {
 
   switch (value.toUpperCase()) {
     case "DOCKER":
-    case "DOCKER_REGISTRY":
+    case "DOCKER_REGISTRY": {
       return "docker"
+    }
     case "GIT":
-    case "GIT_REPOSITORY":
+    case "GIT_REPOSITORY": {
       return "git"
-    default:
+    }
+    default: {
       throw new UpstreamHttpError(
         502,
         "zane_service_type_invalid",
         `${label} must be docker or git`
       )
+    }
   }
 }
 
-function waitForDeployment(ms: number): Promise<void> {
+async function waitForDeployment(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms)
   })
@@ -288,30 +292,19 @@ export class ZaneDeployOps {
           : null
 
         return {
-          service_id: service.service_id,
-          service_slug: details.slug,
-          service_type: assertServiceType(
-            details.type,
-            `${service.service_slug}.service_type`
-          ),
+          active_deployment: activeDeployment
+            ? {
+                deployment_hash: activeDeployment.hash,
+                status: activeDeployment.status,
+                commit_sha: activeDeployment.commit_sha ?? null,
+                env: Object.fromEntries(
+                  (activeDeployment.service_snapshot?.env_variables ?? []).map(
+                    (envVar) => [envVar.key, envVar.value]
+                  )
+                ),
+              }
+            : null,
           configured_commit_sha: details.commit_sha ?? null,
-          deploy_token: details.deploy_token,
-          deploy_url:
-            assertServiceType(
-              details.type,
-              `${service.service_slug}.service_type`
-            ) === "docker"
-              ? `/api/deploy-service/docker/${details.deploy_token}/`
-              : `/api/deploy-service/git/${details.deploy_token}/`,
-          env_change_url: `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(
-            input.environmentName
-          )}/request-service-changes/${encodeURIComponent(details.slug)}/`,
-          details_url: `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(
-            input.environmentName
-          )}/service-details/${encodeURIComponent(details.slug)}/`,
-          has_unapplied_changes:
-            Array.isArray(details.unapplied_changes) &&
-            details.unapplied_changes.length > 0,
           current_production_deployment: currentProductionDeployment
             ? {
                 deployment_hash: currentProductionDeployment.hash,
@@ -325,25 +318,36 @@ export class ZaneDeployOps {
                 ),
               }
             : null,
-          active_deployment: activeDeployment
-            ? {
-                deployment_hash: activeDeployment.hash,
-                status: activeDeployment.status,
-                commit_sha: activeDeployment.commit_sha ?? null,
-                env: Object.fromEntries(
-                  (activeDeployment.service_snapshot?.env_variables ?? []).map(
-                    (envVar) => [envVar.key, envVar.value]
-                  )
-                ),
-              }
-            : null,
+          deploy_token: details.deploy_token,
+          deploy_url:
+            assertServiceType(
+              details.type,
+              `${service.service_slug}.service_type`
+            ) === "docker"
+              ? `/api/deploy-service/docker/${details.deploy_token}/`
+              : `/api/deploy-service/git/${details.deploy_token}/`,
+          details_url: `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(
+            input.environmentName
+          )}/service-details/${encodeURIComponent(details.slug)}/`,
+          env_change_url: `/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(
+            input.environmentName
+          )}/request-service-changes/${encodeURIComponent(details.slug)}/`,
+          has_unapplied_changes:
+            Array.isArray(details.unapplied_changes) &&
+            details.unapplied_changes.length > 0,
+          service_id: service.service_id,
+          service_slug: details.slug,
+          service_type: assertServiceType(
+            details.type,
+            `${service.service_slug}.service_type`
+          ),
         } satisfies ZaneResolvedTarget
       })
     )
 
     return {
-      project_slug: input.projectSlug,
       environment_name: input.environmentName,
+      project_slug: input.projectSlug,
       services,
     }
   }
@@ -358,20 +362,20 @@ export class ZaneDeployOps {
     environment_name: string
     noop: boolean
     applied_service_ids: string[]
-    applied_changes: Array<{
+    applied_changes: {
       service_id: string
       service_slug: string
       key: string
       change_type: "ADD" | "UPDATE" | "SKIP"
-    }>
+    }[]
   }> {
     if (input.envOverrides.length === 0) {
       return {
-        project_slug: input.projectSlug,
+        applied_changes: [],
+        applied_service_ids: [],
         environment_name: input.environmentName,
         noop: true,
-        applied_service_ids: [],
-        applied_changes: [],
+        project_slug: input.projectSlug,
       }
     }
 
@@ -380,12 +384,12 @@ export class ZaneDeployOps {
       input.targets.map((target) => [target.service_id, target])
     )
     const appliedServiceIds = new Set<string>()
-    const appliedChanges: Array<{
+    const appliedChanges: {
       service_id: string
       service_slug: string
       key: string
       change_type: "ADD" | "UPDATE" | "SKIP"
-    }> = []
+    }[] = []
 
     for (const override of input.envOverrides) {
       const target = targetsByServiceId.get(override.service_id)
@@ -420,10 +424,10 @@ export class ZaneDeployOps {
         const effectiveCurrent = effectiveEnvByKey.get(key)
         if (effectiveCurrent?.value === value) {
           appliedChanges.push({
+            change_type: "SKIP",
+            key,
             service_id: override.service_id,
             service_slug: override.service_slug,
-            key,
-            change_type: "SKIP",
           })
           continue
         }
@@ -443,15 +447,15 @@ export class ZaneDeployOps {
         const changeType: "ADD" | "UPDATE" = persistedCurrent ? "UPDATE" : "ADD"
         const requestBody: JsonRecord = {
           field: "env_variables",
-          type: changeType,
           new_value: {
             key,
             value,
           },
+          type: changeType,
         }
 
         if (persistedCurrent?.id) {
-          requestBody["item_id"] = persistedCurrent.id
+          requestBody.item_id = persistedCurrent.id
         }
 
         await this.#deps.request(
@@ -465,20 +469,20 @@ export class ZaneDeployOps {
 
         appliedServiceIds.add(override.service_id)
         appliedChanges.push({
+          change_type: changeType,
+          key,
           service_id: override.service_id,
           service_slug: override.service_slug,
-          key,
-          change_type: changeType,
         })
       }
     }
 
     return {
-      project_slug: input.projectSlug,
+      applied_changes: appliedChanges,
+      applied_service_ids: Array.from(appliedServiceIds),
       environment_name: input.environmentName,
       noop: appliedServiceIds.size === 0,
-      applied_service_ids: Array.from(appliedServiceIds),
-      applied_changes: appliedChanges,
+      project_slug: input.projectSlug,
     }
   }
 
@@ -544,23 +548,23 @@ export class ZaneDeployOps {
           previousDeploymentHashes
         )
         return {
+          deployment_hash: deployment.hash,
           service_id: target.service_id,
           service_slug: target.service_slug,
           service_type: target.service_type,
-          deployment_hash: deployment.hash,
           status: deployment.status,
         } satisfies TriggeredDeployment
       })
     )
 
     return {
-      project_slug: input.projectSlug,
       environment_name: input.environmentName,
       git_commit_sha: input.gitCommitSha ?? null,
+      project_slug: input.projectSlug,
+      services: deployments,
       triggered_service_ids: deployments.map(
         (deployment) => deployment.service_id
       ),
-      services: deployments,
     }
   }
 
@@ -589,11 +593,11 @@ export class ZaneDeployOps {
     )
 
     return {
-      project_slug: input.projectSlug,
-      environment_name: input.environmentName,
-      service_slug: input.serviceSlug,
-      deployment_hash: input.deploymentHash,
       cancelled: true,
+      deployment_hash: input.deploymentHash,
+      environment_name: input.environmentName,
+      project_slug: input.projectSlug,
+      service_slug: input.serviceSlug,
     }
   }
 
@@ -602,9 +606,9 @@ export class ZaneDeployOps {
     body: JsonRecord
   ): Promise<void> {
     const response = await fetch(`${this.#deps.baseUrl}${target.deploy_url}`, {
-      method: "PUT",
-      headers: this.#deps.buildHeaders(undefined, "PUT"),
       body: JSON.stringify(body),
+      headers: this.#deps.buildHeaders(undefined, "PUT"),
+      method: "PUT",
     })
 
     if (!response.ok) {

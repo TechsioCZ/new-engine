@@ -2,7 +2,8 @@
 
 import { useTranslations } from "next-intl"
 import { usePathname } from "next/navigation"
-import { type FormEvent, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
+import type { FormEvent } from "react"
 
 import type { Product } from "@/components/product-detail/product-detail.types"
 import { useAppToast } from "@/hooks/use-app-toast"
@@ -13,15 +14,15 @@ import {
   getProductListTitle,
   isFavoriteProductList,
   isProductInProductList,
-  type StoreProductList,
   useAddFavoriteProductListItem,
   useAddProductListItem,
   useCreateCustomProductList,
   useProductListDetails,
   useProductLists,
 } from "@/lib/storefront/product-lists"
+import type { StoreProductList } from "@/lib/storefront/product-lists"
 
-export type ProductListPickerRow = {
+export interface ProductListPickerRow {
   key: string
   title: string
   count: number
@@ -30,7 +31,7 @@ export type ProductListPickerRow = {
   list: StoreProductList | null
 }
 
-type UseProductListPickerInput = {
+interface UseProductListPickerInput {
   product: Product
   quantity: number
   selectedVariantId: string | null
@@ -39,7 +40,7 @@ type UseProductListPickerInput = {
 const normalizeQuantity = (quantity: number) =>
   Number.isFinite(quantity) && quantity >= 1 ? Math.floor(quantity) : 1
 
-const listById = (lists: Array<StoreProductList | null | undefined>) => {
+const listById = (lists: (StoreProductList | null | undefined)[]) => {
   const map = new Map<string, StoreProductList>()
 
   for (const list of lists) {
@@ -69,8 +70,8 @@ export function useProductListPicker({
   const shouldFetchLists = isOpen && authQuery.isAuthenticated
   const listsQuery = useProductLists({
     customerId,
-    limit: 100,
     enabled: shouldFetchLists,
+    limit: 100,
   })
   const listIds = listsQuery.productLists.map((list) => list.id).filter(Boolean)
   const detailQueries = useProductListDetails(listIds, {
@@ -96,27 +97,27 @@ export function useProductListPicker({
   )
   const rows: ProductListPickerRow[] = [
     {
-      key: favoriteList?.id ?? "favorite",
-      title: tAuth("product_lists.favorite_title"),
-      count: getProductListItemCount(favoriteList),
       checked: isProductInProductList(
         favoriteList,
         product.id,
         selectedVariantId
       ),
+      count: getProductListItemCount(favoriteList),
       isFavorite: true,
+      key: favoriteList?.id ?? "favorite",
       list: favoriteList,
+      title: tAuth("product_lists.favorite_title"),
     },
     ...customLists.map((list) => ({
+      checked: isProductInProductList(list, product.id, selectedVariantId),
+      count: getProductListItemCount(list),
+      isFavorite: false,
       key: list.id,
+      list,
       title: getProductListTitle(list, {
         favorite: tAuth("product_lists.favorite_title"),
         untitled: tAuth("product_lists.untitled_list"),
       }),
-      count: getProductListItemCount(list),
-      checked: isProductInProductList(list, product.id, selectedVariantId),
-      isFavorite: false,
-      list,
     })),
   ]
 
@@ -145,15 +146,15 @@ export function useProductListPicker({
       if (row.isFavorite) {
         await addFavoriteItemMutation.mutateAsync({
           productId: product.id,
-          variantId: selectedVariantId,
           quantity: quantityToAdd,
+          variantId: selectedVariantId,
         })
       } else if (row.list?.id) {
         await addItemMutation.mutateAsync({
           listId: row.list.id,
           productId: product.id,
-          variantId: selectedVariantId,
           quantity: quantityToAdd,
+          variantId: selectedVariantId,
         })
       }
     } catch (mutationError) {
@@ -183,8 +184,8 @@ export function useProductListPicker({
 
     try {
       const createdList = await createCustomMutation.mutateAsync({
-        title,
         access_type: "private",
+        title,
       })
 
       if (!createdList?.id) {
@@ -194,8 +195,8 @@ export function useProductListPicker({
       await addItemMutation.mutateAsync({
         listId: createdList.id,
         productId: product.id,
-        variantId: selectedVariantId,
         quantity: quantityToAdd,
+        variantId: selectedVariantId,
       })
 
       setNewListTitle("")
@@ -215,7 +216,7 @@ export function useProductListPicker({
   const retryLists = async () => {
     await Promise.all([
       listsQuery.query.refetch(),
-      ...detailQueries.map((query) => query.refetch()),
+      ...detailQueries.map(async (query) => query.refetch()),
     ])
   }
 
@@ -223,9 +224,9 @@ export function useProductListPicker({
     activeListKey,
     addProductToList,
     authQuery,
-    detailsHaveError: detailQueries.some((query) => Boolean(query.error)),
     detailsAreLoading:
       listIds.length > 0 && detailQueries.some((query) => query.isLoading),
+    detailsHaveError: detailQueries.some((query) => Boolean(query.error)),
     handleCreateList,
     isMutating,
     isOpen,

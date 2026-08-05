@@ -14,7 +14,7 @@ import { NumberFilter } from "./number-filter"
 import { SelectFilter } from "./select-filter"
 import { StringFilter } from "./string-filter"
 
-type Option = {
+interface Option {
   label: string
   value: unknown
 }
@@ -43,7 +43,7 @@ export type Filter = {
     }
 )
 
-type DataTableFilterProps = {
+interface DataTableFilterProps {
   filters: Filter[]
   readonly?: boolean
   prefix?: string
@@ -59,7 +59,7 @@ export const DataTableFilter = ({
   const [open, setOpen] = useState(false)
 
   const [activeFilters, setActiveFilters] = useState(
-    getInitialFilters({ searchParams, filters, ...(prefix ? { prefix } : {}) })
+    getInitialFilters({ filters, searchParams, ...(prefix ? { prefix } : {}) })
   )
 
   const availableFilters = filters.filter(
@@ -106,14 +106,14 @@ export const DataTableFilter = ({
   return (
     <DataTableFilterContext.Provider
       value={{
-        removeFilter,
         removeAllFilters,
+        removeFilter,
       }}
     >
       <div className="flex max-w-2/3 flex-wrap items-center gap-2">
         {activeFilters.map((filter) => {
           switch (filter.type) {
-            case "select":
+            case "select": {
               return (
                 <SelectFilter
                   filter={filter}
@@ -130,7 +130,8 @@ export const DataTableFilter = ({
                     : { searchable: filter.searchable })}
                 />
               )
-            case "string":
+            }
+            case "string": {
               return (
                 <StringFilter
                   filter={filter}
@@ -140,7 +141,8 @@ export const DataTableFilter = ({
                   {...(readonly === undefined ? {} : { readonly })}
                 />
               )
-            case "number":
+            }
+            case "number": {
               return (
                 <NumberFilter
                   filter={filter}
@@ -150,8 +152,10 @@ export const DataTableFilter = ({
                   {...(readonly === undefined ? {} : { readonly })}
                 />
               )
-            default:
+            }
+            default: {
               return null
+            }
           }
         })}
         {!readonly && availableFilters.length > 0 && (
@@ -204,7 +208,7 @@ export const DataTableFilter = ({
   )
 }
 
-type ClearAllFiltersProps = {
+interface ClearAllFiltersProps {
   filters: Filter[]
   prefix?: string
 }
@@ -262,8 +266,8 @@ const getInitialFilters = ({
       if (filter.type === "select") {
         activeFilters.push({
           ...filter,
-          options: filter.options,
           openOnMount: false,
+          options: filter.options,
         })
       } else {
         activeFilters.push({ ...filter, openOnMount: false })
@@ -296,8 +300,8 @@ const getMissingActiveFilters = ({
       if (filter.type === "select") {
         missingFilters.push({
           ...filter,
-          options: filter.options,
           openOnMount: false,
+          options: filter.options,
         })
       } else {
         missingFilters.push({ ...filter, openOnMount: false })

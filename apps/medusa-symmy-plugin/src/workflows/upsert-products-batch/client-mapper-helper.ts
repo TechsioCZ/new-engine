@@ -16,26 +16,26 @@ import type {
   VariantInput,
 } from "./types"
 
-type ExistingVariantIndex = {
+interface ExistingVariantIndex {
   byId: Map<string, string>
   bySku: Map<string, string>
   byEan: Map<string, string>
 }
 
-type RawExistingProduct = {
+interface RawExistingProduct {
   id: string
   external_id?: string | null
   metadata?: Record<string, unknown> | null
   variants?: { id: string; sku?: string | null; ean?: string | null }[]
 }
 
-type ProductIdentifierSets = {
+interface ProductIdentifierSets {
   erpIds: Set<string>
   skus: Set<string>
   eans: Set<string>
 }
 
-type CategoryRefSets = {
+interface CategoryRefSets {
   handles: Set<string>
   names: Set<string>
 }
@@ -46,9 +46,9 @@ export class ProductBatchClientMapperHelper {
   ): ExistingProduct {
     const product = raw as RawExistingProduct
     return {
-      id: product.id,
       external_id: product.external_id ?? null,
-      metadata: (product.metadata ?? null) as Record<string, unknown> | null,
+      id: product.id,
+      metadata: product.metadata ?? null,
       variants: (product.variants ?? []).map((variant) => ({
         id: variant.id,
         sku: variant.sku ?? null,
@@ -94,9 +94,9 @@ export class ProductBatchClientMapperHelper {
     if (optionMap.size === 0) {
       return [{ title: "Default", values: ["Default"] }]
     }
-    return Array.from(optionMap.entries()).map(([title, values]) => ({
+    return [...optionMap.entries()].map(([title, values]) => ({
       title,
-      values: Array.from(values),
+      values: [...values],
     }))
   }
 
@@ -120,8 +120,8 @@ export class ProductBatchClientMapperHelper {
       return
     }
     return prices.map((price) => ({
-      currency_code: price.currency_code.toLowerCase(),
       amount: price.amount,
+      currency_code: price.currency_code.toLowerCase(),
     }))
   }
 
@@ -131,7 +131,7 @@ export class ProductBatchClientMapperHelper {
     }
     return {
       ...variant.metadata,
-      ...(variant.vat_rate !== undefined ? { vat_rate: variant.vat_rate } : {}),
+      ...(variant.vat_rate === undefined ? {} : { vat_rate: variant.vat_rate }),
     }
   }
 
@@ -152,7 +152,7 @@ export class ProductBatchClientMapperHelper {
       }
     }
 
-    return { byId, bySku, byEan }
+    return { byEan, byId, bySku }
   }
 
   private findExistingVariantId(
@@ -193,7 +193,7 @@ export class ProductBatchClientMapperHelper {
         ids.add(id)
       }
     }
-    return Array.from(ids)
+    return [...ids]
   }
 
   buildImagesPayload(images: ImageInput[] | undefined) {
@@ -236,10 +236,10 @@ export class ProductBatchClientMapperHelper {
         })
       : [
           {
-            title: product.title,
             manage_inventory: true,
-            prices: fallbackPrices ?? [],
             options: { Default: "Default" },
+            prices: fallbackPrices ?? [],
+            title: product.title,
           },
         ]
 
@@ -379,7 +379,7 @@ export class ProductBatchClientMapperHelper {
       }
     }
 
-    return { erpIds, skus, eans }
+    return { eans, erpIds, skus }
   }
 
   cacheProductsByErpId(products: Record<string, unknown>[]): {
@@ -397,7 +397,7 @@ export class ProductBatchClientMapperHelper {
       }
     }
 
-    return { existingProductsById, byErpId }
+    return { byErpId, existingProductsById }
   }
 
   buildProductIdByVariantField(
@@ -408,7 +408,7 @@ export class ProductBatchClientMapperHelper {
 
     for (const variant of variants) {
       const value = variant[field]
-      const productId = variant["product_id"]
+      const productId = variant.product_id
       if (typeof value === "string" && typeof productId === "string") {
         result.set(value, productId)
       }

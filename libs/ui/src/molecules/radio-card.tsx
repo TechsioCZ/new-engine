@@ -9,22 +9,15 @@
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the radio-card-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import {
-  connect,
-  type ItemProps,
-  machine,
-  type ValueChangeDetails,
-  type Props as ZagRadioGroupProps,
+import { connect, machine } from "@zag-js/radio-group"
+import type {
+  ItemProps,
+  ValueChangeDetails,
+  Props as ZagRadioGroupProps,
 } from "@zag-js/radio-group"
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type ReactNode,
-  type Ref,
-  useContext,
-  useId,
-} from "react"
+import { createContext, useContext, useId } from "react"
+import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { Label } from "../atoms/label"
@@ -32,8 +25,15 @@ import { StatusText } from "../atoms/status-text"
 import { tv } from "../utils"
 
 const radioCardVariants = tv({
+  defaultVariants: {
+    align: "start",
+    itemOrientation: "horizontal",
+    justify: "between",
+    size: "md",
+    variant: "outline",
+  },
   slots: {
-    root: ["flex w-full flex-col"],
+    hiddenInput: "sr-only",
     item: [
       "relative flex min-w-0 flex-col overflow-hidden",
       "rounded-radio-card-item",
@@ -58,16 +58,21 @@ const radioCardVariants = tv({
       "data-focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-invalid:border-radio-card-item-border-error",
     ],
-    itemControl: ["flex min-w-0 flex-1"],
-    itemContent: ["flex min-w-0 flex-col"],
-    itemText: [
-      "min-w-0",
-      "font-radio-card-item",
-      "text-radio-card-item-fg",
-      "leading-snug",
-      "data-disabled:text-radio-card-item-fg-disabled",
-      "data-disabled:data-[state=checked]:text-radio-card-item-fg-disabled",
+    itemAddon: [
+      "border-t-(length:--border-width-radio-card-addon)",
+      "border-radio-card-addon-border",
+      "font-radio-card-addon",
+      "text-radio-card-addon-fg",
+      "transition-colors duration-200 motion-reduce:transition-none",
+      "data-disabled:border-radio-card-addon-border-disabled",
+      "data-disabled:bg-radio-card-addon-bg-disabled",
+      "data-disabled:text-radio-card-addon-fg-disabled",
+      "data-disabled:data-[state=checked]:border-radio-card-addon-border-disabled",
+      "data-disabled:data-[state=checked]:bg-radio-card-addon-bg-disabled",
+      "data-disabled:data-[state=checked]:text-radio-card-addon-fg-disabled",
     ],
+    itemContent: ["flex min-w-0 flex-col"],
+    itemControl: ["flex min-w-0 flex-1"],
     itemDescription: [
       "min-w-0",
       "text-radio-card-item-description-fg",
@@ -95,22 +100,105 @@ const radioCardVariants = tv({
       "data-disabled:data-[state=checked]:text-radio-card-item-indicator-content-fg-disabled",
     ],
     itemIndicatorMark: ["block leading-none", "token-icon-radio-card-checked"],
-    itemAddon: [
-      "border-t-(length:--border-width-radio-card-addon)",
-      "border-radio-card-addon-border",
-      "font-radio-card-addon",
-      "text-radio-card-addon-fg",
-      "transition-colors duration-200 motion-reduce:transition-none",
-      "data-disabled:border-radio-card-addon-border-disabled",
-      "data-disabled:bg-radio-card-addon-bg-disabled",
-      "data-disabled:text-radio-card-addon-fg-disabled",
-      "data-disabled:data-[state=checked]:border-radio-card-addon-border-disabled",
-      "data-disabled:data-[state=checked]:bg-radio-card-addon-bg-disabled",
-      "data-disabled:data-[state=checked]:text-radio-card-addon-fg-disabled",
+    itemText: [
+      "min-w-0",
+      "font-radio-card-item",
+      "text-radio-card-item-fg",
+      "leading-snug",
+      "data-disabled:text-radio-card-item-fg-disabled",
+      "data-disabled:data-[state=checked]:text-radio-card-item-fg-disabled",
     ],
-    hiddenInput: "sr-only",
+    root: ["flex w-full flex-col"],
   },
   variants: {
+    align: {
+      center: {
+        itemAddon: "text-center",
+        itemContent: "items-center",
+        itemControl: "items-center",
+        itemDescription: "text-center",
+        itemText: "text-center",
+      },
+      end: {
+        itemAddon: "text-right",
+        itemContent: "items-end",
+        itemControl: "items-end",
+        itemDescription: "text-right",
+        itemText: "text-right",
+      },
+      start: {
+        itemAddon: "text-left",
+        itemContent: "items-start",
+        itemControl: "items-start",
+        itemDescription: "text-left",
+        itemText: "text-left",
+      },
+    },
+    itemOrientation: {
+      horizontal: {
+        itemContent: "flex-1",
+        itemControl: "flex-row",
+        itemText: "flex-1",
+      },
+      vertical: {
+        itemControl: "flex-col",
+      },
+    },
+    justify: {
+      between: {
+        itemControl: "justify-between",
+      },
+      center: {
+        itemControl: "justify-center",
+      },
+      end: {
+        itemControl: "justify-end",
+      },
+      start: {
+        itemControl: "justify-start",
+      },
+    },
+    size: {
+      lg: {
+        itemAddon: ["p-radio-card-addon-lg", "text-radio-card-addon-lg"],
+        itemContent: "gap-radio-card-item-content-lg",
+        itemControl: [
+          "gap-radio-card-item-control-lg",
+          "p-radio-card-item-control-lg",
+        ],
+        itemDescription: "text-radio-card-item-description-lg",
+        itemIndicator: "size-radio-card-indicator-lg",
+        itemIndicatorMark: "size-radio-card-indicator-mark-lg",
+        itemText: "text-radio-card-item-lg",
+        root: "gap-radio-card-stack-lg",
+      },
+      md: {
+        itemAddon: ["p-radio-card-addon-md", "text-radio-card-addon-md"],
+        itemContent: "gap-radio-card-item-content-md",
+        itemControl: [
+          "gap-radio-card-item-control-md",
+          "p-radio-card-item-control-md",
+        ],
+        itemDescription: "text-radio-card-item-description-md",
+        itemIndicator: "size-radio-card-indicator-md",
+        itemIndicatorMark: "size-radio-card-indicator-mark-md",
+        itemText: "text-radio-card-item-md",
+        root: "gap-radio-card-stack-md",
+      },
+      sm: {
+        itemAddon: ["p-radio-card-addon-sm", "text-radio-card-addon-sm"],
+        itemContent: "gap-radio-card-item-content-sm",
+        itemControl: [
+          "gap-radio-card-item-control-sm",
+          "p-radio-card-item-control-sm",
+        ],
+        itemDescription: "text-radio-card-item-description-sm",
+        itemIndicator: "size-radio-card-indicator-sm",
+        itemIndicatorMark: "size-radio-card-indicator-mark-sm",
+        itemText: "text-radio-card-item-sm",
+        root: "gap-radio-card-stack-sm",
+      },
+    },
     variant: {
       outline: {
         item: [
@@ -126,30 +214,6 @@ const radioCardVariants = tv({
           "data-[state=checked]:text-radio-card-item-indicator-content-fg-outline-checked",
         ],
       },
-      subtle: {
-        item: [
-          "data-[state=checked]:bg-radio-card-item-bg-subtle-checked",
-          "data-[state=checked]:border-radio-card-item-border-subtle-checked",
-          "data-hover:data-[state=checked]:bg-radio-card-item-bg-subtle-checked-hover",
-          "data-hover:data-[state=checked]:border-radio-card-item-border-subtle-checked-hover",
-        ],
-        itemText: [
-          "data-[state=checked]:text-radio-card-item-fg-subtle-checked",
-        ],
-        itemDescription: [
-          "data-[state=checked]:text-radio-card-item-description-fg-subtle-checked",
-        ],
-        itemIndicator: [
-          "data-[state=checked]:border-radio-card-item-indicator-border-subtle-checked",
-        ],
-        itemIndicatorContent: [
-          "data-[state=checked]:text-radio-card-item-indicator-content-fg-subtle-checked",
-        ],
-        itemAddon: [
-          "data-[state=checked]:border-radio-card-addon-border-subtle-checked",
-          "data-[state=checked]:text-radio-card-addon-fg-subtle-checked",
-        ],
-      },
       solid: {
         item: [
           "data-[state=checked]:bg-radio-card-item-bg-solid-checked",
@@ -157,8 +221,9 @@ const radioCardVariants = tv({
           "data-hover:data-[state=checked]:bg-radio-card-item-bg-solid-checked-hover",
           "data-hover:data-[state=checked]:border-radio-card-item-border-solid-checked-hover",
         ],
-        itemText: [
-          "data-[state=checked]:text-radio-card-item-fg-solid-checked",
+        itemAddon: [
+          "data-[state=checked]:border-radio-card-addon-border-solid-checked",
+          "data-[state=checked]:text-radio-card-addon-fg-solid-checked",
         ],
         itemDescription: [
           "data-[state=checked]:text-radio-card-item-description-fg-solid-checked",
@@ -170,107 +235,35 @@ const radioCardVariants = tv({
         itemIndicatorContent: [
           "data-[state=checked]:text-radio-card-item-indicator-content-fg-solid-checked",
         ],
+        itemText: [
+          "data-[state=checked]:text-radio-card-item-fg-solid-checked",
+        ],
+      },
+      subtle: {
+        item: [
+          "data-[state=checked]:bg-radio-card-item-bg-subtle-checked",
+          "data-[state=checked]:border-radio-card-item-border-subtle-checked",
+          "data-hover:data-[state=checked]:bg-radio-card-item-bg-subtle-checked-hover",
+          "data-hover:data-[state=checked]:border-radio-card-item-border-subtle-checked-hover",
+        ],
         itemAddon: [
-          "data-[state=checked]:border-radio-card-addon-border-solid-checked",
-          "data-[state=checked]:text-radio-card-addon-fg-solid-checked",
+          "data-[state=checked]:border-radio-card-addon-border-subtle-checked",
+          "data-[state=checked]:text-radio-card-addon-fg-subtle-checked",
+        ],
+        itemDescription: [
+          "data-[state=checked]:text-radio-card-item-description-fg-subtle-checked",
+        ],
+        itemIndicator: [
+          "data-[state=checked]:border-radio-card-item-indicator-border-subtle-checked",
+        ],
+        itemIndicatorContent: [
+          "data-[state=checked]:text-radio-card-item-indicator-content-fg-subtle-checked",
+        ],
+        itemText: [
+          "data-[state=checked]:text-radio-card-item-fg-subtle-checked",
         ],
       },
     },
-    size: {
-      sm: {
-        root: "gap-radio-card-stack-sm",
-        itemControl: [
-          "gap-radio-card-item-control-sm",
-          "p-radio-card-item-control-sm",
-        ],
-        itemContent: "gap-radio-card-item-content-sm",
-        itemText: "text-radio-card-item-sm",
-        itemDescription: "text-radio-card-item-description-sm",
-        itemIndicator: "size-radio-card-indicator-sm",
-        itemIndicatorMark: "size-radio-card-indicator-mark-sm",
-        itemAddon: ["p-radio-card-addon-sm", "text-radio-card-addon-sm"],
-      },
-      md: {
-        root: "gap-radio-card-stack-md",
-        itemControl: [
-          "gap-radio-card-item-control-md",
-          "p-radio-card-item-control-md",
-        ],
-        itemContent: "gap-radio-card-item-content-md",
-        itemText: "text-radio-card-item-md",
-        itemDescription: "text-radio-card-item-description-md",
-        itemIndicator: "size-radio-card-indicator-md",
-        itemIndicatorMark: "size-radio-card-indicator-mark-md",
-        itemAddon: ["p-radio-card-addon-md", "text-radio-card-addon-md"],
-      },
-      lg: {
-        root: "gap-radio-card-stack-lg",
-        itemControl: [
-          "gap-radio-card-item-control-lg",
-          "p-radio-card-item-control-lg",
-        ],
-        itemContent: "gap-radio-card-item-content-lg",
-        itemText: "text-radio-card-item-lg",
-        itemDescription: "text-radio-card-item-description-lg",
-        itemIndicator: "size-radio-card-indicator-lg",
-        itemIndicatorMark: "size-radio-card-indicator-mark-lg",
-        itemAddon: ["p-radio-card-addon-lg", "text-radio-card-addon-lg"],
-      },
-    },
-    itemOrientation: {
-      horizontal: {
-        itemControl: "flex-row",
-        itemContent: "flex-1",
-        itemText: "flex-1",
-      },
-      vertical: {
-        itemControl: "flex-col",
-      },
-    },
-    align: {
-      start: {
-        itemControl: "items-start",
-        itemContent: "items-start",
-        itemText: "text-left",
-        itemDescription: "text-left",
-        itemAddon: "text-left",
-      },
-      center: {
-        itemControl: "items-center",
-        itemContent: "items-center",
-        itemText: "text-center",
-        itemDescription: "text-center",
-        itemAddon: "text-center",
-      },
-      end: {
-        itemControl: "items-end",
-        itemContent: "items-end",
-        itemText: "text-right",
-        itemDescription: "text-right",
-        itemAddon: "text-right",
-      },
-    },
-    justify: {
-      start: {
-        itemControl: "justify-start",
-      },
-      center: {
-        itemControl: "justify-center",
-      },
-      end: {
-        itemControl: "justify-end",
-      },
-      between: {
-        itemControl: "justify-between",
-      },
-    },
-  },
-  defaultVariants: {
-    variant: "outline",
-    size: "md",
-    itemOrientation: "horizontal",
-    align: "start",
-    justify: "between",
   },
 })
 
@@ -289,7 +282,7 @@ type RadioCardJustify = NonNullable<
 >
 type RadioCardValidateStatus = "default" | "error" | "success" | "warning"
 
-type RadioCardContextValue = {
+interface RadioCardContextValue {
   api: ReturnType<typeof connect>
   variant: RadioCardVariant
   size: RadioCardSize
@@ -311,7 +304,7 @@ function useRadioCardContext() {
   return context
 }
 
-type RadioCardItemContextValue = {
+interface RadioCardItemContextValue {
   itemProps: ItemProps
 }
 
@@ -369,23 +362,23 @@ export function RadioCard({
 
   const service = useMachine(machine, {
     ...machineProps,
-    id,
     disabled,
-    required,
-    orientation,
+    id,
     invalid,
     onValueChange: ({ value: nextValue }: ValueChangeDetails) => {
       onValueChange?.(nextValue)
     },
+    orientation,
+    required,
   })
 
   const api = connect(service, normalizeProps)
   const styles = radioCardVariants({
+    align,
+    itemOrientation,
+    justify,
     size,
     variant,
-    itemOrientation,
-    align,
-    justify,
   })
   const rootProps = mergeProps(
     {
@@ -397,15 +390,15 @@ export function RadioCard({
   return (
     <RadioCardContext.Provider
       value={{
-        api,
-        variant,
-        size,
-        itemOrientation,
         align,
-        justify,
+        api,
         disabled,
+        itemOrientation,
+        justify,
         required,
+        size,
         validateStatus,
+        variant,
       }}
     >
       <div className={styles.root({ className })} ref={ref} {...rootProps}>
@@ -470,7 +463,7 @@ RadioCard.Item = function RadioCardItem({
 }: RadioCardItemProps) {
   const { api, size, variant } = useRadioCardContext()
   const styles = radioCardVariants({ size, variant })
-  const itemProps = { value, disabled, invalid }
+  const itemProps = { disabled, invalid, value }
   const mergedItemProps = mergeProps(api.getItemProps(itemProps), props)
 
   return (
@@ -529,11 +522,11 @@ RadioCard.ItemControl = function RadioCardItemControl({
     useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({
+    align,
+    itemOrientation,
+    justify,
     size,
     variant,
-    itemOrientation,
-    align,
-    justify,
   })
   const itemControlProps = mergeProps(api.getItemControlProps(itemProps), props)
 
@@ -560,10 +553,10 @@ RadioCard.ItemContent = function RadioCardItemContent({
 }: RadioCardItemContentProps) {
   const { size, variant, itemOrientation, align } = useRadioCardContext()
   const styles = radioCardVariants({
+    align,
+    itemOrientation,
     size,
     variant,
-    itemOrientation,
-    align,
   })
 
   return (
@@ -586,10 +579,10 @@ RadioCard.ItemText = function RadioCardItemText({
   const { api, size, variant, itemOrientation, align } = useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({
+    align,
+    itemOrientation,
     size,
     variant,
-    itemOrientation,
-    align,
   })
   const itemTextProps = mergeProps(api.getItemTextProps(itemProps), props)
 
@@ -617,9 +610,9 @@ RadioCard.ItemDescription = function RadioCardItemDescription({
   const { api, size, variant, align } = useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({
+    align,
     size,
     variant,
-    align,
   })
   const itemState = api.getItemState(itemProps)
 
@@ -686,9 +679,9 @@ RadioCard.ItemAddon = function RadioCardItemAddon({
   const { api, size, variant, align } = useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({
+    align,
     size,
     variant,
-    align,
   })
   const itemState = api.getItemState(itemProps)
 

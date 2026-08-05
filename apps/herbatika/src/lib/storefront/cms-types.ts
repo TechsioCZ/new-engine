@@ -1,17 +1,17 @@
 import type { BlogTopicKey } from "@/lib/storefront/blog-content"
 
-export type CmsMedia = {
+export interface CmsMedia {
   alt?: string | null
   url?: string | null
 }
 
-export type CmsCategory = {
+export interface CmsCategory {
   id: number | string
   slug?: string | null
   title?: string | null
 }
 
-type CmsArticleSummary = {
+interface CmsArticleSummary {
   excerpt?: string | null
   featuredImage?: CmsMedia | string | null
   slug?: string | null
@@ -22,7 +22,7 @@ export type CmsArticleCategory = CmsCategory & {
   articles?: CmsArticleSummary[] | null
 }
 
-export type CmsArticle = {
+export interface CmsArticle {
   author?: {
     firstName?: string | null
     lastName?: string | null
@@ -39,7 +39,7 @@ export type CmsArticle = {
   title?: string | null
 }
 
-export type CmsPage = {
+export interface CmsPage {
   category?: CmsCategory | null
   content?: string | null
   id: number | string
@@ -52,7 +52,7 @@ export type CmsPage = {
   title?: string | null
 }
 
-export type CmsHeroCarousel = {
+export interface CmsHeroCarousel {
   button?: string | null
   buttonHref?: string | null
   heading?: string | null

@@ -23,9 +23,9 @@ export const prefetchCategoryPageStorefrontData = async (
   const { queryClient, region } = await getRegionServerContext()
 
   const categoryListParams = buildCategoryListParams({
-    page: 1,
-    limit: CATEGORY_TREE_LIMIT,
     fields: CATEGORY_TREE_FIELDS,
+    limit: CATEGORY_TREE_LIMIT,
+    page: 1,
   })
 
   const categoryResponse = await fetchServerCategories(
@@ -46,9 +46,9 @@ export const prefetchCategoryPageStorefrontData = async (
       ),
     ]
     const catalogListParams = buildCatalogProductsParams({
-      queryState,
       categoryIds,
       limit: PLP_PAGE_SIZE,
+      queryState,
       ...(region.region_id === undefined ? {} : { regionId: region.region_id }),
       ...(region.country_code === undefined
         ? {}
@@ -59,7 +59,7 @@ export const prefetchCategoryPageStorefrontData = async (
   }
 
   return {
-    region,
     dehydratedState: dehydrate(queryClient),
+    region,
   }
 }

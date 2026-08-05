@@ -9,11 +9,10 @@ import type {
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 import { PAYKIT_REGION_PAYMENT_PROVIDER_IDS } from "../workflows/seed/paykit-payment-providers"
-import seedPaykitRegionsWorkflow, {
-  type SeedPaykitRegionsWorkflowInput,
-} from "../workflows/seed/workflows/seed-paykit-regions"
+import seedPaykitRegionsWorkflow from "../workflows/seed/workflows/seed-paykit-regions"
+import type { SeedPaykitRegionsWorkflowInput } from "../workflows/seed/workflows/seed-paykit-regions"
 
-type RegionPaymentProviderLink = {
+interface RegionPaymentProviderLink {
   region_id: string
   payment_provider_id: string
 }
@@ -34,14 +33,14 @@ const countries = [
 
 const defaultRegions: SeedPaykitRegionsWorkflowInput["regions"] = [
   {
-    name: "Czechia",
-    currencyCode: "czk",
     countries: ["cz"],
+    currencyCode: "czk",
+    name: "Czechia",
   },
   {
-    name: "Europe",
-    currencyCode: "eur",
     countries: countries.filter((country) => country !== "cz"),
+    currencyCode: "eur",
+    name: "Europe",
   },
 ]
 
@@ -53,10 +52,10 @@ const getEnabledPaykitPaymentProviderIds = async (
     is_enabled: true,
   })
 
-  const providerIds = paymentProviders.map((provider) => provider.id)
+  const providerIds = new Set(paymentProviders.map((provider) => provider.id))
 
   return PAYKIT_REGION_PAYMENT_PROVIDER_IDS.filter((providerId) =>
-    providerIds.includes(providerId)
+    providerIds.has(providerId)
   )
 }
 
@@ -70,10 +69,10 @@ const getRegionPaymentProviderLinks = async (
 
   const { data } = await query.graph({
     entity: "region_payment_provider",
+    fields: ["region_id", "payment_provider_id"],
     filters: {
       region_id: regionIds,
     },
-    fields: ["region_id", "payment_provider_id"],
   })
 
   return data.flatMap((link) => {
@@ -146,10 +145,10 @@ const toRegionSeedInput = (
   const paymentProviders = paymentProviderMap.get(region.id)
 
   return {
+    countries: region.countries?.map((country) => country.iso_2),
+    currencyCode,
     id: region.id,
     name: region.name,
-    currencyCode,
-    countries: region.countries?.map((country) => country.iso_2),
     ...(paymentProviders ? { paymentProviders } : {}),
   }
 }
@@ -187,8 +186,8 @@ export default async function seedPaykit({ container }: ExecArgs) {
     : defaultRegions
 
   const input: SeedPaykitRegionsWorkflowInput = {
-    regions,
     paymentProviderIds,
+    regions,
   }
 
   await seedPaykitRegionsWorkflow(container).run({ input })

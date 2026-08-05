@@ -3,10 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { COMPANY_MODULE } from "../../../../../src/modules/company"
 
-vi.mock("@medusajs/framework/workflows-sdk", () => ({
-  createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
-  ),
+vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: class StepResponse<
     TPayload = unknown,
     TCompensationInput = unknown,
@@ -19,9 +16,12 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
       this.compensateInput = compensateInput
     }
   },
+  createStep: vi.fn((_name, invoke, compensate) =>
+    Object.assign(invoke, { compensate })
+  ),
 }))
 
-type MockCompanyService = {
+interface MockCompanyService {
   listCompanies: ReturnType<typeof vi.fn>
   updateCompanies: ReturnType<typeof vi.fn>
 }
@@ -103,7 +103,7 @@ describe("updateCompaniesStep", () => {
       id: "comp_route",
       name: "New name",
     })
-    expect(result.compensateInput).toEqual({
+    expect(result.compensateInput).toStrictEqual({
       id: "comp_route",
       name: "Old name",
     })

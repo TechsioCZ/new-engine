@@ -9,28 +9,36 @@
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the breadcrumb-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import {
-  createContext,
-  type ComponentPropsWithoutRef,
-  type ElementType,
-  type Ref,
-  useContext,
-} from "react"
+import { createContext, useContext } from "react"
+import type { ComponentPropsWithoutRef, ElementType, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
 
-import { Icon, type IconProps, type IconType } from "../atoms/icon"
-import { Link, type LinkProps } from "../atoms/link"
+import { Icon } from "../atoms/icon"
+import type { IconProps, IconType } from "../atoms/icon"
+import { Link } from "../atoms/link"
+import type { LinkProps } from "../atoms/link"
 import { tv } from "../utils"
 
 const BreadcrumbVariants = tv({
+  defaultVariants: {
+    size: "md",
+    variant: "plain",
+  },
   slots: {
-    root: ["inline-flex flex-wrap items-center", "bg-breadcrumb-bg"],
-    list: [
-      "flex flex-wrap items-center",
-      "break-words",
-      "list-none",
-      "text-breadcrumb-item",
+    currentLink: [
+      "inline-flex min-w-0 items-center",
+      "rounded-breadcrumb-link",
+      "text-breadcrumb-item-current",
+      "cursor-default",
     ],
+    ellipsis: [
+      "inline-flex shrink-0 items-center justify-center",
+      "text-breadcrumb-ellipsis",
+    ],
+    ellipsisIcon: ["inline-flex items-center justify-center"],
+    ellipsisIconSize: "",
+    icon: ["inline-flex items-center justify-center"],
+    iconSize: "",
     item: ["inline-flex min-w-0 items-center", "text-breadcrumb-item"],
     link: [
       "inline-flex min-w-0 items-center",
@@ -44,14 +52,13 @@ const BreadcrumbVariants = tv({
       "focus-visible:outline-offset-(length:--default-ring-offset)",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    currentLink: [
-      "inline-flex min-w-0 items-center",
-      "rounded-breadcrumb-link",
-      "text-breadcrumb-item-current",
-      "cursor-default",
+    list: [
+      "flex flex-wrap items-center",
+      "break-words",
+      "list-none",
+      "text-breadcrumb-item",
     ],
-    icon: ["inline-flex items-center justify-center"],
-    iconSize: "",
+    root: ["inline-flex flex-wrap items-center", "bg-breadcrumb-bg"],
     separator: [
       "inline-flex shrink-0 items-center justify-center",
       "text-breadcrumb-separator",
@@ -59,57 +66,47 @@ const BreadcrumbVariants = tv({
     ],
     separatorIcon: ["inline-flex items-center justify-center"],
     separatorIconSize: "",
-    ellipsis: [
-      "inline-flex shrink-0 items-center justify-center",
-      "text-breadcrumb-ellipsis",
-    ],
-    ellipsisIcon: ["inline-flex items-center justify-center"],
-    ellipsisIconSize: "",
   },
   variants: {
+    size: {
+      lg: {
+        currentLink: "gap-breadcrumb-link-lg",
+        ellipsisIconSize: "text-breadcrumb-ellipsis-icon-lg",
+        iconSize: "text-breadcrumb-icon-lg",
+        link: "gap-breadcrumb-link-lg",
+        list: "gap-breadcrumb-lg",
+        root: "p-breadcrumb-lg text-breadcrumb-lg",
+        separator: "gap-breadcrumb-separator-lg",
+        separatorIconSize: "text-breadcrumb-separator-icon-lg",
+      },
+      md: {
+        currentLink: "gap-breadcrumb-link-md",
+        ellipsisIconSize: "text-breadcrumb-ellipsis-icon-md",
+        iconSize: "text-breadcrumb-icon-md",
+        link: "gap-breadcrumb-link-md",
+        list: "gap-breadcrumb-md",
+        root: "p-breadcrumb-md text-breadcrumb-md",
+        separator: "gap-breadcrumb-separator-md",
+        separatorIconSize: "text-breadcrumb-separator-icon-md",
+      },
+      sm: {
+        currentLink: "gap-breadcrumb-link-sm",
+        ellipsisIconSize: "text-breadcrumb-ellipsis-icon-sm",
+        iconSize: "text-breadcrumb-icon-sm",
+        link: "gap-breadcrumb-link-sm",
+        list: "gap-breadcrumb-sm",
+        root: "p-breadcrumb-sm text-breadcrumb-sm",
+        separator: "gap-breadcrumb-separator-sm",
+        separatorIconSize: "text-breadcrumb-separator-icon-sm",
+      },
+    },
     variant: {
       plain: {},
       underline: {
-        link: "underline",
         currentLink: "underline",
+        link: "underline",
       },
     },
-    size: {
-      sm: {
-        root: "p-breadcrumb-sm text-breadcrumb-sm",
-        list: "gap-breadcrumb-sm",
-        link: "gap-breadcrumb-link-sm",
-        currentLink: "gap-breadcrumb-link-sm",
-        iconSize: "text-breadcrumb-icon-sm",
-        separator: "gap-breadcrumb-separator-sm",
-        separatorIconSize: "text-breadcrumb-separator-icon-sm",
-        ellipsisIconSize: "text-breadcrumb-ellipsis-icon-sm",
-      },
-      md: {
-        root: "p-breadcrumb-md text-breadcrumb-md",
-        list: "gap-breadcrumb-md",
-        link: "gap-breadcrumb-link-md",
-        currentLink: "gap-breadcrumb-link-md",
-        iconSize: "text-breadcrumb-icon-md",
-        separator: "gap-breadcrumb-separator-md",
-        separatorIconSize: "text-breadcrumb-separator-icon-md",
-        ellipsisIconSize: "text-breadcrumb-ellipsis-icon-md",
-      },
-      lg: {
-        root: "p-breadcrumb-lg text-breadcrumb-lg",
-        list: "gap-breadcrumb-lg",
-        link: "gap-breadcrumb-link-lg",
-        currentLink: "gap-breadcrumb-link-lg",
-        iconSize: "text-breadcrumb-icon-lg",
-        separator: "gap-breadcrumb-separator-lg",
-        separatorIconSize: "text-breadcrumb-separator-icon-lg",
-        ellipsisIconSize: "text-breadcrumb-ellipsis-icon-lg",
-      },
-    },
-  },
-  defaultVariants: {
-    size: "md",
-    variant: "plain",
   },
 })
 
@@ -121,7 +118,7 @@ export type BreadcrumbVariant = NonNullable<
   VariantProps<typeof BreadcrumbVariants>["variant"]
 >
 
-type BreadcrumbContextValue = {
+interface BreadcrumbContextValue {
   styles: ReturnType<typeof BreadcrumbVariants>
 }
 

@@ -17,7 +17,7 @@ export type PacketaLabelFormat = "A6" | "A7"
 /**
  * Configuration options passed from medusa-config.ts / stored in DB
  */
-export type PacketaOptions = {
+export interface PacketaOptions {
   /** API password from Packeta admin portal */
   api_password: string
   environment: PacketaEnvironment
@@ -53,7 +53,7 @@ export type PacketaOptions = {
  * Conservative shape based on public Packeta v6 docs — may be tuned once we
  * have live credentials to verify against the API.
  */
-export type PacketaPacketAttributes = {
+export interface PacketaPacketAttributes {
   /** eshop's reference number — order ID */
   number: string
   name: string
@@ -72,7 +72,7 @@ export type PacketaPacketAttributes = {
   eshop?: string
 }
 
-export type PacketaCreatePacketResult = {
+export interface PacketaCreatePacketResult {
   /** Internal Packeta packet ID (used for status / label calls) */
   id: number
   /** Tracking barcode, e.g. "Z987654321" */
@@ -119,25 +119,25 @@ export const PACKETA_FAILED_STATES: readonly PacketaShipmentState[] = [
 
 /** Human-readable status messages (Czech, to match the rest of UI copy) */
 export const PACKETA_STATUS_MESSAGES: Record<PacketaShipmentState, string> = {
-  received_data: "Přijata data zásilky",
   arrived: "Zásilka dorazila na depo",
-  prepared_for_departure: "Připravena k odeslání",
-  departed: "Odeslána",
-  ready_for_pickup: "Připravena k vyzvednutí",
-  handed_to_carrier: "Předána dopravci",
-  delivered: "Doručeno",
-  posted_back: "Vráceno odesílateli",
-  returned: "Vráceno",
   cancelled: "Stornováno",
-  customs_declaration: "Celní odbavení",
   collected: "Vyzvednuto zákazníkem",
+  customs_declaration: "Celní odbavení",
+  delivered: "Doručeno",
+  departed: "Odeslána",
+  handed_to_carrier: "Předána dopravci",
+  posted_back: "Vráceno odesílateli",
+  prepared_for_departure: "Připravena k odeslání",
+  ready_for_pickup: "Připravena k vyzvednutí",
+  received_data: "Přijata data zásilky",
+  returned: "Vráceno",
   unknown: "Neznámý stav",
 }
 
 /**
  * Individual status history record from packetStatus.
  */
-export type PacketaPacketStatusRecord = {
+export interface PacketaPacketStatusRecord {
   /** ISO date */
   dateTime: string
   /** Raw status code from Packeta */
@@ -155,7 +155,7 @@ export type PacketaPacketStatusRecord = {
  * Subset of the `branch.json` feed fields that we use.
  * The full feed has many more fields — add here as needed.
  */
-export type PacketaBranch = {
+export interface PacketaBranch {
   id: number
   name: string
   nameStreet: string
@@ -204,7 +204,7 @@ export interface PacketaFulfillmentData extends Record<string, unknown> {
 }
 
 /** Data stored on the shipping_option and shipping_method */
-export type PacketaShippingOptionData = {
+export interface PacketaShippingOptionData {
   code: "z_point" | "z_point_cod"
   requires_access_point: true
   supports_cod: boolean
@@ -227,7 +227,7 @@ export const PACKETA_SENSITIVE_FIELDS = [
   "cod_swift",
 ] as const
 
-export type PacketaConfigDTO = {
+export interface PacketaConfigDTO {
   id: string
   environment: PacketaEnvironment
   is_enabled: boolean
@@ -256,7 +256,7 @@ export type PacketaConfigDTO = {
  * Empty string on a sensitive field = keep existing value.
  * null on a sensitive field = clear it.
  */
-export type UpdatePacketaConfigInput = {
+export interface UpdatePacketaConfigInput {
   is_enabled?: boolean
   api_password?: string | null
   sender_label?: string
@@ -277,7 +277,7 @@ export type UpdatePacketaConfigInput = {
 }
 
 /** Admin API response — sensitive fields replaced with *_set booleans */
-export type PacketaConfigResponse = {
+export interface PacketaConfigResponse {
   id: string
   environment: PacketaEnvironment
   is_enabled: boolean

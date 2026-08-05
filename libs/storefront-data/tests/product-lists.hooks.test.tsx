@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook } from "@testing-library/react"
 import type { ReactNode } from "react"
+import { describe, expect, it } from "vitest"
 
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createProductListHooks } from "../src/product-lists/hooks"
@@ -13,11 +14,20 @@ import type {
 } from "../src/product-lists/types"
 import { createCacheConfig } from "../src/shared/cache-config"
 
-type ProductList = { id: string }
-type ProductListItem = { id: string }
+interface ProductList {
+  id: string
+}
+interface ProductListItem {
+  id: string
+}
 type Cart = ProductListCartLike
-type ListParams = { limit: number; offset: number }
-type DetailParams = { id?: string | null }
+interface ListParams {
+  limit: number
+  offset: number
+}
+interface DetailParams {
+  id?: string | null
+}
 type ListKeyParams = ListParams & { customerId?: string | null }
 type DetailKeyParams = DetailParams & { customerId?: string | null }
 type Service = ProductListService<
@@ -44,24 +54,24 @@ const buildDetailParams = (input: ProductListDetailInputBase): DetailParams =>
   input.id === undefined ? {} : { id: input.id }
 
 const createService = (overrides: Partial<Service> = {}): Service => ({
+  addFavoriteProductListItem: async () => null,
+  addProductListItem: async () => null,
+  changeProductListItemQuantity: async () => null,
+  createCustomProductList: async () => null,
+  createFavoriteProductList: async () => null,
+  createProductListCart: async () => ({ id: "cart_1" }),
+  deleteProductList: async (input) => ({ deleted: true, id: input.listId }),
+  deleteProductListItem: async (input) => ({ deleted: true, id: input.itemId }),
+  getProductList: async () => null,
+  incrementProductListItem: async () => null,
   listProductLists: async (params) => ({
     productLists: [],
     count: 0,
     limit: params.limit,
     offset: params.offset,
   }),
-  getProductList: async () => null,
-  createFavoriteProductList: async () => null,
-  createCustomProductList: async () => null,
   updateProductList: async () => null,
-  deleteProductList: async (input) => ({ deleted: true, id: input.listId }),
-  addProductListItem: async () => null,
-  addFavoriteProductListItem: async () => null,
-  createProductListCart: async () => ({ id: "cart_1" }),
   updateProductListItem: async () => null,
-  changeProductListItemQuantity: async () => null,
-  incrementProductListItem: async () => null,
-  deleteProductListItem: async (input) => ({ deleted: true, id: input.itemId }),
   ...overrides,
 })
 
@@ -76,10 +86,10 @@ describe("product-list prefetch hooks", () => {
       listProductLists: async (params) => {
         fetchCount += 1
         return {
-          productLists: [{ id: `list_${params.offset}` }],
           count: 1,
           limit: params.limit,
           offset: params.offset,
+          productLists: [{ id: `list_${params.offset}` }],
         }
       },
     })
@@ -94,29 +104,29 @@ describe("product-list prefetch hooks", () => {
       ListKeyParams,
       DetailKeyParams
     >({
-      service,
-      buildListParams,
       buildDetailParams,
-      queryKeys,
+      buildListParams,
       cacheConfig: createCacheConfig({
         userData: { staleTime: 0 },
       }),
+      queryKeys,
+      service,
     })
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     })
     const wrapper = createWrapper(queryClient)
-    const input = { page: 1, limit: 2, customerId: "cus_1" }
+    const input = { customerId: "cus_1", limit: 2, page: 1 }
     const queryKey = queryKeys.list({
       ...buildListParams(input),
       customerId: "cus_1",
     })
 
     queryClient.setQueryData(queryKey, {
-      productLists: [],
       count: 0,
       limit: 2,
       offset: 0,
+      productLists: [],
     })
 
     const { result: freshResult } = renderHook(
@@ -148,11 +158,11 @@ describe("product-list prefetch hooks", () => {
       await noSkipResult.current.prefetchProductLists(input)
     })
     expect(fetchCount).toBe(2)
-    expect(queryClient.getQueryData(queryKey)).toEqual({
-      productLists: [{ id: "list_0" }],
+    expect(queryClient.getQueryData(queryKey)).toStrictEqual({
       count: 1,
       limit: 2,
       offset: 0,
+      productLists: [{ id: "list_0" }],
     })
   })
 
@@ -179,10 +189,10 @@ describe("product-list prefetch hooks", () => {
       ListKeyParams,
       DetailKeyParams
     >({
-      service,
-      buildListParams,
       buildDetailParams,
+      buildListParams,
       queryKeys,
+      service,
     })
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -197,16 +207,16 @@ describe("product-list prefetch hooks", () => {
 
     await act(async () => {
       await result.current.prefetchProductList({
-        id: "list_1",
         customerId: "cus_1",
+        id: "list_1",
       })
     })
 
     expect(fetchCount).toBe(1)
     expect(
       queryClient.getQueryData(
-        queryKeys.detail({ id: "list_1", customerId: "cus_1" })
+        queryKeys.detail({ customerId: "cus_1", id: "list_1" })
       )
-    ).toEqual({ id: "list_1" })
+    ).toStrictEqual({ id: "list_1" })
   })
 })

@@ -1,11 +1,12 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook } from "@testing-library/react"
 import type { ReactNode } from "react"
+import { describe, expect, it } from "vitest"
 
 import { createCartHooks } from "../src/cart/hooks"
 import { StorefrontDataProvider } from "../src/client/provider"
 
-type Cart = {
+interface Cart {
   id: string
   region_id?: string | null
   items?: { quantity?: number }[]
@@ -22,11 +23,11 @@ describe("createCartHooks payload normalization", () => {
     let createPayload: Record<string, unknown> | null = null
 
     const service = {
-      retrieveCart: async () => null as Cart | null,
       createCart: async (params: Record<string, unknown>) => {
         createPayload = params
         return { id: "cart_1", region_id: "reg_1" } as Cart
       },
+      retrieveCart: async () => null as Cart | null,
     }
 
     const { useCreateCart } = createCartHooks({
@@ -41,18 +42,18 @@ describe("createCartHooks payload normalization", () => {
 
     await act(async () => {
       await result.current.mutateAsync({
-        region_id: "reg_1",
         country_code: "cz",
-        salesChannelId: "sc_1",
         email: "user@example.com",
+        region_id: "reg_1",
+        salesChannelId: "sc_1",
       })
     })
 
     expect(createPayload).toMatchObject({
-      region_id: "reg_1",
       country_code: "cz",
-      sales_channel_id: "sc_1",
       email: "user@example.com",
+      region_id: "reg_1",
+      sales_channel_id: "sc_1",
     })
     expect(createPayload).not.toHaveProperty("salesChannelId")
   })
@@ -62,8 +63,8 @@ describe("createCartHooks payload normalization", () => {
     let updatePayload: Record<string, unknown> | null = null
 
     const service = {
-      retrieveCart: async () => null as Cart | null,
       createCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
+      retrieveCart: async () => null as Cart | null,
       updateCart: async (cartId: string, params: Record<string, unknown>) => {
         receivedCartId = cartId
         updatePayload = params
@@ -84,16 +85,16 @@ describe("createCartHooks payload normalization", () => {
     await act(async () => {
       await result.current.mutateAsync({
         cartId: "cart_1",
-        region_id: "reg_1",
         country_code: "cz",
+        region_id: "reg_1",
         salesChannelId: "sc_2",
       })
     })
 
     expect(receivedCartId).toBe("cart_1")
     expect(updatePayload).toMatchObject({
-      region_id: "reg_1",
       country_code: "cz",
+      region_id: "reg_1",
       sales_channel_id: "sc_2",
     })
     expect(updatePayload).not.toHaveProperty("cartId")
@@ -105,13 +106,13 @@ describe("createCartHooks payload normalization", () => {
     let addPayload: Record<string, unknown> | null = null
 
     const service = {
-      retrieveCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
-      createCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
       addLineItem: async (cartId: string, params: Record<string, unknown>) => {
         receivedCartId = cartId
         addPayload = params
         return { id: cartId, region_id: "reg_1" } as Cart
       },
+      createCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
+      retrieveCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
     }
 
     const { useAddLineItem } = createCartHooks({
@@ -126,20 +127,20 @@ describe("createCartHooks payload normalization", () => {
 
     await act(async () => {
       await result.current.mutateAsync({
-        cartId: "cart_1",
-        variantId: "variant_1",
-        quantity: 2,
         autoCreate: true,
-        region_id: "reg_1",
+        cartId: "cart_1",
         country_code: "cz",
+        quantity: 2,
+        region_id: "reg_1",
         salesChannelId: "sc_3",
+        variantId: "variant_1",
       })
     })
 
     expect(receivedCartId).toBe("cart_1")
     expect(addPayload).toMatchObject({
-      variantId: "variant_1",
       quantity: 2,
+      variantId: "variant_1",
     })
     expect(addPayload).not.toHaveProperty("cartId")
     expect(addPayload).not.toHaveProperty("autoCreate")
@@ -154,8 +155,8 @@ describe("createCartHooks payload normalization", () => {
     let updateItemPayload: Record<string, unknown> | null = null
 
     const service = {
-      retrieveCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
       createCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
+      retrieveCart: async () => ({ id: "cart_1", region_id: "reg_1" }) as Cart,
       updateLineItem: async (
         cartId: string,
         lineItemId: string,
@@ -188,7 +189,7 @@ describe("createCartHooks payload normalization", () => {
 
     expect(receivedCartId).toBe("cart_1")
     expect(receivedLineItemId).toBe("item_1")
-    expect(updateItemPayload).toEqual({ quantity: 3 })
+    expect(updateItemPayload).toStrictEqual({ quantity: 3 })
     expect(updateItemPayload).not.toHaveProperty("cartId")
     expect(updateItemPayload).not.toHaveProperty("lineItemId")
   })

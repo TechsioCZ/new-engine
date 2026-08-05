@@ -1,6 +1,8 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
+import { describe, it } from "vitest"
+
 import { createPullRequestPolicyInput } from "./github-context.ts"
 import { evaluatePullRequestPolicy, REVIEWERS } from "./policy.ts"
 import type { PullRequestPolicyInput } from "./policy.ts"

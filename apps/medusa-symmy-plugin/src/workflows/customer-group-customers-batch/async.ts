@@ -3,6 +3,6 @@ export const SYMMY_CUSTOMER_GROUP_CUSTOMERS_ASSIGN_JOB_TYPE =
 export const SYMMY_CUSTOMER_GROUP_CUSTOMERS_ASSIGN_REQUESTED_EVENT =
   "symmy.customer_group_customers.assign.requested"
 
-export type SymmyCustomerGroupCustomersAssignRequestedEvent = {
+export interface SymmyCustomerGroupCustomersAssignRequestedEvent {
   job_id: string
 }

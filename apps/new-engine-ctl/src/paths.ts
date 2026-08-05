@@ -1,7 +1,7 @@
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
-const sourceDir = dirname(fileURLToPath(import.meta.url))
+const sourceDir = import.meta.dirname
 
 export const repoRoot = resolve(sourceDir, "../../..")
 export const defaultStackManifestPath = resolve(

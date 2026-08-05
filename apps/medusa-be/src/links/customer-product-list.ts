@@ -6,8 +6,8 @@ import ProductListModule from "../modules/product-list"
 export const CustomerProductListLink = defineLink(
   CustomerModule.linkable["customer"],
   {
-    linkable: ProductListModule.linkable.productList,
     filterable: ["id", "type", "handle"],
     isList: true,
+    linkable: ProductListModule.linkable.productList,
   }
 )

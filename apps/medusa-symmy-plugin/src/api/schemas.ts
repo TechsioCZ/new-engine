@@ -1,5 +1,3 @@
-export {}
-
 /**
  * @schema SymmyValidationErrorResponse
  * type: object

@@ -38,15 +38,11 @@ import { fileURLToPath } from "node:url"
 import { isUiKitSourceRepo } from "./lib/is-ui-kit-source-repo.mjs"
 
 const MARKER = "git pre-push hook — the REAL ui-kit quality gate"
-const source = join(
-  dirname(dirname(fileURLToPath(import.meta.url))),
-  "hooks",
-  "pre-push"
-)
+const source = join(dirname(import.meta.dirname), "hooks", "pre-push")
 
 const git = (...args) =>
   execFileSync("git", args, {
-    encoding: "utf8",
+    encoding: "utf-8",
     stdio: ["ignore", "pipe", "ignore"],
   }).trim()
 const note = (msg) => process.stderr.write(`ui-kit: ${msg}\n`)
@@ -109,10 +105,13 @@ function isTrackedInRepo(file) {
 /** Hooks moved aside by this installer over time, oldest first, plus the next free slot. */
 function backupSlots() {
   const existing = []
-  if (existsSync(chainedBase)) existing.push(chainedBase)
+  if (existsSync(chainedBase)) {
+    existing.push(chainedBase)
+  }
   let n = 1
-  for (; existsSync(`${chainedBase}.${n}`); n++)
+  for (; existsSync(`${chainedBase}.${n}`); n++) {
     existing.push(`${chainedBase}.${n}`)
+  }
   return {
     existing,
     next: existing.length ? `${chainedBase}.${n}` : chainedBase,
@@ -179,7 +178,9 @@ function installRedirect() {
       `${configuredHooksPath}\n`
     )
     for (const name of GIT_HOOK_NAMES) {
-      if (name === "pre-push") continue
+      if (name === "pre-push") {
+        continue
+      }
       const file = join(shimDir, name)
       writeFileSync(file, FORWARDER)
       chmodSync(file, 0o755)
@@ -192,9 +193,9 @@ function installRedirect() {
         `"${shimDir}", which forwards every hook to "${configuredHooksPath}" (originals run ` +
         "first) and adds the pre-push gate."
     )
-  } catch (err) {
+  } catch (error) {
     note(
-      `could not set up the hooks shim (${err.message}) — gate NOT installed.`
+      `could not set up the hooks shim (${error.message}) — gate NOT installed.`
     )
   }
   process.exit(0)
@@ -204,28 +205,33 @@ function installRedirect() {
 function removeRedirect() {
   let original = ""
   try {
-    original = readFileSync(join(shimDir, "original-hooks-path"), "utf8").trim()
+    original = readFileSync(
+      join(shimDir, "original-hooks-path"),
+      "utf-8"
+    ).trim()
   } catch {
     // shim without the marker file — just unset
   }
   try {
-    if (original) git("config", "core.hooksPath", original)
-    else
+    if (original) {
+      git("config", "core.hooksPath", original)
+    } else {
       execFileSync("git", ["config", "--unset", "core.hooksPath"], {
         stdio: "ignore",
       })
-  } catch (err) {
+    }
+  } catch (error) {
     // If the restore fails we must NOT delete the shim: core.hooksPath may still point at it, and
     // removing it would silently stop EVERY hook type (including the repo's own tracked hooks the
     // shim forwards to) from firing — the exact outcome the shim exists to prevent. Leave it all in
     // place; the next session start retries.
     note(
-      `could not restore core.hooksPath (${err.message}) — leaving the shim in place.`
+      `could not restore core.hooksPath (${error.message}) — leaving the shim in place.`
     )
     return
   }
   try {
-    rmSync(shimDir, { recursive: true, force: true })
+    rmSync(shimDir, { force: true, recursive: true })
   } catch {
     // best effort — core.hooksPath is already restored, so a leftover shim dir is harmless
   }
@@ -242,11 +248,11 @@ if (!isUiKitSourceRepo(topLevel)) {
     removeRedirect()
     process.exit(0)
   }
-  if (existsSync(target) && readFileSync(target, "utf8").includes(MARKER)) {
+  if (existsSync(target) && readFileSync(target, "utf-8").includes(MARKER)) {
     const { existing } = backupSlots()
     try {
       if (existing.length) {
-        const newest = existing[existing.length - 1]
+        const newest = existing.at(-1)
         renameSync(newest, target)
         note(
           `removed the ui-kit pre-push hook from this non-ui-kit repo and restored "${newest}".`
@@ -255,19 +261,21 @@ if (!isUiKitSourceRepo(topLevel)) {
         rmSync(target)
         note("removed the ui-kit pre-push hook from this non-ui-kit repo.")
       }
-    } catch (err) {
-      note(`could not remove stale pre-push hook: ${err.message}`)
+    } catch (error) {
+      note(`could not remove stale pre-push hook: ${error.message}`)
     }
   }
   process.exit(0)
 }
 
 if (existsSync(target)) {
-  const current = readFileSync(target, "utf8")
+  const current = readFileSync(target, "utf-8")
 
   if (current.includes(MARKER)) {
     // Ours already — refresh it if the plugin shipped a newer version.
-    if (current === readFileSync(source, "utf8")) process.exit(0)
+    if (current === readFileSync(source, "utf-8")) {
+      process.exit(0)
+    }
   } else if (isTrackedInRepo(target)) {
     installRedirect() // never returns
   } else {
@@ -282,9 +290,9 @@ if (existsSync(target)) {
       note(
         `existing pre-push hook preserved as "${next}" and chained — it runs first.`
       )
-    } catch (err) {
+    } catch (error) {
       note(
-        `could not preserve the existing pre-push hook (${err.message}) — leaving it ` +
+        `could not preserve the existing pre-push hook (${error.message}) — leaving it ` +
           "untouched, gate NOT installed."
       )
       process.exit(0) // never destroy a hook we cannot back up
@@ -296,8 +304,8 @@ try {
   mkdirSync(hooksDir, { recursive: true })
   copyFileSync(source, target)
   chmodSync(target, 0o755)
-} catch (err) {
-  note(`could not install pre-push hook: ${err.message}`)
+} catch (error) {
+  note(`could not install pre-push hook: ${error.message}`)
 }
 
 process.exit(0)

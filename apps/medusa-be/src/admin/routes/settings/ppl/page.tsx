@@ -19,7 +19,7 @@ export const handle = {
   breadcrumb: () => "PPL",
 }
 
-type PplConfigResponse = {
+interface PplConfigResponse {
   id: string
   environment: string
   is_enabled: boolean
@@ -39,7 +39,7 @@ type PplConfigResponse = {
   sender_email: string | null
 }
 
-type PplConfigInput = {
+interface PplConfigInput {
   is_enabled?: boolean
   client_id?: string
   client_secret?: string | null
@@ -67,14 +67,14 @@ const CLEARABLE_FIELDS = new Set([
 ])
 
 const LABEL_FORMATS = [
-  { value: "Png", label: "PNG" },
-  { value: "Jpeg", label: "JPEG" },
-  { value: "Svg", label: "SVG" },
-  { value: "Pdf", label: "PDF" },
-  { value: "Zpl", label: "ZPL" },
+  { label: "PNG", value: "Png" },
+  { label: "JPEG", value: "Jpeg" },
+  { label: "SVG", value: "Svg" },
+  { label: "PDF", value: "Pdf" },
+  { label: "ZPL", value: "Zpl" },
 ]
 
-type FieldConfig = {
+interface FieldConfig {
   field: keyof PplConfigInput
   label: string
   placeholder: string
@@ -141,7 +141,9 @@ const FormField = ({
       <Input
         disabled={isCleared}
         id={inputId}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          onChange(e.target.value)
+        }}
         placeholder={getPlaceholder(isCleared, fieldConfig)}
         type={fieldConfig.type || "text"}
         value={isCleared ? "" : value}
@@ -156,23 +158,23 @@ const PplSettingsPage = () => {
   const [clearedFields, setClearedFields] = useState<Set<string>>(new Set())
 
   const { data, isLoading, error } = useQuery({
-    queryFn: () =>
+    queryFn: async () =>
       sdk.client.fetch<{ config: PplConfigResponse }>("/admin/ppl-config"),
     queryKey: ["ppl-config"],
   })
 
   const { mutate, isPending } = useMutation({
-    mutationFn: (payload: PplConfigInput) =>
+    mutationFn: async (payload: PplConfigInput) =>
       sdk.client.fetch("/admin/ppl-config", {
         method: "POST",
         body: payload,
       }),
+    onError: (err) => {
+      toast.error(`Failed to save configuration: ${err.message}`)
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["ppl-config"] })
       toast.success("PPL configuration saved")
-    },
-    onError: (err) => {
-      toast.error(`Failed to save configuration: ${err.message}`)
     },
   })
 
@@ -181,16 +183,16 @@ const PplSettingsPage = () => {
   useEffect(() => {
     if (pplConfig) {
       setFormData({
-        is_enabled: pplConfig.is_enabled,
         client_id: pplConfig.client_id || "",
         default_label_format: pplConfig.default_label_format,
-        sender_name: pplConfig.sender_name || "",
-        sender_street: pplConfig.sender_street || "",
+        is_enabled: pplConfig.is_enabled,
         sender_city: pplConfig.sender_city || "",
-        sender_zip_code: pplConfig.sender_zip_code || "",
         sender_country: pplConfig.sender_country || "",
-        sender_phone: pplConfig.sender_phone || "",
         sender_email: pplConfig.sender_email || "",
+        sender_name: pplConfig.sender_name || "",
+        sender_phone: pplConfig.sender_phone || "",
+        sender_street: pplConfig.sender_street || "",
+        sender_zip_code: pplConfig.sender_zip_code || "",
       })
       setClearedFields(new Set())
     }
@@ -261,37 +263,37 @@ const PplSettingsPage = () => {
     },
     {
       field: "client_secret",
+      isSet: pplConfig?.client_secret_set ?? false,
       label: "Client Secret",
       placeholder: "Your PPL Client Secret",
       type: "password",
-      isSet: pplConfig?.client_secret_set ?? false,
     },
   ]
 
   const codFields: FieldConfig[] = [
     {
       field: "cod_bank_account",
+      isSet: pplConfig?.cod_bank_account_set ?? false,
       label: "Bank Account",
       placeholder: "Bank account",
-      isSet: pplConfig?.cod_bank_account_set ?? false,
     },
     {
       field: "cod_bank_code",
+      isSet: pplConfig?.cod_bank_code_set ?? false,
       label: "Bank Code",
       placeholder: "Bank code",
-      isSet: pplConfig?.cod_bank_code_set ?? false,
     },
     {
       field: "cod_iban",
+      isSet: pplConfig?.cod_iban_set ?? false,
       label: "IBAN",
       placeholder: "IBAN (alternative)",
-      isSet: pplConfig?.cod_iban_set ?? false,
     },
     {
       field: "cod_swift",
+      isSet: pplConfig?.cod_swift_set ?? false,
       label: "SWIFT",
       placeholder: "SWIFT (with IBAN)",
-      isSet: pplConfig?.cod_swift_set ?? false,
     },
   ]
 
@@ -307,11 +309,11 @@ const PplSettingsPage = () => {
     },
     { field: "sender_phone", label: "Phone", placeholder: "Phone number" },
     {
+      colSpan: 2,
       field: "sender_email",
       label: "Email",
       placeholder: "Email address",
       type: "email",
-      colSpan: 2,
     },
   ]
 
@@ -348,17 +350,17 @@ const PplSettingsPage = () => {
                 aria-labelledby="ppl-is-enabled-label"
                 checked={formData.is_enabled ?? false}
                 id="ppl-is-enabled"
-                onCheckedChange={(checked) =>
+                onCheckedChange={(checked) => {
                   updateField("is_enabled", checked)
-                }
+                }}
               />
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="ppl-label-format">Label Format</Label>
               <Select
-                onValueChange={(value) =>
+                onValueChange={(value) => {
                   updateField("default_label_format", value)
-                }
+                }}
                 value={formData.default_label_format ?? ""}
               >
                 <Select.Trigger id="ppl-label-format">
@@ -387,8 +389,12 @@ const PplSettingsPage = () => {
                 fieldConfig={f}
                 isCleared={clearedFields.has(f.field)}
                 key={f.field}
-                onChange={(v) => updateField(f.field, v)}
-                onClear={() => clearField(f.field)}
+                onChange={(v) => {
+                  updateField(f.field, v)
+                }}
+                onClear={() => {
+                  clearField(f.field)
+                }}
                 value={(formData[f.field] as string) ?? ""}
               />
             ))}
@@ -409,8 +415,12 @@ const PplSettingsPage = () => {
                 fieldConfig={f}
                 isCleared={clearedFields.has(f.field)}
                 key={f.field}
-                onChange={(v) => updateField(f.field, v)}
-                onClear={() => clearField(f.field)}
+                onChange={(v) => {
+                  updateField(f.field, v)
+                }}
+                onClear={() => {
+                  clearField(f.field)
+                }}
                 value={(formData[f.field] as string) ?? ""}
               />
             ))}
@@ -430,7 +440,9 @@ const PplSettingsPage = () => {
               <FormField
                 fieldConfig={f}
                 key={f.field}
-                onChange={(v) => updateField(f.field, v)}
+                onChange={(v) => {
+                  updateField(f.field, v)
+                }}
                 value={(formData[f.field] as string) ?? ""}
               />
             ))}

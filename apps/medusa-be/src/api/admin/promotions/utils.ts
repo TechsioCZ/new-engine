@@ -18,7 +18,7 @@ export function validateRuleType(
 }
 
 export const escapeLikePattern = (str: string) =>
-  str.replace(/[%_\\]/g, (char) => `\\${char}`)
+  str.replaceAll(/[%_\\]/g, (char) => `\\${char}`)
 
 export function mapVariantToRuleValueOption(
   variant: ProductVariantInput
@@ -56,12 +56,12 @@ export function getExtendedRuleAttributesMap(
       : customRuleAttributes["target-rules"]
 
   return {
+    "buy-rules": appendMissingAttributes(map["buy-rules"], itemRuleAttributes),
     rules: appendMissingAttributes(map.rules, customRuleAttributes.rules),
     "target-rules": appendMissingAttributes(
       map["target-rules"],
       itemRuleAttributes
     ),
-    "buy-rules": appendMissingAttributes(map["buy-rules"], itemRuleAttributes),
   } satisfies Record<RuleType, typeof map.rules>
 }
 

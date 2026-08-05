@@ -69,30 +69,30 @@ function parseRuleConfig(config) {
   const bannedImports = rules.bannedImports ?? { enabled: false }
 
   const allowByFile = (bannedJsxTags.allowByFile ?? []).map((item) => ({
-    tag: String(item.tag ?? "").toLowerCase(),
     fileRegex: globToRegExp(String(item.filePattern ?? "")),
+    tag: String(item.tag ?? "").toLowerCase(),
   }))
 
   return {
-    bannedJsxTags: {
-      enabled: Boolean(bannedJsxTags.enabled),
-      tags: new Set(
-        (bannedJsxTags.tags ?? []).map((tag) => String(tag).toLowerCase())
-      ),
-      suggestions: bannedJsxTags.suggestions ?? {},
-      allowByFile,
-    },
     bannedImports: {
       enabled: Boolean(bannedImports.enabled),
+      message:
+        bannedImports.message ??
+        "Nepovoleny import knihovny. Pouzij komponentu z @techsio/ui-kit.",
       modulePatterns: (bannedImports.modulePatterns ?? []).map((pattern) => {
         if (pattern instanceof RegExp) {
           return pattern
         }
         return new RegExp(String(pattern))
       }),
-      message:
-        bannedImports.message ??
-        "Nepovoleny import knihovny. Pouzij komponentu z @techsio/ui-kit.",
+    },
+    bannedJsxTags: {
+      allowByFile,
+      enabled: Boolean(bannedJsxTags.enabled),
+      suggestions: bannedJsxTags.suggestions ?? {},
+      tags: new Set(
+        (bannedJsxTags.tags ?? []).map((tag) => String(tag).toLowerCase())
+      ),
     },
   }
 }
@@ -101,7 +101,7 @@ function getLineAndColumn(content, position) {
   const precedingContent = content.slice(0, position)
   const line = precedingContent.split("\n").length
   const lastNewline = precedingContent.lastIndexOf("\n")
-  return { line, column: position - lastNewline }
+  return { column: position - lastNewline, line }
 }
 
 function isIntrinsicTagName(tagNameNode) {
@@ -156,11 +156,11 @@ function resolveBannedImportFinding(node, content, rulesConfig) {
   const { line, column } = getLineAndColumn(content, node.source.start)
 
   return {
-    rule: "no-banned-ui-imports",
-    line,
     column,
     detail: moduleName,
+    line,
     message: rulesConfig.bannedImports.message,
+    rule: "no-banned-ui-imports",
   }
 }
 
@@ -200,11 +200,11 @@ function resolveBannedJsxTagFinding(
     : `Nepouzivej nativni <${tagName}>. Pouzij komponentu z libs/ui.`
 
   return {
-    rule: "no-native-jsx-primitives",
-    line,
     column,
     detail: `<${tagName}>`,
+    line,
     message,
+    rule: "no-native-jsx-primitives",
   }
 }
 
@@ -318,7 +318,7 @@ async function main() {
 
   for (const relativeFilePath of sourceFiles) {
     const absoluteFilePath = path.resolve(rootDir, relativeFilePath)
-    const content = fs.readFileSync(absoluteFilePath, "utf8")
+    const content = fs.readFileSync(absoluteFilePath, "utf-8")
     const fileFindings = collectFileFindings(
       relativeFilePath,
       content,
@@ -337,9 +337,9 @@ async function main() {
     console.log(
       JSON.stringify(
         {
+          findings,
           scannedFiles: sourceFiles.length,
           violationCount: findings.length,
-          findings,
         },
         null,
         2

@@ -40,36 +40,36 @@ export const createRequestForQuoteWorkflow = createWorkflow(
         "shipping_methods.*",
         "promotions.code",
       ],
-      variables: { id: input.cart_id },
       list: false,
       throw_if_key_not_found: true,
+      variables: { id: input.cart_id },
     })
 
     const customer = useRemoteQueryStep({
       entry_point: "customer",
       fields: ["id", "email"],
-      variables: { id: input.customer_id },
       list: false,
       throw_if_key_not_found: true,
+      variables: { id: input.customer_id },
     }).config({ name: "customer-query" })
 
     const orderInput = transform(
       { cart, customer },
       ({ cart: cartData, customer: customerData }) => ({
-        is_draft_order: true,
-        status: OrderStatus.DRAFT,
-        sales_channel_id: cartData.sales_channel_id,
-        email: customerData.email,
-        customer_id: customerData.id,
         billing_address: cartData.billing_address,
-        shipping_address: cartData.shipping_address,
+        currency_code: cartData.currency_code,
+        customer_id: customerData.id,
+        email: customerData.email,
+        is_draft_order: true,
         items: cartData.items,
-        region_id: cartData.region_id,
         promo_codes: cartData.promotions.map(
           ({ code }: { code: string }) => code
         ),
-        currency_code: cartData.currency_code,
+        region_id: cartData.region_id,
+        sales_channel_id: cartData.sales_channel_id,
+        shipping_address: cartData.shipping_address,
         shipping_methods: cartData.shipping_methods,
+        status: OrderStatus.DRAFT,
       })
     )
 
@@ -80,10 +80,10 @@ export const createRequestForQuoteWorkflow = createWorkflow(
     const orderEditInput = transform(
       { draftOrder },
       ({ draftOrder: draftOrderData }) => ({
-        order_id: draftOrderData.id,
         description: "",
         internal_note: "",
         metadata: {},
+        order_id: draftOrderData.id,
       })
     )
 
@@ -94,9 +94,9 @@ export const createRequestForQuoteWorkflow = createWorkflow(
     const quotes = createQuotesWorkflow.runAsStep({
       input: [
         {
-          draft_order_id: draftOrder.id,
           cart_id: cart.id,
           customer_id: customer.id,
+          draft_order_id: draftOrder.id,
           order_change_id: changeOrder.id,
         },
       ],

@@ -1,6 +1,6 @@
 import type { StaticImageData } from "next/image"
 
-type AboutTextLink = {
+interface AboutTextLink {
   href: string
   label: string
 }
@@ -8,24 +8,24 @@ type AboutTextLink = {
 type AboutTextPart = AboutTextLink | string
 export type AboutParagraph = readonly AboutTextPart[] | string
 
-type AboutImage = {
+interface AboutImage {
   alt: string
   caption?: string
   src: StaticImageData
 }
 
-export type AboutArticleSection = {
+export interface AboutArticleSection {
   image?: AboutImage
   paragraphs: readonly AboutParagraph[]
   title: string
 }
 
-export type AboutMilestone = {
+export interface AboutMilestone {
   description: AboutParagraph
   year: string
 }
 
-export type AboutPrinciple = {
+export interface AboutPrinciple {
   description: string
   title: string
 }
@@ -34,7 +34,7 @@ export type AboutSocialLink = AboutTextLink & {
   icon: string
 }
 
-export type AboutTextBlock = {
+export interface AboutTextBlock {
   paragraphs: readonly AboutParagraph[]
 }
 

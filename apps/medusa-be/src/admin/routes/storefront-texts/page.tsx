@@ -27,20 +27,24 @@ import {
   STOREFRONT_TEXT_MARKETS,
   STOREFRONT_TEXT_NAMESPACES,
   STOREFRONT_TEXT_STATUSES,
-  type StorefrontTextMarket,
-  type StorefrontTextNamespace,
-  type StorefrontTextStatus,
+} from "../../../modules/storefront-text/configuration"
+import type {
+  StorefrontTextMarket,
+  StorefrontTextNamespace,
+  StorefrontTextStatus,
 } from "../../../modules/storefront-text/configuration"
 import { translateBreadcrumb } from "../../lib/breadcrumb"
 import {
   listStorefrontTexts,
-  type StorefrontText,
-  type StorefrontTextInput,
-  type StorefrontTextListParams,
-  type StorefrontTextSearchScope,
   storefrontTextQueryKeys,
   syncStorefrontTexts,
   updateStorefrontText,
+} from "../../lib/storefront-texts"
+import type {
+  StorefrontText,
+  StorefrontTextInput,
+  StorefrontTextListParams,
+  StorefrontTextSearchScope,
 } from "../../lib/storefront-texts"
 import { useDebouncedValue } from "../../lib/use-debounced-value"
 import { StorefrontTextCatalogActions } from "./components/catalog-actions"
@@ -106,7 +110,9 @@ const StorefrontTextRows = ({
     <Table.Row
       className="cursor-pointer"
       key={storefrontText.id}
-      onClick={() => onEdit(storefrontText)}
+      onClick={() => {
+        onEdit(storefrontText)
+      }}
     >
       <Table.Cell>
         <div className="flex max-w-[360px] flex-col gap-1">
@@ -186,7 +192,7 @@ const StorefrontTextEditDrawer = ({
   }, [open, storefrontText])
 
   const mutation = useMutation({
-    mutationFn: (input: StorefrontTextInput) => {
+    mutationFn: async (input: StorefrontTextInput) => {
       if (!storefrontText) {
         throw new Error(t("errors.missingText"))
       }
@@ -279,7 +285,9 @@ const StorefrontTextEditDrawer = ({
           <div className="flex flex-col gap-2">
             <Label>{t("fields.overrideValue")}</Label>
             <Textarea
-              onChange={(event) => setOverrideValue(event.target.value)}
+              onChange={(event) => {
+                setOverrideValue(event.target.value)
+              }}
               rows={5}
               value={overrideValue}
             />
@@ -315,7 +323,9 @@ const StorefrontTextEditDrawer = ({
                 mutation.isPending &&
                 mutation.variables?.override_value === null
               }
-              onClick={() => mutation.mutate({ override_value: null })}
+              onClick={() => {
+                mutation.mutate({ override_value: null })
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -334,12 +344,12 @@ const StorefrontTextEditDrawer = ({
                   mutation.isPending &&
                   mutation.variables?.override_value !== null
                 }
-                onClick={() =>
+                onClick={() => {
                   mutation.mutate({
                     override_value: overrideValue,
                     status,
                   })
-                }
+                }}
                 size="small"
                 type="button"
               >
@@ -377,7 +387,7 @@ const StorefrontTextsPage = () => {
     ...(status === undefined ? {} : { status }),
   }
   const { data, isLoading } = useQuery({
-    queryFn: () => listStorefrontTexts(params),
+    queryFn: async () => listStorefrontTexts(params),
     queryKey: storefrontTextQueryKeys.list(params),
   })
   const syncMutation = useMutation({
@@ -403,7 +413,9 @@ const StorefrontTextsPage = () => {
   const count = data?.count ?? 0
   const pageCount = Math.max(1, Math.ceil(count / PAGE_SIZE))
 
-  const resetPage = () => setPageIndex(0)
+  const resetPage = () => {
+    setPageIndex(0)
+  }
 
   return (
     <Container className="divide-y p-0">
@@ -421,7 +433,9 @@ const StorefrontTextsPage = () => {
             />
             <Button
               isLoading={syncMutation.isPending}
-              onClick={() => syncMutation.mutate()}
+              onClick={() => {
+                syncMutation.mutate()
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -556,11 +570,15 @@ const StorefrontTextsPage = () => {
         canNextPage={pageIndex + 1 < pageCount}
         canPreviousPage={pageIndex > 0}
         count={count}
-        nextPage={() => setPageIndex((current) => current + 1)}
+        nextPage={() => {
+          setPageIndex((current) => current + 1)
+        }}
         pageCount={pageCount}
         pageIndex={pageIndex}
         pageSize={PAGE_SIZE}
-        previousPage={() => setPageIndex((current) => Math.max(current - 1, 0))}
+        previousPage={() => {
+          setPageIndex((current) => Math.max(current - 1, 0))
+        }}
         translations={{
           next: t("pagination.next"),
           of: t("pagination.of"),

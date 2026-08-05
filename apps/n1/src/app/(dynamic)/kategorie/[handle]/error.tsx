@@ -2,7 +2,7 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 
-type ErrorProps = {
+interface ErrorProps {
   error: Error & { digest?: string }
   reset: () => void
 }

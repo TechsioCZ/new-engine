@@ -8,7 +8,7 @@ import type { BlogPost } from "@/lib/storefront/blog-content"
 
 import { formatBlogDate, formatTopicFromKey } from "./blog-formatters"
 
-type BlogRelatedCardProps = {
+interface BlogRelatedCardProps {
   post: BlogPost
 }
 

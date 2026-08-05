@@ -12,14 +12,16 @@ import {
   PACKETA_CLIENT_MODULE,
   PACKETA_DELIVERED_STATES,
   PACKETA_FAILED_STATES,
-  type PacketaClientModuleService,
-  type PacketaFulfillmentData,
-  type PacketaPacketStatusRecord,
-  type PacketaShipmentState,
+} from "../modules/packeta-client"
+import type {
+  PacketaClientModuleService,
+  PacketaFulfillmentData,
+  PacketaPacketStatusRecord,
+  PacketaShipmentState,
 } from "../modules/packeta-client"
 import { executeWithLockTimeout } from "../utils/locking"
 
-type FulfillmentRecord = {
+interface FulfillmentRecord {
   id: string
   data: PacketaFulfillmentData | null
   shipped_at: string | null
@@ -31,7 +33,7 @@ interface PendingFulfillment extends FulfillmentRecord {
   data: PacketaFulfillmentData & { packet_id: number }
 }
 
-type TrackingContext = {
+interface TrackingContext {
   logger: Logger
   fulfillmentService: IFulfillmentModuleService
   eventBus: IEventBusModuleService
@@ -117,7 +119,7 @@ async function run(container: MedusaContainer, logger: Logger) {
       `Packeta Tracking Sync: Found ${pending.length} pending fulfillments`
     )
 
-    const ctx: TrackingContext = { logger, fulfillmentService, eventBus }
+    const ctx: TrackingContext = { eventBus, fulfillmentService, logger }
     for (const fulfillment of pending) {
       await processFulfillment(ctx, packetaClient, fulfillment)
     }
@@ -138,9 +140,9 @@ async function fetchPendingFulfillments(
     entity: "fulfillment",
     fields: ["id", "data", "shipped_at", "delivered_at", "provider_id"],
     filters: {
+      delivered_at: null,
       provider_id: "packeta_packeta",
       shipped_at: { $ne: null },
-      delivered_at: null,
     },
   })
 
@@ -199,7 +201,7 @@ async function handleDelivered(
   newStatus: PacketaShipmentState
 ): Promise<void> {
   const { logger, fulfillmentService, eventBus } = ctx
-  const data = fulfillment.data
+  const { data } = fulfillment
   const deliveredAt = new Date(latest.dateTime)
 
   logger.info(
@@ -207,23 +209,23 @@ async function handleDelivered(
   )
 
   await fulfillmentService.updateFulfillment(fulfillment.id, {
-    delivered_at: deliveredAt,
     data: {
       ...data,
       last_status: newStatus,
       last_status_date: latest.dateTime,
     },
+    delivered_at: deliveredAt,
   })
 
   await eventBus.emit({
-    name: "packeta.delivered",
     data: {
-      fulfillment_id: fulfillment.id,
-      packet_id: data.packet_id,
       barcode: data.barcode,
       delivered_at: deliveredAt.toISOString(),
+      fulfillment_id: fulfillment.id,
+      packet_id: data.packet_id,
       status: newStatus,
     },
+    name: "packeta.delivered",
   })
 }
 
@@ -234,28 +236,28 @@ async function handleFailed(
   newStatus: PacketaShipmentState
 ): Promise<void> {
   const { logger, fulfillmentService, eventBus } = ctx
-  const data = fulfillment.data
+  const { data } = fulfillment
 
   logger.warn(`Packeta: Packet ${data.packet_id} failed (${newStatus})`)
 
   await fulfillmentService.updateFulfillment(fulfillment.id, {
     data: {
       ...data,
+      delivery_failed: true,
       last_status: newStatus,
       last_status_date: latest.dateTime,
-      delivery_failed: true,
     },
   })
 
   await eventBus.emit({
-    name: "packeta.delivery_failed",
     data: {
+      barcode: data.barcode,
       fulfillment_id: fulfillment.id,
       packet_id: data.packet_id,
-      barcode: data.barcode,
       status: newStatus,
       status_date: latest.dateTime,
     },
+    name: "packeta.delivery_failed",
   })
 }
 
@@ -266,7 +268,7 @@ async function handleInTransit(
   newStatus: PacketaShipmentState
 ): Promise<void> {
   const { logger, fulfillmentService } = ctx
-  const data = fulfillment.data
+  const { data } = fulfillment
 
   logger.debug(`Packeta: Packet ${data.packet_id} status: ${newStatus}`)
 

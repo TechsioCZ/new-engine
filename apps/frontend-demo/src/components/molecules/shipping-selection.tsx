@@ -81,9 +81,9 @@ export function ShippingSelection({
       setCurrentStep(currentStep + 1)
     } else {
       toast.create({
-        type: "error",
-        title: "Není vybrán dopravce",
         description: "Je potřeba zvolit jeden způsob dopravy",
+        title: "Není vybrán dopravce",
+        type: "error",
       })
     }
   }
@@ -103,14 +103,21 @@ export function ShippingSelection({
             className="relative flex items-center rounded-lg border-2 border-border-subtle bg-surface p-3 transition-all duration-200 hover:bg-surface-hover hover:shadow-md focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-ring focus-visible:outline-offset-(length:--default-ring-offset) data-[selected=true]:border-primary data-[selected=true]:bg-surface-selected data-[selected=true]:shadow-lg sm:p-4"
             data-selected={selected === method.id}
             key={method.id}
-            onClick={() => onSelect(method.id)}
+            onClick={() => {
+              onSelect(method.id)
+            }}
           >
             <ShippingMethodDetail method={method} selected={selected} />
           </Button>
         ))}
       </div>
       <div className="flex w-full justify-between">
-        <Button onClick={() => setCurrentStep(currentStep - 1)} size="sm">
+        <Button
+          onClick={() => {
+            setCurrentStep(currentStep - 1)
+          }}
+          size="sm"
+        >
           Zpět
         </Button>
         <Button onClick={handleProgress} size="sm">

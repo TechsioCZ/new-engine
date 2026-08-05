@@ -16,7 +16,6 @@ const sourceEntries = Object.fromEntries(
 export default defineConfig({
   lib: [
     {
-      id: "client",
       autoExternal: {
         dependencies: true,
         devDependencies: false,
@@ -25,7 +24,11 @@ export default defineConfig({
       bundle: true,
       dts: true,
       format: "esm",
+      id: "client",
       outBase: "./src",
+      output: {
+        target: "web",
+      },
       source: {
         entry: Object.fromEntries(
           Object.entries(sourceEntries).filter(
@@ -33,12 +36,8 @@ export default defineConfig({
           )
         ),
       },
-      output: {
-        target: "web",
-      },
     },
     {
-      id: "server",
       autoExternal: {
         dependencies: true,
         devDependencies: false,
@@ -47,14 +46,15 @@ export default defineConfig({
       bundle: true,
       dts: true,
       format: "esm",
+      id: "server",
       outBase: "./src",
+      output: {
+        target: "node",
+      },
       source: {
         entry: {
           "server/get-query-client": "./src/server/get-query-client.ts",
         },
-      },
-      output: {
-        target: "node",
       },
     },
   ],

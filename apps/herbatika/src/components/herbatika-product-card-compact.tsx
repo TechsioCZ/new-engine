@@ -5,10 +5,8 @@ import { useTranslations } from "next-intl"
 import NextImage from "next/image"
 
 import NextLink from "@/components/app-link"
-import {
-  type HerbatikaProductCardBaseProps,
-  useHerbatikaProductCardState,
-} from "@/components/herbatika-product-card.shared"
+import { useHerbatikaProductCardState } from "@/components/herbatika-product-card.shared"
+import type { HerbatikaProductCardBaseProps } from "@/components/herbatika-product-card.shared"
 
 export type HerbatikaProductCardCompactProps = HerbatikaProductCardBaseProps & {
   onCompactImageError?: (
@@ -25,10 +23,10 @@ export function HerbatikaProductCardCompact({
   const tCatalog = useTranslations("catalog")
   const { handleImageError, imageSrc, price, productHref, title } =
     useHerbatikaProductCardState(product, {
-      priceUnavailableLabel: tCatalog("product_card.price_on_request"),
       onImageError: () => {
         onCompactImageError?.(product)
       },
+      priceUnavailableLabel: tCatalog("product_card.price_on_request"),
     })
 
   return (

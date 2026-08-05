@@ -8,7 +8,7 @@ export const normalizeString = (value: unknown) =>
 export const normalizeComparable = (value: string) =>
   value
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[\u0300-\u036F]/g, "")
     .toLocaleLowerCase("sk")
 
 export const createHandleLabel = (handle: string) => {
@@ -17,6 +17,6 @@ export const createHandleLabel = (handle: string) => {
 }
 
 export const resolveBrandSlug = (handle: string, title: string) => {
-  const brandPathMatch = handle.match(BRAND_PATH_PATTERN)
+  const brandPathMatch = BRAND_PATH_PATTERN.exec(handle)
   return createBrandSlug(brandPathMatch?.[1] || handle || title)
 }

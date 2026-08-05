@@ -7,7 +7,7 @@ import { useState } from "react"
 import { AsideFilterButton } from "@/components/aside-filter-button"
 import { SupportingText } from "@/components/text/supporting-text"
 
-export type AsideFilterChipItem = {
+export interface AsideFilterChipItem {
   id: string
   label: string
   count: number
@@ -15,7 +15,7 @@ export type AsideFilterChipItem = {
   disabled?: boolean
 }
 
-type AsideFilterChipSectionProps = {
+interface AsideFilterChipSectionProps {
   title?: string
   items: AsideFilterChipItem[]
   onToggle: (itemId: string) => void
@@ -65,7 +65,9 @@ export function AsideFilterChipSection({
                   : {})}
                 key={item.id}
                 label={item.label}
-                onClick={() => onToggle(item.id)}
+                onClick={() => {
+                  onToggle(item.id)
+                }}
               />
             ))}
           </div>
@@ -75,7 +77,9 @@ export function AsideFilterChipSection({
             items.length > collapseAfter && (
               <Button
                 className="min-h-750 font-semibold text-fg-secondary text-sm underline hover:text-primary"
-                onClick={() => setIsExpanded((currentState) => !currentState)}
+                onClick={() => {
+                  setIsExpanded((currentState) => !currentState)
+                }}
                 size="current"
                 theme="unstyled"
                 type="button"

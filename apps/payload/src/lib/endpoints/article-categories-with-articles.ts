@@ -1,10 +1,7 @@
 import type { Endpoint } from "payload"
 
-import {
-  type CategoryDoc,
-  getCategoryDoc,
-  getMediaUrl,
-} from "../utils/doc-selectors"
+import { getCategoryDoc, getMediaUrl } from "../utils/doc-selectors"
+import type { CategoryDoc } from "../utils/doc-selectors"
 import {
   buildJsonResponse,
   getLocaleFromRequest,
@@ -14,12 +11,12 @@ import {
 const MAX_ARTICLES = 500
 
 /** Minimal media record needed for article listing. */
-type MediaDoc = {
+interface MediaDoc {
   url?: string | null
 }
 
 /** Minimal article record used to group by category. */
-type ArticleDoc = {
+interface ArticleDoc {
   title: unknown
   slug?: unknown
   excerpt?: unknown
@@ -29,8 +26,6 @@ type ArticleDoc = {
 
 /** Endpoint returning article categories grouped with their articles. */
 export const articleCategoriesWithArticlesEndpoint: Endpoint = {
-  path: "/article-categories-with-articles",
-  method: "get",
   handler: async (req) => {
     const locale = getLocaleFromRequest(req)
     const categorySlug = getQueryParam(req, "categorySlug")
@@ -95,4 +90,6 @@ export const articleCategoriesWithArticlesEndpoint: Endpoint = {
       categories: Array.from(categoriesById.values()),
     })
   },
+  method: "get",
+  path: "/article-categories-with-articles",
 }

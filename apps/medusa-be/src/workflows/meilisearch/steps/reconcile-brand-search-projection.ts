@@ -14,7 +14,7 @@ type SearchDocument = Record<string, unknown> & {
   id: string
 }
 
-export type BrandSearchProjectionResult = {
+export interface BrandSearchProjectionResult {
   brands_deleted: number
   brands_upserted: number
   products_deleted: number
@@ -60,7 +60,7 @@ export const reconcileBrandSearchProjection = async (
         id: input.brand_ids,
       },
     })
-    const brands = asSearchDocuments(data as Record<string, unknown>[])
+    const brands = asSearchDocuments(data)
     const activeIds = new Set(brands.map((brand) => brand.id))
     const deletedIds = input.brand_ids.filter(
       (brandId) => !activeIds.has(brandId)
@@ -102,7 +102,7 @@ export const reconcileBrandSearchProjection = async (
         id: input.product_ids,
       },
     })
-    const products = asSearchDocuments(data as Record<string, unknown>[])
+    const products = asSearchDocuments(data)
     const indexableProducts = products.filter(
       (product) => !product["status"] || product["status"] === "published"
     )

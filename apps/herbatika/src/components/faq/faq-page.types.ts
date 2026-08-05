@@ -1,4 +1,4 @@
-export type FaqLink = {
+export interface FaqLink {
   href: string
   label: string
 }
@@ -22,7 +22,7 @@ export type FaqAnswerBlock =
       items: FaqLink[]
     }
 
-export type FaqItem = {
+export interface FaqItem {
   id: string
   question: string
   updatedAt: string

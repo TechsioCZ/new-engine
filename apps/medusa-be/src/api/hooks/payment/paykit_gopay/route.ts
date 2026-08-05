@@ -74,12 +74,12 @@ export async function GET(
   }
 
   await emitPaykitPaymentWebhookEvent({
-    req,
-    provider: PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
     data: {
       fullUrl,
       url: req.url,
     },
+    provider: PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
+    req,
   })
 
   res.sendStatus(200)

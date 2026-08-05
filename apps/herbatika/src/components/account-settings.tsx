@@ -72,7 +72,7 @@ export function AccountSettings() {
   })
 
   useEffect(() => {
-    const customer = authQuery.customer
+    const { customer } = authQuery
 
     if (!customer) {
       hydratedCustomerIdRef.current = null

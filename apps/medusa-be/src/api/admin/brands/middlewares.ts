@@ -18,8 +18,8 @@ import {
 
 export const adminBrandRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/admin/brands/attribute-types",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(AdminGetBrandAttributeTypesSchema, {
         isList: true,
@@ -27,8 +27,8 @@ export const adminBrandRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/admin/brands/attribute-types/:id",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(AdminGetBrandAttributeTypesSchema, {
         isList: true,
@@ -36,15 +36,15 @@ export const adminBrandRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/brands/attribute-types",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminCreateBrandAttributeTypeSchema),
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/admin/brands",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(AdminGetBrandsSchema, {
         isList: true,
@@ -52,23 +52,23 @@ export const adminBrandRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/brands",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(AdminCreateBrandSchema)],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/brands/:id",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(AdminUpdateBrandSchema)],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/brands/:id/restore",
+    methods: ["POST"],
     middlewares: [],
   },
   {
-    methods: ["GET"],
     matcher: "/admin/brands/:id/products",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(AdminGetBrandProductsSchema, {
         isList: true,
@@ -76,8 +76,8 @@ export const adminBrandRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/admin/brands/:id/product-options",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(AdminGetBrandProductOptionsSchema, {
         isList: true,
@@ -85,13 +85,13 @@ export const adminBrandRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/brands/:id/products",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(AdminUpdateBrandProductsSchema)],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/products/:id/brands",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(AdminSetProductBrandsSchema)],
   },
 ]

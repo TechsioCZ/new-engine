@@ -5,10 +5,8 @@ import { useRegionContext } from "@techsio/storefront-data/shared/region-context
 import { useTranslations } from "next-intl"
 import { useEffect, useMemo, useRef, useState } from "react"
 
-import {
-  type CheckoutDetailsValues,
-  resolveEffectiveCheckoutAddressDetails,
-} from "@/lib/forms/checkout/address.form"
+import { resolveEffectiveCheckoutAddressDetails } from "@/lib/forms/checkout/address.form"
+import type { CheckoutDetailsValues } from "@/lib/forms/checkout/address.form"
 import { useAuth } from "@/lib/storefront/auth"
 import {
   useCart,
@@ -62,11 +60,11 @@ import { useCheckoutActions } from "./use-checkout-actions"
 import { useCheckoutDetailsForm } from "./use-checkout-details-form"
 
 const resolveCompleteResultOrderMetadata = (result: unknown) => {
-  if (!(isRecord(result) && isRecord(result["order"]))) {
+  if (!(isRecord(result) && isRecord(result.order))) {
     return null
   }
 
-  return result["order"]["metadata"]
+  return result.order["metadata"]
 }
 
 export function useCheckoutController() {
@@ -212,9 +210,9 @@ export function useCheckoutController() {
       )
 
       logCheckoutAccountSetupDebug("complete cart returned", {
-        has_result: Boolean(completeResult),
         has_order_metadata:
           resolveCompleteResultOrderMetadata(completeResult) !== null,
+        has_result: Boolean(completeResult),
         order_id: resolveOrderId(completeResult),
         order_metadata_requested: readAccountSetupRequested(
           resolveCompleteResultOrderMetadata(completeResult)
@@ -314,14 +312,14 @@ export function useCheckoutController() {
         })
 
         const updatedCart = await updateCartAddressMutation.mutateAsync({
+          billingAddress: buildHerbatikaCheckoutAddressInput(
+            effectiveCheckoutDetails.billing
+          ),
           cartId: cartQuery.cart.id,
           email: values.shipping.email.trim(),
           metadata: accountSetupMetadata,
           shippingAddress: buildHerbatikaCheckoutAddressInput(
             effectiveCheckoutDetails.shipping
-          ),
-          billingAddress: buildHerbatikaCheckoutAddressInput(
-            effectiveCheckoutDetails.billing
           ),
           useSameAddress: effectiveCheckoutDetails.useSameAddress,
         })
@@ -351,16 +349,14 @@ export function useCheckoutController() {
     await checkoutDetailsForm.form.handleSubmit()
 
     if (saveAddressSucceededRef.current) {
-      checkoutDetailsForm.resetToValues(
-        checkoutDetailsForm.form.state.values as CheckoutDetailsValues
-      )
+      checkoutDetailsForm.resetToValues(checkoutDetailsForm.form.state.values)
     }
 
     return saveAddressSucceededRef.current
   }
 
   const syncAccountSetupPreference = async () => {
-    const cart = cartQuery.cart
+    const { cart } = cartQuery
 
     if (!cart?.id) {
       setCheckoutError(tCheckout("cart_not_ready"))
@@ -470,22 +466,26 @@ export function useCheckoutController() {
   return {
     ...actions,
     billingAddressForm: checkoutDetailsForm.effectiveValues.billing,
+    canCompleteOrder:
+      !isBusy &&
+      Boolean(checkoutShippingQuery.selectedShippingMethodId) &&
+      Boolean(effectiveSelectedPaymentProviderId),
     cartItems,
-    cartQuery,
+    cartItemsSubtotalAmount,
     cartItemsTotalAmount,
+    cartQuery,
     cartShippingSubtotalAmount,
     cartShippingTotalAmount,
     cartTaxAmount,
-    cartTotalWithoutTaxAmount,
     cartTotalAmount,
-    cartItemsSubtotalAmount,
+    cartTotalWithoutTaxAmount,
     checkoutDetailsForm,
     checkoutError,
-    countryItems,
     checkoutPaymentQuery,
     checkoutShippingQuery,
-    completedOrderId,
     completeCheckoutMutation,
+    completedOrderId,
+    countryItems,
     currencyCode,
     handleCompleteOrder,
     handleSaveAddress,
@@ -504,10 +504,6 @@ export function useCheckoutController() {
     shippingAddressForm: checkoutDetailsForm.effectiveValues.shipping,
     updateCartAddressMutation,
     useSameAddress: checkoutDetailsForm.values.useSameAddress,
-    canCompleteOrder:
-      !isBusy &&
-      Boolean(checkoutShippingQuery.selectedShippingMethodId) &&
-      Boolean(effectiveSelectedPaymentProviderId),
   }
 }
 

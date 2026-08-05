@@ -4,7 +4,7 @@ export type CustomerGroupIdentifierType =
   | "code"
   | "erp_code"
 
-export type CustomerGroupInput = {
+export interface CustomerGroupInput {
   identifier_type: CustomerGroupIdentifierType
   customer_group_id?: string | undefined
   name: string
@@ -13,12 +13,12 @@ export type CustomerGroupInput = {
   metadata?: Record<string, unknown> | undefined
 }
 
-export type UpsertCustomerGroupsBatchInput = {
+export interface UpsertCustomerGroupsBatchInput {
   created_by?: string | undefined
   customer_groups: CustomerGroupInput[]
 }
 
-export type UpsertCustomerGroupsBatchResult = {
+export interface UpsertCustomerGroupsBatchResult {
   identifier_type: CustomerGroupIdentifierType
   customer_group_id?: string | undefined
   name?: string | undefined
@@ -28,7 +28,7 @@ export type UpsertCustomerGroupsBatchResult = {
   error?: string
 }
 
-export type UpsertCustomerGroupsBatchOutput = {
+export interface UpsertCustomerGroupsBatchOutput {
   success: boolean
   processed: number
   failed: number

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { escapeLikePattern } from "../../../../src/utils/sql"
 
-describe("escapeLikePattern", () => {
+describe(escapeLikePattern, () => {
   it("preserves text without SQL LIKE metacharacters", () => {
     expect(escapeLikePattern("hello world")).toBe("hello world")
   })

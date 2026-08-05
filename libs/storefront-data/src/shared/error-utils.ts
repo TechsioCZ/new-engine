@@ -1,5 +1,9 @@
-type ErrorLikeMessage = { message?: unknown }
-type ErrorLikeCode = { code?: unknown }
+interface ErrorLikeMessage {
+  message?: unknown
+}
+interface ErrorLikeCode {
+  code?: unknown
+}
 
 const hasStringMessage = (error: unknown): error is { message: string } =>
   Boolean(
@@ -57,15 +61,15 @@ export const toErrorWithCode = (
   const message = toErrorMessage(error)
   if (hasStringCode(error)) {
     return {
-      message: message ?? fallback,
       code: error.code,
+      message: message ?? fallback,
     }
   }
 
   return { message: message ?? fallback }
 }
 
-export type ErrorWithStage<TStage extends string> = {
+export interface ErrorWithStage<TStage extends string> {
   stage: TStage
   message: string
   cause?: unknown
@@ -76,7 +80,7 @@ export const createErrorWithStage = <TStage extends string>(
   fallback: string,
   cause?: unknown
 ): ErrorWithStage<TStage> => ({
-  stage,
-  message: toErrorMessageWithFallback(cause, fallback),
   cause,
+  message: toErrorMessageWithFallback(cause, fallback),
+  stage,
 })

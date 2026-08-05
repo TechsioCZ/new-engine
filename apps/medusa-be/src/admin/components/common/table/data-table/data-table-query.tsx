@@ -1,9 +1,7 @@
-import {
-  DataTableFilter,
-  type Filter,
-} from "./data-table-filter/data-table-filter"
+import { DataTableFilter } from "./data-table-filter/data-table-filter"
+import type { Filter } from "./data-table-filter/data-table-filter"
 
-export type DataTableQueryProps = {
+export interface DataTableQueryProps {
   search?: boolean | "autofocus" | undefined
   orderBy?: (string | number)[] | undefined
   filters?: Filter[] | undefined

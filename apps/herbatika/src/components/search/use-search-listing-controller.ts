@@ -28,8 +28,8 @@ export function useSearchListingController() {
   const isSearchQueryEnabled = Boolean(region?.region_id && query.length > 0)
 
   const catalogProductsInput = buildCatalogProductsParams({
-    queryState,
     limit: PLP_PAGE_SIZE,
+    queryState,
   })
 
   const catalogQuery = useCatalogProducts({
@@ -38,18 +38,18 @@ export function useSearchListingController() {
   })
 
   const catalogFacetSeedInput = buildCatalogProductsParams({
+    limit: 1,
     queryState: {
       ...queryState,
+      brand: [],
+      form: [],
+      ingredient: [],
       page: 1,
+      price_max: null,
+      price_min: null,
       sort: "recommended",
       status: [],
-      form: [],
-      brand: [],
-      ingredient: [],
-      price_min: null,
-      price_max: null,
     },
-    limit: 1,
   })
 
   const catalogFacetSeedQuery = useCatalogProducts({
@@ -97,12 +97,12 @@ export function useSearchListingController() {
     isFiltersLoading:
       isSearchQueryEnabled &&
       (catalogQuery.isLoading || catalogFacetSeedQuery.isLoading),
+    isResultsLoading:
+      query.length > 0 && (!region?.region_id || catalogQuery.isLoading),
     isResultsRefreshing:
       catalogQuery.isFetching &&
       (catalogQuery.products.length > 0 ||
         catalogQuery.query.isPlaceholderData),
-    isResultsLoading:
-      query.length > 0 && (!region?.region_id || catalogQuery.isLoading),
     isSearchQueryEnabled,
     priceBounds: resolveCatalogPriceBounds(catalogQuery.facets.price),
     products: catalogQuery.products,

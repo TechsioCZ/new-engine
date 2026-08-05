@@ -2,16 +2,16 @@ import { mkdir, writeFile } from "node:fs/promises"
 import { dirname } from "node:path"
 
 import {
-  type ResolvedEnvironmentCommandInput,
-  type ResolveEnvironmentCommandInput,
-  type ResolveEnvironmentResponse,
   resolveEnvironmentCommandInputSchema,
   resolveEnvironmentResponseSchema,
 } from "../contracts/resolve-environment.js"
-import {
-  listDeployableServices,
-  type StackManifest,
-} from "../contracts/stack-manifest.js"
+import type {
+  ResolvedEnvironmentCommandInput,
+  ResolveEnvironmentCommandInput,
+  ResolveEnvironmentResponse,
+} from "../contracts/resolve-environment.js"
+import { listDeployableServices } from "../contracts/stack-manifest.js"
+import type { StackManifest } from "../contracts/stack-manifest.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 import { loadDeployContracts, normalizeCsvToArray } from "./deploy-inputs.js"
 import { buildServiceReconciliationSpecs } from "./preview-runtime-reconciliation.js"
@@ -43,11 +43,11 @@ function buildPreviewServiceSlugSets(
   )
 
   return {
-    expectedPreviewServiceSlugs: clonedServiceIds.flatMap((serviceId) => {
+    excludedPreviewServiceSlugs: excludedServiceIds.flatMap((serviceId) => {
       const serviceSlug = serviceById.get(serviceId)
       return serviceSlug ? [serviceSlug] : []
     }),
-    excludedPreviewServiceSlugs: excludedServiceIds.flatMap((serviceId) => {
+    expectedPreviewServiceSlugs: clonedServiceIds.flatMap((serviceId) => {
       const serviceSlug = serviceById.get(serviceId)
       return serviceSlug ? [serviceSlug] : []
     }),
@@ -56,7 +56,7 @@ function buildPreviewServiceSlugSets(
 
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
+  await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
 export async function executeResolveEnvironment(
@@ -67,61 +67,61 @@ export async function executeResolveEnvironment(
     resolvedInput.stackManifestPath,
     resolvedInput.stackInputsPath
   )
-  const manifest = contracts.manifest
+  const { manifest } = contracts
   const environmentName = buildPreviewEnvironmentName(resolvedInput)
   const previewServiceSlugSets =
     resolvedInput.lane === "preview"
       ? buildPreviewServiceSlugSets(resolvedInput, manifest)
       : {
-          expectedPreviewServiceSlugs: [],
           excludedPreviewServiceSlugs: [],
+          expectedPreviewServiceSlugs: [],
         }
   const serviceSpecs =
     resolvedInput.lane === "preview" || resolvedInput.reconcileServiceIdsCsv
       ? buildServiceReconciliationSpecs({
-          stackInputs: contracts.stackInputs,
-          manifest,
           lane: resolvedInput.lane,
+          manifest,
+          previewGitBranch: resolvedInput.previewGitBranch,
           serviceIds:
             resolvedInput.lane === "preview"
               ? normalizeCsvToArray(resolvedInput.previewClonedServiceIdsCsv)
               : normalizeCsvToArray(resolvedInput.reconcileServiceIdsCsv),
-          previewGitBranch: resolvedInput.previewGitBranch,
+          stackInputs: contracts.stackInputs,
         })
       : []
 
   const response = resolvedInput.dryRun
     ? resolveEnvironmentResponseSchema.parse({
-        lane: resolvedInput.lane,
-        project_slug: resolvedInput.projectSlug,
-        environment_name: environmentName,
-        environment_id: `dry-run:${environmentName}`,
-        created: resolvedInput.dryRunCreated,
         baseline_complete: !resolvedInput.dryRunCreated,
-        ready: true,
-        expected_preview_service_slugs:
-          previewServiceSlugSets.expectedPreviewServiceSlugs,
+        created: resolvedInput.dryRunCreated,
+        environment_id: `dry-run:${environmentName}`,
+        environment_name: environmentName,
         excluded_preview_service_slugs:
           previewServiceSlugSets.excludedPreviewServiceSlugs,
+        expected_preview_service_slugs:
+          previewServiceSlugSets.expectedPreviewServiceSlugs,
+        lane: resolvedInput.lane,
+        missing_preview_service_slugs: [],
         present_service_slugs:
           previewServiceSlugSets.expectedPreviewServiceSlugs,
-        missing_preview_service_slugs: [],
+        project_slug: resolvedInput.projectSlug,
+        ready: true,
         warnings: [],
       })
     : await new ZaneOperatorClient(
         resolvedInput.baseUrl,
         resolvedInput.apiToken
       ).resolveEnvironment({
-        lane: resolvedInput.lane,
-        project_slug: resolvedInput.projectSlug,
         environment_name: environmentName,
-        source_environment_name:
-          resolvedInput.sourceEnvironmentName || environmentName,
-        expected_preview_service_slugs:
-          previewServiceSlugSets.expectedPreviewServiceSlugs,
         excluded_preview_service_slugs:
           previewServiceSlugSets.excludedPreviewServiceSlugs,
+        expected_preview_service_slugs:
+          previewServiceSlugSets.expectedPreviewServiceSlugs,
+        lane: resolvedInput.lane,
+        project_slug: resolvedInput.projectSlug,
         service_specs: serviceSpecs,
+        source_environment_name:
+          resolvedInput.sourceEnvironmentName || environmentName,
       })
 
   if (resolvedInput.lane === "preview" && !response.ready) {

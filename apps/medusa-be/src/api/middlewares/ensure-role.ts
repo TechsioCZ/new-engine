@@ -5,14 +5,14 @@ import type {
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
-type CompanyEmployee = {
+interface CompanyEmployee {
   customer?: {
     id?: string
   } | null
   is_admin?: boolean
 }
 
-type CompanyWithEmployees = {
+interface CompanyWithEmployees {
   employees?: CompanyEmployee[]
 }
 
@@ -68,7 +68,8 @@ export const ensureCompanyMember = async (
   )
 
   if (isCompanyMember) {
-    return next()
+    next()
+    return
   }
 
   return res.status(403).json({ message: "Forbidden" })
@@ -104,7 +105,8 @@ export const ensureRole =
       })
 
       if (customer?.employee?.is_admin) {
-        return next()
+        next()
+        return
       }
 
       return res.status(403).json({ message: "Forbidden" })
@@ -116,7 +118,8 @@ export const ensureRole =
     )
 
     if (isCompanyAdmin) {
-      return next()
+      next()
+      return
     }
 
     return res.status(403).json({ message: "Forbidden" })

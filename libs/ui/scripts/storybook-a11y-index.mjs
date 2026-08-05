@@ -4,7 +4,7 @@ import path from "node:path"
 
 function readArg(name) {
   const index = process.argv.indexOf(name)
-  return index >= 0 ? (process.argv[index + 1] ?? null) : null
+  return index !== -1 ? (process.argv[index + 1] ?? null) : null
 }
 
 const inputPath = readArg("--input")
@@ -18,7 +18,7 @@ if (!inputPath || !outputPath) {
 }
 
 try {
-  const index = JSON.parse(fs.readFileSync(inputPath, "utf8"))
+  const index = JSON.parse(fs.readFileSync(inputPath, "utf-8"))
   if (!index || typeof index !== "object" || !index.entries) {
     throw new Error("Storybook index has no entries object.")
   }
@@ -36,7 +36,11 @@ try {
   const temporaryPath = `${outputPath}.${process.pid}.tmp`
 
   fs.mkdirSync(path.dirname(outputPath), { recursive: true })
-  fs.writeFileSync(temporaryPath, `${JSON.stringify(canonicalIndex)}\n`, "utf8")
+  fs.writeFileSync(
+    temporaryPath,
+    `${JSON.stringify(canonicalIndex)}\n`,
+    "utf-8"
+  )
   fs.renameSync(temporaryPath, outputPath)
 
   const storyCount = Object.values(entries).filter(

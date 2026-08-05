@@ -1,260 +1,260 @@
 /** Localized admin sidebar group labels. */
 export const adminGroups = {
+  administration: {
+    cs: "Administrace",
+    en: "Administration",
+    sk: "Administrácia",
+  },
   content: {
-    en: "Content",
     cs: "Obsah",
+    en: "Content",
     sk: "Obsah",
   },
   library: {
-    en: "Library",
     cs: "Knihovna",
+    en: "Library",
     sk: "Knižnica",
-  },
-  administration: {
-    en: "Administration",
-    cs: "Administrace",
-    sk: "Administrácia",
   },
 } as const
 
 /** Localized collection labels for singular/plural display. */
 export const collectionLabels = {
-  articles: {
-    singular: {
-      en: "Article",
-      cs: "Článek",
-      sk: "Článok",
-    },
-    plural: {
-      en: "Articles",
-      cs: "Články",
-      sk: "Články",
-    },
-  },
-  pages: {
-    singular: {
-      en: "Page",
-      cs: "Stránka",
-      sk: "Stránka",
-    },
-    plural: {
-      en: "Pages",
-      cs: "Stránky",
-      sk: "Stránky",
-    },
-  },
   articleCategories: {
-    singular: {
-      en: "Article category",
-      cs: "Kategorie článků",
-      sk: "Kategória článkov",
-    },
     plural: {
-      en: "Article categories",
       cs: "Kategorie článků",
+      en: "Article categories",
       sk: "Kategórie článkov",
     },
-  },
-  pageCategories: {
     singular: {
-      en: "Page category",
-      cs: "Kategorie stránek",
-      sk: "Kategória stránok",
+      cs: "Kategorie článků",
+      en: "Article category",
+      sk: "Kategória článkov",
     },
+  },
+  articles: {
     plural: {
-      en: "Page categories",
-      cs: "Kategorie stránek",
-      sk: "Kategórie stránok",
+      cs: "Články",
+      en: "Articles",
+      sk: "Články",
+    },
+    singular: {
+      cs: "Článek",
+      en: "Article",
+      sk: "Článok",
     },
   },
   heroCarousels: {
-    singular: {
-      en: "Hero carousel",
-      cs: "Hero karusel",
-      sk: "Hero karusel",
-    },
     plural: {
-      en: "Hero carousels",
       cs: "Hero karusely",
+      en: "Hero carousels",
       sk: "Hero karusely",
+    },
+    singular: {
+      cs: "Hero karusel",
+      en: "Hero carousel",
+      sk: "Hero karusel",
     },
   },
   media: {
+    plural: {
+      cs: "Média",
+      en: "Media",
+      sk: "Médiá",
+    },
     singular: {
-      en: "Media item",
       cs: "Mediální položka",
+      en: "Media item",
       sk: "Mediálna položka",
     },
+  },
+  pageCategories: {
     plural: {
-      en: "Media",
-      cs: "Média",
-      sk: "Médiá",
+      cs: "Kategorie stránek",
+      en: "Page categories",
+      sk: "Kategórie stránok",
+    },
+    singular: {
+      cs: "Kategorie stránek",
+      en: "Page category",
+      sk: "Kategória stránok",
+    },
+  },
+  pages: {
+    plural: {
+      cs: "Stránky",
+      en: "Pages",
+      sk: "Stránky",
+    },
+    singular: {
+      cs: "Stránka",
+      en: "Page",
+      sk: "Stránka",
     },
   },
   users: {
-    singular: {
-      en: "User",
-      cs: "Uživatel",
-      sk: "Používateľ",
-    },
     plural: {
-      en: "Users",
       cs: "Uživatelé",
+      en: "Users",
       sk: "Používatelia",
+    },
+    singular: {
+      cs: "Uživatel",
+      en: "User",
+      sk: "Používateľ",
     },
   },
 } as const
 
 /** Localized field labels shared across collections. */
 export const fieldLabels = {
-  internalTitle: {
-    en: "Internal title",
-    cs: "Interní název",
-    sk: "Interný názov",
-  },
-  title: {
-    en: "Title",
-    cs: "Název",
-    sk: "Názov",
-  },
-  articleTitle: {
-    en: "Title",
-    cs: "Název článku",
-    sk: "Názov článku",
-  },
-  urlSlug: {
-    en: "URL slug",
-    cs: "URL slug",
-    sk: "URL slug",
-  },
-  slug: {
-    en: "Slug",
-    cs: "Slug",
-    sk: "Slug",
-  },
-  content: {
-    en: "Content",
-    cs: "Obsah",
-    sk: "Obsah",
-  },
-  articleContent: {
-    en: "Content",
-    cs: "Obsah článku",
-    sk: "Obsah článku",
-  },
-  excerpt: {
-    en: "Excerpt",
-    cs: "Krátký popis (excerpt)",
-    sk: "Krátky popis (excerpt)",
-  },
-  featuredImage: {
-    en: "Featured image",
-    cs: "Hlavní obrázek",
-    sk: "Hlavný obrázok",
-  },
-  category: {
-    en: "Category",
-    cs: "Kategorie",
-    sk: "Kategória",
-  },
-  tags: {
-    en: "Tags",
-    cs: "Tagy",
-    sk: "Tagy",
-  },
-  author: {
-    en: "Author",
-    cs: "Autor",
-    sk: "Autor",
-  },
-  status: {
-    en: "Status",
-    cs: "Stav",
-    sk: "Stav",
-  },
-  visibility: {
-    en: "Visibility",
-    cs: "Viditelnost",
-    sk: "Viditeľnosť",
-  },
-  visibilityPublic: {
-    en: "Public",
-    cs: "Veřejné",
-    sk: "Verejné",
-  },
-  visibilityCustomersOnly: {
-    en: "Customers only",
-    cs: "Pouze pro zákazníky",
-    sk: "Len pre zákazníkov",
-  },
-  publishDate: {
-    en: "Publish date",
-    cs: "Datum publikování",
-    sk: "Dátum publikovania",
-  },
-  readingTime: {
-    en: "Reading time (minutes)",
-    cs: "Čas čtení (minuty)",
-    sk: "Čas čítania (minúty)",
+  altText: {
+    cs: "Alternativní text",
+    en: "Alt text",
+    sk: "Alternatívny text",
   },
   analytics: {
-    en: "Analytics",
     cs: "Analytika",
+    en: "Analytics",
     sk: "Analytika",
   },
-  views: {
-    en: "Views",
-    cs: "Počet zobrazení",
-    sk: "Počet zobrazení",
+  articleContent: {
+    cs: "Obsah článku",
+    en: "Content",
+    sk: "Obsah článku",
   },
-  shares: {
-    en: "Shares",
-    cs: "Počet sdílení",
-    sk: "Počet zdieľaní",
+  articleTitle: {
+    cs: "Název článku",
+    en: "Title",
+    sk: "Názov článku",
   },
-  lastViewed: {
-    en: "Last viewed",
-    cs: "Poslední zobrazení",
-    sk: "Posledné zobrazenie",
-  },
-  image: {
-    en: "Image",
-    cs: "Obrázek",
-    sk: "Obrázok",
-  },
-  heading: {
-    en: "Heading",
-    cs: "Nadpis",
-    sk: "Nadpis",
-  },
-  subheading: {
-    en: "Subheading",
-    cs: "Podnadpis",
-    sk: "Podnadpis",
+  author: {
+    cs: "Autor",
+    en: "Author",
+    sk: "Autor",
   },
   buttonText: {
-    en: "Button text",
     cs: "Text tlačítka",
+    en: "Button text",
     sk: "Text tlačidla",
   },
   buttonUrl: {
-    en: "Button URL",
     cs: "URL tlačítka",
+    en: "Button URL",
     sk: "URL tlačidla",
   },
-  altText: {
-    en: "Alt text",
-    cs: "Alternativní text",
-    sk: "Alternatívny text",
+  category: {
+    cs: "Kategorie",
+    en: "Category",
+    sk: "Kategória",
+  },
+  content: {
+    cs: "Obsah",
+    en: "Content",
+    sk: "Obsah",
+  },
+  excerpt: {
+    cs: "Krátký popis (excerpt)",
+    en: "Excerpt",
+    sk: "Krátky popis (excerpt)",
+  },
+  featuredImage: {
+    cs: "Hlavní obrázek",
+    en: "Featured image",
+    sk: "Hlavný obrázok",
   },
   firstName: {
-    en: "First name",
     cs: "Jméno",
+    en: "First name",
     sk: "Meno",
   },
+  heading: {
+    cs: "Nadpis",
+    en: "Heading",
+    sk: "Nadpis",
+  },
+  image: {
+    cs: "Obrázek",
+    en: "Image",
+    sk: "Obrázok",
+  },
+  internalTitle: {
+    cs: "Interní název",
+    en: "Internal title",
+    sk: "Interný názov",
+  },
   lastName: {
-    en: "Last name",
     cs: "Příjmení",
+    en: "Last name",
     sk: "Priezvisko",
+  },
+  lastViewed: {
+    cs: "Poslední zobrazení",
+    en: "Last viewed",
+    sk: "Posledné zobrazenie",
+  },
+  publishDate: {
+    cs: "Datum publikování",
+    en: "Publish date",
+    sk: "Dátum publikovania",
+  },
+  readingTime: {
+    cs: "Čas čtení (minuty)",
+    en: "Reading time (minutes)",
+    sk: "Čas čítania (minúty)",
+  },
+  shares: {
+    cs: "Počet sdílení",
+    en: "Shares",
+    sk: "Počet zdieľaní",
+  },
+  slug: {
+    cs: "Slug",
+    en: "Slug",
+    sk: "Slug",
+  },
+  status: {
+    cs: "Stav",
+    en: "Status",
+    sk: "Stav",
+  },
+  subheading: {
+    cs: "Podnadpis",
+    en: "Subheading",
+    sk: "Podnadpis",
+  },
+  tags: {
+    cs: "Tagy",
+    en: "Tags",
+    sk: "Tagy",
+  },
+  title: {
+    cs: "Název",
+    en: "Title",
+    sk: "Názov",
+  },
+  urlSlug: {
+    cs: "URL slug",
+    en: "URL slug",
+    sk: "URL slug",
+  },
+  views: {
+    cs: "Počet zobrazení",
+    en: "Views",
+    sk: "Počet zobrazení",
+  },
+  visibility: {
+    cs: "Viditelnost",
+    en: "Visibility",
+    sk: "Viditeľnosť",
+  },
+  visibilityCustomersOnly: {
+    cs: "Pouze pro zákazníky",
+    en: "Customers only",
+    sk: "Len pre zákazníkov",
+  },
+  visibilityPublic: {
+    cs: "Veřejné",
+    en: "Public",
+    sk: "Verejné",
   },
 } as const

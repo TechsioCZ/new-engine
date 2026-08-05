@@ -12,7 +12,8 @@
 import type { Ref } from "react"
 
 import type { IconType } from "../atoms/icon"
-import { NumericInput, type NumericInputProps } from "../atoms/numeric-input"
+import { NumericInput } from "../atoms/numeric-input"
+import type { NumericInputProps } from "../atoms/numeric-input"
 
 export interface NumericInputTemplateProps extends Omit<
   NumericInputProps,

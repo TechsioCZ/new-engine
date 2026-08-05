@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { useDelayedPrefetchController } from "../src/shared/use-delayed-prefetch-controller"
 
-describe("useDelayedPrefetchController", () => {
+describe(useDelayedPrefetchController, () => {
   beforeEach(() => {
     vi.useFakeTimers()
   })
@@ -34,7 +34,7 @@ describe("useDelayedPrefetchController", () => {
     })
 
     expect(first).not.toHaveBeenCalled()
-    expect(second).toHaveBeenCalledTimes(1)
+    expect(second).toHaveBeenCalledOnce()
   })
 
   it("cancels pending callback when cancelPrefetch is called", () => {

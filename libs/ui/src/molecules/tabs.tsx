@@ -11,32 +11,46 @@
  */
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import * as tabs from "@zag-js/tabs"
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type Ref,
-  useContext,
-  useId,
-} from "react"
+import { createContext, useContext, useId } from "react"
+import type { ComponentPropsWithoutRef, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
 
-import { Button, type ButtonProps } from "../atoms/button"
+import { Button } from "../atoms/button"
+import type { ButtonProps } from "../atoms/button"
 import { tv } from "../utils"
 
 const tabsVariants = tv({
+  defaultVariants: {
+    fitted: false,
+    justify: "start",
+    size: "md",
+    variant: "default",
+  },
   slots: {
-    root: [
-      "flex w-full",
-      "data-[orientation=horizontal]:flex-col",
-      "data-[orientation=vertical]:flex-row",
-      "bg-tabs-bg",
-      "rounded-tabs",
+    content: [
+      "text-tabs-content-fg",
+      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-tabs-ring",
+      "focus-visible:outline-offset-(length:--default-ring-offset)",
+    ],
+    indicator: [
+      "absolute rounded-tabs-indicator bg-tabs-indicator-bg",
+      "data-[orientation=vertical]:h-(--height) data-[orientation=horizontal]:w-(--width)",
+      "data-[orientation=horizontal]:h-tabs-indicator-height data-[orientation=vertical]:w-tabs-indicator",
+      "data-[orientation=vertical]:start-0 data-[orientation=horizontal]:bottom-0",
     ],
     list: [
       "relative flex",
       "bg-tabs-list-bg",
       "data-[orientation=horizontal]:flex-row",
       "data-[orientation=vertical]:flex-col",
+    ],
+    root: [
+      "flex w-full",
+      "data-[orientation=horizontal]:flex-col",
+      "data-[orientation=vertical]:flex-row",
+      "bg-tabs-bg",
+      "rounded-tabs",
     ],
     trigger: [
       "relative flex items-center justify-center",
@@ -51,58 +65,8 @@ const tabsVariants = tv({
       "data-[disabled]:cursor-not-allowed data-[disabled]:text-tabs-trigger-fg-disabled",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    indicator: [
-      "absolute rounded-tabs-indicator bg-tabs-indicator-bg",
-      "data-[orientation=vertical]:h-(--height) data-[orientation=horizontal]:w-(--width)",
-      "data-[orientation=horizontal]:h-tabs-indicator-height data-[orientation=vertical]:w-tabs-indicator",
-      "data-[orientation=vertical]:start-0 data-[orientation=horizontal]:bottom-0",
-    ],
-    content: [
-      "text-tabs-content-fg",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-      "focus-visible:outline-tabs-ring",
-      "focus-visible:outline-offset-(length:--default-ring-offset)",
-    ],
   },
   variants: {
-    variant: {
-      default: {
-        list: "",
-        indicator: "hidden",
-      },
-      line: {
-        list: "border-b-(length:--border-width-tabs) border-tabs-border-base",
-        indicator:
-          "data-[orientation=horizontal]:-bottom-(--border-width-tabs)",
-      },
-      solid: {
-        trigger:
-          "data-[selected]:bg-tabs-trigger-bg-selected data-[selected]:text-tabs-trigger-fg-solid-selected",
-        indicator: "hidden",
-      },
-      outline: {
-        trigger: [
-          "border-(length:--border-width-tabs) border-transparent",
-          "data-[selected]:border-tabs-border-selected",
-          "data-[selected]:bg-tabs-trigger-bg-outline-selected",
-        ],
-        indicator: "hidden",
-      },
-    },
-    size: {
-      sm: {
-        trigger: "p-tabs-trigger-sm text-tabs-trigger-sm",
-        content: "p-tabs-content-padding-sm text-tabs-content-sm",
-      },
-      md: {
-        trigger: "p-tabs-trigger-md text-tabs-trigger-md",
-        content: "p-tabs-content-padding-md text-tabs-content-md",
-      },
-      lg: {
-        trigger: "p-tabs-trigger-lg text-tabs-trigger-lg",
-        content: "p-tabs-content-padding-lg text-tabs-content-lg",
-      },
-    },
     fitted: {
       true: {
         list: "w-full",
@@ -110,22 +74,54 @@ const tabsVariants = tv({
       },
     },
     justify: {
-      start: {
-        list: "justify-start",
-      },
       center: {
         list: "justify-center",
       },
       end: {
         list: "justify-end",
       },
+      start: {
+        list: "justify-start",
+      },
     },
-  },
-  defaultVariants: {
-    variant: "default",
-    size: "md",
-    fitted: false,
-    justify: "start",
+    size: {
+      lg: {
+        content: "p-tabs-content-padding-lg text-tabs-content-lg",
+        trigger: "p-tabs-trigger-lg text-tabs-trigger-lg",
+      },
+      md: {
+        content: "p-tabs-content-padding-md text-tabs-content-md",
+        trigger: "p-tabs-trigger-md text-tabs-trigger-md",
+      },
+      sm: {
+        content: "p-tabs-content-padding-sm text-tabs-content-sm",
+        trigger: "p-tabs-trigger-sm text-tabs-trigger-sm",
+      },
+    },
+    variant: {
+      default: {
+        indicator: "hidden",
+        list: "",
+      },
+      line: {
+        indicator:
+          "data-[orientation=horizontal]:-bottom-(--border-width-tabs)",
+        list: "border-b-(length:--border-width-tabs) border-tabs-border-base",
+      },
+      outline: {
+        indicator: "hidden",
+        trigger: [
+          "border-(length:--border-width-tabs) border-transparent",
+          "data-[selected]:border-tabs-border-selected",
+          "data-[selected]:bg-tabs-trigger-bg-outline-selected",
+        ],
+      },
+      solid: {
+        indicator: "hidden",
+        trigger:
+          "data-[selected]:bg-tabs-trigger-bg-selected data-[selected]:text-tabs-trigger-fg-solid-selected",
+      },
+    },
   },
 })
 
@@ -187,25 +183,25 @@ export function Tabs({
   const uniqueId = id || generatedId
 
   const service = useMachine(tabs.machine, {
-    id: uniqueId,
-    value,
-    defaultValue,
-    orientation,
-    dir,
     activationMode,
+    defaultValue,
+    dir,
+    id: uniqueId,
     loopFocus,
     onValueChange: ({ value }) => {
       onValueChange?.(value)
     },
+    orientation,
+    value,
   })
 
   const api = tabs.connect(service, normalizeProps)
-  const styles = tabsVariants({ variant, size, fitted, justify })
+  const styles = tabsVariants({ fitted, justify, size, variant })
   const rootProps = mergeProps(api.getRootProps(), props)
 
   return (
     <TabsContext.Provider
-      value={{ api, variant, size, fitted, justify, styles }}
+      value={{ api, fitted, justify, size, styles, variant }}
     >
       <div {...rootProps} className={styles.root({ className })} ref={ref}>
         {children}
@@ -254,7 +250,7 @@ Tabs.Trigger = function TabsTrigger({
 }: TabsTriggerProps) {
   const { api, styles } = useTabsContext()
   const triggerProps = mergeProps(
-    api.getTriggerProps({ value, disabled }),
+    api.getTriggerProps({ disabled, value }),
     props
   )
 

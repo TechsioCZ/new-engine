@@ -6,12 +6,12 @@ import type {
   ModuleApprovalSettings,
 } from "../../../types"
 
-export type EnsureApprovalSettingsStepResult = {
+export interface EnsureApprovalSettingsStepResult {
   approval_settings: ModuleApprovalSettings[]
   created_approval_settings: ModuleApprovalSettings[]
 }
 
-type EnsureApprovalSettingsCompensation = {
+interface EnsureApprovalSettingsCompensation {
   created_ids: string[]
   restored_ids: string[]
 }

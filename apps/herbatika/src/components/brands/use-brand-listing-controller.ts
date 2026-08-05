@@ -22,7 +22,7 @@ import {
   useCatalogListingPageBounds,
 } from "@/lib/storefront/use-catalog-listing-interactions"
 
-type UseBrandListingControllerProps = {
+interface UseBrandListingControllerProps {
   brandFacetId: string
 }
 
@@ -52,8 +52,8 @@ export function useBrandListingController({
   }, [queryBrandSignature, setQueryState])
 
   const catalogProductsInput = buildCatalogProductsParams({
-    queryState: brandQueryState,
     limit: PLP_PAGE_SIZE,
+    queryState: brandQueryState,
   })
 
   const catalogQuery = useCatalogProducts({
@@ -62,18 +62,18 @@ export function useBrandListingController({
   })
 
   const catalogFacetSeedInput = buildCatalogProductsParams({
+    limit: 1,
     queryState: {
       ...queryState,
+      brand: [brandFacetId],
+      form: [],
+      ingredient: [],
       page: 1,
+      price_max: null,
+      price_min: null,
       sort: "recommended",
       status: [],
-      form: [],
-      brand: [brandFacetId],
-      ingredient: [],
-      price_min: null,
-      price_max: null,
     },
-    limit: 1,
   })
 
   const catalogFacetSeedQuery = useCatalogProducts({

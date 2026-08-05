@@ -13,7 +13,8 @@ import type { ReactNode } from "react"
 
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
-import { Textarea, type TextareaProps } from "../atoms/textarea"
+import { Textarea } from "../atoms/textarea"
+import type { TextareaProps } from "../atoms/textarea"
 
 type ValidateStatus = "default" | "error" | "success" | "warning"
 

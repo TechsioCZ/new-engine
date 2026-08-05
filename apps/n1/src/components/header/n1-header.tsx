@@ -17,7 +17,7 @@ import { LoginPopover } from "./login-popover"
 // MobileMenu uses usePathname() which is runtime data
 // Skip SSR to avoid "uncached data outside Suspense" during prerender
 const MobileMenu = dynamic(
-  () => import("./mobile-menu").then((m) => m.MobileMenu),
+  async () => import("./mobile-menu").then((m) => m.MobileMenu),
   {
     ssr: false,
   }

@@ -2,7 +2,7 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import type { ReactNode } from "react"
 
-type AuthShellProps = {
+interface AuthShellProps {
   title: string
   description: string
   message?: string | null

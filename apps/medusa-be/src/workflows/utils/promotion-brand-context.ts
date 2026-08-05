@@ -7,7 +7,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import { getActiveBrandIds } from "../brand/brand-activity"
 
-type PromotionContextSource = {
+interface PromotionContextSource {
   items?: unknown[]
 }
 
@@ -23,12 +23,12 @@ type PromotionContextItem = Record<string, unknown> & {
   } | null
 }
 
-type ProductBrandLinkRecord = {
+interface ProductBrandLinkRecord {
   product_id?: string
   brand_id?: string
 }
 
-type ProductVariantRecord = {
+interface ProductVariantRecord {
   id?: string
   product_id?: string
 }
@@ -43,13 +43,13 @@ export async function buildBrandPromotionContext(
     : []
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const productIdsByVariantId = await resolveProductIdsByVariantId(query, items)
-  const productIds = Array.from(
-    new Set(
+  const productIds = [
+    ...new Set(
       items
         .map((item) => getItemProductId(item, productIdsByVariantId))
         .filter((id): id is string => !!id)
-    )
-  )
+    ),
+  ]
 
   if (!productIds.length) {
     return {}
@@ -101,14 +101,14 @@ async function resolveProductIdsByVariantId(
   query: Pick<RemoteQueryFunction, "graph">,
   items: PromotionContextItem[]
 ) {
-  const variantIds = Array.from(
-    new Set(
+  const variantIds = [
+    ...new Set(
       items
         .filter((item) => !getItemProductId(item))
         .map(getItemVariantId)
         .filter((id): id is string => !!id)
-    )
-  )
+    ),
+  ]
 
   if (!variantIds.length) {
     return new Map<string, string>()

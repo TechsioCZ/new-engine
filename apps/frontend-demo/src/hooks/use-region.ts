@@ -21,13 +21,13 @@ export function useRegions() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: queryKeys.regions(),
+    gcTime: 24 * 60 * 60 * 1000, // Cache for 24 hours
     queryFn: async () => {
       const response = await sdk.store.region.list()
       return response.regions
     },
+    queryKey: queryKeys.regions(),
     staleTime: Number.POSITIVE_INFINITY, // Regions rarely change
-    gcTime: 24 * 60 * 60 * 1000, // Cache for 24 hours
   })
 
   // Initialize selected region from regions list or default to USD
@@ -68,10 +68,10 @@ export function useRegions() {
   }
 
   return {
+    error: errorMessage,
+    isLoading,
     regions,
     selectedRegion,
     setSelectedRegion,
-    isLoading,
-    error: errorMessage,
   }
 }

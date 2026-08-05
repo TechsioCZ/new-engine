@@ -2,7 +2,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 
 import { formatAmount } from "@/utils/format/format-product"
 
-type OrdersSummaryProps = {
+interface OrdersSummaryProps {
   totalAmount: number
   completedOrders: number
   pendingOrders: number

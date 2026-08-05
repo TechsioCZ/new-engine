@@ -7,23 +7,23 @@ import { expect, test } from "vitest"
 import { resolveGitHubPreviewHeadBranch } from "../github-event.js"
 
 async function withoutBranchEnv(callback: () => Promise<void>): Promise<void> {
-  const originalPreviewBranch = process.env["ZANE_PREVIEW_GIT_BRANCH"]
-  const originalHeadRef = process.env["GITHUB_HEAD_REF"]
+  const originalPreviewBranch = process.env.ZANE_PREVIEW_GIT_BRANCH
+  const originalHeadRef = process.env.GITHUB_HEAD_REF
   Reflect.deleteProperty(process.env, "ZANE_PREVIEW_GIT_BRANCH")
   Reflect.deleteProperty(process.env, "GITHUB_HEAD_REF")
 
   try {
     await callback()
   } finally {
-    if (typeof originalPreviewBranch === "undefined") {
+    if (originalPreviewBranch === undefined) {
       Reflect.deleteProperty(process.env, "ZANE_PREVIEW_GIT_BRANCH")
     } else {
-      process.env["ZANE_PREVIEW_GIT_BRANCH"] = originalPreviewBranch
+      process.env.ZANE_PREVIEW_GIT_BRANCH = originalPreviewBranch
     }
-    if (typeof originalHeadRef === "undefined") {
+    if (originalHeadRef === undefined) {
       Reflect.deleteProperty(process.env, "GITHUB_HEAD_REF")
     } else {
-      process.env["GITHUB_HEAD_REF"] = originalHeadRef
+      process.env.GITHUB_HEAD_REF = originalHeadRef
     }
   }
 }
@@ -34,7 +34,7 @@ async function withEventFile(
 ): Promise<void> {
   const directory = await mkdtemp(join(tmpdir(), "new-engine-ctl-event-"))
   const path = join(directory, "event.json")
-  await writeFile(path, JSON.stringify(event), "utf8")
+  await writeFile(path, JSON.stringify(event), "utf-8")
 
   try {
     await callback(path)
@@ -87,7 +87,7 @@ test("falls back to workflow_run head_branch when PR head ref is unavailable", a
 
 test("explicit preview branch env overrides event payload", async () => {
   await withoutBranchEnv(async () => {
-    process.env["ZANE_PREVIEW_GIT_BRANCH"] = "manual-preview-branch"
+    process.env.ZANE_PREVIEW_GIT_BRANCH = "manual-preview-branch"
 
     await withEventFile(
       {

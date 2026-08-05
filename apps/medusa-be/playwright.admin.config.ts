@@ -82,20 +82,10 @@ const chromiumExecutablePath =
   undefined
 
 export default defineConfig({
-  testDir: "./tests/e2e",
-  forbidOnly: !!process.env["CI"],
-  retries: process.env["CI"] ? 2 : 0,
-  workers: 1,
-  timeout: 60_000,
   expect: {
     timeout: 10_000,
   },
-  reporter: process.env["CI"] ? [["github"], ["list"]] : "list",
-  use: {
-    baseURL,
-    screenshot: "only-on-failure",
-    trace: "retain-on-failure",
-  },
+  forbidOnly: !!process.env["CI"],
   projects: [
     {
       name: "chromium",
@@ -107,6 +97,16 @@ export default defineConfig({
       },
     },
   ],
+  reporter: process.env["CI"] ? [["github"], ["list"]] : "list",
+  retries: process.env["CI"] ? 2 : 0,
+  testDir: "./tests/e2e",
+  timeout: 60_000,
+  use: {
+    baseURL,
+    screenshot: "only-on-failure",
+    trace: "retain-on-failure",
+  },
+  workers: 1,
   ...(webServerCommand
     ? {
         webServer: {

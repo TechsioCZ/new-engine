@@ -48,10 +48,10 @@ export const POST = async (
 
   await updateEmployeesWorkflow(req.scope).run({
     input: definedProperties({
-      id: employeeId,
       company_id: id,
-      spending_limit,
+      id: employeeId,
       is_admin,
+      spending_limit,
     }),
   })
 
@@ -78,14 +78,14 @@ export const DELETE = async (
 
   await deleteEmployeesWorkflow(req.scope).run({
     input: {
-      id: employeeId,
       company_id: id,
+      id: employeeId,
     },
   })
 
   res.status(200).json({
+    deleted: true,
     id: employeeId,
     object: "employee",
-    deleted: true,
   })
 }

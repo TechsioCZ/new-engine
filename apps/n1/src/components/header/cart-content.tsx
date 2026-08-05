@@ -12,7 +12,7 @@ import { formatAmount } from "@/utils/format/format-product"
 import { CartEmptyState } from "./cart-empty-state"
 import { CartItem } from "./cart-item"
 
-type CartContentProps = {
+interface CartContentProps {
   cart: Cart | null | undefined
   onClose?: () => void
 }
@@ -52,11 +52,11 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
         lineItemId: itemId,
       },
       {
-        onSuccess: () => {
-          toast.removedFromCart(itemTitle)
-        },
         onError: (error) => {
           toast.cartError(error.message)
+        },
+        onSuccess: () => {
+          toast.removedFromCart(itemTitle)
         },
       }
     )

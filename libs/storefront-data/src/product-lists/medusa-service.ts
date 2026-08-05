@@ -52,14 +52,14 @@ const normalizeQuantityDelta = (quantity?: number | null) => {
   return quantityDelta
 }
 
-export type MedusaProductListListInput = {
+export interface MedusaProductListListInput {
   handle?: string
   type?: string
   limit?: number
   offset?: number
 }
 
-export type MedusaProductListDetailInput = {
+export interface MedusaProductListDetailInput {
   id?: string | null
 }
 
@@ -82,12 +82,12 @@ export type MedusaProductListDetailKeyInput = MedusaProductListDetailInput & {
   customerId?: string | null
 }
 
-export type MedusaProductListServiceConfig<
+export interface MedusaProductListServiceConfig<
   TProductList,
   TProductListItem,
   TCart extends ProductListCartLike,
   TListInput extends MedusaProductListListInput = MedusaProductListListInput,
-> = {
+> {
   basePath?: string
   defaultLimit?: number
   defaultOffset?: number
@@ -110,10 +110,10 @@ export const normalizeProductListsResponse = <TProductList>(
     response.product_lists ?? response.productLists ?? response.lists ?? []
 
   return {
-    productLists,
     count: response.count ?? productLists.length,
     limit: response.limit ?? fallbackLimit,
     offset: response.offset ?? fallbackOffset,
+    productLists,
   }
 }
 
@@ -140,7 +140,7 @@ export const resolveProductListCartFromResponse = <
 ): TCart | null => response.cart ?? null
 
 export function createMedusaProductListService<
-  TProductList = ProductListBase<ProductListItemBase>,
+  TProductList = ProductListBase,
   TProductListItem = ProductListItemBase,
   TCart extends ProductListCartLike = HttpTypes.StoreCart,
   TListInput extends MedusaProductListListInput = MedusaProductListListInput,
@@ -200,122 +200,6 @@ export function createMedusaProductListService<
   }
 
   return {
-    async listProductLists(
-      params: TListInput,
-      signal?: AbortSignal
-    ): Promise<ProductListListResult<TProductList>> {
-      const query = resolveListQuery(params)
-      const response = await sdk.client.fetch<
-        ProductListListResponse<ProductListBase<TProductListItem>>
-      >(basePath, {
-        query,
-        signal: signal ?? null,
-      })
-      const normalized = normalizeProductListsResponse(
-        response,
-        Number(query["limit"] ?? defaultLimit),
-        Number(query["offset"] ?? defaultOffset)
-      )
-
-      return {
-        ...normalized,
-        productLists: normalized.productLists.map(mapList),
-      }
-    },
-
-    async getProductList(
-      params: MedusaProductListDetailInput,
-      signal?: AbortSignal
-    ): Promise<TProductList | null> {
-      if (!params.id) {
-        return null
-      }
-
-      const response = await sdk.client.fetch<
-        ProductListResponse<ProductListBase<TProductListItem>>
-      >(`${basePath}/${params.id}`, { signal: signal ?? null })
-
-      const productList = resolveProductListFromResponse(response)
-      return productList ? mapList(productList) : null
-    },
-
-    async createFavoriteProductList(
-      input: CreateFavoriteProductListInput = {}
-    ): Promise<TProductList | null> {
-      const response = await sdk.client.fetch<
-        ProductListResponse<ProductListBase<TProductListItem>>
-      >(`${basePath}/favorites`, {
-        method: "POST",
-        body: compactRecord(input),
-      })
-      const productList = resolveProductListFromResponse(response)
-      return productList ? mapList(productList) : null
-    },
-
-    async createCustomProductList(
-      input: CreateCustomProductListInput
-    ): Promise<TProductList | null> {
-      const response = await sdk.client.fetch<
-        ProductListResponse<ProductListBase<TProductListItem>>
-      >(`${basePath}/custom`, {
-        method: "POST",
-        body: compactRecord({
-          ...input,
-          access_type: input.access_type ?? "private",
-        }),
-      })
-      const productList = resolveProductListFromResponse(response)
-      return productList ? mapList(productList) : null
-    },
-
-    async updateProductList(
-      input: UpdateProductListInput
-    ): Promise<TProductList | null> {
-      const response = await sdk.client.fetch<
-        ProductListResponse<ProductListBase<TProductListItem>>
-      >(`${basePath}/${input.listId}`, {
-        method: "POST",
-        body: compactRecord({
-          title: input.title,
-          access_type: input.access_type,
-          description: input.description,
-          handle: input.handle,
-          metadata: input.metadata,
-        }),
-      })
-      const productList = resolveProductListFromResponse(response)
-      return productList ? mapList(productList) : null
-    },
-
-    deleteProductList(input: DeleteProductListInput) {
-      return sdk.client.fetch<ProductListDeleteResponse>(
-        `${basePath}/${input.listId}`,
-        {
-          method: "DELETE",
-        }
-      )
-    },
-
-    async addProductListItem(
-      input: AddProductListItemInput
-    ): Promise<TProductListItem | null> {
-      const response = await sdk.client.fetch<
-        ProductListItemResponse<TProductList, ProductListItemBase>
-      >(`${basePath}/${input.listId}/items`, {
-        method: "POST",
-        body: compactRecord({
-          product_id: input.productId,
-          variant_id: input.variantId ?? undefined,
-          quantity: normalizeQuantity(input.quantity),
-          note: input.note,
-          sort_order: input.sortOrder,
-          metadata: input.metadata,
-        }),
-      })
-
-      return resolveItemFromResponse(response)
-    },
-
     async addFavoriteProductListItem(
       input: AddFavoriteProductListItemInput
     ): Promise<TProductListItem | null> {
@@ -336,37 +220,16 @@ export function createMedusaProductListService<
       return resolveItemFromResponse(response)
     },
 
-    async createProductListCart(
-      input: CreateProductListCartInput
-    ): Promise<TCart> {
-      const response = await sdk.client.fetch<
-        ProductListCartResponse<HttpTypes.StoreCart>
-      >(`${basePath}/${input.listId}/cart`, {
-        method: "POST",
-        body: compactRecord({
-          region_id: input.regionId ?? undefined,
-          country_code: input.countryCode ?? undefined,
-          email: input.email ?? undefined,
-          sales_channel_id: input.salesChannelId ?? undefined,
-        }),
-      })
-      const cart = resolveProductListCartFromResponse(response)
-
-      if (!cart) {
-        throw new Error("Product list cart response did not include a cart.")
-      }
-
-      return transformCart(cart as HttpTypes.StoreCart)
-    },
-
-    async updateProductListItem(
-      input: UpdateProductListItemInput
+    async addProductListItem(
+      input: AddProductListItemInput
     ): Promise<TProductListItem | null> {
       const response = await sdk.client.fetch<
         ProductListItemResponse<TProductList, ProductListItemBase>
-      >(`${basePath}/items/${input.itemId}`, {
+      >(`${basePath}/${input.listId}/items`, {
         method: "POST",
         body: compactRecord({
+          product_id: input.productId,
+          variant_id: input.variantId ?? undefined,
           quantity: normalizeQuantity(input.quantity),
           note: input.note,
           sort_order: input.sortOrder,
@@ -392,6 +255,93 @@ export function createMedusaProductListService<
       return resolveItemFromResponse(response)
     },
 
+    async createCustomProductList(
+      input: CreateCustomProductListInput
+    ): Promise<TProductList | null> {
+      const response = await sdk.client.fetch<
+        ProductListResponse<ProductListBase<TProductListItem>>
+      >(`${basePath}/custom`, {
+        method: "POST",
+        body: compactRecord({
+          ...input,
+          access_type: input.access_type ?? "private",
+        }),
+      })
+      const productList = resolveProductListFromResponse(response)
+      return productList ? mapList(productList) : null
+    },
+
+    async createFavoriteProductList(
+      input: CreateFavoriteProductListInput = {}
+    ): Promise<TProductList | null> {
+      const response = await sdk.client.fetch<
+        ProductListResponse<ProductListBase<TProductListItem>>
+      >(`${basePath}/favorites`, {
+        method: "POST",
+        body: compactRecord(input),
+      })
+      const productList = resolveProductListFromResponse(response)
+      return productList ? mapList(productList) : null
+    },
+
+    async createProductListCart(
+      input: CreateProductListCartInput
+    ): Promise<TCart> {
+      const response = await sdk.client.fetch<
+        ProductListCartResponse<HttpTypes.StoreCart>
+      >(`${basePath}/${input.listId}/cart`, {
+        method: "POST",
+        body: compactRecord({
+          region_id: input.regionId ?? undefined,
+          country_code: input.countryCode ?? undefined,
+          email: input.email ?? undefined,
+          sales_channel_id: input.salesChannelId ?? undefined,
+        }),
+      })
+      const cart = resolveProductListCartFromResponse(response)
+
+      if (!cart) {
+        throw new Error("Product list cart response did not include a cart.")
+      }
+
+      return transformCart(cart)
+    },
+
+    async deleteProductList(input: DeleteProductListInput) {
+      return sdk.client.fetch<ProductListDeleteResponse>(
+        `${basePath}/${input.listId}`,
+        {
+          method: "DELETE",
+        }
+      )
+    },
+
+    async deleteProductListItem(input: DeleteProductListItemInput) {
+      const path = input.listId
+        ? `${basePath}/${input.listId}/items/${input.itemId}`
+        : `${basePath}/items/${input.itemId}`
+
+      return sdk.client.fetch<ProductListDeleteResponse>(path, {
+        method: "DELETE",
+      })
+    },
+
+    async getProductList(
+      params: MedusaProductListDetailInput,
+      signal?: AbortSignal
+    ): Promise<TProductList | null> {
+      if (!params.id) {
+        return null
+      }
+
+      const response = await sdk.client.fetch<
+        ProductListResponse<ProductListBase<TProductListItem>>
+      >(`${basePath}/${params.id}`, { signal: signal ?? null })
+
+      const productList = resolveProductListFromResponse(response)
+      return productList ? mapList(productList) : null
+    },
+
     async incrementProductListItem(
       input: IncrementProductListItemInput
     ): Promise<TProductListItem | null> {
@@ -407,14 +357,64 @@ export function createMedusaProductListService<
       return resolveItemFromResponse(response)
     },
 
-    deleteProductListItem(input: DeleteProductListItemInput) {
-      const path = input.listId
-        ? `${basePath}/${input.listId}/items/${input.itemId}`
-        : `${basePath}/items/${input.itemId}`
-
-      return sdk.client.fetch<ProductListDeleteResponse>(path, {
-        method: "DELETE",
+    async listProductLists(
+      params: TListInput,
+      signal?: AbortSignal
+    ): Promise<ProductListListResult<TProductList>> {
+      const query = resolveListQuery(params)
+      const response = await sdk.client.fetch<
+        ProductListListResponse<ProductListBase<TProductListItem>>
+      >(basePath, {
+        query,
+        signal: signal ?? null,
       })
+      const normalized = normalizeProductListsResponse(
+        response,
+        Number(query.limit ?? defaultLimit),
+        Number(query.offset ?? defaultOffset)
+      )
+
+      return {
+        ...normalized,
+        productLists: normalized.productLists.map(mapList),
+      }
+    },
+
+    async updateProductList(
+      input: UpdateProductListInput
+    ): Promise<TProductList | null> {
+      const response = await sdk.client.fetch<
+        ProductListResponse<ProductListBase<TProductListItem>>
+      >(`${basePath}/${input.listId}`, {
+        method: "POST",
+        body: compactRecord({
+          title: input.title,
+          access_type: input.access_type,
+          description: input.description,
+          handle: input.handle,
+          metadata: input.metadata,
+        }),
+      })
+      const productList = resolveProductListFromResponse(response)
+      return productList ? mapList(productList) : null
+    },
+
+    async updateProductListItem(
+      input: UpdateProductListItemInput
+    ): Promise<TProductListItem | null> {
+      const response = await sdk.client.fetch<
+        ProductListItemResponse<TProductList, ProductListItemBase>
+      >(`${basePath}/items/${input.itemId}`, {
+        method: "POST",
+        body: compactRecord({
+          quantity: normalizeQuantity(input.quantity),
+          note: input.note,
+          sort_order: input.sortOrder,
+          metadata: input.metadata,
+        }),
+      })
+
+      return resolveItemFromResponse(response)
     },
   }
 }

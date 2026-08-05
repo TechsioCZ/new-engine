@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("@medusajs/framework/utils", () => ({
+vi.mock(import("@medusajs/framework/utils"), () => ({
   ContainerRegistrationKeys: {
     QUERY: "query",
   },
@@ -9,10 +9,7 @@ vi.mock("@medusajs/framework/utils", () => ({
   },
 }))
 
-vi.mock("@medusajs/framework/workflows-sdk", () => ({
-  createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
-  ),
+vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: class StepResponse<
     TPayload = unknown,
     TCompensationInput = unknown,
@@ -25,9 +22,12 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
       this.compensateInput = compensateInput
     }
   },
+  createStep: vi.fn((_name, invoke, compensate) =>
+    Object.assign(invoke, { compensate })
+  ),
 }))
 
-type AuthService = {
+interface AuthService {
   updateProviderIdentities: ReturnType<typeof vi.fn>
 }
 
@@ -36,15 +36,15 @@ type MockContainer = ReturnType<typeof makeContainer>
 type CompanyAuthMetadataCompensation =
   | string[]
   | {
-      admin_candidates: Array<{
+      admin_candidates: {
         customer_id?: string | null
         email?: string | null
-      }>
+      }[]
       company_ids: string[]
       provider_identity_ids: string[]
     }
 
-type MockStep = {
+interface MockStep {
   (
     input: string[],
     context: { container: MockContainer }
@@ -179,7 +179,7 @@ describe("company admin auth metadata steps", () => {
         },
       },
     ])
-    expect(result.compensateInput).toEqual(["authpi_1"])
+    expect(result.compensateInput).toStrictEqual(["authpi_1"])
   })
 
   it("restores company admin auth metadata after company restore", async () => {
@@ -241,7 +241,7 @@ describe("company admin auth metadata steps", () => {
         },
       },
     ])
-    expect(result.compensateInput).toEqual({
+    expect(result.compensateInput).toStrictEqual({
       admin_candidates: [
         {
           customer_id: "cus_1",

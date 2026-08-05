@@ -3,7 +3,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 import { QR_PAYMENT_CONFIG_SERVICE } from "../constants"
 
-type QrPaymentConfigServiceType = {
+interface QrPaymentConfigServiceType {
   create: (data: Record<string, unknown>) => Promise<unknown>
   listAndCount: (
     filter: Record<string, unknown>

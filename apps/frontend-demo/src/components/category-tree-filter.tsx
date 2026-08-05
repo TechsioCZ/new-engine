@@ -1,5 +1,6 @@
 "use client"
-import { type TreeNode, TreeView } from "@techsio/ui-kit/molecules/tree-view"
+import { TreeView } from "@techsio/ui-kit/molecules/tree-view"
+import type { TreeNode } from "@techsio/ui-kit/molecules/tree-view"
 import { useState } from "react"
 
 import { useAccordionTree } from "@/hooks/use-accordion-tree"
@@ -12,7 +13,7 @@ import {
   isSelectableCategory,
 } from "@/utils/category-tree-helpers"
 
-type CategoryFilterProps = {
+interface CategoryFilterProps {
   categories: CategoryTreeNode[]
   leafCategories: LeafCategory[]
   leafParents: LeafParent[]
@@ -38,11 +39,11 @@ export function CategoryTreeFilter({
   // Transform static category data for TreeView
   const transformTreeForSelection = (nodes: CategoryTreeNode[]): TreeNode[] =>
     nodes.map((node) => ({
-      id: node.id,
-      name: node.name,
       children: node.children
         ? transformTreeForSelection(node.children)
         : undefined,
+      id: node.id,
+      name: node.name,
       selectable: isSelectableCategory(node.id, leafCategoryIds, leafParentIds),
     }))
   const treeData = transformTreeForSelection(categories)
@@ -100,7 +101,7 @@ export function CategoryTreeFilter({
             // Direct parentLeaf child - prefetch limited children, not all leafs
             const childParentLeaf = leafParents.find((p) => p.id === childId)
             if (childParentLeaf) {
-              const children = childParentLeaf.children
+              const { children } = childParentLeaf
               if (children.length > 0) {
                 delayedPrefetch(children, 800, `parent_leaf_${childId}`)
               }

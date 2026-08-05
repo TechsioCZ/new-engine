@@ -3,9 +3,8 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 
-import seedDatabaseWorkflow, {
-  type SeedDatabaseWorkflowInput,
-} from "./seed-database"
+import seedDatabaseWorkflow from "./seed-database"
+import type { SeedDatabaseWorkflowInput } from "./seed-database"
 
 const SeedShoptetImportWorkflowId = "seed-shoptet-import-workflow"
 

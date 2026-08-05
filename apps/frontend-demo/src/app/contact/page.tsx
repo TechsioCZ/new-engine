@@ -1,10 +1,11 @@
 "use client"
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea"
-import { type SelectItem } from "@techsio/ui-kit/molecules/select"
+import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
 import { slugify } from "@techsio/ui-kit/utils"
 import Image from "next/image"
@@ -64,9 +65,9 @@ export default function ContactPage() {
                   <FormInput
                     id="firstName"
                     label={form.labels.firstName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       updateField("firstName", e.target.value)
-                    }
+                    }}
                     required
                     size="sm"
                     value={formData.firstName}
@@ -74,9 +75,9 @@ export default function ContactPage() {
                   <FormInput
                     id="lastName"
                     label={form.labels.lastName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       updateField("lastName", e.target.value)
-                    }
+                    }}
                     required
                     size="sm"
                     value={formData.lastName}
@@ -84,9 +85,9 @@ export default function ContactPage() {
                   <FormInput
                     id="email"
                     label={form.labels.email}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       updateField("email", e.target.value)
-                    }
+                    }}
                     required
                     size="sm"
                     type="email"
@@ -95,9 +96,9 @@ export default function ContactPage() {
                   <FormInput
                     id="phone"
                     label={form.labels.phone}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       updateField("phone", e.target.value)
-                    }
+                    }}
                     required
                     size="sm"
                     type="tel"
@@ -107,9 +108,9 @@ export default function ContactPage() {
                     <SelectTemplate
                       items={subjectItems}
                       label={form.labels.subject}
-                      onValueChange={(details) =>
+                      onValueChange={(details) => {
                         updateField("subject", details.value[0] || "general")
-                      }
+                      }}
                       placeholder="Vyberte téma"
                       size="sm"
                       value={[formData.subject]}
@@ -119,9 +120,9 @@ export default function ContactPage() {
                     <FormTextarea
                       id="message"
                       label={form.labels.message}
-                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                         updateField("message", e.target.value)
-                      }
+                      }}
                       required
                       rows={6}
                       size="sm"

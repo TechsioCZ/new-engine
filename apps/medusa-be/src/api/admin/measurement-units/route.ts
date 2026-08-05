@@ -23,8 +23,7 @@ const ORDER_FIELDS = new Set([
 ])
 const LEADING_DASH_REGEX = /^-/
 
-const parseOrder = (input?: string) => {
-  const value = input ?? "name"
+const parseOrder = (value: string = "name") => {
   const direction = value.startsWith("-") ? "DESC" : "ASC"
   const field = value.replace(LEADING_DASH_REGEX, "")
 

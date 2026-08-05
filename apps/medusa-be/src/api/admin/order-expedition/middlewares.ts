@@ -10,8 +10,8 @@ import {
 
 export const adminOrderExpeditionRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/admin/order-expedition/orders",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(GetAdminOrderExpeditionOrdersSchema, {
         isList: true,
@@ -19,13 +19,13 @@ export const adminOrderExpeditionRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/order-expedition/pdf",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(PostAdminOrderExpeditionPdfSchema)],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/order-expedition/status",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(PostAdminOrderExpeditionStatusSchema),
     ],

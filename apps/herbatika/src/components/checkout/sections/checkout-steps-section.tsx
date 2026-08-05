@@ -1,9 +1,7 @@
-import {
-  type HerbatikaCheckoutStepItem,
-  HerbatikaCheckoutSteps,
-} from "@/components/checkout/herbatika-checkout-steps"
+import { HerbatikaCheckoutSteps } from "@/components/checkout/herbatika-checkout-steps"
+import type { HerbatikaCheckoutStepItem } from "@/components/checkout/herbatika-checkout-steps"
 
-type CheckoutStepsSectionProps = {
+interface CheckoutStepsSectionProps {
   checkoutStepIndex: number
   completedAriaLabel: string
   onStepChange: (step: number) => void

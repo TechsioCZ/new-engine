@@ -4,7 +4,6 @@ import type { CartQueryKeys } from "./types"
 
 export function createCartQueryKeys(namespace: QueryNamespace): CartQueryKeys {
   return {
-    all: () => createQueryKey(namespace, "cart"),
     active: (params) =>
       createQueryKey(
         namespace,
@@ -12,6 +11,7 @@ export function createCartQueryKeys(namespace: QueryNamespace): CartQueryKeys {
         "active",
         normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
       ),
+    all: () => createQueryKey(namespace, "cart"),
     detail: (cartId) => createQueryKey(namespace, "cart", "detail", cartId),
   }
 }

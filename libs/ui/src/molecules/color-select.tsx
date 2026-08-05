@@ -14,9 +14,12 @@ import { Icon } from "../atoms/icon"
 import { tv } from "../utils"
 
 const colorSelectVariants = tv({
+  defaultVariants: {
+    layout: "list",
+    radius: "full",
+    size: "lg",
+  },
   slots: {
-    group: ["grid place-items-start"],
-    cell: "grid",
     atom: [
       "relative cursor-pointer p-color-select-atom",
       "aspect-square overflow-hidden",
@@ -27,11 +30,14 @@ const colorSelectVariants = tv({
       "focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-[selected=true]:border-color-select-border-selected data-[selected=true]:shadow-none",
     ],
+    cell: "grid",
     color: [
       "absolute",
       "hover:brightness-75 size-full",
       "data-[selected=true]:brightness-75",
     ],
+    countText: ["text-color-select-label-fg text-xs"],
+    group: ["grid place-items-start"],
     icon: [
       "absolute hidden items-center justify-center",
       "text-color-select-fg-check drop-shadow-sm",
@@ -40,64 +46,58 @@ const colorSelectVariants = tv({
     ],
     labelContainer: ["text-center"],
     labelText: ["text-color-select-label-fg text-xs"],
-    countText: ["text-color-select-label-fg text-xs"],
   },
   variants: {
-    radius: {
-      sm: {
-        atom: "rounded-color-select-sm",
-      },
-      md: {
-        atom: "rounded-color-select-md",
-      },
-      lg: {
-        atom: "rounded-color-select-lg",
-      },
-      full: {
-        atom: "rounded-color-select-full",
-      },
-    },
-    size: {
-      sm: {
-        group: "gap-color-select-sm",
-        atom: "h-color-select-sm",
-        icon: "text-icon-color-select-sm",
-      },
-      md: {
-        group: "gap-color-select-md",
-        atom: "h-color-select-md",
-        icon: "text-icon-color-select-md",
-      },
-      lg: {
-        group: "gap-color-select-lg",
-        atom: "h-color-select-lg",
-        icon: "text-icon-color-select-lg",
-      },
-      full: {
-        group: "gap-color-select-md size-full",
-        cell: "size-full",
-        atom: "h-full",
-        icon: "size-color-select-icon",
-      },
-    },
-    layout: {
-      list: {
-        group: "grid-cols-1",
-      },
-      grid: {
-        group: "color-select-grid",
-      },
-    },
     disabled: {
       true: {
         atom: "select-disabled hover:border-color-select-border",
       },
     },
-  },
-  defaultVariants: {
-    radius: "full",
-    size: "lg",
-    layout: "list",
+    layout: {
+      grid: {
+        group: "color-select-grid",
+      },
+      list: {
+        group: "grid-cols-1",
+      },
+    },
+    radius: {
+      full: {
+        atom: "rounded-color-select-full",
+      },
+      lg: {
+        atom: "rounded-color-select-lg",
+      },
+      md: {
+        atom: "rounded-color-select-md",
+      },
+      sm: {
+        atom: "rounded-color-select-sm",
+      },
+    },
+    size: {
+      full: {
+        atom: "h-full",
+        cell: "size-full",
+        group: "gap-color-select-md size-full",
+        icon: "size-color-select-icon",
+      },
+      lg: {
+        atom: "h-color-select-lg",
+        group: "gap-color-select-lg",
+        icon: "text-icon-color-select-lg",
+      },
+      md: {
+        atom: "h-color-select-md",
+        group: "gap-color-select-md",
+        icon: "text-icon-color-select-md",
+      },
+      sm: {
+        atom: "h-color-select-sm",
+        group: "gap-color-select-sm",
+        icon: "text-icon-color-select-sm",
+      },
+    },
   },
 })
 
@@ -138,7 +138,7 @@ export const ColorSelect = ({
     labelContainer,
     labelText,
     countText,
-  } = colorSelectVariants({ layout, size, radius, disabled })
+  } = colorSelectVariants({ disabled, layout, radius, size })
   return (
     <div
       className={group()}

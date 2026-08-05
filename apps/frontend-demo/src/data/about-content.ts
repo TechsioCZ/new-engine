@@ -51,21 +51,17 @@ export interface AboutContent {
 }
 
 export const aboutContent: AboutContent = {
-  hero: {
-    title: "Náš příběh",
-    subtitle: "Vytváříme nadčasové eshopy s účelem a vášní od roku 2008",
-    backgroundImage: "/assets/hero/about.webp",
+  cta: {
+    buttonLink: "/products",
+    buttonText: "Nakupovat naši kolekci",
+    description:
+      "Jsme víc než značka - jsme hnutí směrem k uvědomělé módě. Každý váš nákup podporuje naši misi vytvořit udržitelnější a stylovější svět.",
+    title: "Připojte se k naší cestě",
   },
-  story: {
-    title: "Od vize ke skutečnosti",
-    paragraphs: [
-      "V roce 2024 jsme převzali otěže a vdechli nový život do dlouholeté tradice vývoje špičkových e-commerce řešení, které se píše již od roku 2008.",
-      "Její základy položil Antonín Růšal, který tehdy začal s průkopnickými projekty v oblasti online aukčních portálů a e-shopů. Postupem času se zaměření společnosti výhradně soustředilo na komplexní e-shopová řešení, stavěná na robustním jádru schopném zvládat i ty nejnáročnější požadavky, jako jsou systémy se stovkami milionů individuálních cen. Díky této bohaté historii a neustálému vývoji, který zohledňuje ty nejmodernější technologie, vám dnes můžeme nabídnout řešení, které není jen produktem, ale výsledkem dekád zkušeností a inovací.",
-      "Naše vize je jasná: posunout hranice možného a poskytnout e-shopům s ročním obratem nad 50 milionů korun nástroje, které jim umožní růst a excelovat. Přestože jdeme kupředu s novým elánem a brandem, hluboce si vážíme patnáctileté historie, která stojí za našimi technologiemi.",
-    ],
-    image:
-      "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    imageAlt: "Naše dílna",
+  hero: {
+    backgroundImage: "/assets/hero/about.webp",
+    subtitle: "Vytváříme nadčasové eshopy s účelem a vášní od roku 2008",
+    title: "Náš příběh",
   },
   stats: [
     { value: "50K+", label: "Spokojených zákazníků" },
@@ -73,8 +69,33 @@ export const aboutContent: AboutContent = {
     { value: "25+", label: "Partnerských řemeslníků" },
     { value: "4.9★", label: "Hodnocení zákazníků" },
   ],
+  story: {
+    image:
+      "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    imageAlt: "Naše dílna",
+    paragraphs: [
+      "V roce 2024 jsme převzali otěže a vdechli nový život do dlouholeté tradice vývoje špičkových e-commerce řešení, které se píše již od roku 2008.",
+      "Její základy položil Antonín Růšal, který tehdy začal s průkopnickými projekty v oblasti online aukčních portálů a e-shopů. Postupem času se zaměření společnosti výhradně soustředilo na komplexní e-shopová řešení, stavěná na robustním jádru schopném zvládat i ty nejnáročnější požadavky, jako jsou systémy se stovkami milionů individuálních cen. Díky této bohaté historii a neustálému vývoji, který zohledňuje ty nejmodernější technologie, vám dnes můžeme nabídnout řešení, které není jen produktem, ale výsledkem dekád zkušeností a inovací.",
+      "Naše vize je jasná: posunout hranice možného a poskytnout e-shopům s ročním obratem nad 50 milionů korun nástroje, které jim umožní růst a excelovat. Přestože jdeme kupředu s novým elánem a brandem, hluboce si vážíme patnáctileté historie, která stojí za našimi technologiemi.",
+    ],
+    title: "Od vize ke skutečnosti",
+  },
+  team: {
+    members: [
+      {
+        name: "Petr Glaser",
+        role: "Founder",
+        image: petrImg,
+      },
+      {
+        name: "Pavel Koudelka",
+        role: "Co-Founder",
+        image: pavelImg,
+      },
+    ],
+    title: "Poznejte náš tým",
+  },
   values: {
-    title: "Za čím si stojíme",
     items: [
       {
         title: "Udržitelnost",
@@ -109,27 +130,6 @@ export const aboutContent: AboutContent = {
         icon: "token-icon-global",
       },
     ],
-  },
-  team: {
-    title: "Poznejte náš tým",
-    members: [
-      {
-        name: "Petr Glaser",
-        role: "Founder",
-        image: petrImg,
-      },
-      {
-        name: "Pavel Koudelka",
-        role: "Co-Founder",
-        image: pavelImg,
-      },
-    ],
-  },
-  cta: {
-    title: "Připojte se k naší cestě",
-    description:
-      "Jsme víc než značka - jsme hnutí směrem k uvědomělé módě. Každý váš nákup podporuje naši misi vytvořit udržitelnější a stylovější svět.",
-    buttonText: "Nakupovat naši kolekci",
-    buttonLink: "/products",
+    title: "Za čím si stojíme",
   },
 }

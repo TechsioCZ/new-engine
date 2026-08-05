@@ -4,14 +4,14 @@ import { BadRequestError } from "./db"
 import { parseResolveEnvironmentInput } from "./zane-inputs"
 
 const resolveEnvironmentPayload = {
+  env_overrides: [],
+  environment_name: "pr-123",
+  excluded_preview_service_slugs: [],
+  expected_preview_service_slugs: [],
   lane: "preview",
   project_slug: "storefront",
-  environment_name: "pr-123",
   source_environment_name: "production",
-  expected_preview_service_slugs: [],
-  excluded_preview_service_slugs: [],
   targets: [],
-  env_overrides: [],
 }
 
 test("normalizes service reconciliation specs", () => {
@@ -19,40 +19,40 @@ test("normalizes service reconciliation specs", () => {
     ...resolveEnvironmentPayload,
     service_specs: [
       {
-        service_id: " medusa-be ",
-        service_slug: " api ",
-        git_source: {
-          sync_from_source: true,
-          branch_name: null,
-        },
         builder: {
-          sync_from_source: true,
           build_stage_target: null,
+          sync_from_source: true,
+        },
+        git_source: {
+          branch_name: null,
+          sync_from_source: true,
         },
         healthcheck: {
           sync_from_source: true,
         },
-        resource_limits: null,
         ignored: "value",
+        resource_limits: null,
+        service_id: " medusa-be ",
+        service_slug: " api ",
       },
     ],
   })
 
-  expect(parsed.serviceSpecs).toEqual([
+  expect(parsed.serviceSpecs).toStrictEqual([
     {
-      service_id: "medusa-be",
-      service_slug: "api",
-      git_source: {
-        sync_from_source: true,
-        commit_sha: "HEAD",
-      },
       builder: {
-        sync_from_source: true,
         build_stage_target: null,
+        sync_from_source: true,
+      },
+      git_source: {
+        commit_sha: "HEAD",
+        sync_from_source: true,
       },
       healthcheck: {
         sync_from_source: true,
       },
+      service_id: "medusa-be",
+      service_slug: "api",
     },
   ])
 })
@@ -63,11 +63,11 @@ test("rejects malformed service reconciliation sync flags", () => {
       ...resolveEnvironmentPayload,
       service_specs: [
         {
-          service_id: "medusa-be",
-          service_slug: "api",
           builder: {
             sync_from_source: "true",
           },
+          service_id: "medusa-be",
+          service_slug: "api",
         },
       ],
     })
@@ -77,7 +77,7 @@ test("rejects malformed service reconciliation sync flags", () => {
 test("defaults missing service reconciliation specs to an empty list", () => {
   expect(
     parseResolveEnvironmentInput(resolveEnvironmentPayload).serviceSpecs
-  ).toEqual([])
+  ).toStrictEqual([])
 })
 
 test("rejects invalid service reconciliation specs", () => {

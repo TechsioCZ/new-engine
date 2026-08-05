@@ -7,10 +7,10 @@ export const SYMMY_PRICE_LIST_PRICES_UPDATE_JOB_TYPE =
 export const SYMMY_PRICE_LIST_PRICES_UPDATE_REQUESTED_EVENT =
   "symmy.price_list_prices.update.requested"
 
-export type SymmyPriceListsUpsertRequestedEvent = {
+export interface SymmyPriceListsUpsertRequestedEvent {
   job_id: string
 }
 
-export type SymmyPriceListPricesUpdateRequestedEvent = {
+export interface SymmyPriceListPricesUpdateRequestedEvent {
   job_id: string
 }

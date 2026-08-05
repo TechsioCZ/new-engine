@@ -32,20 +32,26 @@ const workflowMocks = vi.hoisted(() => {
   }
 })
 
-vi.mock("../../../../../../src/links/customer-product-list", () => ({
+vi.mock(import("../../../../../../src/links/customer-product-list"), () => ({
   CustomerProductListLink: { entryPoint: "customer_product_list" },
 }))
 
-vi.mock("../../../../../../src/links/product-list-item-product", () => ({
-  ProductListItemProductLink: { entryPoint: "product_list_item_product" },
-}))
-
-vi.mock("../../../../../../src/links/product-list-item-variant", () => ({
-  ProductListItemVariantLink: { entryPoint: "product_list_item_variant" },
-}))
+vi.mock(
+  import("../../../../../../src/links/product-list-item-product"),
+  () => ({
+    ProductListItemProductLink: { entryPoint: "product_list_item_product" },
+  })
+)
 
 vi.mock(
-  "../../../../../../src/workflows/product-list/workflows/add-favorite-product-list-item",
+  import("../../../../../../src/links/product-list-item-variant"),
+  () => ({
+    ProductListItemVariantLink: { entryPoint: "product_list_item_variant" },
+  })
+)
+
+vi.mock(
+  import("../../../../../../src/workflows/product-list/workflows/add-favorite-product-list-item"),
   () => ({
     addFavoriteProductListItemWorkflow:
       workflowMocks.addFavoriteProductListItemWorkflow,
@@ -53,7 +59,7 @@ vi.mock(
 )
 
 vi.mock(
-  "../../../../../../src/workflows/product-list/workflows/create-customer-product-list",
+  import("../../../../../../src/workflows/product-list/workflows/create-customer-product-list"),
   () => ({
     createCustomerProductListWorkflow:
       workflowMocks.createCustomerProductListWorkflow,
@@ -61,21 +67,21 @@ vi.mock(
 )
 
 vi.mock(
-  "../../../../../../src/workflows/product-list/workflows/create-product-list-item",
+  import("../../../../../../src/workflows/product-list/workflows/create-product-list-item"),
   () => ({
     createProductListItemWorkflow: workflowMocks.createProductListItemWorkflow,
   })
 )
 
 vi.mock(
-  "../../../../../../src/workflows/product-list/workflows/increment-product-list-item",
+  import("../../../../../../src/workflows/product-list/workflows/increment-product-list-item"),
   () => ({
     incrementProductListItemWorkflow:
       workflowMocks.incrementProductListItemWorkflow,
   })
 )
 
-type ProductListServiceMock = {
+interface ProductListServiceMock {
   listAndCountProductLists: ReturnType<typeof vi.fn>
   listProductListItems: ReturnType<typeof vi.fn>
   retrieveProductList: ReturnType<typeof vi.fn>
@@ -189,24 +195,24 @@ describe("Store product-list routes", () => {
   beforeEach(() => {
     workflowMocks.addFavoriteProductListItemRun.mockReset()
     workflowMocks.addFavoriteProductListItemWorkflow.mockReset()
-    workflowMocks.addFavoriteProductListItemWorkflow.mockImplementation(() => ({
+    workflowMocks.addFavoriteProductListItemWorkflow.mockReturnValue({
       run: workflowMocks.addFavoriteProductListItemRun,
-    }))
+    })
     workflowMocks.createCustomerProductListRun.mockReset()
     workflowMocks.createCustomerProductListWorkflow.mockReset()
-    workflowMocks.createCustomerProductListWorkflow.mockImplementation(() => ({
+    workflowMocks.createCustomerProductListWorkflow.mockReturnValue({
       run: workflowMocks.createCustomerProductListRun,
-    }))
+    })
     workflowMocks.createProductListItemRun.mockReset()
     workflowMocks.createProductListItemWorkflow.mockReset()
-    workflowMocks.createProductListItemWorkflow.mockImplementation(() => ({
+    workflowMocks.createProductListItemWorkflow.mockReturnValue({
       run: workflowMocks.createProductListItemRun,
-    }))
+    })
     workflowMocks.incrementProductListItemRun.mockReset()
     workflowMocks.incrementProductListItemWorkflow.mockReset()
-    workflowMocks.incrementProductListItemWorkflow.mockImplementation(() => ({
+    workflowMocks.incrementProductListItemWorkflow.mockReturnValue({
       run: workflowMocks.incrementProductListItemRun,
-    }))
+    })
   })
 
   describe("GET /store/product-lists", () => {

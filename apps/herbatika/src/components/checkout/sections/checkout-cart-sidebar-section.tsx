@@ -10,7 +10,7 @@ import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { CheckoutSelectBenefits } from "../checkout-select-benefits"
 import { CheckoutSelectPromoCode } from "../checkout-select-promo-code"
 
-type CheckoutCartSidebarSectionProps = {
+interface CheckoutCartSidebarSectionProps {
   cartItemsTotalAmount: number
   cartTaxAmount: number
   cartTotalAmount: number

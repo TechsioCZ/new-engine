@@ -5,7 +5,7 @@ import type { ReactNode } from "react"
 
 import { AccountSkeletonSurface } from "@/components/account/account-surface"
 
-type AccountLayoutSkeletonProps = {
+interface AccountLayoutSkeletonProps {
   surface?: ReactNode
   surfaceLines?: number
 }

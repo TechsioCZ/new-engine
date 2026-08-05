@@ -17,9 +17,9 @@ describe("Product Attribute Admin detail pagination", () => {
         [records.slice(skip, skip + take), records.length] as [number[], number]
     )
 
-    await expect(listAllProductAttributeRecords(listPage)).resolves.toEqual(
-      records
-    )
+    await expect(
+      listAllProductAttributeRecords(listPage)
+    ).resolves.toStrictEqual(records)
     expect(listPage).toHaveBeenNthCalledWith(1, 0, 100)
     expect(listPage).toHaveBeenNthCalledWith(2, 100, 100)
   })
@@ -27,14 +27,14 @@ describe("Product Attribute Admin detail pagination", () => {
 
 describe("Product Attribute Admin ordering", () => {
   it("adds a stable id tie-breaker to supported order fields", () => {
-    expect(parseProductAttributeOrder("-label")).toEqual({
+    expect(parseProductAttributeOrder("-label")).toStrictEqual({
       id: "ASC",
       label: "DESC",
     })
   })
 
   it("falls back to a stable label order", () => {
-    expect(parseProductAttributeOrder("unsupported")).toEqual({
+    expect(parseProductAttributeOrder("unsupported")).toStrictEqual({
       id: "ASC",
       label: "ASC",
     })
@@ -104,7 +104,7 @@ describe("Product Attribute Admin detail option loading", () => {
         withDeleted: true,
       }
     )
-    expect(detail[0]?.selected_option).toEqual(
+    expect(detail[0]?.selected_option).toStrictEqual(
       expect.objectContaining({ id: "patopt_selected", usage_count: 3 })
     )
     expect(detail[0]?.definition.usage_count).toBe(4)
@@ -169,7 +169,7 @@ describe("Product Attribute Admin detail option loading", () => {
     const detail = await getProductAttributeDetail(scope as never, "prod_1")
 
     expect(detail).toHaveLength(1)
-    expect(detail[0]).toEqual(
+    expect(detail[0]).toStrictEqual(
       expect.objectContaining({
         assignment: expect.objectContaining({
           id: "pat_assigned",
@@ -227,7 +227,7 @@ describe("Product Attribute option Product usage", () => {
         q: "50%",
         scope: scope as never,
       })
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       count: 1,
       products: [
         {

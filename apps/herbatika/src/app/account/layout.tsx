@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 
 import { AccountShell } from "@/components/account-shell"
 
-type AccountLayoutProps = {
+interface AccountLayoutProps {
   children: ReactNode
 }
 

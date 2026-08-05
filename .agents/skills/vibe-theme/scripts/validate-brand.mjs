@@ -25,7 +25,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const __dirname = import.meta.dirname
 const REPO_ROOT = resolve(__dirname, "..", "..", "..", "..")
 const FIGMA_DIR = join(REPO_ROOT, "libs/ui/src/tokens/figma")
 
@@ -63,14 +63,16 @@ const warn = (m) => {
   warns += 1
   console.warn(`  ⚠ ${m}`)
 }
-const ok = (m) => console.log(`  ✓ ${m}`)
+const ok = (m) => {
+  console.log(`  ✓ ${m}`)
+}
 
 function parseDecls(relDir) {
   const file = join(FIGMA_DIR, relDir, "variables.css")
   if (!existsSync(file)) {
     return null
   }
-  const css = readFileSync(file, "utf8")
+  const css = readFileSync(file, "utf-8")
   const out = new Map()
   DECL_RE.lastIndex = 0
   for (const m of css.matchAll(DECL_RE)) {
@@ -146,16 +148,13 @@ function resolveVar(name, map, seen = new Set()) {
 }
 
 function srgbToLinear(c) {
-  return c <= 0.039_28 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
 }
 
 function hexToLinear(hex) {
   let h = hex.replace("#", "")
   if (h.length === 3) {
-    h = h
-      .split("")
-      .map((x) => x + x)
-      .join("")
+    h = [...h].map((x) => x + x).join("")
   }
   if (h.length !== 6) {
     return null
@@ -181,17 +180,17 @@ function oklchToLinear(str) {
   const H = (Number.parseFloat(m[3]) * Math.PI) / 180
   const a = C * Math.cos(H)
   const b = C * Math.sin(H)
-  const l_ = (L + 0.396_337_777_4 * a + 0.215_803_757_3 * b) ** 3
-  const m_ = (L - 0.105_561_345_8 * a - 0.063_854_172_8 * b) ** 3
-  const s_ = (L - 0.089_484_177_5 * a - 1.291_485_548 * b) ** 3
+  const l_ = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
+  const m_ = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
+  const s_ = (L - 0.0894841775 * a - 1.291485548 * b) ** 3
   return [
-    4.076_741_662_1 * l_ - 3.307_711_591_3 * m_ + 0.230_969_929_2 * s_,
-    -1.268_438_004_6 * l_ + 2.609_757_401_1 * m_ - 0.341_319_396_5 * s_,
-    -0.004_196_086_3 * l_ - 0.703_418_614_7 * m_ + 1.707_614_701 * s_,
+    4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_,
+    -1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_,
+    -0.0041960863 * l_ - 0.7034186147 * m_ + 1.707614701 * s_,
   ]
 }
 
-const NAMED = { white: "#ffffff", black: "#000000" }
+const NAMED = { black: "#000000", white: "#ffffff" }
 
 function toLinear(value) {
   if (!value) {

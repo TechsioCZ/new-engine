@@ -8,7 +8,7 @@ import {
 
 import OrderNote from "./models/order-note"
 
-type UpsertOrderNoteInput = {
+interface UpsertOrderNoteInput {
   note: string
   order_id: string
 }

@@ -8,9 +8,9 @@ import {
   ACTION_REQUIRED_ORDER_BUSINESS_STATUS_IDS,
   isPendingUnpaidOrder,
   ORDER_BUSINESS_STATUS_IDS,
-  type OrderBusinessStatusId,
   resolveOrderBusinessStatus,
 } from "../../../../utils/order-business-status"
+import type { OrderBusinessStatusId } from "../../../../utils/order-business-status"
 import {
   fetchOrderExpeditionOrderNotesByOrderIds,
   resolveOrderExpeditionCustomerSignals,
@@ -28,7 +28,7 @@ import {
 
 const ORDER_EXPEDITION_SUMMARY_BATCH_SIZE = 500
 
-type OrderExpeditionSummaryResponse = {
+interface OrderExpeditionSummaryResponse {
   action_required_count: number
   pending_unpaid_count: number
   scanned_count: number
@@ -42,7 +42,7 @@ type OrderExpeditionSummaryResponse = {
   unhandled_count: number
 }
 
-type OrderCustomerCounters = {
+interface OrderCustomerCounters {
   canceledCount: number
   totalCount: number
 }

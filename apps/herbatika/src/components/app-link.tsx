@@ -1,7 +1,8 @@
-import type { UrlObject } from "url"
+import type { UrlObject } from "node:url"
 
 import type { Route } from "next"
-import NextLink, { type LinkProps } from "next/link"
+import NextLink from "next/link"
+import type { LinkProps } from "next/link"
 import type { AnchorHTMLAttributes } from "react"
 
 import { appHref } from "@/lib/routing"
@@ -14,7 +15,7 @@ type AppLinkProps = Omit<
 }
 
 export default function AppLink({ href, ...props }: AppLinkProps) {
-  const resolvedHref: Route<string> | UrlObject =
+  const resolvedHref: Route | UrlObject =
     typeof href === "string" ? appHref(href) : href
 
   return <NextLink href={resolvedHref} {...props} />

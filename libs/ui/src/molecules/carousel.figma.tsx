@@ -6,23 +6,23 @@ figma.connect(
   Carousel,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1190-50",
   {
-    imports: ['import { Carousel } from "@libs/ui/molecules/carousel"'],
-    props: {
-      size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
-        lg: "lg",
-      }),
-      orientation: figma.enum("orientation", {
-        horizontal: "horizontal",
-        vertical: "vertical",
-      }),
-    },
     example: ({ size, orientation }) => (
       <Carousel orientation={orientation} size={size} slideCount={2}>
         <Carousel.Slide index={0}>Slide 1</Carousel.Slide>
         <Carousel.Slide index={1}>Slide 2</Carousel.Slide>
       </Carousel>
     ),
+    imports: ['import { Carousel } from "@libs/ui/molecules/carousel"'],
+    props: {
+      orientation: figma.enum("orientation", {
+        horizontal: "horizontal",
+        vertical: "vertical",
+      }),
+      size: figma.enum("size", {
+        sm: "sm",
+        md: "md",
+        lg: "lg",
+      }),
+    },
   }
 )

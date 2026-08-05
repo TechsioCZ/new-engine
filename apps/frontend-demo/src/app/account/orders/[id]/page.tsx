@@ -44,7 +44,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
     isLoading: orderLoading,
     error,
   } = useQuery({
-    queryKey: queryKeys.orders.detail(id),
+    enabled: !!user && !!id,
     queryFn: async () => {
       const cachedOrdersList = queryClient.getQueryData<{ orders: Order[] }>(
         queryKeys.orders.list()
@@ -63,7 +63,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
       })
       return response
     },
-    enabled: !!user && !!id,
+    queryKey: queryKeys.orders.detail(id),
     staleTime: 5 * 60 * 1000,
   })
 

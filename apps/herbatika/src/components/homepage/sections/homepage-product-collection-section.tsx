@@ -5,7 +5,7 @@ import type { HomepageProductSection } from "@/components/homepage/homepage.type
 import { ProductCollectionSection } from "@/components/product/product-collection-section"
 import { TextActionLink } from "@/components/text-action-link"
 
-type HomepageProductCollectionSectionProps = {
+interface HomepageProductCollectionSectionProps {
   section: HomepageProductSection
   shouldShowProductSkeleton: boolean
   onProductHoverStart: (product: HttpTypes.StoreProduct) => void

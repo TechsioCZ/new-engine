@@ -55,10 +55,11 @@ import type { RegionQueryKeys } from "../regions/types"
 import type { MedusaProductReviewListInput } from "../reviews/medusa-service"
 import { createProductReviewQueryKeys } from "../reviews/query-keys"
 import type { ProductReviewQueryKeys } from "../reviews/types"
-import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
+import { createCacheConfig } from "../shared/cache-config"
+import type { CacheConfig } from "../shared/cache-config"
 import type { QueryNamespace } from "../shared/query-keys"
 
-export type MedusaStorefrontQueryKeys = {
+export interface MedusaStorefrontQueryKeys {
   auth: AuthQueryKeys
   cart: CartQueryKeys
   checkout: CheckoutQueryKeys
@@ -84,7 +85,7 @@ export type MedusaStorefrontQueryKeys = {
   reviews: ProductReviewQueryKeys<MedusaProductReviewListInput>
 }
 
-export type MedusaStorefrontFoundationConfig = {
+export interface MedusaStorefrontFoundationConfig {
   queryKeyNamespace?: QueryNamespace
   cacheConfig?: CacheConfig
 }
@@ -95,38 +96,38 @@ export function createMedusaStorefrontQueryKeys(
   return {
     auth: createAuthQueryKeys(namespace),
     cart: createCartQueryKeys(namespace),
-    checkout: createCheckoutQueryKeys(namespace),
-    products: createProductQueryKeys<
-      MedusaProductListInput,
-      MedusaProductDetailInput
-    >(namespace),
-    productLists: createProductListQueryKeys<
-      MedusaProductListListKeyInput,
-      MedusaProductListDetailKeyInput
-    >(namespace),
-    productAttributes:
-      createProductAttributeQueryKeys<MedusaProductAttributesInput>(namespace),
-    productLocationAvailability:
-      createProductLocationAvailabilityQueryKeys<MedusaProductLocationAvailabilityInput>(
-        namespace
-      ),
-    orders: createOrderQueryKeys<MedusaOrderListInput, MedusaOrderDetailInput>(
-      namespace
-    ),
-    customers: createCustomerQueryKeys<MedusaCustomerListInput>(namespace),
-    regions: createRegionQueryKeys<
-      MedusaRegionListInput,
-      MedusaRegionDetailInput
-    >(namespace),
+    catalog: createCatalogQueryKeys<MedusaCatalogListInput>(namespace),
     categories: createCategoryQueryKeys<
       MedusaCategoryListInput,
       MedusaCategoryDetailInput
     >(namespace),
+    checkout: createCheckoutQueryKeys(namespace),
     collections: createCollectionQueryKeys<
       MedusaCollectionListInput,
       MedusaCollectionDetailInput
     >(namespace),
-    catalog: createCatalogQueryKeys<MedusaCatalogListInput>(namespace),
+    customers: createCustomerQueryKeys<MedusaCustomerListInput>(namespace),
+    orders: createOrderQueryKeys<MedusaOrderListInput, MedusaOrderDetailInput>(
+      namespace
+    ),
+    productAttributes:
+      createProductAttributeQueryKeys<MedusaProductAttributesInput>(namespace),
+    productLists: createProductListQueryKeys<
+      MedusaProductListListKeyInput,
+      MedusaProductListDetailKeyInput
+    >(namespace),
+    productLocationAvailability:
+      createProductLocationAvailabilityQueryKeys<MedusaProductLocationAvailabilityInput>(
+        namespace
+      ),
+    products: createProductQueryKeys<
+      MedusaProductListInput,
+      MedusaProductDetailInput
+    >(namespace),
+    regions: createRegionQueryKeys<
+      MedusaRegionListInput,
+      MedusaRegionDetailInput
+    >(namespace),
     reviews:
       createProductReviewQueryKeys<MedusaProductReviewListInput>(namespace),
   }
@@ -139,8 +140,8 @@ export function resolveMedusaStorefrontFoundation(
   const cacheConfig = config.cacheConfig ?? createCacheConfig()
 
   return {
-    namespace,
     cacheConfig,
     defaultQueryKeys: createMedusaStorefrontQueryKeys(namespace),
+    namespace,
   }
 }

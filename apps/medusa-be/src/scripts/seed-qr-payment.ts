@@ -14,15 +14,13 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import {
-  type SetRegionsPaymentProvidersStepInput,
-  setRegionsPaymentProvidersStep,
-} from "@medusajs/medusa/core-flows"
+import { setRegionsPaymentProvidersStep } from "@medusajs/medusa/core-flows"
+import type { SetRegionsPaymentProvidersStepInput } from "@medusajs/medusa/core-flows"
 
 import { QR_PAYMENT_MEDUSA_PROVIDER_ID } from "../modules/payment-qr/constants"
 import { SYSTEM_DEFAULT_PAYMENT_PROVIDER_ID } from "../workflows/seed/constants"
 
-type RegionPaymentProviderLink = {
+interface RegionPaymentProviderLink {
   payment_provider_id: string
   region_id: string
 }

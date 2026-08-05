@@ -1,6 +1,6 @@
 export type FlatStorefrontMessages = Readonly<Record<string, string>>
 
-export type NestedStorefrontMessages = {
+export interface NestedStorefrontMessages {
   [key: string]: NestedStorefrontMessages | string
 }
 
@@ -35,7 +35,7 @@ const getOrCreateMessageNamespace = (
     : undefined
 
   if (typeof existingValue === "string") {
-    throw new Error(`Conflicting storefront message key: ${key}`)
+    throw new TypeError(`Conflicting storefront message key: ${key}`)
   }
 
   if (existingValue) {

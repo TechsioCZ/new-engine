@@ -3,11 +3,11 @@ import { describe, expect, it, vi } from "vitest"
 
 import {
   assertCommercialValuesEditable,
-  type CommercialValuesOrder,
   fetchCommercialValuesSnapshotOrder,
   toCommercialValuesCalculationInput,
   toCommercialValuesSnapshot,
 } from "../../../../../../../../src/api/admin/orders/[id]/commercial-values/utils"
+import type { CommercialValuesOrder } from "../../../../../../../../src/api/admin/orders/[id]/commercial-values/utils"
 import {
   calculateCommercialValuesPreview,
   MANUAL_ITEM_DISCOUNT_CODE,
@@ -129,7 +129,7 @@ describe("commercial values route utils", () => {
       }
     )
 
-    expect(snapshot.edit_blockers).toEqual([
+    expect(snapshot.edit_blockers).toStrictEqual([
       {
         code: "order_status_not_editable",
         status: "canceled",
@@ -149,8 +149,8 @@ describe("commercial values route utils", () => {
       version: 1,
     })
 
-    expect(snapshot.editable).toBe(true)
-    expect(snapshot.edit_blockers).toEqual([])
+    expect(snapshot.editable).toBeTruthy()
+    expect(snapshot.edit_blockers).toStrictEqual([])
   })
 
   it("uses pending edit preview items without dropping order fields", async () => {
@@ -209,7 +209,7 @@ describe("commercial values route utils", () => {
     )
 
     expect(snapshot.currency_code).toBe("czk")
-    expect(snapshot.editable).toBe(true)
+    expect(snapshot.editable).toBeTruthy()
     expect(snapshot.expected_order_version).toBe(1)
     expect(getRequired(snapshot.items, 0)).toMatchObject({
       item_id: "item_1",
@@ -407,7 +407,7 @@ describe("commercial values route utils", () => {
 
     expect(preview.shipping_discount_total).toBe(25)
     expect(getRequired(preview.shipping_methods, 0).final_total).toBeCloseTo(
-      69.166_666_666_666_67
+      69.16666666666667
     )
     expect(getRequired(preview.shipping_methods, 0)).toMatchObject({
       final_total_with_tax: 83,
@@ -415,7 +415,7 @@ describe("commercial values route utils", () => {
       shipping_method_id: "ship_1",
     })
     expect(getRequired(preview.shipping_methods, 0).tax_total).toBeCloseTo(
-      13.833_333_333_333_329
+      13.833333333333329
     )
     expect(preview.new_total).toBe(1083)
   })
@@ -429,8 +429,8 @@ describe("commercial values route utils", () => {
             is_discountable: true,
             is_tax_inclusive: true,
             quantity: 1,
-            subtotal: 6.902_439_024_390_244,
-            tax_total: 1.587_560_975_609_756_2,
+            subtotal: 6.902439024390244,
+            tax_total: 1.5875609756097562,
             total: 8.49,
             unit_price: 8.49,
           },
@@ -439,8 +439,8 @@ describe("commercial values route utils", () => {
           {
             id: "ship_1",
             name: "Express",
-            subtotal: 8.130_081_300_813_009,
-            tax_total: 1.869_918_699_186_991_8,
+            subtotal: 8.130081300813009,
+            tax_total: 1.8699186991869918,
           },
         ],
         total: 18.49,
@@ -475,8 +475,8 @@ describe("commercial values route utils", () => {
           is_discountable: true,
           is_tax_inclusive: true,
           quantity: 1,
-          subtotal: 6.902_439_024_390_244,
-          tax_total: 1.587_560_975_609_756_2,
+          subtotal: 6.902439024390244,
+          tax_total: 1.5875609756097562,
           total: 8.49,
           unit_price: 8.49,
         },
@@ -485,8 +485,8 @@ describe("commercial values route utils", () => {
         {
           id: "ship_1",
           name: "Express",
-          subtotal: 8.130_081_300_813_009,
-          tax_total: 1.869_918_699_186_991_8,
+          subtotal: 8.130081300813009,
+          tax_total: 1.8699186991869918,
         },
       ],
       total: 18.49,
@@ -526,7 +526,7 @@ describe("commercial values route utils", () => {
   })
 
   it("maps persisted taxable shipping adjustments back to displayed amounts", () => {
-    const nativeShippingDiscount = 9 * (8.130_081_300_813_009 / 10)
+    const nativeShippingDiscount = 9 * (8.130081300813009 / 10)
     const order = createMockOrder({
       currency_code: "eur",
       items: [
@@ -542,8 +542,8 @@ describe("commercial values route utils", () => {
           is_discountable: true,
           is_tax_inclusive: true,
           quantity: 1,
-          subtotal: 6.902_439_024_390_244,
-          tax_total: 1.587_560_975_609_756_2,
+          subtotal: 6.902439024390244,
+          tax_total: 1.5875609756097562,
           total: 8.49,
           unit_price: 8.49,
         },
@@ -560,8 +560,8 @@ describe("commercial values route utils", () => {
           ],
           id: "ship_1",
           name: "Express",
-          subtotal: 8.130_081_300_813_009,
-          tax_total: 1.869_918_699_186_991_8,
+          subtotal: 8.130081300813009,
+          tax_total: 1.8699186991869918,
         },
       ],
       total: 1,
@@ -610,7 +610,7 @@ describe("commercial values route utils", () => {
     expect(
       getRequired(getRequired(snapshot.items, 0).existing_adjustments, 0)
         .discount_intent
-    ).toEqual({
+    ).toStrictEqual({
       type: "percentage",
       value_bps: 9000,
     })
@@ -633,7 +633,7 @@ describe("commercial values route utils", () => {
           is_discountable: true,
           is_tax_inclusive: true,
           quantity: 1,
-          subtotal: 6.902_439_024_390_244,
+          subtotal: 6.902439024390244,
           tax_total: 0,
           total: 0,
           unit_price: 8.49,
@@ -652,8 +652,8 @@ describe("commercial values route utils", () => {
           amount: 10,
           id: "ship_1",
           name: "Express",
-          subtotal: 8.130_081_300_813_009,
-          tax_total: -0.200_081_300_813_008_12,
+          subtotal: 8.130081300813009,
+          tax_total: -0.20008130081300812,
           total: -1.07,
         },
       ],
@@ -682,7 +682,7 @@ describe("commercial values route utils", () => {
     expect(snapshot.totals.original_total).toBeCloseTo(18.49)
     expect(
       getRequired(snapshot.shipping_methods, 0).current_tax_total
-    ).toBeCloseTo(1.869_918_699_186_991_8)
+    ).toBeCloseTo(1.8699186991869918)
     expect(
       getRequired(
         getRequired(snapshot.shipping_methods, 0).existing_adjustments,
@@ -728,26 +728,26 @@ describe("commercial values route utils", () => {
   })
 
   it("uses semantic errors for editability blockers", () => {
-    expect(() =>
+    expect(() => {
       assertCommercialValuesEditable(createMockOrder({ status: "canceled" }))
-    ).toThrow("Order status canceled is not editable")
+    }).toThrow("Order status canceled is not editable")
 
-    expect(() =>
+    expect(() => {
       assertCommercialValuesEditable(createMockOrder(), {
         change_type: "edit",
         id: "oc_1",
         status: "requested",
         version: 1,
       })
-    ).toThrow("Order already has active order change oc_1")
+    }).toThrow("Order already has active order change oc_1")
 
-    expect(() =>
+    expect(() => {
       assertCommercialValuesEditable(createMockOrder(), {
         change_type: "edit",
         id: "oc_2",
         status: "pending",
         version: 1,
       })
-    ).not.toThrow()
+    }).not.toThrow()
   })
 })

@@ -6,8 +6,10 @@ import { resolveVariantInventoryState } from "@/lib/storefront/product-availabil
 import {
   getProductListTitle,
   isFavoriteProductList,
-  type StoreProductList,
-  type StoreProductListItem,
+} from "@/lib/storefront/product-lists"
+import type {
+  StoreProductList,
+  StoreProductListItem,
 } from "@/lib/storefront/product-lists"
 import {
   asStorefrontNumber,
@@ -17,24 +19,24 @@ import {
   resolveStorefrontPrice,
 } from "@/lib/storefront/product-pricing"
 
-export type ProductListPriceSummary = {
+export interface ProductListPriceSummary {
   totalWithTaxLabel: string | null
   totalWithoutTaxLabel: string | null
 }
 
-export type ProductListItemAvailability = {
+export interface ProductListItemAvailability {
   availableQuantity: number | null
   badgeVariant: "danger" | "warning"
   canAddToCart: boolean
   status: "limited_stock" | "out_of_stock" | "product_unavailable" | null
 }
 
-type ProductListAvailableItem = {
+interface ProductListAvailableItem {
   item: StoreProductListItem
   product: HttpTypes.StoreProduct
 }
 
-export type ProductListAvailabilitySummary = {
+export interface ProductListAvailabilitySummary {
   canAddAnyToCart: boolean
   canAddWholeList: boolean
   purchasableItems: ProductListAvailableItem[]
@@ -59,14 +61,13 @@ export const sortProductLists = (
     )
   })
 
-export const uniqueProductIds = (items: StoreProductListItem[]) =>
-  Array.from(
-    new Set(
-      items
-        .map((item) => item.product_id ?? item.product?.id)
-        .filter((id): id is string => Boolean(id))
-    )
-  )
+export const uniqueProductIds = (items: StoreProductListItem[]) => [
+  ...new Set(
+    items
+      .map((item) => item.product_id ?? item.product?.id)
+      .filter((id): id is string => Boolean(id))
+  ),
+]
 
 export const buildProductMap = (
   items: StoreProductListItem[],
@@ -210,9 +211,9 @@ const resolveProductListItemPrice = (params: {
   const calculatedPrice = asStorefrontRecord(variant?.calculated_price)
   const topOffer = resolveProductTopOffer(product)
   const price = resolveStorefrontPrice({
-    calculatedAmount: calculatedPrice?.["calculated_amount"],
-    calculatedCurrencyCode: calculatedPrice?.["currency_code"],
-    calculatedOriginalAmount: calculatedPrice?.["original_amount"],
+    calculatedAmount: calculatedPrice?.calculated_amount,
+    calculatedCurrencyCode: calculatedPrice?.currency_code,
+    calculatedOriginalAmount: calculatedPrice?.original_amount,
     expectedCurrencyCode: currencyCode,
     topOffer,
   })
@@ -224,14 +225,14 @@ const resolveProductListItemPrice = (params: {
   const variantMetadata = asStorefrontRecord(variant?.metadata)
   const calculatedAmountWithoutTax =
     price.source === "calculated_price"
-      ? asStorefrontNumber(calculatedPrice?.["calculated_amount_without_tax"])
+      ? asStorefrontNumber(calculatedPrice?.calculated_amount_without_tax)
       : null
   const amountWithoutTax = resolveAmountWithoutTax({
     amountWithTax: price.currentAmount,
     amountWithoutTax: calculatedAmountWithoutTax,
     vatRate:
-      asStorefrontNumber(variantMetadata?.["vat"]) ??
-      asStorefrontNumber(topOffer?.["vat"]),
+      asStorefrontNumber(variantMetadata?.vat) ??
+      asStorefrontNumber(topOffer?.vat),
   })
 
   return {

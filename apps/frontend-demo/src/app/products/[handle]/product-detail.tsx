@@ -18,18 +18,18 @@ import { truncateProductTitle } from "@/lib/order-utils"
 import type { Product } from "@/types/product"
 import { formatPrice } from "@/utils/price-utils"
 
-type ProductDetailProps = {
+interface ProductDetailProps {
   handle: string
 }
 
 function getProductBadges(metadata: Product["metadata"]): BadgeProps[] {
   const badges: BadgeProps[] = []
 
-  if (metadata?.["isNew"]) {
+  if (metadata?.isNew) {
     badges.push({ children: "New", variant: "info" })
   }
 
-  const discount = metadata?.["discount"]
+  const discount = metadata?.discount
   if (typeof discount === "number" || typeof discount === "string") {
     badges.push({
       children: `${discount}% OFF`,
@@ -55,11 +55,11 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
   }, [product])
 
   const { products: relatedProducts } = useProducts({
+    enabled: !!titleQuery && !!selectedRegion?.id,
+    limit: 5,
     q: titleQuery,
     region_id: selectedRegion?.id,
-    limit: 5,
     sort: "newest",
-    enabled: !!titleQuery && !!selectedRegion?.id,
   })
 
   // Filter out the current product from related products
@@ -123,10 +123,10 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
 
   const galleryImages =
     product.images?.map((img, idx) => ({
-      id: `image-${idx}`,
-      src: img.url,
       alt: img.alt || product.title,
+      id: `image-${idx}`,
       imageProps: { fill: true, sizes: "400px" },
+      src: img.url,
     })) || []
 
   return (
@@ -136,11 +136,11 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
         <div className="mb-product-detail-breadcrumb-margin">
           <BreadcrumbTemplate
             items={[
-              { label: "Domů", href: "/" },
-              { label: "Produkty", href: "/products" },
+              { href: "/", label: "Domů" },
+              { href: "/products", label: "Produkty" },
               {
-                label: truncateProductTitle(product.title),
                 href: `/products/${product.handle}`,
+                label: truncateProductTitle(product.title),
               },
             ]}
             linkAs={Link}

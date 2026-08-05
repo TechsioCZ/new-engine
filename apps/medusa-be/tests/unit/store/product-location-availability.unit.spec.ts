@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest"
 
-import {
-  buildProductLocationAvailability,
-  type InventoryLevel,
-  type StockLocationRecord,
-  type VariantInventoryItemLink,
+import { buildProductLocationAvailability } from "../../../src/api/store/products/[id]/location-availability/availability"
+import type {
+  InventoryLevel,
+  StockLocationRecord,
+  VariantInventoryItemLink,
 } from "../../../src/api/store/products/[id]/location-availability/availability"
 
 const STORE_LOCATION = {
@@ -66,7 +66,7 @@ const warehouseAvailability = (
   return entry
 }
 
-describe("buildProductLocationAvailability", () => {
+describe(buildProductLocationAvailability, () => {
   it("returns configured stock locations for every variant and defaults missing levels to zero", () => {
     expect(
       buildProductLocationAvailability({
@@ -76,7 +76,7 @@ describe("buildProductLocationAvailability", () => {
         stockLocations: STOCK_LOCATIONS,
         variantIds: ["variant_1", "variant_2"],
       })
-    ).toEqual({
+    ).toStrictEqual({
       product_id: "prod_1",
       variants: [
         {
@@ -129,7 +129,7 @@ describe("buildProductLocationAvailability", () => {
       variantIds: ["variant_1"],
     })
 
-    expect(firstVariant(response).location_availability).toEqual([
+    expect(firstVariant(response).location_availability).toStrictEqual([
       {
         available_quantity: 4,
         location_id: "sloc_default",
@@ -207,7 +207,7 @@ describe("buildProductLocationAvailability", () => {
       variantIds: ["variant_1"],
     })
 
-    expect(firstVariant(response).location_availability).toEqual([
+    expect(firstVariant(response).location_availability).toStrictEqual([
       {
         available_quantity: 3,
         location_id: STORE_LOCATION.id,

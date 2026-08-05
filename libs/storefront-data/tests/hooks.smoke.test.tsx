@@ -2,6 +2,7 @@ import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import type { ReactNode } from "react"
+import { it, afterEach, expect, describe, beforeEach } from "vitest"
 
 import { createCartHooks } from "../src/cart/hooks"
 import { createCartQueryKeys } from "../src/cart/query-keys"
@@ -54,7 +55,7 @@ describe("storefront-data hook smoke tests", () => {
   const baseUrl = "https://storefront.test"
 
   describe("cart address helper", () => {
-    type AddressInput = {
+    interface AddressInput {
       firstName: string
       lastName: string
       address1: string
@@ -64,7 +65,7 @@ describe("storefront-data hook smoke tests", () => {
       company?: string
     }
 
-    type AddressPayload = {
+    interface AddressPayload {
       first_name: string
       last_name: string
       address_1: string
@@ -74,14 +75,14 @@ describe("storefront-data hook smoke tests", () => {
       company?: string
     }
 
-    type Cart = {
+    interface Cart {
       id: string
       region_id?: string | null
       shipping_address?: AddressPayload
       billing_address?: AddressPayload
     }
 
-    type UpdateParams = {
+    interface UpdateParams {
       email?: string
       region_id?: string
       shipping_address?: AddressPayload
@@ -105,10 +106,10 @@ describe("storefront-data hook smoke tests", () => {
           lastUpdatePayload = payload
           return HttpResponse.json({
             cart: {
+              billing_address: payload.billing_address,
               id: String(params["cartId"]),
               region_id: payload.region_id ?? null,
               shipping_address: payload.shipping_address,
-              billing_address: payload.billing_address,
             },
           })
         })
@@ -124,8 +125,8 @@ describe("storefront-data hook smoke tests", () => {
         never,
         unknown
       > = {
-        retrieveCart: async () => null,
         createCart: async () => ({ id: "cart_test" }),
+        retrieveCart: async () => null,
         updateCart: async (cartId, params) => {
           const response = await fetch(`${baseUrl}/carts/${cartId}`, {
             method: "POST",
@@ -149,12 +150,12 @@ describe("storefront-data hook smoke tests", () => {
       })
 
       const buildAddressPayload = (input: AddressInput): AddressPayload => ({
-        first_name: input.firstName,
-        last_name: input.lastName,
         address_1: input.address1,
         city: input.city,
-        postal_code: input.postalCode,
         country_code: input.countryCode,
+        first_name: input.firstName,
+        last_name: input.lastName,
+        postal_code: input.postalCode,
         ...(input.company ? { company: input.company } : {}),
       })
 
@@ -174,11 +175,6 @@ describe("storefront-data hook smoke tests", () => {
         AddressInput,
         AddressPayload
       >({
-        service: cartService,
-        buildUpdateParams,
-        buildAddParams: (input) => input,
-        buildUpdateItemParams: (input) => input,
-        queryKeys: cartQueryKeys,
         addressAdapter: {
           normalize: (input) => ({
             ...input,
@@ -186,6 +182,7 @@ describe("storefront-data hook smoke tests", () => {
             lastName: input.lastName.trim(),
             address1: input.address1.trim(),
           }),
+          toPayload: (input) => buildAddressPayload(input),
           validate: (input, context) => {
             const issues: StorefrontAddressValidationIssue[] = []
             if (!input.firstName) {
@@ -206,16 +203,20 @@ describe("storefront-data hook smoke tests", () => {
             }
             return issues.length ? issues : null
           },
-          toPayload: (input) => buildAddressPayload(input),
         },
+        buildAddParams: (input) => input,
+        buildUpdateItemParams: (input) => input,
+        buildUpdateParams,
+        queryKeys: cartQueryKeys,
+        service: cartService,
       })
 
       const queryClient = createTestClient({
         defaultOptions: {
-          queries: {
+          mutations: {
             retry: false,
           },
-          mutations: {
+          queries: {
             retry: false,
           },
         },
@@ -225,19 +226,19 @@ describe("storefront-data hook smoke tests", () => {
       const { result } = renderHook(() => useUpdateCartAddress(), { wrapper })
 
       const shippingInput: AddressInput = {
-        firstName: "Test",
-        lastName: "User",
         address1: "Main 1",
         city: "Prague",
-        postalCode: "11000",
         countryCode: "cz",
+        firstName: "Test",
+        lastName: "User",
+        postalCode: "11000",
       }
 
       await act(async () => {
         await result.current.mutateAsync({
           cartId: "cart_123",
-          region_id: "reg_123",
           email: "test@example.com",
+          region_id: "reg_123",
           shippingAddress: shippingInput,
           useSameAddress: true,
         })
@@ -259,15 +260,18 @@ describe("storefront-data hook smoke tests", () => {
   })
 
   describe("infinite products", () => {
-    type Product = { id: string; title: string }
+    interface Product {
+      id: string
+      title: string
+    }
 
-    type ProductListParams = {
+    interface ProductListParams {
       limit: number
       offset: number
       region_id?: string
     }
 
-    type ProductDetailParams = {
+    interface ProductDetailParams {
       handle: string
     }
 
@@ -303,10 +307,10 @@ describe("storefront-data hook smoke tests", () => {
           }))
 
           return HttpResponse.json({
-            products,
             count: 4,
             limit,
             offset,
+            products,
           })
         })
       )
@@ -316,6 +320,7 @@ describe("storefront-data hook smoke tests", () => {
         ProductListParams,
         ProductDetailParams
       > = {
+        getProductByHandle: async () => null,
         getProducts: async (params) => {
           const query = new URLSearchParams({
             limit: String(params.limit),
@@ -323,16 +328,15 @@ describe("storefront-data hook smoke tests", () => {
             region_id: params.region_id ?? "",
           })
           const response = await fetch(`${baseUrl}/products?${query}`)
-          return response.json()
+          return await response.json()
         },
-        getProductByHandle: async () => null,
       }
 
       const queryKeyNamespace = "smoke-products"
       const { useInfiniteProducts } = createProductHooks({
-        service,
         buildListParams,
         queryKeyNamespace,
+        service,
       })
 
       const queryClient = createTestClient({
@@ -346,20 +350,20 @@ describe("storefront-data hook smoke tests", () => {
         ProductDetailParams
       >(queryKeyNamespace)
 
-      const listParams = buildListParams({ page: 1, limit: 2 })
+      const listParams = buildListParams({ limit: 2, page: 1 })
       queryClient.setQueryData(queryKeys.list(listParams), {
-        products: [],
         count: 4,
         limit: 2,
         offset: 0,
+        products: [],
       })
 
       const wrapper = createWrapper(queryClient)
       const { result } = renderHook(
         () =>
           useInfiniteProducts({
-            page: 1,
             limit: 2,
+            page: 1,
             region_id: "reg_infinite",
           }),
         { wrapper }
@@ -376,11 +380,12 @@ describe("storefront-data hook smoke tests", () => {
       })
 
       await waitFor(() => {
-        expect(result.current.products.length).toBe(4)
+        expect(result.current.products).toHaveLength(4)
       })
 
-      expect(offsets).toEqual([0, 2])
+      expect(offsets).toStrictEqual([0, 2])
     })
+
     it("advances page index when initial limit differs", async () => {
       const offsets: number[] = []
 
@@ -397,10 +402,10 @@ describe("storefront-data hook smoke tests", () => {
           }))
 
           return HttpResponse.json({
-            products,
             count: 12,
             limit,
             offset,
+            products,
           })
         })
       )
@@ -410,6 +415,7 @@ describe("storefront-data hook smoke tests", () => {
         ProductListParams,
         ProductDetailParams
       > = {
+        getProductByHandle: async () => null,
         getProducts: async (params) => {
           const query = new URLSearchParams({
             limit: String(params.limit),
@@ -417,15 +423,14 @@ describe("storefront-data hook smoke tests", () => {
             region_id: params.region_id ?? "",
           })
           const response = await fetch(`${baseUrl}/products?${query}`)
-          return response.json()
+          return await response.json()
         },
-        getProductByHandle: async () => null,
       }
 
       const { useInfiniteProducts } = createProductHooks({
-        service,
         buildListParams,
         queryKeyNamespace: "smoke-products-initial-limit",
+        service,
       })
 
       const queryClient = createTestClient({
@@ -438,16 +443,16 @@ describe("storefront-data hook smoke tests", () => {
       const { result } = renderHook(
         () =>
           useInfiniteProducts({
-            page: 1,
-            limit: 4,
             initialLimit: 2,
+            limit: 4,
+            page: 1,
             region_id: "reg_infinite",
           }),
         { wrapper }
       )
 
       await waitFor(() => {
-        expect(result.current.products.length).toBe(2)
+        expect(result.current.products).toHaveLength(2)
       })
 
       await act(async () => {
@@ -455,22 +460,24 @@ describe("storefront-data hook smoke tests", () => {
       })
 
       await waitFor(() => {
-        expect(result.current.products.length).toBe(6)
+        expect(result.current.products).toHaveLength(6)
       })
 
-      expect(offsets).toEqual([0, 4])
+      expect(offsets).toStrictEqual([0, 4])
     })
   })
 
   describe("orders", () => {
-    type Order = { id: string }
+    interface Order {
+      id: string
+    }
 
-    type OrderListParams = {
+    interface OrderListParams {
       limit: number
       offset: number
     }
 
-    type OrderDetailParams = {
+    interface OrderDetailParams {
       id: string
     }
 
@@ -497,10 +504,10 @@ describe("storefront-data hook smoke tests", () => {
           const limit = Number(url.searchParams.get("limit") ?? "0")
           const offset = Number(url.searchParams.get("offset") ?? "0")
           return HttpResponse.json({
-            orders: [{ id: "order_1" }],
             count: 1,
             limit,
             offset,
+            orders: [{ id: "order_1" }],
           })
         }),
         http.get(`${baseUrl}/orders/:id`, ({ params }) =>
@@ -509,26 +516,26 @@ describe("storefront-data hook smoke tests", () => {
       )
 
       const service: OrderService<Order, OrderListParams, OrderDetailParams> = {
+        getOrder: async (params) => {
+          const response = await fetch(`${baseUrl}/orders/${params.id}`)
+          const data = await response.json()
+          return data.order as Order
+        },
         getOrders: async (params) => {
           const query = new URLSearchParams({
             limit: String(params.limit),
             offset: String(params.offset),
           })
           const response = await fetch(`${baseUrl}/orders?${query}`)
-          return response.json()
-        },
-        getOrder: async (params) => {
-          const response = await fetch(`${baseUrl}/orders/${params["id"]}`)
-          const data = await response.json()
-          return data.order as Order
+          return await response.json()
         },
       }
 
       const { useOrders, useOrder } = createOrderHooks({
-        service,
-        buildListParams,
         buildDetailParams,
+        buildListParams,
         queryKeyNamespace: "smoke-orders",
+        service,
       })
 
       const queryClient = createTestClient({
@@ -537,12 +544,12 @@ describe("storefront-data hook smoke tests", () => {
 
       const wrapper = createWrapper(queryClient)
 
-      const listHook = renderHook(() => useOrders({ page: 1, limit: 1 }), {
+      const listHook = renderHook(() => useOrders({ limit: 1, page: 1 }), {
         wrapper,
       })
 
       await waitFor(() => {
-        expect(listHook.result.current.isSuccess).toBe(true)
+        expect(listHook.result.current.isSuccess).toBeTruthy()
       })
 
       expect(listHook.result.current.orders).toHaveLength(1)
@@ -558,13 +565,24 @@ describe("storefront-data hook smoke tests", () => {
   })
 
   describe("customers", () => {
-    type Address = { id: string; address_1?: string }
-    type Customer = { id: string }
+    interface Address {
+      id: string
+      address_1?: string
+    }
+    interface Customer {
+      id: string
+    }
 
     type ListParams = Record<string, never>
-    type CreateParams = { address_1?: string }
-    type UpdateParams = { address_1?: string }
-    type UpdateCustomerParams = { metadata?: Record<string, unknown> }
+    interface CreateParams {
+      address_1?: string
+    }
+    interface UpdateParams {
+      address_1?: string
+    }
+    interface UpdateCustomerParams {
+      metadata?: Record<string, unknown>
+    }
 
     let lastCreateBody: CreateParams | null = null
     let lastUpdateBody: Record<string, unknown> | null = null
@@ -575,13 +593,13 @@ describe("storefront-data hook smoke tests", () => {
       server.use(
         http.get(`${baseUrl}/customers/me/addresses`, () =>
           HttpResponse.json({
-            addresses: [{ id: "addr_1", address_1: "Main" }],
+            addresses: [{ address_1: "Main", id: "addr_1" }],
           })
         ),
         http.post(`${baseUrl}/customers/me/addresses`, async ({ request }) => {
           lastCreateBody = (await request.json()) as CreateParams
           return HttpResponse.json({
-            address: { id: "addr_2", address_1: "New" },
+            address: { address_1: "New", id: "addr_2" },
           })
         }),
         http.post(
@@ -589,7 +607,7 @@ describe("storefront-data hook smoke tests", () => {
           async ({ request, params }) => {
             lastUpdateBody = (await request.json()) as Record<string, unknown>
             return HttpResponse.json({
-              address: { id: String(params["id"]), address_1: "Updated" },
+              address: { address_1: "Updated", id: String(params["id"]) },
             })
           }
         ),
@@ -612,10 +630,6 @@ describe("storefront-data hook smoke tests", () => {
         UpdateParams,
         UpdateCustomerParams
       > = {
-        getAddresses: async () => {
-          const response = await fetch(`${baseUrl}/customers/me/addresses`)
-          return response.json()
-        },
         createAddress: async (params) => {
           const response = await fetch(`${baseUrl}/customers/me/addresses`, {
             method: "POST",
@@ -624,6 +638,15 @@ describe("storefront-data hook smoke tests", () => {
           })
           const data = await response.json()
           return data.address as Address
+        },
+        deleteAddress: async (addressId) => {
+          await fetch(`${baseUrl}/customers/me/addresses/${addressId}`, {
+            method: "DELETE",
+          })
+        },
+        getAddresses: async () => {
+          const response = await fetch(`${baseUrl}/customers/me/addresses`)
+          return await response.json()
         },
         updateAddress: async (addressId, params) => {
           const response = await fetch(
@@ -636,11 +659,6 @@ describe("storefront-data hook smoke tests", () => {
           )
           const data = await response.json()
           return data.address as Address
-        },
-        deleteAddress: async (addressId) => {
-          await fetch(`${baseUrl}/customers/me/addresses/${addressId}`, {
-            method: "DELETE",
-          })
         },
         updateCustomer: async (params) => {
           const response = await fetch(`${baseUrl}/customers/me`, {
@@ -660,28 +678,25 @@ describe("storefront-data hook smoke tests", () => {
         useDeleteCustomerAddress,
         useUpdateCustomer,
       } = createCustomerHooks({
-        service,
         buildListParams: () => ({}),
         queryKeyNamespace: "smoke-customers",
+        service,
       })
 
       const queryClient = createTestClient({
         defaultOptions: {
-          queries: { retry: false },
           mutations: { retry: false },
+          queries: { retry: false },
         },
       })
       const wrapper = createWrapper(queryClient)
 
-      const listHook = renderHook(
-        () => useCustomerAddresses({} as CustomerAddressListInputBase),
-        {
-          wrapper,
-        }
-      )
+      const listHook = renderHook(() => useCustomerAddresses({}), {
+        wrapper,
+      })
 
       await waitFor(() => {
-        expect(listHook.result.current.isSuccess).toBe(true)
+        expect(listHook.result.current.isSuccess).toBeTruthy()
       })
 
       expect(listHook.result.current.addresses).toHaveLength(1)
@@ -717,7 +732,7 @@ describe("storefront-data hook smoke tests", () => {
         await deleteHook.result.current.mutateAsync({ addressId: "addr_1" })
       })
       await waitFor(() => {
-        expect(deleteHook.result.current.isSuccess).toBe(true)
+        expect(deleteHook.result.current.isSuccess).toBeTruthy()
       })
 
       const updateCustomerHook = renderHook(() => useUpdateCustomer(), {
@@ -730,7 +745,7 @@ describe("storefront-data hook smoke tests", () => {
         })
       })
 
-      expect(lastUpdateBody?.["metadata"]).toEqual({ company: "QA" })
+      expect(lastUpdateBody?.["metadata"]).toStrictEqual({ company: "QA" })
     })
   })
 })

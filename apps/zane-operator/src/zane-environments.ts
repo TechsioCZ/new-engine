@@ -15,12 +15,8 @@ import {
 import { computeEffectiveUrls } from "./zane-effective-service-urls"
 import { UpstreamHttpError } from "./zane-errors"
 import { assertEnvironmentMatchesLane } from "./zane-lane-environment"
-import {
-  parseErrorMessage,
-  updateCookiesFromHeaders,
-  type HttpMethod,
-  type ZaneSession,
-} from "./zane-upstream"
+import { parseErrorMessage, updateCookiesFromHeaders } from "./zane-upstream"
+import type { HttpMethod, ZaneSession } from "./zane-upstream"
 
 interface ResolveEnvironmentWarning {
   code: "preview_excluded_services_present" | "preview_extra_services_present"
@@ -52,11 +48,11 @@ interface ZaneEnvironment {
 }
 
 interface ZaneEnvironmentWithVariables extends ZaneEnvironment {
-  variables: Array<{
+  variables: {
     id: string
     key: string
     value: string
-  }>
+  }[]
 }
 
 interface ZaneServiceCard {
@@ -98,7 +94,7 @@ interface ZaneEnvironmentDeps {
   ): Promise<T | null>
 }
 
-type ResolvedEnvironmentState = {
+interface ResolvedEnvironmentState {
   lane: "preview" | "main"
   project_slug: string
   environment_id: string
@@ -115,7 +111,7 @@ type ResolvedEnvironmentState = {
   warnings: ResolveEnvironmentWarning[]
 }
 
-type CreateGitServicePayload = {
+interface CreateGitServicePayload {
   slug: string
   repository_url: string
   branch_name: string
@@ -154,12 +150,12 @@ function buildCreateGitServicePayload(
   }
 
   return {
-    slug: source.slug,
-    repository_url: repositoryUrl,
     branch_name: branchName,
+    build_context_dir: buildContextDir,
     builder: "DOCKERFILE",
     dockerfile_path: dockerfilePath,
-    build_context_dir: buildContextDir,
+    repository_url: repositoryUrl,
+    slug: source.slug,
     ...(source.git_app?.id ? { git_app_id: source.git_app.id } : {}),
   }
 }
@@ -194,9 +190,9 @@ function buildDesiredGitSource(
   }
 
   return {
-    repository_url: repositoryUrl,
     branch_name: branchName,
     git_app_id: sourceDetails.git_app?.id?.trim() ?? null,
+    repository_url: repositoryUrl,
   }
 }
 
@@ -230,14 +226,14 @@ function buildDesiredBuilder(
   }
 
   return {
-    builder: "DOCKERFILE",
-    dockerfile_path: dockerfilePath,
     build_context_dir: buildContextDir,
     build_stage_target:
       typeof spec.builder?.build_stage_target !== "undefined"
         ? (spec.builder.build_stage_target ?? null)
         : (sourceDetails.dockerfile_builder_options?.build_stage_target?.trim() ??
           null),
+    builder: "DOCKERFILE",
+    dockerfile_path: dockerfilePath,
   }
 }
 
@@ -251,9 +247,9 @@ function normalizeGitSourceShape(value: {
   git_app_id: string | null
 } {
   return {
-    repository_url: value.repository_url,
     branch_name: value.branch_name,
     git_app_id: value.git_app_id,
+    repository_url: value.repository_url,
   }
 }
 
@@ -269,10 +265,10 @@ function normalizeBuilderShape(value: {
   build_stage_target: string | null
 } {
   return {
-    builder: value.builder,
-    dockerfile_path: value.dockerfile_path,
     build_context_dir: value.build_context_dir,
     build_stage_target: value.build_stage_target,
+    builder: value.builder,
+    dockerfile_path: value.dockerfile_path,
   }
 }
 
@@ -290,11 +286,11 @@ function normalizeHealthcheckShape(
   }
 
   return {
+    associated_port: healthcheck.associated_port ?? null,
+    interval_seconds: healthcheck.interval_seconds,
+    timeout_seconds: healthcheck.timeout_seconds,
     type: healthcheck.type,
     value: healthcheck.value,
-    timeout_seconds: healthcheck.timeout_seconds,
-    interval_seconds: healthcheck.interval_seconds,
-    associated_port: healthcheck.associated_port ?? null,
   }
 }
 
@@ -315,7 +311,7 @@ function normalizeResourceLimitsShape(
           ...(resourceLimits.memory.unit
             ? { unit: resourceLimits.memory.unit }
             : {}),
-          ...(typeof resourceLimits.memory.value !== "undefined"
+          ...(resourceLimits.memory.value !== undefined
             ? { value: resourceLimits.memory.value }
             : {}),
         }
@@ -324,7 +320,7 @@ function normalizeResourceLimitsShape(
 }
 
 function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
 function getSharedEnvironmentVariable(
@@ -343,18 +339,18 @@ function normalizeUrlShape(url: ZaneServiceUrl): {
   associated_port: number | null
 } {
   return {
-    domain: url.domain,
-    base_path: url.base_path,
-    strip_prefix: url.strip_prefix ?? true,
-    redirect_to: url.redirect_to ?? null,
     associated_port: url.associated_port ?? null,
+    base_path: url.base_path,
+    domain: url.domain,
+    redirect_to: url.redirect_to ?? null,
+    strip_prefix: url.strip_prefix ?? true,
   }
 }
 
 function buildUrlChangeValue(url: ZaneServiceUrl): Record<string, unknown> {
   return {
-    domain: url.domain,
     base_path: url.base_path,
+    domain: url.domain,
     strip_prefix: url.strip_prefix ?? true,
     ...(url.redirect_to ? { redirect_to: url.redirect_to } : {}),
     ...(typeof url.associated_port === "number"
@@ -370,9 +366,9 @@ function buildBuilderChangeValue(value: {
   build_stage_target: string | null
 }): Record<string, unknown> {
   return {
+    build_context_dir: value.build_context_dir,
     builder: value.builder,
     dockerfile_path: value.dockerfile_path,
-    build_context_dir: value.build_context_dir,
     ...(typeof value.build_stage_target === "string" &&
     value.build_stage_target.trim()
       ? { build_stage_target: value.build_stage_target }
@@ -384,10 +380,10 @@ function buildHealthcheckChangeValue(
   healthcheck: ZaneServiceHealthcheck
 ): Record<string, unknown> {
   return {
+    interval_seconds: healthcheck.interval_seconds,
+    timeout_seconds: healthcheck.timeout_seconds,
     type: healthcheck.type,
     value: healthcheck.value,
-    timeout_seconds: healthcheck.timeout_seconds,
-    interval_seconds: healthcheck.interval_seconds,
     ...(typeof healthcheck.associated_port === "number"
       ? { associated_port: healthcheck.associated_port }
       : {}),
@@ -405,7 +401,7 @@ function buildPreviewUrlDomain(
     `^${escapeRegExp(servicePrefix)}(?<affix>[^.]*)\\.(?<root>.+)$`
   ).exec(sourceDomain)
 
-  if (!match?.groups?.["root"]) {
+  if (!match?.groups?.root) {
     throw new UpstreamHttpError(
       409,
       "zane_preview_service_url_contract_invalid",
@@ -413,7 +409,7 @@ function buildPreviewUrlDomain(
     )
   }
 
-  return `${environmentName}-${servicePrefix}${match.groups["affix"] ?? ""}.${match.groups["root"]}`
+  return `${environmentName}-${servicePrefix}${match.groups.affix ?? ""}.${match.groups.root}`
 }
 
 function buildDesiredPreviewUrls(
@@ -476,9 +472,9 @@ export class ZaneEnvironmentManager {
 
     if (existing) {
       logResolveEnvironmentEvent("resolve-environment.found", {
+        environment_name: input.environmentName,
         lane: input.lane,
         project_slug: input.projectSlug,
-        environment_name: input.environmentName,
       })
       assertEnvironmentMatchesLane(existing, input.lane)
       return await this.resolveExistingEnvironment(session, input, existing)
@@ -499,8 +495,8 @@ export class ZaneEnvironmentManager {
         input.sourceEnvironmentName
       )}/`,
       {
-        name: input.environmentName,
         deploy_after_clone: false,
+        name: input.environmentName,
       }
     )
 
@@ -513,10 +509,10 @@ export class ZaneEnvironmentManager {
     }
 
     logResolveEnvironmentEvent("resolve-environment.preview.cloned", {
-      project_slug: input.projectSlug,
-      environment_name: input.environmentName,
-      source_environment_name: input.sourceEnvironmentName,
       deploy_after_clone: false,
+      environment_name: input.environmentName,
+      project_slug: input.projectSlug,
+      source_environment_name: input.sourceEnvironmentName,
     })
 
     await this.reconcileExcludedPreviewServices(
@@ -551,8 +547,8 @@ export class ZaneEnvironmentManager {
     const response = await fetch(
       `${this.#deps.baseUrl}/api/projects/${encodeURIComponent(input.projectSlug)}/${encodeURIComponent(input.environmentName)}/`,
       {
-        method: "DELETE",
         headers: this.#deps.buildHeaders(session, "DELETE"),
+        method: "DELETE",
       }
     )
 
@@ -560,11 +556,11 @@ export class ZaneEnvironmentManager {
 
     if (response.status === 404) {
       return {
-        project_slug: input.projectSlug,
-        environment_name: input.environmentName,
         deleted: false,
+        environment_name: input.environmentName,
         noop: true,
         noop_reason: "environment_not_found",
+        project_slug: input.projectSlug,
       }
     }
 
@@ -583,11 +579,11 @@ export class ZaneEnvironmentManager {
     }
 
     return {
-      project_slug: input.projectSlug,
-      environment_name: input.environmentName,
       deleted: true,
+      environment_name: input.environmentName,
       noop: false,
       noop_reason: null,
+      project_slug: input.projectSlug,
     }
   }
 
@@ -624,9 +620,9 @@ export class ZaneEnvironmentManager {
 
     if (state.ready && state.baseline_complete) {
       logResolveEnvironmentEvent("resolve-environment.preview.reuse", {
-        project_slug: input.projectSlug,
-        environment_name: input.environmentName,
         baseline_complete: state.baseline_complete,
+        environment_name: input.environmentName,
+        project_slug: input.projectSlug,
         ready: state.ready,
       })
       return state
@@ -636,15 +632,15 @@ export class ZaneEnvironmentManager {
       state.missing_preview_service_slugs.length > 0
 
     logResolveEnvironmentEvent("resolve-environment.preview.reconcile", {
-      project_slug: input.projectSlug,
-      environment_name: input.environmentName,
       baseline_complete: state.baseline_complete,
-      ready: state.ready,
+      environment_name: input.environmentName,
       missing_preview_service_slugs: state.missing_preview_service_slugs,
       present_excluded_preview_service_slugs:
         state.excluded_preview_service_slugs.filter((serviceSlug) =>
           state.present_service_slugs.includes(serviceSlug)
         ),
+      project_slug: input.projectSlug,
+      ready: state.ready,
     })
 
     await this.reconcileExcludedPreviewServices(
@@ -697,8 +693,8 @@ export class ZaneEnvironmentManager {
     logResolveEnvironmentEvent(
       "resolve-environment.preview.clone-missing.start",
       {
-        project_slug: input.projectSlug,
         environment_name: input.environmentName,
+        project_slug: input.projectSlug,
         service_slugs: [...new Set(missingServiceSlugs)],
       }
     )
@@ -737,8 +733,8 @@ export class ZaneEnvironmentManager {
     logResolveEnvironmentEvent(
       "resolve-environment.preview.clone-missing.service",
       {
-        project_slug: input.projectSlug,
         environment_name: input.environmentName,
+        project_slug: input.projectSlug,
         service_slug: sourceDetails.slug,
       }
     )
@@ -746,8 +742,8 @@ export class ZaneEnvironmentManager {
     if (sourceDetails.command) {
       await this.requestServiceChange(session, input, sourceDetails.slug, {
         field: "command",
-        type: "UPDATE",
         new_value: sourceDetails.command,
+        type: "UPDATE",
       })
     }
 
@@ -778,11 +774,11 @@ export class ZaneEnvironmentManager {
     for (const envVar of sourceDetails.env_variables ?? []) {
       await this.requestServiceChange(session, input, sourceDetails.slug, {
         field: "env_variables",
-        type: "ADD",
         new_value: {
           key: envVar.key,
           value: envVar.value,
         },
+        type: "ADD",
       })
     }
   }
@@ -797,8 +793,8 @@ export class ZaneEnvironmentManager {
     }
 
     logResolveEnvironmentEvent("resolve-environment.preview.cleanup.start", {
-      project_slug: input.projectSlug,
       environment_name: input.environmentName,
+      project_slug: input.projectSlug,
       service_slugs: [...new Set(serviceSlugs)],
     })
 
@@ -836,8 +832,8 @@ export class ZaneEnvironmentManager {
           logResolveEnvironmentEvent(
             "resolve-environment.preview.cleanup.archived",
             {
-              project_slug: input.projectSlug,
               environment_name: input.environmentName,
+              project_slug: input.projectSlug,
               service_slug: serviceSlug,
               service_type: currentDetails.type,
             }
@@ -866,8 +862,8 @@ export class ZaneEnvironmentManager {
     }
 
     logResolveEnvironmentEvent("resolve-environment.preview.spec.start", {
-      project_slug: input.projectSlug,
       environment_name: input.environmentName,
+      project_slug: input.projectSlug,
       service_slugs: [
         ...new Set(serviceSpecs.map((spec) => spec.service_slug)),
       ],
@@ -950,16 +946,16 @@ export class ZaneEnvironmentManager {
 
     await this.requestServiceChange(session, input, spec.service_slug, {
       field: "git_source",
-      type: "UPDATE",
       new_value: {
-        repository_url: desiredGitSource.repository_url,
         branch_name: desiredGitSource.branch_name,
         git_app_id: desiredGitSource.git_app_id,
+        repository_url: desiredGitSource.repository_url,
       },
+      type: "UPDATE",
     })
     logResolveEnvironmentEvent("resolve-environment.preview.spec.git-source", {
-      project_slug: input.projectSlug,
       environment_name: input.environmentName,
+      project_slug: input.projectSlug,
       service_slug: spec.service_slug,
     })
 
@@ -991,14 +987,14 @@ export class ZaneEnvironmentManager {
 
     await this.requestServiceChange(session, input, spec.service_slug, {
       field: "builder",
-      type: "UPDATE",
       new_value: buildBuilderChangeValue(desiredBuilder),
+      type: "UPDATE",
     })
     logResolveEnvironmentEvent("resolve-environment.preview.spec.builder", {
-      project_slug: input.projectSlug,
-      environment_name: input.environmentName,
-      service_slug: spec.service_slug,
       build_stage_target: desiredBuilder.build_stage_target,
+      environment_name: input.environmentName,
+      project_slug: input.projectSlug,
+      service_slug: spec.service_slug,
     })
 
     return await this.getCurrentServiceDetails(
@@ -1046,8 +1042,8 @@ export class ZaneEnvironmentManager {
       desiredHealthcheck
     )
     logResolveEnvironmentEvent("resolve-environment.preview.spec.healthcheck", {
-      project_slug: input.projectSlug,
       environment_name: input.environmentName,
+      project_slug: input.projectSlug,
       service_slug: spec.service_slug,
     })
 
@@ -1099,8 +1095,8 @@ export class ZaneEnvironmentManager {
     logResolveEnvironmentEvent(
       "resolve-environment.preview.spec.resource-limits",
       {
-        project_slug: input.projectSlug,
         environment_name: input.environmentName,
+        project_slug: input.projectSlug,
         service_slug: spec.service_slug,
       }
     )
@@ -1122,8 +1118,8 @@ export class ZaneEnvironmentManager {
     }
 
     logResolveEnvironmentEvent("resolve-environment.preview.urls.start", {
-      project_slug: input.projectSlug,
       environment_name: input.environmentName,
+      project_slug: input.projectSlug,
       service_slugs: [...new Set(serviceSlugs)],
     })
 
@@ -1164,11 +1160,11 @@ export class ZaneEnvironmentManager {
 
         await this.deleteUrl(session, input, serviceSlug, currentUrl.id)
         logResolveEnvironmentEvent("resolve-environment.preview.urls.deleted", {
-          project_slug: input.projectSlug,
-          environment_name: input.environmentName,
-          service_slug: serviceSlug,
-          domain: currentUrl.domain,
           base_path: currentUrl.base_path,
+          domain: currentUrl.domain,
+          environment_name: input.environmentName,
+          project_slug: input.projectSlug,
+          service_slug: serviceSlug,
         })
       }
 
@@ -1205,11 +1201,11 @@ export class ZaneEnvironmentManager {
             logResolveEnvironmentEvent(
               "resolve-environment.preview.urls.updated",
               {
-                project_slug: input.projectSlug,
-                environment_name: input.environmentName,
-                service_slug: serviceSlug,
-                domain: desiredUrl.domain,
                 base_path: desiredUrl.base_path,
+                domain: desiredUrl.domain,
+                environment_name: input.environmentName,
+                project_slug: input.projectSlug,
+                service_slug: serviceSlug,
               }
             )
             currentDetails = await this.getCurrentServiceDetails(
@@ -1224,11 +1220,11 @@ export class ZaneEnvironmentManager {
 
         await this.addUrl(session, input, serviceSlug, desiredUrl)
         logResolveEnvironmentEvent("resolve-environment.preview.urls.added", {
-          project_slug: input.projectSlug,
-          environment_name: input.environmentName,
-          service_slug: serviceSlug,
-          domain: desiredUrl.domain,
           base_path: desiredUrl.base_path,
+          domain: desiredUrl.domain,
+          environment_name: input.environmentName,
+          project_slug: input.projectSlug,
+          service_slug: serviceSlug,
         })
         currentDetails = await this.getCurrentServiceDetails(
           session,
@@ -1248,13 +1244,13 @@ export class ZaneEnvironmentManager {
   ): Promise<void> {
     await this.requestServiceChange(session, input, serviceSlug, {
       field: "volumes",
-      type: "ADD",
       new_value: {
-        name: volume.name,
         container_path: volume.container_path,
         host_path: volume.host_path ?? null,
         mode: volume.mode,
+        name: volume.name,
       },
+      type: "ADD",
     })
   }
 
@@ -1266,8 +1262,8 @@ export class ZaneEnvironmentManager {
   ): Promise<void> {
     await this.requestServiceChange(session, input, serviceSlug, {
       field: "urls",
-      type: "ADD",
       new_value: buildUrlChangeValue(url),
+      type: "ADD",
     })
   }
 
@@ -1279,8 +1275,8 @@ export class ZaneEnvironmentManager {
   ): Promise<void> {
     await this.requestServiceChange(session, input, serviceSlug, {
       field: "urls",
-      type: "DELETE",
       item_id: itemId,
+      type: "DELETE",
     })
   }
 
@@ -1293,9 +1289,9 @@ export class ZaneEnvironmentManager {
   ): Promise<void> {
     await this.requestServiceChange(session, input, serviceSlug, {
       field: "urls",
-      type: "UPDATE",
       item_id: itemId,
       new_value: buildUrlChangeValue(url),
+      type: "UPDATE",
     })
   }
 
@@ -1307,8 +1303,8 @@ export class ZaneEnvironmentManager {
   ): Promise<void> {
     await this.requestServiceChange(session, input, serviceSlug, {
       field: "healthcheck",
-      type: "UPDATE",
       new_value: buildHealthcheckChangeValue(healthcheck),
+      type: "UPDATE",
     })
   }
 
@@ -1320,8 +1316,8 @@ export class ZaneEnvironmentManager {
   ): Promise<void> {
     await this.requestServiceChange(session, input, serviceSlug, {
       field: "resource_limits",
-      type: "UPDATE",
       new_value: resourceLimits,
+      type: "UPDATE",
     })
   }
 
@@ -1341,7 +1337,7 @@ export class ZaneEnvironmentManager {
   private listPendingFieldChanges(
     serviceDetails: ZaneServiceDetails,
     field: "git_source" | "builder" | "healthcheck" | "resource_limits" | "urls"
-  ): Array<{ id: string }> {
+  ): { id: string }[] {
     return (serviceDetails.unapplied_changes ?? []).flatMap((change) =>
       change.field === field && typeof change.id === "string"
         ? [{ id: change.id }]
@@ -1473,35 +1469,35 @@ export class ZaneEnvironmentManager {
     }
 
     const state = {
-      lane: input.lane,
-      project_slug: input.projectSlug,
-      environment_id: environment.id,
-      environment_name: environment.name,
-      is_preview: environment.is_preview,
-      created,
       baseline_complete:
         getSharedEnvironmentVariable(
           environment,
           previewBaselineCompleteEnvKey
         ) === "true",
       cloned_from_environment: clonedFromEnvironment,
-      ready: missingPreviewServiceSlugs.length === 0,
-      expected_preview_service_slugs: expectedPreviewServiceSlugs,
+      created,
+      environment_id: environment.id,
+      environment_name: environment.name,
       excluded_preview_service_slugs: excludedPreviewServiceSlugs,
-      present_service_slugs: presentServiceSlugs,
+      expected_preview_service_slugs: expectedPreviewServiceSlugs,
+      is_preview: environment.is_preview,
+      lane: input.lane,
       missing_preview_service_slugs: missingPreviewServiceSlugs,
+      present_service_slugs: presentServiceSlugs,
+      project_slug: input.projectSlug,
+      ready: missingPreviewServiceSlugs.length === 0,
       warnings,
     }
 
     logResolveEnvironmentEvent("resolve-environment.state", {
-      lane: state.lane,
-      project_slug: state.project_slug,
-      environment_name: state.environment_name,
-      environment_id: state.environment_id,
-      created: state.created,
       baseline_complete: state.baseline_complete,
-      ready: state.ready,
+      created: state.created,
+      environment_id: state.environment_id,
+      environment_name: state.environment_name,
+      lane: state.lane,
       missing_preview_service_slugs: state.missing_preview_service_slugs,
+      project_slug: state.project_slug,
+      ready: state.ready,
       warning_count: state.warnings.length,
     })
 

@@ -1,11 +1,9 @@
-import {
-  type DehydratedState,
-  dehydrate,
-  HydrationBoundary,
-} from "@tanstack/react-query"
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query"
+import type { DehydratedState } from "@tanstack/react-query"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import type { Metadata } from "next"
-import { type AbstractIntlMessages, NextIntlClientProvider } from "next-intl"
+import { NextIntlClientProvider } from "next-intl"
+import type { AbstractIntlMessages } from "next-intl"
 import { getMessages } from "next-intl/server"
 import { Inter, Open_Sans, Roboto, Rubik } from "next/font/google"
 import localFont from "next/font/local"
@@ -26,6 +24,7 @@ import "./globals.css"
 import { Providers } from "./providers"
 
 const verdana = localFont({
+  display: "swap",
   src: [
     {
       path: "./fonts/Verdana-Regular.woff2",
@@ -39,40 +38,39 @@ const verdana = localFont({
     },
   ],
   variable: "--font-verdana",
-  display: "swap",
 })
 
 const openSans = Open_Sans({
-  variable: "--font-sans",
-  subsets: ["latin", "latin-ext"],
   display: "swap",
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-sans",
 })
 
 const inter = Inter({
-  variable: "--font-inter-font",
-  subsets: ["latin", "latin-ext"],
   display: "swap",
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-inter-font",
 })
 
 const rubik = Rubik({
-  variable: "--font-rubik",
-  subsets: ["latin", "latin-ext"],
   display: "swap",
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-rubik",
 })
 
 const roboto = Roboto({
+  display: "swap",
+  subsets: ["latin", "latin-ext"],
   variable: "--font-roboto",
   weight: ["400", "700"],
-  subsets: ["latin", "latin-ext"],
-  display: "swap",
 })
 
 export async function generateMetadata(): Promise<Metadata> {
   const marketContext = await getMarketServerContext()
 
   return {
-    title: marketContext.metadata.title,
     description: marketContext.metadata.description,
+    title: marketContext.metadata.title,
   }
 }
 
@@ -123,9 +121,9 @@ async function ResolvedLayoutShell({
     await fetchServerCategories(
       queryClient,
       buildCategoryListParams({
-        page: 1,
-        limit: CATEGORY_TREE_LIMIT,
         fields: CATEGORY_TREE_FIELDS,
+        limit: CATEGORY_TREE_LIMIT,
+        page: 1,
       })
     )
   } catch (error) {

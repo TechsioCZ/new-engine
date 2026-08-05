@@ -5,18 +5,6 @@ import { NumericInput } from "../../src/atoms/numeric-input"
 import { FormNumericInput } from "../../src/molecules/form-numeric-input"
 
 const meta: Meta<typeof FormNumericInput> = {
-  title: "Molecules/FormNumericInput",
-  component: FormNumericInput,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component:
-          "Form wrapper for NumericInput. Provides Label, validation state, and help text while maintaining full compound pattern flexibility.",
-      },
-    },
-  },
-  tags: ["autodocs"],
   argTypes: {
     // Text inputs
     label: {
@@ -112,23 +100,35 @@ const meta: Meta<typeof FormNumericInput> = {
     },
   },
   args: {
-    label: "Quantity",
-    helpText: "Enter a value between 0 and 100",
-    size: "md",
-    validateStatus: "default",
-    showHelpTextIcon: false,
-    disabled: false,
-    required: false,
-    readOnly: false,
-    min: 0,
-    max: 100,
-    step: 1,
     allowMouseWheel: true,
     allowOverflow: false,
     clampValueOnBlur: true,
-    spinOnPress: true,
+    disabled: false,
+    helpText: "Enter a value between 0 and 100",
+    label: "Quantity",
     locale: "cs-CZ",
+    max: 100,
+    min: 0,
+    readOnly: false,
+    required: false,
+    showHelpTextIcon: false,
+    size: "md",
+    spinOnPress: true,
+    step: 1,
+    validateStatus: "default",
   },
+  component: FormNumericInput,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Form wrapper for NumericInput. Provides Label, validation state, and help text while maintaining full compound pattern flexibility.",
+      },
+    },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/FormNumericInput",
 }
 
 export default meta
@@ -139,21 +139,19 @@ export const Playground: Story = {
   args: {
     label: "Playground NumericInput",
   },
-  render: (args) => {
-    return (
-      <div className="w-md">
-        <FormNumericInput defaultValue={50} {...args}>
-          <NumericInput.Control>
-            <NumericInput.Input />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger />
-              <NumericInput.DecrementTrigger />
-            </NumericInput.TriggerContainer>
-          </NumericInput.Control>
-        </FormNumericInput>
-      </div>
-    )
-  },
+  render: (args) => (
+    <div className="w-md">
+      <FormNumericInput defaultValue={50} {...args}>
+        <NumericInput.Control>
+          <NumericInput.Input />
+          <NumericInput.TriggerContainer>
+            <NumericInput.IncrementTrigger />
+            <NumericInput.DecrementTrigger />
+          </NumericInput.TriggerContainer>
+        </NumericInput.Control>
+      </FormNumericInput>
+    </div>
+  ),
 }
 
 // With Error - Shows validation error state
@@ -317,27 +315,25 @@ export const Required: Story = {
 
 // Disabled State
 export const Disabled: Story = {
-  render: () => {
-    return (
-      <div className="w-md">
-        <FormNumericInput
-          id="quantity-disabled"
-          label="Quantity"
-          defaultValue={42}
-          disabled
-          helpText="This field is disabled"
-        >
-          <NumericInput.Control>
-            <NumericInput.Input />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger />
-              <NumericInput.DecrementTrigger />
-            </NumericInput.TriggerContainer>
-          </NumericInput.Control>
-        </FormNumericInput>
-      </div>
-    )
-  },
+  render: () => (
+    <div className="w-md">
+      <FormNumericInput
+        id="quantity-disabled"
+        label="Quantity"
+        defaultValue={42}
+        disabled
+        helpText="This field is disabled"
+      >
+        <NumericInput.Control>
+          <NumericInput.Input />
+          <NumericInput.TriggerContainer>
+            <NumericInput.IncrementTrigger />
+            <NumericInput.DecrementTrigger />
+          </NumericInput.TriggerContainer>
+        </NumericInput.Control>
+      </FormNumericInput>
+    </div>
+  ),
 }
 
 // Horizontal Layout - Triggers beside input

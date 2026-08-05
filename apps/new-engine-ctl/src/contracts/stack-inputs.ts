@@ -1,17 +1,11 @@
 import { z } from "zod"
 
 const secretTargetSchema = z.looseObject({
-  service_id: z.string().min(1),
   env_var: z.string().min(1),
+  service_id: z.string().min(1),
 })
 
 const previewRandomOnceSecretSchema = z.looseObject({
-  secret_id: z.string().min(1),
-  scope: z.string().optional(),
-  lifecycle: z.string().optional(),
-  materializer: z.string().optional(),
-  persist_to: z.string().optional(),
-  persisted_env_var: z.string().optional(),
   generator: z
     .looseObject({
       kind: z.string().optional(),
@@ -20,17 +14,22 @@ const previewRandomOnceSecretSchema = z.looseObject({
     })
     .optional()
     .default({}),
+  lifecycle: z.string().optional(),
+  materializer: z.string().optional(),
+  persist_to: z.string().optional(),
+  persisted_env_var: z.string().optional(),
+  scope: z.string().optional(),
+  secret_id: z.string().min(1),
   targets: z.array(secretTargetSchema).default([]),
 })
 
 const providerOutputTargetSchema = z.looseObject({
-  service_id: z.string().min(1),
   env_var: z.string().min(1),
+  service_id: z.string().min(1),
 })
 
 const providerOutputSchema = z.looseObject({
   output_id: z.string().min(1),
-  target_envs: z.array(providerOutputTargetSchema).default([]),
   policy: z
     .looseObject({
       kind: z.string().min(1).optional(),
@@ -41,25 +40,17 @@ const providerOutputSchema = z.looseObject({
       indexes: z.array(z.string().min(1)).default([]),
     })
     .optional(),
+  target_envs: z.array(providerOutputTargetSchema).default([]),
 })
 
 const runtimeProviderLaneBehaviorSchema = z.looseObject({
   enabled: z.boolean().optional().default(true),
-  reuse_persisted_outputs: z.boolean().optional().default(true),
   reconcile_when_source_not_in_plan: z.boolean().optional().default(false),
+  reuse_persisted_outputs: z.boolean().optional().default(true),
 })
 
 const runtimeProviderSchema = z.looseObject({
-  provider_id: z.string().min(1),
-  status: z.string().optional(),
   materializer: z.string().optional(),
-  source_service_id: z.string().optional(),
-  readiness: z
-    .looseObject({
-      kind: z.string().min(1).optional(),
-      path: z.string().min(1).optional(),
-    })
-    .optional(),
   orchestration: z
     .looseObject({
       lanes: z
@@ -73,55 +64,64 @@ const runtimeProviderSchema = z.looseObject({
     .optional()
     .default({ lanes: {} }),
   outputs: z.array(providerOutputSchema).default([]),
+  provider_id: z.string().min(1),
+  readiness: z
+    .looseObject({
+      kind: z.string().min(1).optional(),
+      path: z.string().min(1).optional(),
+    })
+    .optional(),
+  source_service_id: z.string().optional(),
+  status: z.string().optional(),
 })
 
 const localRuntimeProviderOutputAliasSchema = z.looseObject({
-  provider_id: z.string().min(1),
-  output_id: z.string().min(1),
-  service_id: z.string().min(1),
   env_var: z.string().min(1),
   local_env_var: z.string().min(1),
+  output_id: z.string().min(1),
+  provider_id: z.string().min(1),
+  service_id: z.string().min(1),
 })
 
 const previewRuntimeSourceSchema = z.looseObject({
-  kind: z.string().min(1),
-  service_id: z.string().min(1).optional(),
+  bucket_shared_env_key: z.string().min(1).optional(),
   environment_scope: z
     .enum(["current", "source"])
     .optional()
     .default("current"),
+  kind: z.string().min(1),
   port: z.number().int().positive().optional(),
+  service_id: z.string().min(1).optional(),
   trailing_slash: z.boolean().optional().default(false),
-  bucket_shared_env_key: z.string().min(1).optional(),
 })
 
 const previewSharedEnvDefinitionSchema = z.looseObject({
-  key: z.string().min(1),
   consumed_by_service_ids: z.array(z.string().min(1)).default([]),
+  key: z.string().min(1),
   source: previewRuntimeSourceSchema,
 })
 
 const previewServiceEnvDefinitionSchema = z.looseObject({
-  service_id: z.string().min(1),
   env_var: z.string().min(1),
+  service_id: z.string().min(1),
   source: previewRuntimeSourceSchema,
 })
 
 const previewForbiddenServiceEnvDefinitionSchema = z.looseObject({
-  service_id: z.string().min(1),
   env_keys: z.array(z.string().min(1)).default([]),
+  service_id: z.string().min(1),
 })
 
 const bootstrapSharedEnvSourceSchema = z
   .looseObject({
+    default_value: z.string().optional(),
+    env_var: z.string().min(1).optional(),
     kind: z.enum([
       "service_network_alias",
       "service_global_network_alias",
       "local_env",
     ]),
     service_id: z.string().min(1).optional(),
-    env_var: z.string().min(1).optional(),
-    default_value: z.string().optional(),
   })
   .superRefine((value, context) => {
     if (
@@ -131,35 +131,35 @@ const bootstrapSharedEnvSourceSchema = z
     ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["service_id"],
         message: `${value.kind} requires service_id`,
+        path: ["service_id"],
       })
     }
 
     if (value.kind === "local_env" && !value.env_var) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["env_var"],
         message: "local_env requires env_var",
+        path: ["env_var"],
       })
     }
   })
 
 const bootstrapSharedEnvTargetSchema = z.looseObject({
-  service_id: z.string().min(1),
   env_var: z.string().min(1),
+  service_id: z.string().min(1),
 })
 
 const bootstrapSharedEnvDefinitionSchema = z.looseObject({
   key: z.string().min(1),
-  source: bootstrapSharedEnvSourceSchema,
   service_targets: z.array(bootstrapSharedEnvTargetSchema).default([]),
+  source: bootstrapSharedEnvSourceSchema,
 })
 
 const laneBuildStageTargetsSchema = z
   .object({
-    preview: z.string().nullable().optional(),
     main: z.string().nullable().optional(),
+    preview: z.string().nullable().optional(),
   })
   .default({})
 
@@ -173,14 +173,14 @@ const serviceGitSourceReconciliationSchema = z
 
 const serviceBuilderReconciliationSchema = z
   .object({
-    sync_from_source: z.boolean().optional().default(true),
     build_stage_target_by_lane: laneBuildStageTargetsSchema
       .optional()
       .default({}),
+    sync_from_source: z.boolean().optional().default(true),
   })
   .default({
-    sync_from_source: true,
     build_stage_target_by_lane: {},
+    sync_from_source: true,
   })
 
 const serviceFieldReconciliationSchema = z
@@ -192,13 +192,12 @@ const serviceFieldReconciliationSchema = z
   })
 
 const serviceReconciliationDefinitionSchema = z.looseObject({
-  service_id: z.string().min(1),
-  git_source: serviceGitSourceReconciliationSchema.optional().default({
-    sync_from_source: true,
-  }),
   builder: serviceBuilderReconciliationSchema.optional().default({
     sync_from_source: true,
     build_stage_target_by_lane: {},
+  }),
+  git_source: serviceGitSourceReconciliationSchema.optional().default({
+    sync_from_source: true,
   }),
   healthcheck: serviceFieldReconciliationSchema.optional().default({
     sync_from_source: true,
@@ -206,19 +205,15 @@ const serviceReconciliationDefinitionSchema = z.looseObject({
   resource_limits: serviceFieldReconciliationSchema.optional().default({
     sync_from_source: true,
   }),
+  service_id: z.string().min(1),
 })
 
 export const stackInputsSchema = z.object({
-  secret_materialization: z
+  bootstrap_zane_project: z
     .object({
-      secrets: z.array(previewRandomOnceSecretSchema).default([]),
+      shared_env: z.array(bootstrapSharedEnvDefinitionSchema).default([]),
     })
-    .default({ secrets: [] }),
-  runtime_providers: z
-    .object({
-      providers: z.array(runtimeProviderSchema).default([]),
-    })
-    .default({ providers: [] }),
+    .default({ shared_env: [] }),
   local_env_aliases: z
     .object({
       runtime_provider_outputs: z
@@ -239,11 +234,16 @@ export const stackInputsSchema = z.object({
         .default([]),
     })
     .default({ forbidden_service_env: [] }),
-  bootstrap_zane_project: z
+  runtime_providers: z
     .object({
-      shared_env: z.array(bootstrapSharedEnvDefinitionSchema).default([]),
+      providers: z.array(runtimeProviderSchema).default([]),
     })
-    .default({ shared_env: [] }),
+    .default({ providers: [] }),
+  secret_materialization: z
+    .object({
+      secrets: z.array(previewRandomOnceSecretSchema).default([]),
+    })
+    .default({ secrets: [] }),
   service_reconciliation: z
     .object({
       services: z.array(serviceReconciliationDefinitionSchema).default([]),
@@ -284,7 +284,7 @@ export type RuntimeProviderPolicy = NonNullable<RuntimeProviderOutput["policy"]>
 export type RuntimeProviderLaneBehavior = z.infer<
   typeof runtimeProviderLaneBehaviorSchema
 >
-export type RuntimeProviderMeiliKeyPolicy = {
+export interface RuntimeProviderMeiliKeyPolicy {
   uid: string
   description: string
   actions: string[]
@@ -439,10 +439,10 @@ export function getRuntimeProviderMeiliKeyPolicy(
   }
 
   return {
-    uid: policy.uid,
-    description: policy.description,
     actions: policy.actions,
+    description: policy.description,
     indexes: policy.indexes,
+    uid: policy.uid,
   }
 }
 
@@ -540,20 +540,20 @@ export function listRuntimeProviderOutputIds(
 function listRuntimeProviderTargetsForService(
   inputs: StackInputs,
   serviceId: string
-): Array<{
+): {
   provider_id: string
   output_id: string
   env_var: string
-}> {
+}[] {
   return inputs.runtime_providers.providers.flatMap((provider) =>
     provider.outputs.flatMap((output) =>
       output.target_envs.flatMap((target) =>
         target.service_id === serviceId
           ? [
               {
-                provider_id: provider.provider_id,
-                output_id: output.output_id,
                 env_var: target.env_var,
+                output_id: output.output_id,
+                provider_id: provider.provider_id,
               },
             ]
           : []
@@ -566,11 +566,11 @@ export function listRuntimeProviderTargetsForServiceInLane(
   inputs: StackInputs,
   lane: "preview" | "main",
   serviceId: string
-): Array<{
+): {
   provider_id: string
   output_id: string
   env_var: string
-}> {
+}[] {
   return listRuntimeProviderTargetsForService(inputs, serviceId).filter(
     (target) =>
       getRuntimeProviderLaneBehavior(inputs, target.provider_id, lane).enabled

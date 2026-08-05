@@ -15,18 +15,18 @@ import { COMPANY_MODULE } from "../../../modules/company"
 import type { ICompanyModuleService } from "../../../types"
 import { getProviderIdentityIdsWithoutActiveAdminRole } from "../utils/admin-auth-metadata"
 
-type PrepareEmployeeCustomerLinkInput = {
+interface PrepareEmployeeCustomerLinkInput {
   company_id: string
   customer_id: string
 }
 
-type EmployeeCustomerLinkRow = {
+interface EmployeeCustomerLinkRow {
   customer_id?: string
   employee_id?: string
   id?: string
 }
 
-type EmployeeCustomerLinkCompensation = {
+interface EmployeeCustomerLinkCompensation {
   deleted_employees: Array<{
     company_id: string
     customer_id: string
@@ -42,7 +42,7 @@ type EmployeeCustomerLinkCompensation = {
   }>
 }
 
-type EmployeeWithCompany = {
+interface EmployeeWithCompany {
   company?: {
     customer_group?: { id?: string } | null
     deleted_at?: Date | null
@@ -191,12 +191,12 @@ export const prepareEmployeeCustomerLinkStep = createStep(
     const staleAdminCandidates = staleEmployees
       .filter((employee) => employee.is_admin)
       .map((employee) => ({
-        ...(employee.customer?.id !== undefined
-          ? { customer_id: employee.customer?.id }
-          : {}),
-        ...(employee.customer?.email !== undefined
-          ? { email: employee.customer?.email }
-          : {}),
+        ...(employee.customer?.id === undefined
+          ? {}
+          : { customer_id: employee.customer?.id }),
+        ...(employee.customer?.email === undefined
+          ? {}
+          : { email: employee.customer?.email }),
       }))
     const providerIdentityIds =
       await getProviderIdentityIdsWithoutActiveAdminRole({
@@ -206,7 +206,7 @@ export const prepareEmployeeCustomerLinkStep = createStep(
       })
 
     await Promise.all(
-      staleLinks.map((staleLink) =>
+      staleLinks.map(async (staleLink) =>
         link.dismiss(
           getEmployeeCustomerLink(staleLink.employee_id, staleLink.customer_id)
         )
@@ -275,7 +275,7 @@ export const prepareEmployeeCustomerLinkStep = createStep(
     }
 
     await Promise.all(
-      input.links.map((existingLink) =>
+      input.links.map(async (existingLink) =>
         link.create(
           getEmployeeCustomerLink(
             existingLink.employee_id,

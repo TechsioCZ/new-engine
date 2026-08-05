@@ -24,7 +24,7 @@ import {
   useProductReviews,
 } from "@/lib/storefront/reviews"
 
-type ProductDetailReviewsProps = {
+interface ProductDetailReviewsProps {
   productId?: string | null
 }
 
@@ -191,12 +191,12 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
 
   const reviewsQuery = useProductReviews({
     ...(productId == null ? {} : { productId }),
+    enabled: Boolean(productId),
     limit: PRODUCT_REVIEWS_PAGE_SIZE,
     page: currentPage,
-    enabled: Boolean(productId),
   })
-  const reviews = reviewsQuery.reviews
-  const totalCount = reviewsQuery.totalCount
+  const { reviews } = reviewsQuery
+  const { totalCount } = reviewsQuery
   const averageRating = reviewsQuery.summary.average_rating
   const reviewItems = reviews.map((review) =>
     toReviewItem(review, {

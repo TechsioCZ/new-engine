@@ -20,12 +20,12 @@ export const resolveProductQueryInput = <TInput extends ProductQueryInput>(
   return applyRegion(baseInput as TInput, region)
 }
 
-type ProductListQueryDefinitionConfig<
+interface ProductListQueryDefinitionConfig<
   TProduct,
   TListInput extends ProductListInputBase,
   TListParams,
   TDetailParams,
-> = {
+> {
   input: TListInput
   region?: RegionInfo | null
   service: ProductService<TProduct, TListParams, TDetailParams>
@@ -67,23 +67,23 @@ export const createProductListQueryDefinition = <
     : queryKeys.list(listParams)
 
   return {
-    resolvedInput: normalizedInput,
     listParams,
-    useGlobalFetcher: Boolean(globalFetcher),
-    queryKey,
-    queryFn: ({ signal }: { signal?: AbortSignal }) =>
+    queryFn: async ({ signal }: { signal?: AbortSignal }) =>
       globalFetcher
         ? globalFetcher(listParams, signal)
         : service.getProducts(listParams, signal),
+    queryKey,
+    resolvedInput: normalizedInput,
+    useGlobalFetcher: Boolean(globalFetcher),
   }
 }
 
-type ProductDetailQueryDefinitionConfig<
+interface ProductDetailQueryDefinitionConfig<
   TProduct,
   TListParams,
   TDetailInput extends ProductDetailInputBase,
   TDetailParams,
-> = {
+> {
   input: TDetailInput
   region?: RegionInfo | null
   service: ProductService<TProduct, TListParams, TDetailParams>
@@ -112,15 +112,15 @@ export const createProductDetailQueryDefinition = <
   const detailParams = buildDetailParams(resolvedInput)
 
   return {
-    resolvedInput,
     detailParams,
-    queryKey: queryKeys.detail(detailParams),
-    queryFn: ({ signal }: { signal?: AbortSignal }) => {
+    queryFn: async ({ signal }: { signal?: AbortSignal }) => {
       if (!resolvedInput.handle) {
         throw new Error("Product handle is required for product queries")
       }
 
       return service.getProductByHandle(detailParams, signal)
     },
+    queryKey: queryKeys.detail(detailParams),
+    resolvedInput,
   }
 }

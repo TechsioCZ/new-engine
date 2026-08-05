@@ -24,8 +24,8 @@ import type { BatchLinkProductsToBrandWorkflowInput } from "../types"
 
 export const batchLinkProductsToBrandWorkflow = createWorkflow(
   {
-    name: "batch-link-products-to-brand",
     idempotent: false,
+    name: "batch-link-products-to-brand",
   },
   (input: BatchLinkProductsToBrandWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) =>

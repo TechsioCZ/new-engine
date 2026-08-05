@@ -6,14 +6,14 @@ import type { ReactNode } from "react"
 
 import { sdk } from "../lib/sdk"
 
-type OrderCustomerNote = {
+interface OrderCustomerNote {
   created_at: string | null
   note: string | null
   order_id: string | null
   updated_at: string | null
 }
 
-type OrderCustomerNoteResponse = {
+interface OrderCustomerNoteResponse {
   customer_note: OrderCustomerNote | null
 }
 
@@ -40,12 +40,12 @@ const OrderCustomerNoteWidget = ({ data }: OrderCustomerNoteWidgetProps) => {
     isLoading,
     isError,
   } = useQuery({
-    queryFn: () =>
+    enabled: Boolean(orderId),
+    queryFn: async () =>
       sdk.client.fetch<OrderCustomerNoteResponse>(
         `/admin/orders/${orderId}/customer-note`
       ),
     queryKey: [QUERY_KEY_PREFIX, orderId],
-    enabled: Boolean(orderId),
   })
 
   const customerNote = response?.customer_note

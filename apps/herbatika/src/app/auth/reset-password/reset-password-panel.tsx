@@ -11,7 +11,7 @@ const FORGOT_PASSWORD_HREF = "/auth/forgot-password"
 
 type ResetPasswordFlow = "account-setup" | "reset-password"
 
-type ResetPasswordPanelProps = {
+interface ResetPasswordPanelProps {
   token: string | null
   email: string | null
   flow: ResetPasswordFlow
@@ -82,14 +82,14 @@ export const ResetPasswordPanel = ({
       </header>
 
       <ResetPasswordForm
-        defaultValues={{ password: "", confirm_password: "" }}
+        defaultValues={{ confirm_password: "", password: "" }}
         hasToken={hasToken}
         isBusy={isBusy}
         loginHref={LOGIN_HREF}
         onSubmit={handleSubmit}
         text={{
-          expiredHref: FORGOT_PASSWORD_HREF,
           expiredHelp: copy.expiredHelp,
+          expiredHref: FORGOT_PASSWORD_HREF,
           expiredLinkLabel: copy.expiredLinkLabel,
           expiredMessage: copy.expiredMessage,
           submitLabel: copy.submitLabel,

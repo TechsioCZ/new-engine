@@ -17,10 +17,7 @@ const {
   mockGetProductListType: vi.fn(),
 }))
 
-vi.mock("@medusajs/framework/workflows-sdk", () => ({
-  createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
-  ),
+vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: class StepResponse<
     TPayload = unknown,
     TCompensationInput = unknown,
@@ -33,18 +30,24 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
       this.compensateInput = compensateInput
     }
   },
+  createStep: vi.fn((_name, invoke, compensate) =>
+    Object.assign(invoke, { compensate })
+  ),
 }))
 
-vi.mock("../../../../../src/workflows/product-list/steps/helpers", () => ({
-  assertProductSelectionExists: mockAssertProductSelectionExists,
-  findCustomerCustomProductListByHandle:
-    mockFindCustomerCustomProductListByHandle,
-  findCustomerFavoriteProductList: mockFindCustomerFavoriteProductList,
-  findProductListItemForSelection: mockFindProductListItemForSelection,
-  getProductListType: mockGetProductListType,
-}))
+vi.mock(
+  import("../../../../../src/workflows/product-list/steps/helpers"),
+  () => ({
+    assertProductSelectionExists: mockAssertProductSelectionExists,
+    findCustomerCustomProductListByHandle:
+      mockFindCustomerCustomProductListByHandle,
+    findCustomerFavoriteProductList: mockFindCustomerFavoriteProductList,
+    findProductListItemForSelection: mockFindProductListItemForSelection,
+    getProductListType: mockGetProductListType,
+  })
+)
 
-type MockService = {
+interface MockService {
   createCustomProductList: ReturnType<typeof vi.fn>
   createFavoriteProductList: ReturnType<typeof vi.fn>
   createProductListItemForList: ReturnType<typeof vi.fn>
@@ -55,7 +58,7 @@ type MockService = {
   updateProductListItems: ReturnType<typeof vi.fn>
 }
 
-type MockStep = {
+interface MockStep {
   (
     input: unknown,
     context: { container: ReturnType<typeof makeContainer> }
@@ -92,8 +95,8 @@ const makeService = (): MockService => ({
   createCustomProductList: vi.fn(),
   createFavoriteProductList: vi.fn(),
   createProductListItemForList: vi.fn(),
-  deleteProductLists: vi.fn(),
   deleteProductListItems: vi.fn(),
+  deleteProductLists: vi.fn(),
   incrementProductListItemQuantity: vi.fn(),
   retrieveProductList: vi.fn(),
   updateProductListItems: vi.fn(),
@@ -147,7 +150,7 @@ describe("createCustomerProductListStep", () => {
       "cus_1"
     )
     expect(service.createFavoriteProductList).not.toHaveBeenCalled()
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       compensateInput: {
         created: false,
         list_id: "plist_favorite",
@@ -163,8 +166,8 @@ describe("createCustomerProductListStep", () => {
     const service = makeService()
     mockFindCustomerFavoriteProductList.mockResolvedValue(null)
     mockFindCustomerCustomProductListByHandle.mockResolvedValue({
-      id: "plist_existing",
       handle: "summer-picks",
+      id: "plist_existing",
     })
     const container = makeContainer(service)
     const { createCustomerProductListStep } =
@@ -242,7 +245,7 @@ describe("createProductListItemStep", () => {
     })
     service.createProductListItemForList.mockResolvedValue(createdItem)
     mockGetProductListType.mockReturnValue("favorite")
-    mockAssertProductSelectionExists.mockResolvedValue(undefined)
+    mockAssertProductSelectionExists.mockResolvedValue()
     mockFindProductListItemForSelection.mockResolvedValue(null)
     const container = makeContainer(service)
     const { createProductListItemStep } =
@@ -266,7 +269,7 @@ describe("createProductListItemStep", () => {
       quantity: 2,
       sort_order: undefined,
     })
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       compensateInput: {
         created: true,
         item_id: "plitem_new",
@@ -292,7 +295,7 @@ describe("createProductListItemStep", () => {
     })
     service.createProductListItemForList.mockResolvedValue(createdItem)
     mockGetProductListType.mockReturnValue("favorite")
-    mockAssertProductSelectionExists.mockResolvedValue(undefined)
+    mockAssertProductSelectionExists.mockResolvedValue()
     mockFindProductListItemForSelection.mockResolvedValue(null)
     const container = makeContainer(service)
     const { createProductListItemStep } =
@@ -329,7 +332,7 @@ describe("createProductListItemStep", () => {
       quantity: undefined,
       sort_order: 4,
     })
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       compensateInput: {
         created: true,
         item_id: "plitem_new",
@@ -354,7 +357,7 @@ describe("createProductListItemStep", () => {
       type: "custom",
     })
     mockGetProductListType.mockReturnValue("custom")
-    mockAssertProductSelectionExists.mockResolvedValue(undefined)
+    mockAssertProductSelectionExists.mockResolvedValue()
     mockFindProductListItemForSelection.mockResolvedValue(existingItem)
     const container = makeContainer(service)
     const { createProductListItemStep } =
@@ -383,7 +386,7 @@ describe("createProductListItemStep", () => {
       "variant_1"
     )
     expect(service.createProductListItemForList).not.toHaveBeenCalled()
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       compensateInput: {
         created: false,
         item_id: "plitem_existing",
@@ -453,7 +456,7 @@ describe("incrementProductListItemStep", () => {
       "plitem_1",
       2
     )
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       compensateInput: {
         item_id: "plitem_1",
         previous_quantity: 1,
@@ -492,7 +495,7 @@ describe("incrementProductListItemStep", () => {
       "plitem_1",
       2
     )
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       compensateInput: {
         item_id: "plitem_1",
         previous_quantity: 3,

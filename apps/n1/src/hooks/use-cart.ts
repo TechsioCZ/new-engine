@@ -10,29 +10,31 @@ import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
 import {
   addToCart,
-  type Cart,
-  type CompleteCartResult,
   completeCart,
   createCart,
   getCart,
-  type OptimisticCart,
-  type OptimisticLineItem,
   removeLineItem,
   updateLineItem,
+} from "@/services/cart-service"
+import type {
+  Cart,
+  CompleteCartResult,
+  OptimisticCart,
+  OptimisticLineItem,
 } from "@/services/cart-service"
 
 import { useRegion } from "./use-region"
 
-type CartMutationError = {
+interface CartMutationError {
   message: string
   code?: string
 }
 
-type CartMutationContext = {
+interface CartMutationContext {
   previousCart: Cart | undefined
 }
 
-type UseCartReturn = {
+interface UseCartReturn {
   cart: Cart | null | undefined
   isLoading: boolean
   isError: boolean
@@ -42,14 +44,14 @@ type UseCartReturn = {
   hasItems: boolean
 }
 
-type UseSuspenseCartReturn = {
+interface UseSuspenseCartReturn {
   cart: Cart | null | undefined
   itemCount: number
   isEmpty: boolean
   hasItems: boolean
 }
 
-type UseAddToCartOptions = {
+interface UseAddToCartOptions {
   onSuccess?: (cart: Cart) => void
   onError?: (error: CartMutationError) => void
 }
@@ -61,9 +63,9 @@ export function useCart(): UseCartReturn {
     isError,
     error,
   } = useQuery({
-    queryKey: queryKeys.cart.active(),
-    queryFn: getCart,
     enabled: true, // Always enabled for guest and authenticated users
+    queryFn: getCart,
+    queryKey: queryKeys.cart.active(),
     retry: (failureCount, retryError) => {
       if (
         retryError instanceof Error &&
@@ -87,19 +89,19 @@ export function useCart(): UseCartReturn {
 
   return {
     cart,
-    isLoading,
-    isError,
-    error: error as Error | null,
-    itemCount,
-    isEmpty,
+    error: error,
     hasItems,
+    isEmpty,
+    isError,
+    isLoading,
+    itemCount,
   }
 }
 
 export function useSuspenseCart(): UseSuspenseCartReturn {
   const { data: cart } = useSuspenseQuery({
-    queryKey: queryKeys.cart.active(),
     queryFn: getCart,
+    queryKey: queryKeys.cart.active(),
     retry: (failureCount, error) => {
       if (error instanceof Error && error.message?.includes("not found")) {
         return false
@@ -119,9 +121,9 @@ export function useSuspenseCart(): UseSuspenseCartReturn {
 
   return {
     cart,
-    itemCount,
-    isEmpty,
     hasItems,
+    isEmpty,
+    itemCount,
   }
 }
 
@@ -159,7 +161,19 @@ export function useAddToCart(options?: UseAddToCartOptions) {
         throw new Error("No cart available")
       }
 
-      return addToCart(cart.id, variantId, quantity, metadata)
+      return await addToCart(cart.id, variantId, quantity, metadata)
+    },
+    onError: (error, _variables, context) => {
+      // Rollback on error
+      if (context?.previousCart) {
+        queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
+      }
+
+      if (process.env.NODE_ENV === "development") {
+        console.error("[useAddToCart] Failed to add item:", error)
+      }
+
+      options?.onError?.(error)
     },
     onMutate: async () => {
       // Cancel any outgoing refetches
@@ -181,31 +195,19 @@ export function useAddToCart(options?: UseAddToCartOptions) {
 
       return { previousCart }
     },
+    onSettled: async () => {
+      // Always refetch to ensure consistency
+      await queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
+    },
     onSuccess: (cart, _variables) => {
       // Update with real cart from server
       queryClient.setQueryData(queryKeys.cart.active(), cart)
 
-      if (process.env["NODE_ENV"] === "development") {
+      if (process.env.NODE_ENV === "development") {
         console.log("[useAddToCart] Item added successfully")
       }
 
       options?.onSuccess?.(cart)
-    },
-    onError: (error, _variables, context) => {
-      // Rollback on error
-      if (context?.previousCart) {
-        queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
-      }
-
-      if (process.env["NODE_ENV"] === "development") {
-        console.error("[useAddToCart] Failed to add item:", error)
-      }
-
-      options?.onError?.(error)
-    },
-    onSettled: async () => {
-      // Always refetch to ensure consistency
-      await queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
     },
   })
 }
@@ -223,8 +225,16 @@ export function useUpdateLineItem() {
     },
     CartMutationContext
   >({
-    mutationFn: ({ cartId, lineItemId, quantity }) =>
+    mutationFn: async ({ cartId, lineItemId, quantity }) =>
       updateLineItem(cartId, lineItemId, quantity),
+    onError: (error, _variables, context) => {
+      if (context?.previousCart) {
+        queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
+      }
+      if (process.env.NODE_ENV === "development") {
+        console.error("[useUpdateLineItem] Failed to update quantity:", error)
+      }
+    },
     onMutate: async ({ lineItemId, quantity }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.cart.active() })
 
@@ -236,11 +246,10 @@ export function useUpdateLineItem() {
       if (previousCart?.items) {
         const updatedCart: OptimisticCart = {
           ...previousCart,
-          items: previousCart.items.map(
-            (item): OptimisticLineItem =>
-              item.id === lineItemId
-                ? { ...item, quantity, _optimistic: true }
-                : item
+          items: previousCart.items.map((item): OptimisticLineItem =>
+            item.id === lineItemId
+              ? { ...item, quantity, _optimistic: true }
+              : item
           ),
           _optimistic: true,
         }
@@ -250,23 +259,15 @@ export function useUpdateLineItem() {
 
       return { previousCart }
     },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
+    },
     onSuccess: (cart) => {
       queryClient.setQueryData(queryKeys.cart.active(), cart)
 
-      if (process.env["NODE_ENV"] === "development") {
+      if (process.env.NODE_ENV === "development") {
         console.log("[useUpdateLineItem] Quantity updated successfully")
       }
-    },
-    onError: (error, _variables, context) => {
-      if (context?.previousCart) {
-        queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
-      }
-      if (process.env["NODE_ENV"] === "development") {
-        console.error("[useUpdateLineItem] Failed to update quantity:", error)
-      }
-    },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
     },
   })
 }
@@ -283,7 +284,16 @@ export function useRemoveLineItem() {
     },
     CartMutationContext
   >({
-    mutationFn: ({ cartId, lineItemId }) => removeLineItem(cartId, lineItemId),
+    mutationFn: async ({ cartId, lineItemId }) =>
+      removeLineItem(cartId, lineItemId),
+    onError: (error, _variables, context) => {
+      if (context?.previousCart) {
+        queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
+      }
+      if (process.env.NODE_ENV === "development") {
+        console.error("[useRemoveLineItem] Failed to remove item:", error)
+      }
+    },
     onMutate: async ({ lineItemId }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.cart.active() })
 
@@ -304,28 +314,20 @@ export function useRemoveLineItem() {
 
       return { previousCart }
     },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
+    },
     onSuccess: (cart) => {
       queryClient.setQueryData(queryKeys.cart.active(), cart)
 
-      if (process.env["NODE_ENV"] === "development") {
+      if (process.env.NODE_ENV === "development") {
         console.log("[useRemoveLineItem] Item removed successfully")
       }
-    },
-    onError: (error, _variables, context) => {
-      if (context?.previousCart) {
-        queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
-      }
-      if (process.env["NODE_ENV"] === "development") {
-        console.error("[useRemoveLineItem] Failed to remove item:", error)
-      }
-    },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
     },
   })
 }
 
-type UseCompleteCartOptions = {
+interface UseCompleteCartOptions {
   onSuccess?: (order: HttpTypes.StoreOrder) => void
   onError?: (
     error: { message: string; type: string; name?: string },
@@ -342,7 +344,12 @@ export function useCompleteCart(options?: UseCompleteCartOptions) {
     { cartId: string },
     CartMutationContext
   >({
-    mutationFn: ({ cartId }) => completeCart(cartId),
+    mutationFn: async ({ cartId }) => completeCart(cartId),
+    onError: (error) => {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[useCompleteCart] Failed to complete cart:", error)
+      }
+    },
     onSuccess: async (result) => {
       if (result.success) {
         const order = result.order
@@ -359,14 +366,14 @@ export function useCompleteCart(options?: UseCompleteCartOptions) {
           queryKey: queryKeys.orders.all(),
         })
 
-        if (process.env["NODE_ENV"] === "development") {
+        if (process.env.NODE_ENV === "development") {
           console.log("[useCompleteCart] Order created successfully:", order.id)
         }
 
         options?.onSuccess?.(order)
       } else {
         // FAILURE PATH: Validation or payment error
-        if (process.env["NODE_ENV"] === "development") {
+        if (process.env.NODE_ENV === "development") {
           console.warn(
             "[useCompleteCart] Cart completion failed:",
             result.error
@@ -377,11 +384,6 @@ export function useCompleteCart(options?: UseCompleteCartOptions) {
         queryClient.setQueryData(queryKeys.cart.active(), result.cart)
 
         options?.onError?.(result.error, result.cart)
-      }
-    },
-    onError: (error) => {
-      if (process.env["NODE_ENV"] === "development") {
-        console.error("[useCompleteCart] Failed to complete cart:", error)
       }
     },
   })

@@ -1,60 +1,61 @@
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { tv } from "@techsio/ui-kit/utils"
 import type { HTMLAttributes } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 const disclaimerVariants = tv({
+  defaultVariants: {
+    size: "md",
+    variant: "default",
+  },
   slots: {
+    content: "flex-1 text-disclaimer",
+    icon: "mt-disclaimer-icon-offset flex-shrink-0",
     root: [
       "flex items-start",
       "p-disclaimer",
       //'border border-disclaimer-border',
       "shadow-disclaimer",
     ],
-    icon: "mt-disclaimer-icon-offset flex-shrink-0",
-    content: "flex-1 text-disclaimer",
   },
   variants: {
-    variant: {
-      default: {
-        root: "bg-disclaimer-default-bg text-disclaimer-default-fg",
-        icon: "text-disclaimer-default-fg",
-      },
-      info: {
-        root: "bg-disclaimer-info-bg text-disclaimer-info-fg",
-        icon: "text-disclaimer-info-fg",
-      },
-      warning: {
-        root: "bg-disclaimer-warning-bg text-disclaimer-warning-fg",
-        icon: "text-disclaimer-warning-fg",
-      },
-      error: {
-        root: "bg-disclaimer-error-bg text-disclaimer-error-fg",
-        icon: "text-disclaimer-error-fg",
-      },
-      success: {
-        root: "bg-disclaimer-success-bg text-disclaimer-success-fg",
-        icon: "text-disclaimer-success-fg",
-      },
-    },
     size: {
-      sm: {
-        root: "gap-disclaimer-gap-sm",
-        content: "text-disclaimer-sm",
+      lg: {
+        content: "text-disclaimer-lg",
+        root: "gap-disclaimer-gap-lg",
       },
       md: {
-        root: "gap-disclaimer-gap-md",
         content: "text-disclaimer-md",
+        root: "gap-disclaimer-gap-md",
       },
-      lg: {
-        root: "gap-disclaimer-gap-lg",
-        content: "text-disclaimer-lg",
+      sm: {
+        content: "text-disclaimer-sm",
+        root: "gap-disclaimer-gap-sm",
       },
     },
-  },
-  defaultVariants: {
-    variant: "default",
-    size: "md",
+    variant: {
+      default: {
+        icon: "text-disclaimer-default-fg",
+        root: "bg-disclaimer-default-bg text-disclaimer-default-fg",
+      },
+      error: {
+        icon: "text-disclaimer-error-fg",
+        root: "bg-disclaimer-error-bg text-disclaimer-error-fg",
+      },
+      info: {
+        icon: "text-disclaimer-info-fg",
+        root: "bg-disclaimer-info-bg text-disclaimer-info-fg",
+      },
+      success: {
+        icon: "text-disclaimer-success-fg",
+        root: "bg-disclaimer-success-bg text-disclaimer-success-fg",
+      },
+      warning: {
+        icon: "text-disclaimer-warning-fg",
+        root: "bg-disclaimer-warning-bg text-disclaimer-warning-fg",
+      },
+    },
   },
 })
 
@@ -68,10 +69,10 @@ export interface DisclaimerProps
 
 const defaultIcons: Record<string, IconType> = {
   default: "token-icon-info",
-  info: "token-icon-info",
-  warning: "token-icon-warning",
   error: "token-icon-error",
+  info: "token-icon-info",
   success: "token-icon-success",
+  warning: "token-icon-warning",
 }
 
 export function Disclaimer({
@@ -87,7 +88,7 @@ export function Disclaimer({
     root,
     icon: iconClass,
     content,
-  } = disclaimerVariants({ variant, size })
+  } = disclaimerVariants({ size, variant })
   const displayIcon = icon || defaultIcons[variant]
 
   return (

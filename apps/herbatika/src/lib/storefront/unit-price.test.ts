@@ -3,11 +3,11 @@ import { describe, expect, it } from "vitest"
 
 import { formatUnitPriceLabel, resolveVariantPricePerUnit } from "./unit-price"
 
-describe("formatUnitPriceLabel", () => {
+describe(formatUnitPriceLabel, () => {
   it("formats the calculated unit price and reference quantity", () => {
     expect(
       formatUnitPriceLabel({
-        calculated_amount: 13.453_333,
+        calculated_amount: 13.453333,
         currency_code: "eur",
         product_unit_quantity: 75,
         unit_base_quantity: 100,
@@ -70,7 +70,7 @@ describe("formatUnitPriceLabel", () => {
   })
 })
 
-describe("resolveVariantPricePerUnit", () => {
+describe(resolveVariantPricePerUnit, () => {
   it("reads price_per_unit from the selected variant calculation", () => {
     const pricePerUnit = {
       calculated_amount: 13.45,

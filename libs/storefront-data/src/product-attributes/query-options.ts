@@ -12,11 +12,11 @@ import type {
   ProductAttributesInputBase,
 } from "./types"
 
-export type CreateProductAttributeQueryOptionsFactoryConfig<
+export interface CreateProductAttributeQueryOptionsFactoryConfig<
   TAttribute,
   TInput extends ProductAttributesInputBase,
   TParams,
-> = {
+> {
   service: ProductAttributeService<TAttribute, TParams>
   buildDetailParams?: (input: TInput) => TParams
   queryKeys?: ProductAttributeQueryKeys<TParams>
@@ -24,10 +24,10 @@ export type CreateProductAttributeQueryOptionsFactoryConfig<
   cacheConfig?: CacheConfig
 }
 
-export type ProductAttributeQueryOptionsFactory<
+export interface ProductAttributeQueryOptionsFactory<
   TAttribute,
   TInput extends ProductAttributesInputBase,
-> = {
+> {
   getDetailQueryOptions: (
     input: TInput,
     options?: {
@@ -67,14 +67,14 @@ export function createProductAttributeQueryOptionsFactory<
       const cacheStrategy = options?.cacheStrategy ?? "realtime"
 
       return {
-        queryKey: resolvedQueryKeys.detail(detailParams),
-        queryFn: ({ signal }) => {
+        queryFn: async ({ signal }) => {
           if (!input.productId) {
             throw new Error("Product id is required for Product Attributes.")
           }
 
           return service.getProductAttributes(detailParams, signal)
         },
+        queryKey: resolvedQueryKeys.detail(detailParams),
         ...resolvedCacheConfig[cacheStrategy],
         ...options?.queryOptions,
       }

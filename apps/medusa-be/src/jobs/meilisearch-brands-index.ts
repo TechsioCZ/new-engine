@@ -33,6 +33,6 @@ export default async function meilisearchBrandsIndexJob(
 
 export const config = {
   name: "meilisearch-brands-index",
-  schedule: "* * * * *",
   numberOfExecutions: 1,
+  schedule: "* * * * *",
 }

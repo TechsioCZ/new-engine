@@ -54,10 +54,10 @@ export function resolveStorefrontSecurityPreset(options) {
   if (preset === null) {
     return {
       csp: createBaseStorefrontCsp({
-        isProduction,
-        publicBackendOrigin,
         allowedDevOrigins,
         devPort,
+        isProduction,
+        publicBackendOrigin,
       }),
       permissionsPolicy: [...DEFAULT_PERMISSIONS_POLICY_DIRECTIVES],
     }
@@ -70,10 +70,10 @@ export function resolveStorefrontSecurityPreset(options) {
   }
 
   const resolvedPreset = presetFactory({
-    isProduction,
-    publicBackendOrigin,
     allowedDevOrigins,
     devPort,
+    isProduction,
+    publicBackendOrigin,
   })
 
   return {

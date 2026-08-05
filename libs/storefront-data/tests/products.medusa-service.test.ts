@@ -1,12 +1,13 @@
 import type { HttpTypes } from "@medusajs/types"
+import { vi, describe, expect, it } from "vitest"
 
-import {
-  type MedusaProductDetailInput,
-  type MedusaProductListInput,
-  createMedusaProductService,
+import { createMedusaProductService } from "../src/products/medusa-service"
+import type {
+  MedusaProductDetailInput,
+  MedusaProductListInput,
 } from "../src/products/medusa-service"
 
-type SdkLike = {
+interface SdkLike {
   client: {
     fetch: ReturnType<typeof vi.fn>
   }
@@ -16,7 +17,7 @@ const createProduct = (
   id: string,
   title = "Product",
   handle = id
-): HttpTypes.StoreProduct => ({ id, title, handle }) as HttpTypes.StoreProduct
+): HttpTypes.StoreProduct => ({ handle, id, title }) as HttpTypes.StoreProduct
 
 function createSdkMock(
   response?: Partial<HttpTypes.StoreProductListResponse>
@@ -24,23 +25,23 @@ function createSdkMock(
   return {
     client: {
       fetch: vi.fn().mockResolvedValue({
-        products: [],
         count: 0,
         limit: 0,
         offset: 0,
+        products: [],
         ...response,
       }),
     },
   }
 }
 
-describe("createMedusaProductService", () => {
+describe(createMedusaProductService, () => {
   it("applies default list fields, lowercases country code, and forwards signal", async () => {
     const sdk = createSdkMock({
-      products: [createProduct("prod_1")],
       count: 1,
       limit: 12,
       offset: 0,
+      products: [createProduct("prod_1")],
     })
     const service = createMedusaProductService(sdk as never, {
       defaultListFields: "id,title,handle",
@@ -48,16 +49,16 @@ describe("createMedusaProductService", () => {
     const controller = new AbortController()
 
     await service.getProducts(
-      { limit: 12, offset: 0, country_code: "CZ" },
+      { country_code: "CZ", limit: 12, offset: 0 },
       controller.signal
     )
 
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/products", {
       query: expect.objectContaining({
+        country_code: "cz",
+        fields: "id,title,handle",
         limit: 12,
         offset: 0,
-        fields: "id,title,handle",
-        country_code: "cz",
       }),
       signal: controller.signal,
     })
@@ -65,10 +66,10 @@ describe("createMedusaProductService", () => {
 
   it("supports custom list query normalization and list transforms", async () => {
     const sdk = createSdkMock({
-      products: [createProduct("prod_1", "Hoodie")],
       count: 1,
       limit: 12,
       offset: 0,
+      products: [createProduct("prod_1", "Hoodie")],
     })
     const service = createMedusaProductService<
       { id: string; label: string },
@@ -78,11 +79,11 @@ describe("createMedusaProductService", () => {
         ...params,
         ...(sort === "newest" ? { order: "-created_at" } : {}),
       }),
-      transformListProduct: (product) => ({
+      transformDetailProduct: (product) => ({
         id: product.id,
         label: product.title,
       }),
-      transformDetailProduct: (product) => ({
+      transformListProduct: (product) => ({
         id: product.id,
         label: product.title,
       }),
@@ -102,31 +103,31 @@ describe("createMedusaProductService", () => {
       }),
       signal: null,
     })
-    expect(result.products).toEqual([{ id: "prod_1", label: "Hoodie" }])
+    expect(result.products).toStrictEqual([{ id: "prod_1", label: "Hoodie" }])
   })
 
   it("applies default detail fields and returns null when handle is not found", async () => {
     const sdk = createSdkMock({
-      products: [],
       count: 0,
       limit: 1,
       offset: 0,
+      products: [],
     })
     const service = createMedusaProductService(sdk as never, {
       defaultDetailFields: "id,title,handle,description",
     })
 
     const result = await service.getProductByHandle({
-      handle: "missing-product",
       country_code: "CZ",
+      handle: "missing-product",
     })
 
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/products", {
       query: expect.objectContaining({
+        country_code: "cz",
+        fields: "id,title,handle,description",
         handle: "missing-product",
         limit: 1,
-        fields: "id,title,handle,description",
-        country_code: "cz",
       }),
       signal: null,
     })
@@ -135,26 +136,25 @@ describe("createMedusaProductService", () => {
 
   it("supports custom detail query normalization and detail transforms", async () => {
     const sdk = createSdkMock({
-      products: [createProduct("prod_2", "T-Shirt", "test-product")],
       count: 1,
       limit: 1,
       offset: 0,
+      products: [createProduct("prod_2", "T-Shirt", "test-product")],
     })
     const service = createMedusaProductService<
       { slug: string; label: string },
-      MedusaProductListInput,
-      MedusaProductDetailInput
+      MedusaProductListInput
     >(sdk as never, {
       normalizeDetailQuery: (params) => ({
         handle: params.handle,
         limit: 1,
         fields: "id,handle,title",
       }),
-      transformListProduct: (product) => ({
+      transformDetailProduct: (product) => ({
         slug: product.handle,
         label: product.title,
       }),
-      transformDetailProduct: (product) => ({
+      transformListProduct: (product) => ({
         slug: product.handle,
         label: product.title,
       }),
@@ -166,12 +166,12 @@ describe("createMedusaProductService", () => {
 
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/products", {
       query: {
+        fields: "id,handle,title",
         handle: "test-product",
         limit: 1,
-        fields: "id,handle,title",
       },
       signal: null,
     })
-    expect(result).toEqual({ slug: "test-product", label: "T-Shirt" })
+    expect(result).toStrictEqual({ label: "T-Shirt", slug: "test-product" })
   })
 })

@@ -5,8 +5,8 @@ import ProductReviewModule from "../modules/product-review"
 
 export const ProductReviewLink = defineLink(
   {
-    linkable: ProductReviewModule.linkable.review,
     field: "product_id",
+    linkable: ProductReviewModule.linkable.review,
   },
   ProductModule.linkable["product"],
   {

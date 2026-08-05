@@ -1,18 +1,17 @@
 "use client"
 
-import {
-  type Analytics,
-  useAnalytics as useUnifiedAnalytics,
-} from "@techsio/analytics"
+import { useAnalytics as useUnifiedAnalytics } from "@techsio/analytics"
+import type { Analytics } from "@techsio/analytics"
 import { useGoogleAdapter } from "@techsio/analytics/google"
-import {
-  type LeadhubIdentifyParams,
-  type LeadhubSetCartParams,
-  type LeadhubViewCategoryParams,
-  useLeadhubAdapter,
+import { useLeadhubAdapter } from "@techsio/analytics/leadhub"
+import type {
+  LeadhubIdentifyParams,
+  LeadhubSetCartParams,
+  LeadhubViewCategoryParams,
 } from "@techsio/analytics/leadhub"
 import { useMetaAdapter } from "@techsio/analytics/meta"
-import { createContext, type ReactNode, useContext } from "react"
+import { createContext, useContext } from "react"
+import type { ReactNode } from "react"
 
 /**
  * Extended analytics interface with Leadhub-specific methods
@@ -30,7 +29,7 @@ interface AnalyticsContextValue extends Analytics {
 
 const AnalyticsContext = createContext<AnalyticsContextValue | null>(null)
 
-type AnalyticsProviderProps = {
+interface AnalyticsProviderProps {
   children: ReactNode
   /** Enable debug logging (defaults to true in development) */
   debug?: boolean
@@ -55,7 +54,7 @@ type AnalyticsProviderProps = {
  */
 export function AnalyticsProvider({
   children,
-  debug = process.env["NODE_ENV"] === "development",
+  debug = process.env.NODE_ENV === "development",
   googleConversionLabel,
 }: AnalyticsProviderProps) {
   // Create Leadhub adapter - we need direct access to its specific methods

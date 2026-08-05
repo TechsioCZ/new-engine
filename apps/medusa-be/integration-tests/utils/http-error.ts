@@ -1,6 +1,6 @@
 import { isRecord } from "@techsio/std/object"
 
-type HttpError = {
+interface HttpError {
   response: {
     data: unknown
     status: number

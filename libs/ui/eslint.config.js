@@ -5,7 +5,7 @@ import tsParser from "@typescript-eslint/parser"
 import tailwind from "eslint-plugin-tailwindcss"
 
 const tokensCssAbsolutePath = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
+  import.meta.dirname,
   "src/tokens/index.css"
 )
 
@@ -15,17 +15,11 @@ export default [
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
         ecmaFeatures: {
           jsx: true,
         },
-      },
-    },
-    settings: {
-      tailwindcss: {
-        // For TailwindCSS v4 - point to CSS config file
-        cssConfigPath: tokensCssAbsolutePath,
+        ecmaVersion: "latest",
+        sourceType: "module",
       },
     },
     plugins: {
@@ -41,6 +35,12 @@ export default [
       "tailwindcss/no-contradicting-classname": "error",
       "tailwindcss/no-custom-classname": "error",
       "tailwindcss/no-unnecessary-arbitrary-value": "error",
+    },
+    settings: {
+      tailwindcss: {
+        // For TailwindCSS v4 - point to CSS config file
+        cssConfigPath: tokensCssAbsolutePath,
+      },
     },
   },
   {

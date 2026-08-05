@@ -6,13 +6,6 @@ figma.connect(
   Gallery,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1392-68",
   {
-    imports: ['import { Gallery } from "@libs/ui/organisms/gallery"'],
-    props: {
-      orientation: figma.enum("orientation", {
-        vertical: "vertical",
-        horizontal: "horizontal",
-      }),
-    },
     example: ({ orientation }) => (
       <Gallery
         items={[
@@ -23,5 +16,12 @@ figma.connect(
         orientation={orientation}
       />
     ),
+    imports: ['import { Gallery } from "@libs/ui/organisms/gallery"'],
+    props: {
+      orientation: figma.enum("orientation", {
+        vertical: "vertical",
+        horizontal: "horizontal",
+      }),
+    },
   }
 )

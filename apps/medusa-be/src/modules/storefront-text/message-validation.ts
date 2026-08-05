@@ -1,13 +1,12 @@
-import {
-  isStructurallySame,
-  type MessageFormatElement,
-  type ParserOptions,
-  parse,
+import { isStructurallySame, parse } from "@formatjs/icu-messageformat-parser"
+import type {
+  MessageFormatElement,
+  ParserOptions,
 } from "@formatjs/icu-messageformat-parser"
 
 import { isObjectRecord } from "../../utils/guards"
 
-type StorefrontTextMessageValidationFailure = {
+interface StorefrontTextMessageValidationFailure {
   code: "invalid_default" | "invalid_override" | "incompatible_override"
   message: string
   success: false

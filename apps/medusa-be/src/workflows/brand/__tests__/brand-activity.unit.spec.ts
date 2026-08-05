@@ -34,12 +34,14 @@ const createContainer = (
   return candidate
 }
 
-describe("getActiveBrandIds", () => {
+describe(getActiveBrandIds, () => {
   it("does not resolve the Brand module for an empty input", async () => {
     const resolve = vi.fn()
     const container = createContainer(resolve)
 
-    await expect(getActiveBrandIds(container, [])).resolves.toEqual(new Set())
+    await expect(getActiveBrandIds(container, [])).resolves.toStrictEqual(
+      new Set()
+    )
     expect(resolve).not.toHaveBeenCalled()
   })
 
@@ -71,7 +73,7 @@ describe("getActiveBrandIds", () => {
       { id: { $in: ids.slice(500) } },
       { select: ["id"], withDeleted: false }
     )
-    expect(result.has("brand_250")).toBe(false)
+    expect(result.has("brand_250")).toBeFalsy()
     expect(result.size).toBe(500)
   })
 })

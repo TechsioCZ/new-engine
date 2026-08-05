@@ -19,8 +19,7 @@ import type {
 const ORDER_FIELDS = new Set(["name", "created_at", "updated_at"])
 const LEADING_DASH_REGEX = /^-/
 
-const parseOrder = (input?: string) => {
-  const value = input ?? "name"
+const parseOrder = (value: string = "name") => {
   const direction = value.startsWith("-") ? "DESC" : "ASC"
   const field = value.replace(LEADING_DASH_REGEX, "")
 
@@ -86,7 +85,7 @@ export async function POST(
   req: AuthenticatedMedusaRequest<AdminCreateBrandAttributeTypeSchemaType>,
   res: MedusaResponse
 ) {
-  const name = req.validatedBody.name
+  const { name } = req.validatedBody
   const { result } = await createBrandAttributeTypesWorkflow(req.scope).run({
     input: {
       attribute_types: [{ name }],

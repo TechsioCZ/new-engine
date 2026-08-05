@@ -18,7 +18,7 @@ import type { CheckoutController } from "@/components/checkout/use-checkout-cont
 
 import { CheckoutInlineProductsSection } from "./sections/checkout-inline-products-section"
 
-type CheckoutStepContentProps = {
+interface CheckoutStepContentProps {
   activeStep: CheckoutStepSlug
   controller: CheckoutController
 }
@@ -33,7 +33,7 @@ export function CheckoutStepContent({
   const shippingStepHref = resolveCheckoutStepHref("doprava-platba")
   const detailsStepHref = resolveCheckoutStepHref("udaje")
   const summaryStepHref = resolveCheckoutStepHref("suhrn")
-  const selectedPaymentProviderId = controller.selectedPaymentProviderId
+  const { selectedPaymentProviderId } = controller
   const selectedShippingOption = controller.checkoutShippingQuery.selectedOption
   const selectedShippingLabel = selectedShippingOption?.name ?? undefined
   const selectedShippingOptionId =
@@ -78,7 +78,7 @@ export function CheckoutStepContent({
   )
 
   switch (activeStep) {
-    case "kosik":
+    case "kosik": {
       return (
         <CheckoutStepLayout
           aside={
@@ -114,7 +114,8 @@ export function CheckoutStepContent({
           />
         </CheckoutStepLayout>
       )
-    case "doprava-platba":
+    }
+    case "doprava-platba": {
       return (
         <CheckoutStepLayout aside={orderSummaryAside}>
           <CheckoutShippingPaymentStepSection
@@ -125,7 +126,8 @@ export function CheckoutStepContent({
           />
         </CheckoutStepLayout>
       )
-    case "udaje":
+    }
+    case "udaje": {
       return (
         <CheckoutStepLayout aside={orderSummaryAside}>
           <CheckoutDetailsStepSection
@@ -135,7 +137,8 @@ export function CheckoutStepContent({
           />
         </CheckoutStepLayout>
       )
-    case "suhrn":
+    }
+    case "suhrn": {
       return (
         <CheckoutStepLayout aside={orderSummaryAside}>
           <CheckoutCompleteSection
@@ -174,6 +177,7 @@ export function CheckoutStepContent({
           />
         </CheckoutStepLayout>
       )
+    }
     default: {
       const unhandledStep: never = activeStep
       throw new Error(`Unhandled checkout step: ${String(unhandledStep)}`)

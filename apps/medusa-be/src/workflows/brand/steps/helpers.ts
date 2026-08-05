@@ -10,15 +10,13 @@ import { ProductBrandLink } from "../../../links/product-brand"
 import { BRAND_MODULE } from "../../../modules/brand"
 import type BrandModuleService from "../../../modules/brand/service"
 import type { BrandAttributeInput } from "../types"
-import {
-  type BrandScalarWriteInput,
-  normalizeBrandWriteInput,
-} from "./validation"
+import { normalizeBrandWriteInput } from "./validation"
+import type { BrandScalarWriteInput } from "./validation"
 
 export { getActiveBrandIds } from "../brand-activity"
 export { getProductBrandIdsToReplace } from "./brand-link-state"
 
-type BrandAttributeRecord = {
+interface BrandAttributeRecord {
   id: string
   value: string
   attributeType?: {
@@ -26,7 +24,7 @@ type BrandAttributeRecord = {
   }
 }
 
-type BrandSnapshot = {
+interface BrandSnapshot {
   id: string
   title: string
   handle: string
@@ -40,7 +38,7 @@ type BrandSnapshot = {
   gpsr_postal_address?: string | null
 }
 
-type BrandSnapshotRecord = {
+interface BrandSnapshotRecord {
   id: string
   title: string
   handle: string
@@ -61,12 +59,12 @@ type BrandSnapshotRecord = {
   gpsr_postal_address?: string | null
 }
 
-type ProductBrandLinkRecord = {
+interface ProductBrandLinkRecord {
   product_id?: string
   brand_id?: string
 }
 
-type BrandIdRecord = {
+interface BrandIdRecord {
   id: string
 }
 
@@ -85,7 +83,7 @@ const chunkArray = <T>(items: T[], size: number): T[][] => {
 export const getBrandService = (container: MedusaContainer) =>
   container.resolve<BrandModuleService>(BRAND_MODULE)
 
-export const withBrandTransaction = <T>(
+export const withBrandTransaction = async <T>(
   service: BrandModuleService,
   task: (sharedContext: Context) => Promise<T>
 ) => service.runInTransaction(task)
@@ -156,9 +154,6 @@ export const snapshotBrand = async (
   assertBrandSnapshotRecord(brand, brandId)
 
   return {
-    id: brand.id,
-    title: brand.title,
-    handle: brand.handle,
     attributes: brand.attributes.map((attribute) => ({
       name: attribute.attributeType.name,
       value: attribute.value,
@@ -174,42 +169,47 @@ export const snapshotBrand = async (
     gpsr_manufacturing_company_name:
       brand.gpsr_manufacturing_company_name ?? null,
     gpsr_postal_address: brand.gpsr_postal_address ?? null,
+    handle: brand.handle,
+    id: brand.id,
+    title: brand.title,
   }
 }
 
 const pickBrandWriteFields = (brand: BrandScalarWriteInput) => ({
-  ...(brand.handle !== undefined ? { handle: brand.handle } : {}),
-  ...(brand.title !== undefined ? { title: brand.title } : {}),
-  ...(brand.gpsr_contact_email !== undefined
-    ? { gpsr_contact_email: brand.gpsr_contact_email }
-    : {}),
-  ...(brand.gpsr_european_reseller_contact_email !== undefined
-    ? {
+  ...(brand.handle === undefined ? {} : { handle: brand.handle }),
+  ...(brand.title === undefined ? {} : { title: brand.title }),
+  ...(brand.gpsr_contact_email === undefined
+    ? {}
+    : { gpsr_contact_email: brand.gpsr_contact_email }),
+  ...(brand.gpsr_european_reseller_contact_email === undefined
+    ? {}
+    : {
         gpsr_european_reseller_contact_email:
           brand.gpsr_european_reseller_contact_email,
-      }
-    : {}),
-  ...(brand.gpsr_european_reseller_manufacturing_company_name !== undefined
-    ? {
+      }),
+  ...(brand.gpsr_european_reseller_manufacturing_company_name === undefined
+    ? {}
+    : {
         gpsr_european_reseller_manufacturing_company_name:
           brand.gpsr_european_reseller_manufacturing_company_name,
-      }
-    : {}),
-  ...(brand.gpsr_european_reseller_postal_address !== undefined
-    ? {
+      }),
+  ...(brand.gpsr_european_reseller_postal_address === undefined
+    ? {}
+    : {
         gpsr_european_reseller_postal_address:
           brand.gpsr_european_reseller_postal_address,
-      }
-    : {}),
-  ...(brand.gpsr_manufactured_outside_eu !== undefined
-    ? { gpsr_manufactured_outside_eu: brand.gpsr_manufactured_outside_eu }
-    : {}),
-  ...(brand.gpsr_manufacturing_company_name !== undefined
-    ? { gpsr_manufacturing_company_name: brand.gpsr_manufacturing_company_name }
-    : {}),
-  ...(brand.gpsr_postal_address !== undefined
-    ? { gpsr_postal_address: brand.gpsr_postal_address }
-    : {}),
+      }),
+  ...(brand.gpsr_manufactured_outside_eu === undefined
+    ? {}
+    : { gpsr_manufactured_outside_eu: brand.gpsr_manufactured_outside_eu }),
+  ...(brand.gpsr_manufacturing_company_name === undefined
+    ? {}
+    : {
+        gpsr_manufacturing_company_name: brand.gpsr_manufacturing_company_name,
+      }),
+  ...(brand.gpsr_postal_address === undefined
+    ? {}
+    : { gpsr_postal_address: brand.gpsr_postal_address }),
 })
 
 export const setBrandAttributes = async (
@@ -217,7 +217,7 @@ export const setBrandAttributes = async (
   brandId: string,
   inputAttributes: BrandAttributeInput[] = [],
   sharedContext: Context = {}
-) => service.setBrandAttributes(brandId, inputAttributes, sharedContext)
+) => await service.setBrandAttributes(brandId, inputAttributes, sharedContext)
 
 export const buildBrandWriteInput = (brand: BrandScalarWriteInput) =>
   pickBrandWriteFields(normalizeBrandWriteInput(brand))
@@ -301,7 +301,7 @@ export const resolveBrandProductDelta = (
 }
 
 export const partitionProductBrandConflicts = (
-  links: Array<{ brand_id: string; product_id: string }>,
+  links: { brand_id: string; product_id: string }[],
   activeBrandIds: Set<string>,
   targetBrandId: string
 ) => {

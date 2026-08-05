@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { CommercialValuesItemInput } from "../../../../../src/utils/order-commercial-values"
 
-type ReplacementAdjustment = {
+interface ReplacementAdjustment {
   amount: number
   code?: string | undefined
   description?: string | undefined
@@ -20,7 +20,7 @@ type ReplacementAdjustment = {
   shipping_method_id?: string | undefined
 }
 
-type ReplacementAction = {
+interface ReplacementAction {
   action: string
   details: {
     adjustments: ReplacementAdjustment[]
@@ -56,7 +56,7 @@ const {
   mockRequestRun: vi.fn(),
 }))
 
-vi.mock("@medusajs/medusa/core-flows", () => ({
+vi.mock(import("@medusajs/medusa/core-flows"), () => ({
   beginOrderEditOrderWorkflow: () => ({ run: mockBeginRun }),
   cancelBeginOrderEditWorkflow: () => ({ run: mockCancelRun }),
   confirmOrderEditRequestWorkflow: () => ({ run: mockConfirmRun }),
@@ -85,7 +85,7 @@ const query = {
 }
 
 const lockingModule = {
-  execute: vi.fn((_key: string, fn: () => Promise<unknown>) => fn()),
+  execute: vi.fn(async (_key: string, fn: () => Promise<unknown>) => fn()),
 }
 
 let container: MedusaContainer
@@ -118,7 +118,7 @@ const calculationInput = {
   original_total: 950,
 }
 
-describe("applyOrderCommercialValues", () => {
+describe(applyOrderCommercialValues, () => {
   beforeEach(() => {
     mockBeginRun.mockReset()
     mockCancelRun.mockReset()
@@ -130,7 +130,7 @@ describe("applyOrderCommercialValues", () => {
     query.graph.mockReset()
     lockingModule.execute.mockReset()
     lockingModule.execute.mockImplementation(
-      (_key: string, fn: () => Promise<unknown>) => fn()
+      async (_key: string, fn: () => Promise<unknown>) => fn()
     )
     mockBeginRun.mockResolvedValue({ result: { id: "oc_1", version: 1 } })
     mockCancelRun.mockResolvedValue({ result: null })
@@ -210,12 +210,12 @@ describe("applyOrderCommercialValues", () => {
         order_id: "order_1",
       },
     })
-    expect(mockCreateActionsRun).toHaveBeenCalled()
+    expect(mockCreateActionsRun).toHaveBeenCalledWith()
     const actionInput = getRequired(
       getRequired(getRequired(mockCreateActionsRun.mock.calls, 0), 0).input,
       0
     )
-    expect(actionInput.details.adjustments).toEqual([
+    expect(actionInput.details.adjustments).toStrictEqual([
       {
         amount: 50,
         code: "promo_10",
@@ -244,7 +244,7 @@ describe("applyOrderCommercialValues", () => {
     expect(mockCancelRun).not.toHaveBeenCalled()
     expect(response.mode).toBe("confirmed")
     expect(response.order_change_id).toBe("oc_1")
-    expect(response.order_preview).toEqual({ id: "confirmed_preview" })
+    expect(response.order_preview).toStrictEqual({ id: "confirmed_preview" })
   })
 
   it("replaces shipping method adjustments for shipping discounts", async () => {
@@ -302,7 +302,7 @@ describe("applyOrderCommercialValues", () => {
     })
 
     expect(mockItemUpdateRun).not.toHaveBeenCalled()
-    expect(mockCreateActionsRun).toHaveBeenCalled()
+    expect(mockCreateActionsRun).toHaveBeenCalledWith()
     const actionInput = getRequired(
       getRequired(getRequired(mockCreateActionsRun.mock.calls, 0), 0).input,
       0
@@ -317,7 +317,7 @@ describe("applyOrderCommercialValues", () => {
         reference_id: "ship_1",
       },
     })
-    expect(actionInput.details.adjustments).toEqual([
+    expect(actionInput.details.adjustments).toStrictEqual([
       {
         amount: 50,
         code: "carrier_promo",
@@ -345,8 +345,8 @@ describe("applyOrderCommercialValues", () => {
         original_total: 18.49,
         shipping_methods: [
           {
-            current_subtotal: 8.130_081_300_813_009,
-            current_tax_total: 1.869_918_699_186_991_8,
+            current_subtotal: 8.130081300813009,
+            current_tax_total: 1.8699186991869918,
             discount: { type: "percentage" as const, value_bps: 9000 },
             existing_adjustments: [],
             shipping_method_id: "ship_1",
@@ -395,7 +395,7 @@ describe("applyOrderCommercialValues", () => {
         'Manual shipping discount [cv_discount:{"type":"percentage","value_bps":9000}]',
       shipping_method_id: "ship_1",
     })
-    expect(adjustment.amount).toBeCloseTo(7.317_073_170_731_708)
+    expect(adjustment.amount).toBeCloseTo(7.317073170731708)
     expect(adjustment.is_tax_inclusive).toBeUndefined()
   })
 
@@ -582,7 +582,7 @@ describe("applyOrderCommercialValues", () => {
     })
 
     expect(mockBeginRun).not.toHaveBeenCalled()
-    expect(mockCreateActionsRun).toHaveBeenCalled()
+    expect(mockCreateActionsRun).toHaveBeenCalledWith()
     expect(
       getRequired(
         getRequired(getRequired(mockCreateActionsRun.mock.calls, 0), 0).input,

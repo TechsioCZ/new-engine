@@ -1,9 +1,7 @@
 "use client"
 
-import {
-  Pagination,
-  type PaginationProps as UIPaginationProps,
-} from "@techsio/ui-kit/molecules/pagination"
+import { Pagination } from "@techsio/ui-kit/molecules/pagination"
+import type { PaginationProps as UIPaginationProps } from "@techsio/ui-kit/molecules/pagination"
 import Link from "next/link"
 import { useState } from "react"
 
@@ -15,7 +13,7 @@ import type { Product } from "@/types/product"
 import { formatPrice } from "@/utils/price-utils"
 import { extractProductData } from "@/utils/product-utils"
 
-type ProductGridProps = {
+interface ProductGridProps {
   products: Product[]
   totalCount?: number
   currentPage?: number
@@ -79,8 +77,12 @@ export function ProductGrid({
             <div className="relative" key={product.id}>
               <Link
                 href={`/products/${product.handle}`}
-                onMouseEnter={() => prefetchProduct(product.handle)}
-                onTouchStart={() => prefetchProduct(product.handle)}
+                onMouseEnter={() => {
+                  prefetchProduct(product.handle)
+                }}
+                onTouchStart={() => {
+                  prefetchProduct(product.handle)
+                }}
                 prefetch={true}
               >
                 <DemoProductCard
@@ -90,7 +92,9 @@ export function ProductGrid({
                   hasCartButton={true}
                   imageUrl={product.thumbnail || ""}
                   name={product.title}
-                  onCartClick={() => handleAddToCart(product)}
+                  onCartClick={() => {
+                    handleAddToCart(product)
+                  }}
                   price={formattedPrice || "není k dispozici"}
                 />
               </Link>

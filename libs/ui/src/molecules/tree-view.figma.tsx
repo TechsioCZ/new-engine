@@ -6,14 +6,6 @@ figma.connect(
   TreeView,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1193-228",
   {
-    imports: ['import { TreeView } from "@techsio/ui-kit/molecules/tree-view"'],
-    props: {
-      size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
-        lg: "lg",
-      }),
-    },
     example: ({ size }) => (
       <TreeView
         data={[
@@ -26,5 +18,13 @@ figma.connect(
         size={size}
       />
     ),
+    imports: ['import { TreeView } from "@techsio/ui-kit/molecules/tree-view"'],
+    props: {
+      size: figma.enum("size", {
+        sm: "sm",
+        md: "md",
+        lg: "lg",
+      }),
+    },
   }
 )

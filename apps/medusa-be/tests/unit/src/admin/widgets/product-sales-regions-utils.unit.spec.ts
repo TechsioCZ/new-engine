@@ -22,9 +22,9 @@ describe("product sales regions widget utils", () => {
   })
 
   it("indexes only valid iso_2 codes and preserves last-write insertion", () => {
-    const firstCzechia = { iso_2: "CZ", display_name: "First" }
-    const secondCzechia = { iso_2: "cz", display_name: "Second" }
-    const iso3Only = { iso_3: "SVK", display_name: "Slovakia" }
+    const firstCzechia = { display_name: "First", iso_2: "CZ" }
+    const secondCzechia = { display_name: "Second", iso_2: "cz" }
+    const iso3Only = { display_name: "Slovakia", iso_3: "SVK" }
     const countries = getCountriesByCode([
       {
         countries: [firstCzechia, iso3Only],
@@ -38,21 +38,21 @@ describe("product sales regions widget utils", () => {
       },
     ])
 
-    expect([...countries.keys()]).toEqual(["cz"])
+    expect([...countries.keys()]).toStrictEqual(["cz"])
     expect(countries.get("cz")).toBe(secondCzechia)
   })
 
   it("sorts Slovakia and Czechia before countries ordered by name", () => {
     const rows = [
-      { country_code: "de", countryName: "Germany" },
-      { country_code: "cz", countryName: "Czechia" },
-      { country_code: "at", countryName: "Austria" },
-      { country_code: "sk", countryName: "Slovakia" },
+      { countryName: "Germany", country_code: "de" },
+      { countryName: "Czechia", country_code: "cz" },
+      { countryName: "Austria", country_code: "at" },
+      { countryName: "Slovakia", country_code: "sk" },
     ]
 
     expect(
       rows.sort(sortSalesRegionRows).map((row) => row.country_code)
-    ).toEqual(["sk", "cz", "at", "de"])
+    ).toStrictEqual(["sk", "cz", "at", "de"])
   })
 
   it("builds named rows and filters countries absent from region data", () => {
@@ -74,12 +74,12 @@ describe("product sales regions widget utils", () => {
 
     expect(
       rows.map(({ country_code, countryName }) => ({
-        country_code,
         countryName,
+        country_code,
       }))
-    ).toEqual([
-      { country_code: "sk", countryName: "Slovakia" },
-      { country_code: "cz", countryName: "Czechia" },
+    ).toStrictEqual([
+      { countryName: "Slovakia", country_code: "sk" },
+      { countryName: "Czechia", country_code: "cz" },
     ])
   })
 })

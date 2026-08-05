@@ -1,8 +1,8 @@
 import { z } from "zod"
 
 const runtimeProviderOutputValueSchema = z.object({
-  value: z.string().default(""),
   env_var: z.string().default(""),
+  value: z.string().default(""),
 })
 
 export const runtimeProviderOutputsSchema = z.record(
@@ -35,7 +35,7 @@ export function parseRuntimeProviderOutputs(
     parsed = JSON.parse(value)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`Invalid ${label}: ${message}`)
+    throw new Error(`Invalid ${label}: ${message}`, { cause: error })
   }
 
   return runtimeProviderOutputsSchema.parse(parsed)

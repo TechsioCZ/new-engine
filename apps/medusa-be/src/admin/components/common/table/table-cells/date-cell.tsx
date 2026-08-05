@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next"
 
 import { PlaceholderCell } from "./placeholder-cell"
 
-type DateCellProps = {
+interface DateCellProps {
   date?: Date | string | null
 }
 
@@ -16,7 +16,7 @@ export const DateCell = ({ date }: DateCellProps) => {
   const value = new Date(date)
   value.setMinutes(value.getMinutes() - value.getTimezoneOffset())
 
-  const hour12 = Intl.DateTimeFormat().resolvedOptions().hour12
+  const { hour12 } = Intl.DateTimeFormat().resolvedOptions()
   const timestampFormat = hour12 ? "dd MMM yyyy hh:MM a" : "dd MMM yyyy HH:MM"
 
   return (
@@ -24,10 +24,7 @@ export const DateCell = ({ date }: DateCellProps) => {
       <Tooltip
         className="z-10"
         content={
-          <span className="text-pretty">{`${format(
-            value,
-            timestampFormat
-          )}`}</span>
+          <span className="text-pretty">{format(value, timestampFormat)}</span>
         }
       >
         <span className="truncate">{format(value, "dd MMM yyyy")}</span>

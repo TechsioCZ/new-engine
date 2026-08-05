@@ -75,10 +75,10 @@ describe("store quote middlewares", () => {
     const { ensureQuoteCustomer, storeQuotesMiddlewares } =
       await import("../../../../../../src/api/store/quotes/middlewares")
 
-    const ownerScopedRoutes: Array<{
+    const ownerScopedRoutes: {
       matcher: string
       method: MiddlewareVerb
-    }> = [
+    }[] = [
       { matcher: "/store/quotes/:id", method: "GET" },
       { matcher: "/store/quotes/:id/accept", method: "POST" },
       { matcher: "/store/quotes/:id/reject", method: "POST" },

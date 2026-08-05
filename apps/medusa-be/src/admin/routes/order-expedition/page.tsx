@@ -14,13 +14,8 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import {
-  type Dispatch,
-  type SetStateAction,
-  useEffect,
-  useMemo,
-  useState,
-} from "react"
+import { useEffect, useMemo, useState } from "react"
+import type { Dispatch, SetStateAction } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 
@@ -28,27 +23,31 @@ import {
   isManualOrderBusinessStatusId,
   isOrderBusinessStatusId,
   MANUAL_ORDER_BUSINESS_STATUS_IDS,
-  type ManualOrderBusinessStatusId,
   ORDER_BUSINESS_STATUS_IDS,
   ORDER_BUSINESS_STATUSES,
-  type OrderBusinessStatusId,
-  type OrderBusinessStatusSummary,
+} from "../../../utils/order-business-status"
+import type {
+  ManualOrderBusinessStatusId,
+  OrderBusinessStatusId,
+  OrderBusinessStatusSummary,
 } from "../../../utils/order-business-status"
 import {
   getOrderExpeditionTransitionBlockReason,
   isOrderExpeditionCarrierKey,
   isOrderExpeditionTargetStatus,
   ORDER_EXPEDITION_MAX_ORDER_IDS,
-  type OrderExpeditionBlockingOrder,
-  type OrderExpeditionCarrierKey,
-  type OrderExpeditionCarrierOption,
-  type OrderExpeditionOrderDto,
-  type OrderExpeditionTargetStatus,
+} from "../../../utils/order-expedition"
+import type {
+  OrderExpeditionBlockingOrder,
+  OrderExpeditionCarrierKey,
+  OrderExpeditionCarrierOption,
+  OrderExpeditionOrderDto,
+  OrderExpeditionTargetStatus,
 } from "../../../utils/order-expedition"
 import { formatLocaleCode } from "../../lib/format-locale-code"
 import { sdk } from "../../lib/sdk"
 
-type OrdersResponse = {
+interface OrdersResponse {
   orders: OrderExpeditionOrderDto[]
   count: number
   has_next: boolean
@@ -61,15 +60,15 @@ type OrdersResponse = {
   business_status: OrderBusinessStatusId | null
 }
 
-type CarriersResponse = {
+interface CarriersResponse {
   carriers: OrderExpeditionCarrierOption[]
 }
 
-type BusinessStatusesResponse = {
+interface BusinessStatusesResponse {
   orders: OrderBusinessStatusSummary[]
 }
 
-type BulkBusinessStatusResponse = {
+interface BulkBusinessStatusResponse {
   count: number
   skipped_count: number
   status: ManualOrderBusinessStatusId | null
@@ -77,7 +76,7 @@ type BulkBusinessStatusResponse = {
   skipped: OrderExpeditionBlockingOrder[]
 }
 
-type OrderExpeditionFilters = {
+interface OrderExpeditionFilters {
   carrier: typeof ALL_CARRIERS | OrderExpeditionCarrierKey
   businessStatus: typeof ALL_BUSINESS_STATUSES | OrderBusinessStatusId
   offset: number
@@ -92,16 +91,16 @@ export const handle = {
   breadcrumb: () => "Order Operations",
 }
 
-const TARGET_STATUSES: Array<{
+const TARGET_STATUSES: {
   value: OrderExpeditionTargetStatus
   label: string
-}> = [
-  { value: "pending", label: "Pending" },
-  { value: "completed", label: "Completed" },
-  { value: "draft", label: "Draft" },
-  { value: "archived", label: "Archived" },
-  { value: "canceled", label: "Canceled" },
-  { value: "requires_action", label: "Requires action" },
+}[] = [
+  { label: "Pending", value: "pending" },
+  { label: "Completed", value: "completed" },
+  { label: "Draft", value: "draft" },
+  { label: "Archived", value: "archived" },
+  { label: "Canceled", value: "canceled" },
+  { label: "Requires action", value: "requires_action" },
 ]
 
 type TargetStatusOption = (typeof TARGET_STATUSES)[number] & {
@@ -110,10 +109,10 @@ type TargetStatusOption = (typeof TARGET_STATUSES)[number] & {
 
 type ManualStatusValue = ManualOrderBusinessStatusId | "clear"
 
-const MANUAL_STATUS_OPTIONS: Array<{
+const MANUAL_STATUS_OPTIONS: {
   translationKey: string
   value: ManualStatusValue
-}> = [
+}[] = [
   ...MANUAL_ORDER_BUSINESS_STATUS_IDS.map((value) => ({
     translationKey: ORDER_BUSINESS_STATUSES[value].translation_key,
     value,
@@ -176,13 +175,13 @@ function buildOrdersQueryPath(filters: OrderExpeditionFilters): string {
 
 function useOrderExpeditionQueries(filters: OrderExpeditionFilters) {
   const carriersQuery = useQuery({
-    queryFn: () =>
+    queryFn: async () =>
       sdk.client.fetch<CarriersResponse>("/admin/order-expedition/carriers"),
     queryKey: ["order-expedition-carriers"],
   })
 
   const ordersQuery = useQuery({
-    queryFn: () =>
+    queryFn: async () =>
       sdk.client.fetch<OrdersResponse>(buildOrdersQueryPath(filters)),
     queryKey: [
       ORDER_EXPEDITION_QUERY_KEY,
@@ -202,7 +201,7 @@ function useOrderExpeditionQueries(filters: OrderExpeditionFilters) {
   )
   const businessStatusesQuery = useQuery({
     enabled: rawOrderIds.length > 0,
-    queryFn: () => {
+    queryFn: async () => {
       const search = new URLSearchParams({
         ids: rawOrderIds.join(","),
       })
@@ -354,19 +353,11 @@ function useOrderExpeditionFilterHandlers(params: {
   setBulkManualStatus: Dispatch<SetStateAction<ManualStatusValue | "">>
   setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
 }) {
-  const resetControls = () => resetOrderExpeditionControls(params)
+  const resetControls = () => {
+    resetOrderExpeditionControls(params)
+  }
 
   return {
-    handleCarrierChange: (value: string) => {
-      const nextCarrier = getCarrierSelectValue(value)
-
-      if (!nextCarrier) {
-        return
-      }
-
-      params.setCarrier(nextCarrier)
-      resetControls()
-    },
     handleBusinessStatusChange: (value: string) => {
       const nextBusinessStatus = getBusinessStatusSelectValue(value)
 
@@ -375,6 +366,16 @@ function useOrderExpeditionFilterHandlers(params: {
       }
 
       params.setBusinessStatus(nextBusinessStatus)
+      resetControls()
+    },
+    handleCarrierChange: (value: string) => {
+      const nextCarrier = getCarrierSelectValue(value)
+
+      if (!nextCarrier) {
+        return
+      }
+
+      params.setCarrier(nextCarrier)
       resetControls()
     },
   }
@@ -454,22 +455,6 @@ function useOrderExpeditionStatusHandlers(params: {
   ordersQuery: ReturnType<typeof useOrderExpeditionQueries>["ordersQuery"]
 }) {
   return {
-    handleTargetStatusChange: (value: string) => {
-      if (!isOrderExpeditionTargetStatus(value)) {
-        return
-      }
-
-      const option = params.targetStatusOptions.find(
-        (status) => status.value === value
-      )
-
-      if (option?.blockedOrders.length) {
-        return
-      }
-
-      params.setTargetStatus(value)
-      params.setBlockingOrders([])
-    },
     handlePrint: async () => {
       if (!params.selectedOrderIdsList.length) {
         return
@@ -528,6 +513,22 @@ function useOrderExpeditionStatusHandlers(params: {
         params.setIsUpdatingStatus(false)
       }
     },
+    handleTargetStatusChange: (value: string) => {
+      if (!isOrderExpeditionTargetStatus(value)) {
+        return
+      }
+
+      const option = params.targetStatusOptions.find(
+        (status) => status.value === value
+      )
+
+      if (option?.blockedOrders.length) {
+        return
+      }
+
+      params.setTargetStatus(value)
+      params.setBlockingOrders([])
+    },
   }
 }
 
@@ -556,19 +557,6 @@ function useOrderExpeditionBusinessStatusHandlers(params: {
         params.setBulkManualStatus(value)
         params.setBlockingOrders([])
       }
-    },
-    handleBusinessStatusUpdateRequest: () => {
-      if (!params.selectedOrderIdsList.length) {
-        return
-      }
-
-      if (params.bulkBusinessStatusTarget === undefined) {
-        toast.error("Select a manual status")
-        return
-      }
-
-      params.setBlockingOrders([])
-      params.setIsBulkBusinessStatusPromptOpen(true)
     },
     handleBusinessStatusUpdateConfirm: async () => {
       if (params.bulkBusinessStatusTarget === undefined) {
@@ -614,6 +602,19 @@ function useOrderExpeditionBusinessStatusHandlers(params: {
       } finally {
         params.setIsUpdatingBusinessStatus(false)
       }
+    },
+    handleBusinessStatusUpdateRequest: () => {
+      if (!params.selectedOrderIdsList.length) {
+        return
+      }
+
+      if (params.bulkBusinessStatusTarget === undefined) {
+        toast.error("Select a manual status")
+        return
+      }
+
+      params.setBlockingOrders([])
+      params.setIsBulkBusinessStatusPromptOpen(true)
     },
   }
 }
@@ -911,7 +912,7 @@ function getSelectedStatusBlockedMessage(
 
 function getPayloadErrorMessage(payload: unknown, fallback: string) {
   if (typeof payload === "object" && payload !== null && "message" in payload) {
-    const message = (payload as { message?: unknown }).message
+    const { message } = payload
     if (typeof message === "string") {
       return message
     }
@@ -974,7 +975,7 @@ async function downloadPdf(orderIds: string[]) {
   anchor.download = `order-expedition-${new Date()
     .toISOString()
     .slice(0, 10)}.pdf`
-  document.body.appendChild(anchor)
+  document.body.append(anchor)
   anchor.click()
   anchor.remove()
   URL.revokeObjectURL(url)
@@ -1001,8 +1002,8 @@ async function updateStatus(
   if (!response.ok) {
     return {
       blockedOrders: getBlockingOrders(payload),
-      ok: false as const,
       message: getPayloadErrorMessage(payload, "Failed to update order status"),
+      ok: false as const,
     }
   }
 
@@ -1012,7 +1013,7 @@ async function updateStatus(
   }
 }
 
-const updateOrderBusinessStatus = ({
+const updateOrderBusinessStatus = async ({
   orderId,
   status,
 }: {
@@ -1026,7 +1027,7 @@ const updateOrderBusinessStatus = ({
     method: "POST",
   })
 
-const bulkUpdateOrderBusinessStatus = ({
+const bulkUpdateOrderBusinessStatus = async ({
   orderIds,
   status,
 }: {
@@ -1044,7 +1045,7 @@ const bulkUpdateOrderBusinessStatus = ({
     }
   )
 
-type OrdersTableProps = {
+interface OrdersTableProps {
   allPageOrdersSelected: boolean
   intlLocale?: string
   isSelectionLimitReached: boolean
@@ -1056,7 +1057,7 @@ type OrdersTableProps = {
   somePageOrdersSelected: boolean
 }
 
-type OrderExpeditionPaginationProps = {
+interface OrderExpeditionPaginationProps {
   canNextPage: boolean
   canPreviousPage: boolean
   carrierFilterLimitReached: boolean
@@ -1215,7 +1216,7 @@ const ManualStatusControl = ({
   const { t } = useTranslation("orderBusinessStatuses")
   const queryClient = useQueryClient()
   const mutation = useMutation({
-    mutationFn: (value: ManualStatusValue) =>
+    mutationFn: async (value: ManualStatusValue) =>
       updateOrderBusinessStatus({
         orderId,
         status: value === "clear" ? null : value,
@@ -1340,7 +1341,9 @@ function OrdersTable({
                   disabled={
                     !selectedOrderIds.has(order.id) && isSelectionLimitReached
                   }
-                  onCheckedChange={() => onToggleOrder(order)}
+                  onCheckedChange={() => {
+                    onToggleOrder(order)
+                  }}
                 />
               </Table.Cell>
               <Table.Cell className="whitespace-nowrap text-ui-fg-base">
@@ -1502,7 +1505,7 @@ const OrderExpeditionPage = () => {
   const intlLocale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
 
   const { businessStatusesQuery, carriersQuery, orders, ordersQuery } =
-    useOrderExpeditionQueries({ carrier, businessStatus, offset })
+    useOrderExpeditionQueries({ businessStatus, carrier, offset })
   useSelectedOrdersSync(orders, setSelectedOrdersById)
   const {
     allPageOrdersSelected,
@@ -1778,11 +1781,15 @@ const OrderExpeditionPage = () => {
         carrierFilterLimitReached={pagination.carrierFilterLimitReached}
         count={pagination.count}
         countExact={pagination.countExact}
-        nextPage={() => setOffset((prev) => prev + PAGE_SIZE)}
+        nextPage={() => {
+          setOffset((prev) => prev + PAGE_SIZE)
+        }}
         pageCount={pagination.pageCount}
         pageIndex={pagination.pageIndex}
         pageSize={PAGE_SIZE}
-        previousPage={() => setOffset((prev) => Math.max(0, prev - PAGE_SIZE))}
+        previousPage={() => {
+          setOffset((prev) => Math.max(0, prev - PAGE_SIZE))
+        }}
         scannedCount={pagination.scannedCount}
       />
     </Container>

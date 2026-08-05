@@ -2,11 +2,11 @@ import { z } from "@medusajs/framework/zod"
 
 /** Schema for rule-attribute-options query params */
 export const RuleAttributeOptionsQuerySchema = z.object({
-  promotion_type: z.enum(["standard", "buyget"]).optional(),
-  application_method_type: z.enum(["fixed", "percentage"]).optional(),
   application_method_target_type: z
     .enum(["order", "items", "shipping_methods"])
     .optional(),
+  application_method_type: z.enum(["fixed", "percentage"]).optional(),
+  promotion_type: z.enum(["standard", "buyget"]).optional(),
 })
 
 export type RuleAttributeOptionsQuerySchemaType = z.infer<

@@ -22,7 +22,7 @@ const createMockQrPaymentModule = (
 // production return type.
 type UpdatePaymentOutputWithId = UpdatePaymentOutput & { id?: string }
 
-describe("QrManualPaymentProvider", () => {
+describe(QrManualPaymentProvider, () => {
   it("generates SPAYD and QR image data for a payment session", async () => {
     const getIban = vi.fn().mockResolvedValue("CZ65 0800 0000 1920 0014 5399")
     const provider = new QrManualPaymentProvider({
@@ -31,10 +31,10 @@ describe("QrManualPaymentProvider", () => {
 
     const result = await provider.initiatePayment({
       amount: 1234.5,
-      currency_code: "czk",
       context: {
         idempotency_key: "1234567890",
       },
+      currency_code: "czk",
     })
 
     expect(result.id).toBe("1234567890")
@@ -45,7 +45,7 @@ describe("QrManualPaymentProvider", () => {
     expect(result.data?.["payment_qr_spayd"]).toContain("AM:1234.50")
     expect(result.data?.["payment_qr_spayd"]).toContain("CC:CZK")
     expect(result.data?.["payment_qr_spayd"]).toContain("X-VS:1234567890")
-    expect(result.data?.["payment_qr_data_url"]).toEqual(
+    expect(result.data?.["payment_qr_data_url"]).toStrictEqual(
       expect.stringMatching(PNG_DATA_URL_PATTERN)
     )
     expect(result.data?.["qr_payment"]).toMatchObject({
@@ -70,7 +70,7 @@ describe("QrManualPaymentProvider", () => {
       },
     })
 
-    expect(getIban).toHaveBeenCalled()
+    expect(getIban).toHaveBeenCalledWith()
     expect(result.data?.["payment_qr_spayd"]).toContain("X-VS:987654321")
   })
 
@@ -82,14 +82,14 @@ describe("QrManualPaymentProvider", () => {
 
     const result = (await provider.updatePayment({
       amount: 250,
+      context: {
+        idempotency_key: "new-idempotency-key",
+      },
       currency_code: "CZK",
       data: {
         qr_payment: {
           reference: "1234567890",
         },
-      },
-      context: {
-        idempotency_key: "new-idempotency-key",
       },
     })) as UpdatePaymentOutputWithId
 
@@ -110,11 +110,11 @@ describe("QrManualPaymentProvider", () => {
           payment_qr_spayd: "SPD*1.0",
         },
       })
-    ).resolves.toEqual({
-      status: "authorized",
+    ).resolves.toStrictEqual({
       data: {
         payment_qr_spayd: "SPD*1.0",
       },
+      status: "authorized",
     })
   })
 })

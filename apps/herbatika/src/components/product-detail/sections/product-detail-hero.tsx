@@ -15,7 +15,7 @@ import { ProductDetailMediaColumn } from "@/components/product-detail/sections/p
 import { ProductDetailPurchasePanel } from "@/components/product-detail/sections/product-detail-purchase-panel"
 import type { ProductLocationAvailabilityState } from "@/lib/storefront/product-location-availability"
 
-type ProductDetailHeroProps = {
+interface ProductDetailHeroProps {
   children?: ReactNode
   canAddToCart: boolean
   currentAmountLabel: string

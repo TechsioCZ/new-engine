@@ -19,7 +19,9 @@ function setCookie(name: string, value: string) {
 }
 
 function getCookie(name: string): string | null {
-  if (typeof window === "undefined") return null
+  if (typeof window === "undefined") {
+    return null
+  }
 
   const value = `; ${document.cookie}`
   const parts = value.split(`; ${name}=`)

@@ -17,28 +17,28 @@ const createSdkMock = () => {
   const clientFetch = vi.fn((path: string): Record<string, unknown> => {
     if (path === "/store/products") {
       return {
-        products: [{ id: "prod_1", handle: "p-1", title: "Product 1" }],
         count: 1,
         limit: 2,
         offset: 0,
+        products: [{ id: "prod_1", handle: "p-1", title: "Product 1" }],
       }
     }
 
     if (path === "/store/regions") {
       return {
-        regions: [{ id: "reg_1", name: "CZ" }],
         count: 1,
         limit: 20,
         offset: 0,
+        regions: [{ id: "reg_1", name: "CZ" }],
       }
     }
 
     if (path === "/store/product-lists") {
       return {
-        product_lists: [{ id: "list_1", title: "Favorite" }],
         count: 1,
         limit: 5,
         offset: 5,
+        product_lists: [{ id: "list_1", title: "Favorite" }],
       }
     }
 
@@ -70,7 +70,7 @@ const createSdkMock = () => {
   }
 }
 
-describe("createMedusaStorefrontServerReadPreset", () => {
+describe(createMedusaStorefrontServerReadPreset, () => {
   it("builds namespaced reusable read query options for SSR prefetch", async () => {
     const { sdk, spies } = createSdkMock()
     const productQueryKeys = createProductQueryKeys<
@@ -86,8 +86,8 @@ describe("createMedusaStorefrontServerReadPreset", () => {
       MedusaProductListDetailKeyInput
     >(["tenant", "demo"])
     const preset = createMedusaStorefrontServerReadPreset({
-      sdk,
       queryKeyNamespace: ["tenant", "demo"],
+      sdk,
     })
 
     const queryClient = new QueryClient({
@@ -99,28 +99,30 @@ describe("createMedusaStorefrontServerReadPreset", () => {
     })
     const regionQuery = preset.queries.regions.getListQueryOptions({})
     const productListQuery = preset.queries.productLists.getListQueryOptions({
-      page: 2,
-      limit: 5,
       customerId: "cus_1",
       enabled: true,
+      limit: 5,
+      page: 2,
     })
     const productListDetailQuery =
       preset.queries.productLists.getDetailQueryOptions({
-        id: "list_1",
         customerId: "cus_1",
         enabled: true,
+        id: "list_1",
       })
 
-    expect(productQuery.queryKey).toEqual(productQueryKeys.list({ limit: 2 }))
-    expect(regionQuery.queryKey).toEqual(regionQueryKeys.list({}))
-    expect(productListQuery.queryKey).toEqual(
+    expect(productQuery.queryKey).toStrictEqual(
+      productQueryKeys.list({ limit: 2 })
+    )
+    expect(regionQuery.queryKey).toStrictEqual(regionQueryKeys.list({}))
+    expect(productListQuery.queryKey).toStrictEqual(
       productListQueryKeys.list({
         customerId: "cus_1",
         limit: 5,
         offset: 5,
       })
     )
-    expect(productListDetailQuery.queryKey).toEqual(
+    expect(productListDetailQuery.queryKey).toStrictEqual(
       productListQueryKeys.detail({
         customerId: "cus_1",
         id: "list_1",
@@ -171,6 +173,7 @@ describe("createMedusaStorefrontServerReadPreset", () => {
     >("storefront-data")
 
     const customOrderService = {
+      getOrder: vi.fn(async () => null),
       getOrders: vi.fn(
         async (): Promise<{
           orders: HttpTypes.StoreOrder[]
@@ -180,20 +183,19 @@ describe("createMedusaStorefrontServerReadPreset", () => {
           count: 0,
         })
       ),
-      getOrder: vi.fn(async () => null),
     }
 
     const preset = createMedusaStorefrontServerReadPreset({
-      sdk,
       orders: {
-        service: customOrderService,
         hooks: {
           buildListParams: (input) => ({
             limit: input.limit ?? 20,
             offset: Math.max((input.page ?? 1) - 1, 0) * (input.limit ?? 20),
           }),
         },
+        service: customOrderService,
       },
+      sdk,
     })
 
     const queryClient = new QueryClient({
@@ -201,12 +203,12 @@ describe("createMedusaStorefrontServerReadPreset", () => {
     })
 
     const ordersQuery = preset.queries.orders.getListQueryOptions({
-      page: 3,
-      limit: 5,
       enabled: true,
+      limit: 5,
+      page: 3,
     })
 
-    expect(ordersQuery.queryKey).toEqual(
+    expect(ordersQuery.queryKey).toStrictEqual(
       orderQueryKeys.list({ limit: 5, offset: 10 })
     )
     expect(ordersQuery.staleTime).toBe(5 * 60 * 1000)
@@ -225,15 +227,15 @@ describe("createMedusaStorefrontServerReadPreset", () => {
       getProductAttributes: vi.fn(async () => []),
     }
     const preset = createMedusaStorefrontServerReadPreset({
-      sdk,
       productAttributes: {
-        service: productAttributeService,
         hooks: {
           buildDetailParams: ({ productId }) => ({
             productId: `resolved:${productId}`,
           }),
         },
+        service: productAttributeService,
       },
+      sdk,
     })
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -242,7 +244,7 @@ describe("createMedusaStorefrontServerReadPreset", () => {
       productId: "prod_1",
     })
 
-    expect(query.queryKey).toEqual([
+    expect(query.queryKey).toStrictEqual([
       "storefront-data",
       "product-attributes",
       "detail",

@@ -2,13 +2,10 @@ import { getTranslations } from "next-intl/server"
 
 import NextLink from "@/components/app-link"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
-import {
-  createBrandHref,
-  groupStorefrontBrands,
-  type StorefrontBrand,
-} from "@/lib/storefront/brands"
+import { createBrandHref, groupStorefrontBrands } from "@/lib/storefront/brands"
+import type { StorefrontBrand } from "@/lib/storefront/brands"
 
-type BrandIndexPageProps = {
+interface BrandIndexPageProps {
   brands: StorefrontBrand[]
 }
 
@@ -24,9 +21,9 @@ export async function BrandIndexPage({ brands }: BrandIndexPageProps) {
       <HerbatikaBreadcrumb
         items={[
           {
-            label: tNavigation("breadcrumbs.home"),
             href: "/",
             icon: "token-icon-home",
+            label: tNavigation("breadcrumbs.home"),
           },
           { label: t("brands.label") },
         ]}

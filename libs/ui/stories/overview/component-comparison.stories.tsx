@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { type ReactNode, useState } from "react"
+import { useState } from "react"
+import type { ReactNode } from "react"
 
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
@@ -18,44 +19,46 @@ import { Tooltip } from "../../src/atoms/tooltip"
 import { Accordion } from "../../src/molecules/accordion"
 import { Carousel } from "../../src/molecules/carousel"
 import { ColorSelect } from "../../src/molecules/color-select"
-import { Combobox, type ComboboxItem } from "../../src/molecules/combobox"
+import { Combobox } from "../../src/molecules/combobox"
+import type { ComboboxItem } from "../../src/molecules/combobox"
 import { Dialog } from "../../src/molecules/dialog"
 import { FormCheckbox } from "../../src/molecules/form-checkbox"
 import { FormInput } from "../../src/molecules/form-input"
 import { FormNumericInput } from "../../src/molecules/form-numeric-input"
 import { FormTextarea } from "../../src/molecules/form-textarea"
-import { Menu, type MenuItem } from "../../src/molecules/menu"
+import { Menu } from "../../src/molecules/menu"
+import type { MenuItem } from "../../src/molecules/menu"
 import { Pagination } from "../../src/molecules/pagination"
 import { Popover } from "../../src/molecules/popover"
 import { ProductCard } from "../../src/molecules/product-card"
 import { SearchForm } from "../../src/molecules/search-form"
-import { Select, type SelectItem } from "../../src/molecules/select"
+import { Select } from "../../src/molecules/select"
+import type { SelectItem } from "../../src/molecules/select"
 import { Slider } from "../../src/molecules/slider"
 import { Steps } from "../../src/molecules/steps"
 import { Switch } from "../../src/molecules/switch"
 import { Tabs } from "../../src/molecules/tabs"
 import { Toaster, useToast } from "../../src/molecules/toast"
-import { TreeView, type TreeNode } from "../../src/molecules/tree-view"
+import { TreeView } from "../../src/molecules/tree-view"
+import type { TreeNode } from "../../src/molecules/tree-view"
 import { Footer } from "../../src/organisms/footer"
 import { Header } from "../../src/organisms/header"
 import { Table } from "../../src/organisms/table"
-import {
-  BreadcrumbTemplate,
-  type BreadcrumbTemplateItem,
-} from "../../src/templates/breadcrumb"
+import { BreadcrumbTemplate } from "../../src/templates/breadcrumb"
+import type { BreadcrumbTemplateItem } from "../../src/templates/breadcrumb"
 
 const meta: Meta = {
-  title: "Overview/Component Comparison",
   parameters: {
     layout: "fullscreen",
   },
   tags: ["comparison"],
+  title: "Overview/Component Comparison",
 }
 
 export default meta
 type Story = StoryObj
 
-type ComponentCardProps = {
+interface ComponentCardProps {
   title: string
   children: ReactNode
   className?: string
@@ -80,7 +83,7 @@ function ComponentCard({
   )
 }
 
-type SectionProps = {
+interface SectionProps {
   title: string
   description?: string
   children: ReactNode
@@ -114,9 +117,9 @@ function Section({
 }
 
 const breadcrumbItems: BreadcrumbTemplateItem[] = [
-  { label: "Home", href: "#" },
-  { label: "Catalog", href: "#" },
-  { label: "Item", href: "#", isCurrent: true },
+  { href: "#", label: "Home" },
+  { href: "#", label: "Catalog" },
+  { href: "#", isCurrent: true, label: "Item" },
 ]
 
 const comboboxItems: ComboboxItem[] = [
@@ -133,98 +136,96 @@ const selectItems: SelectItem[] = [
 
 const menuItems: MenuItem[] = [
   {
+    icon: "icon-[mdi--pencil]",
+    label: "Edit",
     type: "action",
     value: "edit",
-    label: "Edit",
-    icon: "icon-[mdi--pencil]",
   },
   {
+    icon: "icon-[mdi--content-copy]",
+    label: "Duplicate",
     type: "action",
     value: "duplicate",
-    label: "Duplicate",
-    icon: "icon-[mdi--content-copy]",
   },
-  { type: "separator", id: "menu-sep-1" },
+  { id: "menu-sep-1", type: "separator" },
   {
+    icon: "icon-[mdi--archive]",
+    label: "Archive",
     type: "action",
     value: "archive",
-    label: "Archive",
-    icon: "icon-[mdi--archive]",
   },
 ]
 
 const colorOptions = [
-  { color: "var(--color-primary)", selected: true, label: "Primary" },
+  { color: "var(--color-primary)", label: "Primary", selected: true },
   { color: "var(--color-secondary)", label: "Secondary" },
   { color: "var(--color-tertiary)", label: "Tertiary" },
 ]
 
 const carouselSlides = [
   {
-    id: "slide-1",
-    src: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800",
     alt: "Beautiful landscape",
+    id: "slide-1",
     imageProps: { className: "h-full w-full", size: "custom" },
+    src: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800",
   },
   {
-    id: "slide-2",
-    src: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400",
     alt: "City skyline",
+    id: "slide-2",
     imageProps: { className: "h-full w-full", size: "custom" },
+    src: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400",
   },
   {
-    id: "slide-3",
-    src: "https://images.unsplash.com/photo-1747258294931-79af146bd74c?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     alt: "Ocean view",
+    id: "slide-3",
     imageProps: { className: "h-full w-full", size: "custom" },
+    src: "https://images.unsplash.com/photo-1747258294931-79af146bd74c?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
 ]
 
 const stepsItems = [
   {
-    title: "Account",
-    description: "Create your account",
     content: "Create your account",
+    description: "Create your account",
+    title: "Account",
   },
   {
-    title: "Profile",
-    description: "Complete your profile",
     content: "Complete your profile",
+    description: "Complete your profile",
+    title: "Profile",
   },
   {
-    title: "Settings",
-    description: "Configure settings",
     content: "Configure settings",
+    description: "Configure settings",
+    title: "Settings",
   },
   {
-    title: "Review",
-    description: "Review and confirm",
     content: "Review and confirm",
+    description: "Review and confirm",
+    title: "Review",
   },
 ]
 
 const tabsItems = [
   {
-    value: "overview",
-    label: "Overview",
     content: <div className="p-200">Overview content.</div>,
+    label: "Overview",
+    value: "overview",
   },
   {
-    value: "details",
-    label: "Details",
     content: <div className="p-200">Details content.</div>,
+    label: "Details",
+    value: "details",
   },
   {
-    value: "reviews",
-    label: "Reviews",
     content: <div className="p-200">Reviews content.</div>,
+    label: "Reviews",
+    value: "reviews",
   },
 ]
 
 const treeData: TreeNode[] = [
   {
-    id: "src",
-    name: "src",
     children: [
       {
         id: "atoms",
@@ -243,20 +244,22 @@ const treeData: TreeNode[] = [
         ],
       },
     ],
+    id: "src",
+    name: "src",
   },
   { id: "package.json", name: "package.json" },
 ]
 
 const tableRows = [
-  { id: 1, name: "Laptop", category: "Electronics", price: 999.99, stock: 24 },
+  { category: "Electronics", id: 1, name: "Laptop", price: 999.99, stock: 24 },
   {
+    category: "Appliances",
     id: 2,
     name: "Coffee Maker",
-    category: "Appliances",
     price: 49.99,
     stock: 98,
   },
-  { id: 3, name: "Desk Chair", category: "Furniture", price: 150.0, stock: 16 },
+  { category: "Furniture", id: 3, name: "Desk Chair", price: 150.0, stock: 16 },
 ]
 
 function ToastPreview() {
@@ -266,8 +269,8 @@ function ToastPreview() {
       size="md"
       onClick={() =>
         toaster.create({
-          title: "Saved",
           description: "Changes stored successfully.",
+          title: "Saved",
           type: "success",
         })
       }
@@ -721,7 +724,9 @@ function ComponentComparison() {
             <div className="w-full max-w-xl">
               <Steps
                 count={stepsItems.length}
-                onStepChange={(details) => setCurrentStep(details.step)}
+                onStepChange={(details) => {
+                  setCurrentStep(details.step)
+                }}
                 size="md"
                 step={currentStep}
                 variant="subtle"

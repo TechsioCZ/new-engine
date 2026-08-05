@@ -50,10 +50,10 @@ interface VerifyDeployRequest {
 interface VerifyEnvironmentLookup {
   is_preview: boolean
   name: string
-  variables?: Array<{
+  variables?: {
     key: string
     value: string
-  }>
+  }[]
 }
 
 interface VerifyServiceCard {
@@ -286,11 +286,11 @@ export class ZaneDeployVerifier {
     const previewServiceVerification =
       input.lane === "preview"
         ? verifyPreviewServiceSet({
-            expectedPreviewServiceSlugs: input.expectedPreviewServiceSlugs,
+            environmentName: input.environmentName,
             excludedPreviewServiceSlugs: input.excludedPreviewServiceSlugs,
+            expectedPreviewServiceSlugs: input.expectedPreviewServiceSlugs,
             presentServiceSlugs: services.map((service) => service.slug),
             projectSlug: input.projectSlug,
-            environmentName: input.environmentName,
           })
         : {
             checkedPreviewClonedServiceSlugs: [] as string[],
@@ -440,9 +440,9 @@ export class ZaneDeployVerifier {
 
       checkedServiceIds.add(repoServiceId)
       checkedDeployments.push({
+        deployment_hash: deployment.hash,
         service_id: repoServiceId,
         service_slug: checkedServiceSlug,
-        deployment_hash: deployment.hash,
         status: deployment.status,
         status_reason:
           deployment.status.toUpperCase() === "HEALTHY"
@@ -523,31 +523,31 @@ export class ZaneDeployVerifier {
     }
 
     return {
-      lane: input.lane,
-      project_slug: input.projectSlug,
-      environment_name: input.environmentName,
-      verified: true,
-      requested_service_ids: input.requestedServiceIds,
-      deploy_service_ids: input.deployServiceIds,
-      triggered_service_ids: input.triggeredServiceIds,
-      checked_preview_cloned_service_slugs:
-        previewServiceVerification.checkedPreviewClonedServiceSlugs,
-      warning_only_preview_service_slugs:
-        previewServiceVerification.warningOnlyPreviewServiceSlugs,
+      checked_deployment_service_ids: checkedDeployments.map(
+        (item) => item.service_id
+      ),
+      checked_deployments: checkedDeployments,
       checked_env_override_service_ids: input.expectedEnvOverrides.map(
+        (item) => item.service_id
+      ),
+      checked_forbidden_env_service_ids: input.forbiddenEnv.map(
         (item) => item.service_id
       ),
       checked_persisted_env_service_ids: input.requiredPersistedEnv.map(
         (item) => item.service_id
       ),
+      checked_preview_cloned_service_slugs:
+        previewServiceVerification.checkedPreviewClonedServiceSlugs,
       checked_shared_env_keys: input.requiredSharedEnv.map((item) => item.key),
-      checked_forbidden_env_service_ids: input.forbiddenEnv.map(
-        (item) => item.service_id
-      ),
-      checked_deployment_service_ids: checkedDeployments.map(
-        (item) => item.service_id
-      ),
-      checked_deployments: checkedDeployments,
+      deploy_service_ids: input.deployServiceIds,
+      environment_name: input.environmentName,
+      lane: input.lane,
+      project_slug: input.projectSlug,
+      requested_service_ids: input.requestedServiceIds,
+      triggered_service_ids: input.triggeredServiceIds,
+      verified: true,
+      warning_only_preview_service_slugs:
+        previewServiceVerification.warningOnlyPreviewServiceSlugs,
     }
   }
 }

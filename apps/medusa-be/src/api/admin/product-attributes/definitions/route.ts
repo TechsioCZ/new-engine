@@ -3,14 +3,10 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 
-import {
-  getProductAttributeService,
-  type ProductAttributeDefinitionRecord,
-} from "../../../../utils/product-attributes"
-import {
-  type CreateProductAttributeDefinitionInput,
-  createProductAttributeDefinitionWorkflow,
-} from "../../../../workflows/product-attribute"
+import { getProductAttributeService } from "../../../../utils/product-attributes"
+import type { ProductAttributeDefinitionRecord } from "../../../../utils/product-attributes"
+import { createProductAttributeDefinitionWorkflow } from "../../../../workflows/product-attribute"
+import type { CreateProductAttributeDefinitionInput } from "../../../../workflows/product-attribute"
 import {
   applyProductAttributeStatusFilter,
   escapeProductAttributeLikePattern,
@@ -45,14 +41,14 @@ export async function GET(
   }
   applyProductAttributeStatusFilter(filters, status)
 
-  const [definitions, count] = (await getProductAttributeService(
+  const [definitions, count] = await getProductAttributeService(
     req.scope
   ).listAndCountProductAttributeDefinitions(filters, {
     order: parseProductAttributeOrder(order),
     skip: offset,
     take: limit,
     withDeleted: status !== "active",
-  })) as [ProductAttributeDefinitionRecord[], number]
+  })
   const usageCounts = await getDefinitionUsageCountMap(
     req.scope,
     definitions.map((definition) => definition.id)
@@ -78,7 +74,7 @@ export async function POST(
   const { result } = await createProductAttributeDefinitionWorkflow(
     req.scope
   ).run({
-    input: req.validatedBody as CreateProductAttributeDefinitionInput,
+    input: req.validatedBody,
   })
 
   res.status(201).json({

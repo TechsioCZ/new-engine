@@ -15,7 +15,7 @@ const httpSchemePattern = /^https?:\/\//
 export type BootstrapValueSource = PreviewSharedEnvVariableInput["source"]
 
 export function firstNonEmpty(
-  ...values: Array<string | null | undefined>
+  ...values: (string | null | undefined)[]
 ): string | undefined {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) {
@@ -114,7 +114,7 @@ export function preferExplicitOrMergeCsv(input: {
     stripTrailingSlash(input.fallbackValue.trim()),
   ].filter((value) => value.length > 0)
 
-  return Array.from(new Set(values)).join(",")
+  return [...new Set(values)].join(",")
 }
 
 function stripTrailingSlash(value: string): string {
@@ -130,7 +130,7 @@ export function resolveOptionalPath(pathValue?: string): string | undefined {
 }
 
 export async function readJsonFile<T>(pathValue: string): Promise<T> {
-  const raw = await readFile(resolve(pathValue), "utf8")
+  const raw = await readFile(resolve(pathValue), "utf-8")
   return JSON.parse(raw) as T
 }
 
@@ -175,8 +175,8 @@ export function serviceInternalOriginSource(input: {
 }): BootstrapValueSource {
   return {
     kind: "service_internal_origin",
-    service_slug: input.serviceSlug,
     port: input.port,
+    service_slug: input.serviceSlug,
     trailing_slash: input.trailingSlash,
   }
 }
@@ -187,9 +187,9 @@ export function serviceInternalBucketUrlSource(input: {
   bucketSharedEnvKey: string
 }): BootstrapValueSource {
   return {
-    kind: "service_internal_bucket_url",
-    service_slug: input.serviceSlug,
-    port: input.port,
     bucket_shared_env_key: input.bucketSharedEnvKey,
+    kind: "service_internal_bucket_url",
+    port: input.port,
+    service_slug: input.serviceSlug,
   }
 }

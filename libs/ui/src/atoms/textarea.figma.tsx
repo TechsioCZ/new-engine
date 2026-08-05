@@ -6,8 +6,26 @@ figma.connect(
   Textarea,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=502-93",
   {
+    example: ({ size, variant, disabled, readonly }) => (
+      <Textarea
+        disabled={disabled}
+        readonly={readonly}
+        size={size}
+        variant={variant}
+      />
+    ),
     imports: ['import { Textarea } from "@techsio/ui-kit/atoms/textarea"'],
     props: {
+      disabled: figma.enum("state", {
+        default: false,
+        disabled: true,
+        readonly: false,
+      }),
+      readonly: figma.enum("state", {
+        default: false,
+        disabled: false,
+        readonly: true,
+      }),
       size: figma.enum("size", {
         sm: "sm",
         md: "md",
@@ -20,24 +38,6 @@ figma.connect(
         warning: "warning",
         borderless: "borderless",
       }),
-      disabled: figma.enum("state", {
-        default: false,
-        disabled: true,
-        readonly: false,
-      }),
-      readonly: figma.enum("state", {
-        default: false,
-        disabled: false,
-        readonly: true,
-      }),
     },
-    example: ({ size, variant, disabled, readonly }) => (
-      <Textarea
-        disabled={disabled}
-        readonly={readonly}
-        size={size}
-        variant={variant}
-      />
-    ),
   }
 )

@@ -24,11 +24,11 @@ export function mapHandlerError(error: unknown, context: string): Response {
     const logLevel = error.status >= 500 ? console.error : console.warn
     logLevel(
       JSON.stringify({
-        event: "handler.upstream_error",
         context,
-        status: error.status,
         error_code: error.errorCode,
+        event: "handler.upstream_error",
         message: error.message,
+        status: error.status,
       })
     )
     return jsonError(error.status, error.errorCode, error.message)
@@ -37,8 +37,8 @@ export function mapHandlerError(error: unknown, context: string): Response {
   if (error instanceof BadRequestError) {
     console.warn(
       JSON.stringify({
-        event: "handler.bad_request",
         context,
+        event: "handler.bad_request",
         message: error.message,
       })
     )
@@ -48,8 +48,8 @@ export function mapHandlerError(error: unknown, context: string): Response {
   const message = error instanceof Error ? error.message : String(error)
   console.error(
     JSON.stringify({
-      event: "handler.error",
       context,
+      event: "handler.error",
       message,
     })
   )

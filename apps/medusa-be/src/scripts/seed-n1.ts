@@ -7,11 +7,12 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 import { DATABASE_MODULE } from "../modules/database"
 import type DatabaseModuleService from "../modules/database/service"
-import seedN1Workflow, {
-  type SeedN1WorkflowInput,
-} from "../workflows/seed/workflows/seed-n1"
-import { type CategoryRaw, categoriesSql } from "./seed-n1/queries/categories"
-import { type ProductRaw, productsSql } from "./seed-n1/queries/products"
+import seedN1Workflow from "../workflows/seed/workflows/seed-n1"
+import type { SeedN1WorkflowInput } from "../workflows/seed/workflows/seed-n1"
+import { categoriesSql } from "./seed-n1/queries/categories"
+import type { CategoryRaw } from "./seed-n1/queries/categories"
+import { productsSql } from "./seed-n1/queries/products"
+import type { ProductRaw } from "./seed-n1/queries/products"
 
 /** Set to true to bypass cache and fetch fresh data directly from DB (dev only) */
 const FORCE_FRESH_DATA = false
@@ -49,16 +50,6 @@ export default async function seedN1({ container }: ExecArgs) {
     "sk",
   ]
   const input: Omit<SeedN1WorkflowInput, "categories" | "products"> = {
-    workflowDefaults: {
-      fulfillmentProviderId: "manual_manual",
-      shippingOptionPriceAmount: 10,
-    },
-    salesChannels: [
-      {
-        name: "Default Sales Channel",
-        default: true,
-      },
-    ],
     currencies: [
       {
         code: "czk",
@@ -73,6 +64,24 @@ export default async function seedN1({ container }: ExecArgs) {
         default: false,
       },
     ],
+    defaultShippingProfile: {
+      name: "Default Shipping Profile",
+    },
+    fulfillmentSets: {
+      name: "European Warehouse delivery",
+      serviceZones: [
+        {
+          name: "Europe",
+          geoZones: countries.map((c) => ({
+            countryCode: c,
+          })),
+        },
+      ],
+      type: "shipping",
+    },
+    publishableKey: {
+      title: "Webshop",
+    },
     regions: [
       {
         name: "Czechia",
@@ -85,36 +94,12 @@ export default async function seedN1({ container }: ExecArgs) {
         countries: countries.filter((c) => c !== "cz"),
       },
     ],
-    taxRegions: {
-      countries,
-    },
-    stockLocations: {
-      locations: [
-        {
-          name: "European Warehouse",
-          address: {
-            city: "Copenhagen",
-            country_code: "DK",
-            address_1: "",
-          },
-        },
-      ],
-    },
-    defaultShippingProfile: {
-      name: "Default Shipping Profile",
-    },
-    fulfillmentSets: {
-      name: "European Warehouse delivery",
-      type: "shipping",
-      serviceZones: [
-        {
-          name: "Europe",
-          geoZones: countries.map((c) => ({
-            countryCode: c,
-          })),
-        },
-      ],
-    },
+    salesChannels: [
+      {
+        name: "Default Sales Channel",
+        default: true,
+      },
+    ],
     shippingOptions: [
       // Manual fulfillment options
       {
@@ -349,8 +334,24 @@ export default async function seedN1({ container }: ExecArgs) {
         ],
       },
     ],
-    publishableKey: {
-      title: "Webshop",
+    stockLocations: {
+      locations: [
+        {
+          name: "European Warehouse",
+          address: {
+            city: "Copenhagen",
+            country_code: "DK",
+            address_1: "",
+          },
+        },
+      ],
+    },
+    taxRegions: {
+      countries,
+    },
+    workflowDefaults: {
+      fulfillmentProviderId: "manual_manual",
+      shippingOptionPriceAmount: 10,
     },
   }
 
@@ -380,10 +381,10 @@ export default async function seedN1({ container }: ExecArgs) {
 
     // Store in cache
     await cacheService.set({
-      key,
       data: data as object,
-      ttl: CACHE_TTL.DATA,
+      key,
       tags: [CACHE_TAGS.ALL],
+      ttl: CACHE_TTL.DATA,
     })
     logger.info(`Cached ${label} for 24 hours`)
 
@@ -393,12 +394,12 @@ export default async function seedN1({ container }: ExecArgs) {
   const [resultCategories, resultProducts] = await Promise.all([
     getCachedOrFetch<CategoryRaw[]>(
       CACHE_KEYS.CATEGORIES,
-      () => dbService.sqlRaw<CategoryRaw>(categoriesSql),
+      async () => dbService.sqlRaw<CategoryRaw>(categoriesSql),
       "categories"
     ),
     getCachedOrFetch<ProductRaw[]>(
       CACHE_KEYS.PRODUCTS,
-      () => dbService.sqlRaw<ProductRaw>(productsSql),
+      async () => dbService.sqlRaw<ProductRaw>(productsSql),
       "products"
     ),
   ])

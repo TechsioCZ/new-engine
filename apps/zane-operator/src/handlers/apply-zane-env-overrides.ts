@@ -20,10 +20,10 @@ export async function handleApplyZaneEnvOverrides(
     const client = new ZaneClient(deps.config)
     const payload = parseApplyEnvOverridesInput(rawBody)
     const result = await client.applyEnvOverrides({
-      projectSlug: payload.projectSlug,
-      environmentName: payload.environmentName,
-      targets: payload.targets,
       envOverrides: payload.envOverrides,
+      environmentName: payload.environmentName,
+      projectSlug: payload.projectSlug,
+      targets: payload.targets,
     })
 
     return jsonResponse(200, result)

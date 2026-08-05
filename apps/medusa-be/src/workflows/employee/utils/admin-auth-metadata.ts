@@ -1,16 +1,16 @@
 import type { ProviderIdentityDTO, Query } from "@medusajs/framework/types"
 
-type AdminRoleCandidate = {
+interface AdminRoleCandidate {
   customer_id?: string | null | undefined
   email?: string | null | undefined
 }
 
-type EmployeeCustomerLinkRow = {
+interface EmployeeCustomerLinkRow {
   customer_id?: string
   employee_id?: string
 }
 
-type EmployeeWithCustomer = {
+interface EmployeeWithCustomer {
   company?: {
     deleted_at?: Date | string | null
     id?: string | null

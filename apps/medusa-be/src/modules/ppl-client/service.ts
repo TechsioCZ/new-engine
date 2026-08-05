@@ -10,28 +10,28 @@ import { decryptFields, encryptFields } from "../../utils/encryption"
 import { safeResolve } from "../../utils/safe-resolve"
 import { PplClient } from "./client"
 import PplConfig from "./models/ppl-config"
-import {
-  PPL_SENSITIVE_FIELDS,
-  type PplAccessPoint,
-  type PplAccessPointsQuery,
-  type PplBatchResponse,
-  type PplCodelistCountry,
-  type PplCodelistCurrency,
-  type PplCodelistProduct,
-  type PplCodelistServiceItem,
-  type PplCodelistStatus,
-  type PplConfigDTO,
-  type PplCustomerAddressResponse,
-  type PplCustomerInfo,
-  type PplEnvironment,
-  type PplLabelFormat,
-  type PplLabelSettings,
-  type PplOptions,
-  type PplReturnChannel,
-  type PplShipmentInfo,
-  type PplShipmentQuery,
-  type PplShipmentRequest,
-  type UpdatePplConfigInput,
+import { PPL_SENSITIVE_FIELDS } from "./types"
+import type {
+  PplAccessPoint,
+  PplAccessPointsQuery,
+  PplBatchResponse,
+  PplCodelistCountry,
+  PplCodelistCurrency,
+  PplCodelistProduct,
+  PplCodelistServiceItem,
+  PplCodelistStatus,
+  PplConfigDTO,
+  PplCustomerAddressResponse,
+  PplCustomerInfo,
+  PplEnvironment,
+  PplLabelFormat,
+  PplLabelSettings,
+  PplOptions,
+  PplReturnChannel,
+  PplShipmentInfo,
+  PplShipmentQuery,
+  PplShipmentRequest,
+  UpdatePplConfigInput,
 } from "./types"
 
 // ============================================
@@ -39,14 +39,14 @@ import {
 // ============================================
 
 const CACHE_KEYS = {
-  TOKEN: "ppl:oauth:token",
-  RATE_LIMIT: "ppl:rate:last_request",
+  CONFIG: "ppl:config",
   COUNTRIES: "ppl:codelist:countries",
   CURRENCIES: "ppl:codelist:currencies",
   PRODUCTS: "ppl:codelist:products",
+  RATE_LIMIT: "ppl:rate:last_request",
   SERVICES: "ppl:codelist:services",
   STATUSES: "ppl:codelist:statuses",
-  CONFIG: "ppl:config",
+  TOKEN: "ppl:oauth:token",
 } as const
 
 const LOCK_KEYS = {
@@ -60,20 +60,20 @@ const CACHE_TAGS = {
 
 const CACHE_TTL = {
   CODELISTS: 3600, // 1 hour
-  RATE_LIMIT: 1, // 1 second
   CONFIG: 60, // 60 seconds for config (lazy reload)
+  RATE_LIMIT: 1, // 1 second
 } as const
 
 const MIN_REQUEST_INTERVAL_MS = 40
 const TOKEN_BUFFER_MS = 60_000
 
-type InjectedDependencies = {
+interface InjectedDependencies {
   logger: Logger
   [Modules.CACHING]?: ICachingModuleService
   [Modules.LOCKING]?: ILockingModule
 }
 
-type CachedToken = {
+interface CachedToken {
   accessToken: string
   expiresAt: number
 }
@@ -126,24 +126,24 @@ const toPplConfigDTO = (value: unknown): PplConfigDTO => {
   }
 
   return {
-    id: value["id"],
-    environment: value["environment"],
-    is_enabled: value["is_enabled"],
     client_id: value["client_id"],
     client_secret: value["client_secret"],
-    default_label_format: value["default_label_format"],
     cod_bank_account: value["cod_bank_account"],
     cod_bank_code: value["cod_bank_code"],
     cod_iban: value["cod_iban"],
     cod_swift: value["cod_swift"],
-    sender_name: value["sender_name"],
-    sender_street: value["sender_street"],
-    sender_city: value["sender_city"],
-    sender_zip_code: value["sender_zip_code"],
-    sender_country: value["sender_country"],
-    sender_phone: value["sender_phone"],
-    sender_email: value["sender_email"],
     created_at: value["created_at"],
+    default_label_format: value["default_label_format"],
+    environment: value["environment"],
+    id: value["id"],
+    is_enabled: value["is_enabled"],
+    sender_city: value["sender_city"],
+    sender_country: value["sender_country"],
+    sender_email: value["sender_email"],
+    sender_name: value["sender_name"],
+    sender_phone: value["sender_phone"],
+    sender_street: value["sender_street"],
+    sender_zip_code: value["sender_zip_code"],
     updated_at: value["updated_at"],
   }
 }
@@ -176,7 +176,7 @@ class RateLimitLockTimeoutError extends MedusaError {
 /**
  * Module options passed from medusa-config.ts
  */
-type PplModuleOptions = {
+interface PplModuleOptions {
   environment: PplEnvironment
 }
 
@@ -333,8 +333,8 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     const options: PplOptions = {
       client_id: config.client_id,
       client_secret: config.client_secret,
-      environment: this.environment_,
       default_label_format: config.default_label_format as PplLabelFormat,
+      environment: this.environment_,
     }
     const optionalFields = [
       "cod_bank_account",
@@ -366,10 +366,10 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     }
 
     await this.cacheService_.set({
-      key: CACHE_KEYS.CONFIG,
       data: options,
-      ttl: CACHE_TTL.CONFIG,
+      key: CACHE_KEYS.CONFIG,
       tags: [CACHE_TAGS.ALL],
+      ttl: CACHE_TTL.CONFIG,
     })
   }
 
@@ -432,10 +432,10 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
         Math.floor((expiresAt - Date.now()) / 1000) - 60
       )
       await this.cacheService_.set({
-        key: CACHE_KEYS.TOKEN,
         data: { accessToken, expiresAt } satisfies CachedToken,
-        ttl: ttlSeconds,
+        key: CACHE_KEYS.TOKEN,
         tags: [CACHE_TAGS.ALL],
+        ttl: ttlSeconds,
       })
       this.logger_.debug("PPL: Stored OAuth token in Redis")
 
@@ -507,8 +507,8 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
           // Reserve our slot by writing the future timestamp
           const slotTime = now + waitTime
           await cacheService.set({
-            key: CACHE_KEYS.RATE_LIMIT,
             data: { timestamp: slotTime },
+            key: CACHE_KEYS.RATE_LIMIT,
             ttl: CACHE_TTL.RATE_LIMIT,
           })
         },
@@ -529,7 +529,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
         // Lock timeout - fall through to local fallback for this request
         if (error instanceof RateLimitLockTimeoutError) {
           // Abandon the lock wait; the provider backstop timeout settles it.
-          lockExecution.catch(() => undefined)
+          lockExecution.catch(() => {})
           this.logger_.warn(
             "PPL: Rate limit lock timed out, using local fallback"
           )
@@ -550,7 +550,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     }
 
     // Fallback: Local-only mode (Redis/locking unavailable)
-    return this.acquireLocalRateLimitSlot()
+    return await this.acquireLocalRateLimitSlot()
   }
 
   private async acquireLocalRateLimitSlot(): Promise<void> {
@@ -583,14 +583,14 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     const data = await fetcher()
 
     if (this.cacheService_ && data !== null) {
-      await this.cacheService_.set({ key, data: data as object, ttl, tags })
+      await this.cacheService_.set({ data: data as object, key, tags, ttl })
       this.logger_.debug(`PPL: Cached ${key}`)
     }
 
     return data
   }
 
-  private sleep(ms: number): Promise<void> {
+  private async sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
@@ -641,28 +641,28 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     await this.acquireRateLimitSlot()
     const token = await this.getToken()
     const client = await this.getClient()
-    return client.createShipmentBatch(token, shipments, options)
+    return await client.createShipmentBatch(token, shipments, options)
   }
 
   async getBatchStatus(batchId: string): Promise<PplBatchResponse> {
     await this.acquireRateLimitSlot()
     const token = await this.getToken()
     const client = await this.getClient()
-    return client.getBatchStatus(token, batchId)
+    return await client.getBatchStatus(token, batchId)
   }
 
   async downloadLabel(labelUrl: string): Promise<Buffer> {
     await this.acquireRateLimitSlot()
     const token = await this.getToken()
     const client = await this.getClient()
-    return client.downloadLabel(token, labelUrl)
+    return await client.downloadLabel(token, labelUrl)
   }
 
   async getShipmentInfo(query: PplShipmentQuery): Promise<PplShipmentInfo[]> {
     await this.acquireRateLimitSlot()
     const token = await this.getToken()
     const client = await this.getClient()
-    return client.getShipmentInfo(token, query)
+    return await client.getShipmentInfo(token, query)
   }
 
   async cancelShipment(shipmentNumber: string): Promise<boolean> {
@@ -688,7 +688,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     await this.acquireRateLimitSlot()
     const token = await this.getToken()
     const client = await this.getClient()
-    return client.getAccessPoints(token, query)
+    return await client.getAccessPoints(token, query)
   }
 
   // ============================================
@@ -696,13 +696,13 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
   // ============================================
 
   async getCachedCountries(): Promise<PplCodelistCountry[]> {
-    return this.getCached(
+    return await this.getCached(
       CACHE_KEYS.COUNTRIES,
       async () => {
         await this.acquireRateLimitSlot()
         const token = await this.getToken()
         const client = await this.getClient()
-        return client.getCodelistCountries(token)
+        return await client.getCodelistCountries(token)
       },
       CACHE_TTL.CODELISTS,
       [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS]
@@ -710,13 +710,13 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
   }
 
   async getCachedCurrencies(): Promise<PplCodelistCurrency[]> {
-    return this.getCached(
+    return await this.getCached(
       CACHE_KEYS.CURRENCIES,
       async () => {
         await this.acquireRateLimitSlot()
         const token = await this.getToken()
         const client = await this.getClient()
-        return client.getCodelistCurrencies(token)
+        return await client.getCodelistCurrencies(token)
       },
       CACHE_TTL.CODELISTS,
       [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS]
@@ -724,13 +724,13 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
   }
 
   async getCachedProducts(): Promise<PplCodelistProduct[]> {
-    return this.getCached(
+    return await this.getCached(
       CACHE_KEYS.PRODUCTS,
       async () => {
         await this.acquireRateLimitSlot()
         const token = await this.getToken()
         const client = await this.getClient()
-        return client.getCodelistProducts(token)
+        return await client.getCodelistProducts(token)
       },
       CACHE_TTL.CODELISTS,
       [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS]
@@ -738,13 +738,13 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
   }
 
   async getCachedServices(): Promise<PplCodelistServiceItem[]> {
-    return this.getCached(
+    return await this.getCached(
       CACHE_KEYS.SERVICES,
       async () => {
         await this.acquireRateLimitSlot()
         const token = await this.getToken()
         const client = await this.getClient()
-        return client.getCodelistServices(token)
+        return await client.getCodelistServices(token)
       },
       CACHE_TTL.CODELISTS,
       [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS]
@@ -752,13 +752,13 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
   }
 
   async getCachedStatuses(): Promise<PplCodelistStatus[]> {
-    return this.getCached(
+    return await this.getCached(
       CACHE_KEYS.STATUSES,
       async () => {
         await this.acquireRateLimitSlot()
         const token = await this.getToken()
         const client = await this.getClient()
-        return client.getCodelistStatuses(token)
+        return await client.getCodelistStatuses(token)
       },
       CACHE_TTL.CODELISTS,
       [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS]

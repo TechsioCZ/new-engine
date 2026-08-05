@@ -1,4 +1,4 @@
-export type TQueryKey<TKey, TListQuery = unknown, TDetailQuery = string> = {
+export interface TQueryKey<TKey, TListQuery = unknown, TDetailQuery = string> {
   all: readonly [TKey]
   lists: () => readonly [...TQueryKey<TKey>["all"], "list"]
   list: (
@@ -27,14 +27,14 @@ export const queryKeysFactory = <
 ) => {
   const queryKeyFactory: TQueryKey<T, TListQueryType, TDetailQueryType> = {
     all: [globalKey],
-    lists: () => [...queryKeyFactory.all, "list"],
-    list: (query?: TListQueryType) => [...queryKeyFactory.lists(), { query }],
-    details: () => [...queryKeyFactory.all, "detail"],
     detail: (id: TDetailQueryType, query?: TListQueryType) => [
       ...queryKeyFactory.details(),
       id,
       { query },
     ],
+    details: () => [...queryKeyFactory.all, "detail"],
+    list: (query?: TListQueryType) => [...queryKeyFactory.lists(), { query }],
+    lists: () => [...queryKeyFactory.all, "list"],
   }
   return queryKeyFactory
 }

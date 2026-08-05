@@ -11,10 +11,10 @@ import { z } from "@medusajs/framework/zod"
 
 import {
   getActivePublishableKey,
-  type PublishableKeyResult,
   provisionPublishableKey,
   resolvePublishableKeyTitle,
 } from "../../../../utils/publishable-key"
+import type { PublishableKeyResult } from "../../../../utils/publishable-key"
 
 export const AdminPublishableKeyBodySchema = z.object({
   title: z.string().optional(),
@@ -24,7 +24,7 @@ export type AdminPublishableKeyBodySchemaType = z.infer<
   typeof AdminPublishableKeyBodySchema
 >
 
-type AdminPublishableKeyQuerySchemaType = {
+interface AdminPublishableKeyQuerySchemaType {
   title?: string
 }
 
@@ -56,7 +56,7 @@ export async function GET(
   const title = readTitleFromQuery(req)
   const result = await getActivePublishableKey({
     apiKeyService,
-    ...(title !== undefined ? { title } : {}),
+    ...(title === undefined ? {} : { title }),
   })
 
   if (!result) {
@@ -79,9 +79,9 @@ export async function POST(
     apiKeyService,
     createdBy: req.auth_context.actor_id,
     lockingModule,
-    ...(req.validatedBody.title !== undefined
-      ? { title: req.validatedBody.title }
-      : {}),
+    ...(req.validatedBody.title === undefined
+      ? {}
+      : { title: req.validatedBody.title }),
   })
 
   res.status(200).json(toApiKeyResponse(result))

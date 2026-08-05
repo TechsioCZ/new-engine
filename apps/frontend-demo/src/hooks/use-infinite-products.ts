@@ -4,7 +4,8 @@ import { useInfiniteQuery } from "@tanstack/react-query"
 
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
-import { getProducts, type ProductListParams } from "@/services/product-service"
+import { getProducts } from "@/services/product-service"
+import type { ProductListParams } from "@/services/product-service"
 import type { Product } from "@/types/product"
 
 import type { PageRange } from "./use-url-filters"
@@ -59,33 +60,7 @@ export function useInfiniteProducts(
     fetchNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: queryKeys.products.infinite({
-      pageRangeStart: pageRange.start, // Use only start to keep key stable when extending
-      limit,
-      filters,
-      sort,
-      region_id,
-      q,
-      category,
-    }),
-    queryFn: ({ pageParam }) => {
-      // For the initial load, use rangeLimit to load all pages in range at once
-      // For subsequent "load more" calls, use normal limit
-      const isInitialLoad = pageParam === baseOffset
-      const requestLimit = isInitialLoad ? rangeLimit : limit
-
-      return getProducts({
-        limit: requestLimit,
-        offset: pageParam,
-        filters,
-        sort,
-        fields,
-        q,
-        category,
-        region_id,
-      })
-    },
-    initialPageParam: baseOffset,
+    enabled: enabled !== undefined ? enabled : !!region_id,
     getNextPageParam: (lastPage, allPages) => {
       // Since we load the full range in the first request,
       // subsequent calls are just "load more" beyond the range
@@ -102,7 +77,33 @@ export function useInfiniteProducts(
       const nextOffset = baseOffset + totalFetched
       return nextOffset
     },
-    enabled: enabled !== undefined ? enabled : !!region_id,
+    initialPageParam: baseOffset,
+    queryFn: async ({ pageParam }) => {
+      // For the initial load, use rangeLimit to load all pages in range at once
+      // For subsequent "load more" calls, use normal limit
+      const isInitialLoad = pageParam === baseOffset
+      const requestLimit = isInitialLoad ? rangeLimit : limit
+
+      return getProducts({
+        limit: requestLimit,
+        offset: pageParam,
+        filters,
+        sort,
+        fields,
+        q,
+        category,
+        region_id,
+      })
+    },
+    queryKey: queryKeys.products.infinite({
+      pageRangeStart: pageRange.start, // Use only start to keep key stable when extending
+      limit,
+      filters,
+      sort,
+      region_id,
+      q,
+      category,
+    }),
     ...cacheConfig.semiStatic,
   })
 
@@ -111,17 +112,17 @@ export function useInfiniteProducts(
   const totalCount = data?.pages[0]?.count || 0
 
   return {
-    products,
-    isLoading,
+    currentPageRange: pageRange,
     error:
       error instanceof Error ? error.message : error ? String(error) : null,
-    totalCount,
-    currentPageRange: pageRange,
-    hasNextPage,
-    isFetchingNextPage,
     fetchNextPage: async () => {
       await fetchNextPage()
     },
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    products,
     refetch,
+    totalCount,
   }
 }

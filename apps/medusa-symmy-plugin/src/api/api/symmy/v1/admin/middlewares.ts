@@ -39,8 +39,8 @@ import { AdminGetUserParams } from "@medusajs/medusa/api/admin/users/validators"
 
 export const symmyAdminRoutes: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/api/symmy/v1/admin/orders",
+    methods: ["GET"],
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformQuery(
@@ -56,8 +56,8 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/api/symmy/v1/admin/customers",
+    methods: ["GET"],
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformQuery(
@@ -73,8 +73,8 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/api/symmy/v1/admin/products",
+    methods: ["GET"],
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformQuery(AdminGetProductsParams, listProductQueryConfig),
@@ -83,7 +83,8 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
           !req.filterableFields ||
           Object.keys(req.filterableFields).length === 0
         ) {
-          return next()
+          next()
+          return
         }
 
         return maybeApplyLinkFilter({
@@ -102,8 +103,8 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/api/symmy/v1/admin/regions",
+    methods: ["GET"],
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformQuery(
@@ -119,8 +120,8 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/api/symmy/v1/admin/users/me",
+    methods: ["GET"],
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformQuery(

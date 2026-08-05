@@ -20,45 +20,45 @@ const badgeVariants = tv({
     "rounded-badge border-badge-border",
     "border-(length:--border-width-badge)",
   ],
+  defaultVariants: {
+    size: "md",
+    variant: "info",
+  },
   variants: {
+    size: {
+      lg: ["font-badge-lg text-badge-lg", "p-badge-lg"],
+      md: ["font-badge-md text-badge-md", "p-badge-md"],
+      sm: ["font-badge-sm text-badge-sm", "p-badge-sm"],
+      xl: ["font-badge-xl text-badge-xl", "p-badge-xl"],
+    },
     variant: {
+      danger: [
+        "border-badge-border-danger bg-badge-bg-danger text-badge-fg-danger",
+      ],
+      discount: [
+        "border-badge-border-discount bg-badge-bg-discount text-badge-fg-discount",
+      ],
+      dynamic: [],
+      info: ["border-badge-border-info bg-badge-bg-info text-badge-fg-info"],
+      outline: [
+        "border-badge-border-outline bg-badge-bg-outline text-badge-fg-outline",
+      ],
       primary: [
         "border-badge-border-primary bg-badge-bg-primary text-badge-fg-primary",
       ],
       secondary: [
         "border-badge-border-secondary bg-badge-bg-secondary text-badge-fg-secondary",
       ],
-      tertiary: [
-        "border-badge-border-tertiary bg-badge-bg-tertiary text-badge-fg-tertiary",
-      ],
-      discount: [
-        "border-badge-border-discount bg-badge-bg-discount text-badge-fg-discount",
-      ],
-      info: ["border-badge-border-info bg-badge-bg-info text-badge-fg-info"],
       success: [
         "border-badge-border-success bg-badge-bg-success text-badge-fg-success",
+      ],
+      tertiary: [
+        "border-badge-border-tertiary bg-badge-bg-tertiary text-badge-fg-tertiary",
       ],
       warning: [
         "border-badge-border-warning bg-badge-bg-warning text-badge-fg-warning",
       ],
-      danger: [
-        "border-badge-border-danger bg-badge-bg-danger text-badge-fg-danger",
-      ],
-      outline: [
-        "border-badge-border-outline bg-badge-bg-outline text-badge-fg-outline",
-      ],
-      dynamic: [],
     },
-    size: {
-      sm: ["font-badge-sm text-badge-sm", "p-badge-sm"],
-      md: ["font-badge-md text-badge-md", "p-badge-md"],
-      lg: ["font-badge-lg text-badge-lg", "p-badge-lg"],
-      xl: ["font-badge-xl text-badge-xl", "p-badge-xl"],
-    },
-  },
-  defaultVariants: {
-    variant: "info",
-    size: "md",
   },
 })
 
@@ -103,14 +103,14 @@ export function Badge({
     ? {
         ...style,
         backgroundColor: bgColor,
-        color: fgColor,
         borderColor,
+        color: fgColor,
       }
     : style
 
   return (
     <span
-      className={badgeVariants({ variant, size, className })}
+      className={badgeVariants({ className, size, variant })}
       style={dynamicStyles}
       {...restProps}
     >

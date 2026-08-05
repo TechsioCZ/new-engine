@@ -9,12 +9,12 @@ import {
   setSessionTokenCookie,
 } from "../_lib"
 
-type LoginBody = {
+interface LoginBody {
   email?: string
   password?: string
 }
 
-type LoginResponse = {
+interface LoginResponse {
   token: string
 }
 
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   }
 
   const email = body.email?.trim()
-  const password = body.password
+  const { password } = body
 
   if (!(email && password)) {
     return badRequest("E-mail aj heslo sú povinné.")
@@ -38,15 +38,15 @@ export async function POST(request: Request) {
     const medusaResponse = await fetch(
       buildMedusaUrl("/auth/customer/emailpass"),
       {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
         body: JSON.stringify({
           email,
           password,
         }),
         cache: "no-store",
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
       }
     )
 
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
     const payload = await parseResponseJson(medusaResponse)
     const token =
-      payload && typeof payload["token"] === "string" ? payload["token"] : null
+      payload && typeof payload.token === "string" ? payload.token : null
 
     if (!token) {
       return serverError(

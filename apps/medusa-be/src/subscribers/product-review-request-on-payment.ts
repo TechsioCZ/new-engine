@@ -2,10 +2,8 @@ import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
-import {
-  type PaymentPaidEvent,
-  resolveOrderIdFromPaymentEvent,
-} from "../subscriber-helpers/product-review-request-on-payment/helper"
+import { resolveOrderIdFromPaymentEvent } from "../subscriber-helpers/product-review-request-on-payment/helper"
+import type { PaymentPaidEvent } from "../subscriber-helpers/product-review-request-on-payment/helper"
 import { scheduleProductReviewRequestForOrder } from "../utils/product-review-request-queue"
 
 export default async function productReviewRequestOnPaymentHandler({

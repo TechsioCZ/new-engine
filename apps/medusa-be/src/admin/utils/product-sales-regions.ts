@@ -1,6 +1,6 @@
 import { normalizeCountryCode } from "../../utils/country-code"
 
-export type ProductSalesRegionsResponse = {
+export interface ProductSalesRegionsResponse {
   product: {
     id: string
     sales_channels: { id: string; name?: string | null }[]
@@ -14,14 +14,14 @@ export type ProductSalesRegionsResponse = {
   }[]
 }
 
-export type RegionCountry = {
+export interface RegionCountry {
   iso_2?: string | null
   iso_3?: string | null
   display_name?: string | null
   name?: string | null
 }
 
-export type AdminRegionWithCountries = {
+export interface AdminRegionWithCountries {
   id: string
   name: string
   countries?: RegionCountry[]

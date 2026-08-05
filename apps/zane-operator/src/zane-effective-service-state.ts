@@ -21,16 +21,16 @@ function coercePendingEnvVariable(
 ): ZaneEnvVariable | null {
   if (
     !value ||
-    typeof value["key"] !== "string" ||
-    typeof value["value"] !== "string"
+    typeof value.key !== "string" ||
+    typeof value.value !== "string"
   ) {
     return null
   }
 
   return {
-    id: typeof value["id"] === "string" ? value["id"] : "",
-    key: value["key"],
-    value: value["value"],
+    id: typeof value.id === "string" ? value.id : "",
+    key: value.key,
+    value: value.value,
   }
 }
 
@@ -48,7 +48,7 @@ export function computeEffectiveEnvVariables(
       const index = envVariables.findIndex(
         (envVar) => envVar.id === change.item_id
       )
-      if (index >= 0) {
+      if (index !== -1) {
         envVariables.splice(index, 1)
       }
       continue

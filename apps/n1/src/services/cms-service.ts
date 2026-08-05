@@ -1,6 +1,6 @@
 import { getMedusaBackendUrl } from "@/lib/medusa-backend-url"
 
-export type CmsPage = {
+export interface CmsPage {
   id: number
   slug: string
   title: string
@@ -11,7 +11,7 @@ export type CmsPage = {
   }
 }
 
-type CmsPageResponse = {
+interface CmsPageResponse {
   page?: CmsPage
 }
 
@@ -21,7 +21,7 @@ export async function getCmsPage(
   slug: string,
   locale = DEFAULT_CMS_LOCALE
 ): Promise<CmsPage | null> {
-  const publishableKey = process.env["NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"]
+  const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 
   if (!publishableKey) {
     return null

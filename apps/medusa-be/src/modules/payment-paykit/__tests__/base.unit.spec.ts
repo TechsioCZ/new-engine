@@ -5,14 +5,12 @@ import {
 } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 
-import {
-  type PaykitInjectedDependencies,
-  PaykitPaymentProviderBase,
-} from "../core/base"
+import { PaykitPaymentProviderBase } from "../core/base"
+import type { PaykitInjectedDependencies } from "../core/base"
 import type { PaykitAdapterOptions, PaykitPaymentClient } from "../types"
 import { createMockContainer, createMockPaykitClient } from "./helpers"
 
-class TestPaykitPaymentProvider extends PaykitPaymentProviderBase<PaykitAdapterOptions> {
+class TestPaykitPaymentProvider extends PaykitPaymentProviderBase {
   static override identifier = "paykit_test"
 
   // the base constructor is protected.
@@ -37,46 +35,46 @@ const createProviderWithoutClient = () =>
 const unsupportedRefundMessage = /PayKit provider does not support refunds/
 const refundMissingIdMessage = /PayKit refund response did not include an id/
 
-describe("PaykitPaymentProviderBase", () => {
+describe(PaykitPaymentProviderBase, () => {
   it("persists provider payment id inside data.id on initiatePayment", async () => {
     const client = createMockPaykitClient()
     const provider = createProvider(client)
 
     const result = await provider.initiatePayment({
       amount: 1000,
+      context: {
+        customer: {
+          email: "customer@example.com",
+          id: "cus_123",
+        },
+        idempotency_key: "payses_123",
+      },
       currency_code: "czk",
       data: {
-        session_id: "payses_123",
-        item_id: "cart_123",
         capture_method: "manual",
+        item_id: "cart_123",
         metadata: { cart_id: "cart_123" },
         provider_metadata: { return_url: "https://shop.example/return" },
-      },
-      context: {
-        idempotency_key: "payses_123",
-        customer: {
-          id: "cus_123",
-          email: "customer@example.com",
-        },
+        session_id: "payses_123",
       },
     })
 
-    expect(result).toEqual({
-      id: "provider-payment-1",
-      status: PaymentSessionStatus.REQUIRES_MORE,
+    expect(result).toStrictEqual({
       data: {
         id: "provider-payment-1",
-        status: "requires_action",
         payment_url: "https://payments.example/1",
+        status: "requires_action",
       },
+      id: "provider-payment-1",
+      status: PaymentSessionStatus.REQUIRES_MORE,
     })
     expect(client.payments.create).toHaveBeenCalledWith(
       expect.objectContaining({
         amount: 1000,
+        capture_method: "manual",
         currency: "czk",
         customer: { email: "customer@example.com" },
         item_id: "cart_123",
-        capture_method: "manual",
         metadata: {
           cart_id: "cart_123",
           session_id: "payses_123",
@@ -93,15 +91,15 @@ describe("PaykitPaymentProviderBase", () => {
     await expect(
       provider.initiatePayment({
         amount: 1000,
+        context: {
+          customer: {
+            email: "customer@example.com",
+            id: "cus_123",
+          },
+        },
         currency_code: "czk",
         data: {
           item_id: "cart_123",
-        },
-        context: {
-          customer: {
-            id: "cus_123",
-            email: "customer@example.com",
-          },
         },
       })
     ).rejects.toThrow("PayKit requires session_id in payment session data")
@@ -114,27 +112,27 @@ describe("PaykitPaymentProviderBase", () => {
 
     await provider.initiatePayment({
       amount: 1000,
-      currency_code: "czk",
-      data: {
-        session_id: "payses_123",
-        item_id: "cart_123",
-      },
       context: {
         customer: {
-          id: "cus_123",
-          email: "customer@example.com",
-          first_name: "Ada",
-          last_name: "Lovelace",
           billing_address: {
             address_1: "1 Engine Way",
             address_2: "Suite 2",
             city: "London",
             country_code: "GB",
+            phone: "+420123456789",
             postal_code: "NW1",
             province: "London",
-            phone: "+420123456789",
           },
+          email: "customer@example.com",
+          first_name: "Ada",
+          id: "cus_123",
+          last_name: "Lovelace",
         },
+      },
+      currency_code: "czk",
+      data: {
+        item_id: "cart_123",
+        session_id: "payses_123",
       },
     })
 
@@ -142,14 +140,14 @@ describe("PaykitPaymentProviderBase", () => {
       expect.objectContaining({
         billing: {
           address: {
-            name: "Ada Lovelace",
+            city: "London",
+            country: "GB",
             line1: "1 Engine Way",
             line2: "Suite 2",
-            city: "London",
-            state: "London",
-            postal_code: "NW1",
-            country: "GB",
+            name: "Ada Lovelace",
             phone: "+420123456789",
+            postal_code: "NW1",
+            state: "London",
           },
           currency: "czk",
         },
@@ -163,29 +161,29 @@ describe("PaykitPaymentProviderBase", () => {
 
     await provider.initiatePayment({
       amount: 1000,
+      context: {
+        customer: {
+          email: "customer@example.com",
+          id: "cus_123",
+        },
+      },
       currency_code: "czk",
       data: {
-        session_id: "payses_123",
-        item_id: "cart_123",
         billing: {
           address: {
-            name: "Ada Lovelace",
+            city: "London",
+            country: "GB",
             line1: "1 Engine Way",
             line2: "Suite 2",
-            city: "London",
-            state: "London",
-            postal_code: "NW1",
-            country: "GB",
+            name: "Ada Lovelace",
             phone: "+420123456789",
+            postal_code: "NW1",
+            state: "London",
           },
           carrier: "standard",
         },
-      },
-      context: {
-        customer: {
-          id: "cus_123",
-          email: "customer@example.com",
-        },
+        item_id: "cart_123",
+        session_id: "payses_123",
       },
     })
 
@@ -193,14 +191,14 @@ describe("PaykitPaymentProviderBase", () => {
       expect.objectContaining({
         billing: {
           address: {
-            name: "Ada Lovelace",
+            city: "London",
+            country: "GB",
             line1: "1 Engine Way",
             line2: "Suite 2",
-            city: "London",
-            state: "London",
-            postal_code: "NW1",
-            country: "GB",
+            name: "Ada Lovelace",
             phone: "+420123456789",
+            postal_code: "NW1",
+            state: "London",
           },
           carrier: "standard",
           currency: "czk",
@@ -215,24 +213,24 @@ describe("PaykitPaymentProviderBase", () => {
 
     await provider.initiatePayment({
       amount: 1000,
+      context: {
+        customer: {
+          email: "customer@example.com",
+          id: "cus_123",
+        },
+      },
       currency_code: "czk",
       data: {
-        session_id: "payses_123",
-        item_id: "cart_123",
         billing: {
-          first_name: "Ada",
-          last_name: "Lovelace",
           address_1: "1 Engine Way",
           city: "London",
           country_code: "GB",
+          first_name: "Ada",
+          last_name: "Lovelace",
           postal_code: "NW1",
         },
-      },
-      context: {
-        customer: {
-          id: "cus_123",
-          email: "customer@example.com",
-        },
+        item_id: "cart_123",
+        session_id: "payses_123",
       },
     })
 
@@ -240,12 +238,12 @@ describe("PaykitPaymentProviderBase", () => {
       expect.objectContaining({
         billing: {
           address: expect.objectContaining({
-            name: "Ada Lovelace",
+            city: "London",
+            country: "GB",
             line1: "1 Engine Way",
             line2: "",
-            city: "London",
+            name: "Ada Lovelace",
             postal_code: "NW1",
-            country: "GB",
           }),
           currency: "czk",
         },
@@ -259,34 +257,34 @@ describe("PaykitPaymentProviderBase", () => {
 
     await provider.initiatePayment({
       amount: 1000,
-      currency_code: "czk",
-      data: {
-        session_id: "payses_123",
-        item_id: "cart_123",
-        billing: {
-          address: {
-            name: "Checkout Buyer",
-            line1: "99 Checkout Street",
-            line2: "",
-            city: "Prague",
-            postal_code: "11000",
-            country: "CZ",
-          },
-        },
-      },
       context: {
         customer: {
-          id: "cus_123",
-          email: "customer@example.com",
-          first_name: "Default",
-          last_name: "Customer",
           billing_address: {
             address_1: "1 Default Way",
             city: "Brno",
             country_code: "CZ",
             postal_code: "60200",
           },
+          email: "customer@example.com",
+          first_name: "Default",
+          id: "cus_123",
+          last_name: "Customer",
         },
+      },
+      currency_code: "czk",
+      data: {
+        billing: {
+          address: {
+            city: "Prague",
+            country: "CZ",
+            line1: "99 Checkout Street",
+            line2: "",
+            name: "Checkout Buyer",
+            postal_code: "11000",
+          },
+        },
+        item_id: "cart_123",
+        session_id: "payses_123",
       },
     })
 
@@ -294,11 +292,11 @@ describe("PaykitPaymentProviderBase", () => {
       expect.objectContaining({
         billing: {
           address: expect.objectContaining({
-            name: "Checkout Buyer",
-            line1: "99 Checkout Street",
             city: "Prague",
-            postal_code: "11000",
             country: "CZ",
+            line1: "99 Checkout Street",
+            name: "Checkout Buyer",
+            postal_code: "11000",
           }),
           currency: "czk",
         },
@@ -312,24 +310,24 @@ describe("PaykitPaymentProviderBase", () => {
 
     await provider.initiatePayment({
       amount: 1000,
+      context: {},
       currency_code: "czk",
       data: {
-        session_id: "payses_email",
-        item_id: "cart_email",
         customer: "customer@example.com",
+        item_id: "cart_email",
+        session_id: "payses_email",
       },
-      context: {},
     })
 
     await provider.initiatePayment({
       amount: 1000,
+      context: {},
       currency_code: "czk",
       data: {
-        session_id: "payses_id",
-        item_id: "cart_id",
         customer: "cus_123",
+        item_id: "cart_id",
+        session_id: "payses_id",
       },
-      context: {},
     })
 
     expect(client.payments.create).toHaveBeenNthCalledWith(
@@ -352,16 +350,16 @@ describe("PaykitPaymentProviderBase", () => {
 
     await provider.initiatePayment({
       amount: 1000,
+      context: {},
       currency_code: "czk",
       data: {
-        session_id: "payses_123",
-        item_id: "cart_123",
         customer: {
           email: "not-an-email",
           id: "cus_123",
         },
+        item_id: "cart_123",
+        session_id: "payses_123",
       },
-      context: {},
     })
 
     expect(client.payments.create).toHaveBeenCalledWith(
@@ -376,12 +374,12 @@ describe("PaykitPaymentProviderBase", () => {
     const provider = createProvider(client)
 
     await provider.capturePayment({
-      data: {
-        id: "provider-payment-1",
-      },
       amount: 400,
       context: {
         idempotency_key: "capture_123",
+      },
+      data: {
+        id: "provider-payment-1",
       },
     } as any)
 
@@ -396,30 +394,30 @@ describe("PaykitPaymentProviderBase", () => {
 
     const result = await provider.refundPayment({
       amount: 250,
-      data: {
-        id: "provider-payment-1",
-        amount: 1000,
-        currency: "czk",
-      },
       context: {
         idempotency_key: "refund_123",
+      },
+      data: {
+        amount: 1000,
+        currency: "czk",
+        id: "provider-payment-1",
       },
     })
 
     expect(client.refunds?.create).toHaveBeenCalledWith({
-      payment_id: "provider-payment-1",
       amount: 250,
-      reason: null,
       metadata: null,
+      payment_id: "provider-payment-1",
+      reason: null,
     })
-    expect(result.data).toEqual({
-      id: "provider-payment-1",
+    expect(result.data).toStrictEqual({
       amount: 1000,
       currency: "czk",
+      id: "provider-payment-1",
       refund: {
+        amount: 250,
         id: "refund-1",
         payment_id: "provider-payment-1",
-        amount: 250,
       },
       refund_id: "refund-1",
     })
@@ -439,18 +437,18 @@ describe("PaykitPaymentProviderBase", () => {
     await expect(
       provider.refundPayment({
         amount: 250,
-        data: {
-          id: "provider-payment-1",
-          amount: 1000,
-          currency: "czk",
-        },
         context: {
           idempotency_key: "refund_123",
         },
+        data: {
+          amount: 1000,
+          currency: "czk",
+          id: "provider-payment-1",
+        },
       })
     ).rejects.toMatchObject({
-      type: MedusaError.Types.NOT_ALLOWED,
       message: expect.stringMatching(unsupportedRefundMessage),
+      type: MedusaError.Types.NOT_ALLOWED,
     })
   })
 
@@ -458,8 +456,8 @@ describe("PaykitPaymentProviderBase", () => {
     const client = createMockPaykitClient({
       refunds: {
         create: vi.fn().mockResolvedValue({
-          payment_id: "provider-payment-1",
           amount: 250,
+          payment_id: "provider-payment-1",
         }),
       },
     })
@@ -468,18 +466,18 @@ describe("PaykitPaymentProviderBase", () => {
     await expect(
       provider.refundPayment({
         amount: 250,
-        data: {
-          id: "provider-payment-1",
-          amount: 1000,
-          currency: "czk",
-        },
         context: {
           idempotency_key: "refund_123",
         },
+        data: {
+          amount: 1000,
+          currency: "czk",
+          id: "provider-payment-1",
+        },
       })
     ).rejects.toMatchObject({
-      type: MedusaError.Types.INVALID_DATA,
       message: expect.stringMatching(refundMissingIdMessage),
+      type: MedusaError.Types.INVALID_DATA,
     })
   })
 
@@ -525,7 +523,7 @@ describe("PaykitPaymentProviderBase", () => {
           session_id: "payses_123",
         },
       })
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       data: {
         session_id: "payses_123",
       },
@@ -542,7 +540,7 @@ describe("PaykitPaymentProviderBase", () => {
           session_id: "payses_123",
         },
       })
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       data: {
         session_id: "payses_123",
       },
@@ -583,31 +581,31 @@ describe("PaykitPaymentProviderBase", () => {
       provider.createAccountHolder({
         context: {
           customer: {
-            id: "cus_123",
             email: "customer@example.com",
             first_name: "Ada",
+            id: "cus_123",
             last_name: "Lovelace",
             phone: "+420123456789",
           },
         },
       })
-    ).resolves.toEqual({
-      id: "customer-1",
+    ).resolves.toStrictEqual({
       data: {
-        id: "customer-1",
         email: "customer@example.com",
+        id: "customer-1",
         name: "Customer",
         phone: "",
       },
+      id: "customer-1",
     })
     expect(client.customers?.create).toHaveBeenCalledWith({
       billing: null,
       email: "customer@example.com",
-      name: "Ada Lovelace",
-      phone: "+420123456789",
       metadata: {
         medusa_customer_id: "cus_123",
       },
+      name: "Ada Lovelace",
+      phone: "+420123456789",
     })
   })
 
@@ -625,12 +623,12 @@ describe("PaykitPaymentProviderBase", () => {
       provider.createAccountHolder({
         context: {
           customer: {
-            id: "cus_123",
             email: "customer@example.com",
+            id: "cus_123",
           },
         },
       })
-    ).resolves.toEqual({})
+    ).resolves.toStrictEqual({})
   })
 
   it("falls back to account holder id when PayKit customer retrieval is unsupported", async () => {
@@ -647,7 +645,7 @@ describe("PaykitPaymentProviderBase", () => {
       provider.retrieveAccountHolder({
         id: "customer-1",
       })
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       id: "customer-1",
     })
   })
@@ -656,21 +654,21 @@ describe("PaykitPaymentProviderBase", () => {
     const client = createMockPaykitClient()
     client.handleWebhook = vi.fn().mockResolvedValue([
       {
-        type: "invoice.generated",
         data: {
           id: "invoice-1",
         },
+        type: "invoice.generated",
       },
       {
-        type: "payment.created",
         data: {
-          id: "provider-payment-1",
           amount: 1000,
-          status: "succeeded",
+          id: "provider-payment-1",
           metadata: {
             session_id: "payses_123",
           },
+          status: "succeeded",
         },
+        type: "payment.created",
       },
     ])
     const provider = createProvider(client)
@@ -678,30 +676,30 @@ describe("PaykitPaymentProviderBase", () => {
     await expect(
       provider.getWebhookActionAndData({
         data: {},
-        rawData: "",
         headers: {},
+        rawData: "",
       })
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       action: PaymentActions.SUCCESSFUL,
       data: {
-        session_id: "payses_123",
         amount: 1000,
+        session_id: "payses_123",
       },
     })
   })
 
   it("returns not supported when PayKit does not return webhook events", async () => {
     const client = createMockPaykitClient()
-    client.handleWebhook = vi.fn().mockResolvedValue(undefined)
+    client.handleWebhook = vi.fn().mockResolvedValue()
     const provider = createProvider(client)
 
     await expect(
       provider.getWebhookActionAndData({
         data: {},
-        rawData: "",
         headers: {},
+        rawData: "",
       })
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       action: PaymentActions.NOT_SUPPORTED,
     })
   })
@@ -710,15 +708,15 @@ describe("PaykitPaymentProviderBase", () => {
     const client = createMockPaykitClient()
     client.handleWebhook = vi.fn().mockResolvedValue([
       {
-        type: "payment.created",
         data: {
-          id: "provider-payment-1",
           amount: 1000,
-          status: "pending",
+          id: "provider-payment-1",
           metadata: {
             session_id: "payses_123",
           },
+          status: "pending",
         },
+        type: "payment.created",
       },
     ])
     const provider = createProvider(client)
@@ -726,10 +724,10 @@ describe("PaykitPaymentProviderBase", () => {
     await expect(
       provider.getWebhookActionAndData({
         data: {},
-        rawData: "",
         headers: {},
+        rawData: "",
       })
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       action: PaymentActions.PENDING,
     })
   })
@@ -738,15 +736,15 @@ describe("PaykitPaymentProviderBase", () => {
     const client = createMockPaykitClient()
     client.handleWebhook = vi.fn().mockResolvedValue([
       {
-        type: "payment.failed",
         data: {
-          id: "provider-payment-1",
           amount: 1000,
-          status: "failed",
+          id: "provider-payment-1",
           metadata: {
             session_id: "payses_123",
           },
+          status: "failed",
         },
+        type: "payment.failed",
       },
     ])
     const provider = createProvider(client)
@@ -754,10 +752,10 @@ describe("PaykitPaymentProviderBase", () => {
     await expect(
       provider.getWebhookActionAndData({
         data: {},
-        rawData: "",
         headers: {},
+        rawData: "",
       })
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       action: PaymentActions.FAILED,
     })
   })

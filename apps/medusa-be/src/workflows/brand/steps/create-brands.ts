@@ -95,7 +95,7 @@ export const createBrandsStep = createStep(
           })
         ),
         context
-      )) as Array<{ id: string; handle: string }>
+      )) as { id: string; handle: string }[]
 
       const createdBrandsByHandle = new Map(
         createdBrands.map((brand) => [brand.handle, brand])

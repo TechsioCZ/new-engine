@@ -24,11 +24,11 @@ import {
 import type { ApplyCommercialValuesOrder } from "../../../../../workflows/order-commercial-values/apply-commercial-values"
 import type { PostAdminOrderCommercialValuesPreviewSchemaType } from "./validators"
 
-type RawAmountValue = {
+interface RawAmountValue {
   value?: number | string | null
 }
 
-type BigNumberAmountValue = {
+interface BigNumberAmountValue {
   numeric_?: number | string | null
   toString?: () => string
 }
@@ -41,7 +41,7 @@ type AmountValue =
   | null
   | undefined
 
-type CommercialValuesOrderItem = {
+interface CommercialValuesOrderItem {
   id: string
   adjustments?: CommercialAdjustmentInput[] | null
   detail?: {
@@ -74,7 +74,7 @@ type CommercialValuesOrderItem = {
   variant_title?: string | null
 }
 
-type CommercialValuesOrderShippingMethod = {
+interface CommercialValuesOrderShippingMethod {
   id: string
   adjustments?: CommercialAdjustmentInput[] | null
   amount?: AmountValue
@@ -93,7 +93,7 @@ type CommercialValuesOrderShippingMethod = {
   total?: AmountValue
 }
 
-export type CommercialValuesOrder = {
+export interface CommercialValuesOrder {
   id: string
   currency_code?: string | null
   items?: CommercialValuesOrderItem[] | null
@@ -103,7 +103,7 @@ export type CommercialValuesOrder = {
   version?: AmountValue
 }
 
-export type ActiveOrderChange = {
+export interface ActiveOrderChange {
   change_type?: string | null
   id: string
   status: "pending" | "requested"
@@ -857,53 +857,53 @@ function mergeOrderChangePreview(
         return {
           ...originalItem,
           ...item,
-          ...((item.adjustments ?? originalItem.adjustments) !== undefined
-            ? { adjustments: item.adjustments ?? originalItem.adjustments }
-            : {}),
+          ...((item.adjustments ?? originalItem.adjustments) === undefined
+            ? {}
+            : { adjustments: item.adjustments ?? originalItem.adjustments }),
           detail: {
             ...originalItem.detail,
             ...item.detail,
           },
           ...((item.quantity ??
             item.detail?.quantity ??
-            originalItem.quantity) !== undefined
-            ? {
+            originalItem.quantity) === undefined
+            ? {}
+            : {
                 quantity:
                   item.quantity ??
                   item.detail?.quantity ??
                   originalItem.quantity,
-              }
-            : {}),
+              }),
           ...((item.raw_quantity ??
             item.detail?.raw_quantity ??
-            originalItem.raw_quantity) !== undefined
-            ? {
+            originalItem.raw_quantity) === undefined
+            ? {}
+            : {
                 raw_quantity:
                   item.raw_quantity ??
                   item.detail?.raw_quantity ??
                   originalItem.raw_quantity,
-              }
-            : {}),
+              }),
           ...((item.raw_unit_price ??
             item.detail?.raw_unit_price ??
-            originalItem.raw_unit_price) !== undefined
-            ? {
+            originalItem.raw_unit_price) === undefined
+            ? {}
+            : {
                 raw_unit_price:
                   item.raw_unit_price ??
                   item.detail?.raw_unit_price ??
                   originalItem.raw_unit_price,
-              }
-            : {}),
+              }),
           ...((item.unit_price ??
             item.detail?.unit_price ??
-            originalItem.unit_price) !== undefined
-            ? {
+            originalItem.unit_price) === undefined
+            ? {}
+            : {
                 unit_price:
                   item.unit_price ??
                   item.detail?.unit_price ??
                   originalItem.unit_price,
-              }
-            : {}),
+              }),
         }
       }) ??
       order.items ??
@@ -922,13 +922,13 @@ function mergeOrderChangePreview(
           ...originalShippingMethod,
           ...shippingMethod,
           ...((shippingMethod.adjustments ??
-            originalShippingMethod.adjustments) !== undefined
-            ? {
+            originalShippingMethod.adjustments) === undefined
+            ? {}
+            : {
                 adjustments:
                   shippingMethod.adjustments ??
                   originalShippingMethod.adjustments,
-              }
-            : {}),
+              }),
         }
       }) ??
       order.shipping_methods ??
@@ -975,7 +975,7 @@ export async function fetchEditableCommercialValuesOrder(
   assertExpectedOrderVersion(order, expectedOrderVersion)
 
   return isReusableCommercialValuesOrderEdit(activeOrderChange)
-    ? fetchOrderChangePreview(container, orderId, order)
+    ? await fetchOrderChangePreview(container, orderId, order)
     : order
 }
 
@@ -1009,8 +1009,8 @@ export function toCommercialValuesSnapshot(
   return {
     ...(activeOrderChange ? { active_order_change: activeOrderChange } : {}),
     currency_code: currencyCode,
-    editable: blockers.length === 0,
     edit_blockers: blockers,
+    editable: blockers.length === 0,
     expected_order_version: toOrderVersion(order.version),
     items: (order.items ?? []).map((item) => {
       const mapped = mapItem(item)
@@ -1112,12 +1112,12 @@ export function toCommercialValuesCalculationInput(
 
     return {
       ...mapped,
+      discount: requested?.discount ?? undefined,
       existing_adjustments: toCalculationAdjustments({
         adjustments: mapped.existing_adjustments,
         itemDiscountRequested,
         orderDiscountRequested,
       }),
-      discount: requested?.discount ?? undefined,
       unit_price: requested?.unit_price ?? mapped.unit_price,
     }
   })
@@ -1130,13 +1130,13 @@ export function toCommercialValuesCalculationInput(
 
       return {
         ...mapped,
+        discount: requested?.discount ?? undefined,
         existing_adjustments: toCalculationAdjustments({
           adjustments: mapped.existing_adjustments,
           itemDiscountRequested: false,
           orderDiscountRequested,
           shippingDiscountRequested,
         }),
-        discount: requested?.discount ?? undefined,
       }
     }
   )

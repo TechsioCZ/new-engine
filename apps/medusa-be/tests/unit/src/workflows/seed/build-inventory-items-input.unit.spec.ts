@@ -7,32 +7,32 @@ function buildProduct(
   variants: NonNullable<CreateProductsStepInput[number]["variants"]>
 ): CreateProductsStepInput[number] {
   return {
-    title: "Seed product",
     categories: [],
     description: "",
     handle: "seed-product",
-    shippingProfileName: "Default Shipping Profile",
     images: [],
-    variants,
     salesChannelNames: [],
+    shippingProfileName: "Default Shipping Profile",
+    title: "Seed product",
+    variants,
   }
 }
 
-describe("buildInventoryItemsInput", () => {
+describe(buildInventoryItemsInput, () => {
   it("skips variants without a SKU", () => {
     expect(
       buildInventoryItemsInput([
         buildProduct([
           {
-            title: "Missing SKU",
-            sku: "",
             quantities: {
               quantity: 10,
             },
+            sku: "",
+            title: "Missing SKU",
           },
         ]),
       ])
-    ).toEqual([])
+    ).toStrictEqual([])
   })
 
   it("uses per-location quantities when present", () => {
@@ -40,29 +40,29 @@ describe("buildInventoryItemsInput", () => {
       buildInventoryItemsInput([
         buildProduct([
           {
-            title: "Located",
-            sku: "located-sku",
             quantities: {
-              quantity: 10,
               locations: [
                 {
                   stockLocationName: "Main",
                   quantity: 3,
                 },
               ],
+              quantity: 10,
             },
+            sku: "located-sku",
+            title: "Located",
           },
         ]),
       ])
-    ).toEqual([
+    ).toStrictEqual([
       {
-        sku: "located-sku",
         locations: [
           {
             stockLocationName: "Main",
             quantity: 3,
           },
         ],
+        sku: "located-sku",
       },
     ])
   })
@@ -72,18 +72,18 @@ describe("buildInventoryItemsInput", () => {
       buildInventoryItemsInput([
         buildProduct([
           {
-            title: "Quantity",
-            sku: "quantity-sku",
             quantities: {
               quantity: 7,
             },
+            sku: "quantity-sku",
+            title: "Quantity",
           },
         ]),
       ])
-    ).toEqual([
+    ).toStrictEqual([
       {
-        sku: "quantity-sku",
         quantity: 7,
+        sku: "quantity-sku",
       },
     ])
   })

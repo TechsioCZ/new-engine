@@ -1,4 +1,4 @@
-export type BrandEntity = {
+export interface BrandEntity {
   name: string
   address: string
   taxId?: string | undefined
@@ -6,7 +6,7 @@ export type BrandEntity = {
   phone?: string | undefined
 }
 
-export type ParsedBrandInfo = {
+export interface ParsedBrandInfo {
   sizingGuideUrl?: string | undefined
   manufacturer?: BrandEntity | undefined
   responsiblePerson?: BrandEntity | undefined

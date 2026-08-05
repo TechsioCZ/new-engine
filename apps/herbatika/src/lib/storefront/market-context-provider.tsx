@@ -1,11 +1,10 @@
 "use client"
 
-import { createContext, type PropsWithChildren, useContext } from "react"
+import { createContext, useContext } from "react"
+import type { PropsWithChildren } from "react"
 
-import {
-  DEFAULT_MARKET_CONTEXT,
-  type HerbatikaMarketContext,
-} from "./market-context"
+import { DEFAULT_MARKET_CONTEXT } from "./market-context"
+import type { HerbatikaMarketContext } from "./market-context"
 
 const MarketContext = createContext<HerbatikaMarketContext>(
   DEFAULT_MARKET_CONTEXT

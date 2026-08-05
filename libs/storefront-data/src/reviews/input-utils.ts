@@ -25,9 +25,9 @@ export const createDefaultListParams = <
 
   const pagination = resolvePagination(
     compactRecord({
-      page: input.page,
       limit: input.limit,
       offset: input.offset,
+      page: input.page,
     }),
     defaultPageSize
   )

@@ -1,4 +1,4 @@
-export type StorefrontBrand = {
+export interface StorefrontBrand {
   id: string
   title: string
   handle: string
@@ -6,12 +6,12 @@ export type StorefrontBrand = {
   facetId: string
 }
 
-export type StorefrontBrandGroup = {
+export interface StorefrontBrandGroup {
   letter: string
   brands: StorefrontBrand[]
 }
 
-type RawStorefrontBrandInput = {
+interface RawStorefrontBrandInput {
   id?: string | null
   title?: string | null
   handle?: string | null
@@ -88,11 +88,11 @@ export const normalizeStorefrontBrand = (
   }
 
   return {
-    id: input.id,
-    title,
-    handle,
-    slug,
     facetId: createBrandFacetId(handle),
+    handle,
+    id: input.id,
+    slug,
+    title,
   }
 }
 
@@ -144,10 +144,10 @@ export const groupStorefrontBrands = (
 
     return [
       {
-        letter,
         brands: [...groupBrands].sort((left, right) =>
           brandCollator.compare(left.title, right.title)
         ),
+        letter,
       },
     ]
   })

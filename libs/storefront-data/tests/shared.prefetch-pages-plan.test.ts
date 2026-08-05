@@ -1,91 +1,93 @@
+import { expect, describe, it } from "vitest"
+
 import { createPrefetchPagesPlan } from "../src/shared/prefetch-pages-plan"
 
-describe("createPrefetchPagesPlan", () => {
+describe(createPrefetchPagesPlan, () => {
   it("creates priority plan with immediate, medium, and low buckets", () => {
     const plan = createPrefetchPagesPlan({
-      mode: "priority",
       currentPage: 3,
-      totalPages: 10,
       hasNextPage: true,
       hasPrevPage: true,
+      mode: "priority",
+      totalPages: 10,
     })
 
-    expect(plan).toEqual({
+    expect(plan).toStrictEqual({
       immediate: [4],
-      medium: [5],
       low: [2, 1, 10],
+      medium: [5],
     })
   })
 
   it("creates simple plan with deduplicated pages", () => {
     const plan = createPrefetchPagesPlan({
-      mode: "simple",
       currentPage: 3,
-      totalPages: 10,
       hasNextPage: true,
       hasPrevPage: true,
+      mode: "simple",
+      totalPages: 10,
     })
 
-    expect(plan).toEqual({
+    expect(plan).toStrictEqual({
       immediate: [1, 2, 4, 5, 10],
-      medium: [],
       low: [],
+      medium: [],
     })
   })
 
   it("avoids out-of-range pages on edges", () => {
     const firstPagePlan = createPrefetchPagesPlan({
-      mode: "priority",
       currentPage: 1,
-      totalPages: 4,
       hasNextPage: true,
       hasPrevPage: false,
+      mode: "priority",
+      totalPages: 4,
     })
     const lastPagePlan = createPrefetchPagesPlan({
-      mode: "priority",
       currentPage: 4,
-      totalPages: 4,
       hasNextPage: false,
       hasPrevPage: true,
+      mode: "priority",
+      totalPages: 4,
     })
 
-    expect(firstPagePlan).toEqual({
+    expect(firstPagePlan).toStrictEqual({
       immediate: [2],
-      medium: [3],
       low: [4],
+      medium: [3],
     })
-    expect(lastPagePlan).toEqual({
+    expect(lastPagePlan).toStrictEqual({
       immediate: [],
-      medium: [],
       low: [3, 1],
+      medium: [],
     })
   })
 
   it("keeps priority buckets mutually exclusive near the tail", () => {
     const nearTailPlan = createPrefetchPagesPlan({
-      mode: "priority",
       currentPage: 9,
-      totalPages: 10,
       hasNextPage: true,
       hasPrevPage: true,
+      mode: "priority",
+      totalPages: 10,
     })
     const twoAwayPlan = createPrefetchPagesPlan({
-      mode: "priority",
       currentPage: 8,
-      totalPages: 10,
       hasNextPage: true,
       hasPrevPage: true,
+      mode: "priority",
+      totalPages: 10,
     })
 
-    expect(nearTailPlan).toEqual({
+    expect(nearTailPlan).toStrictEqual({
       immediate: [10],
-      medium: [],
       low: [8, 1],
+      medium: [],
     })
-    expect(twoAwayPlan).toEqual({
+    expect(twoAwayPlan).toStrictEqual({
       immediate: [9],
-      medium: [10],
       low: [7, 1],
+      medium: [10],
     })
   })
 })

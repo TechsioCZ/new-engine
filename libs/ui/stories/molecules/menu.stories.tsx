@@ -1,14 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react"
 
-import { Menu, type MenuItem } from "../../src/molecules/menu"
+import { Menu } from "../../src/molecules/menu"
+import type { MenuItem } from "../../src/molecules/menu"
 
 const meta: Meta<typeof Menu> = {
-  title: "Molecules/Menu",
-  component: Menu,
-  parameters: {
-    layout: "centered",
-  },
   argTypes: {
+    customTrigger: {
+      control: { type: "boolean" },
+    },
     size: {
       control: { type: "select" },
       options: ["sm", "md", "lg"],
@@ -16,10 +15,12 @@ const meta: Meta<typeof Menu> = {
     triggerText: {
       control: { type: "text" },
     },
-    customTrigger: {
-      control: { type: "boolean" },
-    },
   },
+  component: Menu,
+  parameters: {
+    layout: "centered",
+  },
+  title: "Molecules/Menu",
 }
 
 export default meta
@@ -27,27 +28,27 @@ type Story = StoryObj<typeof meta>
 
 const basicItems: MenuItem[] = [
   {
+    icon: "token-icon-plus",
+    label: "New File",
     type: "action",
     value: "new-file",
-    label: "New File",
-    icon: "token-icon-plus",
   },
   {
+    icon: "token-icon-folder",
+    label: "Open...",
     type: "action",
     value: "open",
-    label: "Open...",
-    icon: "token-icon-folder",
   },
-  { type: "separator", id: "separator-1" },
-  { type: "action", value: "save", label: "Save", icon: "token-icon-save" },
+  { id: "separator-1", type: "separator" },
+  { icon: "token-icon-save", label: "Save", type: "action", value: "save" },
   {
+    icon: "token-icon-save",
+    label: "Save As...",
     type: "action",
     value: "save-as",
-    label: "Save As...",
-    icon: "token-icon-save",
   },
-  { type: "separator", id: "separator-2" },
-  { type: "action", value: "exit", label: "Exit", icon: "token-icon-close" },
+  { id: "separator-2", type: "separator" },
+  { icon: "token-icon-close", label: "Exit", type: "action", value: "exit" },
 ]
 
 export const Default: Story = {
@@ -60,50 +61,50 @@ export const Default: Story = {
 export const Small: Story = {
   args: {
     items: basicItems,
-    triggerText: "File",
     size: "sm",
+    triggerText: "File",
   },
 }
 
 export const Large: Story = {
   args: {
     items: basicItems,
-    triggerText: "File",
     size: "lg",
+    triggerText: "File",
   },
 }
 
 export const WithCustomPositioning: Story = {
   args: {
     items: basicItems,
-    triggerText: "File",
     positioning: {
       placement: "top",
     },
+    triggerText: "File",
   },
 }
 
 const itemsWithDisabled: MenuItem[] = [
   {
+    icon: "icon-[mdi--content-cut]",
+    label: "Cut",
     type: "action",
     value: "cut",
-    label: "Cut",
-    icon: "icon-[mdi--content-cut]",
   },
-  { type: "action", value: "copy", label: "Copy", icon: "token-icon-copy" },
+  { icon: "token-icon-copy", label: "Copy", type: "action", value: "copy" },
   {
+    disabled: true,
+    icon: "token-icon-clipboard",
+    label: "Paste",
     type: "action",
     value: "paste",
-    label: "Paste",
-    icon: "token-icon-clipboard",
-    disabled: true,
   },
-  { type: "separator", id: "separator" },
+  { id: "separator", type: "separator" },
   {
+    icon: "token-icon-trash",
+    label: "Delete",
     type: "action",
     value: "delete",
-    label: "Delete",
-    icon: "token-icon-trash",
   },
 ]
 
@@ -115,19 +116,19 @@ export const WithDisabledItems: Story = {
 }
 
 const contextMenuItems: MenuItem[] = [
-  { type: "action", value: "undo", label: "Undo", icon: "token-icon-undo" },
-  { type: "action", value: "redo", label: "Redo", icon: "token-icon-redo" },
-  { type: "separator", id: "separator-1" },
-  { type: "action", value: "cut", label: "Cut", icon: "token-icon-scissors" },
-  { type: "action", value: "copy", label: "Copy", icon: "token-icon-copy" },
+  { icon: "token-icon-undo", label: "Undo", type: "action", value: "undo" },
+  { icon: "token-icon-redo", label: "Redo", type: "action", value: "redo" },
+  { id: "separator-1", type: "separator" },
+  { icon: "token-icon-scissors", label: "Cut", type: "action", value: "cut" },
+  { icon: "token-icon-copy", label: "Copy", type: "action", value: "copy" },
   {
+    icon: "token-icon-clipboard",
+    label: "Paste",
     type: "action",
     value: "paste",
-    label: "Paste",
-    icon: "token-icon-clipboard",
   },
-  { type: "separator", id: "separator-2" },
-  { type: "action", value: "select-all", label: "Select All" },
+  { id: "separator-2", type: "separator" },
+  { label: "Select All", type: "action", value: "select-all" },
 ]
 
 export const ContextMenu: Story = {
@@ -139,73 +140,73 @@ export const ContextMenu: Story = {
 
 export const CustomTrigger: Story = {
   args: {
-    items: basicItems,
     customTrigger: (
       <button className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
         Custom Trigger
       </button>
     ),
+    items: basicItems,
   },
 }
 
 export const WithSelectHandler: Story = {
   args: {
     items: basicItems,
-    triggerText: "Actions",
     onSelect: (details: { value: string }) => {
       alert(`You selected: ${details.value}`)
     },
+    triggerText: "Actions",
   },
 }
 
 const viewMenuItems: MenuItem[] = [
   {
+    checked: true,
+    label: "Show Sidebar",
     type: "checkbox",
     value: "show-sidebar",
-    label: "Show Sidebar",
-    checked: true,
   },
   {
+    checked: true,
+    label: "Show Toolbar",
     type: "checkbox",
     value: "show-toolbar",
-    label: "Show Toolbar",
-    checked: true,
   },
   {
+    checked: false,
+    label: "Show Status Bar",
     type: "checkbox",
     value: "show-statusbar",
-    label: "Show Status Bar",
-    checked: false,
   },
-  { type: "separator", id: "separator-1" },
+  { id: "separator-1", type: "separator" },
   {
-    type: "radio",
-    value: "list-view",
+    checked: true,
     label: "List View",
     name: "view-mode",
-    checked: true,
+    type: "radio",
+    value: "list-view",
   },
   {
-    type: "radio",
-    value: "grid-view",
+    checked: false,
     label: "Grid View",
     name: "view-mode",
-    checked: false,
+    type: "radio",
+    value: "grid-view",
   },
   {
-    type: "radio",
-    value: "detail-view",
+    checked: false,
     label: "Detail View",
     name: "view-mode",
-    checked: false,
+    type: "radio",
+    value: "detail-view",
   },
 ]
 
 export const WithOptionsMenu: Story = {
   args: {
     items: viewMenuItems,
-    triggerText: "View",
     onCheckedChange: (_item: MenuItem, _checked: boolean) => {},
+    triggerText: "View",
   },
 }
 
@@ -228,10 +229,10 @@ export const KeyboardNavigation: Story = {
 
 // Story pro positioning
 const positioningItems: MenuItem[] = [
-  { type: "action", value: "top", label: "Top placement" },
-  { type: "action", value: "right", label: "Right placement" },
-  { type: "action", value: "bottom", label: "Bottom placement" },
-  { type: "action", value: "left", label: "Left placement" },
+  { label: "Top placement", type: "action", value: "top" },
+  { label: "Right placement", type: "action", value: "right" },
+  { label: "Bottom placement", type: "action", value: "bottom" },
+  { label: "Left placement", type: "action", value: "left" },
 ]
 
 export const DifferentPlacements: Story = {
@@ -264,69 +265,69 @@ export const DifferentPlacements: Story = {
 // Story pro mixed content
 const mixedContentItems: MenuItem[] = [
   {
+    icon: "token-icon-user",
+    label: "My Profile",
     type: "action",
     value: "profile",
-    label: "My Profile",
-    icon: "token-icon-user",
   },
   {
+    icon: "token-icon-settings",
+    label: "Settings",
     type: "action",
     value: "settings",
-    label: "Settings",
-    icon: "token-icon-settings",
   },
-  { type: "separator", id: "sep-1" },
+  { id: "sep-1", type: "separator" },
   {
+    checked: true,
+    label: "Enable Notifications",
     type: "checkbox",
     value: "notifications",
-    label: "Enable Notifications",
-    checked: true,
   },
-  { type: "checkbox", value: "sounds", label: "Enable Sounds", checked: false },
-  { type: "separator", id: "sep-2" },
+  { checked: false, label: "Enable Sounds", type: "checkbox", value: "sounds" },
+  { id: "sep-2", type: "separator" },
   {
-    type: "radio",
-    value: "light",
+    checked: true,
     label: "Light Theme",
     name: "theme",
-    checked: true,
+    type: "radio",
+    value: "light",
   },
   {
-    type: "radio",
-    value: "dark",
+    checked: false,
     label: "Dark Theme",
     name: "theme",
-    checked: false,
+    type: "radio",
+    value: "dark",
   },
   {
-    type: "radio",
-    value: "system",
+    checked: false,
     label: "System Theme",
     name: "theme",
-    checked: false,
+    type: "radio",
+    value: "system",
   },
-  { type: "separator", id: "sep-3" },
+  { id: "sep-3", type: "separator" },
   {
+    icon: "token-icon-logout",
+    label: "Logout",
     type: "action",
     value: "logout",
-    label: "Logout",
-    icon: "token-icon-logout",
   },
 ]
 
 export const ComplexMenu: Story = {
   args: {
     items: mixedContentItems,
-    triggerText: "Account",
     triggerIcon: "token-icon-user",
+    triggerText: "Account",
   },
 }
 
 // Story pro long menu with scroll
 const longMenuItems: MenuItem[] = Array.from({ length: 20 }, (_, i) => ({
+  label: `Menu Item ${i + 1}`,
   type: "action" as const,
   value: `item-${i}`,
-  label: `Menu Item ${i + 1}`,
   ...(i % 3 === 0 ? { icon: "token-icon-star" as const } : {}),
 }))
 
@@ -347,22 +348,19 @@ export const ScrollableMenu: Story = {
 // Story pro nested menu
 const nestedMenuItems: MenuItem[] = [
   {
+    icon: "token-icon-plus",
+    label: "New File",
     type: "action",
     value: "new-file",
-    label: "New File",
-    icon: "token-icon-plus",
   },
   {
+    icon: "token-icon-folder",
+    label: "Open...",
     type: "action",
     value: "open",
-    label: "Open...",
-    icon: "token-icon-folder",
   },
-  { type: "separator", id: "sep-1" },
+  { id: "sep-1", type: "separator" },
   {
-    type: "submenu",
-    value: "recent",
-    label: "Recent Files",
     icon: "token-icon-clock",
     items: [
       { type: "action", value: "recent-1", label: "project-config.json" },
@@ -371,12 +369,12 @@ const nestedMenuItems: MenuItem[] = [
       { type: "separator", id: "sep-recent" },
       { type: "action", value: "clear-recent", label: "Clear Recent Files" },
     ],
-  },
-  { type: "separator", id: "sep-2" },
-  {
+    label: "Recent Files",
     type: "submenu",
-    value: "share",
-    label: "Share",
+    value: "recent",
+  },
+  { id: "sep-2", type: "separator" },
+  {
     icon: "token-icon-share",
     items: [
       {
@@ -404,22 +402,25 @@ const nestedMenuItems: MenuItem[] = [
         ],
       },
     ],
+    label: "Share",
+    type: "submenu",
+    value: "share",
   },
   {
+    icon: "token-icon-print",
+    label: "Print...",
     type: "action",
     value: "print",
-    label: "Print...",
-    icon: "token-icon-print",
   },
-  { type: "separator", id: "sep-3" },
-  { type: "action", value: "exit", label: "Exit", icon: "token-icon-close" },
+  { id: "sep-3", type: "separator" },
+  { icon: "token-icon-close", label: "Exit", type: "action", value: "exit" },
 ]
 
 export const NestedMenu: Story = {
   args: {
     items: nestedMenuItems,
-    triggerText: "File",
     onSelect: (_details: { value: string }) => {},
+    triggerText: "File",
   },
   parameters: {
     docs: {
@@ -433,12 +434,9 @@ export const NestedMenu: Story = {
 
 // Story pro complex nested menu (like categories)
 const categoryMenuItems: MenuItem[] = [
-  { type: "action", value: "all", label: "All Products" },
-  { type: "separator", id: "sep-categories" },
+  { label: "All Products", type: "action", value: "all" },
+  { id: "sep-categories", type: "separator" },
   {
-    type: "submenu",
-    value: "electronics",
-    label: "Electronics",
     items: [
       {
         type: "submenu",
@@ -475,11 +473,11 @@ const categoryMenuItems: MenuItem[] = [
       { type: "action", value: "cameras", label: "Cameras & Photo" },
       { type: "action", value: "tv", label: "TV & Home Theater" },
     ],
+    label: "Electronics",
+    type: "submenu",
+    value: "electronics",
   },
   {
-    type: "submenu",
-    value: "clothing",
-    label: "Clothing & Fashion",
     items: [
       {
         type: "submenu",
@@ -506,11 +504,11 @@ const categoryMenuItems: MenuItem[] = [
       { type: "action", value: "kids", label: "Kids' Clothing" },
       { type: "action", value: "sports", label: "Sportswear" },
     ],
+    label: "Clothing & Fashion",
+    type: "submenu",
+    value: "clothing",
   },
   {
-    type: "submenu",
-    value: "home",
-    label: "Home & Garden",
     items: [
       { type: "action", value: "furniture", label: "Furniture" },
       { type: "action", value: "kitchen", label: "Kitchen & Dining" },
@@ -518,17 +516,20 @@ const categoryMenuItems: MenuItem[] = [
       { type: "action", value: "decor", label: "Home Decor" },
       { type: "action", value: "garden", label: "Garden & Outdoor" },
     ],
+    label: "Home & Garden",
+    type: "submenu",
+    value: "home",
   },
 ]
 
 export const CategoryMenu: Story = {
   args: {
     items: categoryMenuItems,
-    triggerText: "Shop by Category",
-    triggerIcon: "token-icon-grid",
     onSelect: (details: { value: string }) => {
       alert(`Navigate to category: ${details.value}`)
     },
+    triggerIcon: "token-icon-grid",
+    triggerText: "Shop by Category",
   },
   parameters: {
     docs: {
@@ -543,16 +544,13 @@ export const CategoryMenu: Story = {
 // Story pro mixed nested menu with options
 const mixedNestedItems: MenuItem[] = [
   {
+    icon: "token-icon-home",
+    label: "Dashboard",
     type: "action",
     value: "dashboard",
-    label: "Dashboard",
-    icon: "token-icon-home",
   },
-  { type: "separator", id: "sep-1" },
+  { id: "sep-1", type: "separator" },
   {
-    type: "submenu",
-    value: "view",
-    label: "View",
     icon: "token-icon-eye",
     items: [
       {
@@ -625,11 +623,11 @@ const mixedNestedItems: MenuItem[] = [
         ],
       },
     ],
+    label: "View",
+    type: "submenu",
+    value: "view",
   },
   {
-    type: "submenu",
-    value: "tools",
-    label: "Tools",
     icon: "token-icon-settings",
     items: [
       {
@@ -652,17 +650,20 @@ const mixedNestedItems: MenuItem[] = [
         icon: "token-icon-settings",
       },
     ],
+    label: "Tools",
+    type: "submenu",
+    value: "tools",
   },
-  { type: "separator", id: "sep-2" },
-  { type: "action", value: "help", label: "Help", icon: "token-icon-help" },
+  { id: "sep-2", type: "separator" },
+  { icon: "token-icon-help", label: "Help", type: "action", value: "help" },
 ]
 
 export const MixedNestedMenu: Story = {
   args: {
     items: mixedNestedItems,
-    triggerText: "Application",
-    onSelect: (_details: { value: string }) => {},
     onCheckedChange: (_item: MenuItem, _checked: boolean) => {},
+    onSelect: (_details: { value: string }) => {},
+    triggerText: "Application",
   },
   parameters: {
     docs: {

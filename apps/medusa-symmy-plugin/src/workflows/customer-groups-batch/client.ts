@@ -8,20 +8,18 @@ import {
   updateCustomerGroupsWorkflow,
 } from "@medusajs/medusa/core-flows"
 
-import {
-  SYMMY_CUSTOMER_GROUP_CODE_MODULE,
-  type SymmyCustomerGroupCodeDTO,
-  type SymmyCustomerGroupCodeModuleService,
+import { SYMMY_CUSTOMER_GROUP_CODE_MODULE } from "../../modules/customer-group-code"
+import type {
+  SymmyCustomerGroupCodeDTO,
+  SymmyCustomerGroupCodeModuleService,
 } from "../../modules/customer-group-code"
-import {
-  type CustomerGroupLookupKeys,
-  customerGroupsBatchClientMapperHelper,
-} from "./client-mapper-helper"
+import { customerGroupsBatchClientMapperHelper } from "./client-mapper-helper"
+import type { CustomerGroupLookupKeys } from "./client-mapper-helper"
 import type { CustomerGroupInput } from "./types"
 
 type Metadata = Record<string, unknown>
 
-export type ExistingCustomerGroup = {
+export interface ExistingCustomerGroup {
   id: string
   name: string
   code?: string | null
@@ -29,7 +27,7 @@ export type ExistingCustomerGroup = {
   metadata: Metadata | null
 }
 
-export type ExistingCustomerGroupIndex = {
+export interface ExistingCustomerGroupIndex {
   byId: Map<string, ExistingCustomerGroup>
   byName: Map<string, ExistingCustomerGroup>
   byCode: Map<string, ExistingCustomerGroup>
@@ -68,8 +66,8 @@ export class CustomerGroupsBatchClient {
       erpCodes,
     })
     const [byIdGroups, byNameGroups, byCodeGroups] = await Promise.all([
-      this.queryCustomerGroups({ id: Array.from(ids) }),
-      this.queryCustomerGroups({ name: Array.from(names) }),
+      this.queryCustomerGroups({ id: [...ids] }),
+      this.queryCustomerGroups({ name: [...names] }),
       this.queryCustomerGroups({
         id: codeMappings.map((mapping) => mapping.customer_group_id),
       }),
@@ -117,8 +115,8 @@ export class CustomerGroupsBatchClient {
     }
     await this.customerGroupCodeService.upsertCode({
       code: group.code,
-      erpCode: group.erp_code,
       customerGroupId: created.id,
+      erpCode: group.erp_code,
     })
     return {
       ...created,
@@ -140,8 +138,8 @@ export class CustomerGroupsBatchClient {
     })
     await this.customerGroupCodeService.upsertCode({
       code: group.code,
-      erpCode: group.erp_code,
       customerGroupId: groupId,
+      erpCode: group.erp_code,
     })
   }
 
@@ -153,13 +151,13 @@ export class CustomerGroupsBatchClient {
     }
     const { data } = await this.query.graph({
       entity: "customer_group",
-      fields: Array.from(CUSTOMER_GROUP_FIELDS),
+      fields: [...CUSTOMER_GROUP_FIELDS],
       filters,
     })
     return (data ?? []) as ExistingCustomerGroup[]
   }
 
-  private queryGroupCodeMappings(
+  private async queryGroupCodeMappings(
     identifiers: Pick<CustomerGroupLookupKeys, "codes" | "erpCodes">
   ): Promise<SymmyCustomerGroupCodeDTO[]> {
     const codes = new Set([...identifiers.codes, ...identifiers.erpCodes])

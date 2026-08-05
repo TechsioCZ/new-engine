@@ -5,18 +5,16 @@ import { Slider } from "@techsio/ui-kit/molecules/slider"
 import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 
-import {
-  type AsideFilterChipItem,
-  AsideFilterChipSection,
-} from "@/components/aside-filter-chip-section"
+import { AsideFilterChipSection } from "@/components/aside-filter-chip-section"
+import type { AsideFilterChipItem } from "@/components/aside-filter-chip-section"
 import { formatWholeCurrencyAmount } from "@/lib/storefront/price-format"
 
-type AsideFilterPriceBounds = {
+interface AsideFilterPriceBounds {
   min: number
   max: number
 }
 
-type AsideFilterPriceRange = {
+interface AsideFilterPriceRange {
   min?: number
   max?: number
 }
@@ -41,8 +39,8 @@ const toSafeBounds = (
   const max = maxCandidate > min ? maxCandidate : min + 1
 
   return {
-    min: Math.floor(min),
     max: Math.ceil(max),
+    min: Math.floor(min),
   }
 }
 
@@ -72,8 +70,8 @@ const resolveRangeWithinBounds = (
 ): [number, number] =>
   resolveRangeFromSelection(
     {
-      min: range[0],
       max: range[1],
+      min: range[0],
     },
     bounds
   )
@@ -92,8 +90,8 @@ const resolveBoundsForRender = (
   }
 
   return {
-    min: Math.min(currentBounds.min, incomingBounds.min),
     max: Math.max(currentBounds.max, incomingBounds.max),
+    min: Math.min(currentBounds.min, incomingBounds.min),
   }
 }
 
@@ -120,7 +118,7 @@ const normalizeCommittedRange = (
   }
 }
 
-type AsideFilterProps = {
+interface AsideFilterProps {
   priceBounds: AsideFilterPriceBounds | null
   selectedPriceRange: AsideFilterPriceRange
   currencyCode: string
@@ -165,8 +163,8 @@ export function AsideFilter({
   const [priceBoundsForRender, setPriceBoundsForRender] =
     useState<AsideFilterPriceBounds>(
       incomingPriceBounds ?? {
-        min: 0,
         max: 1,
+        min: 0,
       }
     )
 
@@ -207,8 +205,8 @@ export function AsideFilter({
           : { max: selectedPriceRangeMax }),
       },
       {
-        min: priceBoundsForRenderMin,
         max: priceBoundsForRenderMax,
+        min: priceBoundsForRenderMin,
       }
     )
 

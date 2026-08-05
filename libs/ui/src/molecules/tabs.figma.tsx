@@ -6,18 +6,6 @@ figma.connect(
   Tabs,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1174-74",
   {
-    imports: ['import { Tabs } from "@libs/ui/molecules/tabs"'],
-    props: {
-      size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
-        lg: "lg",
-      }),
-      orientation: figma.enum("orientation", {
-        horizontal: "horizontal",
-        vertical: "vertical",
-      }),
-    },
     example: ({ size, orientation }) => (
       <Tabs defaultValue="tab-1" orientation={orientation} size={size}>
         <Tabs.List>
@@ -28,5 +16,17 @@ figma.connect(
         <Tabs.Content value="tab-2">Content 2</Tabs.Content>
       </Tabs>
     ),
+    imports: ['import { Tabs } from "@libs/ui/molecules/tabs"'],
+    props: {
+      orientation: figma.enum("orientation", {
+        horizontal: "horizontal",
+        vertical: "vertical",
+      }),
+      size: figma.enum("size", {
+        sm: "sm",
+        md: "md",
+        lg: "lg",
+      }),
+    },
   }
 )

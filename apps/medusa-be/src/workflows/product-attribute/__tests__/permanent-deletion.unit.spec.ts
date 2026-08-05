@@ -46,7 +46,7 @@ describe("Product Attribute permanent definition removal", () => {
         { ids: ["patdef_deleted"] },
         createScope(service)
       )
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       assignment_count: 1,
       ids: ["patdef_deleted"],
       option_count: 1,
@@ -108,7 +108,7 @@ describe("Product Attribute permanent option removal", () => {
         { ids: ["patopt_deleted"] },
         createScope(service)
       )
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       assignment_count: 1,
       ids: ["patopt_deleted"],
     })

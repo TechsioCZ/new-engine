@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest"
+
 import {
   type CheckoutAddressInput,
   buildCheckoutCartAddressInput,
@@ -11,144 +13,144 @@ import {
 describe("checkout address defaults", () => {
   it("returns validation issues for missing shipping, billing, and email", () => {
     const issues = getCheckoutAddressValidationIssues({
-      shipping: {
-        firstName: "Jan",
-      },
       billing: {
         firstName: "Jan",
       },
-      useSameAddress: false,
       email: "",
+      shipping: {
+        firstName: "Jan",
+      },
+      useSameAddress: false,
     })
 
-    expect(issues).toEqual([
+    expect(issues).toStrictEqual([
       {
-        scope: "shipping",
-        field: "lastName",
         code: "required",
+        field: "lastName",
         message: "Missing shipping field: lastName",
+        scope: "shipping",
       },
       {
-        scope: "shipping",
-        field: "street",
         code: "required",
+        field: "street",
         message: "Missing shipping field: street",
+        scope: "shipping",
       },
       {
-        scope: "shipping",
-        field: "city",
         code: "required",
+        field: "city",
         message: "Missing shipping field: city",
+        scope: "shipping",
       },
       {
-        scope: "shipping",
-        field: "postalCode",
         code: "required",
+        field: "postalCode",
         message: "Missing shipping field: postalCode",
-      },
-      {
         scope: "shipping",
-        field: "country",
+      },
+      {
         code: "required",
+        field: "country",
         message: "Missing shipping field: country",
+        scope: "shipping",
       },
       {
-        scope: "billing",
+        code: "required",
         field: "lastName",
-        code: "required",
         message: "Missing billing field: lastName",
+        scope: "billing",
       },
       {
-        scope: "billing",
+        code: "required",
         field: "street",
-        code: "required",
         message: "Missing billing field: street",
+        scope: "billing",
       },
       {
-        scope: "billing",
+        code: "required",
         field: "city",
-        code: "required",
         message: "Missing billing field: city",
+        scope: "billing",
       },
       {
-        scope: "billing",
+        code: "required",
         field: "postalCode",
-        code: "required",
         message: "Missing billing field: postalCode",
-      },
-      {
         scope: "billing",
-        field: "country",
-        code: "required",
-        message: "Missing billing field: country",
       },
       {
-        scope: "root",
-        field: "email",
         code: "required",
+        field: "country",
+        message: "Missing billing field: country",
+        scope: "billing",
+      },
+      {
+        code: "required",
+        field: "email",
         message: "Missing checkout email",
+        scope: "root",
       },
     ])
   })
 
   it("skips billing validation when same-address mode omits billing input", () => {
     const issues = getCheckoutAddressValidationIssues({
+      billing: undefined as never,
+      email: "jan@example.com",
       shipping: {
+        city: "Prague",
+        country: "CZ",
         firstName: "Jan",
         lastName: "Novak",
-        street: "Main 1",
-        city: "Prague",
         postalCode: "11000",
-        country: "CZ",
+        street: "Main 1",
       },
-      billing: undefined as never,
       useSameAddress: true,
-      email: "jan@example.com",
     })
 
-    expect(issues).toEqual([])
+    expect(issues).toStrictEqual([])
   })
 
   it("maps checkout addresses to cart payloads with sane defaults", () => {
     expect(
       mapCheckoutAddressToMedusaCartAddress(
         {
+          city: " Prague ",
+          company: " ACME ",
+          country: " CZ ",
           firstName: " Jan ",
           lastName: " Novak ",
+          phone: " +420123456789 ",
+          postalCode: " 11000 ",
+          province: " Prague ",
           street: " Main 1 ",
           street2: " Floor 2 ",
-          city: " Prague ",
-          postalCode: " 11000 ",
-          country: " CZ ",
-          province: " Prague ",
-          company: " ACME ",
-          phone: " +420123456789 ",
         },
         {
           countryCodeTransform: (countryCode) => ` ${countryCode} `,
         }
       )
-    ).toEqual({
-      first_name: "Jan",
-      last_name: "Novak",
+    ).toStrictEqual({
       address_1: "Main 1",
       address_2: "Floor 2",
       city: "Prague",
-      postal_code: "11000",
-      country_code: "cz",
-      province: "Prague",
       company: "ACME",
+      country_code: "cz",
+      first_name: "Jan",
+      last_name: "Novak",
       phone: "+420123456789",
+      postal_code: "11000",
+      province: "Prague",
     })
 
     expect(
       mapCheckoutAddressToMedusaCartAddress(
         {
+          city: "Prague",
           firstName: "Jan",
           lastName: "Novak",
-          street: "Main 1",
-          city: "Prague",
           postalCode: "11000",
+          street: "Main 1",
         },
         { defaultCountryCode: "CZ" }
       )
@@ -160,22 +162,22 @@ describe("checkout address defaults", () => {
   it("omits blank and null optional fields from cart address payloads", () => {
     expect(
       mapCheckoutAddressToMedusaCartAddress({
+        city: "Prague",
+        country: "CZ",
         firstName: "Jan",
         lastName: "Novak",
+        phone: null,
+        postalCode: "11000",
         street: "Main 1",
         street2: "   ",
-        city: "Prague",
-        postalCode: "11000",
-        country: "CZ",
-        phone: null,
       })
     ).toStrictEqual({
-      first_name: "Jan",
-      last_name: "Novak",
       address_1: "Main 1",
       city: "Prague",
-      postal_code: "11000",
       country_code: "cz",
+      first_name: "Jan",
+      last_name: "Novak",
+      postal_code: "11000",
     })
   })
 
@@ -183,97 +185,97 @@ describe("checkout address defaults", () => {
     expect(
       buildCheckoutCartAddressInput(
         {
-          shipping: {
-            firstName: "Jan",
-            lastName: "Novak",
-            street: "Main 1",
-            city: "Prague",
-            postalCode: "11000",
-            country: "CZ",
-            company: "ACME",
-          },
           billing: {
+            city: "Brno",
+            country: "SK",
             firstName: "Bill",
             lastName: "Buyer",
-            street: "Billing 2",
-            city: "Brno",
             postalCode: "60200",
-            country: "SK",
+            street: "Billing 2",
+          },
+          email: " jan@example.com ",
+          shipping: {
+            city: "Prague",
+            company: "ACME",
+            country: "CZ",
+            firstName: "Jan",
+            lastName: "Novak",
+            postalCode: "11000",
+            street: "Main 1",
           },
           useSameAddress: false,
-          email: " jan@example.com ",
         },
         {
           defaultCountryCode: "CZ",
         }
       )
-    ).toEqual({
-      email: "jan@example.com",
-      shippingAddress: {
-        first_name: "Jan",
-        last_name: "Novak",
-        address_1: "Main 1",
-        address_2: undefined,
-        city: "Prague",
-        postal_code: "11000",
-        country_code: "cz",
-        province: undefined,
-        company: "ACME",
-        phone: undefined,
-      },
+    ).toStrictEqual({
       billingAddress: {
-        first_name: "Bill",
-        last_name: "Buyer",
         address_1: "Billing 2",
         address_2: undefined,
         city: "Brno",
-        postal_code: "60200",
-        country_code: "sk",
-        province: undefined,
         company: undefined,
+        country_code: "sk",
+        first_name: "Bill",
+        last_name: "Buyer",
         phone: undefined,
+        postal_code: "60200",
+        province: undefined,
+      },
+      email: "jan@example.com",
+      shippingAddress: {
+        address_1: "Main 1",
+        address_2: undefined,
+        city: "Prague",
+        company: "ACME",
+        country_code: "cz",
+        first_name: "Jan",
+        last_name: "Novak",
+        phone: undefined,
+        postal_code: "11000",
+        province: undefined,
       },
       useSameAddress: false,
     })
 
     expect(
       buildCheckoutCartAddressInput({
+        email: "jan@example.com",
         shipping: {
+          city: "Prague",
+          country: "CZ",
           firstName: "Jan",
           lastName: "Novak",
-          street: "Main 1",
-          city: "Prague",
           postalCode: "11000",
-          country: "CZ",
+          street: "Main 1",
         },
         useSameAddress: true,
-        email: "jan@example.com",
       })
-    ).toEqual({
+    ).toStrictEqual({
+      billingAddress: {
+        address_1: "Main 1",
+        address_2: undefined,
+        city: "Prague",
+        company: undefined,
+        country_code: "cz",
+        first_name: "Jan",
+        last_name: "Novak",
+        phone: undefined,
+        postal_code: "11000",
+        province: undefined,
+      },
       email: "jan@example.com",
       shippingAddress: {
-        first_name: "Jan",
-        last_name: "Novak",
         address_1: "Main 1",
         address_2: undefined,
         city: "Prague",
-        postal_code: "11000",
-        country_code: "cz",
-        province: undefined,
         company: undefined,
-        phone: undefined,
-      },
-      billingAddress: {
+        country_code: "cz",
         first_name: "Jan",
         last_name: "Novak",
-        address_1: "Main 1",
-        address_2: undefined,
-        city: "Prague",
-        postal_code: "11000",
-        country_code: "cz",
-        province: undefined,
-        company: undefined,
         phone: undefined,
+        postal_code: "11000",
+        province: undefined,
       },
       useSameAddress: true,
     })
@@ -282,30 +284,30 @@ describe("checkout address defaults", () => {
   it("maps Medusa addresses back to the checkout shape", () => {
     expect(
       mapMedusaAddressToCheckoutAddress({
-        first_name: " Jan ",
-        last_name: " Novak ",
         address_1: " Main 1 ",
         address_2: " Floor 2 ",
         city: " Prague ",
-        postal_code: " 11000 ",
         country_code: " cz ",
+        first_name: " Jan ",
         is_default_shipping: true,
+        last_name: " Novak ",
         metadata: { source: "test" },
+        postal_code: " 11000 ",
       })
-    ).toEqual({
+    ).toStrictEqual({
+      city: "Prague",
+      company: undefined,
+      country: "cz",
       firstName: "Jan",
+      isDefaultBilling: undefined,
+      isDefaultShipping: true,
       lastName: "Novak",
+      metadata: { source: "test" },
+      phone: undefined,
+      postalCode: "11000",
+      province: undefined,
       street: "Main 1",
       street2: "Floor 2",
-      city: "Prague",
-      postalCode: "11000",
-      country: "cz",
-      province: undefined,
-      company: undefined,
-      phone: undefined,
-      isDefaultShipping: true,
-      isDefaultBilling: undefined,
-      metadata: { source: "test" },
     })
   })
 
@@ -326,98 +328,98 @@ describe("checkout address defaults", () => {
           scope: "shipping",
         }
       )
-    ).toEqual([
+    ).toStrictEqual([
       {
-        scope: "shipping",
+        code: "required",
         field: "lastName",
-        code: "required",
         message: "Missing shipping field: lastName",
+        scope: "shipping",
       },
       {
-        scope: "shipping",
+        code: "required",
         field: "street",
-        code: "required",
         message: "Missing shipping field: street",
+        scope: "shipping",
       },
       {
-        scope: "shipping",
+        code: "required",
         field: "city",
-        code: "required",
         message: "Missing shipping field: city",
+        scope: "shipping",
       },
       {
-        scope: "shipping",
+        code: "required",
         field: "postalCode",
-        code: "required",
         message: "Missing shipping field: postalCode",
+        scope: "shipping",
       },
       {
-        scope: "shipping",
-        field: "country",
         code: "required",
+        field: "country",
         message: "Missing shipping field: country",
+        scope: "shipping",
       },
     ])
 
     expect(
       cartAdapter.toPayload?.(
         {
+          city: "Prague",
+          country: "CZ",
           firstName: "Jan",
           lastName: "Novak",
-          street: "Main 1",
-          city: "Prague",
           postalCode: "11000",
-          country: "CZ",
+          street: "Main 1",
         },
         {
           scope: "shipping",
         }
       )
-    ).toEqual({
-      first_name: "Jan",
-      last_name: "Novak",
+    ).toStrictEqual({
       address_1: "Main 1",
       address_2: undefined,
       city: "Prague",
-      postal_code: "11000",
-      country_code: "cz",
-      province: undefined,
       company: undefined,
+      country_code: "cz",
+      first_name: "Jan",
+      last_name: "Novak",
       phone: undefined,
+      postal_code: "11000",
+      province: undefined,
     })
 
     expect(
       customerAdapter.toCreateParams?.(
         {
+          city: "Prague",
+          country: "CZ",
           firstName: "Jan",
+          isDefaultBilling: false,
+          isDefaultShipping: true,
           lastName: "Novak",
+          metadata: { source: "test" },
+          postalCode: "11000",
           street: "Main 1",
           street2: "Floor 2",
-          city: "Prague",
-          postalCode: "11000",
-          country: "CZ",
-          isDefaultShipping: true,
-          isDefaultBilling: false,
-          metadata: { source: "test" },
         },
         {
           mode: "create",
         }
       )
-    ).toEqual({
-      first_name: "Jan",
-      last_name: "Novak",
+    ).toStrictEqual({
       address_1: "Main 1",
       address_2: "Floor 2",
       city: "Prague",
-      postal_code: "11000",
-      country_code: "cz",
-      province: undefined,
       company: undefined,
-      phone: undefined,
-      is_default_shipping: true,
+      country_code: "cz",
+      first_name: "Jan",
       is_default_billing: false,
+      is_default_shipping: true,
+      last_name: "Novak",
       metadata: { source: "test" },
+      phone: undefined,
+      postal_code: "11000",
+      province: undefined,
     })
   })
 
@@ -443,12 +445,12 @@ describe("checkout address defaults", () => {
           mode: "update",
         }
       )
-    ).toEqual([
+    ).toStrictEqual([
       {
-        scope: "customer",
-        field: "country",
         code: "required",
+        field: "country",
         message: "Missing customer field: country",
+        scope: "customer",
       },
     ])
 
@@ -456,22 +458,22 @@ describe("checkout address defaults", () => {
       customerAdapter.toUpdateParams?.(
         {
           addressId: "addr_1",
-          phone: " +420123456789 ",
           company: "   ",
-          street2: null,
           country: " CZ ",
           isDefaultShipping: true,
+          phone: " +420123456789 ",
+          street2: null,
         },
         {
           mode: "update",
         }
       )
-    ).toEqual({
-      phone: "+420123456789",
-      company: "",
+    ).toStrictEqual({
       address_2: "",
+      company: "",
       country_code: "cz",
       is_default_shipping: true,
+      phone: "+420123456789",
     })
   })
 })

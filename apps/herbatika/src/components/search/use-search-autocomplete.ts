@@ -7,18 +7,20 @@ import {
   SEARCH_AUTOCOMPLETE_DEBOUNCE_MS,
   SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH,
   SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH,
-  type SearchAutocompleteResponse,
-  type SearchAutocompleteStatus,
+} from "@/lib/search-autocomplete/search-autocomplete-types"
+import type {
+  SearchAutocompleteResponse,
+  SearchAutocompleteStatus,
 } from "@/lib/search-autocomplete/search-autocomplete-types"
 
-type UseSearchAutocompleteInput = {
+interface UseSearchAutocompleteInput {
   countryCode?: string
   query: string
   currencyCode: string
   regionId?: string
 }
 
-type UseSearchAutocompleteResult = {
+interface UseSearchAutocompleteResult {
   data: SearchAutocompleteResponse
   status: SearchAutocompleteStatus
 }
@@ -50,8 +52,8 @@ export function useSearchAutocomplete({
     const abortController = new AbortController()
     const timeoutId = window.setTimeout(() => {
       const params = new URLSearchParams({
-        q: normalizedQuery,
         currency: currencyCode,
+        q: normalizedQuery,
       })
 
       if (countryCode) {
@@ -65,7 +67,7 @@ export function useSearchAutocomplete({
       fetch(`/api/search-autocomplete?${params.toString()}`, {
         signal: abortController.signal,
       })
-        .then((response) => {
+        .then(async (response) => {
           if (!response.ok) {
             throw new Error(`Autocomplete failed: ${response.status}`)
           }

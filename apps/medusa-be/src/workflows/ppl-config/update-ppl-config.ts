@@ -5,10 +5,8 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 
-import {
-  PPL_CLIENT_MODULE,
-  type PplClientModuleService,
-} from "../../modules/ppl-client"
+import { PPL_CLIENT_MODULE } from "../../modules/ppl-client"
+import type { PplClientModuleService } from "../../modules/ppl-client"
 import type { UpdatePplConfigInput } from "../../modules/ppl-client/types"
 
 const updatePplConfigStep = createStep(

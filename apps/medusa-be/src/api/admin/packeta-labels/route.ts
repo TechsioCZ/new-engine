@@ -5,10 +5,8 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 
-import {
-  PACKETA_CLIENT_MODULE,
-  type PacketaClientModuleService,
-} from "../../../modules/packeta-client"
+import { PACKETA_CLIENT_MODULE } from "../../../modules/packeta-client"
+import type { PacketaClientModuleService } from "../../../modules/packeta-client"
 import type {
   PacketaFulfillmentData,
   PacketaLabelFormat,
@@ -16,20 +14,20 @@ import type {
 import { composePacketaLabelsOnA4 } from "./label-pdf"
 import type { PostAdminPacketaLabelsSchemaType } from "./validators"
 
-type PacketaFulfillmentRecord = {
+interface PacketaFulfillmentRecord {
   id: string
   provider_id: string
   canceled_at: string | null
   data: Record<string, unknown> | null
 }
 
-type OrderWithFulfillments = {
+interface OrderWithFulfillments {
   id: string
   display_id?: number | null
   fulfillments?: PacketaFulfillmentRecord[]
 }
 
-type PrintablePacketaLabel = {
+interface PrintablePacketaLabel {
   order_id: string
   order_display_id?: number | null
   fulfillment_id: string
@@ -77,7 +75,7 @@ export async function POST(
   const labelPdfs = await downloadLabelPdfsInChunks(
     labels,
     packetaClient,
-    labelFormat as PacketaLabelFormat | undefined
+    labelFormat
   )
 
   const pdfBytes = await composePacketaLabelsOnA4(
@@ -89,9 +87,9 @@ export async function POST(
   const filename = buildFilename(labels)
 
   res.set({
-    "Content-Type": "application/pdf",
     "Content-Disposition": `attachment; filename="${filename}"`,
     "Content-Length": buffer.length,
+    "Content-Type": "application/pdf",
   })
   res.send(buffer)
 }
@@ -116,8 +114,8 @@ function collectPrintableLabels(
       .filter((fulfillment) => fulfillment.provider_id === "packeta_packeta")
       .filter((fulfillment) => !fulfillment.canceled_at)
       .map((fulfillment) => ({
-        fulfillment,
         data: fulfillment.data,
+        fulfillment,
       }))
       .filter(
         (
@@ -136,9 +134,9 @@ function collectPrintableLabels(
     for (const { fulfillment, data } of orderLabels) {
       labels.push({
         order_id: order.id,
-        ...(order.display_id !== undefined
-          ? { order_display_id: order.display_id }
-          : {}),
+        ...(order.display_id === undefined
+          ? {}
+          : { order_display_id: order.display_id }),
         fulfillment_id: fulfillment.id,
         packet_id: data.packet_id,
         barcode: data.barcode,
@@ -179,7 +177,7 @@ async function downloadLabelPdfsInChunks(
   ) {
     const chunk = labels.slice(index, index + PACKETA_LABEL_DOWNLOAD_CHUNK_SIZE)
     const chunkPdfs = await Promise.all(
-      chunk.map((label) =>
+      chunk.map(async (label) =>
         packetaClient.downloadLabelPdf(label.packet_id, labelFormat, 0)
       )
     )

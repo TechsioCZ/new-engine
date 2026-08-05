@@ -3,13 +3,14 @@ import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { hydrateRoot } from "react-dom/client"
 import { renderToString } from "react-dom/server"
+import { vi, describe, expect, it } from "vitest"
 
 import { createCartHooks } from "../src/cart/hooks"
 import { createCartQueryKeys } from "../src/cart/query-keys"
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createLocalStorageValueStore } from "../src/shared/storage-value-store"
 
-type Cart = {
+interface Cart {
   id: string
   region_id?: string | null
   items?: Array<{ quantity?: number }>
@@ -19,21 +20,21 @@ const createMemoryStorage = (): Storage => {
   const store = new Map<string, string>()
 
   return {
-    getItem: (key) => store.get(key) ?? null,
-    setItem: (key, value) => {
-      store.set(key, value)
-    },
-    removeItem: (key) => {
-      store.delete(key)
-    },
     clear: () => {
       store.clear()
     },
+    getItem: (key) => store.get(key) ?? null,
     key: (index) => Array.from(store.keys())[index] ?? null,
     get length() {
       return store.size
     },
-  } as Storage
+    removeItem: (key) => {
+      store.delete(key)
+    },
+    setItem: (key, value) => {
+      store.set(key, value)
+    },
+  }
 }
 
 const createWrapper =
@@ -51,8 +52,8 @@ describe("createCartHooks reactive storage and cache sync", () => {
     })
     const retrieveCart = vi.fn(async (cartId: string) => ({
       id: cartId,
-      region_id: "reg_1",
       items: [{ quantity: 2 }],
+      region_id: "reg_1",
     }))
 
     const { useCart } = createCartHooks<
@@ -60,18 +61,18 @@ describe("createCartHooks reactive storage and cache sync", () => {
       { region_id?: string },
       { region_id?: string }
     >({
-      service: {
-        retrieveCart,
-        createCart: async () => ({ id: "cart_created", region_id: "reg_1" }),
-      },
       cartStorage,
       requireRegion: false,
+      service: {
+        createCart: async () => ({ id: "cart_created", region_id: "reg_1" }),
+        retrieveCart,
+      },
     })
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     const wrapper = createWrapper(queryClient)
@@ -104,13 +105,13 @@ describe("createCartHooks reactive storage and cache sync", () => {
     })
     const retrieveCart = vi.fn(async (cartId: string) => ({
       id: cartId,
-      region_id: "reg_1",
       items: [{ quantity: 1 }],
+      region_id: "reg_1",
     }))
     const createCart = vi.fn(async () => ({
       id: "cart_created",
-      region_id: "reg_1",
       items: [{ quantity: 1 }],
+      region_id: "reg_1",
     }))
 
     const { useCart } = createCartHooks<
@@ -118,18 +119,18 @@ describe("createCartHooks reactive storage and cache sync", () => {
       { region_id?: string },
       { region_id?: string }
     >({
-      service: {
-        retrieveCart,
-        createCart,
-      },
       cartStorage,
       requireRegion: false,
+      service: {
+        createCart,
+        retrieveCart,
+      },
     })
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     const Wrapper = createWrapper(queryClient)
@@ -150,7 +151,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
         <CartProbe />
       </Wrapper>
     )
-    document.body.appendChild(container)
+    document.body.append(container)
 
     let root: ReturnType<typeof hydrateRoot> | null = null
 
@@ -185,17 +186,28 @@ describe("createCartHooks reactive storage and cache sync", () => {
   it("reacts to observable cartStorage implementations that use method context", async () => {
     const listeners = new Set<() => void>()
     const cartStorage = {
+      clear() {
+        this.currentCartId = null
+        this.listeners.forEach((listener) => {
+          listener()
+        })
+      },
       currentCartId: null as string | null,
       get() {
         return this.currentCartId
       },
+      getServerSnapshot() {
+        return this.currentCartId
+      },
+      getSnapshot() {
+        return this.currentCartId
+      },
+      listeners,
       set(cartId: string) {
         this.currentCartId = cartId
-        this.listeners.forEach((listener) => listener())
-      },
-      clear() {
-        this.currentCartId = null
-        this.listeners.forEach((listener) => listener())
+        this.listeners.forEach((listener) => {
+          listener()
+        })
       },
       subscribe(listener: () => void) {
         this.listeners.add(listener)
@@ -203,18 +215,11 @@ describe("createCartHooks reactive storage and cache sync", () => {
           this.listeners.delete(listener)
         }
       },
-      getSnapshot() {
-        return this.currentCartId
-      },
-      getServerSnapshot() {
-        return this.currentCartId
-      },
-      listeners,
     }
     const retrieveCart = vi.fn(async (cartId: string) => ({
       id: cartId,
-      region_id: "reg_1",
       items: [{ quantity: 1 }],
+      region_id: "reg_1",
     }))
 
     const { useCart } = createCartHooks<
@@ -222,18 +227,18 @@ describe("createCartHooks reactive storage and cache sync", () => {
       { region_id?: string },
       { region_id?: string }
     >({
-      service: {
-        retrieveCart,
-        createCart: async () => ({ id: "cart_created", region_id: "reg_1" }),
-      },
       cartStorage,
       requireRegion: false,
+      service: {
+        createCart: async () => ({ id: "cart_created", region_id: "reg_1" }),
+        retrieveCart,
+      },
     })
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     const wrapper = createWrapper(queryClient)
@@ -256,8 +261,8 @@ describe("createCartHooks reactive storage and cache sync", () => {
   it("syncs active and detail caches for line item mutations", async () => {
     const updatedCart: Cart = {
       id: "cart_1",
-      region_id: "reg_1",
       items: [{ quantity: 4 }],
+      region_id: "reg_1",
     }
     const queryKeys = createCartQueryKeys("test-cart-hook-sync")
 
@@ -266,19 +271,19 @@ describe("createCartHooks reactive storage and cache sync", () => {
       { region_id?: string },
       { region_id?: string }
     >({
-      service: {
-        retrieveCart: async () => updatedCart,
-        createCart: async () => updatedCart,
-        addLineItem: async () => updatedCart,
-      },
       queryKeys,
       requireRegion: false,
+      service: {
+        addLineItem: async () => updatedCart,
+        createCart: async () => updatedCart,
+        retrieveCart: async () => updatedCart,
+      },
     })
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     const wrapper = createWrapper(queryClient)
@@ -287,13 +292,13 @@ describe("createCartHooks reactive storage and cache sync", () => {
 
     queryClient.setQueryData(activeKey, {
       id: "cart_1",
-      region_id: "reg_1",
       items: [{ quantity: 1 }],
+      region_id: "reg_1",
     } satisfies Cart)
     queryClient.setQueryData(detailKey, {
       id: "cart_1",
-      region_id: "reg_1",
       items: [{ quantity: 1 }],
+      region_id: "reg_1",
     } satisfies Cart)
 
     const { result } = renderHook(() => useAddLineItem(), { wrapper })
@@ -301,25 +306,25 @@ describe("createCartHooks reactive storage and cache sync", () => {
     await act(async () => {
       await result.current.mutateAsync({
         cartId: "cart_1",
-        variantId: "variant_1",
         quantity: 3,
+        variantId: "variant_1",
       })
     })
 
-    expect(queryClient.getQueryData(activeKey)).toEqual(updatedCart)
-    expect(queryClient.getQueryData(detailKey)).toEqual(updatedCart)
+    expect(queryClient.getQueryData(activeKey)).toStrictEqual(updatedCart)
+    expect(queryClient.getQueryData(detailKey)).toStrictEqual(updatedCart)
   })
 
   it("keeps the later cart mutation when an earlier cancellation settles last", async () => {
     const olderCart: Cart = {
       id: "cart_1",
-      region_id: "reg_1",
       items: [{ quantity: 1 }],
+      region_id: "reg_1",
     }
     const newerCart: Cart = {
       id: "cart_1",
-      region_id: "reg_1",
       items: [{ quantity: 2 }],
+      region_id: "reg_1",
     }
     let resolveFirstCancellation: (() => void) | undefined
     const firstCancellation = new Promise<void>((resolve) => {
@@ -331,24 +336,24 @@ describe("createCartHooks reactive storage and cache sync", () => {
       { region_id?: string },
       { region_id?: string }
     >({
+      queryKeys,
+      requireRegion: false,
       service: {
-        retrieveCart: async () => olderCart,
         createCart: async () => olderCart,
+        retrieveCart: async () => olderCart,
         updateLineItem: async (_cartId, _lineItemId, input) =>
           input.quantity === 1 ? olderCart : newerCart,
       },
-      queryKeys,
-      requireRegion: false,
     })
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     const cancelQueries = vi
       .spyOn(queryClient, "cancelQueries")
-      .mockImplementation(() =>
+      .mockImplementation(async () =>
         cancelQueries.mock.calls.length <= 2
           ? firstCancellation
           : Promise.resolve()
@@ -372,25 +377,25 @@ describe("createCartHooks reactive storage and cache sync", () => {
       quantity: 2,
     })
     await waitFor(() => {
-      expect(queryClient.getQueryData(detailKey)).toEqual(newerCart)
+      expect(queryClient.getQueryData(detailKey)).toStrictEqual(newerCart)
     })
 
     resolveFirstCancellation?.()
     await Promise.all([firstMutation, secondMutation])
 
-    expect(queryClient.getQueryData(detailKey)).toEqual(newerCart)
+    expect(queryClient.getQueryData(detailKey)).toStrictEqual(newerCart)
   })
 
   it("does not let a restored inactive cart observer overwrite a newer mutation", async () => {
     const staleCart: Cart = {
       id: "cart_1",
-      region_id: "reg_1",
       items: [{ quantity: 1 }],
+      region_id: "reg_1",
     }
     const updatedCart: Cart = {
       id: "cart_1",
-      region_id: "reg_1",
       items: [{ quantity: 1 }, { quantity: 1 }],
+      region_id: "reg_1",
     }
     const queryKeys = createCartQueryKeys("test-cart-activity-restore")
     const { useCart } = createCartHooks<
@@ -398,17 +403,17 @@ describe("createCartHooks reactive storage and cache sync", () => {
       { region_id?: string },
       { region_id?: string }
     >({
-      service: {
-        retrieveCart: async () => staleCart,
-        createCart: async () => staleCart,
-      },
       queryKeys,
       requireRegion: false,
+      service: {
+        createCart: async () => staleCart,
+        retrieveCart: async () => staleCart,
+      },
     })
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     const activeKey = queryKeys.active({ cartId: "cart_1", regionId: "reg_1" })
@@ -436,27 +441,27 @@ describe("createCartHooks reactive storage and cache sync", () => {
       { wrapper }
     )
 
-    expect(result.current.cart).toEqual(staleCart)
+    expect(result.current.cart).toStrictEqual(staleCart)
     await waitFor(() => {
-      expect(queryClient.getQueryData(activeKey)).toEqual(updatedCart)
-      expect(queryClient.getQueryData(detailKey)).toEqual(updatedCart)
+      expect(queryClient.getQueryData(activeKey)).toStrictEqual(updatedCart)
+      expect(queryClient.getQueryData(detailKey)).toStrictEqual(updatedCart)
     })
   })
 
   it("keeps a newer line item mutation when an older cart read finishes later", async () => {
     const staleCart: Cart = {
       id: "cart_1",
-      region_id: "reg_1",
       items: [{ quantity: 1 }],
+      region_id: "reg_1",
     }
     const updatedCart: Cart = {
       id: "cart_1",
-      region_id: "reg_1",
       items: [{ quantity: 2 }],
+      region_id: "reg_1",
     }
     let resolveCartRead: ((cart: Cart) => void) | undefined
     const retrieveCart = vi.fn(
-      () =>
+      async () =>
         new Promise<Cart>((resolve) => {
           resolveCartRead = resolve
         })
@@ -467,18 +472,18 @@ describe("createCartHooks reactive storage and cache sync", () => {
       { region_id?: string },
       { region_id?: string }
     >({
+      requireRegion: false,
       service: {
-        retrieveCart,
         createCart: async () => staleCart,
+        retrieveCart,
         updateLineItem: async () => updatedCart,
       },
-      requireRegion: false,
     })
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     const wrapper = createWrapper(queryClient)
@@ -495,7 +500,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
     )
 
     await waitFor(() => {
-      expect(retrieveCart).toHaveBeenCalledTimes(1)
+      expect(retrieveCart).toHaveBeenCalledOnce()
     })
 
     await act(async () => {
@@ -524,12 +529,12 @@ describe("createCartHooks reactive storage and cache sync", () => {
   it("allows an active cart read to finish when a line item mutation fails", async () => {
     const cart: Cart = {
       id: "cart_1",
-      region_id: "reg_1",
       items: [{ quantity: 1 }],
+      region_id: "reg_1",
     }
     let resolveCartRead: ((cart: Cart) => void) | undefined
     const retrieveCart = vi.fn(
-      () =>
+      async () =>
         new Promise<Cart>((resolve) => {
           resolveCartRead = resolve
         })
@@ -540,20 +545,20 @@ describe("createCartHooks reactive storage and cache sync", () => {
       { region_id?: string },
       { region_id?: string }
     >({
+      requireRegion: false,
       service: {
-        retrieveCart,
         createCart: async () => cart,
+        retrieveCart,
         updateLineItem: async () => {
           throw new Error("update failed")
         },
       },
-      requireRegion: false,
     })
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     const wrapper = createWrapper(queryClient)
@@ -570,7 +575,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
     )
 
     await waitFor(() => {
-      expect(retrieveCart).toHaveBeenCalledTimes(1)
+      expect(retrieveCart).toHaveBeenCalledOnce()
     })
 
     await act(async () => {

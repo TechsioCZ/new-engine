@@ -1,11 +1,9 @@
 "use client"
-import {
-  Carousel,
-  type CarouselSlide,
-} from "@techsio/ui-kit/molecules/carousel"
+import { Carousel } from "@techsio/ui-kit/molecules/carousel"
+import type { CarouselSlide } from "@techsio/ui-kit/molecules/carousel"
 import NextImage from "next/image"
 
-type HeroCarouselProps = {
+interface HeroCarouselProps {
   slides: CarouselSlide[]
 }
 export function HeroCarousel({ slides }: HeroCarouselProps) {

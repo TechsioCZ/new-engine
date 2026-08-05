@@ -1,8 +1,5 @@
-import {
-  type CacheConfig,
-  type CacheStrategy,
-  createCacheConfig,
-} from "../shared/cache-config"
+import { createCacheConfig } from "../shared/cache-config"
+import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
   ReadQueryOptions,
@@ -19,12 +16,12 @@ import type {
   RegionInfo,
 } from "./types"
 
-export type CreateCatalogQueryOptionsFactoryConfig<
+export interface CreateCatalogQueryOptionsFactoryConfig<
   TProduct,
   TListInput extends CatalogListInputBase,
   TListParams,
   TFacets,
-> = {
+> {
   service: CatalogService<TProduct, TListParams, TFacets>
   buildListParams?: (input: TListInput) => TListParams
   queryKeys?: CatalogQueryKeys<TListParams>
@@ -32,11 +29,11 @@ export type CreateCatalogQueryOptionsFactoryConfig<
   cacheConfig?: CacheConfig
 }
 
-export type CatalogQueryOptionsFactory<
+export interface CatalogQueryOptionsFactory<
   TProduct,
   TListInput extends CatalogListInputBase,
   TFacets,
-> = {
+> {
   getListQueryOptions: (
     input: TListInput,
     options?: {
@@ -87,8 +84,9 @@ export function createCatalogQueryOptionsFactory<
       const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
 
       return {
+        queryFn: async ({ signal }) =>
+          service.getCatalogProducts(listParams, signal),
         queryKey: resolvedQueryKeys.list(listParams),
-        queryFn: ({ signal }) => service.getCatalogProducts(listParams, signal),
         ...resolvedCacheConfig[cacheStrategy],
         ...options?.queryOptions,
       }

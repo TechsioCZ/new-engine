@@ -4,7 +4,7 @@ import { useToast } from "@techsio/ui-kit/molecules/toast"
 
 type AppToastType = "error" | "success" | "warning"
 
-type AppToastMessage = {
+interface AppToastMessage {
   description?: string
   title: string
 }
@@ -15,9 +15,9 @@ const showToast = (
   message: AppToastMessage
 ) =>
   toaster.create({
-    type,
-    title: message.title,
     description: message.description,
+    title: message.title,
+    type,
   })
 
 export function useAppToast() {

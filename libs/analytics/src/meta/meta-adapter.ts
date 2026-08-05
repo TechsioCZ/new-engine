@@ -42,22 +42,6 @@ export function useMetaAdapter(
   return {
     key: adapterKey,
 
-    trackViewContent: createTracker(
-      getFbq,
-      (fbq, params) => {
-        fbq("track", "ViewContent", {
-          content_ids: [params.productId],
-          content_type: "product",
-          content_name: params.productName,
-          currency: params.currency,
-          value: params.value,
-          content_category: params.category,
-        })
-      },
-      debug,
-      adapterKey
-    ),
-
     trackAddToCart: createTracker(
       getFbq,
       (fbq, params) => {
@@ -78,6 +62,9 @@ export function useMetaAdapter(
       debug,
       adapterKey
     ),
+
+    trackCustom: (eventName, params) =>
+      trackCustom(params === undefined ? { eventName } : { eventName, params }),
 
     trackInitiateCheckout: createTracker(
       getFbq,
@@ -120,7 +107,20 @@ export function useMetaAdapter(
       adapterKey
     ),
 
-    trackCustom: (eventName, params) =>
-      trackCustom(params === undefined ? { eventName } : { eventName, params }),
+    trackViewContent: createTracker(
+      getFbq,
+      (fbq, params) => {
+        fbq("track", "ViewContent", {
+          content_ids: [params.productId],
+          content_type: "product",
+          content_name: params.productName,
+          currency: params.currency,
+          value: params.value,
+          content_category: params.category,
+        })
+      },
+      debug,
+      adapterKey
+    ),
   }
 }

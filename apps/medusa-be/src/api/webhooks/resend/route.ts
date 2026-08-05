@@ -7,7 +7,7 @@ import { EMAIL_LOG_MODULE } from "../../../modules/email-log"
 import type EmailLogModuleService from "../../../modules/email-log/service"
 import { CHECKED_RESEND_EVENT_TYPES } from "../../../utils/resend-webhook-events"
 
-type ResendWebhookEvent = {
+interface ResendWebhookEvent {
   type?: string
   created_at?: string
   data?: {
@@ -16,7 +16,7 @@ type ResendWebhookEvent = {
   }
 }
 
-type EmailLogDTO = {
+interface EmailLogDTO {
   id: string
   email_id: string
   checked_at: Date | null
@@ -55,7 +55,7 @@ function getPayload(req: MedusaRequest) {
   }
 
   if (Buffer.isBuffer(requestWithRawBody.rawBody)) {
-    return requestWithRawBody.rawBody.toString("utf8")
+    return requestWithRawBody.rawBody.toString("utf-8")
   }
 
   if (typeof requestWithRawBody.rawBody === "string") {
@@ -161,8 +161,8 @@ async function markEmailLogChecked({
 
   await emailLogService.updateEmailLogs(
     uncheckedLogs.map((emailLog) => ({
-      id: emailLog.id,
       checked_at: new Date(),
+      id: emailLog.id,
     }))
   )
 
@@ -225,7 +225,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const emailId = event.data.email_id
 
   if (!CHECKED_RESEND_EVENT_TYPES.has(event.type)) {
-    res.json({ received: true, checked: false })
+    res.json({ checked: false, received: true })
     return
   }
 

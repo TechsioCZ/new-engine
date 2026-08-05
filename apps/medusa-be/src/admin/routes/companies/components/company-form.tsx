@@ -1,10 +1,6 @@
 import { Button, Drawer, Input, Label, Select, Text } from "@medusajs/ui"
-import {
-  type ChangeEvent,
-  type FormEvent,
-  type ReactNode,
-  useState,
-} from "react"
+import { useState } from "react"
+import type { ChangeEvent, FormEvent, ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 
 import type { AdminUpdateCompany } from "../../../../types"

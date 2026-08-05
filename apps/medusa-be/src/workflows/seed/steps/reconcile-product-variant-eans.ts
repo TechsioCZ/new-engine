@@ -2,7 +2,8 @@ import type { IProductModuleService } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
-import { getSourceVariantId, type ProductInput } from "./create-products"
+import { getSourceVariantId } from "./create-products"
+import type { ProductInput } from "./create-products"
 
 const RECONCILE_PRODUCT_VARIANT_EANS_STEP_ID =
   "reconcile-product-variant-eans-seed-step"
@@ -10,7 +11,7 @@ const EAN_QUERY_CHUNK_SIZE = 500
 
 type ProductVariantInput = NonNullable<ProductInput["variants"]>[number]
 
-type IncomingVariant = {
+interface IncomingVariant {
   ean: string | null
   productHandle: string
   productIndex: number
@@ -21,7 +22,7 @@ type IncomingVariant = {
   variantIndex: number
 }
 
-export type PersistedEanOwner = {
+export interface PersistedEanOwner {
   ean: null | string
   id: string
   metadata?: null | Record<string, unknown>
@@ -30,14 +31,14 @@ export type PersistedEanOwner = {
   sku: null | string
 }
 
-export type ProductVariantEanClaimant = {
+export interface ProductVariantEanClaimant {
   product_handle: string
   sku: string
   source_key: string
   source_variant_id?: string
 }
 
-export type ProductVariantEanIssue = {
+export interface ProductVariantEanIssue {
   ean: string
   owner: ProductVariantEanClaimant
   previous_owner?: ProductVariantEanClaimant
@@ -49,7 +50,7 @@ export type ProductVariantEanIssue = {
   suppressed: ProductVariantEanClaimant[]
 }
 
-export type ProductVariantEanReconciliationSummary = {
+export interface ProductVariantEanReconciliationSummary {
   accepted: number
   collisions: number
   retained: number
@@ -57,13 +58,13 @@ export type ProductVariantEanReconciliationSummary = {
   transferred: number
 }
 
-export type ReconcileProductVariantEansStepOutput = {
+export interface ReconcileProductVariantEansStepOutput {
   issues: ProductVariantEanIssue[]
   products: ProductInput[]
   summary: ProductVariantEanReconciliationSummary
 }
 
-type ProductVariantEanTransferSnapshot = {
+interface ProductVariantEanTransferSnapshot {
   ean: string
   id: string
 }
@@ -213,7 +214,7 @@ function setReconciledEan(
   target.ean = ean
 }
 
-type EanClaimGroupResolution = {
+interface EanClaimGroupResolution {
   issue?: ProductVariantEanIssue
   summary: ProductVariantEanReconciliationSummary
   transfer?: ProductVariantEanTransferSnapshot
@@ -328,7 +329,7 @@ function resolveClaimedGroup(params: {
     summary,
     ...(transferredOwner === undefined
       ? {}
-      : { transfer: { id: transferredOwner.id, ean } }),
+      : { transfer: { ean, id: transferredOwner.id } }),
   }
 }
 
@@ -467,7 +468,7 @@ export const reconcileProductVariantEansStep = createStep(
 
     if (transfers.length) {
       await productService.upsertProductVariants(
-        transfers.map(({ id }) => ({ id, ean: null }))
+        transfers.map(({ id }) => ({ ean: null, id }))
       )
     }
 

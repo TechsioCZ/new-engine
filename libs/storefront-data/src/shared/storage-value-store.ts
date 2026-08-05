@@ -10,7 +10,7 @@ type ObservableStorageValueStore = StorageValueStore & {
   getSnapshot: () => string | null
 }
 
-export type StorageValueStore = {
+export interface StorageValueStore {
   get: () => string | null
   set: (value: string) => void
   clear: () => void
@@ -39,21 +39,6 @@ export function createLocalStorageValueStore({
   }
 
   return {
-    get: readValue,
-    set(value: string) {
-      const resolvedStorage = resolveLocalStorage(storage)
-      if (!resolvedStorage) {
-        return
-      }
-
-      if (getLocalStorageItem(key, resolvedStorage) === value) {
-        return
-      }
-
-      if (setLocalStorageItem(key, value, resolvedStorage)) {
-        notifyListeners()
-      }
-    },
     clear() {
       const resolvedStorage = resolveLocalStorage(storage)
       if (!resolvedStorage) {
@@ -65,6 +50,23 @@ export function createLocalStorageValueStore({
       }
 
       if (removeLocalStorageItem(key, resolvedStorage)) {
+        notifyListeners()
+      }
+    },
+    get: readValue,
+    getServerSnapshot: () => serverSnapshot,
+    getSnapshot: readValue,
+    set(value: string) {
+      const resolvedStorage = resolveLocalStorage(storage)
+      if (!resolvedStorage) {
+        return
+      }
+
+      if (getLocalStorageItem(key, resolvedStorage) === value) {
+        return
+      }
+
+      if (setLocalStorageItem(key, value, resolvedStorage)) {
         notifyListeners()
       }
     },
@@ -98,7 +100,5 @@ export function createLocalStorageValueStore({
         window.removeEventListener("storage", handleStorage)
       }
     },
-    getSnapshot: readValue,
-    getServerSnapshot: () => serverSnapshot,
   }
 }

@@ -10,10 +10,8 @@ import { Modules } from "@medusajs/framework/utils"
 
 import { definedProperties } from "../../../../../utils/defined-properties"
 import { createCartFromProductListWorkflow } from "../../../../../workflows/product-list/workflows/create-cart-from-product-list"
-import {
-  type StoreCreateProductListCartSchemaType,
-  StoreProductListParamsSchema,
-} from "../../validators"
+import { StoreProductListParamsSchema } from "../../validators"
+import type { StoreCreateProductListCartSchemaType } from "../../validators"
 
 const refetchCart = async (id: string, scope: MedusaContainer) => {
   const cartService = scope.resolve<ICartModuleService>(Modules.CART)

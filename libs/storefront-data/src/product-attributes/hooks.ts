@@ -6,10 +6,8 @@ import { toErrorMessage } from "../shared/error-utils"
 import type { ReadQueryOptions } from "../shared/hook-types"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createProductAttributeQueryKeys } from "./query-keys"
-import {
-  createProductAttributeQueryOptionsFactory,
-  type ProductAttributeQueryOptionsFactory,
-} from "./query-options"
+import { createProductAttributeQueryOptionsFactory } from "./query-options"
+import type { ProductAttributeQueryOptionsFactory } from "./query-options"
 import type {
   ProductAttributeQueryKeys,
   ProductAttributeService,
@@ -17,11 +15,11 @@ import type {
   UseProductAttributesResult,
 } from "./types"
 
-export type CreateProductAttributeHooksConfig<
+export interface CreateProductAttributeHooksConfig<
   TAttribute,
   TInput extends ProductAttributesInputBase,
   TParams,
-> = {
+> {
   service: ProductAttributeService<TAttribute, TParams>
   buildDetailParams?: (input: TInput) => TParams
   queryKeys?: ProductAttributeQueryKeys<TParams>
@@ -29,10 +27,10 @@ export type CreateProductAttributeHooksConfig<
   cacheConfig?: CacheConfig
 }
 
-export type ProductAttributeHooks<
+export interface ProductAttributeHooks<
   TAttribute,
   TInput extends ProductAttributesInputBase,
-> = {
+> {
   getDetailQueryOptions: ProductAttributeQueryOptionsFactory<
     TAttribute,
     TInput
@@ -88,11 +86,11 @@ export function createProductAttributeHooks<
     })
 
     return {
-      productAttributes: query.data ?? [],
-      isLoading: query.isLoading,
-      isFetching: query.isFetching,
-      isSuccess: query.isSuccess,
       error: toErrorMessage(query.error),
+      isFetching: query.isFetching,
+      isLoading: query.isLoading,
+      isSuccess: query.isSuccess,
+      productAttributes: query.data ?? [],
       query,
     }
   }

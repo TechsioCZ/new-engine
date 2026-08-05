@@ -6,7 +6,8 @@ import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import type { Route } from "next"
 import Link from "next/link"
-import { type FormEvent, useState } from "react"
+import { useState } from "react"
+import type { FormEvent } from "react"
 
 import { useAuth } from "@/hooks/use-auth"
 import { authFormFields, withLoading } from "@/lib/auth"
@@ -38,34 +39,34 @@ export function AuthDropdown() {
 
   const menuItems = [
     {
-      id: "menu-profile",
-      type: "action" as const,
-      value: "profile",
-      label: "Můj profil",
       href: "/account/profile",
       icon: "icon-[mdi--account-outline]" as const,
+      id: "menu-profile",
+      label: "Můj profil",
+      type: "action" as const,
+      value: "profile",
     },
     {
-      id: "menu-orders",
-      type: "action" as const,
-      value: "orders",
-      label: "Moje objednávky",
       href: "/account/orders",
       icon: "icon-[mdi--package-variant-closed]" as const,
-    },
-    {
-      type: "separator" as const,
-      id: "menu-separator-1",
-    },
-    {
-      id: "menu-logout",
+      id: "menu-orders",
+      label: "Moje objednávky",
       type: "action" as const,
-      value: "logout",
-      label: "Odhlásit se",
+      value: "orders",
+    },
+    {
+      id: "menu-separator-1",
+      type: "separator" as const,
+    },
+    {
       href: "/",
       icon: "icon-[mdi--logout]" as const,
+      id: "menu-logout",
+      label: "Odhlásit se",
+      type: "action" as const,
+      value: "logout",
     },
-  ] satisfies ReadonlyArray<
+  ] satisfies readonly (
     | {
         id: string
         type: "action"
@@ -78,7 +79,7 @@ export function AuthDropdown() {
           | "icon-[mdi--logout]"
       }
     | { id: string; type: "separator" }
-  >
+  )[]
 
   return (
     <Popover
@@ -152,9 +153,11 @@ function QuickLoginForm() {
           {...withLoading(
             authFormFields.email({
               id: "quick-login-email",
+              onChange: (e) => {
+                setEmail(e.target.value)
+              },
               size: "sm",
               value: email,
-              onChange: (e) => setEmail(e.target.value),
             }),
             isFormLoading
           )}
@@ -164,9 +167,11 @@ function QuickLoginForm() {
           {...withLoading(
             authFormFields.password({
               id: "quick-login-password",
+              onChange: (e) => {
+                setPassword(e.target.value)
+              },
               size: "sm",
               value: password,
-              onChange: (e) => setPassword(e.target.value),
             }),
             isFormLoading
           )}

@@ -4,7 +4,6 @@ import {
   Button,
   Container,
   createDataTableColumnHelper,
-  type DataTableColumnDef,
   Heading,
   IconButton,
   Input,
@@ -13,24 +12,22 @@ import {
   Text,
   toast,
 } from "@medusajs/ui"
+import type { DataTableColumnDef } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import {
-  Link,
-  type LoaderFunctionArgs,
-  type UIMatch,
-  useNavigate,
-  useParams,
-} from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
+import type { LoaderFunctionArgs, UIMatch } from "react-router-dom"
 
 import { BrandDataTable } from "../../../../components/brands/brand-data-table"
 import {
-  type BrandAttributeTypeBrand,
-  type BrandAttributeTypeDetailResponse,
   brandQueryKeys,
   restoreBrandAttributeType,
   retrieveBrandAttributeType,
+} from "../../../../lib/brands"
+import type {
+  BrandAttributeTypeBrand,
+  BrandAttributeTypeDetailResponse,
 } from "../../../../lib/brands"
 import { translateBreadcrumb } from "../../../../lib/breadcrumb"
 import { formatLocaleCode } from "../../../../lib/format-locale-code"
@@ -39,13 +36,13 @@ import { useDebouncedValue } from "../../../../lib/use-debounced-value"
 const PAGE_SIZE = 20
 
 export async function loader({ params }: LoaderFunctionArgs) {
-  const id = params["id"]
+  const { id } = params
 
   if (!id) {
     return { attribute_type: undefined }
   }
 
-  return retrieveBrandAttributeType(id, {
+  return await retrieveBrandAttributeType(id, {
     include_deleted: true,
     limit: 1,
     offset: 0,
@@ -103,7 +100,7 @@ const BrandAttributeDetailPage = () => {
   const { data, error, isLoading } = useQuery({
     enabled: !!id,
     placeholderData: (previousData) => previousData,
-    queryFn: () => {
+    queryFn: async () => {
       if (!id) {
         throw new Error(t("errors.attributeIdRequired"))
       }
@@ -145,10 +142,10 @@ const BrandAttributeDetailPage = () => {
   const locale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
   const columns: DataTableColumnDef<BrandAttributeTypeBrand>[] = [
     brandColumnHelper.accessor("title", {
-      header: t("columns.brand"),
       cell: ({ row }) => (
         <Link to={`/brands/${row.original.id}`}>{row.original.title}</Link>
       ),
+      header: t("columns.brand"),
     }),
     brandColumnHelper.accessor("handle", {
       header: t("columns.handle"),
@@ -160,16 +157,16 @@ const BrandAttributeDetailPage = () => {
       header: t("columns.products"),
     }),
     brandColumnHelper.accessor("deleted_at", {
-      header: t("columns.status"),
       cell: ({ row }) => (
         <StatusBadge color={row.original.deleted_at ? "red" : "green"}>
           {row.original.deleted_at ? t("status.deleted") : t("status.active")}
         </StatusBadge>
       ),
+      header: t("columns.status"),
     }),
     brandColumnHelper.accessor("updated_at", {
-      header: t("columns.updated"),
       cell: ({ row }) => formatDate(row.original.updated_at, locale),
+      header: t("columns.updated"),
     }),
   ]
 
@@ -217,7 +214,9 @@ const BrandAttributeDetailPage = () => {
           {attributeType.deleted_at ? (
             <Button
               isLoading={restoreMutation.isPending}
-              onClick={() => restoreMutation.mutate(attributeType.id)}
+              onClick={() => {
+                restoreMutation.mutate(attributeType.id)
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -319,7 +318,9 @@ const BrandAttributeDetailPage = () => {
           getRowId={(brand) => brand.id}
           isLoading={isLoading}
           onPageIndexChange={setPageIndex}
-          onRowClick={(_event, brand) => navigate(`/brands/${brand.id}`)}
+          onRowClick={(_event, brand) => {
+            navigate(`/brands/${brand.id}`)
+          }}
           pageIndex={pageIndex}
           pageSize={PAGE_SIZE}
         />

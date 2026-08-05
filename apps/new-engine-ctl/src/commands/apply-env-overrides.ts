@@ -19,16 +19,14 @@ export function createApplyEnvOverridesCommand(): Command {
     .option("--dry-run", "", false)
     .action(async (options) => {
       const input = applyEnvOverridesCommandInputSchema.parse({
-        projectSlug:
-          options.projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
-        environmentName: options.environmentName,
-        targetsJsonPath: options.targetsJson,
-        envOverridesJsonPath: options.envOverridesJson,
-        outputJson: options.outputJson,
-        baseUrl: options.baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
-        apiToken:
-          options.apiToken ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
+        apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
+        baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
         dryRun: Boolean(options.dryRun),
+        envOverridesJsonPath: options.envOverridesJson,
+        environmentName: options.environmentName,
+        outputJson: options.outputJson,
+        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+        targetsJsonPath: options.targetsJson,
       })
       const result = await executeApplyEnvOverrides(input)
       await appendGitHubOutput(

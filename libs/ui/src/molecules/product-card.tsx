@@ -9,44 +9,48 @@
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the product-card-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type ElementType,
-  type HTMLAttributes,
-  type ReactNode,
-  type Ref,
-  useContext,
+import { createContext, useContext } from "react"
+import type {
+  ComponentPropsWithoutRef,
+  ElementType,
+  HTMLAttributes,
+  ReactNode,
+  Ref,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { Button } from "../atoms/button"
 import type { IconProps, IconType } from "../atoms/icon"
 import { Image } from "../atoms/image"
-import { Rating, type RatingProps } from "../atoms/rating"
+import { Rating } from "../atoms/rating"
+import type { RatingProps } from "../atoms/rating"
 import { tv } from "../utils"
 
 const productCardVariants = tv({
+  defaultVariants: {
+    buttonVariant: "cart",
+    layout: "column",
+  },
   slots: {
-    root: [
-      "rounded-product-card p-product-card-padding",
-      "border-(length:--border-product-card-width) max-w-product-card-max border-product-card-border bg-product-card-bg shadow-sm",
-    ],
+    actionsSlot: "flex flex-wrap gap-product-card-actions",
+    badgesSlot: "flex flex-wrap gap-product-card-badges",
+    button: "",
     imageSlot: "h-full rounded-product-card-image object-cover",
     nameSlot:
       "line-clamp-product-card-name font-product-card-name text-product-card-name-fg text-product-card-name-size",
     priceSlot:
       "font-product-card-price text-product-card-price-fg text-product-card-price-size",
+    ratingSlot: "flex items-center",
+    root: [
+      "rounded-product-card p-product-card-padding",
+      "border-(length:--border-product-card-width) max-w-product-card-max border-product-card-border bg-product-card-bg shadow-sm",
+    ],
     stockStatusSlot: [
       "font-product-card-stock text-product-card-stock-size",
       "data-[stock=in-stock]:text-product-card-stock-fg-in-stock",
       "data-[stock=limited-stock]:text-product-card-stock-fg-limited-stock",
       "data-[stock=out-of-stock]:text-product-card-stock-fg-out-of-stock",
     ],
-    badgesSlot: "flex flex-wrap gap-product-card-badges",
-    ratingSlot: "flex items-center",
-    actionsSlot: "flex flex-wrap gap-product-card-actions",
-    button: "",
   },
   variants: {
     buttonVariant: {
@@ -54,6 +58,7 @@ const productCardVariants = tv({
         button:
           "w-max bg-product-card-button-cart-bg-base text-product-card-button-cart-fg hover:bg-product-card-button-cart-bg-hover",
       },
+      custom: {},
       detail: {
         button:
           "w-max bg-product-card-button-detail-bg-base text-product-card-button-detail-fg hover:bg-product-card-button-detail-bg-hover",
@@ -62,24 +67,19 @@ const productCardVariants = tv({
         button:
           "w-max bg-product-card-button-wishlist-bg-base text-product-card-button-wishlist-fg hover:bg-product-card-button-wishlist-bg-hover",
       },
-      custom: {},
     },
     layout: {
       column: {
+        imageSlot: "aspect-product-card-image",
         root: [
           "grid grid-cols-(--product-card-layout-column-grid) gap-product-card-col-layout",
         ],
-        imageSlot: "aspect-product-card-image",
       },
       row: {
-        root: "grid grid-cols-(--product-card-layout-row-grid) gap-x-product-card-row-layout",
         imageSlot: "row-span-6 aspect-auto",
+        root: "grid grid-cols-(--product-card-layout-row-grid) gap-x-product-card-row-layout",
       },
     },
-  },
-  defaultVariants: {
-    layout: "column",
-    buttonVariant: "cart",
   },
 })
 

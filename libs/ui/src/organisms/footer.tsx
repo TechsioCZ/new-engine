@@ -9,40 +9,46 @@
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the footer-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type ElementType,
-  type HTMLAttributes,
-  type ReactNode,
-  useContext,
+import { createContext, useContext } from "react"
+import type {
+  ComponentPropsWithoutRef,
+  ElementType,
+  HTMLAttributes,
+  ReactNode,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 
-import { Link, type LinkProps } from "../atoms/link"
+import { Link } from "../atoms/link"
+import type { LinkProps } from "../atoms/link"
 import { tv } from "../utils"
 
 const footerVariants = tv({
+  defaultVariants: {
+    direction: "horizontal",
+    layout: "col",
+    sectionFlow: "col",
+    size: "md",
+  },
   slots: {
-    root: "flex w-full items-center justify-center rounded-footer bg-footer-bg",
-    container: "w-full max-w-footer-max bg-footer-container-bg",
-    section: "bg-footer-section-bg",
-    list: "flex list-none flex-col gap-footer-list bg-footer-list-bg",
     bottom:
       "flex w-full items-center justify-between border-t-(length:--border-footer-width) bg-footer-bottom-bg pt-footer-bottom",
+    container: "w-full max-w-footer-max bg-footer-container-bg",
+    divider: "flex h-footer-divider w-full border-0 bg-footer-divider-bg",
+    link: "font-footer-link text-footer-link-fg transition-colors duration-200 motion-reduce:transition-none hover:text-footer-link-fg-hover",
+    list: "flex list-none flex-col gap-footer-list bg-footer-list-bg",
+    root: "flex w-full items-center justify-center rounded-footer bg-footer-bg",
+    section: "bg-footer-section-bg",
+    text: "text-footer-text-fg",
     title:
       "font-footer-title text-footer-title-fg transition-colors duration-200 motion-reduce:transition-none hover:text-footer-title-fg-hover",
-    link: "font-footer-link text-footer-link-fg transition-colors duration-200 motion-reduce:transition-none hover:text-footer-link-fg-hover",
-    text: "text-footer-text-fg",
-    divider: "flex h-footer-divider w-full border-0 bg-footer-divider-bg",
   },
   variants: {
     direction: {
-      vertical: {
-        root: "flex-col",
-      },
       horizontal: {
         root: "flex-row",
+      },
+      vertical: {
+        root: "flex-col",
       },
     },
     layout: {
@@ -62,46 +68,40 @@ const footerVariants = tv({
       },
     },
     size: {
-      sm: {
-        root: "p-footer-sm",
-        container: "gap-footer-container-sm",
-        section: "gap-footer-section-sm",
-        list: "gap-footer-sm",
-        title: "text-footer-title-sm",
-        link: "text-footer-link-sm",
-        text: "text-footer-sm",
-        bottom: "p-footer-bottom-sm",
-        divider: "my-footer-divider-sm",
+      lg: {
+        bottom: "p-footer-bottom-lg",
+        container: "gap-footer-container-lg",
+        divider: "my-footer-divider-lg",
+        link: "text-footer-link-lg",
+        list: "gap-footer-lg",
+        root: "p-footer-lg",
+        section: "gap-footer-section-lg",
+        text: "text-footer-lg",
+        title: "text-footer-title-lg",
       },
       md: {
-        root: "p-footer-md",
-        container: "gap-footer-container-md",
-        section: "gap-footer-section-md",
-        list: "gap-footer-md",
-        title: "text-footer-title-md",
-        link: "text-footer-link-md",
-        text: "text-footer-md",
         bottom: "p-footer-bottom-md",
+        container: "gap-footer-container-md",
         divider: "my-footer-divider-md",
+        link: "text-footer-link-md",
+        list: "gap-footer-md",
+        root: "p-footer-md",
+        section: "gap-footer-section-md",
+        text: "text-footer-md",
+        title: "text-footer-title-md",
       },
-      lg: {
-        root: "p-footer-lg",
-        container: "gap-footer-container-lg",
-        section: "gap-footer-section-lg",
-        list: "gap-footer-lg",
-        title: "text-footer-title-lg",
-        link: "text-footer-link-lg",
-        text: "text-footer-lg",
-        bottom: "p-footer-bottom-lg",
-        divider: "my-footer-divider-lg",
+      sm: {
+        bottom: "p-footer-bottom-sm",
+        container: "gap-footer-container-sm",
+        divider: "my-footer-divider-sm",
+        link: "text-footer-link-sm",
+        list: "gap-footer-sm",
+        root: "p-footer-sm",
+        section: "gap-footer-section-sm",
+        text: "text-footer-sm",
+        title: "text-footer-title-sm",
       },
     },
-  },
-  defaultVariants: {
-    size: "md",
-    direction: "horizontal",
-    layout: "col",
-    sectionFlow: "col",
   },
 })
 
@@ -130,7 +130,7 @@ interface FooterTitleProps extends HTMLAttributes<HTMLElement> {
   children: ReactNode
 }
 
-type FooterLinkBaseProps = {
+interface FooterLinkBaseProps {
   children: ReactNode
   external?: boolean | undefined
   className?: string | undefined
@@ -176,10 +176,10 @@ export function Footer({
   layout,
   className,
 }: FooterProps) {
-  const { root } = footerVariants({ size, direction })
+  const { root } = footerVariants({ direction, size })
 
   return (
-    <FooterContext.Provider value={{ size, sectionFlow, layout }}>
+    <FooterContext.Provider value={{ layout, sectionFlow, size }}>
       <footer className={root({ className })}>{children}</footer>
     </FooterContext.Provider>
   )
@@ -190,7 +190,7 @@ Footer.Container = function FooterContainer({
   className,
 }: FooterContainerProps) {
   const { size, layout } = useContext(FooterContext)
-  const { container } = footerVariants({ size, layout })
+  const { container } = footerVariants({ layout, size })
   return <div className={container({ className })}>{children}</div>
 }
 
@@ -200,8 +200,8 @@ Footer.Section = function FooterSection({
 }: FooterSectionProps) {
   const { size, sectionFlow } = useContext(FooterContext)
   const { section } = footerVariants({
-    size,
     sectionFlow,
+    size,
   })
   return <div className={section({ className })}>{children}</div>
 }

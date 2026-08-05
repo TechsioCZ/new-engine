@@ -5,8 +5,8 @@ import { PostAdminPplConfigSchema } from "./validators"
 
 export const adminPplConfigRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["POST"],
     matcher: "/admin/ppl-config",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(PostAdminPplConfigSchema)],
   },
 ]

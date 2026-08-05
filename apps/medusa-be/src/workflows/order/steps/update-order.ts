@@ -37,8 +37,8 @@ export const updateOrderStep = createStep(
 
     return new StepResponse(updatedQuotes, {
       dataBeforeUpdate,
-      selects,
       relations,
+      selects,
     })
   },
   async (revertInput, { container }) => {

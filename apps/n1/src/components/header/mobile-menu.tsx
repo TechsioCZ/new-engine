@@ -21,7 +21,9 @@ export const MobileMenu = () => {
     }
   }, [isDesktop, isMobileMenuOpen, setIsMobileMenuOpen])
 
-  const handleClose = () => setIsMobileMenuOpen(false)
+  const handleClose = () => {
+    setIsMobileMenuOpen(false)
+  }
 
   return (
     <Header.Mobile position="left">
@@ -31,7 +33,9 @@ export const MobileMenu = () => {
         customTrigger
         hideCloseButton
         modal={true}
-        onOpenChange={({ open }) => setIsMobileMenuOpen(open)}
+        onOpenChange={({ open }) => {
+          setIsMobileMenuOpen(open)
+        }}
         open={isMobileMenuOpen}
         placement="left"
         portal={true}

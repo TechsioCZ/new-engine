@@ -16,16 +16,16 @@ export function buildInventoryItemsInput(
 
       if (variant.quantities?.locations?.length) {
         inventoryItems.push({
-          sku: variant.sku,
           locations: variant.quantities.locations,
+          sku: variant.sku,
         })
         continue
       }
 
       if (variant.quantities?.quantity !== undefined) {
         inventoryItems.push({
-          sku: variant.sku,
           quantity: variant.quantities.quantity,
+          sku: variant.sku,
         })
       }
     }

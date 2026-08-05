@@ -14,11 +14,11 @@ export function usePrefetchProduct(enabled?: boolean) {
       return
     }
     void queryClient.prefetchQuery({
-      queryKey: queryKeys.product(handle, selectedRegion?.id),
       queryFn: async () => {
         const product = await getProduct(handle, selectedRegion?.id)
         return product
       },
+      queryKey: queryKeys.product(handle, selectedRegion?.id),
       staleTime: 60 * 60 * 1000,
     })
   }

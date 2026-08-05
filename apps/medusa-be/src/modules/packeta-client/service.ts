@@ -6,22 +6,22 @@ import { decryptFields, encryptFields } from "../../utils/encryption"
 import { safeResolve } from "../../utils/safe-resolve"
 import { PacketaClient } from "./client"
 import PacketaConfig from "./models/packeta-config"
-import {
-  PACKETA_SENSITIVE_FIELDS,
-  type PacketaBranch,
-  type PacketaConfigDTO,
-  type PacketaCreatePacketResult,
-  type PacketaEnvironment,
-  type PacketaLabelFormat,
-  type PacketaOptions,
-  type PacketaPacketAttributes,
-  type PacketaPacketStatusRecord,
-  type UpdatePacketaConfigInput,
+import { PACKETA_SENSITIVE_FIELDS } from "./types"
+import type {
+  PacketaBranch,
+  PacketaConfigDTO,
+  PacketaCreatePacketResult,
+  PacketaEnvironment,
+  PacketaLabelFormat,
+  PacketaOptions,
+  PacketaPacketAttributes,
+  PacketaPacketStatusRecord,
+  UpdatePacketaConfigInput,
 } from "./types"
 
 const CACHE_KEYS = {
-  CONFIG: "packeta:config",
   BRANCHES: "packeta:branches",
+  CONFIG: "packeta:config",
 } as const
 
 const CACHE_TAGS = {
@@ -30,20 +30,20 @@ const CACHE_TAGS = {
 } as const
 
 const CACHE_TTL = {
-  CONFIG: 60,
   BRANCHES: 24 * 3600,
+  CONFIG: 60,
 } as const
 
-type InjectedDependencies = {
+interface InjectedDependencies {
   logger: Logger
   [Modules.CACHING]?: ICachingModuleService
 }
 
-type PacketaModuleOptions = {
+interface PacketaModuleOptions {
   environment: PacketaEnvironment
 }
 
-type DisabledConfigCacheEntry = {
+interface DisabledConfigCacheEntry {
   disabled: true
 }
 
@@ -100,26 +100,26 @@ const toPacketaConfigDTO = (value: unknown): PacketaConfigDTO => {
   }
 
   return {
-    id: value["id"],
-    environment: value["environment"],
-    is_enabled: value["is_enabled"],
     api_password: value["api_password"],
-    sender_label: value["sender_label"],
-    eshop_id: value["eshop_id"],
-    default_label_format: value["default_label_format"],
-    default_label_offset: value["default_label_offset"],
     cod_bank_account: value["cod_bank_account"],
     cod_bank_code: value["cod_bank_code"],
     cod_iban: value["cod_iban"],
     cod_swift: value["cod_swift"],
-    sender_name: value["sender_name"],
-    sender_street: value["sender_street"],
-    sender_city: value["sender_city"],
-    sender_zip_code: value["sender_zip_code"],
-    sender_country: value["sender_country"],
-    sender_phone: value["sender_phone"],
-    sender_email: value["sender_email"],
     created_at: value["created_at"],
+    default_label_format: value["default_label_format"],
+    default_label_offset: value["default_label_offset"],
+    environment: value["environment"],
+    eshop_id: value["eshop_id"],
+    id: value["id"],
+    is_enabled: value["is_enabled"],
+    sender_city: value["sender_city"],
+    sender_country: value["sender_country"],
+    sender_email: value["sender_email"],
+    sender_label: value["sender_label"],
+    sender_name: value["sender_name"],
+    sender_phone: value["sender_phone"],
+    sender_street: value["sender_street"],
+    sender_zip_code: value["sender_zip_code"],
     updated_at: value["updated_at"],
   }
 }
@@ -269,9 +269,9 @@ export class PacketaClientModuleService extends MedusaService({
   ): PacketaOptions {
     const options: PacketaOptions = {
       api_password: apiPassword,
-      environment: this.environment_,
       default_label_format: config.default_label_format as PacketaLabelFormat,
       default_label_offset: config.default_label_offset,
+      environment: this.environment_,
     }
     const optionalFields = [
       "sender_label",
@@ -304,10 +304,10 @@ export class PacketaClientModuleService extends MedusaService({
       return
     }
     await this.cacheService_.set({
-      key: CACHE_KEYS.CONFIG,
       data: options,
-      ttl: CACHE_TTL.CONFIG,
+      key: CACHE_KEYS.CONFIG,
       tags: [CACHE_TAGS.ALL],
+      ttl: CACHE_TTL.CONFIG,
     })
   }
 
@@ -316,10 +316,10 @@ export class PacketaClientModuleService extends MedusaService({
       return
     }
     await this.cacheService_.set({
-      key: CACHE_KEYS.CONFIG,
       data: { disabled: true } satisfies DisabledConfigCacheEntry,
-      ttl: CACHE_TTL.CONFIG,
+      key: CACHE_KEYS.CONFIG,
       tags: [CACHE_TAGS.ALL],
+      ttl: CACHE_TTL.CONFIG,
     })
   }
 
@@ -373,7 +373,7 @@ export class PacketaClientModuleService extends MedusaService({
     attributes: PacketaPacketAttributes
   ): Promise<PacketaCreatePacketResult> {
     const client = await this.getClient()
-    return client.createPacket(attributes)
+    return await client.createPacket(attributes)
   }
 
   async cancelPacket(packetId: number): Promise<boolean> {
@@ -391,7 +391,7 @@ export class PacketaClientModuleService extends MedusaService({
     packetId: number
   ): Promise<PacketaPacketStatusRecord[]> {
     const client = await this.getClient()
-    return client.packetStatus(packetId)
+    return await client.packetStatus(packetId)
   }
 
   async downloadLabelPdf(
@@ -400,7 +400,7 @@ export class PacketaClientModuleService extends MedusaService({
     offset?: number
   ): Promise<Buffer> {
     const client = await this.getClient()
-    return client.downloadLabelPdf(packetId, format, offset)
+    return await client.downloadLabelPdf(packetId, format, offset)
   }
 
   /**
@@ -421,10 +421,10 @@ export class PacketaClientModuleService extends MedusaService({
 
     if (this.cacheService_ && branches.length > 0) {
       await this.cacheService_.set({
-        key: CACHE_KEYS.BRANCHES,
         data: branches,
-        ttl: CACHE_TTL.BRANCHES,
+        key: CACHE_KEYS.BRANCHES,
         tags: [CACHE_TAGS.ALL, CACHE_TAGS.BRANCHES],
+        ttl: CACHE_TTL.BRANCHES,
       })
     }
 

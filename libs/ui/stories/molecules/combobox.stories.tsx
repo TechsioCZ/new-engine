@@ -4,15 +4,16 @@ import { useState } from "react"
 import { VariantContainer } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
-import { Combobox, type ComboboxItem } from "../../src/molecules/combobox"
+import { Combobox } from "../../src/molecules/combobox"
+import type { ComboboxItem } from "../../src/molecules/combobox"
 
 const countries: ComboboxItem[] = [
   { id: "1", label: "Czech Republic", value: "cz" },
   { id: "2", label: "Slovakia", value: "sk" },
   { id: "3", label: "Germany", value: "de" },
-  { id: "4", label: "Austria", value: "at", disabled: true },
+  { disabled: true, id: "4", label: "Austria", value: "at" },
   { id: "5", label: "Poland", value: "pl" },
-  { id: "6", label: "France", value: "fr", disabled: true },
+  { disabled: true, id: "6", label: "France", value: "fr" },
   { id: "7", label: "Italy", value: "it" },
   { id: "8", label: "Spain", value: "es" },
   { id: "9", label: "Great Britain", value: "gb" },
@@ -20,12 +21,6 @@ const countries: ComboboxItem[] = [
 ]
 
 const meta: Meta<typeof Combobox> = {
-  title: "Molecules/Combobox",
-  component: Combobox,
-  parameters: {
-    layout: "centered",
-  },
-  tags: ["autodocs"],
   argTypes: {
     // Text inputs
     label: { control: "text", description: "Label text" },
@@ -91,6 +86,12 @@ const meta: Meta<typeof Combobox> = {
       table: { defaultValue: { summary: "replace" } },
     },
   },
+  component: Combobox,
+  parameters: {
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/Combobox",
 }
 
 export default meta
@@ -98,20 +99,20 @@ type Story = StoryObj<typeof Combobox>
 
 export const Playground: Story = {
   args: {
-    label: "Select Country",
-    placeholder: "Choose a country...",
-    items: countries,
-    helpText: "Select your country of residence",
-    size: "md",
-    validateStatus: "default",
-    showHelpTextIcon: true,
-    disabled: false,
-    readOnly: false,
-    required: false,
-    multiple: false,
     clearable: true,
     closeOnSelect: true,
+    disabled: false,
+    helpText: "Select your country of residence",
+    items: countries,
+    label: "Select Country",
+    multiple: false,
+    placeholder: "Choose a country...",
+    readOnly: false,
+    required: false,
     selectionBehavior: "replace",
+    showHelpTextIcon: true,
+    size: "md",
+    validateStatus: "default",
   },
 }
 
@@ -176,7 +177,9 @@ export const MultipleSelection: Story = {
                   type="button"
                   size="current"
                   theme="unstyled"
-                  onClick={() => removeCountry(country.value)}
+                  onClick={() => {
+                    removeCountry(country.value)
+                  }}
                   className="bg-surface"
                   aria-label={`Remove ${country.label}`}
                 >

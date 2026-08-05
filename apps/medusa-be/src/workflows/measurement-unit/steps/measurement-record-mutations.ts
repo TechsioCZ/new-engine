@@ -1,29 +1,29 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
-import {
-  getMeasurementUnitService,
-  type ProductMeasurementRecord,
-  type ProductVariantMeasurementRecord,
+import { getMeasurementUnitService } from "../../../utils/measurement-units"
+import type {
+  ProductMeasurementRecord,
+  ProductVariantMeasurementRecord,
 } from "../../../utils/measurement-units"
 
-type ActivateProductMeasurementInput = {
+interface ActivateProductMeasurementInput {
   existing?: ProductMeasurementRecord | undefined
   measurement_unit_id: string
   product_id: string
 }
 
-type ActivateProductMeasurementCompensation = {
+interface ActivateProductMeasurementCompensation {
   action: "created" | "none" | "restored"
   id: string
 }
 
-type CreateVariantMeasurementInput = {
+interface CreateVariantMeasurementInput {
   product_measurement_id: string
   product_unit_quantity: number
   product_variant_id: string
 }
 
-type UpdateVariantMeasurementsInput = {
+interface UpdateVariantMeasurementsInput {
   previous: ProductVariantMeasurementRecord[]
   updates: Array<{
     id: string

@@ -20,10 +20,10 @@ export async function handleCancelZaneDeploy(
     const client = new ZaneClient(deps.config)
     const payload = parseCancelDeployInput(rawBody)
     const result = await client.cancelDeployment({
-      projectSlug: payload.projectSlug,
-      environmentName: payload.environmentName,
-      serviceSlug: payload.serviceSlug,
       deploymentHash: payload.deploymentHash,
+      environmentName: payload.environmentName,
+      projectSlug: payload.projectSlug,
+      serviceSlug: payload.serviceSlug,
     })
 
     return jsonResponse(200, result)

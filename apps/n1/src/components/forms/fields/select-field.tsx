@@ -4,12 +4,12 @@ import { Select } from "@techsio/ui-kit/molecules/select"
 
 import type { AnyFieldApiCompat } from "@/types/form"
 
-type SelectOption = {
+interface SelectOption {
   value: string
   label: string
 }
 
-type SelectFieldProps = {
+interface SelectFieldProps {
   field: AnyFieldApiCompat
   label: string
   options: SelectOption[]
@@ -28,7 +28,7 @@ export function SelectField({
   placeholder,
   className,
 }: SelectFieldProps) {
-  const errors = field.state.meta.errors
+  const { errors } = field.state.meta
   const showErrors = field.state.meta.isBlurred && errors.length > 0
   const validateStatus = showErrors ? "error" : "default"
   const selectedValue =

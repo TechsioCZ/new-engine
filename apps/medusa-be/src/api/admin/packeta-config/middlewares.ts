@@ -5,8 +5,8 @@ import { PostAdminPacketaConfigSchema } from "./validators"
 
 export const adminPacketaConfigRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["POST"],
     matcher: "/admin/packeta-config",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(PostAdminPacketaConfigSchema)],
   },
 ]

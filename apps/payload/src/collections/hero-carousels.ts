@@ -29,9 +29,9 @@ const resolveLocalizedString = (value: unknown, locale: string | undefined) => {
 
   return (
     cleanString(locale ? value[locale] : undefined) ||
-    cleanString(value["en"]) ||
-    cleanString(value["sk"]) ||
-    cleanString(value["cs"]) ||
+    cleanString(value.en) ||
+    cleanString(value.sk) ||
+    cleanString(value.cs) ||
     cleanString(Object.values(value).find((entry) => cleanString(entry)))
   )
 }
@@ -40,26 +40,24 @@ const resolveInternalTitle = (
   data: Record<string, unknown>,
   locale: string | undefined
 ) =>
-  cleanString(data["internalTitle"]) ||
-  resolveLocalizedString(data["heading"], locale) ||
-  resolveLocalizedString(data["button"], locale) ||
-  cleanString(data["buttonHref"]) ||
+  cleanString(data.internalTitle) ||
+  resolveLocalizedString(data.heading, locale) ||
+  resolveLocalizedString(data.button, locale) ||
+  cleanString(data.buttonHref) ||
   DEFAULT_INTERNAL_TITLE
 
 /** Payload collection config for hero carousels. */
 export const HeroCarousels: CollectionConfig = {
-  slug: COLLECTION_SLUG,
   access: {
-    read: requireAuth,
     create: requireAuth,
-    update: requireAuth,
     delete: requireAuth,
+    read: requireAuth,
+    update: requireAuth,
   },
-  labels: collectionLabels.heroCarousels,
   admin: {
-    useAsTitle: "internalTitle",
     defaultColumns: ["internalTitle", "heading", "image"],
     group: adminGroups.content,
+    useAsTitle: "internalTitle",
   },
   fields: [
     {
@@ -104,17 +102,19 @@ export const HeroCarousels: CollectionConfig = {
     },
   ],
   hooks: {
+    afterChange: [invalidateHeroCarouselsCache],
+    afterDelete: [invalidateHeroCarouselsCache],
     beforeValidate: [
       ({ data, operation, originalDoc, req }) => {
         if (!data) {
           return data
         }
 
-        if (operation === "update" && data["internalTitle"] === undefined) {
+        if (operation === "update" && data.internalTitle === undefined) {
           return data
         }
 
-        data["internalTitle"] = resolveInternalTitle(
+        data.internalTitle = resolveInternalTitle(
           operation === "update" && originalDoc
             ? { ...originalDoc, ...data }
             : data,
@@ -124,7 +124,7 @@ export const HeroCarousels: CollectionConfig = {
         return data
       },
     ],
-    afterChange: [invalidateHeroCarouselsCache],
-    afterDelete: [invalidateHeroCarouselsCache],
   },
+  labels: collectionLabels.heroCarousels,
+  slug: COLLECTION_SLUG,
 }

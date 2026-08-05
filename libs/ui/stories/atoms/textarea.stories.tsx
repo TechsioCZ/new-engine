@@ -4,54 +4,54 @@ import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Textarea } from "../../src/atoms/textarea"
 
 const meta: Meta<typeof Textarea> = {
-  title: "Atoms/Textarea",
   component: Textarea,
   parameters: {
     layout: "centered",
   },
   tags: ["autodocs"],
+  title: "Atoms/Textarea",
 }
 
 export default meta
 type Story = StoryObj<typeof Textarea>
 
 export const Playground: Story = {
-  args: {
-    placeholder: "Enter your text...",
-    size: "md",
-    variant: "default",
-    resize: "y",
-    disabled: false,
-    readonly: false,
-  },
   argTypes: {
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-      description: "Size of the textarea",
-    },
-    variant: {
-      control: "select",
-      options: ["default", "error", "success", "warning", "borderless"],
-      description: "Visual variant for validation states",
-    },
-    resize: {
-      control: "select",
-      options: ["none", "y", "x", "both", "auto"],
-      description: "Resize behavior (auto = grows with content)",
-    },
     disabled: {
       control: "boolean",
       description: "Disable the textarea",
-    },
-    readonly: {
-      control: "boolean",
-      description: "Make textarea read-only (still focusable, sent on submit)",
     },
     placeholder: {
       control: "text",
       description: "Placeholder text",
     },
+    readonly: {
+      control: "boolean",
+      description: "Make textarea read-only (still focusable, sent on submit)",
+    },
+    resize: {
+      control: "select",
+      description: "Resize behavior (auto = grows with content)",
+      options: ["none", "y", "x", "both", "auto"],
+    },
+    size: {
+      control: "select",
+      description: "Size of the textarea",
+      options: ["sm", "md", "lg"],
+    },
+    variant: {
+      control: "select",
+      description: "Visual variant for validation states",
+      options: ["default", "error", "success", "warning", "borderless"],
+    },
+  },
+  args: {
+    disabled: false,
+    placeholder: "Enter your text...",
+    readonly: false,
+    resize: "y",
+    size: "md",
+    variant: "default",
   },
 }
 

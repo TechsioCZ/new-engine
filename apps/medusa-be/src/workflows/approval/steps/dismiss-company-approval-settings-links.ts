@@ -8,7 +8,7 @@ import { COMPANY_MODULE } from "../../../modules/company"
 
 const COMPANY_APPROVAL_SETTINGS_LINK_ENTRY_POINT = "company_approval_settings"
 
-type CompanyApprovalSettingsLinkRow = {
+interface CompanyApprovalSettingsLinkRow {
   approval_settings_id?: string
   company_id?: string
 }

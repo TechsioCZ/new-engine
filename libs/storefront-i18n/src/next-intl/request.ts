@@ -1,12 +1,10 @@
 import { getRequestConfig } from "next-intl/server"
 
 import type { StorefrontMarket } from "../core/markets"
-import {
-  type FlatStorefrontMessages,
-  nestStorefrontMessages,
-} from "../core/messages"
+import { nestStorefrontMessages } from "../core/messages"
+import type { FlatStorefrontMessages } from "../core/messages"
 
-type StorefrontRequestConfigOptions<TMarket extends StorefrontMarket> = {
+interface StorefrontRequestConfigOptions<TMarket extends StorefrontMarket> {
   getMarket: () => Promise<TMarket> | TMarket
   getMessages: (
     market: TMarket

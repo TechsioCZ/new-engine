@@ -2,11 +2,11 @@ import { describe, expect, it, vi } from "vitest"
 
 import { requestJson, resolveRequiredEnv } from "./helpers/client"
 
-type AuthResponse = {
+interface AuthResponse {
   token: string
 }
 
-type PublishableKeyResponse = {
+interface PublishableKeyResponse {
   api_key: {
     id: string
     title: string
@@ -26,36 +26,36 @@ describe("Admin publishable key endpoint", () => {
       backendUrl,
       "/auth/user/emailpass",
       {
-        method: "POST",
         body: {
           email: adminEmail,
           password: adminPassword,
         },
+        method: "POST",
       }
     )
 
     expect(authResponse.status).toBe(200)
-    expect(typeof authResponse.data.token).toBe("string")
+    expect(authResponse.data.token).toBeTypeOf("string")
 
     const title = `CI Publishable Key ${Date.now()}`
-    const token = authResponse.data.token
+    const { token } = authResponse.data
 
     const createResponse = await requestJson<PublishableKeyResponse>(
       backendUrl,
       "/admin/provisioning/publishable-key",
       {
+        body: { title },
         method: "POST",
         token,
-        body: { title },
       }
     )
 
     expect(createResponse.status).toBe(200)
-    expect(createResponse.data).toEqual({
+    expect(createResponse.data).toStrictEqual({
       api_key: expect.objectContaining({
         title,
-        type: "publishable",
         token: expect.any(String),
+        type: "publishable",
       }),
       created: true,
     })
@@ -64,18 +64,18 @@ describe("Admin publishable key endpoint", () => {
       backendUrl,
       "/admin/provisioning/publishable-key",
       {
+        body: { title },
         method: "POST",
         token,
-        body: { title },
       }
     )
 
     expect(secondCreateResponse.status).toBe(200)
-    expect(secondCreateResponse.data).toEqual({
+    expect(secondCreateResponse.data).toStrictEqual({
       api_key: expect.objectContaining({
         id: createResponse.data.api_key?.id,
-        token: createResponse.data.api_key?.token,
         title,
+        token: createResponse.data.api_key?.token,
         type: "publishable",
       }),
       created: false,
@@ -88,11 +88,11 @@ describe("Admin publishable key endpoint", () => {
     )
 
     expect(getResponse.status).toBe(200)
-    expect(getResponse.data).toEqual({
+    expect(getResponse.data).toStrictEqual({
       api_key: expect.objectContaining({
         id: createResponse.data.api_key?.id,
-        token: createResponse.data.api_key?.token,
         title,
+        token: createResponse.data.api_key?.token,
         type: "publishable",
       }),
       created: false,

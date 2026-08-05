@@ -6,7 +6,7 @@ import {
   resolveProductTopOffer,
 } from "./product-pricing"
 
-type RecommendedProductCandidate = {
+interface RecommendedProductCandidate {
   familyKey: string
   firstSeenIndex: number
   packageMultiplier: number
@@ -51,9 +51,7 @@ const resolveTopOffer = (product: HttpTypes.StoreProduct) =>
 
 const resolvePrimarySetItem = (product: HttpTypes.StoreProduct) => {
   const metadata = resolveProductMetadata(product)
-  const setItems = Array.isArray(metadata?.["set_items"])
-    ? metadata["set_items"]
-    : []
+  const setItems = Array.isArray(metadata?.set_items) ? metadata.set_items : []
 
   for (const item of setItems) {
     const record = asStorefrontRecord(item)
@@ -61,13 +59,13 @@ const resolvePrimarySetItem = (product: HttpTypes.StoreProduct) => {
       continue
     }
 
-    const code = asString(record["code"])
-    const amount = asPositiveInteger(record["amount"])
+    const code = asString(record.code)
+    const amount = asPositiveInteger(record.amount)
     if (!code) {
       continue
     }
 
-    return { code, amount }
+    return { amount, code }
   }
 
   return null
@@ -83,7 +81,7 @@ const normalizeFamilyCode = (code: string | null) => {
 
 const resolveTopOfferCode = (product: HttpTypes.StoreProduct) => {
   const topOffer = resolveTopOffer(product)
-  return asString(topOffer?.["code"])
+  return asString(topOffer?.code)
 }
 
 export const resolveRecommendedProductFamilyKey = (
@@ -100,7 +98,7 @@ export const resolveRecommendedProductFamilyKey = (
   }
 
   const metadata = resolveProductMetadata(product)
-  const sourceShopitemId = asString(metadata?.["source_shopitem_id"])
+  const sourceShopitemId = asString(metadata?.source_shopitem_id)
   if (sourceShopitemId) {
     return sourceShopitemId
   }
@@ -118,9 +116,8 @@ const resolveRecommendedProductPackageMultiplier = (
 
   const topOfferCode = resolveTopOfferCode(product)
   if (topOfferCode) {
-    const setMultiplier = topOfferCode.match(
-      TOP_OFFER_SET_MULTIPLIER_PATTERN
-    )?.[1]
+    const setMultiplier =
+      TOP_OFFER_SET_MULTIPLIER_PATTERN.exec(topOfferCode)?.[1]
     const parsedMultiplier = asPositiveInteger(setMultiplier)
     if (parsedMultiplier) {
       return parsedMultiplier
@@ -132,8 +129,8 @@ const resolveRecommendedProductPackageMultiplier = (
 
 const resolveRecommendedProductInStock = (product: HttpTypes.StoreProduct) => {
   const topOffer = resolveTopOffer(product)
-  const stock = asStorefrontRecord(topOffer?.["stock"])
-  const amount = asStorefrontNumber(stock?.["amount"])
+  const stock = asStorefrontRecord(topOffer?.stock)
+  const amount = asStorefrontNumber(stock?.amount)
 
   return amount === null ? true : amount > 0
 }
@@ -179,8 +176,8 @@ export const selectRecommendedProductRepresentatives = (
     const nextCandidate: RecommendedProductCandidate = {
       familyKey,
       firstSeenIndex: currentCandidate?.firstSeenIndex ?? index,
-      packageMultiplier: resolveRecommendedProductPackageMultiplier(product),
       isInStock: resolveRecommendedProductInStock(product),
+      packageMultiplier: resolveRecommendedProductPackageMultiplier(product),
       product,
     }
 

@@ -5,10 +5,12 @@ import {
   assertProductAttributeKeyAvailable,
   getProductAttributeService,
   normalizeRequiredProductAttributeKey,
-  type ProductAttributeDefinitionRecord,
-  type ProductAttributeOptionRecord,
   partitionProductAttributeRecordIds,
   toUsageCountMap,
+} from "../../../utils/product-attributes"
+import type {
+  ProductAttributeDefinitionRecord,
+  ProductAttributeOptionRecord,
 } from "../../../utils/product-attributes"
 import type {
   CreateProductAttributeOptionInput,
@@ -22,10 +24,10 @@ const retrieveOption = async (
   withDeleted = false
 ) => {
   const service = getProductAttributeService(container)
-  const options = (await service.listProductAttributeOptions(
+  const options = await service.listProductAttributeOptions(
     { id },
     { take: 1, withDeleted }
-  )) as ProductAttributeOptionRecord[]
+  )
   const option = options[0]
 
   if (!option) {
@@ -42,10 +44,10 @@ export const createProductAttributeOptionStep = createStep(
   "create-product-attribute-option",
   async (input: CreateProductAttributeOptionInput, { container }) => {
     const service = getProductAttributeService(container)
-    const definitions = (await service.listProductAttributeDefinitions(
+    const definitions = await service.listProductAttributeDefinitions(
       { id: input.definition_id },
       { take: 1 }
-    )) as ProductAttributeDefinitionRecord[]
+    )
     const definition = definitions[0]
 
     if (!definition) {
@@ -62,10 +64,10 @@ export const createProductAttributeOptionStep = createStep(
     }
 
     const key = normalizeRequiredProductAttributeKey(input.key, "option key")
-    const matches = (await service.listProductAttributeOptions(
+    const matches = await service.listProductAttributeOptions(
       { definition_id: definition.id, key },
       { take: 1, withDeleted: true }
-    )) as ProductAttributeOptionRecord[]
+    )
     assertProductAttributeKeyAvailable({
       ...(matches[0] === undefined ? {} : { collision: matches[0] }),
       definitionKey: definition.key,
@@ -73,11 +75,11 @@ export const createProductAttributeOptionStep = createStep(
       kind: "option",
     })
 
-    const created = (await service.createProductAttributeOptions({
+    const created = await service.createProductAttributeOptions({
       definition_id: definition.id,
       key,
       label: input.label.trim(),
-    })) as ProductAttributeOptionRecord
+    })
 
     return new StepResponse(created, created.id)
   },
@@ -119,10 +121,10 @@ export const deleteProductAttributeOptionsStep = createStep(
   "delete-product-attribute-options",
   async (input: ProductAttributeOptionIdsInput, { container }) => {
     const service = getProductAttributeService(container)
-    const options = (await service.listProductAttributeOptions(
+    const options = await service.listProductAttributeOptions(
       { id: { $in: input.ids } },
       { take: Math.max(input.ids.length, 1), withDeleted: true }
-    )) as ProductAttributeOptionRecord[]
+    )
     const found = new Set(options.map((option) => option.id))
     const missing = input.ids.filter((id) => !found.has(id))
 
@@ -165,10 +167,10 @@ export const restoreProductAttributeOptionsStep = createStep(
   "restore-product-attribute-options",
   async (input: ProductAttributeOptionIdsInput, { container }) => {
     const service = getProductAttributeService(container)
-    const options = (await service.listProductAttributeOptions(
+    const options = await service.listProductAttributeOptions(
       { id: { $in: input.ids } },
       { take: Math.max(input.ids.length, 1), withDeleted: true }
-    )) as ProductAttributeOptionRecord[]
+    )
     const found = new Set(options.map((option) => option.id))
     const missing = input.ids.filter((id) => !found.has(id))
 

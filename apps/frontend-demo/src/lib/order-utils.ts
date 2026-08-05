@@ -1,10 +1,10 @@
 import type { OrderStatus } from "@/types/order"
 
 const orderStatusMap: Record<OrderStatus, string> = {
-  pending: "Čeká na zpracování",
-  completed: "Dokončeno",
   archived: "Archivováno",
   canceled: "Zrušeno",
+  completed: "Dokončeno",
+  pending: "Čeká na zpracování",
   requires_action: "Vyžaduje akci",
 }
 
@@ -17,7 +17,7 @@ export function truncateProductTitle(title: string, maxWords = 3): string {
   if (words.length <= maxWords) {
     return title
   }
-  return `${words.slice(0, maxWords).join(" ")}`
+  return words.slice(0, maxWords).join(" ")
 }
 
 export function formatOrderDate(dateString: string): string {

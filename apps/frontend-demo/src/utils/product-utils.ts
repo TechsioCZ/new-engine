@@ -13,7 +13,7 @@ interface ProductDisplayData {
 
 export function extractProductData(product: Product): ProductDisplayData {
   // For API products, find the price that matches the current currency
-  const primaryVariant = product.primaryVariant
+  const { primaryVariant } = product
 
   // Generate badges based on product data
   const badges: BadgeProps[] = []
@@ -24,25 +24,25 @@ export function extractProductData(product: Product): ProductDisplayData {
     const daysSinceCreated =
       (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24)
     if (daysSinceCreated <= 10) {
-      badges.push({ variant: "success" as const, children: "Nové" })
+      badges.push({ children: "Nové", variant: "success" as const })
     }
   }
 
   if (primaryVariant) {
     if (!primaryVariant.manage_inventory) {
-      badges.push({ variant: "success" as const, children: "Skladem" })
+      badges.push({ children: "Skladem", variant: "success" as const })
     } else if (typeof primaryVariant.inventory_quantity === "number") {
       if (primaryVariant.inventory_quantity > 0) {
-        badges.push({ variant: "success" as const, children: "Skladem" })
+        badges.push({ children: "Skladem", variant: "success" as const })
       }
     } else if (primaryVariant.allow_backorder) {
-      badges.push({ variant: "warning" as const, children: "Na objednávku" })
+      badges.push({ children: "Na objednávku", variant: "warning" as const })
     } else {
-      badges.push({ variant: "danger" as const, children: "Vyprodáno" })
+      badges.push({ children: "Vyprodáno", variant: "danger" as const })
     }
   }
   if (!primaryVariant) {
-    badges.push({ variant: "danger" as const, children: "Vyprodáno" })
+    badges.push({ children: "Vyprodáno", variant: "danger" as const })
   }
   return {
     badges,

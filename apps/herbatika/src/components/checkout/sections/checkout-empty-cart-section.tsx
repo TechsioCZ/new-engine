@@ -25,9 +25,9 @@ export function CheckoutEmptyCartSection() {
   const tCheckout = useTranslations("checkout")
   const region = useRegionContext()
   const categoriesQuery = useCategories({
-    page: 1,
-    limit: CATEGORY_TREE_LIMIT,
     fields: CATEGORY_TREE_FIELDS,
+    limit: CATEGORY_TREE_LIMIT,
+    page: 1,
   })
 
   const recommendationCategory = categoriesQuery.categories.find(

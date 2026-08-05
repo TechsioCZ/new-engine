@@ -1,6 +1,6 @@
 import type { useTranslations } from "next-intl"
 
-export type AddressValidationMessages = {
+export interface AddressValidationMessages {
   addressMinLength: string
   addressRequired: string
   cityMinLength: string

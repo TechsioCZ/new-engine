@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { canNavigateToCheckoutStep } from "./checkout-step-navigation"
 
-describe("canNavigateToCheckoutStep", () => {
+describe(canNavigateToCheckoutStep, () => {
   it("allows navigation to an already accessible later step", () => {
     expect(
       canNavigateToCheckoutStep({
@@ -11,7 +11,7 @@ describe("canNavigateToCheckoutStep", () => {
         stepCount: 4,
         targetStepIndex: 2,
       })
-    ).toBe(true)
+    ).toBeTruthy()
   })
 
   it("rejects a later step whose checkout requirements are not met", () => {
@@ -22,7 +22,7 @@ describe("canNavigateToCheckoutStep", () => {
         stepCount: 4,
         targetStepIndex: 2,
       })
-    ).toBe(false)
+    ).toBeFalsy()
   })
 
   it.each([-1, 4])("rejects an invalid target index: %s", (targetStepIndex) => {
@@ -33,7 +33,7 @@ describe("canNavigateToCheckoutStep", () => {
         stepCount: 4,
         targetStepIndex,
       })
-    ).toBe(false)
+    ).toBeFalsy()
   })
 
   it("disables navigation after checkout completion", () => {
@@ -44,6 +44,6 @@ describe("canNavigateToCheckoutStep", () => {
         stepCount: 4,
         targetStepIndex: 0,
       })
-    ).toBe(false)
+    ).toBeFalsy()
   })
 })

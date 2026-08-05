@@ -22,15 +22,15 @@ import type { OrderReceiptOrder } from "../modules/order-receipt/service"
 import {
   formatTotal,
   getOrderDisplayId,
-  type PaymentReminderOrder,
 } from "../utils/order-payment-reminders"
+import type { PaymentReminderOrder } from "../utils/order-payment-reminders"
 
-type WorkflowInput = {
+interface WorkflowInput {
   order_id: string
   store_name?: string
 }
 
-type OrderReceiptWorkflowResult = {
+interface OrderReceiptWorkflowResult {
   email?: string
   order_id: string
   sent: boolean
@@ -55,7 +55,7 @@ function isQueryOrder(value: unknown): value is QueryOrder {
     return false
   }
 
-  const id = value["id"]
+  const { id } = value
 
   return typeof id === "string" && id.length > 0
 }

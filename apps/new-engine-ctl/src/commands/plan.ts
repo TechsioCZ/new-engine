@@ -19,7 +19,7 @@ export function createPlanCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
     )
     .action(async (options) => {
       const parsedPrNumber =
@@ -28,11 +28,11 @@ export function createPlanCommand(): Command {
           : undefined
       const input = planCommandInputSchema.parse({
         lane: options.lane,
-        servicesCsv: options.servicesCsv,
-        prNumber: parsedPrNumber,
         outputJson: options.outputJson,
+        prNumber: parsedPrNumber,
+        previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
+        servicesCsv: options.servicesCsv,
         stackManifestPath: options.stackManifestPath,
-        previewEnvPrefix: process.env["ZANE_PREVIEW_ENV_PREFIX"] ?? "pr-",
       })
       const result = await executePlan(input)
       await appendGitHubOutput(

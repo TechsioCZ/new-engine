@@ -2,7 +2,7 @@ const PPL_WIDGET_LOADER_URL = "https://www.ppl.cz/accesspointwidget/loader.js"
 
 let loaderPromise: Promise<void> | null = null
 
-export function loadPplWidgetLoader() {
+export async function loadPplWidgetLoader() {
   if (typeof window === "undefined") {
     return Promise.resolve()
   }
@@ -21,9 +21,9 @@ export function loadPplWidgetLoader() {
     )
 
     if (existingScript) {
-      void customElements
-        .whenDefined("ppl-access-point-widget")
-        .then(() => resolve())
+      void customElements.whenDefined("ppl-access-point-widget").then(() => {
+        resolve()
+      })
       return
     }
 
@@ -31,16 +31,16 @@ export function loadPplWidgetLoader() {
     script.async = true
     script.src = PPL_WIDGET_LOADER_URL
     script.onload = () => {
-      void customElements
-        .whenDefined("ppl-access-point-widget")
-        .then(() => resolve())
+      void customElements.whenDefined("ppl-access-point-widget").then(() => {
+        resolve()
+      })
     }
     script.onerror = () => {
       loaderPromise = null
       reject(new Error("PPL widget loader failed."))
     }
 
-    document.head.appendChild(script)
+    document.head.append(script)
   })
 
   return loaderPromise

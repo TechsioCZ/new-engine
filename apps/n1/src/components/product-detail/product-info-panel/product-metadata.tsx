@@ -1,4 +1,4 @@
-type MetadataRows = {
+interface MetadataRows {
   label: string
   value?: string | number | undefined
 }

@@ -18,7 +18,7 @@ export interface ContactContent {
   }
   form: {
     title: string
-    subjects: Array<{ value: string; label: string }>
+    subjects: { value: string; label: string }[]
     labels: {
       firstName: string
       lastName: string
@@ -51,13 +51,16 @@ export interface ContactContent {
 }
 
 export const contactContent: ContactContent = {
-  hero: {
-    title: "Kontaktujte nás",
-    subtitle:
-      "Máte otázku nebo potřebujete pomoc? Jsme tu pro vás! Obraťte se na náš přátelský tým podpory a ozvěme se vám co nejdříve.",
-  },
   form: {
-    title: "Pošlete nám zprávu",
+    labels: {
+      email: "E-mailová adresa",
+      firstName: "Jméno",
+      lastName: "Příjmení",
+      message: "Zpráva",
+      phone: "Telefonní číslo",
+      subject: "Předmět",
+      submit: "Odeslat zprávu",
+    },
     subjects: [
       { value: "general", label: "Obecný dotaz" },
       { value: "order", label: "Podpora objednávek" },
@@ -66,22 +69,33 @@ export const contactContent: ContactContent = {
       { value: "wholesale", label: "Velkoobchodní dotaz" },
       { value: "other", label: "Jiné" },
     ],
-    labels: {
-      firstName: "Jméno",
-      lastName: "Příjmení",
-      email: "E-mailová adresa",
-      phone: "Telefonní číslo",
-      subject: "Předmět",
-      message: "Zpráva",
-      submit: "Odeslat zprávu",
-    },
     successMessage: {
-      title: "Zpráva odeslána!",
       description: "Ozvěme se vám co nejdříve.",
+      title: "Zpráva odeslána!",
     },
+    title: "Pošlete nám zprávu",
+  },
+  help: {
+    description: "Hledáte rychlé odpovědi? Podívejte se na naše",
+    linkHref: "/faq",
+    linkText: "Často kladené otázky",
+    title: "Rychlá pomoc",
+  },
+  hero: {
+    subtitle:
+      "Máte otázku nebo potřebujete pomoc? Jsme tu pro vás! Obraťte se na náš přátelský tým podpory a ozvěme se vám co nejdříve.",
+    title: "Kontaktujte nás",
+  },
+  hours: {
+    schedule: [
+      { day: "Pondělí - Pátek", hours: "9:00 - 18:00" },
+      { day: "Sobota", hours: "10:00 - 16:00" },
+      { day: "Neděle", hours: "Zavřeno" },
+    ],
+    timezone: "Všechny časy jsou ve středoevropském čase (SEČ)",
+    title: "Provozní doba",
   },
   info: {
-    title: "Spojte se s námi",
     items: [
       {
         type: "email",
@@ -98,20 +112,6 @@ export const contactContent: ContactContent = {
         icon: "token-icon-phone",
       },
     ],
-  },
-  hours: {
-    title: "Provozní doba",
-    schedule: [
-      { day: "Pondělí - Pátek", hours: "9:00 - 18:00" },
-      { day: "Sobota", hours: "10:00 - 16:00" },
-      { day: "Neděle", hours: "Zavřeno" },
-    ],
-    timezone: "Všechny časy jsou ve středoevropském čase (SEČ)",
-  },
-  help: {
-    title: "Rychlá pomoc",
-    description: "Hledáte rychlé odpovědi? Podívejte se na naše",
-    linkText: "Často kladené otázky",
-    linkHref: "/faq",
+    title: "Spojte se s námi",
   },
 }

@@ -13,7 +13,7 @@ const PLATFORM_PACKAGES = new Map([
   ["win32-x64", "@ast-grep/cli-win32-x64-msvc"],
 ])
 
-const scriptDirectory = dirname(fileURLToPath(import.meta.url))
+const scriptDirectory = import.meta.dirname
 const repositoryRoot = resolve(scriptDirectory, "../..")
 const platformKey = `${process.platform}-${process.arch}`
 const packageName = PLATFORM_PACKAGES.get(platformKey)

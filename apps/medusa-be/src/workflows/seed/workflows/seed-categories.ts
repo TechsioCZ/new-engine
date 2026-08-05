@@ -4,12 +4,10 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 
-import {
-  type CreateProductCategoriesStepInput,
-  createProductCategoriesStep,
-} from "../steps/create-product-categories"
+import { createProductCategoriesStep } from "../steps/create-product-categories"
+import type { CreateProductCategoriesStepInput } from "../steps/create-product-categories"
 
-export type CategoryRaw = {
+export interface CategoryRaw {
   title: string
   description?: string | undefined
   handle: string

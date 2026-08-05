@@ -1,5 +1,5 @@
+import type { resolveTriggerTargets } from "../contracts/trigger.js"
 import {
-  resolveTriggerTargets,
   type TriggerResponse,
   triggerResponseSchema,
 } from "../contracts/trigger.js"
@@ -18,10 +18,9 @@ export async function executeTriggerPayload(input: {
 
   return input.dryRun
     ? triggerResponseSchema.parse({
-        project_slug: input.projectSlug,
         environment_name: input.environmentName,
         git_commit_sha: input.gitCommitSha ?? null,
-        triggered_service_ids: targets.map((target) => target.service_id),
+        project_slug: input.projectSlug,
         services: targets.map((target) => ({
           service_id: target.service_id,
           service_slug: target.service_slug,
@@ -29,14 +28,15 @@ export async function executeTriggerPayload(input: {
           deployment_hash: `dry-run:deploy:${target.service_slug}`,
           status: "HEALTHY",
         })),
+        triggered_service_ids: targets.map((target) => target.service_id),
       })
     : await new ZaneOperatorClient(
         input.baseUrl,
         input.apiToken
       ).triggerDeploys({
-        project_slug: input.projectSlug,
         environment_name: input.environmentName,
-        targets,
         git_commit_sha: input.gitCommitSha,
+        project_slug: input.projectSlug,
+        targets,
       })
 }

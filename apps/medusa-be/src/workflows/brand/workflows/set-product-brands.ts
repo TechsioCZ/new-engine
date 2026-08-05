@@ -21,8 +21,8 @@ import type { SetProductBrandsWorkflowInput } from "../types"
 
 export const setProductBrandsWorkflow = createWorkflow(
   {
-    name: "set-product-brands-workflow",
     idempotent: false,
+    name: "set-product-brands-workflow",
   },
   (input: SetProductBrandsWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) =>

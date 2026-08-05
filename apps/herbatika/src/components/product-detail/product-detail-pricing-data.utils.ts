@@ -2,10 +2,10 @@ import type { resolveOfferState } from "@/components/product-detail/utils/metada
 import {
   resolveDiscountPercent,
   resolveDisplayOriginalAmount,
-  type resolvePriceState,
   resolveVipCreditLabel,
   resolveVolumeDiscountOptions,
 } from "@/components/product-detail/utils/pricing-utils"
+import type { resolvePriceState } from "@/components/product-detail/utils/pricing-utils"
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { formatUnitPriceLabel } from "@/lib/storefront/unit-price"
@@ -112,7 +112,7 @@ export const resolveFreeShippingThresholdLabel = (
   return freeShippingThresholdAmount === null
     ? null
     : formatCurrencyAmount(freeShippingThresholdAmount, currentCurrencyCode, {
-        minimumFractionDigits: 0,
         maximumFractionDigits: 0,
+        minimumFractionDigits: 0,
       })
 }

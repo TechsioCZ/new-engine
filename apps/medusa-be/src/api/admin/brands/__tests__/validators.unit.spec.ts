@@ -7,11 +7,11 @@ import {
 } from "../validators"
 
 const outsideEuBrand = {
-  title: "Outside EU",
-  gpsr_manufactured_outside_eu: true,
+  gpsr_european_reseller_contact_email: "eu@example.com",
   gpsr_european_reseller_manufacturing_company_name: "EU Company",
   gpsr_european_reseller_postal_address: "EU Address",
-  gpsr_european_reseller_contact_email: "eu@example.com",
+  gpsr_manufactured_outside_eu: true,
+  title: "Outside EU",
 }
 
 describe("brand GPSR request validation", () => {
@@ -32,7 +32,7 @@ describe("brand GPSR request validation", () => {
       [field]: "not-an-email",
     })
 
-    expect(result.success).toBe(false)
+    expect(result.success).toBeFalsy()
   })
 
   it.each([
@@ -45,11 +45,11 @@ describe("brand GPSR request validation", () => {
       [field]: null,
     })
 
-    expect(result.success).toBe(false)
+    expect(result.success).toBeFalsy()
     if (!result.success) {
-      expect(result.error.issues.some((issue) => issue.path[0] === field)).toBe(
-        true
-      )
+      expect(
+        result.error.issues.some((issue) => issue.path[0] === field)
+      ).toBeTruthy()
     }
   })
 
@@ -58,7 +58,7 @@ describe("brand GPSR request validation", () => {
       AdminUpdateBrandSchema.safeParse({
         title: "Updated title",
       }).success
-    ).toBe(true)
+    ).toBeTruthy()
   })
 
   it("rejects EU representative fields for an inside-EU brand", () => {
@@ -67,7 +67,7 @@ describe("brand GPSR request validation", () => {
         ...outsideEuBrand,
         gpsr_manufactured_outside_eu: false,
       }).success
-    ).toBe(false)
+    ).toBeFalsy()
   })
 })
 
@@ -82,7 +82,7 @@ describe("Brand product delta request validation", () => {
       AdminUpdateBrandProductsSchema.parse({
         add: addProductIds,
       })
-    ).toEqual({
+    ).toStrictEqual({
       add: addProductIds,
       remove: [],
     })
@@ -94,9 +94,9 @@ describe("Brand product delta request validation", () => {
       remove: ["prod_1"],
     })
 
-    expect(result.success).toBe(false)
+    expect(result.success).toBeFalsy()
     if (!result.success) {
-      expect(result.error.issues).toEqual(
+      expect(result.error.issues).toStrictEqual(
         expect.arrayContaining([
           expect.objectContaining({
             path: ["remove"],
@@ -111,6 +111,6 @@ describe("Brand product delta request validation", () => {
       AdminUpdateBrandProductsSchema.safeParse({
         product_ids: ["prod_1"],
       }).success
-    ).toBe(false)
+    ).toBeFalsy()
   })
 })

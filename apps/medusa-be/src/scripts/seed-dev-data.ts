@@ -1,9 +1,8 @@
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
-import seedDatabaseWorkflow, {
-  type SeedDatabaseWorkflowInput,
-} from "../workflows/seed/workflows/seed-database"
+import seedDatabaseWorkflow from "../workflows/seed/workflows/seed-database"
+import type { SeedDatabaseWorkflowInput } from "../workflows/seed/workflows/seed-database"
 
 export default async function seedDevData({ container }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
@@ -24,16 +23,6 @@ export default async function seedDevData({ container }: ExecArgs) {
     "sk",
   ]
   const input: SeedDatabaseWorkflowInput = {
-    workflowDefaults: {
-      fulfillmentProviderId: "manual_manual",
-      shippingOptionPriceAmount: 10,
-    },
-    salesChannels: [
-      {
-        name: "Default Sales Channel",
-        default: true,
-      },
-    ],
     currencies: [
       {
         code: "czk",
@@ -48,39 +37,11 @@ export default async function seedDevData({ container }: ExecArgs) {
         default: false,
       },
     ],
-    regions: [
-      {
-        name: "Czechia",
-        currencyCode: "czk",
-        countries: ["cz"],
-      },
-      {
-        name: "Europe",
-        currencyCode: "eur",
-        countries: countries.filter((c) => c !== "cz"),
-      },
-    ],
-    taxRegions: {
-      countries,
-    },
-    stockLocations: {
-      locations: [
-        {
-          name: "European Warehouse",
-          address: {
-            city: "Copenhagen",
-            country_code: "DK",
-            address_1: "",
-          },
-        },
-      ],
-    },
     defaultShippingProfile: {
       name: "Default Shipping Profile",
     },
     fulfillmentSets: {
       name: "European Warehouse delivery",
-      type: "shipping",
       serviceZones: [
         {
           name: "Europe",
@@ -89,81 +50,7 @@ export default async function seedDevData({ container }: ExecArgs) {
           })),
         },
       ],
-    },
-    shippingOptions: [
-      {
-        name: "Standard Shipping",
-        providerId: "manual_manual",
-        type: {
-          label: "Standard",
-          description: "Ship in 2-3 days.",
-          code: "standard",
-        },
-        prices: [
-          {
-            currencyCode: "usd",
-            amount: 10,
-          },
-          {
-            currencyCode: "eur",
-            amount: 10,
-          },
-          {
-            currencyCode: "czk",
-            amount: 250,
-          },
-        ],
-        rules: [
-          {
-            attribute: "enabled_in_store",
-            value: "true",
-            operator: "eq",
-          },
-          {
-            attribute: "is_return",
-            value: "false",
-            operator: "eq",
-          },
-        ],
-      },
-      {
-        name: "Express Shipping",
-        providerId: "manual_manual",
-        type: {
-          label: "Express",
-          description: "Ship in 24 hours.",
-          code: "express",
-        },
-        prices: [
-          {
-            currencyCode: "usd",
-            amount: 10,
-          },
-          {
-            currencyCode: "eur",
-            amount: 10,
-          },
-          {
-            currencyCode: "czk",
-            amount: 250,
-          },
-        ],
-        rules: [
-          {
-            attribute: "enabled_in_store",
-            value: "true",
-            operator: "eq",
-          },
-          {
-            attribute: "is_return",
-            value: "false",
-            operator: "eq",
-          },
-        ],
-      },
-    ],
-    publishableKey: {
-      title: "Webshop",
+      type: "shipping",
     },
     productCategories: [
       {
@@ -787,6 +674,118 @@ export default async function seedDevData({ container }: ExecArgs) {
         salesChannelNames: ["Default Sales Channel"],
       },
     ],
+    publishableKey: {
+      title: "Webshop",
+    },
+    regions: [
+      {
+        name: "Czechia",
+        currencyCode: "czk",
+        countries: ["cz"],
+      },
+      {
+        name: "Europe",
+        currencyCode: "eur",
+        countries: countries.filter((c) => c !== "cz"),
+      },
+    ],
+    salesChannels: [
+      {
+        name: "Default Sales Channel",
+        default: true,
+      },
+    ],
+    shippingOptions: [
+      {
+        name: "Standard Shipping",
+        providerId: "manual_manual",
+        type: {
+          label: "Standard",
+          description: "Ship in 2-3 days.",
+          code: "standard",
+        },
+        prices: [
+          {
+            currencyCode: "usd",
+            amount: 10,
+          },
+          {
+            currencyCode: "eur",
+            amount: 10,
+          },
+          {
+            currencyCode: "czk",
+            amount: 250,
+          },
+        ],
+        rules: [
+          {
+            attribute: "enabled_in_store",
+            value: "true",
+            operator: "eq",
+          },
+          {
+            attribute: "is_return",
+            value: "false",
+            operator: "eq",
+          },
+        ],
+      },
+      {
+        name: "Express Shipping",
+        providerId: "manual_manual",
+        type: {
+          label: "Express",
+          description: "Ship in 24 hours.",
+          code: "express",
+        },
+        prices: [
+          {
+            currencyCode: "usd",
+            amount: 10,
+          },
+          {
+            currencyCode: "eur",
+            amount: 10,
+          },
+          {
+            currencyCode: "czk",
+            amount: 250,
+          },
+        ],
+        rules: [
+          {
+            attribute: "enabled_in_store",
+            value: "true",
+            operator: "eq",
+          },
+          {
+            attribute: "is_return",
+            value: "false",
+            operator: "eq",
+          },
+        ],
+      },
+    ],
+    stockLocations: {
+      locations: [
+        {
+          name: "European Warehouse",
+          address: {
+            city: "Copenhagen",
+            country_code: "DK",
+            address_1: "",
+          },
+        },
+      ],
+    },
+    taxRegions: {
+      countries,
+    },
+    workflowDefaults: {
+      fulfillmentProviderId: "manual_manual",
+      shippingOptionPriceAmount: 10,
+    },
   }
 
   const { result } = await seedDatabaseWorkflow(container).run({

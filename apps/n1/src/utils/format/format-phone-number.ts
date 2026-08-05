@@ -1,5 +1,5 @@
 export function formatPhoneNumber(value: string): string {
-  const cleaned = value.replace(/[^\d+]/g, "")
+  const cleaned = value.replaceAll(/[^\d+]/g, "")
 
   if (cleaned.startsWith("+420")) {
     const numbers = cleaned.slice(4)
@@ -12,5 +12,5 @@ export function formatPhoneNumber(value: string): string {
 }
 
 export function cleanPhoneNumber(value: string): string {
-  return value.replace(/\s/g, "")
+  return value.replaceAll(/\s/g, "")
 }

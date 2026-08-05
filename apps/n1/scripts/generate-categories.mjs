@@ -15,8 +15,8 @@ import { fileURLToPath } from "node:url"
 
 import dotenv from "dotenv"
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const __filename = import.meta.filename
+const __dirname = import.meta.dirname
 // NOTE: DEFAULT_MEDUSA_BACKEND_URL and getMedusaBackendUrl() intentionally
 // duplicate apps/n1/src/lib/medusa-backend-url.ts because this .mjs script
 // cannot import TypeScript modules. If default URL or resolution logic changes,
@@ -45,7 +45,7 @@ function formatGeneratedFile(filePath) {
 
   for (const [cmd, args] of formatCommands) {
     try {
-      execFileSync(cmd, args, { stdio: "ignore", cwd })
+      execFileSync(cmd, args, { cwd, stdio: "ignore" })
       return
     } catch {
       // Try next formatter command variant.
@@ -179,11 +179,11 @@ function buildCategoryTree(categories) {
   // First pass: create all nodes
   for (const cat of categories) {
     categoryMap.set(cat.id, {
+      children: [],
+      description: cat.description,
+      handle: cat.handle,
       id: cat.id,
       name: cat.name,
-      handle: cat.handle,
-      description: cat.description,
-      children: [],
     })
   }
 
@@ -372,9 +372,9 @@ function extractLeafsAndParents(categoryTree, allCategoriesMap) {
       allLeafIds.add(node.id)
       const categoryData = allCategoriesMap[node.id]
       leafCategories.push({
+        handle: node.handle,
         id: node.id,
         name: node.name,
-        handle: node.handle,
         parent_category_id: categoryData?.parent_category_id,
         root_category_id: categoryData?.root_category_id, // NEW: Include root_category_id
       })
@@ -415,11 +415,11 @@ function extractLeafsAndParents(categoryTree, allCategoriesMap) {
       const allNestedLeafs = collectAllNestedLeafs(node)
 
       leafParentsMap.set(node.id, {
-        id: node.id,
-        name: node.name,
-        handle: node.handle,
         children: node.children.map((child) => child.id),
+        handle: node.handle,
+        id: node.id,
         leafs: allNestedLeafs,
+        name: node.name,
       })
     }
 
@@ -434,7 +434,7 @@ function extractLeafsAndParents(categoryTree, allCategoriesMap) {
 
   return {
     leafCategories,
-    leafParents: Array.from(leafParentsMap.values()),
+    leafParents: [...leafParentsMap.values()],
   }
 }
 
@@ -571,10 +571,10 @@ async function generateCategories() {
 
     // Transform categories
     const allCategoriesRaw = categoriesRaw.map((cat) => ({
+      description: cat.description || undefined,
+      handle: cat.handle,
       id: cat.id,
       name: cat.name,
-      handle: cat.handle,
-      description: cat.description || undefined,
       parent_category_id: cat.parent_category_id,
       root_category_id: null, // Will be filled in next step
     }))
@@ -649,18 +649,18 @@ async function generateCategories() {
 
     const dataToSave = {
       allCategories,
-      categoryTree,
-      rootCategories,
       categoryMap,
-      leafCategories,
-      leafParents,
-      generatedAt: new Date().toISOString(),
+      categoryTree,
       filteringStats: {
-        totalCategoriesBeforeFiltering: allCategoriesRaw.length,
-        totalCategoriesAfterFiltering: allCategories.length,
         categoriesWithDirectProducts: categoriesWithProducts.size,
         filteredOutCount: allCategoriesRaw.length - allCategories.length,
+        totalCategoriesAfterFiltering: allCategories.length,
+        totalCategoriesBeforeFiltering: allCategoriesRaw.length,
       },
+      generatedAt: new Date().toISOString(),
+      leafCategories,
+      leafParents,
+      rootCategories,
     }
 
     // Write TypeScript module to src/data/static/categories.ts

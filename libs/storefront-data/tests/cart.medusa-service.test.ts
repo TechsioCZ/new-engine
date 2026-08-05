@@ -1,8 +1,9 @@
 import type { HttpTypes } from "@medusajs/types"
+import { vi, describe, expect, it } from "vitest"
 
 import { createMedusaCartService } from "../src/cart/medusa-service"
 
-type SdkLike = {
+interface SdkLike {
   client: {
     fetch: ReturnType<typeof vi.fn>
   }
@@ -30,7 +31,7 @@ function createSdkMock(
     client: {
       fetch: vi.fn().mockImplementation(
         fetchImpl ??
-          ((path: string) =>
+          (async (path: string) =>
             Promise.resolve({
               cart: {
                 id: path.replace("/store/carts/", ""),
@@ -40,27 +41,27 @@ function createSdkMock(
     },
     store: {
       cart: {
-        retrieve: vi.fn(),
-        create: vi.fn(),
-        update: vi.fn(),
-        createLineItem: vi.fn(),
-        updateLineItem: vi.fn(),
-        deleteLineItem: vi.fn(),
-        transferCart: vi.fn(),
         complete: vi.fn(),
+        create: vi.fn(),
+        createLineItem: vi.fn(),
+        deleteLineItem: vi.fn(),
+        retrieve: vi.fn(),
+        transferCart: vi.fn(),
+        update: vi.fn(),
+        updateLineItem: vi.fn(),
       },
     },
   }
 }
 
-describe("createMedusaCartService", () => {
+describe(createMedusaCartService, () => {
   it("returns cart when retrieve succeeds", async () => {
     const sdk = createSdkMock()
     const service = createMedusaCartService(sdk as never)
 
     const result = await service.retrieveCart("cart_1")
 
-    expect(result).toEqual({ id: "cart_1" })
+    expect(result).toStrictEqual({ id: "cart_1" })
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/carts/cart_1", {
       signal: null,
     })
@@ -131,7 +132,7 @@ describe("createMedusaCartService", () => {
   })
 
   it("rethrows non not-found errors", async () => {
-    const error = { status: 500, message: "Internal Server Error" }
+    const error = { message: "Internal Server Error", status: 500 }
     const sdk = createSdkMock(async () => {
       throw error
     })
@@ -161,31 +162,35 @@ describe("createMedusaCartService", () => {
       cart: { id: "cart_transferred" } as HttpTypes.StoreCart,
     })
     const completeResult = {
-      type: "order",
       order: { id: "order_1" } as HttpTypes.StoreOrder,
+      type: "order",
     } as const
     sdk.store.cart.complete.mockResolvedValue(completeResult)
 
     const service = createMedusaCartService(sdk as never)
 
-    await expect(service.createCart({} as never)).resolves.toEqual({
+    await expect(service.createCart({})).resolves.toStrictEqual({
       id: "cart_created",
     })
-    await expect(service.updateCart("cart_1", {} as never)).resolves.toEqual({
+    await expect(service.updateCart("cart_1", {})).resolves.toStrictEqual({
       id: "cart_updated",
     })
-    await expect(service.addLineItem("cart_1", {} as never)).resolves.toEqual({
+    await expect(
+      service.addLineItem("cart_1", {} as never)
+    ).resolves.toStrictEqual({
       id: "cart_with_item",
     })
     await expect(
       service.updateLineItem("cart_1", "item_1", {} as never)
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       id: "cart_item_updated",
     })
-    await expect(service.removeLineItem("cart_1", "item_1")).resolves.toEqual({
+    await expect(
+      service.removeLineItem("cart_1", "item_1")
+    ).resolves.toStrictEqual({
       id: "cart_item_removed",
     })
-    await expect(service.transferCart("cart_1")).resolves.toEqual({
+    await expect(service.transferCart("cart_1")).resolves.toStrictEqual({
       id: "cart_transferred",
     })
     await expect(service.completeCart("cart_1")).resolves.toBe(completeResult)
@@ -234,8 +239,8 @@ describe("createMedusaCartService", () => {
     })
 
     await service.retrieveCart("cart_1")
-    await service.createCart({} as never)
-    await service.updateCart("cart_1", {} as never)
+    await service.createCart({})
+    await service.updateCart("cart_1", {})
     await service.addLineItem("cart_1", {} as never)
     await service.updateLineItem("cart_1", "item_1", {} as never)
     await service.removeLineItem("cart_1", "item_1")
@@ -278,8 +283,8 @@ describe("createMedusaCartService", () => {
     const service = createMedusaCartService(sdk as never)
 
     await service.createCart({
-      region_id: "reg_1",
       country_code: "cz",
+      region_id: "reg_1",
     } as never)
     await service.updateCart("cart_1", {
       country_code: "cz",
@@ -309,10 +314,10 @@ describe("createMedusaCartService", () => {
 
     const service = createMedusaCartService(sdk as never)
 
-    await expect(service.createCart({} as never)).rejects.toThrow(
+    await expect(service.createCart({})).rejects.toThrow(
       "Failed to create cart"
     )
-    await expect(service.updateCart("cart_1", {} as never)).rejects.toThrow(
+    await expect(service.updateCart("cart_1", {})).rejects.toThrow(
       "Failed to update cart"
     )
     await expect(service.addLineItem("cart_1", {} as never)).rejects.toThrow(

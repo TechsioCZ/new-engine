@@ -22,7 +22,7 @@ const createLockingModule = (
   execute: execute as ILockingModule["execute"],
 })
 
-describe("executeWithLockTimeout", () => {
+describe(executeWithLockTimeout, () => {
   it("returns the job result after acquiring the lock", async () => {
     const lockingModule = createLockingModule(
       vi.fn(async (_key, job) => await job())
@@ -30,13 +30,13 @@ describe("executeWithLockTimeout", () => {
 
     await expect(
       executeWithLockTimeout(lockingModule, "job-key", 1, async () => "done")
-    ).resolves.toEqual({ status: "executed", value: "done" })
+    ).resolves.toStrictEqual({ status: "executed", value: "done" })
   })
 
   it("returns a typed timeout result before the callback starts", async () => {
     vi.useFakeTimers()
     const lockingModule = createLockingModule(
-      vi.fn(async () => await new Promise<never>(() => undefined))
+      vi.fn(async () => await new Promise<never>(() => {}))
     )
 
     try {
@@ -48,7 +48,7 @@ describe("executeWithLockTimeout", () => {
       )
       await vi.advanceTimersByTimeAsync(1000)
 
-      await expect(result).resolves.toEqual({ status: "timed_out" })
+      await expect(result).resolves.toStrictEqual({ status: "timed_out" })
     } finally {
       vi.useRealTimers()
     }
@@ -60,7 +60,7 @@ describe("executeWithLockTimeout", () => {
     const lockingModule = createLockingModule(
       vi.fn(async (_key, job) => {
         runProviderCallback = job
-        return await new Promise<string>(() => undefined)
+        return await new Promise<string>(() => {})
       })
     )
     const job = vi.fn(async () => "done")
@@ -68,7 +68,7 @@ describe("executeWithLockTimeout", () => {
     try {
       const result = executeWithLockTimeout(lockingModule, "job-key", 1, job)
       await vi.advanceTimersByTimeAsync(1000)
-      await expect(result).resolves.toEqual({ status: "timed_out" })
+      await expect(result).resolves.toStrictEqual({ status: "timed_out" })
 
       await expect(runProviderCallback?.()).rejects.toBeInstanceOf(Error)
       expect(job).not.toHaveBeenCalled()

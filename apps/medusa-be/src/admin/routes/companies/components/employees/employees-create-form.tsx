@@ -8,7 +8,8 @@ import {
   Label,
   Text,
 } from "@medusajs/ui"
-import { type ChangeEvent, type FormEvent, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
+import type { ChangeEvent, FormEvent } from "react"
 import { useTranslation } from "react-i18next"
 
 import type { AdminCreateEmployee, QueryCompany } from "../../../../../types"
@@ -165,7 +166,9 @@ const CustomerSelection = ({
               "bg-ui-bg-subtle"
           )}
           key={customer.id}
-          onClick={() => onSelect(customer)}
+          onClick={() => {
+            onSelect(customer)
+          }}
           type="button"
         >
           <Text leading="compact" size="small" weight="plus">
@@ -435,12 +438,12 @@ export function EmployeesCreateForm({
             <CurrencyInput
               code={currencyCode}
               name="spending_limit"
-              onChange={(e) =>
+              onChange={(e) => {
                 setFormData({
                   ...formData,
-                  spending_limit: e.target.value.replace(/[^0-9]/g, ""),
+                  spending_limit: e.target.value.replaceAll(/[^0-9]/g, ""),
                 })
-              }
+              }}
               placeholder={t("placeholders.spendingLimit")}
               symbol={getCurrencySymbol(currencyCode)}
               type="text"
@@ -456,9 +459,9 @@ export function EmployeesCreateForm({
               description={t("employees.adminDescription")}
               fieldName="is_admin"
               label={t("employees.adminBadge")}
-              onChange={(checked) =>
+              onChange={(checked) => {
                 setFormData({ ...formData, is_admin: checked })
-              }
+              }}
               tooltip={t("employees.adminTooltip")}
             />
           </div>

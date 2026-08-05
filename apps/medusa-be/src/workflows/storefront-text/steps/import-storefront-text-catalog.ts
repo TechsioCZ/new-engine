@@ -15,9 +15,11 @@ import { getEffectiveStorefrontTextValue } from "../../../modules/storefront-tex
 import type { ImportStorefrontTextCatalogWorkflowInput } from "../types"
 import {
   restoreSynchronizedStorefrontTexts,
-  type StorefrontTextSyncCompensation,
   synchronizeStorefrontTexts,
-  type SynchronizeStorefrontTextsService,
+} from "./sync-storefront-texts"
+import type {
+  StorefrontTextSyncCompensation,
+  SynchronizeStorefrontTextsService,
 } from "./sync-storefront-texts"
 
 type PreviousStorefrontTextValue = Pick<
@@ -25,12 +27,12 @@ type PreviousStorefrontTextValue = Pick<
   "id" | "override_value" | "status"
 >
 
-type StorefrontTextCatalogImportCompensation = {
+interface StorefrontTextCatalogImportCompensation {
   importedPreviousValues: PreviousStorefrontTextValue[]
   sync: StorefrontTextSyncCompensation
 }
 
-type StorefrontTextUpdateInput = {
+interface StorefrontTextUpdateInput {
   id: string
   override_value: null | string
   status: "active"
@@ -236,7 +238,7 @@ export const importStorefrontTextCatalogStep = createStep(
       STOREFRONT_TEXT_MODULE
     )
     const { compensation, result } = await service.runInTransaction(
-      (sharedContext) =>
+      async (sharedContext) =>
         importStorefrontTextCatalogInTransaction({
           catalog,
           input,
@@ -256,7 +258,7 @@ export const importStorefrontTextCatalogStep = createStep(
       STOREFRONT_TEXT_MODULE
     )
 
-    await service.runInTransaction((sharedContext) =>
+    await service.runInTransaction(async (sharedContext) =>
       restoreImportedCatalog(service, compensation, sharedContext)
     )
   }

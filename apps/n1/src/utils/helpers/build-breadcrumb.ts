@@ -8,7 +8,7 @@ export function buildBreadcrumbs(
   categoryId: string | undefined,
   categoryMap: Record<string, Category>
 ): BreadcrumbTemplateItem[] {
-  const breadcrumbs: BreadcrumbTemplateItem[] = [{ label: "Domů", href: "/" }]
+  const breadcrumbs: BreadcrumbTemplateItem[] = [{ href: "/", label: "Domů" }]
 
   if (!categoryId) {
     return breadcrumbs
@@ -28,8 +28,8 @@ export function buildBreadcrumbs(
     }
 
     breadcrumbs.push({
-      label: cat.name,
       href: `/kategorie/${cat.handle}`,
+      label: cat.name,
     })
   }
 
@@ -47,9 +47,9 @@ export function buildProductBreadcrumbs(
   return [
     ...categoryBreadcrumbs,
     {
-      label: productTitle,
       href: `/produkt/${productHandle}`,
       isCurrent: true,
+      label: productTitle,
     },
   ]
 }

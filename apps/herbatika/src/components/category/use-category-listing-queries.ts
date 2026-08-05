@@ -28,10 +28,8 @@ import {
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
 import { collectDescendantCategoryIds } from "@/lib/storefront/category-tree"
-import {
-  type NuqsPlpQueryState,
-  PLP_PAGE_SIZE,
-} from "@/lib/storefront/plp-query-state"
+import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
+import type { NuqsPlpQueryState } from "@/lib/storefront/plp-query-state"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 
 const resolveBreadcrumbItems = (
@@ -41,7 +39,7 @@ const resolveBreadcrumbItems = (
   homeLabel: string
 ) => {
   const items: HerbatikaBreadcrumbItem[] = [
-    { label: homeLabel, href: "/", icon: "token-icon-home" },
+    { href: "/", icon: "token-icon-home", label: homeLabel },
   ]
 
   if (!activeCategory) {
@@ -82,7 +80,7 @@ const resolveBreadcrumbItems = (
   return items
 }
 
-type UseCategoryListingQueriesProps = {
+interface UseCategoryListingQueriesProps {
   queryState: NuqsPlpQueryState
   slug: string
 }
@@ -96,9 +94,9 @@ export function useCategoryListingQueries({
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const categoriesQuery = useCategories({
-    page: 1,
-    limit: CATEGORY_TREE_LIMIT,
     fields: CATEGORY_TREE_FIELDS,
+    limit: CATEGORY_TREE_LIMIT,
+    page: 1,
   })
 
   const categoryByHandle = new Map<string, HttpTypes.StoreProductCategory>()
@@ -148,9 +146,9 @@ export function useCategoryListingQueries({
   )
 
   const catalogProductsInput = buildCatalogProductsParams({
-    queryState,
     categoryIds: activeCategoryFilterIds,
     limit: PLP_PAGE_SIZE,
+    queryState,
   })
 
   const isCatalogQueryEnabled = Boolean(region?.region_id && activeCategory?.id)
@@ -161,19 +159,19 @@ export function useCategoryListingQueries({
   })
 
   const catalogFacetSeedInput = buildCatalogProductsParams({
-    queryState: {
-      ...queryState,
-      page: 1,
-      sort: "recommended",
-      status: [],
-      form: [],
-      brand: [],
-      ingredient: [],
-      price_min: null,
-      price_max: null,
-    },
     categoryIds: activeCategoryFilterIds,
     limit: 1,
+    queryState: {
+      ...queryState,
+      brand: [],
+      form: [],
+      ingredient: [],
+      page: 1,
+      price_max: null,
+      price_min: null,
+      sort: "recommended",
+      status: [],
+    },
   })
 
   const catalogFacetSeedQuery = useCatalogProducts({

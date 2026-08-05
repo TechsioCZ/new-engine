@@ -1,6 +1,7 @@
 "use client"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
-import { Combobox, type ComboboxItem } from "@techsio/ui-kit/molecules/combobox"
+import { Combobox } from "@techsio/ui-kit/molecules/combobox"
+import type { ComboboxItem } from "@techsio/ui-kit/molecules/combobox"
 import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
@@ -31,8 +32,8 @@ export function HeaderSearch() {
 
   const comboboxItems = searchResults.map((product) => ({
     id: product.id,
-    value: product.handle || product.id,
     label: product.title || "Untitled Product",
+    value: product.handle || product.id,
   }))
 
   // Update search query and trigger debounced search
@@ -52,17 +53,17 @@ export function HeaderSearch() {
 
   // Create combobox items
   const searchItems: ComboboxItem<Product>[] = searchResults.map((product) => ({
-    value: product.handle || product.id,
-    label: product.title || "Untitled Product",
     data: product,
+    label: product.title || "Untitled Product",
+    value: product.handle || product.id,
   }))
 
   // Add "View all results" option if there's a search query
   if (searchQuery && searchResults.length > 0) {
     searchItems.push({
-      value: "__search__",
-      label: `Zobrazit všechny výsledky pro "${searchQuery}"`,
       data: undefined,
+      label: `Zobrazit všechny výsledky pro "${searchQuery}"`,
+      value: "__search__",
     })
   }
 

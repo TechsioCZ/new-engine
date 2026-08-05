@@ -72,9 +72,9 @@ export const POST = async (
   res: MedusaResponse
 ) => {
   await enqueueImportJob(req, res, {
-    type: SYMMY_CUSTOMERS_UPSERT_JOB_TYPE,
     payload: { customers: req.validatedBody.customers },
-    total: req.validatedBody.customers.length,
     requestedEvent: SYMMY_CUSTOMERS_UPSERT_REQUESTED_EVENT,
+    total: req.validatedBody.customers.length,
+    type: SYMMY_CUSTOMERS_UPSERT_JOB_TYPE,
   })
 }

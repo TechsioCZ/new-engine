@@ -6,28 +6,28 @@ import { Label } from "../../src/atoms/label"
 import { StatusText } from "../../src/atoms/status-text"
 
 const meta: Meta<typeof Input> = {
-  title: "Atoms/Input",
+  argTypes: {
+    disabled: {
+      control: "boolean",
+      description: "Disabled state",
+    },
+    size: {
+      control: "select",
+      description: "Input size",
+      options: ["sm", "md", "lg"],
+    },
+    variant: {
+      control: "select",
+      description: "Visual variant of input",
+      options: ["default", "error", "success", "warning"],
+    },
+  },
   component: Input,
   parameters: {
     layout: "centered",
   },
   tags: ["autodocs"],
-  argTypes: {
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-      description: "Input size",
-    },
-    variant: {
-      control: "select",
-      options: ["default", "error", "success", "warning"],
-      description: "Visual variant of input",
-    },
-    disabled: {
-      control: "boolean",
-      description: "Disabled state",
-    },
-  },
+  title: "Atoms/Input",
 }
 
 export default meta

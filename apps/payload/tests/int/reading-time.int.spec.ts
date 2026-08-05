@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 
-vi.mock("@payloadcms/richtext-lexical/plaintext", () => ({
+vi.mock(import("@payloadcms/richtext-lexical/plaintext"), () => ({
   convertLexicalToPlaintext: vi.fn(),
 }))
 
@@ -11,13 +11,13 @@ import { estimateReadingTime } from "@/lib/utils/reading-time"
 const convertLexicalToPlaintextMock = vi.mocked(convertLexicalToPlaintext)
 
 describe("readingTime utilities", () => {
-  describe("estimateReadingTime", () => {
+  describe(estimateReadingTime, () => {
     it("returns 0 for null content", () => {
       expect(estimateReadingTime(null)).toBe(0)
     })
 
     it("returns 0 for undefined content", () => {
-      expect(estimateReadingTime(undefined)).toBe(0)
+      expect(estimateReadingTime()).toBe(0)
     })
 
     it("calculates reading time based on word count", () => {

@@ -7,7 +7,7 @@ import { listLocalRuntimeProviderOutputAliases } from "../contracts/stack-inputs
 import { loadDeployContracts } from "../orchestration/deploy-inputs.js"
 import { executeLocalEnvRuntimeProviderOutputTargets } from "../orchestration/local-env.js"
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..")
+const repoRoot = resolve(import.meta.dirname, "../../../..")
 const stackManifestPath = join(
   repoRoot,
   "apps/new-engine-ctl/config/stack-manifest.yaml"
@@ -19,32 +19,32 @@ const stackInputsPath = join(
 
 test("local provider aliases include only selected configured consumers", async () => {
   const result = await executeLocalEnvRuntimeProviderOutputTargets({
-    providerId: "meili_api_credentials",
-    outputId: "frontend_key",
-    serviceIdsCsv: "herbatika,n1",
     format: "json",
+    outputId: "frontend_key",
+    providerId: "meili_api_credentials",
+    serviceIdsCsv: "herbatika,n1",
     stackInputsPath,
   })
 
-  expect(result.targets).toEqual([
+  expect(result.targets).toStrictEqual([
     {
-      service_id: "n1",
       env_var: "NEXT_PUBLIC_MEILISEARCH_API_KEY",
       local_env_var: "DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY",
+      service_id: "n1",
     },
   ])
 })
 
 test("local provider aliases are empty for selected non-consumers", async () => {
   const result = await executeLocalEnvRuntimeProviderOutputTargets({
-    providerId: "meili_api_credentials",
-    outputId: "frontend_key",
-    serviceIdsCsv: "herbatika",
     format: "json",
+    outputId: "frontend_key",
+    providerId: "meili_api_credentials",
+    serviceIdsCsv: "herbatika",
     stackInputsPath,
   })
 
-  expect(result.targets).toEqual([])
+  expect(result.targets).toStrictEqual([])
 })
 
 test("local provider aliases still reject missing aliases for real consumers", async () => {

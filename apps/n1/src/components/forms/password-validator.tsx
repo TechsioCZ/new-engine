@@ -2,7 +2,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 
 import { PASSWORD_REQUIREMENTS } from "@/lib/form-validators"
 
-type PasswordValidatorProps = {
+interface PasswordValidatorProps {
   password: string
   showRequirements?: boolean
   className?: string

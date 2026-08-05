@@ -29,14 +29,14 @@ export function usePrefetchProduct() {
     } else {
       prefetchLogger.start("Product", handle)
       await queryClient.prefetchQuery({
-        queryKey,
-        queryFn: () =>
+        queryFn: async () =>
           getProductByHandle({
             handle,
             region_id: regionId,
             country_code: countryCode,
             ...(fields ? { fields } : {}),
           }),
+        queryKey,
         ...cacheConfig.semiStatic,
       })
     }
@@ -70,8 +70,8 @@ export function usePrefetchProduct() {
   }
 
   return {
-    prefetchProduct,
-    delayedPrefetch,
     cancelPrefetch,
+    delayedPrefetch,
+    prefetchProduct,
   }
 }

@@ -81,19 +81,22 @@ export const NumberFilter = ({
         }
 
         switch (selectedOperator) {
-          case "eq":
+          case "eq": {
             if (value) {
               selectedParams.add(value)
             } else {
               selectedParams.delete()
             }
             break
+          }
           case "lt":
-          case "gt":
+          case "gt": {
             handleValue(selectedOperator)
             break
-          default:
+          }
+          default: {
             break
+          }
         }
       }, 500),
     [selectedParams, currentValue]
@@ -130,12 +133,12 @@ export const NumberFilter = ({
 
   const operators: { operator: Comparison; label: string }[] = [
     {
-      operator: "exact",
       label: t("filters.compare.exact"),
+      operator: "exact",
     },
     {
-      operator: "range",
       label: t("filters.compare.range"),
+      operator: "range",
     },
   ]
 
@@ -180,7 +183,9 @@ export const NumberFilter = ({
               <RadioGroupRoot
                 autoFocus
                 className="flex flex-col items-start"
-                onValueChange={(val) => setOperator(val as Comparison)}
+                onValueChange={(val) => {
+                  setOperator(val as Comparison)
+                }}
                 orientation="vertical"
                 value={operator ?? null}
               >
@@ -212,9 +217,9 @@ export const NumberFilter = ({
                     <Input
                       defaultValue={getValue(currentValue, "gt")}
                       name={GT_KEY}
-                      onChange={(event) =>
+                      onChange={(event) => {
                         debouncedOnChange(event.target.value, "gt")
-                      }
+                      }}
                       size="small"
                       type="number"
                     />
@@ -228,9 +233,9 @@ export const NumberFilter = ({
                     <Input
                       defaultValue={getValue(currentValue, "lt")}
                       name={LT_KEY}
-                      onChange={(event) =>
+                      onChange={(event) => {
                         debouncedOnChange(event.target.value, "lt")
-                      }
+                      }}
                       size="small"
                       type="number"
                     />
@@ -247,9 +252,9 @@ export const NumberFilter = ({
                     <Input
                       defaultValue={getValue(currentValue, "eq")}
                       name={EQ_KEY}
-                      onChange={(event) =>
+                      onChange={(event) => {
                         debouncedOnChange(event.target.value, "eq")
-                      }
+                      }}
                       size="small"
                       type="number"
                     />

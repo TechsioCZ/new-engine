@@ -14,9 +14,9 @@ export async function POST(
   )
 
   res.set({
-    "Content-Type": "application/pdf",
     "Content-Disposition": `attachment; filename="${filename}"`,
     "Content-Length": buffer.length,
+    "Content-Type": "application/pdf",
   })
   res.send(buffer)
 }

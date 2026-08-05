@@ -15,13 +15,14 @@ import type {
   CategoryQueryKeys,
   CategoryService,
 } from "./types"
-export type CreateCategoryQueryOptionsFactoryConfig<
+
+export interface CreateCategoryQueryOptionsFactoryConfig<
   TCategory,
   TListInput extends CategoryListInputBase,
   TListParams,
   TDetailInput extends CategoryDetailInputBase,
   TDetailParams,
-> = {
+> {
   service: CategoryService<TCategory, TListParams, TDetailParams>
   buildListParams?: (input: TListInput) => TListParams
   buildDetailParams?: (input: TDetailInput) => TDetailParams
@@ -30,11 +31,11 @@ export type CreateCategoryQueryOptionsFactoryConfig<
   cacheConfig?: CacheConfig
 }
 
-export type CategoryQueryOptionsFactory<
+export interface CategoryQueryOptionsFactory<
   TCategory,
   TListInput extends CategoryListInputBase,
   TDetailInput extends CategoryDetailInputBase,
-> = {
+> {
   getListQueryOptions: (
     input: TListInput,
     options?: {
@@ -77,14 +78,14 @@ export function createCategoryQueryOptionsFactory<
 
   return createSimpleListDetailQueryOptionsFactory(
     omitUndefined({
-      getList: service.getCategories,
-      getDetail: service.getCategory,
-      buildListParams,
       buildDetailParams,
-      queryKeys: resolvedQueryKeys,
+      buildListParams,
       cacheConfig,
       defaultCacheStrategy: "static" as const,
+      getDetail: service.getCategory,
+      getList: service.getCategories,
       missingDetailErrorMessage: "Category id is required for category queries",
+      queryKeys: resolvedQueryKeys,
     })
   )
 }

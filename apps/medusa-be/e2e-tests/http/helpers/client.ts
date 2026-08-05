@@ -1,11 +1,11 @@
 export type JsonObject = Record<string, unknown>
 
-export type JsonResponse<T extends JsonObject = JsonObject> = {
+export interface JsonResponse<T extends JsonObject = JsonObject> {
   status: number
   data: T
 }
 
-export type ApiClient = {
+export interface ApiClient {
   get: <T extends JsonObject = JsonObject>(path: string) => Promise<T>
   post: <T extends JsonObject = JsonObject>(
     path: string,
@@ -40,12 +40,12 @@ export async function requestJson<T extends JsonObject = JsonObject>(
   }
 ): Promise<JsonResponse<T>> {
   const response = await fetch(`${baseUrl}${path}`, {
-    method: options?.method ?? "GET",
     headers: {
       ...(options?.body ? { "content-type": "application/json" } : {}),
       ...(options?.token ? { authorization: `Bearer ${options.token}` } : {}),
       ...options?.headers,
     },
+    method: options?.method ?? "GET",
     ...(options?.body ? { body: JSON.stringify(options.body) } : {}),
   })
   const rawBody = await response.text()

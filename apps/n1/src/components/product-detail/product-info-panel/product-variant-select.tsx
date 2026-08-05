@@ -9,14 +9,21 @@ import type { ProductDetail, ProductVariantDetail } from "@/types/product"
 import { TooltipContent } from "./tooltip-content"
 
 const variantButton = tv({
-  extend: buttonVariants,
   base: [
     "bg-lbwt-bg p-lbwt text-lbwt-fg",
     "cursor-pointer",
     "font-normal",
     "hover:bg-lbwt-bg-hover",
   ],
+  defaultVariants: {
+    size: "current",
+    variant: "outline",
+  },
+  extend: buttonVariants,
   variants: {
+    size: {
+      current: "",
+    },
     variant: {
       default: "",
       outline: [
@@ -26,17 +33,10 @@ const variantButton = tv({
         "data-[selected=true]:border-lbwt-border-selected",
       ],
     },
-    size: {
-      current: "",
-    },
-  },
-  defaultVariants: {
-    size: "current",
-    variant: "outline",
   },
 })
 
-type ProductVariantSelectProps = {
+interface ProductVariantSelectProps {
   detail: ProductDetail
   selectedVariant: ProductVariantDetail | null
   handle: string
@@ -67,7 +67,7 @@ export const ProductVariantSelect = ({
               />
             }
             key={variant.id}
-            offset={{ mainAxis: 4, crossAxis: 4 }}
+            offset={{ crossAxis: 4, mainAxis: 4 }}
             placement="bottom-start"
             variant="outline"
           >

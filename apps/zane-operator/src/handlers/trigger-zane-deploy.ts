@@ -20,8 +20,8 @@ export async function handleTriggerZaneDeploy(
     const client = new ZaneClient(deps.config)
     const payload = parseTriggerInput(rawBody)
     const result = await client.triggerDeploys({
-      projectSlug: payload.projectSlug,
       environmentName: payload.environmentName,
+      projectSlug: payload.projectSlug,
       targets: payload.targets,
       ...(payload.gitCommitSha === undefined
         ? {}

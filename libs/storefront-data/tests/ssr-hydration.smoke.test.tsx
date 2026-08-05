@@ -5,6 +5,7 @@ import {
 } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
+import { afterEach, describe, expect, it } from "vitest"
 
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createProductHooks } from "../src/products/hooks"
@@ -16,18 +17,18 @@ import type {
 import { getServerQueryClient } from "../src/server/get-query-client"
 import { createCacheConfig } from "../src/shared/cache-config"
 
-type TestProduct = {
+interface TestProduct {
   id: string
   title: string
 }
 
-type ProductListParams = {
+interface ProductListParams {
   limit: number
   offset: number
   region_id?: string
 }
 
-type ProductDetailParams = {
+interface ProductDetailParams {
   handle: string
   region_id?: string
 }
@@ -70,6 +71,7 @@ describe("storefront-data SSR hydration smoke", () => {
       ProductListParams,
       ProductDetailParams
     > = {
+      getProductByHandle: async () => null,
       getProducts: async (params) => {
         fetchCount += 1
         return {
@@ -84,30 +86,29 @@ describe("storefront-data SSR hydration smoke", () => {
           offset: params.offset,
         }
       },
-      getProductByHandle: async () => null,
     }
 
     const cacheConfig = createCacheConfig({
       semiStatic: {
-        staleTime: Number.POSITIVE_INFINITY,
         gcTime: Number.POSITIVE_INFINITY,
         refetchOnMount: false,
-        refetchOnWindowFocus: false,
         refetchOnReconnect: false,
+        refetchOnWindowFocus: false,
+        staleTime: Number.POSITIVE_INFINITY,
       },
     })
 
     const queryKeyNamespace = "smoke-ssr"
     const { useProducts } = createProductHooks({
-      service,
       buildListParams,
-      queryKeyNamespace,
       cacheConfig,
+      queryKeyNamespace,
+      service,
     })
 
     const input = {
-      page: 1,
       limit: 2,
+      page: 1,
       region_id: "reg_ssr",
     }
 
@@ -119,8 +120,8 @@ describe("storefront-data SSR hydration smoke", () => {
 
     const serverQueryClient = trackClient(getServerQueryClient())
     await serverQueryClient.prefetchQuery({
+      queryFn: async () => service.getProducts(listParams),
       queryKey: queryKeys.list(listParams),
-      queryFn: () => service.getProducts(listParams),
     })
 
     const dehydratedState = dehydrate(serverQueryClient)
@@ -144,7 +145,7 @@ describe("storefront-data SSR hydration smoke", () => {
     const { result } = renderHook(() => useProducts(input), { wrapper })
 
     await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true)
+      expect(result.current.isSuccess).toBeTruthy()
     })
 
     expect(result.current.products).toHaveLength(1)

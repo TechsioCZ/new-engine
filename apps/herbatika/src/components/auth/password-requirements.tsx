@@ -3,7 +3,7 @@ import { useTranslations } from "next-intl"
 
 import { PASSWORD_REQUIREMENTS } from "@/lib/auth/auth-form-validators"
 
-type PasswordRequirementsProps = {
+interface PasswordRequirementsProps {
   password: string
 }
 

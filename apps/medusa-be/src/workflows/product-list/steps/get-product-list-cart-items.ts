@@ -12,12 +12,12 @@ import { toProductListItemVariantLinks } from "../../../utils/product-list-links
 
 const PRODUCT_LIST_CART_ITEMS_LOOKUP_CHUNK_SIZE = 1000
 
-export type ProductListCartItem = {
+export interface ProductListCartItem {
   variant_id: string
   quantity: number
 }
 
-type ProductListItemRecord = {
+interface ProductListItemRecord {
   id: string
   quantity: number
 }
@@ -59,7 +59,7 @@ export const getProductListCartItemsStep = createStep(
           list_id: listId,
         },
         {
-          order: { sort_order: "ASC", created_at: "ASC" },
+          order: { created_at: "ASC", sort_order: "ASC" },
           skip,
           take: PRODUCT_LIST_CART_ITEMS_LOOKUP_CHUNK_SIZE,
         }
@@ -107,9 +107,9 @@ export const getProductListCartItemsStep = createStep(
       skip += PRODUCT_LIST_CART_ITEMS_LOOKUP_CHUNK_SIZE
     }
 
-    const cartItems: ProductListCartItem[] = Array.from(
-      quantitiesByVariantId.entries()
-    ).map(([variant_id, quantity]) => ({
+    const cartItems: ProductListCartItem[] = [
+      ...quantitiesByVariantId.entries(),
+    ].map(([variant_id, quantity]) => ({
       quantity,
       variant_id,
     }))

@@ -2,11 +2,10 @@
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
-import {
-  PhoneInput,
-  type PhoneInputCountry,
-} from "@techsio/ui-kit/molecules/phone-input"
-import { type ReactNode, useState } from "react"
+import { PhoneInput } from "@techsio/ui-kit/molecules/phone-input"
+import type { PhoneInputCountry } from "@techsio/ui-kit/molecules/phone-input"
+import { useState } from "react"
+import type { ReactNode } from "react"
 
 import {
   resolveVisibleFieldFeedback,
@@ -14,7 +13,7 @@ import {
 } from "@/lib/forms/core/field-errors"
 import { useFieldContext } from "@/lib/forms/core/herbatika-form-context"
 
-type FormPhoneFieldProps = {
+interface FormPhoneFieldProps {
   id: string
   label: ReactNode
   countries?: PhoneInputCountry[]
@@ -27,9 +26,6 @@ type FormPhoneFieldProps = {
 
 const HERBATIKA_PHONE_COUNTRIES: PhoneInputCountry[] = [
   {
-    value: "SK",
-    label: "Slovensko",
-    name: "Slovensko",
     flag: (
       <Icon
         className="brightness-95"
@@ -37,11 +33,11 @@ const HERBATIKA_PHONE_COUNTRIES: PhoneInputCountry[] = [
         size="md"
       />
     ),
+    label: "Slovensko",
+    name: "Slovensko",
+    value: "SK",
   },
   {
-    value: "CZ",
-    label: "Česko",
-    name: "Česko",
     flag: (
       <Icon
         className="brightness-95"
@@ -49,11 +45,11 @@ const HERBATIKA_PHONE_COUNTRIES: PhoneInputCountry[] = [
         size="md"
       />
     ),
+    label: "Česko",
+    name: "Česko",
+    value: "CZ",
   },
   {
-    value: "AT",
-    label: "Rakúsko",
-    name: "Rakúsko",
     flag: (
       <Icon
         className="brightness-95"
@@ -61,11 +57,11 @@ const HERBATIKA_PHONE_COUNTRIES: PhoneInputCountry[] = [
         size="md"
       />
     ),
+    label: "Rakúsko",
+    name: "Rakúsko",
+    value: "AT",
   },
   {
-    value: "HU",
-    label: "Maďarsko",
-    name: "Maďarsko",
     flag: (
       <Icon
         className="brightness-95"
@@ -73,11 +69,11 @@ const HERBATIKA_PHONE_COUNTRIES: PhoneInputCountry[] = [
         size="md"
       />
     ),
+    label: "Maďarsko",
+    name: "Maďarsko",
+    value: "HU",
   },
   {
-    value: "RO",
-    label: "Rumunsko",
-    name: "Rumunsko",
     flag: (
       <Icon
         className="brightness-95"
@@ -85,6 +81,9 @@ const HERBATIKA_PHONE_COUNTRIES: PhoneInputCountry[] = [
         size="md"
       />
     ),
+    label: "Rumunsko",
+    name: "Rumunsko",
+    value: "RO",
   },
 ]
 

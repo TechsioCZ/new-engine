@@ -12,7 +12,7 @@ import type { RegionInfo } from "../shared/region"
 
 export type { RegionInfo } from "../shared/region"
 
-export type StorePricePerUnit = {
+export interface StorePricePerUnit {
   calculated_amount?: number
   calculated_amount_with_tax?: number
   calculated_amount_without_tax?: number
@@ -72,19 +72,19 @@ export type ProductDetailInputBase = RegionInfo & {
   enabled?: boolean
 }
 
-export type ProductListResponse<TProduct> = {
+export interface ProductListResponse<TProduct> {
   products: TProduct[]
   count: number
   limit: number
   offset: number
 }
 
-export type ProductInfiniteData<TProduct> = {
+export interface ProductInfiniteData<TProduct> {
   pages: ProductListResponse<TProduct>[]
   pageParams: unknown[]
 }
 
-export type ProductService<TProduct, TListParams, TDetailParams> = {
+export interface ProductService<TProduct, TListParams, TDetailParams> {
   getProducts: (
     params: TListParams,
     signal?: AbortSignal
@@ -99,13 +99,13 @@ export type ProductService<TProduct, TListParams, TDetailParams> = {
   ) => Promise<TProduct | null>
 }
 
-export type ProductQueryKeys<TListParams, TDetailParams> = {
+export interface ProductQueryKeys<TListParams, TDetailParams> {
   list: (params: TListParams) => QueryKey
   infinite?: (params: TListParams) => QueryKey
   detail: (params: TDetailParams) => QueryKey
 }
 
-type ProductsResultFields<TProduct> = {
+interface ProductsResultFields<TProduct> {
   products: TProduct[]
   totalCount: number
   currentPage: number

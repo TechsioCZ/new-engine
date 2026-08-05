@@ -1,4 +1,4 @@
-type TooltipContentProps = {
+interface TooltipContentProps {
   title: string
   variant: string
   quantity: number

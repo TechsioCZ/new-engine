@@ -4,8 +4,6 @@ import { Modules } from "@medusajs/framework/utils"
 import { QUOTE_MODULE } from "../modules/quote"
 
 MedusaModule.setCustomLink(() => ({
-  isLink: true,
-  isReadOnlyLink: true,
   extends: [
     {
       serviceName: QUOTE_MODULE,
@@ -73,4 +71,6 @@ MedusaModule.setCustomLink(() => ({
       },
     },
   ],
+  isLink: true,
+  isReadOnlyLink: true,
 }))

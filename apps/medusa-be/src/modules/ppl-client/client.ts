@@ -42,11 +42,11 @@ import type {
 } from "./types"
 
 const BASE_URLS = {
-  testing: "https://api-dev.dhl.com/ecs/ppl/myapi2",
   production: "https://api.dhl.com/ecs/ppl/myapi2",
+  testing: "https://api-dev.dhl.com/ecs/ppl/myapi2",
 } as const
 
-type RequestOptions = {
+interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE"
   body?: unknown
   allow404?: boolean
@@ -84,11 +84,11 @@ export class PplClient {
 
   private initOAuthClient(): void {
     this.oauth2Client = new OAuth2Client({
-      server: this.baseUrl,
-      tokenEndpoint: "/ecs/ppl/myapi2/login/getAccessToken",
+      authenticationMethod: "client_secret_post",
       clientId: this.options.client_id,
       clientSecret: this.options.client_secret,
-      authenticationMethod: "client_secret_post",
+      server: this.baseUrl,
+      tokenEndpoint: "/ecs/ppl/myapi2/login/getAccessToken",
     })
   }
 
@@ -135,25 +135,29 @@ export class PplClient {
     }
   ): Promise<string> {
     const body = {
-      shipments,
       labelSettings: options?.labelSettings ?? {
         format: this.options.default_label_format,
         dpi: 300,
       },
+      shipments,
       ...(options?.returnChannel && { returnChannel: options.returnChannel }),
       ...(options?.shipmentsOrderBy && {
         shipmentsOrderBy: options.shipmentsOrderBy,
       }),
     }
 
-    return this.createBatchWithLocationHeader(token, "/shipment/batch", body)
+    return await this.createBatchWithLocationHeader(
+      token,
+      "/shipment/batch",
+      body
+    )
   }
 
   async getBatchStatus(
     token: string,
     batchId: string
   ): Promise<PplBatchResponse> {
-    return this.get<PplBatchResponse>(token, `/shipment/batch/${batchId}`)
+    return await this.get<PplBatchResponse>(token, `/shipment/batch/${batchId}`)
   }
 
   async downloadLabel(token: string, labelUrl: string): Promise<Buffer> {
@@ -252,35 +256,43 @@ export class PplClient {
     token: string,
     query: PplCodelistQuery = { limit: 100, offset: 0 }
   ): Promise<PplCodelistProduct[]> {
-    return this.fetchCodelist<PplCodelistProduct>(token, "product", query)
+    return await this.fetchCodelist<PplCodelistProduct>(token, "product", query)
   }
 
   async getCodelistCountries(
     token: string,
     query: PplCodelistQuery = { limit: 100, offset: 0 }
   ): Promise<PplCodelistCountry[]> {
-    return this.fetchCodelist<PplCodelistCountry>(token, "country", query)
+    return await this.fetchCodelist<PplCodelistCountry>(token, "country", query)
   }
 
   async getCodelistCurrencies(
     token: string,
     query: PplCodelistQuery = { limit: 100, offset: 0 }
   ): Promise<PplCodelistCurrency[]> {
-    return this.fetchCodelist<PplCodelistCurrency>(token, "currency", query)
+    return await this.fetchCodelist<PplCodelistCurrency>(
+      token,
+      "currency",
+      query
+    )
   }
 
   async getCodelistServices(
     token: string,
     query: PplCodelistQuery = { limit: 100, offset: 0 }
   ): Promise<PplCodelistServiceItem[]> {
-    return this.fetchCodelist<PplCodelistServiceItem>(token, "service", query)
+    return await this.fetchCodelist<PplCodelistServiceItem>(
+      token,
+      "service",
+      query
+    )
   }
 
   async getCodelistStatuses(
     token: string,
     query: PplCodelistQuery = { limit: 100, offset: 0 }
   ): Promise<PplCodelistStatus[]> {
-    return this.fetchCodelist<PplCodelistStatus>(token, "status", query)
+    return await this.fetchCodelist<PplCodelistStatus>(token, "status", query)
   }
 
   async getCodelistServicePriceLimits(
@@ -343,14 +355,21 @@ export class PplClient {
     token: string,
     request: PplOrderBatchRequest
   ): Promise<string> {
-    return this.createBatchWithLocationHeader(token, "/order/batch", request)
+    return await this.createBatchWithLocationHeader(
+      token,
+      "/order/batch",
+      request
+    )
   }
 
   async getOrderBatchStatus(
     token: string,
     batchId: string
   ): Promise<PplOrderBatchResponse> {
-    return this.get<PplOrderBatchResponse>(token, `/order/batch/${batchId}`)
+    return await this.get<PplOrderBatchResponse>(
+      token,
+      `/order/batch/${batchId}`
+    )
   }
 
   async getOrders(token: string, query: PplOrderQuery): Promise<PplOrder[]> {
@@ -376,8 +395,8 @@ export class PplClient {
 
     try {
       await this.makeRequest(token, `/order/cancel?${params.toString()}`, {
-        method: "POST",
         body: request,
+        method: "POST",
       })
       return true
     } catch {
@@ -395,8 +414,8 @@ export class PplClient {
     request: PplBatchUpdateRequest
   ): Promise<void> {
     await this.makeRequest(token, `/shipment/batch/${batchId}`, {
-      method: "PUT",
       body: request,
+      method: "PUT",
     })
   }
 
@@ -419,7 +438,7 @@ export class PplClient {
       params.append("OrderBy", query.orderBy)
     }
 
-    return this.get<PplBatchLabelResponse>(
+    return await this.get<PplBatchLabelResponse>(
       token,
       `/shipment/batch/${batchId}/label?${params.toString()}`
     )
@@ -436,8 +455,8 @@ export class PplClient {
   ): Promise<boolean> {
     try {
       await this.makeRequest(token, `/shipment/${shipmentNumber}/redirect`, {
-        method: "POST",
         body: request,
+        method: "POST",
       })
       return true
     } catch {
@@ -451,8 +470,8 @@ export class PplClient {
   ): Promise<boolean> {
     try {
       await this.makeRequest(token, "/shipment/batch/connectSet", {
-        method: "POST",
         body: request,
+        method: "POST",
       })
       return true
     } catch {
@@ -485,17 +504,23 @@ export class PplClient {
       params.append("ProductType", query.productType)
     }
 
-    return this.get<PplRoutingResponse>(token, `/routing?${params.toString()}`)
+    return await this.get<PplRoutingResponse>(
+      token,
+      `/routing?${params.toString()}`
+    )
   }
 
   async getVersionInformation(
     token: string
   ): Promise<PplVersionInformationResponse> {
-    return this.get<PplVersionInformationResponse>(token, "/versionInformation")
+    return await this.get<PplVersionInformationResponse>(
+      token,
+      "/versionInformation"
+    )
   }
 
   async getApiInfo(token: string): Promise<PplApiInfo> {
-    return this.get<PplApiInfo>(token, "/info")
+    return await this.get<PplApiInfo>(token, "/info")
   }
 
   // ============================================
@@ -641,7 +666,7 @@ export class PplClient {
     return Array.isArray(data) ? data : data?.items || []
   }
 
-  private sleep(ms: number): Promise<void> {
+  private async sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
@@ -653,8 +678,12 @@ export class PplClient {
     const timeoutController = new AbortController()
     const controller = new AbortController()
     const requestSignal = init.signal
-    const abortFromRequestSignal = () => controller.abort()
-    const abortFromTimeout = () => controller.abort()
+    const abortFromRequestSignal = () => {
+      controller.abort()
+    }
+    const abortFromTimeout = () => {
+      controller.abort()
+    }
 
     if (requestSignal?.aborted) {
       controller.abort()
@@ -668,7 +697,9 @@ export class PplClient {
       once: true,
     })
 
-    const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs)
+    const timeoutId = setTimeout(() => {
+      timeoutController.abort()
+    }, timeoutMs)
 
     try {
       return await fetch(url, { ...init, signal: controller.signal })
@@ -746,8 +777,8 @@ export class PplClient {
 
     if (this.isRetryable(response.status) && attempt < this.MAX_RETRIES) {
       return {
-        retry: true,
         error: new Error(`${response.status} - ${await response.text()}`),
+        retry: true,
       }
     }
 
@@ -785,16 +816,16 @@ export class PplClient {
     path: string,
     body: unknown
   ): Promise<string> {
-    return this.withRetry(
-      () =>
+    return await this.withRetry(
+      async () =>
         this.fetchWithTimeout(`${this.baseUrl}${path}`, {
-          method: "POST",
+          body: JSON.stringify(body),
           headers: {
+            Accept: "application/json",
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
-            Accept: "application/json",
           },
-          body: JSON.stringify(body),
+          method: "POST",
         }),
       async (response) => {
         if (response.status !== 201) {
@@ -834,20 +865,20 @@ export class PplClient {
     const { method = "GET", body, allow404 = false } = options
 
     const headers: Record<string, string> = {
-      Authorization: `Bearer ${token}`,
       Accept: "application/json",
+      Authorization: `Bearer ${token}`,
     }
     if (body) {
       headers["Content-Type"] = "application/json"
     }
 
-    const request: RequestInit = { method, headers }
+    const request: RequestInit = { headers, method }
     if (body !== undefined) {
       request.body = JSON.stringify(body)
     }
 
-    return this.withRetry(
-      () => this.fetchWithTimeout(`${this.baseUrl}${path}`, request),
+    return await this.withRetry(
+      async () => this.fetchWithTimeout(`${this.baseUrl}${path}`, request),
       async (response) => {
         if (allow404 && response.status === 404) {
           return { data: null, status: 404 }

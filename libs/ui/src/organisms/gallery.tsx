@@ -9,27 +9,20 @@
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the gallery-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import {
-  type ComponentPropsWithoutRef,
-  type CSSProperties,
-  createContext,
-  type ElementType,
-  Fragment,
-  type MouseEvent,
-  type ReactNode,
-  useContext,
-  useEffect,
-  useState,
+import { createContext, Fragment, useContext, useEffect, useState } from "react"
+import type {
+  ComponentPropsWithoutRef,
+  CSSProperties,
+  ElementType,
+  MouseEvent,
+  ReactNode,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { Button } from "../atoms/button"
 import { Image } from "../atoms/image"
-import {
-  Carousel,
-  type CarouselRootProps,
-  type CarouselSlide,
-} from "../molecules/carousel"
+import { Carousel } from "../molecules/carousel"
+import type { CarouselRootProps, CarouselSlide } from "../molecules/carousel"
 import { tv } from "../utils"
 
 type GalleryImageComponent<T extends ElementType = typeof Image> =
@@ -44,12 +37,12 @@ type GalleryImageComponent<T extends ElementType = typeof Image> =
       : never
 
 const galleryVariants = tv({
+  defaultVariants: {
+    orientation: "vertical",
+  },
   slots: {
-    root: "w-full gap-gallery-root",
     main: "relative flex min-w-0 h-fit",
-    thumbnails: "shrink-0",
-    thumbnailsScrollArea: "scrollbar-thin",
-    thumbnailsList: "flex gap-gallery-sm",
+    root: "w-full gap-gallery-root",
     thumbnailTrigger: [
       "relative shrink-0",
       "size-(--gallery-thumbnail-size)",
@@ -67,29 +60,29 @@ const galleryVariants = tv({
       "transition-all duration-200 motion-reduce:transition-none",
       "*:object-cover *:size-full",
     ],
+    thumbnails: "shrink-0",
+    thumbnailsList: "flex gap-gallery-sm",
+    thumbnailsScrollArea: "scrollbar-thin",
   },
   variants: {
     orientation: {
       horizontal: {
-        root: "flex flex-col",
         main: "order-1",
+        root: "flex flex-col",
         thumbnails: "order-2",
-        thumbnailsScrollArea: "w-full overflow-x-auto overflow-y-hidden",
         thumbnailsList: "flex-row items-center py-gallery-sm",
+        thumbnailsScrollArea: "w-full overflow-x-auto overflow-y-hidden",
       },
       vertical: {
-        root: "flex flex-col md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-start",
         main: "order-1 md:col-start-1 md:row-start-1",
+        root: "flex flex-col md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-start",
         thumbnails: "order-2 md:col-start-2 md:row-start-1",
-        thumbnailsScrollArea:
-          "w-full overflow-x-auto overflow-y-hidden md:max-h-gallery md:overflow-x-hidden md:overflow-y-auto",
         thumbnailsList:
           "flex-row items-center py-gallery-sm md:flex-col md:items-stretch md:px-gallery-xs md:py-0",
+        thumbnailsScrollArea:
+          "w-full overflow-x-auto overflow-y-hidden md:max-h-gallery md:overflow-x-hidden md:overflow-y-auto",
       },
     },
-  },
-  defaultVariants: {
-    orientation: "vertical",
   },
 })
 
@@ -100,16 +93,16 @@ export type GalleryItem = CarouselSlide & {
   thumbnailImageProps?: Record<string, unknown> | undefined
 }
 
-export type GalleryValueChangeDetails = {
+export interface GalleryValueChangeDetails {
   value: number
 }
 
-export type GalleryThumbnailAriaLabelParams = {
+export interface GalleryThumbnailAriaLabelParams {
   index: number
   item: GalleryItem
 }
 
-export type GalleryRenderThumbnailParams = {
+export interface GalleryRenderThumbnailParams {
   item: GalleryItem
   index: number
   isActive: boolean
@@ -142,7 +135,7 @@ export type GalleryProps<T extends ElementType = typeof Image> = VariantProps<
     emptyState?: ReactNode | undefined
   }
 
-type GalleryContextValue = {
+interface GalleryContextValue {
   items: GalleryItem[]
   page: number
   setPage: (index: number) => void
@@ -227,15 +220,15 @@ export function Gallery<T extends ElementType = typeof Image>({
   return (
     <GalleryContext.Provider
       value={{
+        carouselProps: carouselProps as GalleryCarouselProps<ElementType>,
+        getThumbnailAriaLabel,
         items,
         page,
         setPage,
         showThumbnails: shouldShowThumbnails,
-        thumbnailSize,
-        thumbnailImageAs,
-        getThumbnailAriaLabel,
         styles,
-        carouselProps: carouselProps as GalleryCarouselProps<ElementType>,
+        thumbnailImageAs,
+        thumbnailSize,
       }}
     >
       <div className={styles.root({ className })} {...props}>
@@ -307,11 +300,11 @@ Gallery.Thumbnails = function GalleryThumbnails({
         return (
           <Fragment key={item.id}>
             {renderThumbnail({
-              item,
+              defaultThumbnail,
               index,
               isActive: page === index,
+              item,
               setActive: setPage,
-              defaultThumbnail,
             })}
           </Fragment>
         )
@@ -475,7 +468,7 @@ Gallery.Carousel = function GalleryCarousel<
   )
 }
 
-type GallerySlidesProps = {
+interface GallerySlidesProps {
   slides?: GalleryItem[] | undefined
   size?: "sm" | "md" | "lg" | "full" | undefined
   imageAs?: ElementType | undefined
@@ -496,7 +489,7 @@ Gallery.Slides = function GallerySlides({
       className={className}
       imageAs={imageAs ?? inheritedProps.imageAs}
       size={size}
-      slides={(slides || items) as CarouselSlide[]}
+      slides={slides || items}
     />
   )
 }

@@ -4,7 +4,7 @@ import { SearchResults } from "@/components/search-results"
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state"
 import { prefetchSearchPageStorefrontData } from "@/lib/storefront/ssr"
 
-type SearchPageProps = {
+interface SearchPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 

@@ -4,7 +4,7 @@ import NextImage from "next/image"
 import logo from "@/assets/herbatica-logo.avif"
 import NextLink from "@/components/app-link"
 
-type HerbatikaLogoProps = {
+interface HerbatikaLogoProps {
   className?: string
   href?: string
   imageClassName?: string

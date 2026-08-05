@@ -9,13 +9,13 @@ import { resolvePriceState } from "@/components/product-card/product-card.pricin
 import { resolveThumbnail } from "@/components/product-card/product-card.thumbnail"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 
-export type HerbatikaProductCardBaseProps = {
+export interface HerbatikaProductCardBaseProps {
   product: HttpTypes.StoreProduct
   onProductHoverStart?: (product: HttpTypes.StoreProduct) => void
   onProductHoverEnd?: (product: HttpTypes.StoreProduct) => void
 }
 
-type HerbatikaProductCardStateOptions = {
+interface HerbatikaProductCardStateOptions {
   priceUnavailableLabel: string
   onImageError?: () => void
 }

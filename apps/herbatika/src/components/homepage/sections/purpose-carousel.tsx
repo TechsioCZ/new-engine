@@ -1,10 +1,8 @@
 "use client"
 
 import { Link } from "@techsio/ui-kit/atoms/link"
-import {
-  Carousel,
-  type CarouselSlide,
-} from "@techsio/ui-kit/molecules/carousel"
+import { Carousel } from "@techsio/ui-kit/molecules/carousel"
+import type { CarouselSlide } from "@techsio/ui-kit/molecules/carousel"
 import { useTranslations } from "next-intl"
 import NextImage from "next/image"
 import type { ComponentProps } from "react"
@@ -18,21 +16,21 @@ type ImageSource = ComponentProps<typeof NextImage>["src"]
 type PurposeCarouselRootHandle =
   (typeof HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS)[number]["rootHandle"]
 
-type PurposeCarouselItem = {
+interface PurposeCarouselItem {
   href: string
   id: string
   label: string
   src: ImageSource
 }
 
-type PurposeCarouselProps = {
+interface PurposeCarouselProps {
   items?: PurposeCarouselItem[]
   rootHandle?: PurposeCarouselRootHandle
   title?: string
   viewAllHref?: string
 }
 
-type PurposeCarouselSlidesProps = {
+interface PurposeCarouselSlidesProps {
   slides: CarouselSlide[]
   slidesPerPage: number
 }
@@ -68,7 +66,6 @@ const buildResolvedPurposeCarouselItems = (
 
 const buildImageSlides = (items: PurposeCarouselItem[]): CarouselSlide[] =>
   items.map((item) => ({
-    id: item.id,
     content: (
       <Link
         as={NextLink}
@@ -89,6 +86,7 @@ const buildImageSlides = (items: PurposeCarouselItem[]): CarouselSlide[] =>
         </span>
       </Link>
     ),
+    id: item.id,
   }))
 
 function PurposeCarouselSlides({

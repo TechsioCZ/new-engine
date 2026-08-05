@@ -10,12 +10,8 @@ import {
   Toaster,
 } from "@medusajs/ui"
 import { useTranslation } from "react-i18next"
-import {
-  type LoaderFunctionArgs,
-  type UIMatch,
-  useNavigate,
-  useParams,
-} from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
+import type { LoaderFunctionArgs, UIMatch } from "react-router-dom"
 
 import type {
   AdminCompanyResponse,
@@ -35,13 +31,13 @@ import {
 } from "../components/employees"
 
 export async function loader({ params }: LoaderFunctionArgs) {
-  const companyId = params["companyId"]
+  const { companyId } = params
 
   if (!companyId) {
     return { company: undefined }
   }
 
-  return sdk.client.fetch<AdminCompanyResponse>(
+  return await sdk.client.fetch<AdminCompanyResponse>(
     `/admin/companies/${companyId}`,
     {
       query: {
@@ -69,11 +65,23 @@ const EmployeeActionCell = ({
   isDeleted: boolean
 }) => {
   if (isDeleted) {
-    return <Table.Cell onClick={(e) => e.stopPropagation()}>-</Table.Cell>
+    return (
+      <Table.Cell
+        onClick={(e) => {
+          e.stopPropagation()
+        }}
+      >
+        -
+      </Table.Cell>
+    )
   }
 
   return (
-    <Table.Cell onClick={(e) => e.stopPropagation()}>
+    <Table.Cell
+      onClick={(e) => {
+        e.stopPropagation()
+      }}
+    >
       <EmployeesActionsMenu company={company} employee={employee} />
     </Table.Cell>
   )
@@ -244,10 +252,12 @@ const CompanyDetails = () => {
                   aria-label={employee.customer?.email || employee.id}
                   className="cursor-pointer"
                   key={employee.id}
-                  onClick={() => openCustomer(employee)}
-                  onKeyDown={onRowKeyboardActivate(() =>
+                  onClick={() => {
                     openCustomer(employee)
-                  )}
+                  }}
+                  onKeyDown={onRowKeyboardActivate(() => {
+                    openCustomer(employee)
+                  })}
                   role="button"
                   tabIndex={0}
                 >

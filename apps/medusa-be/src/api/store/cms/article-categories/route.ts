@@ -7,8 +7,8 @@ import { optionalStringParam } from "../../../../utils/query-params"
 
 /** Query schema for fetching CMS article categories with articles. */
 export const StoreCmsArticleCategoriesSchema = z.object({
-  locale: optionalStringParam,
   categorySlug: optionalStringParam,
+  locale: optionalStringParam,
 })
 
 /** Parsed query type for article category listing. */
@@ -26,8 +26,8 @@ export async function GET(
   const { categorySlug } = req.validatedQuery
 
   const articleCategories = await cmsService.listArticleCategoriesWithArticles({
-    locale: req.locale,
     categorySlug,
+    locale: req.locale,
   })
 
   return res.json({ articleCategories })

@@ -5,8 +5,8 @@ const StatusColors: Record<string, "green" | "orange" | "red" | "blue"> = {
   accepted: "green",
   customer_rejected: "orange",
   merchant_rejected: "red",
-  pending_merchant: "blue",
   pending_customer: "blue",
+  pending_merchant: "blue",
 }
 
 export default function QuoteStatusBadge({ status }: { status: string }) {

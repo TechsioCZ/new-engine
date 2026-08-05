@@ -1,6 +1,6 @@
 import { sdk } from "./sdk"
 
-export type MeasurementUnit = {
+export interface MeasurementUnit {
   active_product_count?: number
   base_quantity: number
   code: string
@@ -13,7 +13,7 @@ export type MeasurementUnit = {
   updated_at?: string
 }
 
-export type MeasurementUnitInput = {
+export interface MeasurementUnitInput {
   base_quantity: number
   code: string
   description?: string | null
@@ -28,7 +28,7 @@ export const isMeasurementUnitStatus = (
 ): value is MeasurementUnitStatus =>
   value === "active" || value === "all" || value === "deleted"
 
-export type ProductMeasurement = {
+export interface ProductMeasurement {
   created_at?: string
   id: string
   product_id: string
@@ -37,7 +37,7 @@ export type ProductMeasurement = {
   variant_measurements: ProductVariantMeasurement[]
 }
 
-export type MeasurementUnitAssignedProduct = {
+export interface MeasurementUnitAssignedProduct {
   deleted_at?: string | null
   handle?: null | string
   id: string
@@ -47,13 +47,13 @@ export type MeasurementUnitAssignedProduct = {
   updated_at?: string
 }
 
-export type ProductMeasurementVariant = {
+export interface ProductMeasurementVariant {
   id: string
   sku?: null | string
   title?: null | string
 }
 
-export type ProductVariantMeasurement = {
+export interface ProductVariantMeasurement {
   created_at?: string
   id: string
   product_unit_quantity: number
@@ -61,30 +61,30 @@ export type ProductVariantMeasurement = {
   updated_at?: string
 }
 
-export type MeasurementUnitsResponse = {
+export interface MeasurementUnitsResponse {
   measurement_units: MeasurementUnit[]
   count: number
   limit: number
   offset: number
 }
 
-export type MeasurementUnitResponse = {
+export interface MeasurementUnitResponse {
   measurement_unit: MeasurementUnit
 }
 
-export type MeasurementUnitAssignedProductsResponse = {
+export interface MeasurementUnitAssignedProductsResponse {
   products: MeasurementUnitAssignedProduct[]
   count: number
   limit: number
   offset: number
 }
 
-export type ProductMeasurementResponse = {
+export interface ProductMeasurementResponse {
   measurement: ProductMeasurement | null
   variants: ProductMeasurementVariant[]
 }
 
-export type ProductVariantMeasurementResponse = {
+export interface ProductVariantMeasurementResponse {
   measurement: ProductMeasurement | null
   variant_measurement: ProductVariantMeasurement | null
 }
@@ -109,21 +109,21 @@ export const measurementUnitQueryKeys = {
   list: (params: Record<string, unknown>) =>
     ["measurement-units", params] as const,
   lists: () => ["measurement-units"] as const,
-  products: (id: string | undefined, params: Record<string, unknown>) =>
-    ["measurement-unit-products", id, params] as const,
-  productsPrefix: (id: string | undefined) =>
-    ["measurement-unit-products", id] as const,
   productMeasurement: (productId: string | undefined) =>
     ["product-measurement", productId] as const,
-  productVariantMeasurements: (productId: string | undefined) =>
-    ["product-variant-measurement", productId] as const,
   productVariantMeasurement: (
     productId: string | undefined,
     productVariantId: string | undefined
   ) => ["product-variant-measurement", productId, productVariantId] as const,
+  productVariantMeasurements: (productId: string | undefined) =>
+    ["product-variant-measurement", productId] as const,
+  products: (id: string | undefined, params: Record<string, unknown>) =>
+    ["measurement-unit-products", id, params] as const,
+  productsPrefix: (id: string | undefined) =>
+    ["measurement-unit-products", id] as const,
 }
 
-export const listMeasurementUnits = (params: {
+export const listMeasurementUnits = async (params: {
   code?: string
   include_deleted?: boolean
   limit: number
@@ -136,10 +136,10 @@ export const listMeasurementUnits = (params: {
     `/admin/measurement-units?${toSearch(params)}`
   )
 
-export const retrieveMeasurementUnit = (id: string) =>
+export const retrieveMeasurementUnit = async (id: string) =>
   sdk.client.fetch<MeasurementUnitResponse>(`/admin/measurement-units/${id}`)
 
-export const listMeasurementUnitAssignedProducts = (
+export const listMeasurementUnitAssignedProducts = async (
   id: string,
   params: {
     limit: number
@@ -153,13 +153,13 @@ export const listMeasurementUnitAssignedProducts = (
     `/admin/measurement-units/${id}/products?${toSearch(params)}`
   )
 
-export const createMeasurementUnit = (input: MeasurementUnitInput) =>
+export const createMeasurementUnit = async (input: MeasurementUnitInput) =>
   sdk.client.fetch<MeasurementUnitResponse>("/admin/measurement-units", {
     body: input,
     method: "POST",
   })
 
-export const updateMeasurementUnit = (
+export const updateMeasurementUnit = async (
   id: string,
   input: Partial<MeasurementUnitInput>
 ) =>
@@ -168,12 +168,12 @@ export const updateMeasurementUnit = (
     method: "POST",
   })
 
-export const deleteMeasurementUnit = (id: string) =>
+export const deleteMeasurementUnit = async (id: string) =>
   sdk.client.fetch(`/admin/measurement-units/${id}`, {
     method: "DELETE",
   })
 
-export const restoreMeasurementUnit = (id: string) =>
+export const restoreMeasurementUnit = async (id: string) =>
   sdk.client.fetch<MeasurementUnitResponse>(
     `/admin/measurement-units/${id}/restore`,
     {
@@ -181,12 +181,12 @@ export const restoreMeasurementUnit = (id: string) =>
     }
   )
 
-export const retrieveProductMeasurement = (productId: string) =>
+export const retrieveProductMeasurement = async (productId: string) =>
   sdk.client.fetch<ProductMeasurementResponse>(
     `/admin/products/${productId}/measurement`
   )
 
-export const setProductMeasurement = (
+export const setProductMeasurement = async (
   productId: string,
   input: {
     measurement_unit_id: string
@@ -200,12 +200,12 @@ export const setProductMeasurement = (
     }
   )
 
-export const deleteProductMeasurement = (productId: string) =>
+export const deleteProductMeasurement = async (productId: string) =>
   sdk.client.fetch(`/admin/products/${productId}/measurement`, {
     method: "DELETE",
   })
 
-export const retrieveProductVariantMeasurement = (
+export const retrieveProductVariantMeasurement = async (
   productId: string,
   productVariantId: string
 ) =>
@@ -213,7 +213,7 @@ export const retrieveProductVariantMeasurement = (
     `/admin/products/${productId}/variants/${productVariantId}/measurement`
   )
 
-export const setProductVariantMeasurement = (
+export const setProductVariantMeasurement = async (
   productId: string,
   productVariantId: string,
   input: {
@@ -228,7 +228,7 @@ export const setProductVariantMeasurement = (
     }
   )
 
-export const deleteProductVariantMeasurement = (
+export const deleteProductVariantMeasurement = async (
   productId: string,
   productVariantId: string
 ) =>

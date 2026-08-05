@@ -6,7 +6,7 @@ import type {
   ModuleApprovalSettingsFilters,
 } from "../../../types"
 
-type DeleteApprovalSettingsStepInput = {
+interface DeleteApprovalSettingsStepInput {
   ids?: string[]
   companyIds?: string[]
 }

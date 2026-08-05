@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest"
 import { GetAdminOrderBusinessStatusesByIdsSchema } from "../../../../../../src/api/admin/order-business-statuses/validators"
 
 describe("order business status validators", () => {
-  describe("GetAdminOrderBusinessStatusesByIdsSchema", () => {
+  describe(GetAdminOrderBusinessStatusesByIdsSchema, () => {
     it("accepts comma-separated strings and string arrays", () => {
       expect(
         GetAdminOrderBusinessStatusesByIdsSchema.parse({
           ids: "order_1,order_2",
         })
-      ).toEqual({
+      ).toStrictEqual({
         ids: ["order_1", "order_2"],
       })
 
@@ -17,7 +17,7 @@ describe("order business status validators", () => {
         GetAdminOrderBusinessStatusesByIdsSchema.parse({
           ids: ["order_1,order_2", "order_3"],
         })
-      ).toEqual({
+      ).toStrictEqual({
         ids: ["order_1", "order_2", "order_3"],
       })
     })

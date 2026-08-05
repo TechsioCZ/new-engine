@@ -23,20 +23,20 @@ import {
   updatePriceListsWorkflow,
 } from "@medusajs/medusa/core-flows"
 
-type PriceListPriceInput = {
+interface PriceListPriceInput {
   productHandle: string
   variantSku: string
   amount: number
   currencyCode: string
 }
 
-type OverridePriceListInput = {
+interface OverridePriceListInput {
   title: string
   customerGroupName: string
   prices: PriceListPriceInput[]
 }
 
-type SalePriceListInput = {
+interface SalePriceListInput {
   title: string
   sourceTitle: string
   customerGroupName?: string | undefined
@@ -45,7 +45,7 @@ type SalePriceListInput = {
   prices: PriceListPriceInput[]
 }
 
-export type SyncPriceListsStepConfig = {
+export interface SyncPriceListsStepConfig {
   metadataSource?: string | undefined
   logLabel?: string | undefined
   customerGroupRuleAttribute?: string | undefined
@@ -65,7 +65,7 @@ export type SyncPriceListsStepConfig = {
   }
 }
 
-type ResolvedSyncPriceListsStepConfig = {
+interface ResolvedSyncPriceListsStepConfig {
   metadataSource: string
   logLabel: string
   customerGroupRuleAttribute: string
@@ -85,7 +85,7 @@ type ResolvedSyncPriceListsStepConfig = {
   }
 }
 
-export type SyncPriceListsStepInput = {
+export interface SyncPriceListsStepInput {
   productIds: string[]
   priceLists?: {
     overrides: OverridePriceListInput[]
@@ -94,7 +94,7 @@ export type SyncPriceListsStepInput = {
   config?: SyncPriceListsStepConfig | undefined
 }
 
-type PriceListSyncEntry = {
+interface PriceListSyncEntry {
   title: string
   description: string
   type: "override" | "sale"
@@ -105,12 +105,12 @@ type PriceListSyncEntry = {
   metadata: Record<string, unknown>
 }
 
-type VariantLookup = {
+interface VariantLookup {
   id: string
   sku: string
 }
 
-type VariantPriceSetLink = {
+interface VariantPriceSetLink {
   variant_id: string
   price_set_id: string
 }
@@ -121,22 +121,22 @@ type PriceListWithPrices = PriceListDTO & {
 
 const SyncPriceListsStepId = "sync-price-lists-seed-step"
 const DEFAULT_SYNC_PRICE_LISTS_CONFIG = {
-  metadataSource: "seed-price-lists",
-  logLabel: "price lists",
   customerGroupRuleAttribute: "customer.groups.id",
   descriptions: {
     override: "Seed price list: {title}",
     sale: "Seed sale prices for {sourceTitle}",
   },
-  sourceTypes: {
-    override: "price_list",
-    sale: "sale",
-    customerGroup: "price_list_customer_group",
-  },
+  logLabel: "price lists",
   metadataKeys: {
+    endsAt: "ends_at",
     priceListTitle: "source_price_list_title",
     startsAt: "starts_at",
-    endsAt: "ends_at",
+  },
+  metadataSource: "seed-price-lists",
+  sourceTypes: {
+    customerGroup: "price_list_customer_group",
+    override: "price_list",
+    sale: "sale",
   },
 } satisfies ResolvedSyncPriceListsStepConfig
 
@@ -187,7 +187,7 @@ function formatTemplate(
   template: string,
   values: Record<string, string | undefined>
 ): string {
-  return template.replace(
+  return template.replaceAll(
     /\{([a-zA-Z0-9_]+)\}/g,
     (_match, key: string) => values[key] ?? ""
   )
@@ -232,7 +232,7 @@ function amountsEqual(left: unknown, right: number): boolean {
     parsed = Number(left.value)
   }
 
-  return Number.isFinite(parsed) && Math.abs(parsed - right) < 0.000_001
+  return Number.isFinite(parsed) && Math.abs(parsed - right) < 0.000001
 }
 
 function buildPriceListEntries(
@@ -245,31 +245,27 @@ function buildPriceListEntries(
 
   return [
     ...priceLists.overrides.map((priceList) => ({
-      title: priceList.title,
+      customerGroupName: priceList.customerGroupName,
       description: formatTemplate(config.descriptions.override, {
         title: priceList.title,
         sourceTitle: priceList.title,
       }),
-      type: "override" as const,
-      customerGroupName: priceList.customerGroupName,
-      prices: priceList.prices,
       metadata: buildPriceListMetadata(
         config,
         config.sourceTypes.override,
         priceList.title
       ),
+      prices: priceList.prices,
+      title: priceList.title,
+      type: "override" as const,
     })),
     ...priceLists.sales.map((priceList) => ({
-      title: priceList.title,
+      customerGroupName: priceList.customerGroupName,
       description: formatTemplate(config.descriptions.sale, {
         title: priceList.title,
         sourceTitle: priceList.sourceTitle,
       }),
-      type: "sale" as const,
-      startsAt: priceList.startsAt,
       endsAt: priceList.endsAt,
-      customerGroupName: priceList.customerGroupName,
-      prices: priceList.prices,
       metadata: buildPriceListMetadata(
         config,
         config.sourceTypes.sale,
@@ -279,6 +275,10 @@ function buildPriceListEntries(
           ...(priceList.endsAt ? { endsAt: priceList.endsAt } : {}),
         }
       ),
+      prices: priceList.prices,
+      startsAt: priceList.startsAt,
+      title: priceList.title,
+      type: "sale" as const,
     })),
   ]
 }
@@ -370,8 +370,8 @@ async function ensureCustomerGroups(
       input: {
         customersData: [
           {
-            name,
             metadata,
+            name,
           },
         ],
       },
@@ -473,7 +473,7 @@ async function ensurePriceLists({
       },
     })
     if (created[0]) {
-      result.set(entry.title, created[0] as PriceListWithPrices)
+      result.set(entry.title, created[0])
     }
   }
 
@@ -539,10 +539,10 @@ async function syncPriceListPrices({
     const { result } = await batchPriceListPricesWorkflow(container).run({
       input: {
         data: {
-          id: priceList.id,
           create: changes.create,
-          update: changes.update,
           delete: [],
+          id: priceList.id,
+          update: changes.update,
         },
       },
     })
@@ -550,7 +550,7 @@ async function syncPriceListPrices({
     updated += result.updated.length
   }
 
-  return { created, updated, skipped }
+  return { created, skipped, updated }
 }
 
 function buildPriceListPriceChanges({
@@ -566,26 +566,26 @@ function buildPriceListPriceChanges({
   variantLookup: Map<string, VariantLookup>
   variantPriceSetMap: Map<string, string>
 }): {
-  create: Array<{ amount: number; currency_code: string; variant_id: string }>
-  update: Array<{
+  create: { amount: number; currency_code: string; variant_id: string }[]
+  update: {
     id: string
     amount: number
     currency_code: string
     variant_id: string
-  }>
+  }[]
   skipped: number
 } {
-  const create: Array<{
+  const create: {
     amount: number
     currency_code: string
     variant_id: string
-  }> = []
-  const update: Array<{
+  }[] = []
+  const update: {
     id: string
     amount: number
     currency_code: string
     variant_id: string
-  }> = []
+  }[] = []
   let skipped = 0
 
   for (const price of entry.prices) {
@@ -622,15 +622,15 @@ function buildPriceListPriceChanges({
       existingPrice.currency_code?.toLowerCase() !== currencyCode
     ) {
       update.push({
-        id: existingPrice.id,
         amount: price.amount,
         currency_code: currencyCode,
+        id: existingPrice.id,
         variant_id: variant.id,
       })
     }
   }
 
-  return { create, update, skipped }
+  return { create, skipped, update }
 }
 
 export const syncPriceListsStep = createStep(
@@ -664,8 +664,8 @@ export const syncPriceListsStep = createStep(
     const products = await productService.listProducts(
       { id: { $in: input.productIds } },
       {
-        select: ["id", "handle", "variants.id", "variants.sku"],
         relations: ["variants"],
+        select: ["id", "handle", "variants.id", "variants.sku"],
       }
     )
     const variantLookup = buildVariantLookup(products)
@@ -676,11 +676,11 @@ export const syncPriceListsStep = createStep(
       config
     )
     const priceListsByTitle = await ensurePriceLists({
+      config,
+      container,
+      customerGroups,
       entries,
       pricingService,
-      customerGroups,
-      container,
-      config,
     })
     const variantIds = [
       ...new Set(
@@ -707,12 +707,12 @@ export const syncPriceListsStep = createStep(
       variantPriceSetLinks.map((link) => [link.variant_id, link.price_set_id])
     )
     const priceSyncResult = await syncPriceListPrices({
+      container,
       entries,
+      logger,
       priceListsByTitle,
       variantLookup,
       variantPriceSetMap,
-      container,
-      logger,
     })
 
     logger.info(
@@ -722,8 +722,8 @@ export const syncPriceListsStep = createStep(
     return new StepResponse({
       priceLists: priceListsByTitle.size,
       pricesCreated: priceSyncResult.created,
-      pricesUpdated: priceSyncResult.updated,
       pricesSkipped: priceSyncResult.skipped,
+      pricesUpdated: priceSyncResult.updated,
     })
   }
 )

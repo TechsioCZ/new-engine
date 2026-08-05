@@ -9,7 +9,7 @@ import {
 } from "@/lib/token-utils"
 import { getCustomer } from "@/services/auth-service"
 
-export type UseAuthReturn = {
+export interface UseAuthReturn {
   customer: Awaited<ReturnType<typeof getCustomer>>
   isAuthenticated: boolean
   isLoading: boolean
@@ -17,7 +17,7 @@ export type UseAuthReturn = {
   isTokenExpired: boolean
 }
 
-export type UseSuspenseAuthReturn = {
+export interface UseSuspenseAuthReturn {
   customer: Awaited<ReturnType<typeof getCustomer>>
   isAuthenticated: boolean
   isTokenExpired: boolean
@@ -34,7 +34,6 @@ export function useAuth(): UseAuthReturn {
     isLoading,
     error,
   } = useQuery({
-    queryKey: queryKeys.customer.profile(),
     queryFn: () => {
       // Check token expiration BEFORE making request
       const token = getTokenFromStorage()
@@ -52,6 +51,7 @@ export function useAuth(): UseAuthReturn {
       // Token valid - fetch customer data
       return getCustomer()
     },
+    queryKey: queryKeys.customer.profile(),
     retry: false, // Don't retry auth failures
     ...cacheConfig.userData, // 5min stale, invalidated on auth actions
   })
@@ -62,16 +62,15 @@ export function useAuth(): UseAuthReturn {
 
   return {
     customer,
+    error: error,
     isAuthenticated: customer !== null,
     isLoading,
-    error: error as Error | null,
     isTokenExpired: tokenExpired,
   }
 }
 
 export function useSuspenseAuth(): UseSuspenseAuthReturn {
   const { data: customer } = useSuspenseQuery({
-    queryKey: queryKeys.customer.profile(),
     queryFn: () => {
       const token = getTokenFromStorage()
 
@@ -86,6 +85,7 @@ export function useSuspenseAuth(): UseSuspenseAuthReturn {
 
       return getCustomer()
     },
+    queryKey: queryKeys.customer.profile(),
     retry: false,
     ...cacheConfig.userData,
   })

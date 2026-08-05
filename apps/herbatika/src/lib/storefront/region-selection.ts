@@ -3,9 +3,9 @@ import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 
 import {
   DEFAULT_CURRENCY_CODE,
-  type HerbatikaCurrencyCode,
   normalizeSupportedCurrencyCode,
 } from "./currency"
+import type { HerbatikaCurrencyCode } from "./currency"
 import type { HerbatikaMarketContext } from "./market-context"
 
 type RegionCurrencySource = RegionInfo & {
@@ -48,8 +48,8 @@ export const toRegionInfo = (
   const currencyCode = normalizeSupportedCurrencyCode(region.currency_code)
 
   return {
-    region_id: region.id,
     country_code: resolveCountryCode(region, expectedCountryCode),
+    region_id: region.id,
     ...(currencyCode ? { currency_code: currencyCode } : {}),
   }
 }
@@ -58,7 +58,7 @@ export const resolveRegionCurrency = (
   region?: RegionInfo | null
 ): HerbatikaCurrencyCode => {
   const explicitCurrencyCode = normalizeSupportedCurrencyCode(
-    (region as RegionCurrencySource | null | undefined)?.currency_code
+    region?.currency_code
   )
 
   if (explicitCurrencyCode) {

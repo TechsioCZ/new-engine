@@ -11,8 +11,8 @@ import {
   getOrderDisplayId,
   getPaymentUrl,
   isPaymentReminderReadyOrder,
-  type PaymentReminderOrder,
 } from "../utils/order-payment-reminders"
+import type { PaymentReminderOrder } from "../utils/order-payment-reminders"
 import { sendOrderPaymentReminderWorkflow } from "../workflows/send-order-payment-reminder"
 
 const JOB_LOCK_KEY = "unpaid-order-payment-reminders-job"
@@ -21,7 +21,7 @@ const MAX_ORDERS_PER_RUN = 500
 const EMAIL_LOG_LOOKUP_BATCH_SIZE = 500
 const PAYMENT_REMINDER_TEMPLATE = "order-payment-reminder"
 
-type EmailLogDTO = {
+interface EmailLogDTO {
   order_id: string | null
 }
 
@@ -61,7 +61,7 @@ async function getAlreadyRemindedOrderIds(
   container: MedusaContainer,
   orders: PaymentReminderOrder[]
 ) {
-  const orderIds = Array.from(new Set(orders.map((order) => order.id)))
+  const orderIds = [...new Set(orders.map((order) => order.id))]
   if (!orderIds.length) {
     return new Set<string>()
   }

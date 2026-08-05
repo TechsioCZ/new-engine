@@ -2,10 +2,12 @@ import type { Query } from "@medusajs/framework/types"
 
 import {
   getManualOrderBusinessStatusId,
-  type ManualOrderBusinessStatusId,
-  type OrderBusinessStatus,
-  type OrderBusinessStatusInput,
   resolveOrderBusinessStatus,
+} from "./order-business-status"
+import type {
+  ManualOrderBusinessStatusId,
+  OrderBusinessStatus,
+  OrderBusinessStatusInput,
 } from "./order-business-status"
 
 export const ORDER_EXPEDITION_MAX_ORDER_IDS = 1000
@@ -44,12 +46,12 @@ export type OrderExpeditionCarrierKey =
 export type OrderExpeditionTargetStatus =
   (typeof ORDER_EXPEDITION_TARGET_STATUSES)[number]
 
-export type OrderExpeditionCarrierOption = {
+export interface OrderExpeditionCarrierOption {
   label: string
   value: OrderExpeditionCarrierKey
 }
 
-type OrderExpeditionAddress = {
+interface OrderExpeditionAddress {
   first_name?: string | null
   last_name?: string | null
   company?: string | null
@@ -62,14 +64,14 @@ type OrderExpeditionAddress = {
   phone?: string | null
 }
 
-type OrderExpeditionShippingMethod = {
+interface OrderExpeditionShippingMethod {
   id?: string | null
   name?: string | null
   shipping_option_id?: string | null
   data?: Record<string, unknown> | null
 }
 
-type OrderExpeditionLineItem = {
+interface OrderExpeditionLineItem {
   id?: string | null
   title?: string | null
   subtitle?: string | null
@@ -87,31 +89,31 @@ type OrderExpeditionLineItem = {
   variant_title?: string | null
 }
 
-type OrderExpeditionPayment = {
+interface OrderExpeditionPayment {
   provider_id?: string | null
 }
 
-type OrderExpeditionPaymentCollection = {
+interface OrderExpeditionPaymentCollection {
   status?: string | null
   payments?: OrderExpeditionPayment[] | null
 }
 
-type OrderExpeditionRawAmount = {
+interface OrderExpeditionRawAmount {
   value?: number | string | null
 }
 
-type OrderExpeditionAmountLike = {
+interface OrderExpeditionAmountLike {
   valueOf(): unknown
 }
 
-type OrderExpeditionSummaryTotals = {
+interface OrderExpeditionSummaryTotals {
   current_order_total?: number | string | null
   original_order_total?: number | string | null
   raw_current_order_total?: OrderExpeditionRawAmount | null
   raw_original_order_total?: OrderExpeditionRawAmount | null
 }
 
-type OrderExpeditionSummary = {
+interface OrderExpeditionSummary {
   current_order_total?: number | string | null
   original_order_total?: number | string | null
   raw_current_order_total?: OrderExpeditionRawAmount | null
@@ -120,7 +122,7 @@ type OrderExpeditionSummary = {
   version?: number | string | null
 }
 
-type OrderExpeditionFulfillment = {
+interface OrderExpeditionFulfillment {
   id?: string | null
   canceled_at?: string | null
   data?: Record<string, unknown> | null
@@ -129,7 +131,7 @@ type OrderExpeditionFulfillment = {
   shipped_at?: Date | string | null
 }
 
-type OrderExpeditionCustomer = {
+interface OrderExpeditionCustomer {
   id?: string | null
   first_name?: string | null
   last_name?: string | null
@@ -137,7 +139,7 @@ type OrderExpeditionCustomer = {
   company_name?: string | null
 }
 
-export type OrderExpeditionRawOrder = {
+export interface OrderExpeditionRawOrder {
   id: string
   created_at?: Date | string | null
   currency_code?: string | null
@@ -166,7 +168,7 @@ export type ResolvedOrderExpeditionCarrier = OrderExpeditionCarrierOption & {
   shipping_option_id?: string
 }
 
-export type OrderExpeditionItemDto = {
+export interface OrderExpeditionItemDto {
   id?: string | null
   title: string
   quantity: number
@@ -178,13 +180,13 @@ export type OrderExpeditionItemDto = {
   variant_id?: string | null
 }
 
-export type OrderExpeditionCustomerSignals = {
+export interface OrderExpeditionCustomerSignals {
   note: boolean
   returning_customer: boolean
   storn_orders: boolean
 }
 
-export type OrderExpeditionOrderDto = {
+export interface OrderExpeditionOrderDto {
   id: string
   business_status: OrderBusinessStatus
   created_at?: string | null
@@ -208,13 +210,13 @@ export type OrderExpeditionOrderDto = {
   signals: OrderExpeditionCustomerSignals
 }
 
-export type OrderExpeditionBlockingOrder = {
+export interface OrderExpeditionBlockingOrder {
   id: string
   order_display_id: string
   reason: string
 }
 
-type OrderExpeditionTransitionOrder = {
+interface OrderExpeditionTransitionOrder {
   status?: string | null
   fulfillments?: OrderExpeditionFulfillment[] | null
   has_active_fulfillment?: boolean | null
@@ -455,9 +457,7 @@ export function toOrderExpeditionDto(
 ): OrderExpeditionOrderDto {
   return {
     id: order.id,
-    business_status: resolveOrderBusinessStatus(
-      order as OrderBusinessStatusInput
-    ),
+    business_status: resolveOrderBusinessStatus(order),
     created_at: normalizeDate(order.created_at),
     ...(order.currency_code === undefined
       ? {}
@@ -640,13 +640,11 @@ function getLatestOrderExpeditionSummaryTotal(
     summaryEntries = []
   }
 
-  const summaries = summaryEntries
-    .slice()
-    .sort(
-      (left, right) =>
-        getOrderExpeditionSummaryVersion(right) -
-        getOrderExpeditionSummaryVersion(left)
-    )
+  const summaries = [...summaryEntries].sort(
+    (left, right) =>
+      getOrderExpeditionSummaryVersion(right) -
+      getOrderExpeditionSummaryVersion(left)
+  )
 
   for (const entry of summaries) {
     const amount =
@@ -786,7 +784,7 @@ function getOrderExpeditionItemQuantity(
   return Number.isFinite(parsed) ? parsed : 0
 }
 
-function joinNonEmpty(values: Array<string | null | undefined>) {
+function joinNonEmpty(values: (string | null | undefined)[]) {
   return values
     .map((value) => value?.trim())
     .filter((value): value is string => Boolean(value))
@@ -808,7 +806,7 @@ function isOrderExpeditionTransitionSourceStatus(
 }
 
 function formatStatusForReason(status: string) {
-  return status.replace(/_/g, " ")
+  return status.replaceAll(/_/g, " ")
 }
 
 function formatStatusSubject(status: string) {
@@ -821,7 +819,7 @@ function normalizeSearchValue(value: unknown): string {
     .join(" ")
     .toLowerCase()
     .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
+    .replaceAll(/\p{Diacritic}/gu, "")
 }
 
 function flattenSearchParts(value: unknown): string[] {

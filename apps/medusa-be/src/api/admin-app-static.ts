@@ -79,13 +79,15 @@ export const serveAdminAppStatic = (
   const adminPublicDir = getAdminPublicDir()
 
   if (!adminPublicDir) {
-    return next()
+    next()
+    return
   }
 
   const filePath = resolveAdminFile(adminPublicDir, getRequestPath(req))
 
   if (!filePath) {
-    return next()
+    next()
+    return
   }
 
   res.sendFile(filePath)

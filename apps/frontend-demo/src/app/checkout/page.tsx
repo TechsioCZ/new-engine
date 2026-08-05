@@ -4,7 +4,8 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Steps } from "@techsio/ui-kit/molecules/steps"
 import Link from "next/link"
-import { type ReactNode, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
+import type { ReactNode } from "react"
 
 import { LoadingPage } from "@/components/loading-page"
 import { OrderSummary } from "@/components/order-summary"
@@ -19,7 +20,7 @@ import { ShippingSelection } from "../../components/molecules/shipping-selection
 import { AddressForm } from "../../components/organisms/address-form"
 import { OrderPreview } from "../../components/organisms/order-preview"
 
-type CheckoutStep = {
+interface CheckoutStep {
   content: ReactNode
   title: string
   value: number
@@ -30,12 +31,16 @@ function useMediaQuery(query: string) {
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(query)
-    const updateMatches = () => setMatches(mediaQuery.matches)
+    const updateMatches = () => {
+      setMatches(mediaQuery.matches)
+    }
 
     updateMatches()
     mediaQuery.addEventListener("change", updateMatches)
 
-    return () => mediaQuery.removeEventListener("change", updateMatches)
+    return () => {
+      mediaQuery.removeEventListener("change", updateMatches)
+    }
   }, [query])
 
   return matches
@@ -124,8 +129,6 @@ export default function CheckoutPage() {
 
   const steps: CheckoutStep[] = [
     {
-      value: 0,
-      title: "Adresa",
       content: (
         <AddressForm
           onComplete={async (data) => {
@@ -138,10 +141,10 @@ export default function CheckoutPage() {
           }}
         />
       ),
+      title: "Adresa",
+      value: 0,
     },
     {
-      value: 1,
-      title: "Doprava",
       content: (
         <ShippingSelection
           currentStep={currentStep}
@@ -159,10 +162,10 @@ export default function CheckoutPage() {
           shippingMethods={shippingMethods}
         />
       ),
+      title: "Doprava",
+      value: 1,
     },
     {
-      value: 2,
-      title: "Platba",
       content: (
         <PaymentSelection
           currentStep={currentStep}
@@ -174,22 +177,26 @@ export default function CheckoutPage() {
           setCurrentStep={setCurrentStep}
         />
       ),
+      title: "Platba",
+      value: 2,
     },
     {
-      value: 3,
-      title: "Souhrn",
       content: (
         <OrderSummary
           {...(addressData !== null && { addressData })}
           isLoading={isProcessingPayment}
           isOrderComplete={isOrderComplete}
           onCompleteClick={handleComplete}
-          onEditClick={() => setCurrentStep(currentStep - 1)}
+          onEditClick={() => {
+            setCurrentStep(currentStep - 1)
+          }}
           orderNumber={orderNumber}
           selectedPayment={selectedPaymentMethod}
           selectedShipping={selectedShippingMethod}
         />
       ),
+      title: "Souhrn",
+      value: 3,
     },
   ]
 
@@ -212,7 +219,9 @@ export default function CheckoutPage() {
     <Steps
       count={steps.length}
       linear={false}
-      onStepChange={(details) => handleStepChange(details.step)}
+      onStepChange={(details) => {
+        handleStepChange(details.step)
+      }}
       orientation={orientation}
       step={currentStep}
     >
@@ -271,7 +280,9 @@ export default function CheckoutPage() {
               : "token-icon-chevron-down"
           }
           iconPosition="left"
-          onClick={() => setShowOrderSummary(!showOrderSummary)}
+          onClick={() => {
+            setShowOrderSummary(!showOrderSummary)
+          }}
         >
           <div className="flex items-center gap-2">
             <span className="font-medium">

@@ -17,13 +17,13 @@ type ListedApiKey = Awaited<
 
 type PublishableApiKey = ListedApiKey
 
-export type PublishableKeyResult = {
+export interface PublishableKeyResult {
   apiKey: PublishableApiKey
   created: boolean
   title: string
 }
 
-type ApiKeyServiceDependency = {
+interface ApiKeyServiceDependency {
   createApiKeys: (
     data: CreateApiKeyDTO,
     sharedContext?: Context
@@ -32,7 +32,7 @@ type ApiKeyServiceDependency = {
 }
 type LockingModuleDependency = Pick<ILockingModule, "execute">
 
-type PublishableKeyLookupInput = {
+interface PublishableKeyLookupInput {
   apiKeyService: ApiKeyServiceDependency
   title?: string | null
 }
@@ -107,9 +107,9 @@ export async function provisionPublishableKey({
     }
 
     const createdApiKey = await apiKeyService.createApiKeys({
+      created_by: createdBy?.trim() || "",
       title: resolvedTitle,
       type: "publishable",
-      created_by: createdBy?.trim() || "",
     })
 
     return {
@@ -120,10 +120,10 @@ export async function provisionPublishableKey({
   }
 
   if (!lockingModule) {
-    return getOrCreatePublishableKey()
+    return await getOrCreatePublishableKey()
   }
 
-  return lockingModule.execute(
+  return await lockingModule.execute(
     buildProvisionLockKey(resolvedTitle),
     getOrCreatePublishableKey,
     { timeout: PUBLISHABLE_KEY_LOCK_TIMEOUT_SECONDS }

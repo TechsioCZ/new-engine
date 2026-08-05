@@ -25,10 +25,10 @@ export async function executeManifestComposeServices(
   )
 
   return manifestComposeServicesResponseSchema.parse({
-    phase: input.phase,
-    default_only: input.defaultOnly,
     compose_services: composeServices,
     compose_services_shell: composeServices.join(" "),
+    default_only: input.defaultOnly,
+    phase: input.phase,
   })
 }
 

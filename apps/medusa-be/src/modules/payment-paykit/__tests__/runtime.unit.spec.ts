@@ -19,13 +19,13 @@ describe("PayKit runtime helpers", () => {
         isSandbox: false,
         webhookUrl: "https://example.com/hooks/gopay",
       })
-    ).toEqual({
+    ).toStrictEqual({
       clientId: "client",
       clientSecret: "secret",
+      debug: false,
       goId: "goid",
       isSandbox: false,
       webhookUrl: "https://example.com/hooks/gopay",
-      debug: false,
     })
   })
 
@@ -37,13 +37,13 @@ describe("PayKit runtime helpers", () => {
         goId: "goid",
         webhookUrl: "https://example.com/hooks/gopay",
       })
-    ).toEqual({
+    ).toStrictEqual({
       clientId: "client",
       clientSecret: "secret",
+      debug: false,
       goId: "goid",
       isSandbox: true,
       webhookUrl: "https://example.com/hooks/gopay",
-      debug: false,
     })
   })
 
@@ -51,11 +51,11 @@ describe("PayKit runtime helpers", () => {
     expect(
       getStripeProviderOptions({
         apiKey: "sk_test_123",
+        debug: true,
         isSandbox: false,
         webhookSecret: "whsec_123",
-        debug: true,
       })
-    ).toEqual({
+    ).toStrictEqual({
       apiKey: "sk_test_123",
       apiVersion: "2026-06-24.dahlia",
       debug: true,
@@ -67,7 +67,7 @@ describe("PayKit runtime helpers", () => {
       getStripeProviderOptions({
         apiKey: "sk_test_123",
       })
-    ).toEqual({
+    ).toStrictEqual({
       apiKey: "sk_test_123",
       apiVersion: "2026-06-24.dahlia",
       debug: false,
@@ -80,7 +80,7 @@ describe("PayKit runtime helpers", () => {
         apiKey: "sk_test_123",
         webhookSecret: "whsec_123",
       })
-    ).toEqual({
+    ).toStrictEqual({
       webhookSecret: "whsec_123",
     })
   })
@@ -96,14 +96,14 @@ describe("PayKit runtime helpers", () => {
         data: {
           url: "/hooks/payment/paykit_stripe",
         },
-        rawData: Buffer.from("webhook-body"),
         headers: {
           host: "backend.example",
+          ignored: undefined,
           "stripe-signature": "sig_123",
           "x-forwarded-for": ["client", "proxy"],
           "x-forwarded-proto": "https",
-          ignored: undefined,
         },
+        rawData: Buffer.from("webhook-body"),
       },
       {
         webhookSecret: "whsec_123",
@@ -113,13 +113,13 @@ describe("PayKit runtime helpers", () => {
     expect(provider.handleWebhook).toHaveBeenCalledWith(
       {
         body: "webhook-body",
+        fullUrl: "https://backend.example/hooks/payment/paykit_stripe",
         headersAsObject: {
           host: "backend.example",
           "stripe-signature": "sig_123",
           "x-forwarded-for": "client,proxy",
           "x-forwarded-proto": "https",
         },
-        fullUrl: "https://backend.example/hooks/payment/paykit_stripe",
       },
       "whsec_123"
     )
@@ -132,8 +132,8 @@ describe("PayKit runtime helpers", () => {
 
     await callPaykitProviderWebhook(provider, {
       data: {},
-      rawData: "",
       headers: {},
+      rawData: "",
     })
 
     expect(provider.handleWebhook).toHaveBeenCalledWith(
@@ -145,15 +145,15 @@ describe("PayKit runtime helpers", () => {
   it("maps Comgate options to PayKit's public createComgate options", () => {
     expect(
       getComgateProviderOptions({
+        isSandbox: false,
         merchant: "merchant",
         secret: "secret",
-        isSandbox: false,
       })
-    ).toEqual({
+    ).toStrictEqual({
+      debug: false,
+      isSandbox: false,
       merchant: "merchant",
       secret: "secret",
-      isSandbox: false,
-      debug: false,
     })
   })
 

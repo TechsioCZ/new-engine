@@ -6,7 +6,6 @@ import { Button } from "../../src/atoms/button"
 import { Skeleton } from "../../src/atoms/skeleton"
 
 const meta: Meta<typeof Skeleton> = {
-  title: "Atoms/Skeleton",
   component: Skeleton,
   parameters: {
     docs: {
@@ -17,6 +16,7 @@ const meta: Meta<typeof Skeleton> = {
     },
   },
   tags: ["autodocs"],
+  title: "Atoms/Skeleton",
 }
 
 export default meta
@@ -34,27 +34,15 @@ type PlaygroundArgs = ComponentPropsWithoutRef<typeof Skeleton> & {
 // ===== BASIC USAGE =====
 
 export const Playground: StoryObj<PlaygroundArgs> = {
-  args: {
-    variant: "primary",
-    speed: "normal",
-    showRectangle: true,
-    showText: true,
-    showCircle: true,
-    circleSize: "lg",
-    textSize: "md",
-    textLines: 3,
-    textLastLineWidth: "80%",
-  },
   argTypes: {
-    variant: {
+    circleSize: {
       control: "select",
-      options: ["primary", "secondary"],
-      description: "Visual variant of the skeleton",
+      description: "Circle size",
+      options: ["sm", "md", "lg", "xl"],
     },
-    speed: {
-      control: "select",
-      options: ["slow", "normal", "fast"],
-      description: "Animation speed",
+    showCircle: {
+      control: "boolean",
+      description: "Show circle skeleton",
     },
     showRectangle: {
       control: "boolean",
@@ -64,29 +52,41 @@ export const Playground: StoryObj<PlaygroundArgs> = {
       control: "boolean",
       description: "Show text skeleton",
     },
-    showCircle: {
-      control: "boolean",
-      description: "Show circle skeleton",
-    },
-    circleSize: {
+    speed: {
       control: "select",
-      options: ["sm", "md", "lg", "xl"],
-      description: "Circle size",
-    },
-    textSize: {
-      control: "select",
-      options: ["sm", "md", "lg", "xl"],
-      description: "Text spacing size",
-    },
-    textLines: {
-      control: { type: "number", min: 1, max: 6, step: 1 },
-      description: "Number of text lines",
+      description: "Animation speed",
+      options: ["slow", "normal", "fast"],
     },
     textLastLineWidth: {
       control: "select",
-      options: ["60%", "80%", "90%"],
       description: "Last line width for text skeleton",
+      options: ["60%", "80%", "90%"],
     },
+    textLines: {
+      control: { max: 6, min: 1, step: 1, type: "number" },
+      description: "Number of text lines",
+    },
+    textSize: {
+      control: "select",
+      description: "Text spacing size",
+      options: ["sm", "md", "lg", "xl"],
+    },
+    variant: {
+      control: "select",
+      description: "Visual variant of the skeleton",
+      options: ["primary", "secondary"],
+    },
+  },
+  args: {
+    circleSize: "lg",
+    showCircle: true,
+    showRectangle: true,
+    showText: true,
+    speed: "normal",
+    textLastLineWidth: "80%",
+    textLines: 3,
+    textSize: "md",
+    variant: "primary",
   },
   render: (args) => {
     const {
@@ -132,7 +132,12 @@ export const WithContent: Story = {
 
     return (
       <div className="space-y-250">
-        <Button onClick={() => setIsLoaded(!isLoaded)} size="sm">
+        <Button
+          onClick={() => {
+            setIsLoaded(!isLoaded)
+          }}
+          size="sm"
+        >
           Toggle Loaded State
         </Button>
         <Skeleton isLoaded={isLoaded} className="h-20 w-xs">
@@ -253,7 +258,12 @@ export const CircleWithAvatar: Story = {
 
     return (
       <div className="space-y-250">
-        <Button onClick={() => setIsLoaded(!isLoaded)} size="sm">
+        <Button
+          onClick={() => {
+            setIsLoaded(!isLoaded)
+          }}
+          size="sm"
+        >
           Toggle Avatar
         </Button>
         <Skeleton.Circle size="lg" isLoaded={isLoaded}>

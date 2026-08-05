@@ -3,10 +3,8 @@ import {
   removeLocalStorageItem,
   setLocalStorageItem,
 } from "@techsio/storefront-data/shared/local-storage"
-import {
-  createMedusaSdk,
-  type MedusaClientConfig,
-} from "@techsio/storefront-data/shared/medusa-client"
+import { createMedusaSdk } from "@techsio/storefront-data/shared/medusa-client"
+import type { MedusaClientConfig } from "@techsio/storefront-data/shared/medusa-client"
 
 import { resolveMedusaBackendUrl } from "./runtime-env"
 
@@ -17,12 +15,11 @@ const DEFAULT_AUTH_MODE: StorefrontAuthMode = "session_proxy"
 
 const MEDUSA_BACKEND_URL = resolveMedusaBackendUrl()
 const MEDUSA_PUBLISHABLE_KEY =
-  process.env["NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"] ?? ""
+  process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
 
 const resolveAuthMode = (): StorefrontAuthMode => {
-  const rawMode = process.env["NEXT_PUBLIC_STOREFRONT_AUTH_MODE"]
-    ?.trim()
-    .toLowerCase()
+  const rawMode =
+    process.env.NEXT_PUBLIC_STOREFRONT_AUTH_MODE?.trim().toLowerCase()
 
   if (!rawMode) {
     return DEFAULT_AUTH_MODE
@@ -53,6 +50,20 @@ if (!MEDUSA_PUBLISHABLE_KEY && process.env.NODE_ENV !== "test") {
 let inMemoryAuthToken: string | null = null
 
 export const authTokenStorage = {
+  clear() {
+    if (isSessionProxyAuthMode) {
+      inMemoryAuthToken = null
+    }
+
+    removeLocalStorageItem(AUTH_TOKEN_STORAGE_KEY)
+  },
+  get() {
+    if (isSessionProxyAuthMode) {
+      return inMemoryAuthToken
+    }
+
+    return getLocalStorageItem(AUTH_TOKEN_STORAGE_KEY)
+  },
   set(token: string) {
     if (isSessionProxyAuthMode) {
       inMemoryAuthToken = token
@@ -62,31 +73,17 @@ export const authTokenStorage = {
 
     setLocalStorageItem(AUTH_TOKEN_STORAGE_KEY, token)
   },
-  get() {
-    if (isSessionProxyAuthMode) {
-      return inMemoryAuthToken
-    }
-
-    return getLocalStorageItem(AUTH_TOKEN_STORAGE_KEY)
-  },
-  clear() {
-    if (isSessionProxyAuthMode) {
-      inMemoryAuthToken = null
-    }
-
-    removeLocalStorageItem(AUTH_TOKEN_STORAGE_KEY)
-  },
 }
 
 const medusaClientConfig: MedusaClientConfig = {
-  baseUrl: MEDUSA_BACKEND_URL,
-  publishableKey: MEDUSA_PUBLISHABLE_KEY,
-  debug: process.env.NODE_ENV === "development",
   auth: {
-    type: "jwt",
     jwtTokenStorageKey: AUTH_TOKEN_STORAGE_KEY,
     jwtTokenStorageMethod: isSessionProxyAuthMode ? "memory" : "local",
+    type: "jwt",
   },
+  baseUrl: MEDUSA_BACKEND_URL,
+  debug: process.env.NODE_ENV === "development",
+  publishableKey: MEDUSA_PUBLISHABLE_KEY,
 }
 
 export const storefrontSdk = createMedusaSdk(medusaClientConfig)

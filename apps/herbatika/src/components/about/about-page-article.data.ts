@@ -2,20 +2,26 @@ import aboutStoreImage from "@/assets/about/1.avif"
 import aboutTeamImage from "@/assets/about/2.avif"
 import aboutProductsImage from "@/assets/about/3.avif"
 
-import { aboutLink, type AboutArticleSection } from "./about-page.types"
+import { aboutLink } from "./about-page.types"
+import type { AboutArticleSection } from "./about-page.types"
 
 export const aboutHero = {
-  title: "O našom tíme",
   lead: [
     "Vitajte v ",
     aboutLink("Herbatica", "/znacka/herbatica/"),
     ", rodinnej firme, ktorá sa zrodila z túžby priniesť ľuďom prírodné riešenia pre zdravie, krásu a well-being. Sme tu pre vás od roku 2015, aby sme vám ponúkli jedinečné produkty, ktoré spájajú tradičné liečiteľské metódy s modernými poznatkami.",
   ],
+  title: "O našom tíme",
 }
 
 export const aboutSections = [
   {
-    title: "Začiatky značky Herbatica",
+    image: {
+      alt: "Prvé regály v predajni Herbatica",
+      caption:
+        "Prvé regály v predajni, na foto majiteľ Herbatica Juraj Gajdoš, zdroj foto: vlastný archív.",
+      src: aboutStoreImage,
+    },
     paragraphs: [
       "Herbatica v jej začiatkoch nebola ničím viac než snom a víziou jej zakladateľov. Vznikla ako rodinný projekt Gajdošovcov. Vo svojich začiatkoch v r. 1991 sa firma venovala najmä obchodnej činnosti v kamennej predajni v Piešťanoch.",
       "Spoluzakladateľ Juraj, inšpirovaný svojím záujmom o alternatívnu medicínu a prírodnú kozmetiku, sa rozhodol vytvoriť miesto, kde by ľudia mohli nájsť účinné a menej známe produkty pre svoje zdravie. Nápad otvoriť e-shop skrsol v jeho hlave v dobe, keď sa intenzívne zaoberal otázkou, ako môže byť pre svoje okolie prínosný, čím mu vie prispieť a ako môže pomôcť. V prostredí bolo cítiť rodiaci sa priestor pre nové cesty k uzdraveniu, odlišné od tých tradičných.",
@@ -54,15 +60,9 @@ export const aboutSections = [
         " a i.",
       ],
     ],
-    image: {
-      alt: "Prvé regály v predajni Herbatica",
-      caption:
-        "Prvé regály v predajni, na foto majiteľ Herbatica Juraj Gajdoš, zdroj foto: vlastný archív.",
-      src: aboutStoreImage,
-    },
+    title: "Začiatky značky Herbatica",
   },
   {
-    title: "Nároky na kvalitu a spolupráca s odborníkmi",
     paragraphs: [
       [
         "Kvalita je pre nás prvoradá. Máme vysoké nároky nielen na kvalitu, ale aj štandardy, v súlade s ktorými pracujeme na vývoji našich produktov. Pre udržanie najvyššej možnej odbornosti v Herbatica spolupracujeme so širokou sieťou ",
@@ -76,9 +76,9 @@ export const aboutSections = [
       ],
       "Spojením tradičných metód, medzi ktoré patrí napríklad ajurvéda či tradičná čínska medicína, s modernými technológiami zabezpečujeme, že naše produkty sú nielen účinné, ale aj bezpečné. Dôraz kladieme na etický prístup, čistotu surovín a ich lokálny pôvod.",
     ],
+    title: "Nároky na kvalitu a spolupráca s odborníkmi",
   },
   {
-    title: "Vývoj vlastných produktov",
     paragraphs: [
       [
         "Od našich začiatkov v roku 2015 sme prešli dlhú cestu a firma zaznamenala významný vývoj predovšetkým v oblasti produktového portfólia. Spočiatku sme sa zameriavali na dovoz produktov z Ruska, Ukrajiny a Bieloruska. V roku 2022 sme začali vyvíjať a vyrábať vlastné produkty ",
@@ -92,23 +92,28 @@ export const aboutSections = [
         " a iné. Pri vývoji produktov sa snažíme prepájať tradičné princípy a liečiteľské smery, ktoré sú tu s nami tisíce rokov, s modernými výskumami a poznatkami z nich.",
       ],
     ],
+    title: "Vývoj vlastných produktov",
   },
   {
-    title: "Náš tím",
-    paragraphs: [
-      "Ľudský kapitál v Herbatica vždy hral a hrá veľkú roľu. Za značkou Herbatica stojí tím nadšených profesionálov, ktorí veria v silu prírody. Každý člen nášho tímu prispieva svojimi skúsenosťami a odbornými znalosťami k tomu, aby sme vám mohli ponúknuť to najlepšie.",
-      "Dbáme na výber ľudí v tíme Herbatica, vážime si ich a vytvárame pre nich bezpečné prostredie, v ktorom sa môžu sústrediť na dosahovanie pracovných cieľov a kde môžu využiť svoj jedinečný potenciál.",
-      "Spoločne pracujeme na vývoji nových produktov, komunikácii s vami, našimi zákazníkmi a zabezpečení hladkého chodu nášho e-shopu. Sme si vedomí, že vďaka správnym členom tímu zabezpečíme neustále napredovanie, rast a taktiež vašu spokojnosť.",
-    ],
     image: {
       alt: "Herbatica tím a kamenná predajňa v Piešťanoch",
       caption:
         "Herbatica tím vo svojich začiatkoch od r. 2015, zdroj foto: vlastný archív.",
       src: aboutTeamImage,
     },
+    paragraphs: [
+      "Ľudský kapitál v Herbatica vždy hral a hrá veľkú roľu. Za značkou Herbatica stojí tím nadšených profesionálov, ktorí veria v silu prírody. Každý člen nášho tímu prispieva svojimi skúsenosťami a odbornými znalosťami k tomu, aby sme vám mohli ponúknuť to najlepšie.",
+      "Dbáme na výber ľudí v tíme Herbatica, vážime si ich a vytvárame pre nich bezpečné prostredie, v ktorom sa môžu sústrediť na dosahovanie pracovných cieľov a kde môžu využiť svoj jedinečný potenciál.",
+      "Spoločne pracujeme na vývoji nových produktov, komunikácii s vami, našimi zákazníkmi a zabezpečení hladkého chodu nášho e-shopu. Sme si vedomí, že vďaka správnym členom tímu zabezpečíme neustále napredovanie, rast a taktiež vašu spokojnosť.",
+    ],
+    title: "Náš tím",
   },
   {
-    title: "Vízia do budúcnosti",
+    image: {
+      alt: "Produkty značky Herbatica",
+      caption: "Zdroj foto: vlastný archív.",
+      src: aboutProductsImage,
+    },
     paragraphs: [
       [
         "Našou víziou je stať sa lídrom, najlepším, nie najväčším, v oblasti prírodných produktov pre zdravie a krásu. Naďalej budeme upevňovať naše postavenie na trhu s ",
@@ -133,10 +138,6 @@ export const aboutSections = [
         ". Pre dosiahnutie týchto cieľov sa vždy radi spojíme s ďalšími odborníkmi z rôznych oblastí, vrátane biohacking komunity. Spoločne vám budeme prinášať najnovšie poznatky a účinné riešenia pre váš blahobyt.",
       ],
     ],
-    image: {
-      alt: "Produkty značky Herbatica",
-      caption: "Zdroj foto: vlastný archív.",
-      src: aboutProductsImage,
-    },
+    title: "Vízia do budúcnosti",
   },
 ] satisfies readonly AboutArticleSection[]

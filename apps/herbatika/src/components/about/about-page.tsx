@@ -1,9 +1,7 @@
 import { useTranslations } from "next-intl"
 
-import {
-  HerbatikaBreadcrumb,
-  type HerbatikaBreadcrumbItem,
-} from "@/components/herbatika-breadcrumb"
+import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
+import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb"
 
 import {
   AboutArticleSections,
@@ -20,9 +18,9 @@ export function AboutPage() {
   const tNavigation = useTranslations("navigation")
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
-      label: tNavigation("breadcrumbs.home"),
       href: "/",
       icon: "token-icon-home",
+      label: tNavigation("breadcrumbs.home"),
     },
     { label: tContent("pages.about") },
   ]

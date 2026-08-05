@@ -7,11 +7,10 @@ import {
 import { omitUndefined } from "@techsio/std/object"
 
 import {
-  type CacheConfig,
-  type CacheStrategy,
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
+import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import { toErrorMessage } from "../shared/error-utils"
 import type {
   ReadQueryOptions,
@@ -38,19 +37,19 @@ import type {
   UseSuspenseProductReviewsResult,
 } from "./types"
 
-type ProductReviewPrefetchHookOptions = {
+interface ProductReviewPrefetchHookOptions {
   cacheStrategy?: CacheStrategy
   defaultDelay?: number
   skipIfCached?: boolean
   skipMode?: PrefetchSkipMode
 }
 
-export type CreateProductReviewHooksConfig<
+export interface CreateProductReviewHooksConfig<
   TReview,
   TListInput extends ProductReviewListInputBase,
   TListParams,
   TCreateInput extends CreateProductReviewInput = CreateProductReviewInput,
-> = {
+> {
   service: ProductReviewService<TReview, TListParams, TCreateInput>
   buildListParams?: (input: TListInput) => TListParams
   queryKeys?: ProductReviewQueryKeys<TListParams>
@@ -91,11 +90,11 @@ export function createProductReviewHooks<
       createDefaultListParams(input, defaultPageSize) as TListParams)
   const { getProductReviewsQueryOptions } =
     createProductReviewQueryOptionsFactory({
-      service,
       buildListParams: buildList,
-      queryKeys: resolvedQueryKeys,
       cacheConfig: resolvedCacheConfig,
       defaultPageSize,
+      queryKeys: resolvedQueryKeys,
+      service,
     })
 
   const resolveListState = (
@@ -107,9 +106,9 @@ export function createProductReviewHooks<
     const offsetFromParams = (params as { offset?: number }).offset
     const pagination = resolvePagination(
       omitUndefined({
-        page: input.page,
         limit: limitFromParams ?? input.limit,
         offset: offsetFromParams,
+        page: input.page,
       }),
       defaultPageSize
     )
@@ -147,10 +146,10 @@ export function createProductReviewHooks<
 
     return {
       ...resolveListState(input, listParams, query.data),
-      isLoading: query.isLoading,
-      isFetching: query.isFetching,
-      isSuccess: query.isSuccess,
       error: toErrorMessage(query.error),
+      isFetching: query.isFetching,
+      isLoading: query.isLoading,
+      isSuccess: query.isSuccess,
       query,
     }
   }
@@ -172,10 +171,10 @@ export function createProductReviewHooks<
 
     return {
       ...resolveListState(input, listParams, query.data),
-      isLoading: false,
-      isFetching: query.isFetching,
-      isSuccess: true,
       error: null,
+      isFetching: query.isFetching,
+      isLoading: false,
+      isSuccess: true,
       query,
     }
   }
@@ -204,9 +203,9 @@ export function createProductReviewHooks<
 
       if (
         shouldSkipPrefetch({
+          cacheOptions: prefetchCacheOptions,
           queryClient,
           queryKey,
-          cacheOptions: prefetchCacheOptions,
           skipIfCached,
           skipMode,
         })
@@ -215,8 +214,9 @@ export function createProductReviewHooks<
       }
 
       await queryClient.prefetchQuery({
+        queryFn: async ({ signal }) =>
+          service.listProductReviews(listParams, signal),
         queryKey,
-        queryFn: ({ signal }) => service.listProductReviews(listParams, signal),
         ...prefetchCacheOptions,
       })
     }
@@ -229,7 +229,11 @@ export function createProductReviewHooks<
       const listParams = buildList(input)
       const queryKey = resolvedQueryKeys.productList(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      return schedulePrefetch(() => prefetchProductReviews(input), id, delay)
+      return schedulePrefetch(
+        async () => prefetchProductReviews(input),
+        id,
+        delay
+      )
     }
 
     return {
@@ -260,10 +264,10 @@ export function createProductReviewHooks<
 
   return {
     getProductReviewsQueryOptions,
+    useCreateProductReview,
+    usePrefetchProductReviews,
     useProductReviews,
     useSuspenseProductReviews,
-    usePrefetchProductReviews,
-    useCreateProductReview,
   }
 }
 

@@ -1,14 +1,15 @@
 "use client"
 
-import { Component, type ReactNode } from "react"
+import { Component } from "react"
+import type { ReactNode } from "react"
 
-type ErrorBoundaryProps = {
+interface ErrorBoundaryProps {
   children: ReactNode
   fallback: ReactNode | ((error: Error) => ReactNode)
   onError?: (error: Error) => void
 }
 
-type ErrorBoundaryState = {
+interface ErrorBoundaryState {
   error: Error | null
 }
 

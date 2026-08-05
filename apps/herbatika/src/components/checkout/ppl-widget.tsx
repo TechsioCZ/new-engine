@@ -2,13 +2,13 @@
 
 import {
   createElement,
-  type RefObject,
   useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
   useState,
 } from "react"
+import type { RefObject } from "react"
 
 import { loadPplWidgetLoader } from "./ppl-widget-loader"
 import type {
@@ -21,7 +21,7 @@ import type {
 
 export type { PplWidgetHandle } from "./ppl-widget.types"
 
-type PplAccessPointWidgetProps = {
+interface PplAccessPointWidgetProps {
   apiKey: string
   config?: PplWidgetConfig
   onClose?: () => void

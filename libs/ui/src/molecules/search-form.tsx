@@ -9,28 +9,32 @@
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the search-form-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type ReactNode,
-  type SubmitEvent,
-  type Ref,
-  useContext,
-  useEffect,
-  useId,
-  useState,
+import { createContext, useContext, useEffect, useId, useState } from "react"
+import type {
+  ComponentPropsWithoutRef,
+  ReactNode,
+  SubmitEvent,
+  Ref,
 } from "react"
 import { createPortal } from "react-dom"
 import type { VariantProps } from "tailwind-variants"
 
-import { ActionIcon, type ActionIconProps } from "../atoms/action-icon"
-import { Button, type ButtonProps } from "../atoms/button"
+import { ActionIcon } from "../atoms/action-icon"
+import type { ActionIconProps } from "../atoms/action-icon"
+import { Button } from "../atoms/button"
+import type { ButtonProps } from "../atoms/button"
 import type { IconType } from "../atoms/icon"
-import { Input, type InputProps } from "../atoms/input"
-import { Label, type LabelProps } from "../atoms/label"
+import { Input } from "../atoms/input"
+import type { InputProps } from "../atoms/input"
+import { Label } from "../atoms/label"
+import type { LabelProps } from "../atoms/label"
 import { tv } from "../utils"
 
 const searchFormVariants = tv({
+  defaultVariants: {
+    gapped: false,
+    size: "md",
+  },
   slots: {
     // Layout-only wrapper. The input and button are composed side by side and
     // each keep their own border, background, radius, and focus ring so they
@@ -53,6 +57,15 @@ const searchFormVariants = tv({
     clearButton: ["-translate-y-1/2 absolute top-1/2"],
   },
   variants: {
+    gapped: {
+      // Joined: strip the touching corners so the two controls read as one.
+      false: {
+        input: "rounded-e-none",
+        button: "rounded-s-none",
+      },
+      // Detached: 8px gap and the controls keep their full rounded corners.
+      true: { control: "gap-search-form-gapped" },
+    },
     size: {
       // Pin the button to the shared form-control height so it always matches
       // the input height — including `lg`, which the Button atom sizes by
@@ -73,25 +86,12 @@ const searchFormVariants = tv({
         clearButton: "end-(length:--padding-input-lg)",
       },
     },
-    gapped: {
-      // Joined: strip the touching corners so the two controls read as one.
-      false: {
-        input: "rounded-e-none",
-        button: "rounded-s-none",
-      },
-      // Detached: 8px gap and the controls keep their full rounded corners.
-      true: { control: "gap-search-form-gapped" },
-    },
-  },
-  defaultVariants: {
-    size: "md",
-    gapped: false,
   },
 })
 
 export type SearchFormSize = "sm" | "md" | "lg"
 
-type SearchFormContextValue = {
+interface SearchFormContextValue {
   size: SearchFormSize
   gapped: boolean
   inputId: string
@@ -166,22 +166,22 @@ export function SearchForm({
     onSubmit?.(e)
   }
 
-  const styles = searchFormVariants({ size, gapped })
+  const styles = searchFormVariants({ gapped, size })
 
   return (
     <SearchFormContext.Provider
       value={{
-        size,
+        clearInput,
+        clearSlot,
         gapped,
+        hasClearButton,
+        hasValue: inputValue.length > 0,
         inputId,
         inputValue,
-        setInputValue,
-        clearInput,
-        hasValue: inputValue.length > 0,
-        clearSlot,
         setClearSlot,
-        hasClearButton,
         setHasClearButton,
+        setInputValue,
+        size,
       }}
     >
       <search>
@@ -225,7 +225,7 @@ SearchForm.Control = function SearchFormControl({
   ...props
 }: SearchFormControlProps) {
   const { size, gapped } = useSearchFormContext()
-  const styles = searchFormVariants({ size, gapped })
+  const styles = searchFormVariants({ gapped, size })
 
   return (
     <div className={styles.control({ className })} ref={ref} {...props}>
@@ -255,7 +255,7 @@ SearchForm.Input = function SearchFormInput({
     hasClearButton,
     setClearSlot,
   } = useSearchFormContext()
-  const styles = searchFormVariants({ size, gapped })
+  const styles = searchFormVariants({ gapped, size })
 
   return (
     <div className={styles.inputWrapper()} ref={setClearSlot}>
@@ -263,7 +263,9 @@ SearchForm.Input = function SearchFormInput({
         aria-label={props["aria-label"] || "Search"}
         className={styles.input({ className })}
         id={inputId}
-        onChange={(e) => setInputValue(e.target.value)}
+        onChange={(e) => {
+          setInputValue(e.target.value)
+        }}
         placeholder={placeholder}
         ref={ref}
         size={size}
@@ -289,7 +291,7 @@ SearchForm.Button = function SearchFormButton({
   ...props
 }: SearchFormButtonProps) {
   const { size, gapped } = useSearchFormContext()
-  const styles = searchFormVariants({ size, gapped })
+  const styles = searchFormVariants({ gapped, size })
 
   // Use provided icon, or search icon if showSearchIcon is true
   const effectiveIcon =
@@ -331,12 +333,14 @@ SearchForm.ClearButton = function SearchFormClearButton({
     clearSlot,
     setHasClearButton,
   } = useSearchFormContext()
-  const styles = searchFormVariants({ size, gapped })
+  const styles = searchFormVariants({ gapped, size })
 
   // Tell the input a clear button is composed so it reserves trailing padding.
   useEffect(() => {
     setHasClearButton(true)
-    return () => setHasClearButton(false)
+    return () => {
+      setHasClearButton(false)
+    }
   }, [setHasClearButton])
 
   if (!(hasValue && clearSlot)) {

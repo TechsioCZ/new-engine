@@ -2,14 +2,14 @@ import { sdk } from "./sdk"
 
 export type ReviewStatus = "approved" | "pending" | "rejected"
 
-export type ReviewProduct = {
+export interface ReviewProduct {
   handle?: string
   id: string
   thumbnail?: null | string
   title?: string
 }
 
-export type Review = {
+export interface Review {
   content: string
   created_at?: string
   customer_id: string
@@ -24,14 +24,14 @@ export type Review = {
   updated_at?: string
 }
 
-export type ReviewsResponse = {
+export interface ReviewsResponse {
   count: number
   limit: number
   offset: number
   reviews: Review[]
 }
 
-export type ReviewFormInput = {
+export interface ReviewFormInput {
   content: string
   first_name?: null | string
   last_name?: null | string
@@ -42,11 +42,11 @@ export type ReviewFormInput = {
 
 export type ReviewInput = Partial<ReviewFormInput>
 
-export type ReviewResponse = {
+export interface ReviewResponse {
   review: Review
 }
 
-export type UpdateReviewStatusResponse = {
+export interface UpdateReviewStatusResponse {
   reviews: Review[]
 }
 
@@ -68,7 +68,7 @@ export const reviewQueryKeys = {
   lists: () => ["reviews"] as const,
 }
 
-export const listReviews = (params: {
+export const listReviews = async (params: {
   limit: number
   offset: number
   order_by?: string
@@ -76,16 +76,16 @@ export const listReviews = (params: {
   status?: ReviewStatus
 }) => sdk.client.fetch<ReviewsResponse>(`/admin/reviews?${toSearch(params)}`)
 
-export const retrieveReview = (id: string) =>
+export const retrieveReview = async (id: string) =>
   sdk.client.fetch<ReviewResponse>(`/admin/reviews/${id}`)
 
-export const updateReview = (id: string, input: ReviewInput) =>
+export const updateReview = async (id: string, input: ReviewInput) =>
   sdk.client.fetch<ReviewResponse>(`/admin/reviews/${id}`, {
     body: input,
     method: "PATCH",
   })
 
-export const updateReviewStatus = (input: {
+export const updateReviewStatus = async (input: {
   ids: string[]
   status: ReviewStatus
 }) =>

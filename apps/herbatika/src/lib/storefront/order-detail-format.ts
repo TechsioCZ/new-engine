@@ -3,7 +3,7 @@ import { isRecord } from "@techsio/std/object"
 
 type OrderRecord = Record<string, unknown>
 
-export type OrderAddressSummary = {
+export interface OrderAddressSummary {
   fullName: string | null
   company: string | null
   lines: string[]
@@ -73,8 +73,8 @@ const toAddressSummary = (value: unknown): OrderAddressSummary | null => {
   }
 
   return {
-    fullName,
     company,
+    fullName,
     lines,
   }
 }
@@ -96,12 +96,12 @@ const readMethodLabel = (candidate: unknown) => {
   }
 
   const nestedCandidates = [
-    candidate["option"],
-    candidate["shipping_option"],
-    candidate["shippingOption"],
-    candidate["provider"],
-    candidate["payment_provider"],
-    candidate["paymentProvider"],
+    candidate.option,
+    candidate.shipping_option,
+    candidate.shippingOption,
+    candidate.provider,
+    candidate.payment_provider,
+    candidate.paymentProvider,
   ]
 
   for (const nestedCandidate of nestedCandidates) {
@@ -139,11 +139,11 @@ export const resolveOrderContactEmail = (
 ) => readString(order.email) ?? readString(fallbackEmail) ?? "-"
 
 export const resolveOrderAddresses = (order: HttpTypes.StoreOrder) => ({
-  shipping: toAddressSummary(
-    (order as { shipping_address?: unknown }).shipping_address
-  ),
   billing: toAddressSummary(
     (order as { billing_address?: unknown }).billing_address
+  ),
+  shipping: toAddressSummary(
+    (order as { shipping_address?: unknown }).shipping_address
   ),
 })
 
@@ -160,7 +160,7 @@ export const resolveOrderShippingMethodLabel = (
 }
 
 export const resolveOrderPaymentMethodLabel = (order: HttpTypes.StoreOrder) => {
-  const transactions = (order as { transactions?: unknown }).transactions
+  const { transactions } = order as { transactions?: unknown }
   if (Array.isArray(transactions) && transactions.length > 0) {
     const transactionLabel = readMethodLabel(transactions[0])
     if (transactionLabel) {

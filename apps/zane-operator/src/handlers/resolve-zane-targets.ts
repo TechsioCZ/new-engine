@@ -20,8 +20,8 @@ export async function handleResolveZaneTargets(
     const client = new ZaneClient(deps.config)
     const payload = parseResolveTargetsInput(rawBody)
     const result = await client.resolveTargets({
-      projectSlug: payload.projectSlug,
       environmentName: payload.environmentName,
+      projectSlug: payload.projectSlug,
       services: payload.services,
     })
 

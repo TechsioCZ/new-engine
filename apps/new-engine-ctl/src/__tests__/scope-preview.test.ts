@@ -15,7 +15,7 @@ import { collectConfiguredRuntimeProviderNeeds } from "../orchestration/runtime-
 import { executeScope } from "../orchestration/scope.js"
 import { withWorkspaceBinPath } from "../orchestration/workspace-bin-path.js"
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..")
+const repoRoot = resolve(import.meta.dirname, "../../../..")
 const stackManifestPath = join(
   repoRoot,
   "apps/new-engine-ctl/config/stack-manifest.yaml"
@@ -31,15 +31,15 @@ const workspaceBinPath = join(process.cwd(), "node_modules", ".bin")
 
 test("scope preserves existing Path casing when prefixing workspace bin", () => {
   const env = withWorkspaceBinPath({
-    Path: "C:\\Windows\\System32",
     OTHER_VALUE: "kept",
+    Path: "C:\\Windows\\System32",
   })
 
-  expect(env["Path"]).toBe(
+  expect(env.Path).toBe(
     [workspaceBinPath, "C:\\Windows\\System32"].join(delimiter)
   )
-  expect(Object.hasOwn(env, "PATH")).toBe(false)
-  expect(env["OTHER_VALUE"]).toBe("kept")
+  expect(Object.hasOwn(env, "PATH")).toBeFalsy()
+  expect(env.OTHER_VALUE).toBe("kept")
 })
 
 test("scope removes duplicate path casing when prefixing workspace bin", () => {
@@ -48,22 +48,22 @@ test("scope removes duplicate path casing when prefixing workspace bin", () => {
     Path: "C:\\Windows\\System32",
   })
 
-  expect(env["PATH"]).toBe([workspaceBinPath, "/usr/bin"].join(delimiter))
-  expect(Object.hasOwn(env, "Path")).toBe(false)
+  expect(env.PATH).toBe([workspaceBinPath, "/usr/bin"].join(delimiter))
+  expect(Object.hasOwn(env, "Path")).toBeFalsy()
 })
 
 test("Zane service lookup preserves its less restrictive deployability guard", () => {
   const manifest = stackManifestSchema.parse({
     services: [
       {
-        id: "optional",
         ci: {
           deployable: false,
           zane: {
-            service_slug: "optional",
             deploy_lanes: ["main"],
+            service_slug: "optional",
           },
         },
+        id: "optional",
       },
     ],
   })
@@ -76,44 +76,44 @@ test("Zane service lookup preserves its less restrictive deployability guard", (
 
 test("preview scope prepares DB credentials for first baseline replay", async () => {
   const result = await executeScope({
-    lane: "preview",
-    servicesCsv: "herbatika",
     headSha: "HEAD",
-    previewBaselineComplete: false,
-    stackManifestPath,
-    stackInputsPath,
+    lane: "preview",
     nxIsolatePlugins: true,
+    previewBaselineComplete: false,
+    servicesCsv: "herbatika",
+    stackInputsPath,
+    stackManifestPath,
   })
 
   expect(result.services_csv).toBe("herbatika")
-  expect(result.should_prepare).toBe(true)
-  expect(result.requires_preview_db).toBe(true)
+  expect(result.should_prepare).toBeTruthy()
+  expect(result.requires_preview_db).toBeTruthy()
   expect(result.preview_db_service_ids).toBe("medusa-be,payload")
 })
 
 test("preview scope skips prepare for non-DB services after baseline is complete", async () => {
   const result = await executeScope({
-    lane: "preview",
-    servicesCsv: "herbatika",
     headSha: "HEAD",
-    previewBaselineComplete: true,
-    stackManifestPath,
-    stackInputsPath,
+    lane: "preview",
     nxIsolatePlugins: true,
+    previewBaselineComplete: true,
+    servicesCsv: "herbatika",
+    stackInputsPath,
+    stackManifestPath,
   })
 
   expect(result.services_csv).toBe("herbatika")
-  expect(result.should_prepare).toBe(false)
-  expect(result.requires_preview_db).toBe(false)
+  expect(result.should_prepare).toBeFalsy()
+  expect(result.requires_preview_db).toBeFalsy()
   expect(result.preview_db_service_ids).toBe("")
 
   const plan = await executePlan({
     lane: "preview",
-    servicesCsv: result.services_csv,
-    prNumber: 123,
     outputJson: undefined,
-    stackManifestPath,
+    prNumber: 123,
     previewEnvPrefix: "pr-",
+    servicesCsv: result.services_csv,
+    stackManifestPath,
   })
   expect(plan.preview_cloned_service_ids_csv.split(",")).not.toContain("n1")
 })
@@ -130,13 +130,13 @@ test("N1 is explicitly selectable but excluded from default CI scope", async () 
   )
 
   const result = await executeScope({
-    lane: "main",
-    servicesCsv: "n1",
     headSha: "HEAD",
-    previewBaselineComplete: true,
-    stackManifestPath,
-    stackInputsPath,
+    lane: "main",
     nxIsolatePlugins: true,
+    previewBaselineComplete: true,
+    servicesCsv: "n1",
+    stackInputsPath,
+    stackManifestPath,
   })
 
   expect(result.services_csv).toBe("n1")
@@ -149,31 +149,31 @@ test("explicit N1 preview selection includes N1 and its provider outputs", async
   )
   const plan = await executePlan({
     lane: "preview",
-    servicesCsv: "n1",
-    prNumber: 123,
     outputJson: undefined,
-    stackManifestPath,
+    prNumber: 123,
     previewEnvPrefix: "pr-",
+    servicesCsv: "n1",
+    stackManifestPath,
   })
   const needs = collectConfiguredRuntimeProviderNeeds({
     lane: "preview",
     manifest: contracts.manifest,
-    stackInputs: contracts.stackInputs,
-    services: plan.deploy_services,
     meiliApiCredentialsProviderId: "meili_api_credentials",
+    services: plan.deploy_services,
+    stackInputs: contracts.stackInputs,
   })
 
   expect(plan.deploy_services_csv).toBe("n1")
   expect(plan.preview_cloned_service_ids_csv.split(",")).toContain("n1")
-  expect(needs).toEqual(
+  expect(needs).toStrictEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        providerId: "meili_api_credentials",
         outputConsumerIds: { frontend_key: ["n1"] },
+        providerId: "meili_api_credentials",
       }),
       expect.objectContaining({
-        providerId: "medusa_publishable_key",
         outputConsumerIds: { frontend_key: ["n1"] },
+        providerId: "medusa_publishable_key",
       }),
     ])
   )
@@ -182,13 +182,13 @@ test("explicit N1 preview selection includes N1 and its provider outputs", async
 test("preview scope rejects explicit services excluded from preview cloning", async () => {
   await expect(
     executeScope({
-      lane: "preview",
-      servicesCsv: "medusa-db",
       headSha: "HEAD",
-      previewBaselineComplete: true,
-      stackManifestPath,
-      stackInputsPath,
+      lane: "preview",
       nxIsolatePlugins: true,
+      previewBaselineComplete: true,
+      servicesCsv: "medusa-db",
+      stackInputsPath,
+      stackManifestPath,
     })
   ).rejects.toThrow(explicitPreviewRejectPattern)
 })
@@ -197,11 +197,11 @@ test("preview plan rejects services marked clone_to_preview false", async () => 
   await expect(
     executePlan({
       lane: "preview",
-      servicesCsv: "medusa-db",
-      prNumber: 123,
       outputJson: undefined,
-      stackManifestPath,
+      prNumber: 123,
       previewEnvPrefix: "pr-",
+      servicesCsv: "medusa-db",
+      stackManifestPath,
     })
   ).rejects.toThrow(cloneToPreviewRejectPattern)
 })

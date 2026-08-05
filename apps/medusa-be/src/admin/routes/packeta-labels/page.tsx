@@ -16,19 +16,19 @@ import { useState } from "react"
 
 import { sdk } from "../../lib/sdk"
 
-type PacketaFulfillmentData = {
+interface PacketaFulfillmentData {
   packet_id?: number
   barcode?: string
 }
 
-type OrderFulfillment = {
+interface OrderFulfillment {
   id: string
   provider_id: string
   canceled_at: string | null
   data: PacketaFulfillmentData | null
 }
 
-type AdminOrder = {
+interface AdminOrder {
   id: string
   display_id: number
   custom_display_id?: string | null
@@ -38,7 +38,7 @@ type AdminOrder = {
   fulfillments?: OrderFulfillment[]
 }
 
-type OrdersResponse = {
+interface OrdersResponse {
   orders: AdminOrder[]
   count: number
   limit: number
@@ -66,9 +66,9 @@ const ORDER_FIELDS = [
   "fulfillments.data",
 ].join(",")
 
-const LABEL_FORMATS: Array<{ value: LabelFormat; label: string }> = [
-  { value: "A6", label: "A6" },
-  { value: "A7", label: "A7" },
+const LABEL_FORMATS: { value: LabelFormat; label: string }[] = [
+  { label: "A6", value: "A6" },
+  { label: "A7", value: "A7" },
 ]
 
 function getPacketaLabels(order: AdminOrder): OrderFulfillment[] {
@@ -87,8 +87,8 @@ function getOrderNumber(order: AdminOrder): string {
 async function downloadLabels(orderIds: string[], labelFormat: LabelFormat) {
   const response = await fetch("/admin/packeta-labels", {
     body: JSON.stringify({
-      order_ids: orderIds,
       label_format: labelFormat,
+      order_ids: orderIds,
     }),
     credentials: "include",
     headers: {
@@ -104,9 +104,9 @@ async function downloadLabels(orderIds: string[], labelFormat: LabelFormat) {
       payload !== null &&
       "message" in payload
     ) {
-      const message = (payload as { message?: unknown }).message
+      const { message } = payload
       if (typeof message === "string") {
-        throw new Error(message)
+        throw new TypeError(message)
       }
     }
     throw new Error("Failed to generate Packeta labels")
@@ -117,7 +117,7 @@ async function downloadLabels(orderIds: string[], labelFormat: LabelFormat) {
   const anchor = document.createElement("a")
   anchor.href = url
   anchor.download = `packeta-labels-${new Date().toISOString().slice(0, 10)}.pdf`
-  document.body.appendChild(anchor)
+  document.body.append(anchor)
   anchor.click()
   anchor.remove()
   URL.revokeObjectURL(url)
@@ -132,7 +132,7 @@ const PacketaLabelsPage = () => {
   const [isPrinting, setIsPrinting] = useState(false)
 
   const { data, isLoading, error } = useQuery({
-    queryFn: () => {
+    queryFn: async () => {
       const search = new URLSearchParams({
         fields: ORDER_FIELDS,
         limit: String(PAGE_SIZE),
@@ -199,8 +199,10 @@ const PacketaLabelsPage = () => {
     try {
       await downloadLabels(selectedPrintableOrderIds, labelFormat)
       toast.success("Packeta labels generated")
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to print labels")
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to print labels"
+      )
     } finally {
       setIsPrinting(false)
     }
@@ -221,7 +223,9 @@ const PacketaLabelsPage = () => {
         </div>
         <div className="flex items-center gap-2">
           <Select
-            onValueChange={(value) => setLabelFormat(value as LabelFormat)}
+            onValueChange={(value) => {
+              setLabelFormat(value as LabelFormat)
+            }}
             value={labelFormat}
           >
             <Select.Trigger className="w-[92px]">
@@ -275,7 +279,9 @@ const PacketaLabelsPage = () => {
                   <Checkbox
                     checked={selectedOrderIds.has(order.id)}
                     disabled={!canPrint}
-                    onCheckedChange={() => toggleOrder(order.id)}
+                    onCheckedChange={() => {
+                      toggleOrder(order.id)
+                    }}
                   />
                 </Table.Cell>
                 <Table.Cell className="text-ui-fg-base">
@@ -309,11 +315,15 @@ const PacketaLabelsPage = () => {
         canNextPage={offset + PAGE_SIZE < (data?.count ?? 0)}
         canPreviousPage={offset > 0}
         count={data?.count ?? 0}
-        nextPage={() => setOffset((prev) => prev + PAGE_SIZE)}
+        nextPage={() => {
+          setOffset((prev) => prev + PAGE_SIZE)
+        }}
         pageCount={pageCount}
         pageIndex={pageIndex}
         pageSize={PAGE_SIZE}
-        previousPage={() => setOffset((prev) => Math.max(0, prev - PAGE_SIZE))}
+        previousPage={() => {
+          setOffset((prev) => Math.max(0, prev - PAGE_SIZE))
+        }}
       />
 
       {isLoading && (

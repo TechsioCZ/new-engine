@@ -2,15 +2,15 @@ import { model } from "@medusajs/framework/utils"
 
 const Review = model
   .define("review", {
-    id: model.id().primaryKey(),
-    title: model.text().searchable(),
     content: model.text(),
-    rating: model.number(),
-    status: model.text().searchable(),
-    product_id: model.text(),
     customer_id: model.text(),
     first_name: model.text().nullable(),
+    id: model.id().primaryKey(),
     last_name: model.text().nullable(),
+    product_id: model.text(),
+    rating: model.number(),
+    status: model.text().searchable(),
+    title: model.text().searchable(),
   })
   .indexes([
     {
@@ -32,14 +32,14 @@ const Review = model
   ])
   .checks([
     {
-      name: "CHK_review_rating_range",
       expression: (columns) =>
         `${columns.rating} >= 1 AND ${columns.rating} <= 5`,
+      name: "CHK_review_rating_range",
     },
     {
-      name: "CHK_review_status",
       expression: (columns) =>
         `${columns.status} IN ('pending', 'approved', 'rejected')`,
+      name: "CHK_review_status",
     },
   ])
 

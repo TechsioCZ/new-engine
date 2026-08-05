@@ -6,7 +6,7 @@ import { useAppToast } from "@/hooks/use-app-toast"
 
 import { useRemoveLineItem, useUpdateLineItem } from "./cart"
 
-type UseCartLineItemActionsProps = {
+interface UseCartLineItemActionsProps {
   cartId?: string
 }
 

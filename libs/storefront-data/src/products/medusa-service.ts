@@ -9,7 +9,7 @@ type MedusaProductListQuery = HttpTypes.StoreProductListParams &
 
 export type MedusaProductListInput = HttpTypes.StoreProductListParams
 
-export type MedusaProductDetailInput = {
+export interface MedusaProductDetailInput {
   handle: string
   region_id?: string
   country_code?: string
@@ -19,26 +19,26 @@ export type MedusaProductDetailInput = {
   fields?: string
 }
 
-export type MedusaProductTransformListContext<
+export interface MedusaProductTransformListContext<
   TListParams extends MedusaProductListInput,
-> = {
+> {
   params: TListParams
   query: MedusaProductListQuery
   response: HttpTypes.StoreProductListResponse
 }
 
-export type MedusaProductTransformDetailContext<
+export interface MedusaProductTransformDetailContext<
   TDetailParams extends MedusaProductDetailInput,
-> = {
+> {
   params: TDetailParams
   query: MedusaProductListQuery
   response: HttpTypes.StoreProductListResponse
 }
 
-type MedusaProductServiceConfigBase<
+interface MedusaProductServiceConfigBase<
   TListParams extends MedusaProductListInput,
   TDetailParams extends MedusaProductDetailInput,
-> = {
+> {
   listPath?: string
   defaultListFields?: string
   defaultDetailFields?: string
@@ -118,13 +118,13 @@ const toListResponse = <TProduct>(
   const queryOffset = query.offset
 
   return {
-    products,
     count: response.count ?? products.length,
     limit:
       response.limit ??
       (typeof queryLimit === "number" ? queryLimit : products.length),
     offset:
       response.offset ?? (typeof queryOffset === "number" ? queryOffset : 0),
+    products,
   }
 }
 
@@ -224,13 +224,13 @@ export function createMedusaProductService<
     const query = normalizeDetailQuery
       ? normalizeDetailQuery(params)
       : ({
+          cart_id: params.cart_id,
+          country_code: params.country_code,
           handle: params.handle,
           limit: 1,
-          region_id: params.region_id,
-          country_code: params.country_code,
-          province: params.province,
-          cart_id: params.cart_id,
           locale: params.locale,
+          province: params.province,
+          region_id: params.region_id,
           ...(params.fields || defaultDetailFields
             ? { fields: params.fields ?? defaultDetailFields }
             : {}),
@@ -262,7 +262,7 @@ export function createMedusaProductService<
   const getProductsGlobal = createGlobalFetcher
     ? // Global fetcher intentionally bypasses per-call cancellation.
       // It is meant for shared deduped prefetch usage.
-      async (params: TListParams) => getProducts(params, undefined)
+      async (params: TListParams) => await getProducts(params)
     : undefined
 
   return {

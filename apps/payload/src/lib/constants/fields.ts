@@ -10,7 +10,7 @@ type LocalizedLabel = Record<string, string>
 type Description = LocalizedLabel
 
 /** Options for creating a standardized title field. */
-type TextFieldOptions = {
+interface TextFieldOptions {
   label?: LocalizedLabel
   required?: boolean
   localized?: boolean
@@ -18,14 +18,14 @@ type TextFieldOptions = {
 }
 
 /** Options for creating a standardized slug field. */
-type SlugFieldOptions = {
+interface SlugFieldOptions {
   label?: LocalizedLabel
   description: Description
   localized?: boolean
 }
 
 /** Options for creating a standardized rich text content field. */
-type ContentFieldOptions = {
+interface ContentFieldOptions {
   label?: LocalizedLabel
   localized?: boolean
   editor: RichTextField["editor"]
@@ -47,15 +47,15 @@ export const createTitleField = (
 
 /** Build a localized slug field definition with a description. */
 export const createSlugField = (options: SlugFieldOptions): TextField => ({
-  name: "slug",
-  type: "text",
-  required: true,
-  unique: true,
-  localized: options.localized ?? true,
-  label: options.label ?? fieldLabels.slug,
   admin: {
     description: options.description,
   },
+  label: options.label ?? fieldLabels.slug,
+  localized: options.localized ?? true,
+  name: "slug",
+  required: true,
+  type: "text",
+  unique: true,
 })
 
 /** Build a localized rich text content field definition. */
@@ -73,25 +73,25 @@ export const createContentField = (
 
 /** Build a shared status select field definition. */
 export const createStatusField = (): SelectField => ({
-  name: "status",
-  type: "select",
-  required: true,
   defaultValue: "draft",
   label: fieldLabels.status,
+  name: "status",
   options: statusOptions,
+  required: true,
+  type: "select",
 })
 
 /** Build a published date field with a date-only picker. */
 export const createPublishedDateField = (): DateField => ({
-  name: "publishedDate",
-  type: "date",
-  required: true,
-  defaultValue: () => new Date(),
-  label: fieldLabels.publishDate,
   admin: {
     date: {
-      pickerAppearance: "dayOnly",
       displayFormat: "dd.MM.yyyy",
+      pickerAppearance: "dayOnly",
     },
   },
+  defaultValue: () => new Date(),
+  label: fieldLabels.publishDate,
+  name: "publishedDate",
+  required: true,
+  type: "date",
 })

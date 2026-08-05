@@ -13,7 +13,7 @@ import {
 import { reconcileBrandSearchProjection } from "../reconcile-brand-search-projection"
 import { resolveBrandSearchProjectionTargets } from "../resolve-brand-search-projection-targets"
 
-vi.mock("../../../../links/product-brand", () => ({
+vi.mock(import("../../../../links/product-brand"), () => ({
   ProductBrandLink: {
     entryPoint: "product_brand",
   },
@@ -60,11 +60,11 @@ describe("Brand search projection", () => {
         brandIds: ["brand_1", "brand_1"],
         productIds: ["prod_1", "prod_1"],
       })
-    ).toEqual({
+    ).toStrictEqual({
       brand_ids: ["brand_1"],
       product_ids: ["prod_1"],
     })
-    expect(BRAND_SEARCH_PROJECTION_EVENT_OPTIONS).toEqual({
+    expect(BRAND_SEARCH_PROJECTION_EVENT_OPTIONS).toStrictEqual({
       attempts: 5,
       backoff: {
         delay: 1000,
@@ -90,10 +90,10 @@ describe("Brand search projection", () => {
       container
     )
 
-    expect(targets).toEqual({
+    expect(targets).toStrictEqual({
       brand_ids: ["brand_1"],
-      product_ids: ["prod_explicit", "prod_linked"],
       lock_keys: ["brand-search-projection"],
+      product_ids: ["prod_explicit", "prod_linked"],
     })
   })
 
@@ -111,8 +111,8 @@ describe("Brand search projection", () => {
         ],
       })
     const meilisearch = {
-      addDocuments: vi.fn().mockResolvedValue(undefined),
-      deleteDocuments: vi.fn().mockResolvedValue(undefined),
+      addDocuments: vi.fn().mockResolvedValue(),
+      deleteDocuments: vi.fn().mockResolvedValue(),
       getFieldsForType: vi
         .fn()
         .mockReturnValueOnce(["id", "title", "handle"])
@@ -168,7 +168,7 @@ describe("Brand search projection", () => {
       "prod_draft",
       "prod_missing",
     ])
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       brands_deleted: 1,
       brands_upserted: 1,
       products_deleted: 2,
@@ -190,7 +190,7 @@ describe("Brand search projection", () => {
         },
         container
       )
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       brands_deleted: 0,
       brands_upserted: 0,
       products_deleted: 0,

@@ -13,7 +13,7 @@ import { afterEach, describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
 
 const SCRIPT_PATH = fileURLToPath(
-  new URL("./check-migration-immutability.mjs", import.meta.url)
+  new URL("check-migration-immutability.mjs", import.meta.url)
 )
 const repositories = []
 
@@ -72,8 +72,9 @@ void describe("migration immutability check", () => {
 
   for (const { mutate, name } of [
     {
-      mutate: (repository) =>
-        write(repository, "app/migrations/001.ts", "changed\n"),
+      mutate: (repository) => {
+        write(repository, "app/migrations/001.ts", "changed\n")
+      },
       name: "modifications",
     },
     {

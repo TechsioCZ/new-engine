@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server"
 
 import { ProductReviewTokenPage } from "@/components/reviews/product-review-token-page"
 
-type ProductReviewTokenRouteProps = {
+interface ProductReviewTokenRouteProps {
   params: Promise<{
     token: string
   }>

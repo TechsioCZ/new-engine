@@ -8,11 +8,11 @@ import type {
 import type { QueryKey } from "../shared/query-keys"
 import type { RegionInfo } from "../shared/region"
 
-export type CartLineItemLike = {
+export interface CartLineItemLike {
   quantity?: number
 }
 
-export type CartLike = {
+export interface CartLike {
   id: string
   region_id?: string | null
   items?: CartLineItemLike[]
@@ -38,13 +38,13 @@ export type AddLineItemInputBase = CartCreateInputBase & {
   autoCreate?: boolean
 }
 
-export type UpdateLineItemInputBase = {
+export interface UpdateLineItemInputBase {
   cartId?: string
   lineItemId: string
   quantity: number
 }
 
-export type RemoveLineItemInputBase = {
+export interface RemoveLineItemInputBase {
   cartId?: string
   lineItemId: string
 }
@@ -66,18 +66,18 @@ export type CartAddressAdapter<
   TStoredAddress = unknown,
 > = StorefrontCartAddressAdapter<TAddressInput, TAddressPayload, TStoredAddress>
 
-export type TransferCartInputBase = {
+export interface TransferCartInputBase {
   cartId?: string
 }
 
-export type CartService<
+export interface CartService<
   TCart,
   TCreateParams,
   TUpdateParams,
   TAddItemParams,
   TUpdateItemParams,
   TCompleteResult,
-> = {
+> {
   retrieveCart: (cartId: string, signal?: AbortSignal) => Promise<TCart | null>
   createCart: (params: TCreateParams) => Promise<TCart>
   updateCart?: (cartId: string, params: TUpdateParams) => Promise<TCart>
@@ -92,7 +92,7 @@ export type CartService<
   completeCart?: (cartId: string) => Promise<TCompleteResult>
 }
 
-export type CartQueryKeys = {
+export interface CartQueryKeys {
   all: () => QueryKey
   active: (params: {
     cartId?: string | null

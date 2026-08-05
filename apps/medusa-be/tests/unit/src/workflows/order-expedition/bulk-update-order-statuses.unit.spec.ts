@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { OrderExpeditionDirectUpdateStatus } from "../../../../../src/workflows/order-expedition/bulk-update-order-statuses"
 
-type BulkUpdateOrderStatusesWorkflowInput = {
+interface BulkUpdateOrderStatusesWorkflowInput {
   order_ids: string[]
   target_status: OrderExpeditionDirectUpdateStatus
 }
@@ -22,15 +22,13 @@ const { mockEmitEventStep, mockUpdateOrdersStep } = vi.hoisted(() => ({
   mockUpdateOrdersStep: vi.fn((input) => input),
 }))
 
-vi.mock("@medusajs/framework/utils", () => ({
+vi.mock(import("@medusajs/framework/utils"), () => ({
   OrderWorkflowEvents: {
     UPDATED: "order.updated",
   },
 }))
 
-vi.mock("@medusajs/framework/workflows-sdk", () => ({
-  createWorkflow: vi.fn((_name, factory) => factory),
-  transform: vi.fn((input, mapper) => mapper(input)),
+vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   WorkflowResponse: class WorkflowResponse {
     payload: unknown
 
@@ -38,9 +36,11 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
       this.payload = payload
     }
   },
+  createWorkflow: vi.fn((_name, factory) => factory),
+  transform: vi.fn((input, mapper) => mapper(input)),
 }))
 
-vi.mock("@medusajs/medusa/core-flows", () => ({
+vi.mock(import("@medusajs/medusa/core-flows"), () => ({
   emitEventStep: mockEmitEventStep,
   updateOrdersStep: mockUpdateOrdersStep,
 }))

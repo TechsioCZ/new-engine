@@ -11,7 +11,7 @@ export const createCustomerNameValidator =
   (minLengthMessage: string) => (value: string) =>
     validateCustomerNameWithMessage(value, minLengthMessage)
 
-type EmailValidationMessages = {
+interface EmailValidationMessages {
   invalid: string
   required: string
 }
@@ -38,7 +38,7 @@ export const validateRequiredAgreement = (value: boolean, message: string) => {
   return
 }
 
-type PhoneValidationMessages = {
+interface PhoneValidationMessages {
   invalid: string
   minDigits: string
 }
@@ -56,7 +56,7 @@ export const createOptionalPhoneNumberValidator =
       return invalid
     }
 
-    const digitCount = normalized.replace(/\D/g, "").length
+    const digitCount = normalized.replaceAll(/\D/g, "").length
 
     if (digitCount < 7) {
       return minDigits

@@ -6,14 +6,14 @@ import { queryKeys } from "@/lib/query-keys"
 
 export function useOrders(userId?: string) {
   return useQuery({
-    queryKey: queryKeys.orders.list(),
+    enabled: !!userId,
     queryFn: async () => {
       const response = await sdk.store.order.list({
         fields: ORDER_FIELDS.join(","),
       })
       return response
     },
-    enabled: !!userId,
+    queryKey: queryKeys.orders.list(),
     staleTime: 5 * 60 * 1000,
   })
 }

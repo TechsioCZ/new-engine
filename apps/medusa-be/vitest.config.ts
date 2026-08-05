@@ -19,7 +19,7 @@ function loadLocalEnvOverrides(path: string) {
     return
   }
 
-  Object.assign(process.env, parseEnv(readFileSync(path, "utf8")))
+  Object.assign(process.env, parseEnv(readFileSync(path, "utf-8")))
 }
 
 if (isIntegration) {

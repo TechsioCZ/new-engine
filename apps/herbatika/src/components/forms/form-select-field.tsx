@@ -1,16 +1,13 @@
 "use client"
 
-import {
-  Select,
-  type SelectItem,
-  type SelectSize,
-} from "@techsio/ui-kit/molecules/select"
+import { Select } from "@techsio/ui-kit/molecules/select"
+import type { SelectItem, SelectSize } from "@techsio/ui-kit/molecules/select"
 import type { ReactNode } from "react"
 
 import { resolveVisibleFieldFeedback } from "@/lib/forms/core/field-errors"
 import { useFieldContext } from "@/lib/forms/core/herbatika-form-context"
 
-type FormSelectFieldProps = {
+interface FormSelectFieldProps {
   id: string
   items: SelectItem[]
   label: ReactNode

@@ -10,7 +10,7 @@ import {
 
 export type MedusaClientConfig = Config
 
-export type CreateMedusaSdkOptions = {
+export interface CreateMedusaSdkOptions {
   disableAuthOnServer?: boolean
 }
 
@@ -42,15 +42,15 @@ const patchStorageMethod = <
     Object.defineProperty(storage, methodName, {
       configurable: true,
       enumerable: ownDescriptor?.enumerable ?? false,
-      writable: true,
       value: fallbackMethod,
+      writable: true,
     })
   } catch {
     Object.defineProperty(storagePrototype, methodName, {
       configurable: prototypeDescriptor?.configurable ?? true,
       enumerable: prototypeDescriptor?.enumerable ?? false,
-      writable: prototypeDescriptor?.writable ?? true,
       value: fallbackMethod,
+      writable: prototypeDescriptor?.writable ?? true,
     })
   }
 
@@ -82,21 +82,21 @@ const createSafeStorage = (storage: Storage): Storage => {
         }
       },
     },
-    setItem: {
-      configurable: true,
-      value: (key: string, value: string) => {
-        try {
-          storage.setItem(key, value)
-        } catch {
-          return
-        }
-      },
-    },
     removeItem: {
       configurable: true,
       value: (key: string) => {
         try {
           storage.removeItem(key)
+        } catch {
+          return
+        }
+      },
+    },
+    setItem: {
+      configurable: true,
+      value: (key: string, value: string) => {
+        try {
+          storage.setItem(key, value)
         } catch {
           return
         }

@@ -11,7 +11,9 @@ export const useDebouncedValue = <TValue>(
       setDebouncedValue(value)
     }, delayMs)
 
-    return () => window.clearTimeout(timeout)
+    return () => {
+      window.clearTimeout(timeout)
+    }
   }, [delayMs, value])
 
   return debouncedValue

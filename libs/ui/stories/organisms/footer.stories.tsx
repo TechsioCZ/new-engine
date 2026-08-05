@@ -8,18 +8,18 @@ import { Link } from "../../src/atoms/link"
 import { Footer } from "../../src/organisms/footer"
 
 const meta: Meta<typeof Footer> = {
-  title: "Organisms/Footer",
   component: Footer,
   parameters: {
-    layout: "fullscreen",
     docs: {
       description: {
         component:
           "A flexible compound footer component with context-based sizing.",
       },
     },
+    layout: "fullscreen",
   },
   tags: ["autodocs"],
+  title: "Organisms/Footer",
 }
 
 export default meta

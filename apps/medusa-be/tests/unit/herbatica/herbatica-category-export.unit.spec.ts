@@ -30,15 +30,15 @@ describe("Herbatica category export parser", () => {
     const category = categories.find((entry) => entry.id === "758")
 
     expect(category).toMatchObject({
+      expandInMenu: false,
       id: "758",
-      title: "Trápi ma",
-      url: "trapi-ma",
+      isVisible: true,
+      metaDescription: expect.stringContaining("imunita"),
       metaTitle:
         "Trápi ma - prírodné riešenia a doplnky podľa problému | Herbatica",
-      metaDescription: expect.stringContaining("imunita"),
       priority: 2,
-      expandInMenu: false,
-      isVisible: true,
+      title: "Trápi ma",
+      url: "trapi-ma",
     })
     expect(stripHtmlToPlainText(category?.topDescriptionHtml)).toContain(
       "Človek je neoddeliteľnou súčasťou prírody"
@@ -55,12 +55,12 @@ describe("Herbatica category export parser", () => {
     const category = categories.find((entry) => entry.id === "1584")
 
     expect(category).toMatchObject({
+      bottomDescriptionHtml: undefined,
       id: "1584",
+      metaDescription: expect.stringContaining("prehľad produktov"),
+      metaTitle: "Prírodná kozmetika - prehľad a porovnanie | Herbatica",
       title: "Prírodná kozmetika",
       url: "prirodna-kozmetika",
-      metaTitle: "Prírodná kozmetika - prehľad a porovnanie | Herbatica",
-      metaDescription: expect.stringContaining("prehľad produktov"),
-      bottomDescriptionHtml: undefined,
     })
     expect(stripHtmlToPlainText(category?.topDescriptionHtml)).toContain(
       "Kľúčom ku zdravej a krásnej pleti"
@@ -80,12 +80,12 @@ describe("Herbatica category export parser", () => {
 
   it("reads XML from a local source path", async () => {
     await expect(readXmlSource(xmlPath)).resolves.toBe(
-      readFileSync(xmlPath, "utf8")
+      readFileSync(xmlPath, "utf-8")
     )
   })
 
   it("parses categories from an HTTP XML source", async () => {
-    const xml = readFileSync(xmlPath, "utf8")
+    const xml = readFileSync(xmlPath, "utf-8")
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(xml))
     vi.stubGlobal("fetch", fetchMock)
 

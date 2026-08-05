@@ -2,15 +2,13 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import {
-  Carousel,
-  type CarouselSlide,
-} from "@techsio/ui-kit/molecules/carousel"
+import { Carousel } from "@techsio/ui-kit/molecules/carousel"
+import type { CarouselSlide } from "@techsio/ui-kit/molecules/carousel"
 
 import { HerbatikaProductCard } from "@/components/herbatika-product-card"
 import { useAddProductToCartAction } from "@/lib/storefront/use-add-product-to-cart-action"
 
-type InlineProductsCarouselProps = {
+interface InlineProductsCarouselProps {
   products: HttpTypes.StoreProduct[]
   keyPrefix?: string
   onProductHoverStart?: (product: HttpTypes.StoreProduct) => void
@@ -20,7 +18,7 @@ type InlineProductsCarouselProps = {
   slidesLg?: number
 }
 
-type InlineProductsSlidesProps = {
+interface InlineProductsSlidesProps {
   slides: CarouselSlide[]
   slidesPerPage: number
 }
@@ -78,7 +76,6 @@ export function InlineProductsCarousel({
   }
 
   const slides: CarouselSlide[] = products.map((product, index) => ({
-    id: `${keyPrefix}-${product.id ?? product.handle ?? index}`,
     content: (
       <HerbatikaProductCard
         isAdding={Boolean(product.id) && addToCart.isProductAdding(product.id)}
@@ -92,6 +89,7 @@ export function InlineProductsCarousel({
         product={product}
       />
     ),
+    id: `${keyPrefix}-${product.id ?? product.handle ?? index}`,
   }))
 
   if (slides.length === 0) {

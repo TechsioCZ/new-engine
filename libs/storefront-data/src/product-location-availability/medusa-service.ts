@@ -5,12 +5,12 @@ import type {
   ProductLocationAvailabilityService,
 } from "./types"
 
-export type MedusaProductLocationAvailabilityInput = {
+export interface MedusaProductLocationAvailabilityInput {
   productId?: null | string
   enabled?: boolean
 }
 
-export type MedusaProductLocationAvailabilityServiceConfig = {
+export interface MedusaProductLocationAvailabilityServiceConfig {
   productsPath?: string
 }
 
@@ -24,7 +24,7 @@ export function createMedusaProductLocationAvailabilityService(
   const productsPath = config?.productsPath ?? "/store/products"
 
   return {
-    getProductLocationAvailability: (params, signal?: AbortSignal) => {
+    getProductLocationAvailability: async (params, signal?: AbortSignal) => {
       if (!params.productId) {
         throw new Error("Product id is required for location availability.")
       }

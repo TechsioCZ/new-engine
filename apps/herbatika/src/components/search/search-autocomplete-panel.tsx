@@ -12,13 +12,13 @@ import type {
 
 import { SearchAutocompleteMedia } from "./search-autocomplete-media"
 
-export type SearchAutocompletePanelSection = {
+export interface SearchAutocompletePanelSection {
   key: SearchAutocompleteSuggestionType
   title: string
   items: SearchAutocompleteSuggestion[]
 }
 
-type SearchAutocompletePanelProps = {
+interface SearchAutocompletePanelProps {
   activeItemId?: string
   id: string
   onItemClick: () => void
@@ -32,7 +32,7 @@ type SearchAutocompletePanelProps = {
 const PANEL_CLASS_NAME =
   "absolute left-0 right-0 top-full z-50 mt-100 max-h-screen overflow-y-auto rounded-xs border border-border-secondary bg-surface py-200 shadow-md"
 
-const joinClassNames = (...classNames: Array<string | false | undefined>) =>
+const joinClassNames = (...classNames: (string | false | undefined)[]) =>
   classNames.filter(Boolean).join(" ")
 
 type SearchTranslator = ReturnType<typeof useTranslations<"search">>
@@ -119,7 +119,9 @@ function SearchAutocompleteRow({
         href={item.href}
         id={optionId}
         onClick={onItemClick}
-        onMouseEnter={() => onItemMouseEnter(item)}
+        onMouseEnter={() => {
+          onItemMouseEnter(item)
+        }}
         role="option"
       >
         <SearchAutocompleteMedia item={item} />
@@ -198,9 +200,7 @@ export function SearchAutocompletePanel({
             <ul aria-label={section.title}>
               {section.items.map((item) => (
                 <SearchAutocompleteRow
-                  {...(activeItemId === undefined
-                    ? {}
-                    : { activeItemId: activeItemId })}
+                  {...(activeItemId === undefined ? {} : { activeItemId })}
                   item={item}
                   key={`${item.type}-${item.id}`}
                   onItemClick={onItemClick}

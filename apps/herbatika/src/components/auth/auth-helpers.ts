@@ -3,9 +3,10 @@ import type {
   RegisterFormValues,
 } from "@/lib/auth/auth-form-validators"
 import { normalizeCountryCode } from "@/lib/forms/country-options"
-import { type AppHref, appHref, toAppHref } from "@/lib/routing"
+import { appHref, toAppHref } from "@/lib/routing"
+import type { AppHref } from "@/lib/routing"
 
-type BuildRegisterDefaultsOptions = {
+interface BuildRegisterDefaultsOptions {
   countryCode?: string | null
 }
 
@@ -48,20 +49,20 @@ export const buildLoginDefaults = (): LoginFormValues => ({
 export const buildRegisterDefaults = ({
   countryCode,
 }: BuildRegisterDefaultsOptions = {}): RegisterFormValues => ({
+  accept_terms: false,
   account_type: "retail",
-  first_name: "",
-  last_name: "",
-  email: "",
-  password: "",
-  confirm_password: "",
-  company_name: "",
-  company_identifier: "",
   billing_address_1: "",
   billing_address_2: "",
   billing_city: "",
-  billing_postal_code: "",
   billing_country_code: normalizeCountryCode(countryCode) ?? "",
-  accept_terms: false,
+  billing_postal_code: "",
+  company_identifier: "",
+  company_name: "",
+  confirm_password: "",
+  email: "",
+  first_name: "",
+  last_name: "",
+  password: "",
 })
 
 export const buildRegisterSuccessNotice = ({

@@ -45,17 +45,17 @@ export const buildProductListParams = (
       typeof offset === "number" ? offset : (resolvedPage - 1) * resolvedLimit,
   }
 
-  const categoryIds = params["category_id"]
+  const categoryIds = params.category_id
   if (Array.isArray(categoryIds) && categoryIds.length > 0) {
     // Medusa Store parser accepts multi-value `category_id[]` as CSV.
     params["category_id[]"] = categoryIds.join(",")
-    params["category_id"] = undefined
+    params.category_id = undefined
   }
 
-  const handles = params["handle"]
+  const handles = params.handle
   if (Array.isArray(handles) && handles.length > 0) {
     params["handle[]"] = handles.join(",")
-    params["handle"] = undefined
+    params.handle = undefined
   }
 
   return params

@@ -1,13 +1,13 @@
 import { ApprovalStatusType } from "../types/approval"
 
-type CartWithApprovals = {
+interface CartWithApprovals {
   approvals?: Array<{ status?: string | null } | null> | null
 }
 
 export const getCartApprovalStatus = (cart: CartWithApprovals | null) => {
   const defaultStatus = {
-    isPendingApproval: false,
     isApproved: false,
+    isPendingApproval: false,
     isRejected: false,
   }
 

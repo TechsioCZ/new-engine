@@ -2,7 +2,7 @@ import { unique } from "@techsio/std/array"
 
 export type PrefetchPagesMode = "priority" | "simple"
 
-export type CreatePrefetchPagesPlanInput = {
+export interface CreatePrefetchPagesPlanInput {
   mode?: PrefetchPagesMode | undefined
   currentPage: number
   totalPages: number
@@ -10,7 +10,7 @@ export type CreatePrefetchPagesPlanInput = {
   hasPrevPage: boolean
 }
 
-export type PrefetchPagesPlan = {
+export interface PrefetchPagesPlan {
   immediate: number[]
   medium: number[]
   low: number[]
@@ -35,7 +35,7 @@ const createSimplePrefetchPagesPlan = (
 ): PrefetchPagesPlan => {
   const pagesToPrefetch: number[] = []
 
-  pushPageIfValid(pagesToPrefetch, input.currentPage !== 1 ? 1 : null, input)
+  pushPageIfValid(pagesToPrefetch, input.currentPage === 1 ? null : 1, input)
   pushPageIfValid(
     pagesToPrefetch,
     input.hasPrevPage ? input.currentPage - 1 : null,
@@ -58,14 +58,14 @@ const createSimplePrefetchPagesPlan = (
   )
   pushPageIfValid(
     pagesToPrefetch,
-    input.currentPage !== input.totalPages ? input.totalPages : null,
+    input.currentPage === input.totalPages ? null : input.totalPages,
     input
   )
 
   return {
     immediate: unique(pagesToPrefetch),
-    medium: [],
     low: [],
+    medium: [],
   }
 }
 
@@ -79,7 +79,7 @@ const createPriorityPrefetchPagesPlan = (
       : []
   const lowCandidates = [
     input.hasPrevPage ? input.currentPage - 1 : null,
-    input.currentPage !== 1 ? 1 : null,
+    input.currentPage === 1 ? null : 1,
     input.totalPages > 1 && input.currentPage !== input.totalPages
       ? input.totalPages
       : null,
@@ -95,8 +95,8 @@ const createPriorityPrefetchPagesPlan = (
 
   return {
     immediate,
-    medium: mediumPages,
     low: lowPages,
+    medium: mediumPages,
   }
 }
 

@@ -15,7 +15,7 @@ export type ProductListParams = HttpTypes.StoreProductListParams
 export type CatalogListParams = ReturnType<typeof buildCatalogProductsParams>
 export type ProductReviewListParams = MedusaProductReviewListInput
 
-export type ProductDetailParams = {
+export interface ProductDetailParams {
   handle: string
   region_id?: string
   country_code?: string

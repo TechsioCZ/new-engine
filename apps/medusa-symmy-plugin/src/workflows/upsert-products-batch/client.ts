@@ -5,25 +5,25 @@ import { batchProductsWorkflow } from "@medusajs/medusa/core-flows"
 import { productBatchClientMapperHelper } from "./client-mapper-helper"
 import type { ProductInput } from "./types"
 
-export type ResolvedCategoryMap = {
+export interface ResolvedCategoryMap {
   byHandle: Map<string, string>
   byName: Map<string, string>
 }
 
-export type ExistingProduct = {
+export interface ExistingProduct {
   id: string
   external_id: string | null
   metadata: Record<string, unknown> | null
   variants: { id: string; sku: string | null; ean: string | null }[]
 }
 
-export type ExistingProductIndex = {
+export interface ExistingProductIndex {
   byErpId: Map<string, ExistingProduct>
   bySku: Map<string, ExistingProduct>
   byEan: Map<string, ExistingProduct>
 }
 
-export type CreatedProduct = {
+export interface CreatedProduct {
   id: string
   variants?: { id: string }[]
 }
@@ -35,12 +35,12 @@ export type UpdateProductPayload = ReturnType<
   typeof productBatchClientMapperHelper.buildUpdatePayload
 >
 
-export type ProductBatchPayload = {
+export interface ProductBatchPayload {
   create: CreateProductPayload[]
   update: UpdateProductPayload[]
 }
 
-export type ProductBatchApplyResult = {
+export interface ProductBatchApplyResult {
   created: CreatedProduct[]
   updated: CreatedProduct[]
 }
@@ -100,14 +100,14 @@ export class ProductBatchClient {
     )
 
     return {
+      byEan: this.helper.buildExistingProductsByIdentifier(
+        existingProductsById,
+        eanToProductId
+      ),
       byErpId,
       bySku: this.helper.buildExistingProductsByIdentifier(
         existingProductsById,
         skuToProductId
-      ),
-      byEan: this.helper.buildExistingProductsByIdentifier(
-        existingProductsById,
-        eanToProductId
       ),
     }
   }
@@ -169,7 +169,7 @@ export class ProductBatchClient {
     const { data } = await this.query.graph({
       entity: "product",
       fields,
-      filters: { external_id: Array.from(erpIds) },
+      filters: { external_id: [...erpIds] },
     })
     return data
   }
@@ -185,7 +185,7 @@ export class ProductBatchClient {
     const { data } = await this.query.graph({
       entity: "product_variant",
       fields: [field, "product_id"],
-      filters: { [field]: Array.from(values) },
+      filters: { [field]: [...values] },
     })
     return data
   }
@@ -202,7 +202,7 @@ export class ProductBatchClient {
     const { data } = await this.query.graph({
       entity: "product",
       fields,
-      filters: { id: Array.from(missingProductIds) },
+      filters: { id: [...missingProductIds] },
     })
     for (const raw of data) {
       const existingProduct = this.helper.toExistingProduct(
@@ -224,7 +224,7 @@ export class ProductBatchClient {
     const { data } = await this.query.graph({
       entity: "product_category",
       fields: ["id", field],
-      filters: { [field]: Array.from(values) },
+      filters: { [field]: [...values] },
     })
 
     for (const category of data) {

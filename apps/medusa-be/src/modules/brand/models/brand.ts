@@ -4,9 +4,9 @@ import BrandAttribute from "./brand-attribute"
 
 const Brand = model
   .define("brand", {
-    id: model.id().primaryKey(),
-    title: model.text().searchable(),
-    handle: model.text().searchable(),
+    attributes: model.hasMany(() => BrandAttribute, {
+      mappedBy: "brand",
+    }),
     gpsr_contact_email: model.text().nullable(),
     gpsr_european_reseller_contact_email: model.text().nullable(),
     gpsr_european_reseller_manufacturing_company_name: model.text().nullable(),
@@ -14,9 +14,9 @@ const Brand = model
     gpsr_manufactured_outside_eu: model.boolean().default(false),
     gpsr_manufacturing_company_name: model.text().nullable(),
     gpsr_postal_address: model.text().nullable(),
-    attributes: model.hasMany(() => BrandAttribute, {
-      mappedBy: "brand",
-    }),
+    handle: model.text().searchable(),
+    id: model.id().primaryKey(),
+    title: model.text().searchable(),
   })
   .indexes([
     {

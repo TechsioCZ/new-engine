@@ -1,32 +1,35 @@
 import { QueryClient } from "@tanstack/react-query"
+import { vi, describe, expect, it } from "vitest"
 
 import { createCatalogQueryOptionsFactory } from "../src/catalog/query-options"
 import type { CatalogFacets } from "../src/catalog/types"
 
-type Product = { id: string }
+interface Product {
+  id: string
+}
 
-type ListInput = {
+interface ListInput {
   q?: string
   region_id?: string
   country_code?: string
   enabled?: boolean
 }
 
-type ListParams = {
+interface ListParams {
   q?: string
   region_id?: string
   country_code?: string
 }
 
 const EMPTY_FACETS: CatalogFacets = {
-  status: [],
-  form: [],
   brand: [],
+  form: [],
   ingredient: [],
   price: {
-    min: null,
     max: null,
+    min: null,
   },
+  status: [],
 }
 
 const createQueryClient = () =>
@@ -41,34 +44,33 @@ const createQueryClient = () =>
 const createCatalogRegionTestContext = (queryKeyNamespace: string) => {
   const service = {
     getCatalogProducts: vi.fn(async (_params: ListParams) => ({
-      products: [{ id: "prod_1" } as Product],
       count: 1,
-      page: 1,
-      limit: 12,
-      totalPages: 1,
       facets: EMPTY_FACETS,
+      limit: 12,
+      page: 1,
+      products: [{ id: "prod_1" }],
+      totalPages: 1,
     })),
   }
 
   const { getListQueryOptions } = createCatalogQueryOptionsFactory<
     Product,
     ListInput,
-    ListParams,
-    CatalogFacets
+    ListParams
   >({
-    service,
-    queryKeyNamespace,
     buildListParams: (input) => ({
       ...(input.q ? { q: input.q } : {}),
       ...(input.region_id ? { region_id: input.region_id } : {}),
       ...(input.country_code ? { country_code: input.country_code } : {}),
     }),
+    queryKeyNamespace,
+    service,
   })
 
   return {
-    service,
     getListQueryOptions,
     queryClient: createQueryClient(),
+    service,
   }
 }
 
@@ -82,16 +84,16 @@ describe("catalog query options region merge", () => {
           q: "kretin",
         },
         {
-          region: { region_id: "reg_sk", country_code: "sk" },
+          region: { country_code: "sk", region_id: "reg_sk" },
         }
       )
     )
 
     expect(service.getCatalogProducts).toHaveBeenCalledWith(
       {
+        country_code: "sk",
         q: "kretin",
         region_id: "reg_sk",
-        country_code: "sk",
       },
       expect.any(AbortSignal)
     )
@@ -103,21 +105,21 @@ describe("catalog query options region merge", () => {
     await queryClient.prefetchQuery(
       getListQueryOptions(
         {
+          country_code: "cz",
           q: "kretin",
           region_id: "reg_cz",
-          country_code: "cz",
         },
         {
-          region: { region_id: "reg_sk", country_code: "sk" },
+          region: { country_code: "sk", region_id: "reg_sk" },
         }
       )
     )
 
     expect(service.getCatalogProducts).toHaveBeenCalledWith(
       {
+        country_code: "cz",
         q: "kretin",
         region_id: "reg_cz",
-        country_code: "cz",
       },
       expect.any(AbortSignal)
     )
@@ -129,20 +131,20 @@ describe("catalog query options region merge", () => {
     await queryClient.prefetchQuery(
       getListQueryOptions(
         {
-          q: "kretin",
           country_code: "cz",
+          q: "kretin",
         },
         {
-          region: { region_id: "reg_cz", country_code: "sk" },
+          region: { country_code: "sk", region_id: "reg_cz" },
         }
       )
     )
 
     expect(service.getCatalogProducts).toHaveBeenCalledWith(
       {
+        country_code: "cz",
         q: "kretin",
         region_id: "reg_cz",
-        country_code: "cz",
       },
       expect.any(AbortSignal)
     )

@@ -4,7 +4,8 @@ import Image from "next/image"
 import NextLink from "next/link"
 import { useState } from "react"
 
-import { links, type SubmenuCategory, submenuItems } from "@/data/header"
+import { links, submenuItems } from "@/data/header"
+import type { SubmenuCategory } from "@/data/header"
 import { usePrefetchProducts } from "@/hooks/use-prefetch-products"
 
 export const DesktopSubmenu = () => {
@@ -29,7 +30,12 @@ export const DesktopSubmenu = () => {
   return (
     <Header.Desktop>
       {/* hover-only wrapper for submenu */}
-      <div className="w-full" onMouseLeave={() => setDrawerOpen(false)}>
+      <div
+        className="w-full"
+        onMouseLeave={() => {
+          setDrawerOpen(false)
+        }}
+      >
         <Header.Container className="w-full border-highlight border-t bg-base-dark py-0">
           <Header.Nav className="z-30 flex-wrap gap-0 px-0 py-0">
             {links.map((link) => (
@@ -41,7 +47,9 @@ export const DesktopSubmenu = () => {
               >
                 <Header.NavItem
                   className="font-bold text-fg-reverse group-hover:text-black"
-                  onMouseEnter={() => handleOpenSubmenu(link.label)}
+                  onMouseEnter={() => {
+                    handleOpenSubmenu(link.label)
+                  }}
                 >
                   {link.label}
                 </Header.NavItem>

@@ -1,12 +1,12 @@
-type ErrorWithMessage = {
+interface ErrorWithMessage {
   message: unknown
 }
 
-type ErrorWithStatus = {
+interface ErrorWithStatus {
   status: unknown
 }
 
-type ErrorWithResponse = {
+interface ErrorWithResponse {
   response: unknown
 }
 
@@ -25,7 +25,7 @@ export function resolveErrorMessage(error: unknown): string {
 
   // Check for objects with message property (Medusa SDK errors)
   if (error && typeof error === "object" && "message" in error) {
-    const errorWithMessage = error as ErrorWithMessage
+    const errorWithMessage = error
     if (typeof errorWithMessage.message === "string") {
       return errorWithMessage.message
     }
@@ -37,20 +37,20 @@ export function resolveErrorMessage(error: unknown): string {
 function getErrorStatus(error: unknown): number | null {
   // Check for direct status property (Medusa SDK)
   if (error && typeof error === "object" && "status" in error) {
-    const errorWithStatus = error as ErrorWithStatus
+    const errorWithStatus = error
     if (typeof errorWithStatus.status === "number") {
       return errorWithStatus.status
     }
   }
 
   if (error && typeof error === "object" && "response" in error) {
-    const errorWithResponse = error as ErrorWithResponse
+    const errorWithResponse = error
     if (
       errorWithResponse.response &&
       typeof errorWithResponse.response === "object" &&
       "status" in errorWithResponse.response
     ) {
-      const response = errorWithResponse.response as { status: unknown }
+      const response = errorWithResponse.response
       if (typeof response.status === "number") {
         return response.status
       }
@@ -66,7 +66,7 @@ export function isNotFoundError(error: unknown): boolean {
 }
 
 export function logError(context: string, error: unknown): void {
-  if (process.env["NODE_ENV"] === "development") {
+  if (process.env.NODE_ENV === "development") {
     console.error(`[${context}]`, error)
   }
 }

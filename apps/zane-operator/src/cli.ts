@@ -89,10 +89,10 @@ function parseCreateDevUserArgs(args: string[]): CliArgs {
   }
 
   return {
-    username,
-    password,
-    grantConnectToAllDatabases,
     allowProdBroadGrants,
+    grantConnectToAllDatabases,
+    password,
+    username,
   }
 }
 
@@ -111,34 +111,34 @@ async function runCreateDevUser(args: string[]): Promise<void> {
 
   const databaseUrl = buildPostgresConnectionUrl(process.env)
   const sql = new SQL({
-    url: databaseUrl,
-    max: 2,
-    idleTimeout: 10,
     connectionTimeout: 10,
+    idleTimeout: 10,
+    max: 2,
+    url: databaseUrl,
   })
 
   try {
     await sql.connect()
     const result = await createOrUpdateDevRole(sql, {
-      username: parsed.username,
-      password: parsed.password,
       databaseUrl,
       grantConnectToAllDatabases: parsed.grantConnectToAllDatabases,
+      password: parsed.password,
+      username: parsed.username,
     })
 
     console.info(
       JSON.stringify({
-        event: "cli.create-dev-user",
-        username: result.username,
-        created: result.created,
-        connect_grants_applied: result.connectGrantsApplied,
-        connect_grants_revoked: result.connectGrantsRevoked,
-        schema_grants_applied: result.schemaGrantsApplied,
-        default_privilege_owners_applied: result.defaultPrivilegeOwnersApplied,
-        default_privilege_owners_skipped: result.defaultPrivilegeOwnersSkipped,
         connect_grant_scope: parsed.grantConnectToAllDatabases
           ? "all_non_template_databases"
           : "none",
+        connect_grants_applied: result.connectGrantsApplied,
+        connect_grants_revoked: result.connectGrantsRevoked,
+        created: result.created,
+        default_privilege_owners_applied: result.defaultPrivilegeOwnersApplied,
+        default_privilege_owners_skipped: result.defaultPrivilegeOwnersSkipped,
+        event: "cli.create-dev-user",
+        schema_grants_applied: result.schemaGrantsApplied,
+        username: result.username,
       })
     )
   } finally {

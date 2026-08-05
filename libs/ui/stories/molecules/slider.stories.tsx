@@ -3,123 +3,62 @@ import { useState } from "react"
 
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
-import { Slider, type SliderProps } from "../../src/molecules/slider"
+import { Slider } from "../../src/molecules/slider"
+import type { SliderProps } from "../../src/molecules/slider"
 
 const meta: Meta<typeof Slider> = {
-  title: "Molecules/Slider",
-  component: Slider,
-  parameters: {
-    layout: "centered",
-  },
-  tags: ["autodocs"],
   argTypes: {
-    value: {
-      control: "object",
-      description:
-        "Current values of the slider (for controlled component). Example: [20, 80]",
-    },
     defaultValue: {
       control: "object",
       description:
         "Default values of the slider (for uncontrolled component). Example: [25, 75]",
     },
-    min: {
-      control: "number",
-      description: "Minimum value of the slider.",
-      table: { defaultValue: { summary: "0" } },
-    },
-    max: {
-      control: "number",
-      description: "Maximum value of the slider.",
-      table: { defaultValue: { summary: "100" } },
-    },
-    step: {
-      control: "number",
-      description: "Step value for incrementing/decrementing.",
-      table: { defaultValue: { summary: "1" } },
-    },
-    minStepsBetweenThumbs: {
-      control: "number",
-      description: "Minimum steps required between thumbs.",
-      table: { defaultValue: { summary: "0" } },
-    },
-    orientation: {
+    dir: {
       control: "select",
-      options: ["horizontal", "vertical"],
-      description: "Orientation of the slider.",
-      table: { defaultValue: { summary: "horizontal" } },
-    },
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-      description: "Size of the slider.",
-      table: { defaultValue: { summary: "md" } },
+      description: "Text direction of the slider.",
+      options: ["ltr", "rtl"],
+      table: { defaultValue: { summary: "ltr" } },
     },
     disabled: {
       control: "boolean",
       description: "Whether the slider is disabled.",
       table: { defaultValue: { summary: "false" } },
     },
-    readOnly: {
-      control: "boolean",
-      description: "Whether the slider is read-only.",
-      table: { defaultValue: { summary: "false" } },
-    },
-    showValueText: {
-      control: "boolean",
-      description: "Show the current values alongside the slider.",
-      table: { defaultValue: { summary: "false" } },
+    formatRangeText: {
+      control: false,
+      description: "Function to format the range text display.",
     },
     formatValue: {
       control: false,
       description: "Function to format the displayed value text.",
     },
-    showMarkers: {
-      control: "boolean",
-      description: "Show step markers on the track.",
-      table: { defaultValue: { summary: "false" } },
+    helpText: {
+      control: "text",
+      description: "Help text displayed below the slider.",
+    },
+    label: {
+      control: "text",
+      description: "Label text displayed above the slider.",
     },
     markerCount: {
       control: "number",
       description: "Number of markers to display (if showMarkers is true).",
       table: { defaultValue: { summary: "5" } },
     },
-    label: {
-      control: "text",
-      description: "Label text displayed above the slider.",
+    max: {
+      control: "number",
+      description: "Maximum value of the slider.",
+      table: { defaultValue: { summary: "100" } },
     },
-    validateStatus: {
-      control: "select",
-      options: ["default", "error", "success", "warning"],
-      description:
-        "Validation status that affects slider styling and help text display.",
-      table: { defaultValue: { summary: "default" } },
+    min: {
+      control: "number",
+      description: "Minimum value of the slider.",
+      table: { defaultValue: { summary: "0" } },
     },
-    helpText: {
-      control: "text",
-      description: "Help text displayed below the slider.",
-    },
-    origin: {
-      control: "select",
-      options: ["start", "center", "end"],
-      description: "Origin point for the slider range.",
-      table: { defaultValue: { summary: "start" } },
-    },
-    thumbAlignment: {
-      control: "select",
-      options: ["center", "contain"],
-      description: "Alignment of slider thumbs relative to the track.",
-      table: { defaultValue: { summary: "center" } },
-    },
-    dir: {
-      control: "select",
-      options: ["ltr", "rtl"],
-      description: "Text direction of the slider.",
-      table: { defaultValue: { summary: "ltr" } },
-    },
-    formatRangeText: {
-      control: false,
-      description: "Function to format the range text display.",
+    minStepsBetweenThumbs: {
+      control: "number",
+      description: "Minimum steps required between thumbs.",
+      table: { defaultValue: { summary: "0" } },
     },
     onChange: {
       action: "changed",
@@ -129,40 +68,102 @@ const meta: Meta<typeof Slider> = {
       action: "changeEnded",
       description: "Callback when the value change is committed.",
     },
+    orientation: {
+      control: "select",
+      description: "Orientation of the slider.",
+      options: ["horizontal", "vertical"],
+      table: { defaultValue: { summary: "horizontal" } },
+    },
+    origin: {
+      control: "select",
+      description: "Origin point for the slider range.",
+      options: ["start", "center", "end"],
+      table: { defaultValue: { summary: "start" } },
+    },
+    readOnly: {
+      control: "boolean",
+      description: "Whether the slider is read-only.",
+      table: { defaultValue: { summary: "false" } },
+    },
+    showMarkers: {
+      control: "boolean",
+      description: "Show step markers on the track.",
+      table: { defaultValue: { summary: "false" } },
+    },
+    showValueText: {
+      control: "boolean",
+      description: "Show the current values alongside the slider.",
+      table: { defaultValue: { summary: "false" } },
+    },
+    size: {
+      control: "select",
+      description: "Size of the slider.",
+      options: ["sm", "md", "lg"],
+      table: { defaultValue: { summary: "md" } },
+    },
+    step: {
+      control: "number",
+      description: "Step value for incrementing/decrementing.",
+      table: { defaultValue: { summary: "1" } },
+    },
+    thumbAlignment: {
+      control: "select",
+      description: "Alignment of slider thumbs relative to the track.",
+      options: ["center", "contain"],
+      table: { defaultValue: { summary: "center" } },
+    },
+    validateStatus: {
+      control: "select",
+      description:
+        "Validation status that affects slider styling and help text display.",
+      options: ["default", "error", "success", "warning"],
+      table: { defaultValue: { summary: "default" } },
+    },
+    value: {
+      control: "object",
+      description:
+        "Current values of the slider (for controlled component). Example: [20, 80]",
+    },
   },
   args: {
-    min: 0,
-    max: 100,
-    step: 1,
-    orientation: "horizontal",
-    size: "md",
-    disabled: false,
-    readOnly: false,
-    showValueText: true,
-    showMarkers: false,
-    validateStatus: "default",
-    origin: "start",
-    thumbAlignment: "center",
     dir: "ltr",
+    disabled: false,
+    max: 100,
+    min: 0,
+    orientation: "horizontal",
+    origin: "start",
+    readOnly: false,
+    showMarkers: false,
+    showValueText: true,
+    size: "md",
+    step: 1,
+    thumbAlignment: "center",
+    validateStatus: "default",
   },
+  component: Slider,
+  parameters: {
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/Slider",
 }
 
 export default meta
 type Story = StoryObj<typeof Slider>
 
 const baseSliderProps: Partial<SliderProps> = {
-  min: 0,
   max: 100,
-  step: 1,
+  min: 0,
   showValueText: true,
+  step: 1,
 }
 
 export const Playground: Story = {
   args: {
-    id: "playground-slider",
-    label: "Price Range",
     defaultValue: [20, 80],
     helpText: "Select your desired price range.",
+    id: "playground-slider",
+    label: "Price Range",
   },
   render: (args) => (
     <div className="min-w-sm h-96">
@@ -174,8 +175,8 @@ export const Playground: Story = {
 export const Disabled: Story = {
   args: {
     ...Playground.args,
-    id: "disabled-slider",
     disabled: true,
+    id: "disabled-slider",
   },
 }
 
@@ -210,16 +211,16 @@ export const WithValidation: Story = {
 export const WithMarkers: Story = {
   args: {
     ...baseSliderProps,
+    defaultValue: [10, 30],
+    formatValue: (value) => `${value}°C`,
+    helpText: "Adjust the temperature using the slider with markers.",
     id: "markers-slider",
     label: "Temperature Range (°C)",
-    defaultValue: [10, 30],
-    min: -20,
-    max: 50,
-    step: 0.5,
-    showMarkers: true,
     markerCount: 5,
-    helpText: "Adjust the temperature using the slider with markers.",
-    formatValue: (value) => `${value}°C`,
+    max: 50,
+    min: -20,
+    showMarkers: true,
+    step: 0.5,
   },
   render: (args) => (
     <div className="min-w-sm">
@@ -286,9 +287,9 @@ export const VerticalOrientation: Story = {
 export const Controlled: Story = {
   args: {
     ...baseSliderProps,
+    helpText: "Values are managed by component state.",
     id: "controlled-slider",
     label: "Controlled Slider",
-    helpText: "Values are managed by component state.",
   },
   render: (args) => {
     const [values, setValues] = useState<number[]>([30, 70])
@@ -331,7 +332,7 @@ export const DynamicBoundsControlled: Story = {
     label: "Dynamic Bounds (Controlled)",
   },
   render: (args) => {
-    const [bounds, setBounds] = useState({ min: 0, max: 100 })
+    const [bounds, setBounds] = useState({ max: 100, min: 0 })
     const [values, setValues] = useState<number[]>([20, 80])
 
     return (
@@ -345,13 +346,20 @@ export const DynamicBoundsControlled: Story = {
           helpText={`Bounds: ${bounds.min} - ${bounds.max}`}
         />
         <div className="flex flex-wrap gap-200">
-          <Button size="sm" onClick={() => setBounds({ min: 0, max: 30 })}>
+          <Button
+            size="sm"
+            onClick={() => {
+              setBounds({ max: 30, min: 0 })
+            }}
+          >
             Shrink max to 30
           </Button>
           <Button
             size="sm"
             variant="secondary"
-            onClick={() => setBounds({ min: 0, max: 100 })}
+            onClick={() => {
+              setBounds({ max: 100, min: 0 })
+            }}
           >
             Reset bounds
           </Button>

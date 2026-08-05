@@ -104,7 +104,7 @@ describe("Store Product Attributes visibility", () => {
           product_id: "prod_1",
         }),
       ])
-    ).toEqual([
+    ).toStrictEqual([
       {
         definition: {
           id: "patdef_warranty",
@@ -140,7 +140,7 @@ describe("Store Product Attributes visibility", () => {
           product_id: "prod_1",
         }),
       ])
-    ).toEqual([])
+    ).toStrictEqual([])
   })
 
   it("paginates with private and inactive assignments omitted", () => {
@@ -187,7 +187,7 @@ describe("Store Product Attributes visibility", () => {
     )
 
     expect(result.count).toBe(2)
-    expect(result.product_attributes.map(({ id }) => id)).toEqual([
+    expect(result.product_attributes.map(({ id }) => id)).toStrictEqual([
       "second-assignment",
     ])
   })

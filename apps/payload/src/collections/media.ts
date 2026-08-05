@@ -14,13 +14,11 @@ const invalidateMediaCache = createMedusaCacheHook(COLLECTION_SLUG)
 
 /** Payload collection config for media uploads. */
 export const Media: CollectionConfig = {
-  slug: COLLECTION_SLUG,
-  labels: collectionLabels.media,
-  admin: {
-    group: adminGroups.library,
-  },
   access: {
     read: () => true,
+  },
+  admin: {
+    group: adminGroups.library,
   },
   fields: [
     {
@@ -34,5 +32,7 @@ export const Media: CollectionConfig = {
     afterChange: [invalidateMediaCache],
     afterDelete: [invalidateMediaCache],
   },
+  labels: collectionLabels.media,
+  slug: COLLECTION_SLUG,
   upload: true,
 }

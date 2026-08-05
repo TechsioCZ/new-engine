@@ -6,41 +6,6 @@ figma.connect(
   PhoneInput,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=2541-171",
   {
-    imports: [
-      'import { PhoneInput } from "@techsio/ui-kit/molecules/phone-input"',
-    ],
-    props: {
-      size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
-        lg: "lg",
-      }),
-      validateStatus: figma.enum("state", {
-        default: "default",
-        error: "error",
-        success: "success",
-        warning: "warning",
-        disabled: "default",
-        readonly: "default",
-      }),
-      disabled: figma.enum("state", {
-        default: false,
-        error: false,
-        success: false,
-        warning: false,
-        disabled: true,
-        readonly: false,
-      }),
-      readOnly: figma.enum("state", {
-        default: false,
-        error: false,
-        success: false,
-        warning: false,
-        disabled: false,
-        readonly: true,
-      }),
-      required: figma.boolean("required"),
-    },
     example: ({ size, validateStatus, disabled, readOnly, required }) => (
       <PhoneInput
         defaultCountry="SK"
@@ -58,5 +23,40 @@ figma.connect(
         <PhoneInput.StatusText>Helper text</PhoneInput.StatusText>
       </PhoneInput>
     ),
+    imports: [
+      'import { PhoneInput } from "@techsio/ui-kit/molecules/phone-input"',
+    ],
+    props: {
+      disabled: figma.enum("state", {
+        default: false,
+        error: false,
+        success: false,
+        warning: false,
+        disabled: true,
+        readonly: false,
+      }),
+      readOnly: figma.enum("state", {
+        default: false,
+        error: false,
+        success: false,
+        warning: false,
+        disabled: false,
+        readonly: true,
+      }),
+      required: figma.boolean("required"),
+      size: figma.enum("size", {
+        sm: "sm",
+        md: "md",
+        lg: "lg",
+      }),
+      validateStatus: figma.enum("state", {
+        default: "default",
+        error: "error",
+        success: "success",
+        warning: "warning",
+        disabled: "default",
+        readonly: "default",
+      }),
+    },
   }
 )

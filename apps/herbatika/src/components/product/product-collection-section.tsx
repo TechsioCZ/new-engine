@@ -5,14 +5,12 @@ import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 
 import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel"
-import {
-  HerbatikaProductGrid,
-  type HerbatikaProductGridLayout,
-} from "@/components/product/herbatika-product-grid"
+import { HerbatikaProductGrid } from "@/components/product/herbatika-product-grid"
+import type { HerbatikaProductGridLayout } from "@/components/product/herbatika-product-grid"
 import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton"
 import { SupportingText } from "@/components/text/supporting-text"
 
-type ProductCollectionSectionCommonProps = {
+interface ProductCollectionSectionCommonProps {
   title: string
   products: HttpTypes.StoreProduct[]
   id?: string
@@ -105,13 +103,9 @@ export function ProductCollectionSection(props: ProductCollectionSectionProps) {
   } else if (isCarousel) {
     productContent = (
       <InlineProductsCarousel
-        {...(keyPrefix === undefined ? {} : { keyPrefix: keyPrefix })}
-        {...(onProductHoverEnd === undefined
-          ? {}
-          : { onProductHoverEnd: onProductHoverEnd })}
-        {...(onProductHoverStart === undefined
-          ? {}
-          : { onProductHoverStart: onProductHoverStart })}
+        {...(keyPrefix === undefined ? {} : { keyPrefix })}
+        {...(onProductHoverEnd === undefined ? {} : { onProductHoverEnd })}
+        {...(onProductHoverStart === undefined ? {} : { onProductHoverStart })}
         products={products}
         {...(props.slidesLg === undefined ? {} : { slidesLg: props.slidesLg })}
         {...(props.slidesMd === undefined ? {} : { slidesMd: props.slidesMd })}
@@ -124,15 +118,11 @@ export function ProductCollectionSection(props: ProductCollectionSectionProps) {
         {...(props.isProductAdding === undefined
           ? {}
           : { isProductAdding: props.isProductAdding })}
-        {...(keyPrefix === undefined ? {} : { keyPrefix: keyPrefix })}
+        {...(keyPrefix === undefined ? {} : { keyPrefix })}
         layout={props.layout}
         onAddToCart={props.onAddToCart}
-        {...(onProductHoverEnd === undefined
-          ? {}
-          : { onProductHoverEnd: onProductHoverEnd })}
-        {...(onProductHoverStart === undefined
-          ? {}
-          : { onProductHoverStart: onProductHoverStart })}
+        {...(onProductHoverEnd === undefined ? {} : { onProductHoverEnd })}
+        {...(onProductHoverStart === undefined ? {} : { onProductHoverStart })}
         products={products}
       />
     )

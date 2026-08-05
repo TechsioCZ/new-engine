@@ -6,7 +6,8 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
-import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select"
+import { Select } from "@techsio/ui-kit/molecules/select"
+import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import { useLocale, useTranslations } from "next-intl"
 
 import NextLink from "@/components/app-link"
@@ -24,7 +25,7 @@ import { ProductListPickerPopover } from "@/components/product-lists/product-lis
 import { appHref } from "@/lib/routing"
 import { createBrandSlug } from "@/lib/storefront/brands"
 
-type ProductInfoLink = {
+interface ProductInfoLink {
   href: string | null
   label: string
 }
@@ -34,10 +35,10 @@ const resolveProductInfoLink = (
   primaryCategory: HttpTypes.StoreProductCategory | undefined
 ): ProductInfoLink | null => {
   const brand = asRecord((product as Product & { brand?: unknown }).brand)
-  const brandTitle = asString(brand?.["title"])
+  const brandTitle = asString(brand?.title)
 
   if (brandTitle) {
-    const brandHandle = asString(brand?.["handle"])
+    const brandHandle = asString(brand?.handle)
     const brandSlug = createBrandSlug(brandHandle || brandTitle)
 
     return {
@@ -57,7 +58,7 @@ const resolveProductInfoLink = (
   }
 }
 
-type ProductDetailPurchasePanelProps = {
+interface ProductDetailPurchasePanelProps {
   canAddToCart: boolean
   currentAmountLabel: string
   displayOriginalLabel: string | null
@@ -107,7 +108,7 @@ export function ProductDetailPurchasePanel({
     tip: tCatalog("filters.status.tip"),
   })
   const displayHighlights = productHighlights
-    .map((highlight) => highlight.replace(/\s+/g, " ").trim())
+    .map((highlight) => highlight.replaceAll(/\s+/g, " ").trim())
     .filter(Boolean)
     .slice(0, 3)
 

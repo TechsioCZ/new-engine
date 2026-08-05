@@ -9,7 +9,7 @@ import { getProductListTitle } from "@/lib/storefront/product-lists"
 
 import type { AccountProductListsController } from "./use-account-product-lists"
 
-type RemoveListDialogProps = {
+interface RemoveListDialogProps {
   accountLists: AccountProductListsController
 }
 

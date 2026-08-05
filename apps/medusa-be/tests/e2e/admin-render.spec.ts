@@ -2,12 +2,14 @@ import { existsSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { parseEnv } from "node:util"
 
-import { expect, type Page, test } from "@playwright/test"
+import { expect, test } from "@playwright/test"
+import type { Page } from "@playwright/test"
+import { expect, test } from "vitest"
 
 const workspaceRoot = resolve(__dirname, "../../../..")
 const rootEnvPath = resolve(workspaceRoot, ".env")
 const rootEnv = existsSync(rootEnvPath)
-  ? parseEnv(readFileSync(rootEnvPath, "utf8"))
+  ? parseEnv(readFileSync(rootEnvPath, "utf-8"))
   : {}
 
 const readEnv = (...names: string[]): string | undefined => {
@@ -109,7 +111,7 @@ test("renders the Medusa admin login without browser errors", async ({
   const interactiveElements = await page
     .locator('a, button, input, textarea, select, [role="button"]')
     .count()
-  const bodyText = await page.locator("body").innerText()
+  const bodyText = await page.locator("body").textContent()
 
   expect(bodyText.trim().length).toBeGreaterThan(20)
   expect(interactiveElements).toBeGreaterThan(2)

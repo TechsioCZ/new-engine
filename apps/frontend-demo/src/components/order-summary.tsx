@@ -79,10 +79,10 @@ export function OrderSummary({
               </h3>
               <p className="text-fg-secondary text-sm">
                 {deliveryDate.toLocaleDateString("cs-CZ", {
+                  day: "numeric",
+                  month: "long",
                   weekday: "long",
                   year: "numeric",
-                  month: "long",
-                  day: "numeric",
                 })}
               </p>
             </div>
@@ -140,14 +140,13 @@ export function OrderSummary({
               icon="token-icon-printer"
               onClick={() => {
                 // Add print date to body for CSS
-                document.body.setAttribute(
-                  "data-print-date",
-                  new Date().toLocaleDateString("cs-CZ")
+                document.body.dataset.printDate = new Date().toLocaleDateString(
+                  "cs-CZ"
                 )
                 window.print()
                 // Clean up after print
                 setTimeout(() => {
-                  document.body.removeAttribute("data-print-date")
+                  delete document.body.dataset.printDate
                 }, 1000)
               }}
               size="sm"

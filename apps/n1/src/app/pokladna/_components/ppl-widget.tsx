@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 
-export type PplAccessPointData = {
+export interface PplAccessPointData {
   code: string
   name: string
   type: string
@@ -45,7 +45,7 @@ function detectPplLanguage(): PplLanguage {
   return "cs"
 }
 
-type PplWidgetProps = {
+interface PplWidgetProps {
   onSelect: (data: PplAccessPointData) => void
   lat?: number
   lng?: number
@@ -58,7 +58,7 @@ type PplWidgetProps = {
   language?: PplLanguage
 }
 
-type PplEventDetail = {
+interface PplEventDetail {
   id?: number
   accessPointType?: string
   code: string
@@ -115,12 +115,12 @@ export function PplWidget({
       if (cancelled) {
         return
       }
-      if (process.env["NODE_ENV"] === "development") {
+      if (process.env.NODE_ENV === "development") {
         console.log("[PplWidget] Geolocation success:", {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
           accuracy: `${position.coords.accuracy.toFixed(0)}m`,
           elapsed: `${Date.now() - startTime}ms`,
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
         })
       }
       setGeoLocation({
@@ -134,7 +134,7 @@ export function PplWidget({
       if (cancelled) {
         return
       }
-      if (process.env["NODE_ENV"] === "development") {
+      if (process.env.NODE_ENV === "development") {
         const errorMessages: Record<number, string> = {
           1: "PERMISSION_DENIED",
           2: "POSITION_UNAVAILABLE",
@@ -142,8 +142,8 @@ export function PplWidget({
         }
         console.log("[PplWidget] Geolocation error:", {
           code: errorMessages[error.code] || error.code,
-          message: error.message,
           elapsed: `${Date.now() - startTime}ms`,
+          message: error.message,
         })
       }
       setIsReady(true)
@@ -160,14 +160,14 @@ export function PplWidget({
       const checkPermission = async () => {
         try {
           const status = await navigator.permissions.query({
-            name: "geolocation" as PermissionName,
+            name: "geolocation",
           })
 
           if (cancelled) {
             return
           }
 
-          if (process.env["NODE_ENV"] === "development") {
+          if (process.env.NODE_ENV === "development") {
             console.log("[PplWidget] Geolocation permission:", status.state)
           }
 
@@ -212,7 +212,7 @@ export function PplWidget({
     const link = document.createElement("link")
     link.rel = "stylesheet"
     link.href = PPL_CSS_URL
-    document.head.appendChild(link)
+    document.head.append(link)
   }, [])
 
   // Main effect: attach event listener and load script
@@ -228,23 +228,23 @@ export function PplWidget({
     // Official event: "ppl-parcelshop-map" on document, data in event.detail
     const handlePplSelection = (event: Event) => {
       const customEvent = event as CustomEvent<PplEventDetail>
-      const detail = customEvent.detail
+      const { detail } = customEvent
 
-      if (process.env["NODE_ENV"] === "development") {
+      if (process.env.NODE_ENV === "development") {
         console.log("[PplWidget] Selection event received:", detail)
       }
 
       if (detail?.code) {
         onSelectRef.current({
-          code: detail.code,
-          name: detail.name || "",
-          type: detail.accessPointType || "ParcelShop",
           address: {
             ...(detail.street ? { street: detail.street } : {}),
             ...(detail.city ? { city: detail.city } : {}),
             ...(detail.zipCode ? { zipCode: detail.zipCode } : {}),
             ...(detail.country ? { country: detail.country } : {}),
           },
+          code: detail.code,
+          name: detail.name || "",
+          type: detail.accessPointType || "ParcelShop",
         })
       }
     }
@@ -268,11 +268,11 @@ export function PplWidget({
       if (currentMountId !== mountIdRef.current) {
         return
       }
-      if (process.env["NODE_ENV"] === "development") {
+      if (process.env.NODE_ENV === "development") {
         console.log("[PplWidget] Script loaded, widget should initialize")
       }
     }
-    document.body.appendChild(script)
+    document.body.append(script)
 
     return () => {
       document.removeEventListener("ppl-parcelshop-map", handlePplSelection)

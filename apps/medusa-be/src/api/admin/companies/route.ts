@@ -20,8 +20,7 @@ const LIKE_WILDCARD_REGEX = /[%_\\]/g
 const escapeLikePattern = (value: string) =>
   value.replace(LIKE_WILDCARD_REGEX, (match) => `\\${match}`)
 
-const parseCompanyOrder = (input?: string) => {
-  const value = input ?? "name"
+const parseCompanyOrder = (value: string = "name") => {
   const direction = value.startsWith("-") ? "DESC" : "ASC"
   const field = value.replace(LEADING_DASH_REGEX, "")
 
@@ -95,8 +94,8 @@ export const GET = async (
   res.json({
     companies,
     count: metadata?.count ?? companies.length,
-    offset: metadata?.skip ?? 0,
     limit: metadata?.take ?? companies.length,
+    offset: metadata?.skip ?? 0,
   })
 }
 

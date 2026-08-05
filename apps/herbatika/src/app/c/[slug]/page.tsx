@@ -5,7 +5,7 @@ import { CategoryListing } from "@/components/category-listing"
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state"
 import { prefetchCategoryPageStorefrontData } from "@/lib/storefront/ssr"
 
-type CategoryPageProps = {
+interface CategoryPageProps {
   params: Promise<{
     slug: string
   }>

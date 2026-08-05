@@ -28,25 +28,32 @@ const fileCopyMethod = await inspectFileCopyMethod(sql)
 if (fileCopyMethod.warning) {
   console.warn(
     JSON.stringify({
-      event: "server.startup.warning",
-      warning: fileCopyMethod.warning,
-      file_copy_method: fileCopyMethod.method,
       clone_optimized: fileCopyMethod.cloneOptimized,
+      event: "server.startup.warning",
+      file_copy_method: fileCopyMethod.method,
+      warning: fileCopyMethod.warning,
     })
   )
 } else {
   console.info(
     JSON.stringify({
+      clone_optimized: fileCopyMethod.cloneOptimized,
       event: "server.startup.file_copy_method",
       file_copy_method: fileCopyMethod.method,
-      clone_optimized: fileCopyMethod.cloneOptimized,
     })
   )
 }
 
 const server = Bun.serve({
-  port: config.port,
-  idleTimeout: 30,
+  error: (error) => {
+    console.error(
+      JSON.stringify({
+        event: "server.error",
+        message: error.message,
+      })
+    )
+    return jsonError(500, "internal_error", "Internal server error")
+  },
   fetch: async (request) => {
     const url = new URL(request.url)
 
@@ -250,15 +257,8 @@ const server = Bun.serve({
       message: "Route not found",
     })
   },
-  error: (error) => {
-    console.error(
-      JSON.stringify({
-        event: "server.error",
-        message: error.message,
-      })
-    )
-    return jsonError(500, "internal_error", "Internal server error")
-  },
+  idleTimeout: 30,
+  port: config.port,
 })
 
 console.info(
@@ -288,9 +288,9 @@ const handleShutdown = async (signal: string): Promise<void> => {
     const message = error instanceof Error ? error.message : String(error)
     console.error(
       JSON.stringify({
+        error: message,
         event: "server.shutdown.error",
         signal,
-        error: message,
       })
     )
   } finally {

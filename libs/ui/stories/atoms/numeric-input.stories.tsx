@@ -2,10 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
 
 import { Label } from "../../src/atoms/label"
-import {
-  NumericInput,
-  type NumericInputProps,
-} from "../../src/atoms/numeric-input"
+import { NumericInput } from "../../src/atoms/numeric-input"
+import type { NumericInputProps } from "../../src/atoms/numeric-input"
 
 type PlaygroundArgs = NumericInputProps & {
   showLabel?: boolean
@@ -15,56 +13,25 @@ type PlaygroundArgs = NumericInputProps & {
 }
 
 const meta: Meta<typeof NumericInput> = {
-  title: "Atoms/NumericInput",
   component: NumericInput,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "A flexible numeric input component using compound pattern. Provides granular control over layout and behavior through composable subcomponents.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
+  title: "Atoms/NumericInput",
 }
 
 export default meta
 type Story = StoryObj<PlaygroundArgs>
 
 export const Playground: Story = {
-  args: {
-    min: 0,
-    max: 10000,
-    step: 0.1,
-    disabled: false,
-    invalid: false,
-    size: "md",
-    locale: "en-US",
-    allowMouseWheel: true,
-    clampValueOnBlur: true,
-    precision: 1,
-    showLabel: false,
-    label: "Quantity",
-    showControls: true,
-    showScrubber: false,
-  },
   argTypes: {
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-      description: "Size of the numeric input",
-    },
-    locale: {
-      control: "select",
-      options: ["en-US", "cs-CZ", "de-DE", "fr-FR"],
-      description: "Locale for number formatting (decimal separator)",
-    },
-    min: { control: "number", description: "Minimum allowed value" },
-    max: { control: "number", description: "Maximum allowed value" },
-    step: { control: "number", description: "Step increment/decrement value" },
-    disabled: { control: "boolean", description: "Disable the input" },
-    invalid: { control: "boolean", description: "Show invalid/error state" },
     allowMouseWheel: {
       control: "boolean",
       description: "Allow mouse wheel to change value",
@@ -73,19 +40,50 @@ export const Playground: Story = {
       control: "boolean",
       description: "Clamp value to min/max on blur",
     },
-    showLabel: {
-      control: "boolean",
-      description: "Show label above the input",
-    },
+    disabled: { control: "boolean", description: "Disable the input" },
+    invalid: { control: "boolean", description: "Show invalid/error state" },
     label: { control: "text", description: "Label text" },
+    locale: {
+      control: "select",
+      description: "Locale for number formatting (decimal separator)",
+      options: ["en-US", "cs-CZ", "de-DE", "fr-FR"],
+    },
+    max: { control: "number", description: "Maximum allowed value" },
+    min: { control: "number", description: "Minimum allowed value" },
     showControls: {
       control: "boolean",
       description: "Show increment/decrement buttons",
+    },
+    showLabel: {
+      control: "boolean",
+      description: "Show label above the input",
     },
     showScrubber: {
       control: "boolean",
       description: "Enable scrubber overlay",
     },
+    size: {
+      control: "select",
+      description: "Size of the numeric input",
+      options: ["sm", "md", "lg"],
+    },
+    step: { control: "number", description: "Step increment/decrement value" },
+  },
+  args: {
+    allowMouseWheel: true,
+    clampValueOnBlur: true,
+    disabled: false,
+    invalid: false,
+    label: "Quantity",
+    locale: "en-US",
+    max: 10000,
+    min: 0,
+    precision: 1,
+    showControls: true,
+    showLabel: false,
+    showScrubber: false,
+    size: "md",
+    step: 0.1,
   },
   render: function Render(args) {
     const [value, setValue] = useState(50.5)
@@ -147,56 +145,54 @@ export const WithLabel: Story = {
 }
 
 export const AllSizes: Story = {
-  render: () => {
-    return (
-      <div className="flex flex-col gap-300">
-        <div className="w-md flex flex-col gap-50">
-          <Label htmlFor="numeric-sm" size="sm">
-            Small (sm)
-          </Label>
-          <NumericInput id="numeric-sm" size="sm" defaultValue={10}>
-            <NumericInput.Control>
-              <NumericInput.Input />
-              <NumericInput.TriggerContainer>
-                <NumericInput.IncrementTrigger />
-                <NumericInput.DecrementTrigger />
-              </NumericInput.TriggerContainer>
-            </NumericInput.Control>
-          </NumericInput>
-        </div>
-
-        <div className="w-md flex flex-col gap-50">
-          <Label htmlFor="numeric-md" size="md">
-            Medium (md)
-          </Label>
-          <NumericInput id="numeric-md" size="md" defaultValue={20}>
-            <NumericInput.Control>
-              <NumericInput.Input />
-              <NumericInput.TriggerContainer>
-                <NumericInput.IncrementTrigger />
-                <NumericInput.DecrementTrigger />
-              </NumericInput.TriggerContainer>
-            </NumericInput.Control>
-          </NumericInput>
-        </div>
-
-        <div className="w-md flex flex-col gap-50">
-          <Label htmlFor="numeric-lg" size="lg">
-            Large (lg)
-          </Label>
-          <NumericInput id="numeric-lg" size="lg" defaultValue={30}>
-            <NumericInput.Control>
-              <NumericInput.Input />
-              <NumericInput.TriggerContainer>
-                <NumericInput.IncrementTrigger />
-                <NumericInput.DecrementTrigger />
-              </NumericInput.TriggerContainer>
-            </NumericInput.Control>
-          </NumericInput>
-        </div>
+  render: () => (
+    <div className="flex flex-col gap-300">
+      <div className="w-md flex flex-col gap-50">
+        <Label htmlFor="numeric-sm" size="sm">
+          Small (sm)
+        </Label>
+        <NumericInput id="numeric-sm" size="sm" defaultValue={10}>
+          <NumericInput.Control>
+            <NumericInput.Input />
+            <NumericInput.TriggerContainer>
+              <NumericInput.IncrementTrigger />
+              <NumericInput.DecrementTrigger />
+            </NumericInput.TriggerContainer>
+          </NumericInput.Control>
+        </NumericInput>
       </div>
-    )
-  },
+
+      <div className="w-md flex flex-col gap-50">
+        <Label htmlFor="numeric-md" size="md">
+          Medium (md)
+        </Label>
+        <NumericInput id="numeric-md" size="md" defaultValue={20}>
+          <NumericInput.Control>
+            <NumericInput.Input />
+            <NumericInput.TriggerContainer>
+              <NumericInput.IncrementTrigger />
+              <NumericInput.DecrementTrigger />
+            </NumericInput.TriggerContainer>
+          </NumericInput.Control>
+        </NumericInput>
+      </div>
+
+      <div className="w-md flex flex-col gap-50">
+        <Label htmlFor="numeric-lg" size="lg">
+          Large (lg)
+        </Label>
+        <NumericInput id="numeric-lg" size="lg" defaultValue={30}>
+          <NumericInput.Control>
+            <NumericInput.Input />
+            <NumericInput.TriggerContainer>
+              <NumericInput.IncrementTrigger />
+              <NumericInput.DecrementTrigger />
+            </NumericInput.TriggerContainer>
+          </NumericInput.Control>
+        </NumericInput>
+      </div>
+    </div>
+  ),
 }
 
 export const WithoutControls: Story = {
@@ -397,22 +393,20 @@ export const CustomLayoutHorizontal: Story = {
 }
 
 export const Disabled: Story = {
-  render: () => {
-    return (
-      <div className="w-md flex flex-col gap-50">
-        <Label htmlFor="numeric-disabled">Disabled Input</Label>
-        <NumericInput id="numeric-disabled" defaultValue={42} disabled>
-          <NumericInput.Control>
-            <NumericInput.Input />
-            <NumericInput.TriggerContainer>
-              <NumericInput.IncrementTrigger />
-              <NumericInput.DecrementTrigger />
-            </NumericInput.TriggerContainer>
-          </NumericInput.Control>
-        </NumericInput>
-      </div>
-    )
-  },
+  render: () => (
+    <div className="w-md flex flex-col gap-50">
+      <Label htmlFor="numeric-disabled">Disabled Input</Label>
+      <NumericInput id="numeric-disabled" defaultValue={42} disabled>
+        <NumericInput.Control>
+          <NumericInput.Input />
+          <NumericInput.TriggerContainer>
+            <NumericInput.IncrementTrigger />
+            <NumericInput.DecrementTrigger />
+          </NumericInput.TriggerContainer>
+        </NumericInput.Control>
+      </NumericInput>
+    </div>
+  ),
 }
 
 export const CustomButtonProps: Story = {

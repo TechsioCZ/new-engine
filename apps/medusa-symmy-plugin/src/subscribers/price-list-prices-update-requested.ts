@@ -1,10 +1,8 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 
 import { runImportJob } from "../lib/import-job-runner"
-import {
-  SYMMY_PRICE_LIST_PRICES_UPDATE_REQUESTED_EVENT,
-  type SymmyPriceListPricesUpdateRequestedEvent,
-} from "../workflows/price-lists-batch/async"
+import { SYMMY_PRICE_LIST_PRICES_UPDATE_REQUESTED_EVENT } from "../workflows/price-lists-batch/async"
+import type { SymmyPriceListPricesUpdateRequestedEvent } from "../workflows/price-lists-batch/async"
 import type {
   UpdatePriceListPricesBatchInput,
   UpdatePriceListPricesBatchOutput,
@@ -20,6 +18,10 @@ export default async function priceListPricesUpdateRequestedHandler({
     UpdatePriceListPricesBatchOutput
   >({
     container,
+    getCompletionStats: (output) => ({
+      processed: output.results.length,
+      failed: output.prices_failed,
+    }),
     jobId: data.job_id,
     jobLabel: "Price list prices update",
     lockKey: `symmy-price-list-prices-update:${data.job_id}`,
@@ -31,10 +33,6 @@ export default async function priceListPricesUpdateRequestedHandler({
       })
       return result
     },
-    getCompletionStats: (output) => ({
-      processed: output.results.length,
-      failed: output.prices_failed,
-    }),
   })
 }
 

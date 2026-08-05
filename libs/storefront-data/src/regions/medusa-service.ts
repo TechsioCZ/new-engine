@@ -36,6 +36,24 @@ export function createMedusaRegionService(
   MedusaRegionDetailInput
 > {
   return {
+    async getRegion(
+      params: MedusaRegionDetailInput,
+      signal?: AbortSignal
+    ): Promise<HttpTypes.StoreRegion | null> {
+      if (!params.id) {
+        return null
+      }
+      const { id, enabled: _enabled, ...query } = params
+      const response = await sdk.client.fetch<HttpTypes.StoreRegionResponse>(
+        `/store/regions/${id}`,
+        {
+          query,
+          signal: signal ?? null,
+        }
+      )
+      return response.region ?? null
+    },
+
     async getRegions(
       params: MedusaRegionListInput,
       signal?: AbortSignal
@@ -53,24 +71,6 @@ export function createMedusaRegionService(
         regions: response.regions ?? [],
         count: response.count ?? response.regions?.length ?? 0,
       }
-    },
-
-    async getRegion(
-      params: MedusaRegionDetailInput,
-      signal?: AbortSignal
-    ): Promise<HttpTypes.StoreRegion | null> {
-      if (!params.id) {
-        return null
-      }
-      const { id, enabled: _enabled, ...query } = params
-      const response = await sdk.client.fetch<HttpTypes.StoreRegionResponse>(
-        `/store/regions/${id}`,
-        {
-          query,
-          signal: signal ?? null,
-        }
-      )
-      return response.region ?? null
     },
   }
 }

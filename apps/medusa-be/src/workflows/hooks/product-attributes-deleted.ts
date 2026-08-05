@@ -6,9 +6,9 @@ import { deleteProductsWorkflow } from "@medusajs/medusa/core-flows"
 import { getProductAttributeService } from "../../utils/product-attributes"
 import {
   cleanupDeletedProductAttributes,
-  type ProductAttributeDeletionCompensation,
   restoreDeletedProductAttributes,
 } from "../product-attribute/product-deletion-cleanup"
+import type { ProductAttributeDeletionCompensation } from "../product-attribute/product-deletion-cleanup"
 
 deleteProductsWorkflow.hooks.productsDeleted(
   async ({ ids }, { container }) => {

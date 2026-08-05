@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl"
 
 import type { AccountProductListsController } from "./use-account-product-lists"
 
-type AddListDialogProps = {
+interface AddListDialogProps {
   accountLists: AccountProductListsController
 }
 

@@ -5,7 +5,7 @@ import os from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
-const scriptDir = path.dirname(fileURLToPath(import.meta.url))
+const scriptDir = import.meta.dirname
 
 export const medusaBeDir = path.resolve(scriptDir, "..")
 export const repoRoot = path.resolve(medusaBeDir, "../..")
@@ -120,9 +120,6 @@ export function createHashSafeRunContext() {
   const runCwd = path.join(runRepoRoot, path.relative(repoRoot, medusaBeDir))
 
   return {
-    env: createHashSafeEnv(runCwd),
-    runCwd,
-    runRepoRoot,
     cleanup() {
       if (ownsMount) {
         spawnSync("umount", ["-l", runRepoRoot], { stdio: "ignore" })
@@ -133,6 +130,9 @@ export function createHashSafeRunContext() {
         }
       }
     },
+    env: createHashSafeEnv(runCwd),
+    runCwd,
+    runRepoRoot,
   }
 }
 

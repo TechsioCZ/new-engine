@@ -5,6 +5,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
+import { vi, describe, expect, it } from "vitest"
 
 import { createCheckoutHooks } from "../src/checkout/hooks"
 import { createMedusaCheckoutService } from "../src/checkout/medusa-service"
@@ -43,10 +44,10 @@ describe("phase 2 regressions", () => {
     const fetch = vi
       .fn()
       .mockResolvedValueOnce({
-        orders: [createStoreOrder("order_1")],
+        count: 1,
         limit: 10,
         offset: 20,
-        count: 1,
+        orders: [createStoreOrder("order_1")],
       } satisfies HttpTypes.StoreOrderListResponse)
       .mockResolvedValueOnce({
         order: createStoreOrder("order_1"),
@@ -86,16 +87,16 @@ describe("phase 2 regressions", () => {
     const fetch = vi
       .fn()
       .mockResolvedValueOnce({
-        orders: [createStoreOrder("order_1")],
+        count: 1,
         limit: 10,
         offset: 20,
-        count: 1,
+        orders: [createStoreOrder("order_1")],
       } satisfies HttpTypes.StoreOrderListResponse)
       .mockRejectedValueOnce({ response: { status: 404 } })
 
     const service = createMedusaOrderService({ client: { fetch } } as never, {
-      defaultListFields: "id,display_id",
       defaultDetailFields: "id,*items",
+      defaultListFields: "id,display_id",
       defaultOrder: "-created_at",
       returnNullOnNotFound: true,
     })
@@ -114,9 +115,9 @@ describe("phase 2 regressions", () => {
     expect(fetch).toHaveBeenNthCalledWith(1, "/store/orders", {
       query: {
         fields: "id,display_id",
-        order: "-created_at",
         limit: 10,
         offset: 20,
+        order: "-created_at",
       },
       signal: controller.signal,
     })
@@ -145,19 +146,19 @@ describe("phase 2 regressions", () => {
           .fn()
           .mockResolvedValueOnce({
             addresses: [createStoreCustomerAddress("addr_1")],
+            count: 1,
             limit: 1,
             offset: 0,
-            count: 1,
           } satisfies HttpTypes.StoreCustomerAddressListResponse)
           .mockRejectedValueOnce({ status: 401 }),
       },
       store: {
         customer: {
-          listAddress: vi.fn(),
           createAddress: vi.fn(),
-          updateAddress: vi.fn(),
           deleteAddress: vi.fn(),
+          listAddress: vi.fn(),
           update: vi.fn(),
+          updateAddress: vi.fn(),
         },
       },
     }
@@ -176,7 +177,7 @@ describe("phase 2 regressions", () => {
     )
 
     const unauthorized = await service.getAddresses({}, controller.signal)
-    expect(unauthorized.addresses).toEqual([])
+    expect(unauthorized.addresses).toStrictEqual([])
   })
 
   it("forwards AbortSignal in checkout read APIs", async () => {
@@ -189,10 +190,10 @@ describe("phase 2 regressions", () => {
         shipping_option: createStoreShippingOption("opt_1"),
       } satisfies HttpTypes.StoreShippingOptionResponse)
       .mockResolvedValueOnce({
-        payment_providers: [{ id: "pp_1" }],
+        count: 1,
         limit: 1,
         offset: 0,
-        count: 1,
+        payment_providers: [{ id: "pp_1" }],
       } satisfies HttpTypes.StorePaymentProviderListResponse)
 
     const sdk = {
@@ -202,8 +203,8 @@ describe("phase 2 regressions", () => {
       store: {
         cart: {
           addShippingMethod: vi.fn(),
-          retrieve: vi.fn(),
           complete: vi.fn(),
+          retrieve: vi.fn(),
         },
         payment: {
           initiatePaymentSession: vi.fn(),
@@ -229,11 +230,11 @@ describe("phase 2 regressions", () => {
       2,
       "/store/shipping-options/opt_1/calculate",
       {
-        method: "POST",
         body: {
           cart_id: "cart_1",
           data: { note: "x" },
         },
+        method: "POST",
         signal: controller.signal,
       }
     )
@@ -244,22 +245,34 @@ describe("phase 2 regressions", () => {
   })
 
   it("handles checkout shipping when calculateShippingOption is not provided", async () => {
-    type Cart = {
+    interface Cart {
       id: string
       region_id?: string | null
       shipping_methods?: { shipping_option_id?: string }[]
     }
 
-    type ShippingOption = {
+    interface ShippingOption {
       id: string
       price_type?: string | null
       amount?: number | null
     }
 
-    type PaymentProvider = { id: string }
-    type PaymentCollection = { id: string }
+    interface PaymentProvider {
+      id: string
+    }
+    interface PaymentCollection {
+      id: string
+    }
 
     const service = {
+      addShippingMethod: async (cartId: string, optionId: string) =>
+        ({
+          id: cartId,
+          region_id: "reg_1",
+          shipping_methods: [{ shipping_option_id: optionId }],
+        }) as Cart,
+      initiatePaymentSession: async () => ({ id: "pay_col_1" }),
+      listPaymentProviders: async () => [{ id: "pay_1" }] as PaymentProvider[],
       listShippingOptions: async () =>
         [
           {
@@ -268,15 +281,6 @@ describe("phase 2 regressions", () => {
             amount: 500,
           },
         ] as ShippingOption[],
-      addShippingMethod: async (cartId: string, optionId: string) =>
-        ({
-          id: cartId,
-          region_id: "reg_1",
-          shipping_methods: [{ shipping_option_id: optionId }],
-        }) as Cart,
-      listPaymentProviders: async () => [{ id: "pay_1" }] as PaymentProvider[],
-      initiatePaymentSession: async () =>
-        ({ id: "pay_col_1" }) as PaymentCollection,
     }
 
     const { useCheckoutShipping } = createCheckoutHooks<
@@ -286,14 +290,14 @@ describe("phase 2 regressions", () => {
       PaymentCollection,
       unknown
     >({
-      service,
       queryKeyNamespace: "phase2-checkout",
+      service,
     })
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     const wrapper = createWrapper(queryClient)
@@ -301,9 +305,9 @@ describe("phase 2 regressions", () => {
     const { result } = renderHook(
       () =>
         useCheckoutShipping({
-          cartId: "cart_1",
-          cart: { id: "cart_1", region_id: "reg_1" },
           calculatePrices: true,
+          cart: { id: "cart_1", region_id: "reg_1" },
+          cartId: "cart_1",
         }),
       { wrapper }
     )
@@ -312,12 +316,15 @@ describe("phase 2 regressions", () => {
       expect(result.current.shippingOptions).toHaveLength(1)
     })
 
-    expect(result.current.isCalculating).toBe(false)
-    expect(result.current.shippingPrices).toEqual({ opt_fixed: 500 })
+    expect(result.current.isCalculating).toBeFalsy()
+    expect(result.current.shippingPrices).toStrictEqual({ opt_fixed: 500 })
   })
 
   it("documents preset-first SSR prefetch without hardcoded query keys", () => {
-    const readme = readFileSync(resolveTestRelativePath("../README.md"), "utf8")
+    const readme = readFileSync(
+      resolveTestRelativePath("../README.md"),
+      "utf-8"
+    )
 
     expect(readme).toContain("createMedusaStorefrontPreset")
     expect(readme).toContain("productHooks.getListQueryOptions")

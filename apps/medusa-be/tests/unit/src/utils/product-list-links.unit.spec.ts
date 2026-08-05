@@ -14,7 +14,7 @@ const { customerProductListLinkEntryPoint } = vi.hoisted(() => ({
   customerProductListLinkEntryPoint: "customer_product_list",
 }))
 
-vi.mock("../../../../src/links/customer-product-list", () => ({
+vi.mock(import("../../../../src/links/customer-product-list"), () => ({
   CustomerProductListLink: {
     entryPoint: customerProductListLinkEntryPoint,
   },
@@ -41,7 +41,7 @@ const makeContainer = (query: { graph: ReturnType<typeof vi.fn> }) =>
     }),
   })
 
-describe("listCustomerProductListIds", () => {
+describe(listCustomerProductListIds, () => {
   it("paginates customer product-list links and filters invalid records", async () => {
     const firstPageLinks = Array.from({ length: 1000 }, (_, index) => ({
       product_list_id: `list-${index}`,
@@ -64,14 +64,14 @@ describe("listCustomerProductListIds", () => {
 
     await expect(
       listCustomerProductListIds(makeContainer(query), "cus_1")
-    ).resolves.toEqual([
+    ).resolves.toStrictEqual([
       ...firstPageLinks.map((link) => link.product_list_id),
       "list-final",
     ])
   })
 })
 
-describe("assertCustomerOwnsProductList", () => {
+describe(assertCustomerOwnsProductList, () => {
   it("succeeds when the customer-product-list link exists", async () => {
     const query = {
       graph: vi.fn().mockResolvedValue({

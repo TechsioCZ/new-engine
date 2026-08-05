@@ -2,7 +2,7 @@ import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
 import { slugify } from "@techsio/ui-kit/utils"
 import { useState } from "react"
 
-type VariantsBoxProps = {
+interface VariantsBoxProps {
   variants: string[]
   limit?: number
 }

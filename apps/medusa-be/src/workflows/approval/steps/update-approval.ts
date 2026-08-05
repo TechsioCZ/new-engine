@@ -6,11 +6,11 @@ import {
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import { APPROVAL_MODULE } from "../../../modules/approval"
-import {
-  ApprovalStatusType,
-  type IApprovalModuleService,
-  type ModuleApproval,
-  type ModuleUpdateApproval,
+import { ApprovalStatusType } from "../../../types"
+import type {
+  IApprovalModuleService,
+  ModuleApproval,
+  ModuleUpdateApproval,
 } from "../../../types"
 
 function parseApprovalStatus(value: unknown): ApprovalStatusType {
@@ -67,9 +67,9 @@ export const updateApprovalStep = createStep(
       })
 
       const updateData = approvalsToReject.map((approvalToReject) => ({
+        handled_by: input.handled_by,
         id: approvalToReject.id,
         status: ApprovalStatusType.REJECTED,
-        handled_by: input.handled_by,
       }))
 
       await approvalModule.updateApprovals(updateData)

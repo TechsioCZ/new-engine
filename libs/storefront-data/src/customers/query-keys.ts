@@ -6,8 +6,6 @@ export function createCustomerQueryKeys<TListParams>(
   namespace: QueryNamespace
 ): CustomerQueryKeys<TListParams> {
   return {
-    all: () => createQueryKey(namespace, "customer"),
-    profile: () => createQueryKey(namespace, "customer", "profile"),
     addresses: (params) =>
       createQueryKey(
         namespace,
@@ -15,5 +13,7 @@ export function createCustomerQueryKeys<TListParams>(
         "addresses",
         normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
       ),
+    all: () => createQueryKey(namespace, "customer"),
+    profile: () => createQueryKey(namespace, "customer", "profile"),
   }
 }

@@ -11,98 +11,15 @@
  */
 import * as dialog from "@zag-js/dialog"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import { type ReactNode, useId } from "react"
-import { tv, type VariantProps } from "tailwind-variants"
+import { useId } from "react"
+import type { ReactNode } from "react"
+import { tv } from "tailwind-variants"
+import type { VariantProps } from "tailwind-variants"
 
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
 
 const dialogVariants = tv({
-  slots: {
-    backdrop: ["inset-0 z-(--z-dialog-backdrop)"],
-    positioner: ["inset-0 z-(--z-dialog-positioner) flex"],
-    content: [
-      "relative flex flex-col gap-dialog-content p-dialog-content",
-      "bg-dialog-content-bg text-dialog-content-fg",
-      "border-(length:--border-width-dialog) border-dialog-content-border",
-      "shadow-dialog-content",
-      "overflow-y-auto",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-      "focus-visible:outline-dialog-ring",
-      "focus-visible:outline-offset-(length:--default-ring-offset)",
-    ],
-    title: ["font-dialog-title text-dialog-title text-dialog-title-fg"],
-    description: ["text-dialog-description text-dialog-description-fg"],
-    trigger: [],
-    // Positioning only — the close button is an ActionIcon that owns its size,
-    // glyph and neutral hover pill.
-    closeTrigger: [
-      "absolute top-dialog-close-trigger-offset right-dialog-close-trigger-offset",
-    ],
-    actions:
-      "mt-auto flex shrink-0 justify-end gap-dialog-actions pt-dialog-actions-top",
-  },
-  variants: {
-    placement: {
-      center: {
-        positioner: "items-center justify-center",
-        content:
-          "max-h-(--container-dialog-center-max-h) max-w-dialog-center-max-w rounded-dialog-content-center",
-      },
-      left: {
-        positioner: "items-stretch justify-start",
-        content: "h-full rounded-dialog-content-side border-l-0",
-      },
-      right: {
-        positioner: "items-stretch justify-end",
-        content: "h-full rounded-dialog-content-side border-r-0",
-      },
-      top: {
-        positioner: "items-start justify-stretch",
-        content: "w-full rounded-dialog-content-edge border-t-0",
-      },
-      bottom: {
-        positioner: "items-end justify-stretch",
-        content: "w-full rounded-dialog-content-edge border-b-0",
-      },
-    },
-    position: {
-      fixed: {
-        backdrop: "fixed",
-        positioner: "fixed",
-      },
-      absolute: {
-        backdrop: "absolute",
-        positioner: "absolute",
-      },
-      sticky: {
-        backdrop: "sticky",
-        positioner: "sticky",
-      },
-      relative: {
-        backdrop: "relative",
-        positioner: "relative",
-      },
-    },
-    size: {
-      xs: {},
-      sm: {},
-      md: {},
-      lg: {},
-      xl: {},
-      full: {},
-    },
-    behavior: {
-      modal: {
-        backdrop: "bg-dialog-backdrop-bg-modal",
-      },
-      modeless: {
-        backdrop: "bg-transparent",
-        positioner: "pointer-events-none",
-        content: "pointer-events-auto",
-      },
-    },
-  },
   compoundVariants: [
     // Width for left/right drawers
     {
@@ -169,10 +86,95 @@ const dialogVariants = tv({
     },
   ],
   defaultVariants: {
-    placement: "center",
     behavior: "modal",
-    size: "md",
+    placement: "center",
     position: "fixed",
+    size: "md",
+  },
+  slots: {
+    backdrop: ["inset-0 z-(--z-dialog-backdrop)"],
+    positioner: ["inset-0 z-(--z-dialog-positioner) flex"],
+    content: [
+      "relative flex flex-col gap-dialog-content p-dialog-content",
+      "bg-dialog-content-bg text-dialog-content-fg",
+      "border-(length:--border-width-dialog) border-dialog-content-border",
+      "shadow-dialog-content",
+      "overflow-y-auto",
+      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-dialog-ring",
+      "focus-visible:outline-offset-(length:--default-ring-offset)",
+    ],
+    title: ["font-dialog-title text-dialog-title text-dialog-title-fg"],
+    description: ["text-dialog-description text-dialog-description-fg"],
+    trigger: [],
+    // Positioning only — the close button is an ActionIcon that owns its size,
+    // glyph and neutral hover pill.
+    closeTrigger: [
+      "absolute top-dialog-close-trigger-offset right-dialog-close-trigger-offset",
+    ],
+    actions:
+      "mt-auto flex shrink-0 justify-end gap-dialog-actions pt-dialog-actions-top",
+  },
+  variants: {
+    behavior: {
+      modal: {
+        backdrop: "bg-dialog-backdrop-bg-modal",
+      },
+      modeless: {
+        backdrop: "bg-transparent",
+        content: "pointer-events-auto",
+        positioner: "pointer-events-none",
+      },
+    },
+    placement: {
+      bottom: {
+        content: "w-full rounded-dialog-content-edge border-b-0",
+        positioner: "items-end justify-stretch",
+      },
+      center: {
+        content:
+          "max-h-(--container-dialog-center-max-h) max-w-dialog-center-max-w rounded-dialog-content-center",
+        positioner: "items-center justify-center",
+      },
+      left: {
+        content: "h-full rounded-dialog-content-side border-l-0",
+        positioner: "items-stretch justify-start",
+      },
+      right: {
+        content: "h-full rounded-dialog-content-side border-r-0",
+        positioner: "items-stretch justify-end",
+      },
+      top: {
+        content: "w-full rounded-dialog-content-edge border-t-0",
+        positioner: "items-start justify-stretch",
+      },
+    },
+    position: {
+      absolute: {
+        backdrop: "absolute",
+        positioner: "absolute",
+      },
+      fixed: {
+        backdrop: "fixed",
+        positioner: "fixed",
+      },
+      relative: {
+        backdrop: "relative",
+        positioner: "relative",
+      },
+      sticky: {
+        backdrop: "sticky",
+        positioner: "sticky",
+      },
+    },
+    size: {
+      full: {},
+      lg: {},
+      md: {},
+      sm: {},
+      xl: {},
+      xs: {},
+    },
   },
 })
 
@@ -242,7 +244,7 @@ export function Dialog({
     ...(open !== undefined && { open }),
   })
 
-  const api = dialog.connect(service as dialog.Service, normalizeProps)
+  const api = dialog.connect(service, normalizeProps)
 
   const {
     backdrop,
@@ -253,7 +255,7 @@ export function Dialog({
     description: descriptionSlot,
     closeTrigger,
     actions: actionsSlot,
-  } = dialogVariants({ placement, size, behavior, position })
+  } = dialogVariants({ behavior, placement, position, size })
 
   const dialogContent = () => (
     <>

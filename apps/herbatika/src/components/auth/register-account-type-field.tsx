@@ -9,7 +9,7 @@ import type {
   RegisterFormController,
 } from "./register-form.types"
 
-type RegisterAccountTypeFieldProps = {
+interface RegisterAccountTypeFieldProps {
   form: RegisterFormController
   onValueChange?: RegisterFieldChangeHandler
   validators: RegisterFormValidators["account_type"]
@@ -23,14 +23,14 @@ export function RegisterAccountTypeField({
   const tAuth = useTranslations("auth")
   const accountTypeItems = [
     {
-      value: "retail",
-      label: tAuth("register.retail_label"),
       description: tAuth("register.retail_description"),
+      label: tAuth("register.retail_label"),
+      value: "retail",
     },
     {
-      value: "wholesale",
-      label: tAuth("register.wholesale_label"),
       description: tAuth("register.wholesale_description"),
+      label: tAuth("register.wholesale_label"),
+      value: "wholesale",
     },
   ]
 
@@ -42,9 +42,7 @@ export function RegisterAccountTypeField({
           id="auth-register-account-type"
           items={accountTypeItems}
           label={tAuth("register.account_type")}
-          {...(onValueChange === undefined
-            ? {}
-            : { onValueChange: onValueChange })}
+          {...(onValueChange === undefined ? {} : { onValueChange })}
           orientation="horizontal"
           required
           size="sm"

@@ -16,7 +16,7 @@ import {
 import { resolveReusablePaymentCollection } from "./checkout-payment-collection-reuse"
 import { resolvePaymentRedirectUrl } from "./checkout-payment-redirect.utils"
 
-type UseCheckoutActionsProps = {
+interface UseCheckoutActionsProps {
   cart?: HttpTypes.StoreCart | null
   cartId?: string
   completedOrderId: string | null
@@ -36,7 +36,7 @@ type UseCheckoutActionsProps = {
   setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void
 }
 
-type OrderCompletionBlockerMessages = {
+interface OrderCompletionBlockerMessages {
   cartEmpty: string
   cartNotReady: string
   selectPaymentBeforeCompletion: string
@@ -150,14 +150,14 @@ export function useCheckoutActions({
     resetFeedback()
 
     const blockerMessage = resolveOrderCompletionBlocker({
-      ...(cartId === undefined ? {} : { cartId: cartId }),
+      ...(cartId === undefined ? {} : { cartId }),
       itemCount,
       ...(selectedPaymentProviderId === undefined
         ? {}
-        : { selectedPaymentProviderId: selectedPaymentProviderId }),
+        : { selectedPaymentProviderId }),
       ...(selectedShippingMethodId === undefined
         ? {}
-        : { selectedShippingMethodId: selectedShippingMethodId }),
+        : { selectedShippingMethodId }),
       messages: {
         cartEmpty: tCheckout("cart_empty"),
         cartNotReady: tCheckout("cart_not_ready"),

@@ -8,17 +8,19 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import {
   getProductAttributeService,
-  type ProductAttributeAssignmentRecord,
-  type ProductAttributeDefinitionRecord,
-  type ProductAttributeOptionRecord,
   withProductAttributeTransaction,
+} from "../../../utils/product-attributes"
+import type {
+  ProductAttributeAssignmentRecord,
+  ProductAttributeDefinitionRecord,
+  ProductAttributeOptionRecord,
 } from "../../../utils/product-attributes"
 import type {
   SetProductAttributeOperation,
   SetProductAttributesInput,
 } from "../types"
 
-type AssignmentCompensation = {
+interface AssignmentCompensation {
   created_ids: string[]
   previous: ProductAttributeAssignmentRecord[]
 }
@@ -226,7 +228,7 @@ const applyProductAttributeMutation = async (
   productId: string,
   mutation: ProductAttributeAssignmentMutation
 ) => {
-  const existing = mutation.existing
+  const { existing } = mutation
 
   if (mutation.kind === "remove") {
     if (existing && !existing.deleted_at) {
@@ -249,14 +251,14 @@ const applyProductAttributeMutation = async (
     return
   }
 
-  return (await service.createProductAttributes(
+  return await service.createProductAttributes(
     {
       definition_id: mutation.definition_id,
       product_id: productId,
       ...mutation.values,
     },
     context
-  )) as ProductAttributeAssignmentRecord
+  )
 }
 
 export const setProductAttributesStep = createStep(
@@ -284,16 +286,16 @@ export const setProductAttributesStep = createStep(
               withDeleted: true,
             },
             context
-          ) as Promise<ProductAttributeDefinitionRecord[]>,
+          ),
           optionIds.length
-            ? (service.listProductAttributeOptions(
+            ? service.listProductAttributeOptions(
                 { id: { $in: optionIds } },
                 {
                   take: optionIds.length,
                   withDeleted: true,
                 },
                 context
-              ) as Promise<ProductAttributeOptionRecord[]>)
+              )
             : Promise.resolve([]),
           service.listProductAttributes(
             {
@@ -306,7 +308,7 @@ export const setProductAttributesStep = createStep(
               withDeleted: true,
             },
             context
-          ) as Promise<ProductAttributeAssignmentRecord[]>,
+          ),
         ])
         const operations = validateProductAttributeOperations({
           definitions,
@@ -333,7 +335,7 @@ export const setProductAttributesStep = createStep(
           }
         }
 
-        const assignments = (await service.listProductAttributes(
+        const assignments = await service.listProductAttributes(
           {
             definition_id: { $in: definitionIds },
             product_id: input.product_id,
@@ -343,7 +345,7 @@ export const setProductAttributesStep = createStep(
             take: Math.max(definitionIds.length, 1),
           },
           context
-        )) as ProductAttributeAssignmentRecord[]
+        )
 
         return {
           assignments,

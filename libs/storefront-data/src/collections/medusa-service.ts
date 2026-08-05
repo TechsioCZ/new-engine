@@ -20,26 +20,26 @@ export type MedusaCollectionDetailInput = SelectParams & {
   enabled?: boolean
 }
 
-export type MedusaCollectionTransformListContext<
+export interface MedusaCollectionTransformListContext<
   TListParams extends MedusaCollectionListInput,
-> = {
+> {
   params: TListParams
   query: MedusaCollectionListQuery
   response: HttpTypes.StoreCollectionListResponse
 }
 
-export type MedusaCollectionTransformDetailContext<
+export interface MedusaCollectionTransformDetailContext<
   TDetailParams extends MedusaCollectionDetailInput,
-> = {
+> {
   params: TDetailParams
   query: MedusaCollectionDetailQuery
   response: HttpTypes.StoreCollectionResponse
 }
 
-type MedusaCollectionServiceConfigBase<
+interface MedusaCollectionServiceConfigBase<
   TListParams extends MedusaCollectionListInput,
   TDetailParams extends MedusaCollectionDetailInput,
-> = {
+> {
   listPath?: string
   defaultListFields?: string
   defaultDetailFields?: string
@@ -182,7 +182,7 @@ export function createMedusaCollectionService<
             : {}),
         } as MedusaCollectionListQuery)
 
-    return stripEnabled(query) as MedusaCollectionListQuery
+    return stripEnabled(query)
   }
 
   const buildDetailQuery = (
@@ -200,34 +200,10 @@ export function createMedusaCollectionService<
     const { id: _id, ...withoutId } = query as MedusaCollectionDetailQuery & {
       id?: string
     }
-    return stripEnabled(withoutId) as MedusaCollectionDetailQuery
+    return stripEnabled(withoutId)
   }
 
   return {
-    async getCollections(
-      params: TListParams,
-      signal?: AbortSignal
-    ): Promise<CollectionListResponse<unknown>> {
-      const query = buildListQuery(params)
-      const response =
-        await sdk.client.fetch<HttpTypes.StoreCollectionListResponse>(
-          listPath,
-          {
-            query,
-            signal: signal ?? null,
-          }
-        )
-
-      const collections = (response.collections ?? []).map((collection) =>
-        mapListCollection(collection, { params, query, response })
-      )
-
-      return {
-        collections,
-        count: response.count ?? collections.length,
-      }
-    },
-
     async getCollection(
       params: TDetailParams,
       signal?: AbortSignal
@@ -252,6 +228,30 @@ export function createMedusaCollectionService<
       }
 
       return mapDetailCollection(collection, { params, query, response })
+    },
+
+    async getCollections(
+      params: TListParams,
+      signal?: AbortSignal
+    ): Promise<CollectionListResponse<unknown>> {
+      const query = buildListQuery(params)
+      const response =
+        await sdk.client.fetch<HttpTypes.StoreCollectionListResponse>(
+          listPath,
+          {
+            query,
+            signal: signal ?? null,
+          }
+        )
+
+      const collections = (response.collections ?? []).map((collection) =>
+        mapListCollection(collection, { params, query, response })
+      )
+
+      return {
+        collections,
+        count: response.count ?? collections.length,
+      }
     },
   }
 }

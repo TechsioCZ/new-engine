@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("@medusajs/framework/utils", () => ({
+vi.mock(import("@medusajs/framework/utils"), () => ({
   ContainerRegistrationKeys: {
     QUERY: "query",
   },

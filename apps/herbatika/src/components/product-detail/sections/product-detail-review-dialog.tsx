@@ -15,14 +15,12 @@ import {
   resolveProductReviewSubmitErrorMessage,
   translateProductReviewErrorMessages,
 } from "@/components/reviews/product-review-errors"
-import {
-  ProductReviewForm,
-  type ProductReviewFormSubmitValues,
-} from "@/components/reviews/product-review-form"
+import { ProductReviewForm } from "@/components/reviews/product-review-form"
+import type { ProductReviewFormSubmitValues } from "@/components/reviews/product-review-form"
 import { useAuth } from "@/lib/storefront/auth"
 import { useCreateProductReview } from "@/lib/storefront/reviews"
 
-type ProductReviewCreateDialogProps = {
+interface ProductReviewCreateDialogProps {
   productId: string
   triggerLabel?: string
 }
@@ -60,7 +58,7 @@ export function ProductReviewCreateDialog({
     },
   })
   const isBusy = createReviewMutation.isPending
-  const isAuthenticated = authQuery.isAuthenticated
+  const { isAuthenticated } = authQuery
 
   const handleOpenChange = ({ open }: { open: boolean }) => {
     setIsOpen(open)
@@ -128,7 +126,9 @@ export function ProductReviewCreateDialog({
       return (
         <>
           <Button
-            onClick={() => setIsOpen(false)}
+            onClick={() => {
+              setIsOpen(false)
+            }}
             size="sm"
             theme="outlined"
             variant="secondary"
@@ -149,7 +149,13 @@ export function ProductReviewCreateDialog({
 
     if (isSubmitted) {
       return (
-        <Button onClick={() => setIsOpen(false)} size="sm" variant="primary">
+        <Button
+          onClick={() => {
+            setIsOpen(false)
+          }}
+          size="sm"
+          variant="primary"
+        >
           {tCatalog("reviews.close")}
         </Button>
       )
@@ -159,7 +165,9 @@ export function ProductReviewCreateDialog({
       <>
         <Button
           disabled={isBusy}
-          onClick={() => setIsOpen(false)}
+          onClick={() => {
+            setIsOpen(false)
+          }}
           size="sm"
           theme="outlined"
           type="button"
@@ -185,7 +193,9 @@ export function ProductReviewCreateDialog({
   return (
     <>
       <Button
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          setIsOpen(true)
+        }}
         size="sm"
         type="button"
         variant="primary"

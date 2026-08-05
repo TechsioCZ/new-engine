@@ -9,23 +9,22 @@ import {
 import type * as LabelPrimitives from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
 import type React from "react"
-import { createContext, type ReactNode, useContext, useId } from "react"
+import { createContext, useContext, useId } from "react"
+import type { ReactNode } from "react"
 import {
   Controller,
-  type ControllerProps,
-  type FieldPath,
-  type FieldValues,
   FormProvider,
   useFormContext,
   useFormState,
 } from "react-hook-form"
+import type { ControllerProps, FieldPath, FieldValues } from "react-hook-form"
 
 const Provider = FormProvider
 
-type FormFieldContextValue<
+interface FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
-> = {
+> {
   name: TName
 }
 
@@ -44,7 +43,7 @@ const Field = <
   </FormFieldContext.Provider>
 )
 
-type FormItemContextValue = {
+interface FormItemContextValue {
   id: string
 }
 
@@ -67,12 +66,12 @@ const useFormField = () => {
   const { id } = itemContext
 
   return {
-    id,
-    name: fieldContext.name,
-    formItemId: `${id}-form-item`,
-    formLabelId: `${id}-form-item-label`,
     formDescriptionId: `${id}-form-item-description`,
     formErrorMessageId: `${id}-form-item-message`,
+    formItemId: `${id}-form-item`,
+    formLabelId: `${id}-form-item-label`,
+    id,
+    name: fieldContext.name,
     ...fieldState,
   }
 }
@@ -158,9 +157,7 @@ const Control = ({ ref, ...props }: ControlProps) => {
   return (
     <Slot
       aria-describedby={
-        error
-          ? `${formDescriptionId} ${formErrorMessageId}`
-          : `${formDescriptionId}`
+        error ? `${formDescriptionId} ${formErrorMessageId}` : formDescriptionId
       }
       aria-invalid={!!error}
       aria-labelledby={formLabelId}
@@ -222,12 +219,12 @@ const ErrorMessage = ({
 ErrorMessage.displayName = "Form.ErrorMessage"
 
 const Form = Object.assign(Provider, {
-  Item,
-  Label,
   Control,
-  Hint,
   ErrorMessage,
   Field,
+  Hint,
+  Item,
+  Label,
 })
 
 export { Form }

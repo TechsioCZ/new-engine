@@ -17,7 +17,7 @@ export const MAX_SYNC_ATTEMPTS = 60
 export const MAX_PENDING_AGE_MS = 24 * 60 * 60 * 1000
 
 /** Fulfillment record shape from query */
-export type FulfillmentRecord = {
+export interface FulfillmentRecord {
   id: string
   data: PplFulfillmentData | null
   created_at: string
@@ -30,7 +30,7 @@ export interface PendingFulfillment extends FulfillmentRecord {
 }
 
 /** Sync attempt tracking */
-export type SyncAttemptInfo = {
+export interface SyncAttemptInfo {
   syncAttempts: number
   firstSyncAttempt: string
   now: string
@@ -45,16 +45,16 @@ export function checkTimeoutConditions(
 ): { reason: string; message: string } | null {
   if (attemptInfo.syncAttempts >= MAX_SYNC_ATTEMPTS) {
     return {
-      reason: `exceeded max sync attempts (${MAX_SYNC_ATTEMPTS})`,
       message: `Batch ${fulfillment.data.batch_id} never completed after ${MAX_SYNC_ATTEMPTS} attempts`,
+      reason: `exceeded max sync attempts (${MAX_SYNC_ATTEMPTS})`,
     }
   }
 
   const createdAt = new Date(fulfillment.created_at).getTime()
   if (Date.now() - createdAt > MAX_PENDING_AGE_MS) {
     return {
-      reason: "pending for over 24 hours",
       message: `Batch ${fulfillment.data.batch_id} pending for over 24 hours`,
+      reason: "pending for over 24 hours",
     }
   }
 

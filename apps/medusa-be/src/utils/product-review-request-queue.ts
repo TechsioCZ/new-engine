@@ -11,8 +11,8 @@ import {
   getOrderPaidAt,
   getReviewRequestRunAt,
   isPaidOrder,
-  type ReviewRequestOrder,
 } from "./order-review-requests"
+import type { ReviewRequestOrder } from "./order-review-requests"
 import { workflowQueueNames } from "./workflow-queue-registry"
 
 const PRODUCT_REVIEW_REQUEST_TEMPLATE = "product-review-request"
@@ -32,7 +32,7 @@ const ORDER_FIELDS = [
   "status",
 ]
 
-type EmailLogDTO = {
+interface EmailLogDTO {
   order_id: string | null
 }
 
@@ -43,7 +43,7 @@ type EmailLogService = EmailLogModuleService & {
   ) => Promise<EmailLogDTO[]>
 }
 
-type WorkflowQueueItemDTO = {
+interface WorkflowQueueItemDTO {
   arguments: Record<string, unknown> | null
   dedupe_key: string | null
   id: string
@@ -190,12 +190,12 @@ export async function scheduleProductReviewRequestForOrder({
   )
 
   const queueItem = await workflowQueueService.createWorkflowQueueItems({
-    workflow: workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST,
-    dedupe_key: dedupeKey,
-    run_at: runAt,
     arguments: {
       order_id: order.id,
     },
+    dedupe_key: dedupeKey,
+    run_at: runAt,
+    workflow: workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST,
   })
 
   logger.info(

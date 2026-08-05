@@ -5,7 +5,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 
 import { queryKeys } from "@/lib/query-keys"
 
-type ErrorProps = {
+interface ErrorProps {
   error: Error & { digest?: string }
   reset: () => void
 }

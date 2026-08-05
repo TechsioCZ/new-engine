@@ -3,7 +3,7 @@
 import { useProductDetailActions } from "@/components/product-detail/use-product-detail-actions"
 import { useProductDetailData } from "@/components/product-detail/use-product-detail-data"
 
-type UseProductDetailControllerProps = {
+interface UseProductDetailControllerProps {
   handle: string
 }
 

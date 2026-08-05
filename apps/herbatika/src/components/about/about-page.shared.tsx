@@ -5,7 +5,7 @@ import NextLink from "@/components/app-link"
 
 import type { AboutParagraph } from "./about-page.data"
 
-export type AboutImage = {
+export interface AboutImage {
   alt: string
   caption?: string
   src: StaticImageData

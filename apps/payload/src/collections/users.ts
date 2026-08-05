@@ -8,11 +8,9 @@ import {
 
 /** Payload collection config for admin users. */
 export const Users: CollectionConfig = {
-  slug: "users",
-  labels: collectionLabels.users,
   admin: {
-    useAsTitle: "email",
     group: adminGroups.administration,
+    useAsTitle: "email",
   },
   auth: {
     useAPIKey: true,
@@ -30,4 +28,6 @@ export const Users: CollectionConfig = {
       label: fieldLabels.lastName,
     },
   ],
+  labels: collectionLabels.users,
+  slug: "users",
 }

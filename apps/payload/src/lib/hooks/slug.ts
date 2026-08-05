@@ -3,11 +3,11 @@ const generateSlug = (value: string): string =>
   value
     .toLowerCase()
     .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\w\s-]/g, "")
+    .replaceAll(/[\u0300-\u036F]/g, "")
+    .replaceAll(/[^\w\s-]/g, "")
     .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
+    .replaceAll(/\s+/g, "-")
+    .replaceAll(/-+/g, "-")
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0

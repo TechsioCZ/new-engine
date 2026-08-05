@@ -1,11 +1,7 @@
 import { MedusaError } from "@medusajs/framework/utils"
 
-import {
-  PRODUCT_LIST_ACCESS_TYPES,
-  PRODUCT_LIST_TYPES,
-  type ProductListAccessType,
-  type ProductListType,
-} from "./constants"
+import { PRODUCT_LIST_ACCESS_TYPES, PRODUCT_LIST_TYPES } from "./constants"
+import type { ProductListAccessType, ProductListType } from "./constants"
 
 const formatInvalidValue = (value: unknown): string => {
   if (value === null) {

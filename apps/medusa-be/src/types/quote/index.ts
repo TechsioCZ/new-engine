@@ -1,4 +1,4 @@
-export * from "./http"
-export * from "./module"
-export * from "./query"
-export * from "./service"
+export type * from "./http"
+export type * from "./module"
+export type * from "./query"
+export type * from "./service"

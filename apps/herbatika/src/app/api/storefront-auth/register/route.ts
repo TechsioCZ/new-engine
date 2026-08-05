@@ -7,12 +7,12 @@ import {
   createCustomerProfile,
   createWholesaleProfile,
   loginCustomerIdentity,
-  type ParsedRegisterPayload,
   refreshCustomerToken,
 } from "./register-flow"
+import type { ParsedRegisterPayload } from "./register-flow"
 import { parseWholesaleRegistration } from "./wholesale"
 
-type RegisterBody = {
+interface RegisterBody {
   email?: string
   password?: string
   first_name?: string
@@ -20,7 +20,7 @@ type RegisterBody = {
   wholesale?: unknown
 }
 
-type RegisterResponse = {
+interface RegisterResponse {
   token: string
 }
 

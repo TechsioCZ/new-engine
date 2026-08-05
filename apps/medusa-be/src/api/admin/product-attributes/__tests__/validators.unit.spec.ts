@@ -29,17 +29,19 @@ describe("Product Attribute Admin request validation", () => {
           },
         ],
       }).success
-    ).toBe(false)
+    ).toBeFalsy()
   })
 
   it("bounds option Product usage pagination", () => {
-    expect(AdminGetProductAttributeOptionProductsSchema.parse({})).toEqual({
+    expect(
+      AdminGetProductAttributeOptionProductsSchema.parse({})
+    ).toStrictEqual({
       limit: 20,
       offset: 0,
     })
     expect(
       AdminGetProductAttributeOptionProductsSchema.safeParse({ limit: 101 })
         .success
-    ).toBe(false)
+    ).toBeFalsy()
   })
 })

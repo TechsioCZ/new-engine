@@ -3,7 +3,8 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useTranslations } from "next-intl"
-import { type ReactNode, useState } from "react"
+import { useState } from "react"
+import type { ReactNode } from "react"
 
 import { HerbatikaProductCardCompact } from "@/components/herbatika-product-card-compact"
 import { HerbatikaProductCardSkeleton } from "@/components/herbatika-product-card-skeleton"
@@ -14,7 +15,7 @@ import {
   useRecentlyVisitedProductHandles,
 } from "@/lib/storefront/recently-visited-products"
 
-type RecentlyVisitedProductsSectionProps = {
+interface RecentlyVisitedProductsSectionProps {
   className?: string
   excludeHandle?: string | null
   emptyText?: string
@@ -49,7 +50,7 @@ export function RecentlyVisitedProductsSection({
   const resolvedHeadingText =
     headingText ?? tCatalog("product_card.recently_visited_title")
   const recentlyVisitedHandles = useRecentlyVisitedProductHandles(
-    excludeHandle === undefined ? {} : { excludeHandle: excludeHandle }
+    excludeHandle === undefined ? {} : { excludeHandle }
   )
   const productHandles = recentlyVisitedHandles.slice(0, visibleCount)
   const [productsWithImageError, setProductsWithImageError] = useState<

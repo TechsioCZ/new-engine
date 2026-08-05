@@ -11,12 +11,18 @@
  */
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import * as tooltip from "@zag-js/tooltip"
-import { type ReactNode, type Ref, useId } from "react"
-import { tv, type VariantProps } from "tailwind-variants"
+import { useId } from "react"
+import type { ReactNode, Ref } from "react"
+import { tv } from "tailwind-variants"
+import type { VariantProps } from "tailwind-variants"
 
 const tooltipVariants = tv({
+  defaultVariants: {
+    size: "md",
+    variant: "default",
+  },
   slots: {
-    trigger: ["inline-flex"],
+    arrow: "",
     content: [
       "[--arrow-size:var(--tooltip-arrow-size)]",
       "[--arrow-background:var(--tooltip-arrow-background)]",
@@ -24,31 +30,27 @@ const tooltipVariants = tv({
       "rounded-tooltip",
     ],
     positioner: ["relative"],
-    arrow: "",
+    trigger: ["inline-flex"],
   },
   variants: {
-    variant: {
-      default: {},
-      outline: {
-        content: "border border-tooltip-border-outline",
-        arrow: "border-tooltip-border-outline border-s border-t",
-      },
-    },
     size: {
-      sm: {
-        content: "p-tooltip-sm text-tooltip-sm",
+      lg: {
+        content: "p-tooltip-lg text-tooltip-lg",
       },
       md: {
         content: "p-tooltip-md text-tooltip-md",
       },
-      lg: {
-        content: "p-tooltip-lg text-tooltip-lg",
+      sm: {
+        content: "p-tooltip-sm text-tooltip-sm",
       },
     },
-  },
-  defaultVariants: {
-    size: "md",
-    variant: "default",
+    variant: {
+      default: {},
+      outline: {
+        arrow: "border-tooltip-border-outline border-s border-t",
+        content: "border border-tooltip-border-outline",
+      },
+    },
   },
 })
 
@@ -86,7 +88,7 @@ export function Tooltip({
   closeOnClick,
 
   placement,
-  offset = { mainAxis: 16, crossAxis: 0 },
+  offset = { crossAxis: 0, mainAxis: 16 },
   gutter,
   flip,
   sameWidth,
@@ -113,26 +115,26 @@ export function Tooltip({
     ...(onOpenChange !== undefined && { onOpenChange }),
 
     positioning: {
-      placement,
-      offset,
-      gutter,
-      flip,
-      sameWidth,
       boundary,
+      flip,
+      gutter,
       listeners,
+      offset,
+      placement,
+      sameWidth,
       strategy,
     },
   })
 
-  const api = tooltip.connect(service as tooltip.Service, normalizeProps)
+  const api = tooltip.connect(service, normalizeProps)
   const {
     trigger,
     positioner,
     content: contentSlot,
     arrow,
   } = tooltipVariants({
-    variant,
     size,
+    variant,
   })
 
   const triggerProps = api.getTriggerProps()

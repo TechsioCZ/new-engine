@@ -15,7 +15,7 @@ const DEFAULT_ALG = "RS256"
 const MAX_SESSIONS = 100
 
 /** JWT payload shape expected from Medusa SSO tokens. */
-type MedusaSsoToken = {
+interface MedusaSsoToken {
   email?: string
   sub?: string
   medusa_actor_id?: string
@@ -24,20 +24,20 @@ type MedusaSsoToken = {
 }
 
 /** Session entry stored on Payload admin users. */
-type Session = {
+interface Session {
   id: string
   createdAt?: string | Date | null
   expiresAt: string | Date
 }
 
 /** Minimal admin user record used for session updates. */
-type AdminUser = {
+interface AdminUser {
   id: string | number
   sessions?: Session[] | null
 }
 
 /** Normalize PEM keys loaded from environment variables. */
-const normalizeKey = (value: string) => value.replace(/\\n/g, "\n").trim()
+const normalizeKey = (value: string) => value.replaceAll(/\\n/g, "\n").trim()
 
 /** Filter out expired session entries. */
 const removeExpiredSessions = (sessions: Session[]) => {
@@ -83,7 +83,7 @@ const normalizeOrigin = (value: string | null) => {
 /** Read and normalize a list of allowed origins from environment. */
 const getAllowedOrigins = () =>
   new Set(
-    (process.env["PAYLOAD_SSO_ALLOWED_ORIGINS"] || "")
+    (process.env.PAYLOAD_SSO_ALLOWED_ORIGINS || "")
       .split(",")
       .map((origin) => normalizeOrigin(origin))
       .filter((origin): origin is string => Boolean(origin))
@@ -135,8 +135,8 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
       throw new APIError("Origin is not allowed.", 403)
     }
 
-    const publicKey = process.env["PAYLOAD_SSO_PUBLIC_KEY"]
-    const expectedSsoEmail = process.env["PAYLOAD_SSO_USER_EMAIL"]
+    const publicKey = process.env.PAYLOAD_SSO_PUBLIC_KEY
+    const expectedSsoEmail = process.env.PAYLOAD_SSO_USER_EMAIL
     if (!(publicKey && expectedSsoEmail)) {
       throw new APIError("Payload SSO is not configured.", 500)
     }
@@ -162,17 +162,17 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
       throw new APIError("Missing SSO token.", 400)
     }
 
-    const alg = process.env["PAYLOAD_SSO_ALG"] ?? DEFAULT_ALG
-    const issuer = process.env["PAYLOAD_SSO_ISSUER"] ?? DEFAULT_ISSUER
-    const audience = process.env["PAYLOAD_SSO_AUDIENCE"] ?? DEFAULT_AUDIENCE
+    const alg = process.env.PAYLOAD_SSO_ALG ?? DEFAULT_ALG
+    const issuer = process.env.PAYLOAD_SSO_ISSUER ?? DEFAULT_ISSUER
+    const audience = process.env.PAYLOAD_SSO_AUDIENCE ?? DEFAULT_AUDIENCE
     const key = await importSPKI(normalizeKey(publicKey), alg)
 
     let verifiedPayload: MedusaSsoToken | null = null
     try {
       const verified = await jwtVerify<MedusaSsoToken>(token, key, {
-        issuer,
-        audience,
         algorithms: [alg],
+        audience,
+        issuer,
       })
       verifiedPayload = verified.payload
     } catch (error) {
@@ -201,21 +201,21 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
 
     const userResult = await req.payload.find({
       collection: adminCollectionSlug,
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      pagination: false,
+      req,
+      select: {
+        email: true,
+        id: true,
+        sessions: true,
+      },
       where: {
         email: {
           equals: email,
         },
       },
-      select: {
-        id: true,
-        email: true,
-        sessions: true,
-      },
-      limit: 1,
-      pagination: false,
-      depth: 0,
-      overrideAccess: true,
-      req,
     })
 
     const user = userResult.docs[0] as AdminUser | undefined
@@ -227,16 +227,15 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
     if (adminCollection.config.auth.useSessions) {
       sid = randomUUID()
       const now = new Date()
-      const tokenExpiration = adminCollection.config.auth.tokenExpiration
+      const { tokenExpiration } = adminCollection.config.auth
       const expiresAt = new Date(now.getTime() + tokenExpiration * 1000)
       const existingSessions = Array.isArray(user.sessions)
-        ? removeExpiredSessions(user.sessions as Session[]).slice(
+        ? removeExpiredSessions(user.sessions).slice(
             -Math.max(MAX_SESSIONS - 1, 0)
           )
         : []
 
       await req.payload.db.updateOne({
-        id: user.id,
         collection: adminCollectionSlug,
         data: {
           sessions: [
@@ -249,6 +248,7 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
           ],
           updatedAt: null,
         },
+        id: user.id,
         req,
         returning: false,
       })
@@ -274,16 +274,16 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
     const redirectTo = sanitizeReturnTo(returnTo)
     const headers = headersWithCors({
       headers: new Headers({
-        "Set-Cookie": cookie,
         Location: redirectTo,
+        "Set-Cookie": cookie,
       }),
       req,
     })
     setAllowedOriginCorsHeaders(headers, requestOrigin)
 
     return new Response(null, {
-      status: 302,
       headers,
+      status: 302,
     })
   },
 })

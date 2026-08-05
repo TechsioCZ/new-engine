@@ -11,83 +11,16 @@
  */
 import * as accordion from "@zag-js/accordion"
 import { normalizeProps, useMachine } from "@zag-js/react"
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type Ref,
-  useContext,
-  useId,
-} from "react"
+import { createContext, useContext, useId } from "react"
+import type { ComponentPropsWithoutRef, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { Button } from "../atoms/button"
-import { Icon, type IconProps, type IconType } from "../atoms/icon"
+import { Icon } from "../atoms/icon"
+import type { IconProps, IconType } from "../atoms/icon"
 import { tv } from "../utils"
 
 const accordionVariants = tv({
-  slots: {
-    root: [
-      "flex w-full flex-col",
-      "rounded-accordion bg-accordion-bg",
-      "transition-all duration-200",
-      "transition-all duration-200 motion-reduce:transition-none",
-    ],
-    item: "",
-    title: "grid place-items-start",
-    titleTrigger: [
-      "relative flex w-full cursor-pointer items-center justify-between",
-      "rounded-none",
-      "font-accordion-title",
-      "bg-accordion-title-bg text-accordion-title-fg",
-      "hover:bg-accordion-title-bg-hover",
-      "pr-accordion-icon-right",
-      "data-[disabled=true]:cursor-not-allowed",
-    ],
-    subtitle: ["text-accordion-subtitle-fg"],
-    content: ["bg-accordion-content-bg text-accordion-content-fg"],
-    icon: ["data-[state=expanded]:rotate-180"],
-  },
-  variants: {
-    variant: {
-      default: {
-        root: "border-(length:--border-width-accordion) border-accordion-border",
-        item: "border-b-(length:--border-width-accordion) border-accordion-border",
-      },
-      borderless: {},
-      child: {},
-    },
-    shadow: {
-      sm: {
-        root: "shadow-accordion-root-sm",
-        content: "shadow-accordion-content-sm",
-      },
-      md: {
-        root: "shadow-accordion-root-md",
-        content: "shadow-accordion-content-md",
-      },
-      none: "",
-    },
-    size: {
-      sm: {
-        title: "p-accordion-title-sm text-accordion-title-sm",
-        content: "px-accordion-content-x-sm text-accordion-content-sm",
-        subtitle: "text-accordion-subtitle-sm",
-        icon: "text-icon-control-sm",
-      },
-      md: {
-        title: "p-accordion-title-md text-accordion-title-md",
-        content: "p-accordion-content-md text-accordion-content-md",
-        subtitle: "text-accordion-subtitle-md",
-        icon: "text-icon-control-md",
-      },
-      lg: {
-        title: "p-accordion-title-lg text-accordion-title-lg",
-        content: "p-accordion-content-lg text-accordion-content-lg",
-        subtitle: "text-accordion-subtitle-lg",
-        icon: "text-icon-control-lg",
-      },
-    },
-  },
   compoundVariants: [
     {
       variant: "child",
@@ -98,9 +31,72 @@ const accordionVariants = tv({
     },
   ],
   defaultVariants: {
-    size: "md",
     shadow: "none",
+    size: "md",
     variant: "default",
+  },
+  slots: {
+    content: ["bg-accordion-content-bg text-accordion-content-fg"],
+    icon: ["data-[state=expanded]:rotate-180"],
+    item: "",
+    root: [
+      "flex w-full flex-col",
+      "rounded-accordion bg-accordion-bg",
+      "transition-all duration-200",
+      "transition-all duration-200 motion-reduce:transition-none",
+    ],
+    subtitle: ["text-accordion-subtitle-fg"],
+    title: "grid place-items-start",
+    titleTrigger: [
+      "relative flex w-full cursor-pointer items-center justify-between",
+      "rounded-none",
+      "font-accordion-title",
+      "bg-accordion-title-bg text-accordion-title-fg",
+      "hover:bg-accordion-title-bg-hover",
+      "pr-accordion-icon-right",
+      "data-[disabled=true]:cursor-not-allowed",
+    ],
+  },
+  variants: {
+    shadow: {
+      md: {
+        content: "shadow-accordion-content-md",
+        root: "shadow-accordion-root-md",
+      },
+      none: "",
+      sm: {
+        content: "shadow-accordion-content-sm",
+        root: "shadow-accordion-root-sm",
+      },
+    },
+    size: {
+      lg: {
+        content: "p-accordion-content-lg text-accordion-content-lg",
+        icon: "text-icon-control-lg",
+        subtitle: "text-accordion-subtitle-lg",
+        title: "p-accordion-title-lg text-accordion-title-lg",
+      },
+      md: {
+        content: "p-accordion-content-md text-accordion-content-md",
+        icon: "text-icon-control-md",
+        subtitle: "text-accordion-subtitle-md",
+        title: "p-accordion-title-md text-accordion-title-md",
+      },
+      sm: {
+        content: "px-accordion-content-x-sm text-accordion-content-sm",
+        icon: "text-icon-control-sm",
+        subtitle: "text-accordion-subtitle-sm",
+        title: "p-accordion-title-sm text-accordion-title-sm",
+      },
+    },
+    variant: {
+      borderless: {},
+      child: {},
+      default: {
+        item: "border-b-(length:--border-width-accordion) border-accordion-border",
+        root: "border-(length:--border-width-accordion) border-accordion-border",
+      },
+    },
   },
 })
 
@@ -181,24 +177,24 @@ export function Accordion({
   const uniqueId = id || generatedId
 
   const service = useMachine(accordion.machine, {
-    id: uniqueId,
-    value,
-    defaultValue,
     collapsible,
-    multiple,
+    defaultValue,
     dir,
-    orientation: "vertical",
     disabled,
+    id: uniqueId,
+    multiple,
     onValueChange: ({ value: newValue }) => {
       onChange?.(newValue)
     },
+    orientation: "vertical",
+    value,
   })
 
   const api = accordion.connect(service, normalizeProps)
-  const styles = accordionVariants({ size, shadow, variant })
+  const styles = accordionVariants({ shadow, size, variant })
 
   return (
-    <AccordionContext.Provider value={{ api, size, shadow, styles, variant }}>
+    <AccordionContext.Provider value={{ api, shadow, size, styles, variant }}>
       <div
         className={styles.root({ className })}
         ref={ref}
@@ -229,7 +225,7 @@ Accordion.Item = function AccordionItem({
   const { api, styles, variant } = useAccordionContext()
 
   return (
-    <AccordionItemContext.Provider value={{ value, disabled, variant }}>
+    <AccordionItemContext.Provider value={{ disabled, value, variant }}>
       <div
         ref={ref}
         {...props}
@@ -263,7 +259,7 @@ Accordion.Header = function AccordionHeader({
         size="current"
         theme="unstyled"
         type="button"
-        {...api.getItemTriggerProps({ value, disabled })}
+        {...api.getItemTriggerProps({ disabled, value })}
         data-disabled={disabled}
       >
         {children}

@@ -22,5 +22,5 @@ export const useManageItemsTableQuery = ({
     ...(updated_at ? { updated_at: JSON.parse(updated_at) } : {}),
   }
 
-  return { searchParams, raw }
+  return { raw, searchParams }
 }

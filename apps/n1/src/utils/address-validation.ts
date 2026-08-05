@@ -1,6 +1,6 @@
 import { VALIDATION_MESSAGES } from "@/lib/validation-messages"
 
-export type AddressFormData = {
+export interface AddressFormData {
   first_name: string
   last_name: string
   company?: string
@@ -17,37 +17,37 @@ type AddressFieldKey = keyof AddressFormData
 export type AddressErrors = Partial<Record<AddressFieldKey, string>>
 
 const ADDRESS_VALIDATION_RULES = {
-  first_name: {
-    required: VALIDATION_MESSAGES.firstName.required,
-    minLength: { value: 2, message: VALIDATION_MESSAGES.firstName.minLength },
-  },
-  last_name: {
-    required: VALIDATION_MESSAGES.lastName.required,
-    minLength: { value: 2, message: VALIDATION_MESSAGES.lastName.minLength },
-  },
   address_1: {
+    minLength: { message: VALIDATION_MESSAGES.address.minLength, value: 3 },
     required: VALIDATION_MESSAGES.address.required,
-    minLength: { value: 3, message: VALIDATION_MESSAGES.address.minLength },
   },
   city: {
+    minLength: { message: VALIDATION_MESSAGES.city.minLength, value: 2 },
     required: VALIDATION_MESSAGES.city.required,
-    minLength: { value: 2, message: VALIDATION_MESSAGES.city.minLength },
-  },
-  postal_code: {
-    required: VALIDATION_MESSAGES.postalCode.required,
-    pattern: {
-      value: /^\d{3}\s\d{2}$/,
-      message: VALIDATION_MESSAGES.postalCode.invalid,
-    },
   },
   country_code: {
     required: VALIDATION_MESSAGES.country.required,
   },
+  first_name: {
+    minLength: { message: VALIDATION_MESSAGES.firstName.minLength, value: 2 },
+    required: VALIDATION_MESSAGES.firstName.required,
+  },
+  last_name: {
+    minLength: { message: VALIDATION_MESSAGES.lastName.minLength, value: 2 },
+    required: VALIDATION_MESSAGES.lastName.required,
+  },
   phone: {
     pattern: {
-      value: /^(\+420\s)?\d{3}\s\d{3}\s\d{3}$|^$/,
       message: VALIDATION_MESSAGES.phone.invalid,
+      value: /^(\+420\s)?\d{3}\s\d{3}\s\d{3}$|^$/,
     },
+  },
+  postal_code: {
+    pattern: {
+      message: VALIDATION_MESSAGES.postalCode.invalid,
+      value: /^\d{3}\s\d{2}$/,
+    },
+    required: VALIDATION_MESSAGES.postalCode.required,
   },
 } as const
 
@@ -125,11 +125,13 @@ function validateAddressField(
     }
     case "company":
     case "address_2":
-    case "province":
+    case "province": {
       break
+    }
 
-    default:
+    default: {
       break
+    }
   }
   return
 }

@@ -10,17 +10,15 @@ import { PasswordRequirements } from "@/components/auth/password-requirements"
 import { RegisterAccountTypeField } from "@/components/auth/register-account-type-field"
 import { RegisterWholesaleFields } from "@/components/auth/register-wholesale-fields"
 import { useAppToast } from "@/hooks/use-app-toast"
-import {
-  createRegisterValidators,
-  type RegisterFormValues,
-} from "@/lib/auth/auth-form-validators"
+import { createRegisterValidators } from "@/lib/auth/auth-form-validators"
+import type { RegisterFormValues } from "@/lib/auth/auth-form-validators"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { translateAddressValidationMessages } from "@/lib/forms/validators/address-validation-messages"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
 import { AuthFooter } from "./auth-footer"
 
-type RegisterFormProps = {
+interface RegisterFormProps {
   isBusy: boolean
   countryItems: SelectItem[]
   defaultValues: RegisterFormValues

@@ -6,8 +6,8 @@ import MeasurementUnitModule from "../modules/measurement-unit"
 export const ProductMeasurementLink = defineLink(
   ProductModule.linkable["product"],
   {
-    linkable: MeasurementUnitModule.linkable.productMeasurement,
     deleteCascade: true,
     filterable: ["id", "measurement_unit_id"],
+    linkable: MeasurementUnitModule.linkable.productMeasurement,
   }
 )

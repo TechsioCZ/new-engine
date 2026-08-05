@@ -6,7 +6,7 @@ import NextImage from "next/image"
 import { REVIEW_TRUST_SOURCES } from "@/components/reviews/reviews.data"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 
-type ReviewTrustBadgesProps = {
+interface ReviewTrustBadgesProps {
   sources?: readonly ReviewTrustSource[]
   size?: ReviewTrustBadgeSize
   className?: string
@@ -20,17 +20,17 @@ const SIZE_CLASS_NAMES: Record<
   ReviewTrustBadgeSize,
   { root: string; item: string }
 > = {
-  sm: {
-    root: "gap-200",
-    item: "gap-200 bg-surface px-350 py-200",
-  },
   md: {
-    root: "gap-x-400 gap-y-300",
     item: "gap-200 bg-overlay px-500 py-500",
+    root: "gap-x-400 gap-y-300",
+  },
+  sm: {
+    item: "gap-200 bg-surface px-350 py-200",
+    root: "gap-200",
   },
 }
 
-function joinClassNames(...classNames: Array<string | undefined>) {
+function joinClassNames(...classNames: (string | undefined)[]) {
   return classNames.filter(Boolean).join(" ")
 }
 

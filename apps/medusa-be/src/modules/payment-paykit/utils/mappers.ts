@@ -7,7 +7,7 @@ import { isRecord } from "@techsio/std/object"
 
 import type { PaykitPayment, PaykitRefund, PaykitWebhookEvent } from "../types"
 
-type PaykitWebhookMappingOptions = {
+interface PaykitWebhookMappingOptions {
   normalizeAmount?: (
     amount: BigNumberValue | undefined,
     payment: PaykitPayment,
@@ -28,7 +28,7 @@ const isPaykitPayment = (value: unknown): value is PaykitPayment =>
     "status" in value ||
     "state" in value)
 
-type SerializableBigNumber = {
+interface SerializableBigNumber {
   toJSON: () => unknown
   valueOf: () => unknown
 }
@@ -58,23 +58,29 @@ export const mapPaykitStatusToMedusa = (
 ): PaymentSessionStatus => {
   switch (status) {
     case "requires_action":
-    case "requires_more":
+    case "requires_more": {
       return PaymentSessionStatus.REQUIRES_MORE
+    }
     case "requires_capture":
-    case "authorized":
+    case "authorized": {
       return PaymentSessionStatus.AUTHORIZED
+    }
     case "succeeded":
     case "captured":
-    case "paid":
+    case "paid": {
       return PaymentSessionStatus.CAPTURED
+    }
     case "canceled":
-    case "cancelled":
+    case "cancelled": {
       return PaymentSessionStatus.CANCELED
+    }
     case "failed":
-    case "error":
+    case "error": {
       return PaymentSessionStatus.ERROR
-    default:
+    }
+    default: {
       return PaymentSessionStatus.PENDING
+    }
   }
 }
 
@@ -106,7 +112,7 @@ export const toPaykitRefundData = (
 ): Record<string, unknown> => ({ ...refund })
 
 const getWebhookPayment = (event: PaykitWebhookEvent): PaykitPayment | null => {
-  const data = event.data
+  const { data } = event
 
   if (isPaykitPayment(event.payment)) {
     return event.payment
@@ -198,10 +204,11 @@ const mapPaykitWebhookAction = (
   const medusaStatus = mapPaykitStatusToMedusa(status)
 
   switch (event.type) {
-    case "invoice.generated":
+    case "invoice.generated": {
       return PaymentActions.SUCCESSFUL
+    }
     case "payment.created":
-    case "payment.updated":
+    case "payment.updated": {
       switch (medusaStatus) {
         case PaymentSessionStatus.REQUIRES_MORE:
           return PaymentActions.REQUIRES_MORE
@@ -216,8 +223,10 @@ const mapPaykitWebhookAction = (
         default:
           return PaymentActions.PENDING
       }
-    default:
+    }
+    default: {
       return PaymentActions.NOT_SUPPORTED
+    }
   }
 }
 
@@ -258,8 +267,8 @@ export const mapPaykitWebhookEvent = (
   return {
     action,
     data: {
-      session_id: sessionId,
       amount,
+      session_id: sessionId,
     },
   }
 }

@@ -7,9 +7,9 @@ import {
 } from "@medusajs/framework/utils"
 import {
   filterOutInternalProductCategories,
-  type RequestWithContext,
   wrapProductsWithTaxPrices,
 } from "@medusajs/medusa/api/store/products/helpers"
+import type { RequestWithContext } from "@medusajs/medusa/api/store/products/helpers"
 import { wrapVariantsWithInventoryQuantityForSalesChannel } from "@medusajs/medusa/api/utils/middlewares/products/variant-inventory-quantity"
 
 import {
@@ -46,11 +46,10 @@ const includesCategoryVisibilityField = (fields: string[]) =>
     (field) => normalizeIncludedField(field) === "categories.is_internal"
   )
 
-const toStoreProduct = (product: object): HttpTypes.StoreProduct => {
+const toStoreProduct = (product: object): HttpTypes.StoreProduct =>
   // query.graph uses the generated module entity type even when the selected
   // fields form a Store API response. Bridge that Medusa type boundary once.
-  return product as HttpTypes.StoreProduct
-}
+  product as HttpTypes.StoreProduct
 
 export const GET = async (
   req: RequestWithContext<HttpTypes.StoreProductParams>,

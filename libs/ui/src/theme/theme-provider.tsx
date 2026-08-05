@@ -11,28 +11,21 @@
  */
 
 import { ThemeProvider as BetterThemesProvider, useTheme } from "better-themes"
-import {
-  createContext,
-  type PropsWithChildren,
-  useContext,
-  useEffect,
-  useState,
-} from "react"
+import { createContext, useContext, useEffect, useState } from "react"
+import type { PropsWithChildren } from "react"
 
 import {
   availableModeSettings,
   BRAND_STORAGE_KEY,
-  type BrandKey,
   brandAttr,
   brandKeys,
   brandSupportsDark,
-  type ColorMode,
   DEFAULT_BRAND,
   DEFAULT_MODE,
   isBrandKey,
   MODE_STORAGE_KEY,
-  type ModeSetting,
 } from "./theme-config"
+import type { BrandKey, ColorMode, ModeSetting } from "./theme-config"
 
 function readStoredBrand(): BrandKey | null {
   if (typeof window === "undefined") {
@@ -65,13 +58,13 @@ function applyBrandAttr(brand: BrandKey): void {
   const attr = brandAttr(brand)
   const root = document.documentElement
   if (attr) {
-    root.setAttribute("data-theme", attr)
+    root.dataset.theme = attr
   } else {
-    root.removeAttribute("data-theme")
+    delete root.dataset.theme
   }
 }
 
-type BrandContextValue = {
+interface BrandContextValue {
   brand: BrandKey
   setBrand: (brand: BrandKey) => void
   /** False during SSR and the first client render; gate brand-dependent UI on it. */
@@ -109,7 +102,7 @@ function BrandProvider({
   }, [brand, setTheme])
 
   return (
-    <BrandContext.Provider value={{ brand, setBrand: setBrandState, mounted }}>
+    <BrandContext.Provider value={{ brand, mounted, setBrand: setBrandState }}>
       {children}
     </BrandContext.Provider>
   )
@@ -139,7 +132,7 @@ export function AppThemeProvider({
   )
 }
 
-export type UseAppThemeResult = {
+export interface UseAppThemeResult {
   /** Active brand key. */
   brand: BrandKey
   /** All brand keys, for building a brand toggler. */

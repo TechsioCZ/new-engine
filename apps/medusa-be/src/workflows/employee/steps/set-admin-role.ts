@@ -8,7 +8,7 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import { getProviderIdentityIdsWithoutActiveAdminRole } from "../utils/admin-auth-metadata"
 
-type SetAdminRoleCompensation = {
+interface SetAdminRoleCompensation {
   customerId: string
   email: string
   employeeId: string
@@ -77,8 +77,8 @@ export const setAdminRoleStep = createStep(
       entity: "provider_identity",
       fields: ["*"],
       filters: {
-        provider: "emailpass",
         entity_id: customer.email,
+        provider: "emailpass",
       },
     })
 

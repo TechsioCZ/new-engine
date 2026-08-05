@@ -46,12 +46,12 @@ const updatePrices = async (
     const message = toErrorMessage(error)
     for (const owner of payload.owners) {
       payload.results[owner.index] = {
+        ean: owner.input.ean,
+        error: message,
         identifier_type: owner.input.identifier_type,
         sku: owner.input.sku,
-        ean: owner.input.ean,
-        variant_id: owner.input.variant_id,
         status: "failed",
-        error: message,
+        variant_id: owner.input.variant_id,
       }
     }
   }
@@ -61,11 +61,11 @@ const updatePrices = async (
   ).length
   const pricesFailed = payload.results.length - pricesUpdated
   return {
-    success: pricesFailed === 0,
     price_list_id: priceListId,
-    prices_updated: pricesUpdated,
     prices_failed: pricesFailed,
+    prices_updated: pricesUpdated,
     results: payload.results,
+    success: pricesFailed === 0,
   }
 }
 
@@ -92,9 +92,9 @@ const processPriceListForBatch = async ({
         : undefined
       return {
         code: input.code,
-        status: "created",
         price_list_id: created.id,
         prices_updated: priceResult?.prices_updated ?? 0,
+        status: "created",
       }
     }
 
@@ -104,9 +104,9 @@ const processPriceListForBatch = async ({
       : undefined
     return {
       code: input.code,
-      status: "updated",
       price_list_id: existing.id,
       prices_updated: priceResult?.prices_updated ?? 0,
+      status: "updated",
     }
   } catch (error) {
     const message = toErrorMessage(error)
@@ -115,8 +115,8 @@ const processPriceListForBatch = async ({
     )
     return {
       code: input.code,
-      status: "failed",
       error: message,
+      status: "failed",
     }
   }
 }
@@ -131,9 +131,8 @@ export const symmyUpdatePriceListPricesBatchStep = createStep(
     const priceList = priceListIndex.byCode.get(input.code)
     if (!priceList) {
       return new StepResponse<UpdatePriceListPricesBatchOutput>({
-        success: false,
-        prices_updated: 0,
         prices_failed: input.prices.length,
+        prices_updated: 0,
         results: input.prices.map((price) => ({
           identifier_type: price.identifier_type,
           sku: price.sku,
@@ -142,6 +141,7 @@ export const symmyUpdatePriceListPricesBatchStep = createStep(
           status: "not_found",
           error: `Price list '${input.code}' was not found`,
         })),
+        success: false,
       })
     }
     return new StepResponse(
@@ -178,10 +178,10 @@ export const symmyUpsertPriceListsBatchStep = createStep(
     ).length
     const failed = results.length - processed
     return new StepResponse<UpsertPriceListsBatchOutput>({
-      success: failed === 0,
-      processed,
       failed,
+      processed,
       results,
+      success: failed === 0,
     })
   }
 )
@@ -194,7 +194,7 @@ export const symmyListPriceListsStep = createStep(
     const offset = Math.max(0, input.offset ?? 0)
     return new StepResponse<ListPriceListsOutput>(
       await client.listPriceLists({
-        ...(input.code !== undefined ? { code: input.code } : {}),
+        ...(input.code === undefined ? {} : { code: input.code }),
         limit,
         offset,
       })

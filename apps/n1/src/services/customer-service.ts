@@ -6,7 +6,7 @@ import { sdk } from "@/lib/medusa-client"
 // Export types for reuse in components/hooks
 export type { StoreCustomer, StoreCustomerAddress } from "@medusajs/types"
 
-export type CreateAddressData = {
+export interface CreateAddressData {
   first_name: string
   last_name: string
   company?: string
@@ -36,9 +36,9 @@ export async function createAddress(
     }
 
     return newAddress
-  } catch (err) {
-    logError("CustomerService.createAddress", err)
-    throw new Error("Nepodařilo se vytvořit adresu")
+  } catch (error) {
+    logError("CustomerService.createAddress", error)
+    throw new Error("Nepodařilo se vytvořit adresu", { cause: err })
   }
 }
 
@@ -62,22 +62,22 @@ export async function updateAddress(
     }
 
     return updatedAddress
-  } catch (err) {
-    logError("CustomerService.updateAddress", err)
-    throw new Error("Nepodařilo se aktualizovat adresu")
+  } catch (error) {
+    logError("CustomerService.updateAddress", error)
+    throw new Error("Nepodařilo se aktualizovat adresu", { cause: err })
   }
 }
 
 export async function deleteAddress(addressId: string): Promise<void> {
   try {
     await sdk.store.customer.deleteAddress(addressId)
-  } catch (err) {
-    logError("CustomerService.deleteAddress", err)
-    throw new Error("Nepodařilo se smazat adresu")
+  } catch (error) {
+    logError("CustomerService.deleteAddress", error)
+    throw new Error("Nepodařilo se smazat adresu", { cause: err })
   }
 }
 
-export type UpdateCustomerData = {
+export interface UpdateCustomerData {
   first_name?: string
   last_name?: string
   phone?: string
@@ -91,8 +91,8 @@ export async function updateCustomer(
   try {
     const response = await sdk.store.customer.update(data)
     return response.customer
-  } catch (err) {
-    logError("CustomerService.updateCustomer", err)
-    throw new Error("Nepodařilo se aktualizovat profil")
+  } catch (error) {
+    logError("CustomerService.updateCustomer", error)
+    throw new Error("Nepodařilo se aktualizovat profil", { cause: err })
   }
 }

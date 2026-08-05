@@ -11,16 +11,16 @@ loadEnv(process.env["NODE_ENV"] || "development", process.cwd())
 const env = readMedusaConfigEnv(process.env)
 
 const config = {
+  admin: buildAdminConfig(env),
   featureFlags: {
+    backend_hmr: true,
+    caching: true,
     index_engine: true,
     translation: true,
-    caching: true,
-    backend_hmr: true,
   },
-  admin: buildAdminConfig(env),
-  projectConfig: buildProjectConfig(env),
-  plugins: buildPlugins(env),
   modules: buildModules(env),
+  plugins: buildPlugins(env),
+  projectConfig: buildProjectConfig(env),
 } satisfies InputConfigWithArrayModules
 
 module.exports = defineConfig(config)

@@ -1,4 +1,4 @@
-type ErrorBannerProps = {
+interface ErrorBannerProps {
   title: string
   message: string
   className?: string

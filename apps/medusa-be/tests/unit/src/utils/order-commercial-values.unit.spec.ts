@@ -2,12 +2,14 @@ import { MedusaError } from "@medusajs/framework/utils"
 import { describe, expect, it } from "vitest"
 
 import {
-  type CommercialValuesCalculationInput,
-  type CommercialValuesItemInput,
   CommercialValuesValidationError,
   calculateCommercialValuesPreview,
   getPreservedAdjustmentAmount,
   MANUAL_ITEM_DISCOUNT_CODE,
+} from "../../../../src/utils/order-commercial-values"
+import type {
+  CommercialValuesCalculationInput,
+  CommercialValuesItemInput,
 } from "../../../../src/utils/order-commercial-values"
 
 function getRequired<T>(values: readonly T[], index: number): T {
@@ -96,7 +98,7 @@ describe("order commercial values", () => {
 
     expect(
       preview.items.map((item) => item.manual_order_discount_amount)
-    ).toEqual([1, 0, 0])
+    ).toStrictEqual([1, 0, 0])
     expect(preview.new_total).toBe(299)
   })
 

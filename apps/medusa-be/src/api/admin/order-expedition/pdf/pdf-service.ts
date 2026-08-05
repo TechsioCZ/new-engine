@@ -10,10 +10,12 @@ import { PageSizes, rgb } from "pdf-lib"
 import {
   fetchOrderedOrderExpeditionOrdersByIds,
   isOrderExpeditionRawOrder,
-  type OrderExpeditionItemDto,
-  type OrderExpeditionOrderDto,
-  type OrderExpeditionRawOrder,
   toOrderExpeditionDto,
+} from "../../../../utils/order-expedition"
+import type {
+  OrderExpeditionItemDto,
+  OrderExpeditionOrderDto,
+  OrderExpeditionRawOrder,
 } from "../../../../utils/order-expedition"
 import type { PostAdminOrderExpeditionPdfSchemaType } from "../validators"
 import { createExpeditionPdfContext } from "./pdf-context"
@@ -29,31 +31,31 @@ const HEADING_SIZE = 10
 const LINE_HEIGHT = 11
 const SECTION_GAP = 10
 const FILENAME_SAFE_CHARS_REGEX = /[^a-z0-9-]+/gi
-const PDF_ASCII_PRINTABLE_REGEX = /[\x20-\x7E]/
-const PDF_COMBINING_MARKS_REGEX = /[\u0300-\u036f]/g
+const PDF_ASCII_PRINTABLE_REGEX = /[\u0020-\u007E]/
+const PDF_COMBINING_MARKS_REGEX = /[\u0300-\u036F]/g
 const ORDER_DISPLAY_PREFIX_REGEX = /^#/
 const WHITESPACE_REGEX = /\s+/
 const TABLE_RIGHT = PageSizes.A4[0] - PAGE_MARGIN
 const ORDER_COLUMNS = {
-  sku: { x: 34, width: 62 },
-  image: { x: 102, width: 34 },
-  description: { x: 144, width: 224 },
-  quantity: { x: 376, width: 42 },
-  stock: { x: 424, width: 46 },
-  price: { x: 476, width: 56 },
-  complete: { x: 542, width: 24 },
+  complete: { width: 24, x: 542 },
+  description: { width: 224, x: 144 },
+  image: { width: 34, x: 102 },
+  price: { width: 56, x: 476 },
+  quantity: { width: 42, x: 376 },
+  sku: { width: 62, x: 34 },
+  stock: { width: 46, x: 424 },
 } as const
 
 const SUMMARY_COLUMNS = {
-  sku: { x: 34, width: 54 },
-  description: { x: 96, width: 300 },
-  quantity: { x: 404, width: 38 },
-  stock: { x: 448, width: 38 },
-  claims: { x: 492, width: 44 },
-  real: { x: 530, width: 35 },
+  claims: { width: 44, x: 492 },
+  description: { width: 300, x: 96 },
+  quantity: { width: 38, x: 404 },
+  real: { width: 35, x: 530 },
+  sku: { width: 54, x: 34 },
+  stock: { width: 38, x: 448 },
 } as const
 
-type SummaryItem = {
+interface SummaryItem {
   key: string
   sku: string
   stock_claims?: number | null
@@ -65,19 +67,19 @@ type SummaryItem = {
   variant?: string | null
 }
 
-type InventoryItemLink = {
+interface InventoryItemLink {
   inventory_item_id: string
   required_quantity?: number | null
   variant_id: string
 }
 
-type InventoryLevel = {
+interface InventoryLevel {
   inventory_item_id: string
   reserved_quantity?: number | string | null
   stocked_quantity?: number | string | null
 }
 
-type FulfillmentLabel = {
+interface FulfillmentLabel {
   fulfillment_id: string
   tracking_number?: string | null
 }
@@ -254,7 +256,7 @@ async function fetchPacketaBarcodesByOrderId(
   const trackingByFulfillmentId = new Map(
     labels
       .filter((label) => label.tracking_number)
-      .map((label) => [label.fulfillment_id, label.tracking_number as string])
+      .map((label) => [label.fulfillment_id, label.tracking_number])
   )
 
   for (const { fulfillment, orderId } of packetaFulfillments) {
@@ -309,9 +311,9 @@ function withPacketaBarcode(
 ): OrderExpeditionOrderDto {
   return {
     ...order,
-    ...((packetaBarcode ?? order.packeta_barcode) !== undefined
-      ? { packeta_barcode: packetaBarcode ?? order.packeta_barcode }
-      : {}),
+    ...((packetaBarcode ?? order.packeta_barcode) === undefined
+      ? {}
+      : { packeta_barcode: packetaBarcode ?? order.packeta_barcode }),
   }
 }
 
@@ -346,7 +348,7 @@ async function generateExpeditionPdf(
   await drawSummary(state, orders)
   drawFooter(state)
 
-  return document.save()
+  return await document.save()
 }
 
 async function drawOrdersByCarrier(
@@ -392,8 +394,8 @@ async function drawOrder(state: DrawState, order: OrderExpeditionOrderDto) {
   const address = buildOrderAddressLine(order)
   drawWrappedRight(state, address, 280, state.y, 286, {
     font: state.regularFont,
-    size: BODY_SIZE,
     lineHeight: LINE_HEIGHT,
+    size: BODY_SIZE,
   })
   state.y -= 16
 
@@ -420,8 +422,8 @@ async function drawOrder(state: DrawState, order: OrderExpeditionOrderDto) {
       420,
       {
         font: state.regularFont,
-        size: BODY_SIZE,
         lineHeight: LINE_HEIGHT,
+        size: BODY_SIZE,
       }
     )
   }
@@ -746,15 +748,15 @@ function groupOrdersByCarrier(orders: OrderExpeditionOrderDto[]) {
     }
   }
 
-  return Array.from(groups.values())
+  return [...groups.values()]
 }
 
 function formatCarrierLabel(label: string) {
   return label
-    .replace(/\bvydejni\b/gi, "výdejní")
-    .replace(/\bmisto\b/gi, "místo")
-    .replace(/\bzasilkovna\b/gi, "Zásilkovna")
-    .replace(/\bpacketa\b/gi, "Packeta")
+    .replaceAll(/\bvydejni\b/gi, "výdejní")
+    .replaceAll(/\bmisto\b/gi, "místo")
+    .replaceAll(/\bzasilkovna\b/gi, "Zásilkovna")
+    .replaceAll(/\bpacketa\b/gi, "Packeta")
 }
 
 function buildSummaryItems(orders: OrderExpeditionOrderDto[]) {
@@ -774,23 +776,23 @@ function buildSummaryItems(orders: OrderExpeditionOrderDto[]) {
           quantity: item.quantity,
           sku: item.sku ?? "",
           stock_claims: item.quantity,
-          ...(item.stock_quantity !== undefined
-            ? { stock_quantity: item.stock_quantity }
-            : {}),
+          ...(item.stock_quantity === undefined
+            ? {}
+            : { stock_quantity: item.stock_quantity }),
           title: item.title,
-          ...(item.stock_quantity !== undefined
-            ? { real_stock: item.stock_quantity }
-            : {}),
-          ...(item.unit_price !== undefined
-            ? { unit_price: item.unit_price }
-            : {}),
-          ...(item.variant !== undefined ? { variant: item.variant } : {}),
+          ...(item.stock_quantity === undefined
+            ? {}
+            : { real_stock: item.stock_quantity }),
+          ...(item.unit_price === undefined
+            ? {}
+            : { unit_price: item.unit_price }),
+          ...(item.variant === undefined ? {} : { variant: item.variant }),
         })
       }
     }
   }
 
-  return Array.from(itemsByKey.values()).sort(
+  return [...itemsByKey.values()].sort(
     (left, right) =>
       left.sku.localeCompare(right.sku) || left.title.localeCompare(right.title)
   )
@@ -1012,8 +1014,8 @@ async function getEmbeddedPacketaBarcode(state: DrawState, barcode: string) {
 
   try {
     const png = await bwipjs.toBuffer({
-      bcid: "code128",
       backgroundcolor: "FFFFFF",
+      bcid: "code128",
       includetext: false,
       paddingheight: 0,
       paddingwidth: 0,
@@ -1263,7 +1265,7 @@ function buildFilename(orders: OrderExpeditionOrderDto[]) {
 }
 
 const PDF_SAFE_CHAR_REPLACEMENTS: Record<string, string> = {
-  "\u00a0": " ",
+  "\u00A0": " ",
   "\u2010": "-",
   "\u2011": "-",
   "\u2012": "-",
@@ -1273,21 +1275,22 @@ const PDF_SAFE_CHAR_REPLACEMENTS: Record<string, string> = {
   "\u2212": "-",
   "\u2018": "'",
   "\u2019": "'",
-  "\u201c": '"',
-  "\u201d": '"',
+  "\u201C": '"',
+  "\u201D": '"',
   "\u2026": "...",
   Ł: "L",
   ł: "l",
 }
 
 function toPdfSafeText(value: string) {
-  return value
-    .replaceAll("\t", " ")
-    .replaceAll("\n", " ")
-    .replaceAll("\r", " ")
-    .normalize("NFKD")
-    .replace(PDF_COMBINING_MARKS_REGEX, "")
-    .split("")
+  return [
+    ...value
+      .replaceAll("\t", " ")
+      .replaceAll("\n", " ")
+      .replaceAll("\r", " ")
+      .normalize("NFKD")
+      .replace(PDF_COMBINING_MARKS_REGEX, ""),
+  ]
     .map((char) => {
       if (char in PDF_SAFE_CHAR_REPLACEMENTS) {
         return PDF_SAFE_CHAR_REPLACEMENTS[char] ?? ""

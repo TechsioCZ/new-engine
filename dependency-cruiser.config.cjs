@@ -6,7 +6,7 @@ const workspaceRoot = __dirname
 
 // dependency-cruiser 18 supports TypeScript <7 through tsc. Use its supported
 // SWC parser for TypeScript 7, while supplying the TSX flag its parser omits.
-const parseFileSync = swc.parseFileSync
+const { parseFileSync } = swc
 swc.parseFileSync = (fileName, options) =>
   parseFileSync(fileName, {
     ...options,
@@ -37,7 +37,9 @@ function readProjects() {
     for (const entry of fs.readdirSync(absoluteFolder, {
       withFileTypes: true,
     })) {
-      if (!entry.isDirectory()) continue
+      if (!entry.isDirectory()) {
+        continue
+      }
 
       const projectRoot = `${workspaceFolder}/${entry.name}`
       const packageJson = path.join(absoluteFolder, entry.name, "package.json")
@@ -55,7 +57,7 @@ function readProjects() {
       }
 
       const metadata = fs.existsSync(projectJson)
-        ? JSON.parse(fs.readFileSync(projectJson, "utf8"))
+        ? JSON.parse(fs.readFileSync(projectJson, "utf-8"))
         : {}
       const tags = metadata.tags?.length ? metadata.tags : fallback
 
@@ -73,7 +75,7 @@ function readProjects() {
 }
 
 const projects = readProjects()
-const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+const escapeRegex = (value) => value.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")
 const rootsWithTag = (tag) =>
   projects.filter(({ tags }) => tags.includes(tag)).map(({ root }) => root)
 const projectPattern = (roots) =>
@@ -110,63 +112,62 @@ const allowedAgnosticPattern = projectPattern(agnosticRoots)
 module.exports = {
   forbidden: [
     ...appRoots.map((appRoot) => ({
-      name: `app-depends-on-libraries-${appRoot.replaceAll("/", "-")}`,
-      severity: "error",
       comment:
         "Application projects may only import their own files or workspace libraries.",
       from: { path: projectPattern([appRoot]) },
+      name: `app-depends-on-libraries-${appRoot.replaceAll("/", "-")}`,
+      severity: "error",
       to: {
         path: "^(?:apps|libs)/",
         pathNot: projectPattern([appRoot, ...libraryRoots]),
       },
     })),
     {
-      name: "libraries-do-not-import-applications",
-      severity: "error",
       comment: "Libraries must not depend on deployable applications.",
       from: { path: projectPattern(libraryRoots) },
+      name: "libraries-do-not-import-applications",
+      severity: "error",
       to: { path: projectPattern(appRoots) },
     },
     {
+      from: { path: projectPattern(webRoots) },
       name: "web-does-not-import-backend",
       severity: "error",
-      from: { path: projectPattern(webRoots) },
       to: { path: "^(?:apps|libs)/", pathNot: allowedWebPattern },
     },
     {
+      from: { path: projectPattern(backendRoots) },
       name: "backend-does-not-import-web",
       severity: "error",
-      from: { path: projectPattern(backendRoots) },
       to: { path: "^(?:apps|libs)/", pathNot: allowedBackendPattern },
     },
     {
+      from: { path: projectPattern(nextRoots) },
       name: "next-framework-boundaries",
       severity: "error",
-      from: { path: projectPattern(nextRoots) },
       to: { path: "^(?:apps|libs)/", pathNot: allowedNextPattern },
     },
     {
+      from: { path: projectPattern(reactRoots) },
       name: "react-framework-boundaries",
       severity: "error",
-      from: { path: projectPattern(reactRoots) },
       to: { path: "^(?:apps|libs)/", pathNot: allowedReactPattern },
     },
     {
+      from: { path: projectPattern(medusaRoots) },
       name: "medusa-framework-boundaries",
       severity: "error",
-      from: { path: projectPattern(medusaRoots) },
       to: { path: "^(?:apps|libs)/", pathNot: allowedMedusaPattern },
     },
     {
+      from: { path: projectPattern(agnosticRoots) },
       name: "agnostic-framework-boundaries",
       severity: "error",
-      from: { path: projectPattern(agnosticRoots) },
       to: { path: "^(?:apps|libs)/", pathNot: allowedAgnosticPattern },
     },
   ],
   options: {
     doNotFollow: {
-      path: "node_modules",
       dependencyTypes: [
         "npm",
         "npm-dev",
@@ -175,14 +176,15 @@ module.exports = {
         "npm-bundled",
         "npm-no-pkg",
       ],
+      path: "node_modules",
     },
-    exclude:
-      "(^|/)(?:node_modules|dist|coverage|storybook-static|playwright-report|test-results|\\.next|\\.medusa)(?:/|$)|(?:^|/)payload-types\\.ts$|(?:^|/)importMap\\.js$",
-    parser: "swc",
     enhancedResolveOptions: {
       conditionNames: ["types", "import", "require", "node", "default"],
       exportsFields: ["exports"],
     },
+    exclude:
+      "(^|/)(?:node_modules|dist|coverage|storybook-static|playwright-report|test-results|\\.next|\\.medusa)(?:/|$)|(?:^|/)payload-types\\.ts$|(?:^|/)importMap\\.js$",
+    parser: "swc",
     reporterOptions: {
       text: { highlightFocused: true },
     },

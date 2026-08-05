@@ -10,7 +10,7 @@ import {
 } from "@/components/blog/blog-formatters"
 import type { BlogTeaserItem } from "@/components/homepage/homepage.data"
 
-type HomepageBlogSectionProps = {
+interface HomepageBlogSectionProps {
   posts: BlogTeaserItem[]
 }
 

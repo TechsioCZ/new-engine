@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("payload", () => {
+vi.mock(import("payload"), () => {
   class APIError extends Error {
     status: number
 
@@ -12,18 +12,18 @@ vi.mock("payload", () => {
 
   return {
     APIError,
-    headersWithCors: vi.fn(({ headers }: { headers: Headers }) => headers),
     generatePayloadCookie: vi.fn(() => "payload-cookie"),
+    headersWithCors: vi.fn(({ headers }: { headers: Headers }) => headers),
     jwtSign: vi.fn().mockResolvedValue({ token: "payload-token" }),
   }
 })
 
-vi.mock("jose", () => ({
+vi.mock(import("jose"), () => ({
   importSPKI: vi.fn(),
   jwtVerify: vi.fn(),
 }))
 
-vi.mock("crypto", async (importOriginal) => {
+vi.mock(import("crypto"), async (importOriginal) => {
   const actual = await importOriginal<typeof import("crypto")>()
   return {
     ...actual,
@@ -68,38 +68,38 @@ const createFormData = (values: Record<string, string>) => {
 
 const createRequest = (overrides: Record<string, unknown> = {}) => {
   const payload = {
-    secret: "secret",
-    config: {
-      admin: { user: "users" },
-      cookiePrefix: "payload",
-    },
     collections: {
       users: {
         config: {
           auth: {
-            useSessions: true,
             tokenExpiration: 60,
+            useSessions: true,
           },
         },
       },
     },
-    find: vi.fn(),
+    config: {
+      admin: { user: "users" },
+      cookiePrefix: "payload",
+    },
     db: {
       updateOne: vi.fn(),
     },
+    find: vi.fn(),
+    secret: "secret",
   }
 
   return {
+    formData: vi.fn(),
     headers: new Headers({ origin: "https://allowed.com" }),
     payload,
-    formData: vi.fn(),
     url: "http://localhost/medusa-sso",
     ...overrides,
   } as any
 }
 
 beforeEach(() => {
-  process.env["PAYLOAD_SSO_USER_EMAIL"] = "user@example.com"
+  process.env.PAYLOAD_SSO_USER_EMAIL = "user@example.com"
   headersWithCorsMock.mockClear()
   generatePayloadCookieMock.mockClear()
   jwtSignMock.mockClear()
@@ -113,8 +113,8 @@ afterEach(() => {
 
 describe("medusa SSO endpoint", () => {
   it("fails closed when allowed origins are not configured", async () => {
-    process.env["PAYLOAD_SSO_ALLOWED_ORIGINS"] = ""
-    process.env["PAYLOAD_SSO_PUBLIC_KEY"] = "public-key"
+    process.env.PAYLOAD_SSO_ALLOWED_ORIGINS = ""
+    process.env.PAYLOAD_SSO_PUBLIC_KEY = "public-key"
 
     const req = createRequest()
 
@@ -125,8 +125,8 @@ describe("medusa SSO endpoint", () => {
   })
 
   it("rejects requests from disallowed origins", async () => {
-    process.env["PAYLOAD_SSO_ALLOWED_ORIGINS"] = "https://allowed.com"
-    process.env["PAYLOAD_SSO_PUBLIC_KEY"] = "public-key"
+    process.env.PAYLOAD_SSO_ALLOWED_ORIGINS = "https://allowed.com"
+    process.env.PAYLOAD_SSO_PUBLIC_KEY = "public-key"
 
     const req = createRequest({
       headers: new Headers({ origin: "https://evil.com" }),
@@ -139,10 +139,9 @@ describe("medusa SSO endpoint", () => {
   })
 
   it("accepts allowed origin values configured with path segments", async () => {
-    process.env["PAYLOAD_SSO_ALLOWED_ORIGINS"] =
-      "https://allowed.com/admin/login"
-    process.env["PAYLOAD_SSO_PUBLIC_KEY"] = "public-key"
-    process.env["PAYLOAD_SSO_USER_EMAIL"] = "user@example.com"
+    process.env.PAYLOAD_SSO_ALLOWED_ORIGINS = "https://allowed.com/admin/login"
+    process.env.PAYLOAD_SSO_PUBLIC_KEY = "public-key"
+    process.env.PAYLOAD_SSO_USER_EMAIL = "user@example.com"
 
     const req = createRequest()
     req.formData.mockResolvedValue(createFormData({ returnTo: "/admin" }))
@@ -154,9 +153,9 @@ describe("medusa SSO endpoint", () => {
   })
 
   it("uses referer as fallback when origin header is missing", async () => {
-    process.env["PAYLOAD_SSO_ALLOWED_ORIGINS"] = "https://allowed.com"
-    process.env["PAYLOAD_SSO_PUBLIC_KEY"] = "public-key"
-    process.env["PAYLOAD_SSO_USER_EMAIL"] = "user@example.com"
+    process.env.PAYLOAD_SSO_ALLOWED_ORIGINS = "https://allowed.com"
+    process.env.PAYLOAD_SSO_PUBLIC_KEY = "public-key"
+    process.env.PAYLOAD_SSO_USER_EMAIL = "user@example.com"
 
     const req = createRequest({
       headers: new Headers({
@@ -172,9 +171,9 @@ describe("medusa SSO endpoint", () => {
   })
 
   it("rejects when token is missing", async () => {
-    process.env["PAYLOAD_SSO_ALLOWED_ORIGINS"] = "https://allowed.com"
-    process.env["PAYLOAD_SSO_PUBLIC_KEY"] = "public-key"
-    process.env["PAYLOAD_SSO_USER_EMAIL"] = "user@example.com"
+    process.env.PAYLOAD_SSO_ALLOWED_ORIGINS = "https://allowed.com"
+    process.env.PAYLOAD_SSO_PUBLIC_KEY = "public-key"
+    process.env.PAYLOAD_SSO_USER_EMAIL = "user@example.com"
 
     const req = createRequest()
     req.formData.mockResolvedValue(createFormData({ returnTo: "/admin" }))
@@ -186,9 +185,9 @@ describe("medusa SSO endpoint", () => {
   })
 
   it("creates a session and redirects on success", async () => {
-    process.env["PAYLOAD_SSO_ALLOWED_ORIGINS"] = "https://allowed.com"
-    process.env["PAYLOAD_SSO_PUBLIC_KEY"] = "public-key"
-    process.env["PAYLOAD_SSO_USER_EMAIL"] = "user@example.com"
+    process.env.PAYLOAD_SSO_ALLOWED_ORIGINS = "https://allowed.com"
+    process.env.PAYLOAD_SSO_PUBLIC_KEY = "public-key"
+    process.env.PAYLOAD_SSO_USER_EMAIL = "user@example.com"
 
     importSPKIMock.mockResolvedValue(
       {} as Awaited<ReturnType<typeof importSPKI>>
@@ -200,7 +199,7 @@ describe("medusa SSO endpoint", () => {
 
     const req = createRequest()
     req.formData.mockResolvedValue(
-      createFormData({ token: "token-value", returnTo: "//example.com" })
+      createFormData({ returnTo: "//example.com", token: "token-value" })
     )
     req.payload.find.mockResolvedValue({
       docs: [{ id: "user_1", sessions: [] }],
@@ -210,7 +209,6 @@ describe("medusa SSO endpoint", () => {
 
     expect(req.payload.db.updateOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: "user_1",
         collection: "users",
         data: expect.objectContaining({
           sessions: [
@@ -221,6 +219,7 @@ describe("medusa SSO endpoint", () => {
             }),
           ],
         }),
+        id: "user_1",
         req,
       })
     )
@@ -259,9 +258,9 @@ describe("medusa SSO endpoint", () => {
   })
 
   it("fails closed when the shared Payload SSO user is not configured", async () => {
-    process.env["PAYLOAD_SSO_ALLOWED_ORIGINS"] = "https://allowed.com"
-    process.env["PAYLOAD_SSO_PUBLIC_KEY"] = "public-key"
-    process.env["PAYLOAD_SSO_USER_EMAIL"] = ""
+    process.env.PAYLOAD_SSO_ALLOWED_ORIGINS = "https://allowed.com"
+    process.env.PAYLOAD_SSO_PUBLIC_KEY = "public-key"
+    process.env.PAYLOAD_SSO_USER_EMAIL = ""
 
     const req = createRequest()
 
@@ -272,9 +271,9 @@ describe("medusa SSO endpoint", () => {
   })
 
   it("rejects valid tokens for any user other than the configured shared Payload user", async () => {
-    process.env["PAYLOAD_SSO_ALLOWED_ORIGINS"] = "https://allowed.com"
-    process.env["PAYLOAD_SSO_PUBLIC_KEY"] = "public-key"
-    process.env["PAYLOAD_SSO_USER_EMAIL"] = "shared-admin@example.com"
+    process.env.PAYLOAD_SSO_ALLOWED_ORIGINS = "https://allowed.com"
+    process.env.PAYLOAD_SSO_PUBLIC_KEY = "public-key"
+    process.env.PAYLOAD_SSO_USER_EMAIL = "shared-admin@example.com"
 
     importSPKIMock.mockResolvedValue(
       {} as Awaited<ReturnType<typeof importSPKI>>

@@ -3,14 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { PAYLOAD_MODULE } from "../../../../../../src/modules/payload"
 
 const mockCmsService = {
-  getPublishedPage: vi.fn(),
   getPublishedArticle: vi.fn(),
-  listPageCategoriesWithPages: vi.fn(),
+  getPublishedPage: vi.fn(),
   listArticleCategoriesWithArticles: vi.fn(),
   listHeroCarousels: vi.fn(),
+  listPageCategoriesWithPages: vi.fn(),
 }
 
-vi.mock("../../../../../../src/modules/payload", () => ({
+vi.mock(import("../../../../../../src/modules/payload"), () => ({
   PAYLOAD_MODULE: "payload",
 }))
 
@@ -24,9 +24,8 @@ const createMockRequest = ({
   validatedQuery?: Record<string, unknown>
 } = {}) =>
   ({
-    params,
-    validatedQuery,
     locale,
+    params,
     scope: {
       resolve: vi.fn((key: string) => {
         if (key === PAYLOAD_MODULE) {
@@ -35,12 +34,13 @@ const createMockRequest = ({
         return
       }),
     },
+    validatedQuery,
   }) as any
 
 const createMockResponse = () =>
   ({
-    status: vi.fn().mockReturnThis(),
     json: vi.fn().mockReturnThis(),
+    status: vi.fn().mockReturnThis(),
   }) as any
 
 describe("Store CMS routes", () => {

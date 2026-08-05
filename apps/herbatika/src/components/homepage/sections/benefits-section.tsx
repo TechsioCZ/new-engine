@@ -1,15 +1,16 @@
 import { useTranslations } from "next-intl"
-import NextImage, { type StaticImageData } from "next/image"
+import NextImage from "next/image"
+import type { StaticImageData } from "next/image"
 
 import type { HomepageBenefitTranslationKey } from "@/components/homepage/homepage.data.types"
 
-type BenefitItem = {
+interface BenefitItem {
   id: number
   image: StaticImageData
   translationKey: HomepageBenefitTranslationKey
 }
 
-type BenefitsSectionProps = {
+interface BenefitsSectionProps {
   benefits: readonly BenefitItem[]
 }
 

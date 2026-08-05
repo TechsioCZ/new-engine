@@ -33,8 +33,8 @@ import { resolveStorefrontSecurityPreset } from "./presets.mjs"
 function normalizeExtend(extend = {}) {
   return {
     csp: extend.csp ?? {},
-    permissionsPolicy: extend.permissionsPolicy,
     headers: extend.headers ?? [],
+    permissionsPolicy: extend.permissionsPolicy,
   }
 }
 
@@ -53,8 +53,8 @@ function normalizeExtend(extend = {}) {
 function normalizeReplace(replace = {}) {
   return {
     csp: replace.csp ?? {},
-    permissionsPolicy: replace.permissionsPolicy,
     headers: replace.headers ?? [],
+    permissionsPolicy: replace.permissionsPolicy,
   }
 }
 
@@ -85,12 +85,12 @@ function normalizeLegacyOverrides(options) {
 
   return {
     csp: {
-      scriptSrc: additionalScriptSrc,
-      styleSrc: additionalStyleSrc,
       connectSrc: additionalConnectSrc,
+      fontSrc: additionalFontSrc,
       frameSrc: additionalFrameSrc,
       imgSrc: additionalImgSrc,
-      fontSrc: additionalFontSrc,
+      scriptSrc: additionalScriptSrc,
+      styleSrc: additionalStyleSrc,
     },
     permissionsPolicy: permissionsPolicyDirectives,
   }
@@ -159,18 +159,18 @@ export function createStorefrontSecurityConfig(options = {}) {
   const publicBackendOrigin = isCspSuppressed
     ? undefined
     : resolvePublicBackendOrigin({
+        defaultDevelopmentBackendUrl,
+        envVarName,
         isProduction,
         publicBackendUrl,
-        envVarName,
-        defaultDevelopmentBackendUrl,
       })
 
   const presetConfig = resolveStorefrontSecurityPreset({
-    preset,
-    isProduction,
-    publicBackendOrigin,
     allowedDevOrigins,
     devPort,
+    isProduction,
+    preset,
+    publicBackendOrigin,
   })
 
   const csp = mergeStorefrontCsp({
@@ -195,7 +195,6 @@ export function createStorefrontSecurityConfig(options = {}) {
 
   return {
     allowedDevOrigins,
-    poweredByHeader: false,
     headers() {
       return [
         {
@@ -210,6 +209,7 @@ export function createStorefrontSecurityConfig(options = {}) {
         },
       ]
     },
+    poweredByHeader: false,
   }
 }
 

@@ -1,10 +1,8 @@
 "use client"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { createPaginationGetPageUrl } from "@techsio/ui-kit/molecules/pagination"
-import {
-  BreadcrumbTemplate,
-  type BreadcrumbTemplateItem,
-} from "@techsio/ui-kit/templates/breadcrumb"
+import { BreadcrumbTemplate } from "@techsio/ui-kit/templates/breadcrumb"
+import type { BreadcrumbTemplateItem } from "@techsio/ui-kit/templates/breadcrumb"
 import NextLink from "next/link"
 import { notFound, useParams, useSearchParams } from "next/navigation"
 import { useEffect, useRef } from "react"
@@ -48,7 +46,7 @@ function getCategoryPath(category: Category) {
 export default function CategoryPage() {
   const params = useParams()
   const searchParams = useSearchParams()
-  const handle = params["handle"] as string
+  const handle = params.handle as string
   const { regionId, countryCode } = useSuspenseRegion()
   const analytics = useAnalytics()
 
@@ -90,16 +88,16 @@ export default function CategoryPage() {
     hasPrevPage,
   } = useSuspenseProducts({
     category_id: categoryIds,
-    page: currentPage,
     limit: PRODUCT_LIMIT,
+    page: currentPage,
   })
 
   const isCurrentPageReady = !isFetching
 
   usePrefetchRootCategories({
-    enabled: isCurrentPageReady,
     currentHandle: handle,
     delay: 200,
+    enabled: isCurrentPageReady,
   })
 
   usePrefetchPages({
@@ -115,8 +113,8 @@ export default function CategoryPage() {
   })
 
   usePrefetchCategoryChildren({
-    enabled: isCurrentPageReady,
     categoryHandle: handle,
+    enabled: isCurrentPageReady,
   })
 
   const products = rawProducts.map(transformProduct)
@@ -135,8 +133,8 @@ export default function CategoryPage() {
   )
 
   const breadcrumbItems: BreadcrumbTemplateItem[] = [
-    { label: "Home", href: "/", icon: "icon-[mdi--home]" },
-    { label: rootCategory?.handle || handle, href: `/kategorie/${handle}` },
+    { href: "/", icon: "icon-[mdi--home]", label: "Home" },
+    { href: `/kategorie/${handle}`, label: rootCategory?.handle || handle },
   ]
 
   return (

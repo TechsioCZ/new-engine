@@ -4,17 +4,17 @@ import { noop } from "@techsio/std/function"
 import { useCallback, useSyncExternalStore } from "react"
 
 const mediaQueryBreakpoints = {
-  xs: "(min-width: 30rem)",
-  sm: "(min-width: 40rem)",
-  md: "(min-width: 48rem)",
-  lg: "(min-width: 64rem)",
-  xl: "(min-width: 80rem)",
   "2xl": "(min-width: 88.75rem)",
+  lg: "(min-width: 64rem)",
+  md: "(min-width: 48rem)",
+  sm: "(min-width: 40rem)",
+  xl: "(min-width: 80rem)",
+  xs: "(min-width: 30rem)",
 } as const
 
 type MediaQueryBreakpoint = keyof typeof mediaQueryBreakpoints
 
-type UseMediaQueryOptions = {
+interface UseMediaQueryOptions {
   defaultMatches?: boolean
 }
 
@@ -39,7 +39,9 @@ export function useMediaQuery(
       const mediaQueryList = window.matchMedia(mediaQuery)
       mediaQueryList.addEventListener("change", onStoreChange)
 
-      return () => mediaQueryList.removeEventListener("change", onStoreChange)
+      return () => {
+        mediaQueryList.removeEventListener("change", onStoreChange)
+      }
     },
     [mediaQuery]
   )

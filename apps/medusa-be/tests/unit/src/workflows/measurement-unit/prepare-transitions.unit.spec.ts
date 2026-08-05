@@ -16,8 +16,7 @@ const { helpers, service } = vi.hoisted(() => ({
   },
 }))
 
-vi.mock("@medusajs/framework/workflows-sdk", () => ({
-  createStep: vi.fn((_name, invoke) => invoke),
+vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: class StepResponse<TPayload = unknown> {
     payload: TPayload
 
@@ -25,20 +24,21 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
       this.payload = payload
     }
   },
+  createStep: vi.fn((_name, invoke) => invoke),
 }))
 
-vi.mock("../../../../../src/links/product-measurement", () => ({
+vi.mock(import("../../../../../src/links/product-measurement"), () => ({
   ProductMeasurementLink: { entryPoint: "product_product_measurement" },
 }))
 
-vi.mock("../../../../../src/links/product-variant-measurement", () => ({
+vi.mock(import("../../../../../src/links/product-variant-measurement"), () => ({
   ProductVariantMeasurementLink: {
     entryPoint: "product_variant_product_variant_measurement",
   },
 }))
 
 vi.mock(
-  "../../../../../src/workflows/measurement-unit/steps/helpers",
+  import("../../../../../src/workflows/measurement-unit/steps/helpers"),
   async () => {
     const actual = await vi.importActual<
       typeof import("../../../../../src/workflows/measurement-unit/steps/helpers")
@@ -51,7 +51,7 @@ vi.mock(
   }
 )
 
-vi.mock("../../../../../src/utils/measurement-units", () => ({
+vi.mock(import("../../../../../src/utils/measurement-units"), () => ({
   getMeasurementUnitService: vi.fn(() => service),
   toNumber: (value: unknown) => Number(value),
 }))
@@ -126,10 +126,10 @@ describe("measurement transition preparation", () => {
 
     expect(result.payload.previous.id).toBe("pm_current")
     expect(result.payload.existing_target.id).toBe("pm_target")
-    expect(result.payload.previous_variant_measurements).toEqual([
+    expect(result.payload.previous_variant_measurements).toStrictEqual([
       expect.objectContaining({ id: "pvm_live" }),
     ])
-    expect(result.payload.source_target_same).toBe(false)
+    expect(result.payload.source_target_same).toBeFalsy()
   })
 
   it("partitions a unit change with one batch lookup and reuses deleted rows", async () => {
@@ -167,10 +167,10 @@ describe("measurement transition preparation", () => {
     )
 
     expect(service.listProductVariantMeasurements).toHaveBeenCalledOnce()
-    expect(result.payload.records_to_restore).toEqual([
+    expect(result.payload.records_to_restore).toStrictEqual([
       expect.objectContaining({ id: "pvm_reused" }),
     ])
-    expect(result.payload.updates).toEqual([
+    expect(result.payload.updates).toStrictEqual([
       {
         id: "pvm_reused",
         product_measurement_id: "pm_target",
@@ -178,7 +178,7 @@ describe("measurement transition preparation", () => {
         product_variant_id: "variant_1",
       },
     ])
-    expect(result.payload.creates).toEqual([
+    expect(result.payload.creates).toStrictEqual([
       {
         product_measurement_id: "pm_target",
         product_unit_quantity: 3,
@@ -232,7 +232,7 @@ describe("measurement transition preparation", () => {
   })
 
   it("returns a validation error when the product has no measurement unit", async () => {
-    helpers.getCanonicalProductMeasurement.mockResolvedValue(undefined)
+    helpers.getCanonicalProductMeasurement.mockResolvedValue()
     const { prepareSetProductVariantMeasurementStep } =
       await import("../../../../../src/workflows/measurement-unit/steps/prepare-measurement-transitions")
 
@@ -272,19 +272,19 @@ describe("measurement transition preparation", () => {
       { container }
     )
 
-    expect(result.payload.links_to_create).toEqual([
+    expect(result.payload.links_to_create).toStrictEqual([
       {
         product_id: "prod_1",
         product_measurement_id: "pm_target",
       },
     ])
-    expect(result.payload.links_to_dismiss).toEqual([
+    expect(result.payload.links_to_dismiss).toStrictEqual([
       {
         product_id: "prod_1",
         product_measurement_id: "pm_old",
       },
     ])
-    expect(result.payload.links_to_restore).toEqual([])
+    expect(result.payload.links_to_restore).toStrictEqual([])
   })
 
   it("restores a soft-deleted target link", async () => {
@@ -309,9 +309,9 @@ describe("measurement transition preparation", () => {
       { container }
     )
 
-    expect(result.payload.links_to_create).toEqual([])
-    expect(result.payload.links_to_dismiss).toEqual([])
-    expect(result.payload.links_to_restore).toEqual([
+    expect(result.payload.links_to_create).toStrictEqual([])
+    expect(result.payload.links_to_dismiss).toStrictEqual([])
+    expect(result.payload.links_to_restore).toStrictEqual([
       {
         product_id: "prod_1",
         product_measurement_id: "pm_target",

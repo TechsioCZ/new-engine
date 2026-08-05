@@ -1,9 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { type ReactNode } from "react"
+import type { ReactNode } from "react"
 
 import { Badge } from "../../src/atoms/badge"
 import { StatusText } from "../../src/atoms/status-text"
-import { Gallery, type GalleryItem } from "../../src/organisms/gallery"
+import { Gallery } from "../../src/organisms/gallery"
+import type { GalleryItem } from "../../src/organisms/gallery"
 import { GalleryTemplate } from "../../src/templates/gallery"
 
 const shoes1 = new URL("../../assets/gallery/shoes-1.jpg", import.meta.url).href
@@ -17,47 +18,47 @@ const watch4 = new URL("../../assets/gallery/watch-4.jpg", import.meta.url).href
 
 const sneakerItems: GalleryItem[] = [
   {
+    alt: "Pastel sneaker hero shot",
     id: "sneaker-1",
     src: shoes1,
-    alt: "Pastel sneaker hero shot",
   },
   {
+    alt: "Sneaker detail side profile",
     id: "sneaker-2",
     src: shoes2,
-    alt: "Sneaker detail side profile",
   },
   {
+    alt: "Red sneaker product variant",
     id: "sneaker-3",
     src: shoes3,
-    alt: "Red sneaker product variant",
   },
   {
+    alt: "Sneaker lifestyle frame",
     id: "sneaker-4",
     src: shoes4,
-    alt: "Sneaker lifestyle frame",
   },
 ]
 
 const watchItems: GalleryItem[] = [
   {
+    alt: "Watch front product shot",
     id: "watch-1",
     src: watch1,
-    alt: "Watch front product shot",
   },
   {
+    alt: "Watch on wrist",
     id: "watch-2",
     src: watch2,
-    alt: "Watch on wrist",
   },
   {
+    alt: "Macro watch close-up",
     id: "watch-3",
     src: watch3,
-    alt: "Macro watch close-up",
   },
   {
+    alt: "Watch flatlay",
     id: "watch-4",
     src: watch4,
-    alt: "Watch flatlay",
   },
 ]
 
@@ -65,14 +66,14 @@ const chakraItems: GalleryItem[] = [
   ...sneakerItems,
   ...watchItems,
   {
+    alt: "Sneaker sole detail",
     id: "chakra-9",
     src: shoes2,
-    alt: "Sneaker sole detail",
   },
   {
+    alt: "Sneaker side detail",
     id: "chakra-10",
     src: shoes3,
-    alt: "Sneaker side detail",
   },
 ]
 
@@ -81,7 +82,7 @@ const overlayControlsClassName =
 const overlayArrowClassName =
   "pointer-events-auto rounded-full border border-border-primary bg-base text-fg-primary shadow-sm hover:bg-overlay"
 
-type StoryFrameProps = {
+interface StoryFrameProps {
   children: ReactNode
   mobile?: boolean
 }
@@ -102,7 +103,7 @@ function StoryFrame({ children, mobile = false }: StoryFrameProps) {
   )
 }
 
-type StoryHeaderProps = {
+interface StoryHeaderProps {
   label: string
   title: string
   note: string
@@ -123,42 +124,29 @@ function StoryHeader({ label, title, note }: StoryHeaderProps) {
 }
 
 const meta = {
-  title: "Organisms/Gallery",
-  component: GalleryTemplate,
-  tags: ["autodocs"],
-  parameters: {
-    layout: "fullscreen",
-  },
   argTypes: {
-    orientation: {
-      control: "select",
-      options: ["horizontal", "vertical"],
-    },
     aspectRatio: {
       control: "select",
       options: ["square", "portrait", "landscape", "wide", "none"],
     },
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg", "full"],
-    },
-    objectFit: {
-      control: "select",
-      options: ["cover", "contain", "fill", "none"],
-    },
-    carouselWidth: {
+    carouselHeight: {
       control: "number",
     },
-    carouselHeight: {
+    carouselWidth: {
       control: "number",
     },
     fitParent: {
       control: "boolean",
     },
-    thumbnailSize: {
-      control: "number",
+    objectFit: {
+      control: "select",
+      options: ["cover", "contain", "fill", "none"],
     },
-    showThumbnails: {
+    orientation: {
+      control: "select",
+      options: ["horizontal", "vertical"],
+    },
+    showAutoplay: {
       control: "boolean",
     },
     showControls: {
@@ -167,20 +155,33 @@ const meta = {
     showIndicators: {
       control: "boolean",
     },
-    showAutoplay: {
+    showThumbnails: {
       control: "boolean",
+    },
+    size: {
+      control: "select",
+      options: ["sm", "md", "lg", "full"],
+    },
+    thumbnailSize: {
+      control: "number",
     },
   },
   args: {
-    items: sneakerItems,
-    orientation: "horizontal",
     aspectRatio: "square",
-    size: "full",
-    objectFit: "cover",
     fitParent: true,
-    thumbnailSize: 72,
+    items: sneakerItems,
+    objectFit: "cover",
+    orientation: "horizontal",
     showThumbnails: true,
+    size: "full",
+    thumbnailSize: 72,
   },
+  component: GalleryTemplate,
+  parameters: {
+    layout: "fullscreen",
+  },
+  tags: ["autodocs"],
+  title: "Organisms/Gallery",
 } satisfies Meta<typeof GalleryTemplate>
 
 export default meta
@@ -237,10 +238,10 @@ export const SimpleVertical: Story = {
         thumbnailSize={68}
         carouselProps={{
           aspectRatio: "square",
+          height: 384,
           objectFit: "cover",
           size: "full",
           width: 384,
-          height: 384,
         }}
       >
         <Gallery.Thumbnails

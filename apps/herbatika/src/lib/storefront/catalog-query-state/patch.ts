@@ -1,8 +1,8 @@
-import {
-  CATALOG_PAGE_RESET_KEYS,
-  type CatalogQueryState,
-  type CatalogQueryStatePatch,
-  type ResolveCatalogQueryStatePatchOptions,
+import { CATALOG_PAGE_RESET_KEYS } from "./parsers"
+import type {
+  CatalogQueryState,
+  CatalogQueryStatePatch,
+  ResolveCatalogQueryStatePatchOptions,
 } from "./parsers"
 import { areCatalogQueryValuesEqual, hasOwnKey } from "./utils"
 

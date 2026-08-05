@@ -9,13 +9,13 @@ figma.connect(
     imports: ['import { ActionIcon } from "@techsio/ui-kit/atoms/action-icon"'],
     props: {
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
       tone: figma.enum("tone", {
-        neutral: "neutral",
         danger: "danger",
+        neutral: "neutral",
       }),
     },
     // The Figma component exposes a swappable icon; the example shows a

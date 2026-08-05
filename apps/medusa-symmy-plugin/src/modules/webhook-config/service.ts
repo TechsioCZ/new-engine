@@ -2,18 +2,16 @@ import type { Logger } from "@medusajs/framework/types"
 import { MedusaError, MedusaService } from "@medusajs/framework/utils"
 
 import packageJson from "../../../package.json"
-import SymmyWebhookConfig, {
-  type SymmyWebhookEndpoint,
-} from "./models/symmy-webhook-config"
+import SymmyWebhookConfig from "./models/symmy-webhook-config"
+import type { SymmyWebhookEndpoint } from "./models/symmy-webhook-config"
 
 export type { SymmyWebhookEndpoint } from "./models/symmy-webhook-config"
 
 const DEFAULT_CONFIG_KEY = "default"
 const WEBHOOK_TIMEOUT_MS = 10_000
-const PLUGIN_VERSION =
-  process.env["SYMMY_PLUGIN_VERSION"] ?? packageJson.version
+const PLUGIN_VERSION = process.env.SYMMY_PLUGIN_VERSION ?? packageJson.version
 
-export type SymmyWebhookConfigDTO = {
+export interface SymmyWebhookConfigDTO {
   id: string
   config_key: string
   is_enabled: boolean
@@ -22,12 +20,12 @@ export type SymmyWebhookConfigDTO = {
   updated_at?: Date | string
 }
 
-export type UpdateSymmyWebhookConfigInput = {
+export interface UpdateSymmyWebhookConfigInput {
   is_enabled?: boolean | undefined
   endpoints?: SymmyWebhookEndpoint[] | undefined
 }
 
-export type SymmyWebhookJobPayload = {
+export interface SymmyWebhookJobPayload {
   event: "symmy.import_job.completed" | "symmy.import_job.failed"
   job: {
     id: string
@@ -46,7 +44,7 @@ export type SymmyWebhookJobPayload = {
   }
 }
 
-type InjectedDependencies = {
+interface InjectedDependencies {
   logger: Logger
 }
 
@@ -64,26 +62,26 @@ const isSymmyWebhookEndpoint = (
   value: unknown
 ): value is SymmyWebhookEndpoint =>
   isObjectMap(value) &&
-  typeof value["url"] === "string" &&
-  typeof value["enabled"] === "boolean"
+  typeof value.url === "string" &&
+  typeof value.enabled === "boolean"
 
 const isRawSymmyWebhookConfigDTO = (
   value: unknown
 ): value is RawSymmyWebhookConfigDTO =>
   isObjectMap(value) &&
-  typeof value["id"] === "string" &&
-  typeof value["config_key"] === "string" &&
-  typeof value["is_enabled"] === "boolean" &&
-  Array.isArray(value["endpoints"]) &&
-  value["endpoints"].every(isSymmyWebhookEndpoint) &&
-  (value["created_at"] === undefined || isDateOrString(value["created_at"])) &&
-  (value["updated_at"] === undefined || isDateOrString(value["updated_at"]))
+  typeof value.id === "string" &&
+  typeof value.config_key === "string" &&
+  typeof value.is_enabled === "boolean" &&
+  Array.isArray(value.endpoints) &&
+  value.endpoints.every(isSymmyWebhookEndpoint) &&
+  (value.created_at === undefined || isDateOrString(value.created_at)) &&
+  (value.updated_at === undefined || isDateOrString(value.updated_at))
 
 const normalizeEndpoint = (
   endpoint: SymmyWebhookEndpoint
 ): SymmyWebhookEndpoint => ({
-  url: endpoint.url.trim(),
   enabled: endpoint.enabled,
+  url: endpoint.url.trim(),
 })
 
 const normalizeEndpoints = (endpoints: SymmyWebhookEndpoint[] = []) =>
@@ -125,8 +123,8 @@ export class SymmyWebhookConfigModuleService extends MedusaService({
 
     const created = await this.createSymmyWebhookConfigs({
       config_key: DEFAULT_CONFIG_KEY,
-      is_enabled: false,
       endpoints: [],
+      is_enabled: false,
     })
 
     return this.toDTO(created)
@@ -138,14 +136,14 @@ export class SymmyWebhookConfigModuleService extends MedusaService({
     const existing = await this.getConfig()
     const updated = await this.updateSymmyWebhookConfigs({
       id: existing.id,
-      ...(input.is_enabled !== undefined
-        ? { is_enabled: input.is_enabled }
-        : {}),
-      ...(input.endpoints !== undefined
-        ? {
+      ...(input.is_enabled === undefined
+        ? {}
+        : { is_enabled: input.is_enabled }),
+      ...(input.endpoints === undefined
+        ? {}
+        : {
             endpoints: normalizeEndpoints(input.endpoints),
-          }
-        : {}),
+          }),
     })
 
     return this.toDTO(updated)
@@ -166,12 +164,12 @@ export class SymmyWebhookConfigModuleService extends MedusaService({
       endpoints.map(async (endpoint) => {
         try {
           const response = await fetch(endpoint.url, {
-            method: "POST",
+            body: JSON.stringify(payload),
             headers: {
               "content-type": "application/json",
               "user-agent": `medusa-symmy-plugin/${PLUGIN_VERSION}`,
             },
-            body: JSON.stringify(payload),
+            method: "POST",
             signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
           })
 

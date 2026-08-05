@@ -7,14 +7,14 @@ import {
   createOptionalPhoneNumberValidator,
 } from "@/lib/forms/validators/shared"
 
-export type AccountSettingsValues = {
+export interface AccountSettingsValues {
   first_name: string
   last_name: string
   phone: string
   company_name: string
 }
 
-type AccountSettingsValidationMessages = {
+interface AccountSettingsValidationMessages {
   firstNameMinLength: string
   lastNameMinLength: string
   phoneInvalid: string
@@ -41,11 +41,11 @@ export const createAccountSettingsValidators = (
 export const toAccountSettingsValues = (
   customer: HttpTypes.StoreCustomer | null | undefined
 ): AccountSettingsValues => ({
-  first_name: customer?.first_name ?? "",
-  last_name: customer?.last_name ?? "",
-  phone: customer?.phone ?? "",
   company_name:
     isRecord(customer) && typeof customer.company_name === "string"
       ? customer.company_name
       : "",
+  first_name: customer?.first_name ?? "",
+  last_name: customer?.last_name ?? "",
+  phone: customer?.phone ?? "",
 })

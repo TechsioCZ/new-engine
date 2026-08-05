@@ -9,23 +9,20 @@ import {
 } from "@medusajs/framework/utils"
 import { Resend } from "resend"
 
-import {
-  getResendTemplateDefinition,
-  type ResendEmailTemplate,
-  type ResendTemplateDefinition,
-} from "./templates"
+import { getResendTemplateDefinition } from "./templates"
+import type { ResendEmailTemplate, ResendTemplateDefinition } from "./templates"
 
-type ResendOptions = {
+interface ResendOptions {
   api_key: string
   from: string
   request_timeout_ms?: number
 }
 
-type InjectedDependencies = {
+interface InjectedDependencies {
   logger: Logger
 }
 
-type NotificationAttachment = {
+interface NotificationAttachment {
   content?: Buffer | string
   content_type?: string
   contentType?: string
@@ -43,7 +40,7 @@ type TemplateVariableValue =
   | TemplateVariableValue[]
   | { [key: string]: TemplateVariableValue }
 
-type ResendTemplateEmailOptions = {
+interface ResendTemplateEmailOptions {
   attachments?: {
     content?: Buffer | string
     contentType?: string
@@ -58,11 +55,11 @@ type ResendTemplateEmailOptions = {
   to: string[]
 }
 
-type ResendApiEmailResponse = {
+interface ResendApiEmailResponse {
   id: string
 }
 
-type ResendApiErrorResponse = {
+interface ResendApiErrorResponse {
   message?: string
   name?: string
   statusCode?: number
@@ -156,7 +153,7 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
       return
     }
 
-    const attachments = notification.attachments
+    const { attachments } = notification
     if (!Array.isArray(attachments) || !attachments.length) {
       return
     }
@@ -167,10 +164,10 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
       }
 
       const attachment: NotificationAttachment = {}
-      const content = value["content"]
-      const contentType = value["contentType"] ?? value["content_type"]
-      const filename = value["filename"]
-      const path = value["path"]
+      const { content } = value
+      const contentType = value["contentType"] ?? value.content_type
+      const { filename } = value
+      const { path } = value
 
       if (typeof content === "string" || Buffer.isBuffer(content)) {
         attachment.content = content
@@ -237,7 +234,9 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     const baseUrl = process.env["RESEND_BASE_URL"] || "https://api.resend.com"
     const timeoutMs = this.getRequestTimeoutMs()
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+    const timeoutId = setTimeout(() => {
+      controller.abort()
+    }, timeoutMs)
 
     try {
       const response = await fetch(`${baseUrl}/emails`, {

@@ -8,7 +8,7 @@ import type {
   ReviewBase,
 } from "./types"
 
-type StoreProductReviewsQuery = {
+interface StoreProductReviewsQuery {
   limit?: number
   offset?: number
 }
@@ -23,13 +23,13 @@ export type MedusaCreateProductReviewInput = CreateProductReviewInput
 
 type StoreProductReviewsResponse<TReview> = ProductReviewListResponse<TReview>
 
-type StoreCreateProductReviewResponse<TReview> = {
+interface StoreCreateProductReviewResponse<TReview> {
   review: TReview
 }
 
 const REVIEW_SUMMARY_REPAIR_LIMIT = 100
 
-type MedusaProductReviewServiceConfigBase = {
+interface MedusaProductReviewServiceConfigBase {
   listPath?: string
 }
 
@@ -95,6 +95,19 @@ export function createMedusaProductReviewService(
   const mapReview = transformReview ?? ((review: ReviewBase) => review)
 
   return {
+    async createProductReview(
+      input: MedusaCreateProductReviewInput
+    ): Promise<unknown> {
+      const response = await sdk.client.fetch<
+        StoreCreateProductReviewResponse<ReviewBase>
+      >("/store/reviews", {
+        method: "POST",
+        body: input,
+      })
+
+      return mapReview(response.review)
+    },
+
     async listProductReviews(
       params: MedusaProductReviewListInput,
       signal?: AbortSignal
@@ -148,19 +161,6 @@ export function createMedusaProductReviewService(
         reviews: response.reviews.map(mapReview),
         summary,
       }
-    },
-
-    async createProductReview(
-      input: MedusaCreateProductReviewInput
-    ): Promise<unknown> {
-      const response = await sdk.client.fetch<
-        StoreCreateProductReviewResponse<ReviewBase>
-      >("/store/reviews", {
-        method: "POST",
-        body: input,
-      })
-
-      return mapReview(response.review)
     },
   }
 }

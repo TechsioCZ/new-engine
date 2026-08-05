@@ -10,10 +10,8 @@ import {
   toProductListItemResponse,
   withProductListItemSelections,
 } from "../../utils"
-import {
-  StoreProductListItemParamsSchema,
-  type StoreUpdateProductListItemSchemaType,
-} from "../../validators"
+import { StoreProductListItemParamsSchema } from "../../validators"
+import type { StoreUpdateProductListItemSchemaType } from "../../validators"
 
 export async function POST(
   req: AuthenticatedMedusaRequest<StoreUpdateProductListItemSchemaType>,

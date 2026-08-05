@@ -48,7 +48,7 @@ const resolveInventorySnapshotHandles = (
     }
   }
 
-  return Array.from(handles)
+  return [...handles]
 }
 
 const mergeProductInventorySnapshot = (
@@ -87,17 +87,17 @@ const mergeProductInventorySnapshot = (
 export const useCatalogProducts = (
   input: CatalogProductsInput,
   options?: UseCatalogProductsOptions
-): UseCatalogProductsResult<HttpTypes.StoreProduct, CatalogFacets> => {
+): UseCatalogProductsResult<HttpTypes.StoreProduct> => {
   const catalogQuery = catalogHooks.useCatalogProducts(input, options)
   const inventorySnapshotHandles = resolveInventorySnapshotHandles(
     catalogQuery.products
   )
   const shouldLoadInventorySnapshots = inventorySnapshotHandles.length > 0
   const inventorySnapshotsQuery = useProducts({
+    enabled: catalogQuery.isSuccess && shouldLoadInventorySnapshots,
+    fields: PRODUCT_CARD_FIELDS,
     handle: inventorySnapshotHandles,
     limit: Math.max(1, inventorySnapshotHandles.length),
-    fields: PRODUCT_CARD_FIELDS,
-    enabled: catalogQuery.isSuccess && shouldLoadInventorySnapshots,
   })
   const inventoryProductByHandle = new Map(
     inventorySnapshotsQuery.products
@@ -118,13 +118,13 @@ export const useCatalogProducts = (
 
   return {
     ...catalogQuery,
-    products,
-    isLoading:
-      catalogQuery.isLoading ||
-      (shouldLoadInventorySnapshots && inventorySnapshotsQuery.isLoading),
+    error: catalogQuery.error ?? inventorySnapshotsQuery.error,
     isFetching:
       catalogQuery.isFetching ||
       (shouldLoadInventorySnapshots && inventorySnapshotsQuery.isFetching),
-    error: catalogQuery.error ?? inventorySnapshotsQuery.error,
+    isLoading:
+      catalogQuery.isLoading ||
+      (shouldLoadInventorySnapshots && inventorySnapshotsQuery.isLoading),
+    products,
   }
 }

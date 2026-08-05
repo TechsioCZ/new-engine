@@ -18,10 +18,10 @@ export interface AuthState {
 
 // Create the auth store
 export const authStore = new Store<AuthState>({
-  user: null,
-  isLoading: false,
   error: null,
   isInitialized: false,
+  isLoading: false,
+  user: null,
   validationErrors: [],
 })
 
@@ -32,8 +32,8 @@ export const authHelpers = {
     try {
       authStore.setState((state) => ({
         ...state,
-        isLoading: true,
         error: null,
+        isLoading: true,
       }))
 
       // SDK manages the token automatically
@@ -42,27 +42,27 @@ export const authHelpers = {
         const { customer } = await sdk.store.customer.retrieve()
         authStore.setState((state) => ({
           ...state,
-          user: customer,
-          isLoading: false,
           isInitialized: true,
+          isLoading: false,
+          user: customer,
         }))
         return customer
       } catch {
         // An unavailable customer means there is no authenticated storefront user.
         authStore.setState((state) => ({
           ...state,
-          user: null,
-          isLoading: false,
           isInitialized: true,
+          isLoading: false,
+          user: null,
         }))
         return null
       }
-    } catch (err: any) {
+    } catch (error: any) {
       authStore.setState((state) => ({
         ...state,
         user: null,
         isLoading: false,
-        error: err.message,
+        error: error.message,
         isInitialized: true,
       }))
       return null
@@ -91,7 +91,7 @@ export const authHelpers = {
 
       // Check if authentication requires more actions (e.g., third-party redirect)
       if (typeof result !== "string") {
-        throw new Error("Authentication requires additional steps")
+        throw new TypeError("Authentication requires additional steps")
       }
 
       // Step 2: Fetch customer profile
@@ -99,8 +99,8 @@ export const authHelpers = {
         const { customer } = await sdk.store.customer.retrieve()
         authStore.setState((state) => ({
           ...state,
-          user: customer,
           isLoading: false,
+          user: customer,
         }))
       } catch (error: any) {
         // If customer doesn't exist, create one
@@ -112,8 +112,8 @@ export const authHelpers = {
           })
           authStore.setState((state) => ({
             ...state,
-            user: customer,
             isLoading: false,
+            user: customer,
           }))
         } else {
           throw error
@@ -122,13 +122,13 @@ export const authHelpers = {
 
       // Step 3: Clear anonymous cart ID
       // Cart will be merged automatically by Medusa
-    } catch (err: any) {
-      const message = getAuthErrorMessage(err)
+    } catch (error: any) {
+      const message = getAuthErrorMessage(error)
       authStore.setState((state) => ({
         ...state,
         error: message,
       }))
-      throw new Error(message)
+      throw new Error(message, { cause: err })
     }
   },
 
@@ -160,7 +160,7 @@ export const authHelpers = {
 
       // Check if authentication requires more actions
       if (typeof result !== "string") {
-        throw new Error("Authentication requires additional steps")
+        throw new TypeError("Authentication requires additional steps")
       }
 
       // Step 3: Create customer profile
@@ -183,27 +183,27 @@ export const authHelpers = {
           await sdk.store.customer.retrieve()
         authStore.setState((state) => ({
           ...state,
-          user: refreshedCustomer,
-          isLoading: false,
           isInitialized: true,
+          isLoading: false,
+          user: refreshedCustomer,
         }))
         return refreshedCustomer
       } catch {
         authStore.setState((state) => ({
           ...state,
-          user: customer,
-          isLoading: false,
           isInitialized: true,
+          isLoading: false,
+          user: customer,
         }))
         return customer
       }
-    } catch (err: any) {
-      const message = err?.message || "Registration failed"
+    } catch (error: any) {
+      const message = error?.message || "Registration failed"
       authStore.setState((state) => ({
         ...state,
         error: message,
       }))
-      throw new Error(message)
+      throw new Error(message, { cause: err })
     }
   },
 
@@ -212,10 +212,10 @@ export const authHelpers = {
     try {
       await sdk.auth.logout()
       authStore.setState(() => ({
-        user: null,
-        isLoading: false,
         error: null,
         isInitialized: true,
+        isLoading: false,
+        user: null,
         validationErrors: [],
       }))
     } catch {
@@ -231,14 +231,14 @@ export const authHelpers = {
       // SDK manages authentication, just make the request
 
       // SDK's update method expects a different type, filter out null values
-      const updateData = Object.entries(data).reduce(
+      const updateData = Object.entries(data).reduce<Record<string, any>>(
         (acc, [key, value]) => {
           if (value !== null && value !== undefined) {
             acc[key as keyof typeof acc] = value
           }
           return acc
         },
-        {} as Record<string, any>
+        {}
       )
 
       const { customer } = await sdk.store.customer.update(updateData)
@@ -246,10 +246,10 @@ export const authHelpers = {
         ...state,
         user: customer,
       }))
-    } catch (err: any) {
-      const message = err?.message || "Profile update failed"
+    } catch (error: any) {
+      const message = error?.message || "Profile update failed"
       authStore.setState((state) => ({ ...state, error: message }))
-      throw new Error(message)
+      throw new Error(message, { cause: err })
     }
   },
 

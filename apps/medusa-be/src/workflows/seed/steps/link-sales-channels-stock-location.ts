@@ -7,7 +7,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { linkSalesChannelsToStockLocationWorkflow } from "@medusajs/medusa/core-flows"
 
-export type LinkSalesChannelsStockLocationStepInput = {
+export interface LinkSalesChannelsStockLocationStepInput {
   salesChannels: SalesChannelDTO[]
   stockLocations: StockLocationDTO[]
 }
@@ -28,8 +28,8 @@ export const linkSalesChannelsStockLocationStep = createStep(
         container
       ).run({
         input: {
-          id: stockLocation.id,
           add: input.salesChannels.map((i) => i.id),
+          id: stockLocation.id,
         },
       })
 

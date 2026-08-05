@@ -8,7 +8,7 @@ import type {
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
-export type CreateFulfillmentSetStepInput = {
+export interface CreateFulfillmentSetStepInput {
   name: string
   type: string
   serviceZones: {
@@ -44,7 +44,6 @@ export const createFulfillmentSetStep = createStep(
 
       const createData: CreateFulfillmentSetDTO = {
         name: input.name,
-        type: input.type,
         service_zones: input.serviceZones.map((i) => ({
           name: i.name,
           geo_zones: i.geoZones.map((j) => ({
@@ -52,6 +51,7 @@ export const createFulfillmentSetStep = createStep(
             type: "country" as const,
           })),
         })),
+        type: input.type,
       }
 
       const fulfillmentSet =
@@ -81,8 +81,6 @@ export const createFulfillmentSetStep = createStep(
               )
 
               return {
-                id: existingZone.id,
-                name: inputZone.name,
                 geo_zones: inputZone.geoZones.map((inputGz) => {
                   const existingGz = existingGeoZonesByCountryCode.get(
                     inputGz.countryCode
@@ -95,24 +93,26 @@ export const createFulfillmentSetStep = createStep(
                     type: "country" as const,
                   }
                 }),
+                id: existingZone.id,
+                name: inputZone.name,
               }
             }
 
             // New zone - create it
             return {
-              name: inputZone.name,
               geo_zones: inputZone.geoZones.map((j) => ({
                 country_code: j.countryCode,
                 type: "country" as const,
               })),
+              name: inputZone.name,
             }
           })
 
         const updateData: UpdateFulfillmentSetDTO = {
           id: existingFulfillmentSet.id,
           name: input.name,
-          type: input.type,
           service_zones: serviceZonesUpdate,
+          type: input.type,
         }
 
         const updateResult =

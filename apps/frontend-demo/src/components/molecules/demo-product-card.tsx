@@ -1,30 +1,33 @@
-import { Badge, type BadgeProps } from "@techsio/ui-kit/atoms/badge"
+import { Badge } from "@techsio/ui-kit/atoms/badge"
+import type { BadgeProps } from "@techsio/ui-kit/atoms/badge"
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { Rating, type RatingProps } from "@techsio/ui-kit/atoms/rating"
+import { Rating } from "@techsio/ui-kit/atoms/rating"
+import type { RatingProps } from "@techsio/ui-kit/atoms/rating"
 import { NumericInputTemplate } from "@techsio/ui-kit/templates/numeric-input"
 import { slugify, tv } from "@techsio/ui-kit/utils"
 import Image from "next/image"
-import { type HTMLAttributes, type ReactNode, useId } from "react"
+import { useId } from "react"
+import type { HTMLAttributes, ReactNode } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 //object-cover aspect-product-card-image
 const productCard = tv({
   slots: {
+    badgesSlot: "flex flex-wrap gap-pc-box",
     base: [
       "h-full rounded-pc p-pc-padding",
       "border-(length:--border-pc-width) max-w-pc-max border-pc-border bg-pc shadow-sm",
     ],
-    imageSlot: "aspect-pc-image h-full rounded-pc-image object-cover",
-    nameSlot: "truncate text-pc-name-fg text-pc-name-size",
-    priceSlot: "text-pc-price-fg text-pc-price-size",
-    stockStatusSlot: "text-pc-stock-fg text-pc-stock-size",
-    badgesSlot: "flex flex-wrap gap-pc-box",
-    ratingSlot: "flex items-center",
     buttonsSlot: "flex w-fit flex-wrap",
     cartButton:
       "w-max items-center bg-btn-cart text-btn-cart-fg hover:bg-btn-cart-hover",
     detailButton:
       "w-max bg-btn-detail text-btn-detail-fg hover:bg-btn-detail-hover",
+    imageSlot: "aspect-pc-image h-full rounded-pc-image object-cover",
+    nameSlot: "truncate text-pc-name-fg text-pc-name-size",
+    priceSlot: "text-pc-price-fg text-pc-price-size",
+    ratingSlot: "flex items-center",
+    stockStatusSlot: "text-pc-stock-fg text-pc-stock-size",
     wishlistButton:
       "w-max bg-btn-wishlist text-btn-wishlist-fg hover:bg-btn-wishlist-hover",
   },
@@ -32,14 +35,14 @@ const productCard = tv({
     // variant for layout of the card
     layout: {
       column: {
+        badgesSlot: "order-badges",
         base: ["grid grid-cols-1 gap-pc-col-layout"],
+        buttonsSlot: "order-buttons",
         imageSlot: "order-image w-full",
         nameSlot: "order-name",
         priceSlot: "order-price",
-        stockStatusSlot: "order-stock",
-        badgesSlot: "order-badges",
         ratingSlot: "order-ratings",
-        buttonsSlot: "order-buttons",
+        stockStatusSlot: "order-stock",
       },
       row: {
         base: "grid grid-cols-[auto_1fr] gap-x-pc-row-layout",
@@ -59,6 +62,7 @@ const productCard = tv({
   /* Define compound styles for slots */
   compoundSlots: [
     {
+      class: ["col-start-2"],
       layout: "row",
       slots: [
         "nameSlot",
@@ -68,12 +72,11 @@ const productCard = tv({
         "ratingSlot",
         "buttonsSlot",
       ],
-      class: ["col-start-2"],
     },
   ],
   defaultVariants: {
-    layout: "column",
     buttonLayout: "horizontal",
+    layout: "column",
   },
 })
 
@@ -138,7 +141,7 @@ export function DemoProductCard({
     cartButton,
     detailButton,
     wishlistButton,
-  } = productCard({ layout, buttonLayout })
+  } = productCard({ buttonLayout, layout })
 
   return (
     <div className={base({ className, layout })} {...props}>

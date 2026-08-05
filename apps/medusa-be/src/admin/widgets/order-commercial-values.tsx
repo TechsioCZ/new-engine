@@ -11,14 +11,11 @@ import {
   Text,
   toast,
 } from "@medusajs/ui"
-import {
-  type QueryClient,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type { QueryClient } from "@tanstack/react-query"
 import type { TFunction } from "i18next"
-import { type CSSProperties, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 
 import type {
@@ -29,34 +26,34 @@ import type {
 } from "../../utils/order-commercial-values"
 import { sdk } from "../lib/sdk"
 
-type CommercialValuesSnapshotResponse = {
+interface CommercialValuesSnapshotResponse {
   commercial_values: CommercialValuesSnapshot
 }
 
-type CommercialValuesPreviewResponse = {
+interface CommercialValuesPreviewResponse {
   preview: CommercialValuesPreview
 }
 
-type CommercialValuesConfirmResponse = {
+interface CommercialValuesConfirmResponse {
   commercial_values: CommercialValuesConfirmPayload
 }
 
 type DraftDiscountType = "none" | "percentage" | "amount"
 
-type DraftItem = {
+interface DraftItem {
   discount_type: DraftDiscountType
   discount_value: string
   item_id: string
   unit_price: string
 }
 
-type DraftShippingMethod = {
+interface DraftShippingMethod {
   discount_type: DraftDiscountType
   discount_value: string
   shipping_method_id: string
 }
 
-type DraftState = {
+interface DraftState {
   internal_note: string
   items: DraftItem[]
   order_discount_type: DraftDiscountType
@@ -70,7 +67,7 @@ type CommercialValuesPreviewPayload = Omit<
   CommercialValuesPayload,
   "confirmation_mode" | "internal_note"
 >
-type CommercialValuesPreviewVariables = {
+interface CommercialValuesPreviewVariables {
   key: string
   payload: CommercialValuesPreviewPayload
 }
@@ -102,7 +99,7 @@ async function invalidateMedusaAdminOrderQueries(
 }
 
 function getIntlLocale(language?: string) {
-  return (language || "en").replace(/([a-z])([A-Z])/g, "$1-$2")
+  return (language || "en").replaceAll(/([a-z])([A-Z])/g, "$1-$2")
 }
 
 function formatMoney(
@@ -572,7 +569,9 @@ const DiscountControls = ({
       <Input
         disabled={disabled || type === "none"}
         min={0}
-        onChange={(event) => onValueChange(event.target.value)}
+        onChange={(event) => {
+          onValueChange(event.target.value)
+        }}
         placeholder={type === "percentage" ? "0-100" : "0"}
         step="any"
         type="number"
@@ -784,11 +783,11 @@ const CommercialValuesDrawer = ({
                       <Input
                         disabled={!snapshot.editable}
                         min={0}
-                        onChange={(event) =>
+                        onChange={(event) => {
                           updateItem(item.item_id, {
                             unit_price: event.target.value,
                           })
-                        }
+                        }}
                         step="any"
                         type="number"
                         value={draftItem.unit_price}
@@ -801,7 +800,7 @@ const CommercialValuesDrawer = ({
                       </Text>
                       <DiscountControls
                         disabled={!snapshot.editable}
-                        onTypeChange={(discountType) =>
+                        onTypeChange={(discountType) => {
                           updateItem(item.item_id, {
                             discount_type: discountType,
                             discount_value:
@@ -809,12 +808,12 @@ const CommercialValuesDrawer = ({
                                 ? ""
                                 : draftItem.discount_value,
                           })
-                        }
-                        onValueChange={(discountValue) =>
+                        }}
+                        onValueChange={(discountValue) => {
                           updateItem(item.item_id, {
                             discount_value: discountValue,
                           })
-                        }
+                        }}
                         type={draftItem.discount_type}
                         value={draftItem.discount_value}
                       />
@@ -886,7 +885,7 @@ const CommercialValuesDrawer = ({
                         </Text>
                         <DiscountControls
                           disabled={!snapshot.editable}
-                          onTypeChange={(discountType) =>
+                          onTypeChange={(discountType) => {
                             updateShippingMethod(
                               shippingMethod.shipping_method_id,
                               {
@@ -897,15 +896,15 @@ const CommercialValuesDrawer = ({
                                     : draftShippingMethod.discount_value,
                               }
                             )
-                          }
-                          onValueChange={(discountValue) =>
+                          }}
+                          onValueChange={(discountValue) => {
                             updateShippingMethod(
                               shippingMethod.shipping_method_id,
                               {
                                 discount_value: discountValue,
                               }
                             )
-                          }
+                          }}
                           type={draftShippingMethod.discount_type}
                           value={draftShippingMethod.discount_value}
                         />
@@ -925,20 +924,20 @@ const CommercialValuesDrawer = ({
               <DiscountControls
                 className="max-w-[360px]"
                 disabled={!snapshot.editable}
-                onTypeChange={(discountType) =>
+                onTypeChange={(discountType) => {
                   onDraftChange({
                     ...draft,
                     order_discount_type: discountType,
                     order_discount_value:
                       discountType === "none" ? "" : draft.order_discount_value,
                   })
-                }
-                onValueChange={(discountValue) =>
+                }}
+                onValueChange={(discountValue) => {
                   onDraftChange({
                     ...draft,
                     order_discount_value: discountValue,
                   })
-                }
+                }}
                 type={draft.order_discount_type}
                 value={draft.order_discount_value}
               />
@@ -963,9 +962,9 @@ const CommercialValuesDrawer = ({
             </Text>
             <Input
               disabled={!snapshot.editable}
-              onChange={(event) =>
+              onChange={(event) => {
                 onDraftChange({ ...draft, internal_note: event.target.value })
-              }
+              }}
               value={draft.internal_note}
             />
           </div>
@@ -998,7 +997,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [draft, setDraft] = useState<DraftState | null>(null)
   const [preview, setPreview] = useState<CommercialValuesPreview>()
-  const latestPreviewKey = useRef<string | undefined>(undefined)
+  const latestPreviewKey = useRef<string | undefined>()
 
   const queryKey = [QUERY_KEY_PREFIX, order?.id]
 
@@ -1008,7 +1007,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
     isLoading,
   } = useQuery({
     enabled: !!order?.id,
-    queryFn: () =>
+    queryFn: async () =>
       sdk.client.fetch<CommercialValuesSnapshotResponse>(
         `/admin/orders/${order?.id}/commercial-values`
       ),
@@ -1026,7 +1025,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
   }, [snapshot])
 
   const previewMutation = useMutation({
-    mutationFn: ({ payload }: CommercialValuesPreviewVariables) =>
+    mutationFn: async ({ payload }: CommercialValuesPreviewVariables) =>
       sdk.client.fetch<CommercialValuesPreviewResponse>(
         `/admin/orders/${order?.id}/commercial-values/preview`,
         {
@@ -1055,7 +1054,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
   })
 
   const confirmMutation = useMutation({
-    mutationFn: (payload: CommercialValuesPayload) =>
+    mutationFn: async (payload: CommercialValuesPayload) =>
       sdk.client.fetch<CommercialValuesConfirmResponse>(
         `/admin/orders/${order?.id}/commercial-values/confirm`,
         {
@@ -1108,7 +1107,9 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
       previewMutation.mutate({ key, payload: previewPayload })
     }, 250)
 
-    return () => window.clearTimeout(timeout)
+    return () => {
+      window.clearTimeout(timeout)
+    }
   }, [draft, isOpen, order?.id, previewMutation, snapshot])
 
   if (!order?.id) {
@@ -1183,7 +1184,9 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
           isOpen={isOpen}
           isPreviewing={previewMutation.isPending}
           isSaving={confirmMutation.isPending}
-          onClose={() => setIsOpen(false)}
+          onClose={() => {
+            setIsOpen(false)
+          }}
           onConfirm={runConfirm}
           onDraftChange={setDraft}
           {...(preview ? { preview } : {})}

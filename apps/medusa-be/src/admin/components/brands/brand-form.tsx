@@ -11,23 +11,16 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import {
-  type Dispatch,
-  type SetStateAction,
-  useEffect,
-  useRef,
-  useState,
-} from "react"
+import { useEffect, useRef, useState } from "react"
+import type { Dispatch, SetStateAction } from "react"
 import { useTranslation } from "react-i18next"
 
-import {
-  type Brand,
-  type BrandAttribute,
-  type BrandAttributeType,
-  type BrandInput,
-  brandQueryKeys,
-  createBrand,
-  updateBrand,
+import { brandQueryKeys, createBrand, updateBrand } from "../../lib/brands"
+import type {
+  Brand,
+  BrandAttribute,
+  BrandAttributeType,
+  BrandInput,
 } from "../../lib/brands"
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -41,7 +34,7 @@ const GPSR_REPRESENTATIVE_FIELDS = [
   "gpsr_european_reseller_contact_email",
 ] as const
 
-export type BrandFormState = {
+export interface BrandFormState {
   attributes: BrandAttribute[]
   gpsr_contact_email: string
   gpsr_european_reseller_contact_email: string
@@ -283,12 +276,12 @@ const BrandFormFields = ({
         <Label htmlFor={`${idPrefix}-handle`}>{t("fields.handle")}</Label>
         <Input
           id={`${idPrefix}-handle`}
-          onChange={(event) =>
+          onChange={(event) => {
             setForm((current) => ({
               ...current,
               handle: event.target.value,
             }))
-          }
+          }}
           placeholder={t("form.handlePlaceholder")}
           value={form.handle}
         />
@@ -403,7 +396,7 @@ const BrandFormFields = ({
           </Text>
           <Button
             disabled={!canAddAttribute}
-            onClick={() =>
+            onClick={() => {
               setForm((current) => ({
                 ...current,
                 attributes: [
@@ -411,7 +404,7 @@ const BrandFormFields = ({
                   emptyAttribute(attributeTypes, selectedAttributeNames),
                 ],
               }))
-            }
+            }}
             size="small"
             type="button"
             variant="secondary"
@@ -426,7 +419,9 @@ const BrandFormFields = ({
               key={`${attribute.id ?? "new"}-${index}`}
             >
               <Select
-                onValueChange={(value) => updateAttribute(index, "name", value)}
+                onValueChange={(value) => {
+                  updateAttribute(index, "name", value)
+                }}
                 value={attribute.name}
               >
                 <Select.Trigger>
@@ -444,22 +439,22 @@ const BrandFormFields = ({
                 </Select.Content>
               </Select>
               <Input
-                onChange={(event) =>
+                onChange={(event) => {
                   updateAttribute(index, "value", event.target.value)
-                }
+                }}
                 placeholder={t("fields.value")}
                 value={attribute.value}
               />
               <Button
                 aria-label={t("actions.remove")}
-                onClick={() =>
+                onClick={() => {
                   setForm((current) => ({
                     ...current,
                     attributes: current.attributes.filter(
                       (_, currentIndex) => currentIndex !== index
                     ),
                   }))
-                }
+                }}
                 size="small"
                 type="button"
                 variant="secondary"
@@ -596,7 +591,9 @@ export const BrandCreateModal = ({
           <div className="flex items-center justify-end gap-2">
             <Button
               disabled={mutation.isPending}
-              onClick={() => handleOpenChange(false)}
+              onClick={() => {
+                handleOpenChange(false)
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -634,7 +631,7 @@ export const BrandEditDrawer = ({
   const queryClient = useQueryClient()
   const { errors, form, setErrors, setForm } = useBrandFormState(brand, open)
   const mutation = useMutation({
-    mutationFn: (input: BrandInput) => updateBrand(brand.id, input),
+    mutationFn: async (input: BrandInput) => updateBrand(brand.id, input),
     onError: (error) => {
       toast.error(
         error instanceof Error ? error.message : t("errors.saveBrandFailed")
@@ -692,7 +689,9 @@ export const BrandEditDrawer = ({
           <div className="flex items-center justify-end gap-2">
             <Button
               disabled={mutation.isPending}
-              onClick={() => handleOpenChange(false)}
+              onClick={() => {
+                handleOpenChange(false)
+              }}
               size="small"
               type="button"
               variant="secondary"

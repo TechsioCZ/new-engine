@@ -5,10 +5,8 @@ import {
   ProductStatus,
   QueryContext,
 } from "@medusajs/framework/utils"
-import {
-  type RequestWithContext,
-  wrapProductsWithTaxPrices,
-} from "@medusajs/medusa/api/store/products/helpers"
+import { wrapProductsWithTaxPrices } from "@medusajs/medusa/api/store/products/helpers"
+import type { RequestWithContext } from "@medusajs/medusa/api/store/products/helpers"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
 
 import { isMeilisearchEnabled } from "../../../../modules/meilisearch/env"
@@ -29,7 +27,6 @@ import { MEILISEARCH } from "../../../../workflows/meilisearch"
 import { normalizeProductSalesChannelFilter } from "../../../utils/product-filters"
 import {
   buildCatalogFilterExpressions,
-  type FacetCountItem,
   getFacetDistribution,
   getNumericFacetStats,
   humanizeFacetHandle,
@@ -41,22 +38,23 @@ import {
   resolveCatalogSort,
   sortFacetCountItems,
 } from "./utils"
+import type { FacetCountItem } from "./utils"
 import {
   STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
   STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
-  type StoreCatalogProductsSchemaType,
 } from "./validators"
+import type { StoreCatalogProductsSchemaType } from "./validators"
 
-type MeiliProductHit = {
+interface MeiliProductHit {
   id?: string | number
 }
 
-type BrandRecord = {
+interface BrandRecord {
   handle?: string
   title?: string
 }
 
-type CategoryRecord = {
+interface CategoryRecord {
   handle?: string
   name?: string
 }
@@ -78,19 +76,19 @@ const mapStatusFacets = (
     usedIds.add(item.id)
 
     return {
+      count: facetCounts.get(item.id) ?? 0,
       id: item.id,
       label: item.label,
-      count: facetCounts.get(item.id) ?? 0,
     }
   })
 
   const additionalItems = sortFacetCountItems(
-    Array.from(facetCounts.entries())
+    [...facetCounts.entries()]
       .filter(([id]) => !usedIds.has(id))
       .map(([id, count]) => ({
+        count,
         id,
         label: STATUS_FACET_LABEL_BY_ID.get(id) ?? id,
-        count,
       }))
   )
 
@@ -104,19 +102,19 @@ const mapFormFacets = (facetCounts: Map<string, number>): FacetCountItem[] => {
     usedIds.add(item.id)
 
     return {
+      count: facetCounts.get(item.id) ?? 0,
       id: item.id,
       label: item.label,
-      count: facetCounts.get(item.id) ?? 0,
     }
   })
 
   const additionalItems = sortFacetCountItems(
-    Array.from(facetCounts.entries())
+    [...facetCounts.entries()]
       .filter(([id]) => !usedIds.has(id))
       .map(([id, count]) => ({
+        count,
         id,
         label: FORM_FACET_LABEL_BY_ID.get(id) ?? id,
-        count,
       }))
   )
 
@@ -128,7 +126,7 @@ const getProductIdFromHit = (hit: unknown): string | undefined => {
     return
   }
 
-  const id = (hit as MeiliProductHit).id
+  const { id } = hit as MeiliProductHit
   if (typeof id === "string") {
     return id
   }
@@ -165,7 +163,7 @@ const buildMeiliOrExpression = (
   field: string,
   values: string[]
 ): string | undefined => {
-  const uniqueValues = Array.from(new Set(values.filter(Boolean)))
+  const uniqueValues = [...new Set(values.filter(Boolean))]
   if (uniqueValues.length === 0) {
     return
   }
@@ -202,13 +200,13 @@ const resolveBrandFacetLabels = async (
   facetIds: string[]
 ): Promise<Map<string, string>> => {
   const labelsById = new Map<string, string>()
-  const handles = Array.from(
-    new Set(
+  const handles = [
+    ...new Set(
       facetIds
         .map((id) => extractBrandHandleFromFacetId(id))
         .filter((handle): handle is string => Boolean(handle))
-    )
-  )
+    ),
+  ]
 
   if (handles.length === 0) {
     return labelsById
@@ -252,13 +250,13 @@ const resolveIngredientFacetLabels = async (
   facetIds: string[]
 ): Promise<Map<string, string>> => {
   const labelsById = new Map<string, string>()
-  const handles = Array.from(
-    new Set(
+  const handles = [
+    ...new Set(
       facetIds
         .map((id) => extractIngredientHandleFromFacetId(id))
         .filter((handle): handle is string => Boolean(handle))
-    )
-  )
+    ),
+  ]
 
   if (handles.length === 0) {
     return labelsById
@@ -302,10 +300,10 @@ const mapDynamicFacets = (
   labelsById: Map<string, string>
 ): FacetCountItem[] =>
   sortFacetCountItems(
-    Array.from(facetCounts.entries()).map(([id, count]) => ({
+    [...facetCounts.entries()].map(([id, count]) => ({
+      count,
       id,
       label: labelsById.get(id) ?? humanizeFacetHandle(id),
-      count,
     }))
   )
 
@@ -320,7 +318,7 @@ export async function GET(
     return
   }
 
-  const validatedQuery = req.validatedQuery
+  const { validatedQuery } = req
   const measurementDecorationOptions = getMeasurementDecorationOptions(
     req.queryConfig.fields
   )
@@ -328,8 +326,8 @@ export async function GET(
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
   const meilisearchService = req.scope.resolve<MeiliSearchService>(MEILISEARCH)
 
-  const page = validatedQuery.page
-  const limit = validatedQuery.limit
+  const { page } = validatedQuery
+  const { limit } = validatedQuery
   const offset = (page - 1) * limit
 
   const categoryIds = normalizeCategoryIdsParam(validatedQuery.category_id)
@@ -339,17 +337,17 @@ export async function GET(
   const ingredientIds = normalizeIngredientParam(validatedQuery.ingredient)
 
   const filterExpressions = buildCatalogFilterExpressions({
-    categoryIds,
-    statusIds,
-    formIds,
     brandIds,
+    categoryIds,
+    formIds,
     ingredientIds,
-    ...(validatedQuery.price_min !== undefined
-      ? { priceMin: validatedQuery.price_min }
-      : {}),
-    ...(validatedQuery.price_max !== undefined
-      ? { priceMax: validatedQuery.price_max }
-      : {}),
+    statusIds,
+    ...(validatedQuery.price_min === undefined
+      ? {}
+      : { priceMin: validatedQuery.price_min }),
+    ...(validatedQuery.price_max === undefined
+      ? {}
+      : { priceMax: validatedQuery.price_max }),
   })
 
   const sort = resolveCatalogSort(validatedQuery.sort)
@@ -367,7 +365,7 @@ export async function GET(
         limit,
         offset,
       },
-      ...(searchFilter !== undefined ? { filter: searchFilter } : {}),
+      ...(searchFilter === undefined ? {} : { filter: searchFilter }),
       additionalOptions: {
         attributesToRetrieve: ["id"],
         facets: FACETS_TO_FETCH,
@@ -415,8 +413,9 @@ export async function GET(
                     calculated_price: pricingContext,
                   },
                 }
-              : undefined) !== undefined
-              ? {
+              : undefined) === undefined
+              ? {}
+              : {
                   context: pricingContext
                     ? {
                         variants: {
@@ -424,8 +423,7 @@ export async function GET(
                         },
                       }
                     : undefined,
-                }
-              : {}),
+                }),
           })
         )
 
@@ -460,11 +458,10 @@ export async function GET(
   )
 
   const [brandLabelsById, ingredientLabelsById] = await Promise.all([
-    resolveBrandFacetLabels(queryService, Array.from(brandFacetCounts.keys())),
-    resolveIngredientFacetLabels(
-      queryService,
-      Array.from(ingredientFacetCounts.keys())
-    ),
+    resolveBrandFacetLabels(queryService, [...brandFacetCounts.keys()]),
+    resolveIngredientFacetLabels(queryService, [
+      ...ingredientFacetCounts.keys(),
+    ]),
   ])
 
   const count =
@@ -483,20 +480,20 @@ export async function GET(
   )
 
   res.json({
-    products: orderedProducts,
     count,
-    page,
-    limit,
-    totalPages,
     facets: {
-      status: mapStatusFacets(statusFacetCounts),
-      form: mapFormFacets(formFacetCounts),
       brand: mapDynamicFacets(brandFacetCounts, brandLabelsById),
+      form: mapFormFacets(formFacetCounts),
       ingredient: mapDynamicFacets(ingredientFacetCounts, ingredientLabelsById),
       price: {
-        min: priceFacetStats.min ?? null,
         max: priceFacetStats.max ?? null,
+        min: priceFacetStats.min ?? null,
       },
+      status: mapStatusFacets(statusFacetCounts),
     },
+    limit,
+    page,
+    products: orderedProducts,
+    totalPages,
   })
 }

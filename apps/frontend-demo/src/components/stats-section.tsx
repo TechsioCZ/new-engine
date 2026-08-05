@@ -1,36 +1,36 @@
 export function StatsSection() {
   const stats = [
     {
-      value: "15+",
-      label: "let zkušeností",
-      description: "Od roku 2008 budujeme úspěšné e-shopy",
-      year: "2008",
-      milestone: "První zákazník",
       color: "primary",
+      description: "Od roku 2008 budujeme úspěšné e-shopy",
+      label: "let zkušeností",
+      milestone: "První zákazník",
+      value: "15+",
+      year: "2008",
     },
     {
-      value: "200+",
-      label: "realizovaných projektů",
-      description: "Úspěšně dokončených e-commerce řešení",
-      year: "2015",
-      milestone: "První velký projekt",
       color: "secondary",
+      description: "Úspěšně dokončených e-commerce řešení",
+      label: "realizovaných projektů",
+      milestone: "První velký projekt",
+      value: "200+",
+      year: "2015",
     },
     {
-      value: "85%",
-      label: "dlouhodobých klientů",
-      description: "Vysoká míra spokojenosti a opakovaných zakázek",
-      year: "2020",
-      milestone: "Expansion program",
       color: "success",
+      description: "Vysoká míra spokojenosti a opakovaných zakázek",
+      label: "dlouhodobých klientů",
+      milestone: "Expansion program",
+      value: "85%",
+      year: "2020",
     },
     {
-      value: "40%",
-      label: "nárůst prodejů",
-      description: "Průměrné zvýšení tržeb prvním roce",
-      year: "2024",
-      milestone: "Optimization excellence",
       color: "info",
+      description: "Průměrné zvýšení tržeb prvním roce",
+      label: "nárůst prodejů",
+      milestone: "Optimization excellence",
+      value: "40%",
+      year: "2024",
     },
   ]
 
@@ -50,10 +50,10 @@ export function StatsSection() {
           <div className="grid grid-cols-1 gap-[2rem] md:grid-cols-2 lg:grid-cols-4 lg:gap-[1rem]">
             {stats.map((stat, index) => {
               const colorClasses = {
+                info: { bg: "bg-info", text: "text-info" },
                 primary: { bg: "bg-primary", text: "text-primary" },
                 secondary: { bg: "bg-secondary", text: "text-secondary" },
                 success: { bg: "bg-success", text: "text-success" },
-                info: { bg: "bg-info", text: "text-info" },
               }
               const colors =
                 colorClasses[stat.color as keyof typeof colorClasses]

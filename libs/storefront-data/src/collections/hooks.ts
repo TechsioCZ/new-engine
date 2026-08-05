@@ -1,8 +1,5 @@
-import {
-  type CacheConfig,
-  type CacheStrategy,
-  createCacheConfig,
-} from "../shared/cache-config"
+import { createCacheConfig } from "../shared/cache-config"
+import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
@@ -24,13 +21,13 @@ import type {
   UseSuspenseCollectionsResult,
 } from "./types"
 
-export type CreateCollectionHooksConfig<
+export interface CreateCollectionHooksConfig<
   TCollection,
   TListInput extends CollectionListInputBase,
   TListParams,
   TDetailInput extends CollectionDetailInputBase,
   TDetailParams,
-> = {
+> {
   service: CollectionService<TCollection, TListParams, TDetailParams>
   buildListParams?: (input: TListInput) => TListParams
   buildDetailParams?: (input: TDetailInput) => TDetailParams
@@ -73,25 +70,25 @@ export function createCollectionHooks<
     ((input: TDetailInput) => ({ ...input }) as TDetailInput & TDetailParams)
   const { getListQueryOptions, getDetailQueryOptions } =
     createCollectionQueryOptionsFactory({
-      service,
-      buildListParams: buildList,
       buildDetailParams: buildDetail,
-      queryKeys: resolvedQueryKeys,
+      buildListParams: buildList,
       cacheConfig: resolvedCacheConfig,
+      queryKeys: resolvedQueryKeys,
+      service,
     })
   const simpleHooks = createSimpleListDetailHooks({
-    buildList,
     buildDetail,
+    buildList,
+    defaultCacheStrategy: "static",
+    defaultPageSize,
+    getDetail: service.getCollection,
+    getDetailQueryOptions,
+    getList: service.getCollections,
     getListItems: (data: CollectionListResponse<TCollection> | undefined) =>
       data?.collections ?? [],
-    getList: service.getCollections,
-    getDetail: service.getCollection,
     getListQueryOptions,
-    getDetailQueryOptions,
     resolvedCacheConfig,
     resolvedQueryKeys,
-    defaultPageSize,
-    defaultCacheStrategy: "static",
   })
 
   function useCollections(
@@ -171,14 +168,14 @@ export function createCollectionHooks<
   }
 
   return {
-    getListQueryOptions,
     getDetailQueryOptions,
-    useCollections,
-    useSuspenseCollections,
+    getListQueryOptions,
     useCollection,
-    useSuspenseCollection,
-    usePrefetchCollections,
+    useCollections,
     usePrefetchCollection,
+    usePrefetchCollections,
+    useSuspenseCollection,
+    useSuspenseCollections,
   }
 }
 

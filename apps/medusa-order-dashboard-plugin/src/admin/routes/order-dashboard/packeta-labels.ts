@@ -1,11 +1,11 @@
 import type { useTranslation } from "react-i18next"
 
 import { getCarrierLabel } from "./format"
-import {
-  ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS,
-  type OrderDashboardBlockingOrder,
-  type OrderDashboardOrder,
-  type OrderDashboardPacketaEligibilityOrder,
+import { ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS } from "./types"
+import type {
+  OrderDashboardBlockingOrder,
+  OrderDashboardOrder,
+  OrderDashboardPacketaEligibilityOrder,
 } from "./types"
 
 type TranslationFunction = ReturnType<typeof useTranslation>["t"]

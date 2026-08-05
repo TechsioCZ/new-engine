@@ -12,7 +12,7 @@ const createMockRequest = (
     headers,
   }) as any
 
-describe("getHeaderValue", () => {
+describe(getHeaderValue, () => {
   it("returns string header value directly", () => {
     const req = createMockRequest({ "x-signature": "abc123" })
     expect(getHeaderValue(req, "x-signature")).toBe("abc123")
@@ -44,39 +44,39 @@ describe("getHeaderValue", () => {
   })
 })
 
-describe("isValidWebhookSignature", () => {
+describe(isValidWebhookSignature, () => {
   const validSignature = "abc123"
 
   it("returns true when signatures match", () => {
-    expect(isValidWebhookSignature(validSignature, validSignature)).toBe(true)
+    expect(isValidWebhookSignature(validSignature, validSignature)).toBeTruthy()
   })
 
   it("returns false when signatures do not match", () => {
-    expect(isValidWebhookSignature("abc123", "xyz789")).toBe(false)
+    expect(isValidWebhookSignature("abc123", "xyz789")).toBeFalsy()
   })
 
   it("returns false when signature is undefined", () => {
-    expect(isValidWebhookSignature(undefined, validSignature)).toBe(false)
+    expect(isValidWebhookSignature(undefined, validSignature)).toBeFalsy()
   })
 
   it("returns false when expected signature is undefined", () => {
-    expect(isValidWebhookSignature(validSignature, undefined)).toBe(false)
+    expect(isValidWebhookSignature(validSignature)).toBeFalsy()
   })
 
   it("returns false when both signatures are undefined", () => {
-    expect(isValidWebhookSignature(undefined, undefined)).toBe(false)
+    expect(isValidWebhookSignature()).toBeFalsy()
   })
 
   it("returns false for empty signature", () => {
-    expect(isValidWebhookSignature("", validSignature)).toBe(false)
+    expect(isValidWebhookSignature("", validSignature)).toBeFalsy()
   })
 
   it("returns false for empty expected signature", () => {
-    expect(isValidWebhookSignature(validSignature, "")).toBe(false)
+    expect(isValidWebhookSignature(validSignature, "")).toBeFalsy()
   })
 
   it("returns false when both are empty strings", () => {
-    expect(isValidWebhookSignature("", "")).toBe(false)
+    expect(isValidWebhookSignature("", "")).toBeFalsy()
   })
 
   it("uses constant-time comparison to prevent timing attacks", () => {
@@ -84,11 +84,11 @@ describe("isValidWebhookSignature", () => {
     // without leaking timing information (both get hashed to same length)
     const shortSig = "a"
     const longSig = "a".repeat(100)
-    expect(isValidWebhookSignature(shortSig, longSig)).toBe(false)
-    expect(isValidWebhookSignature(longSig, shortSig)).toBe(false)
+    expect(isValidWebhookSignature(shortSig, longSig)).toBeFalsy()
+    expect(isValidWebhookSignature(longSig, shortSig)).toBeFalsy()
   })
 
   it("is case-sensitive", () => {
-    expect(isValidWebhookSignature("ABC123", "abc123")).toBe(false)
+    expect(isValidWebhookSignature("ABC123", "abc123")).toBeFalsy()
   })
 })

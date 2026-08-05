@@ -33,11 +33,11 @@ describe("Brand DataTable state", () => {
   it("preserves selected IDs that are not on the current page", () => {
     const selection = toRowSelection(["product_1", "product_99"])
 
-    expect(selection).toEqual({
+    expect(selection).toStrictEqual({
       product_1: true,
       product_99: true,
     })
-    expect(fromRowSelection(selection)).toEqual(
+    expect(fromRowSelection(selection)).toStrictEqual(
       new Set(["product_1", "product_99"])
     )
   })
@@ -48,37 +48,35 @@ describe("Brand DataTable state", () => {
         option("product_1", brand("brand_1")),
         "brand_1"
       )
-    ).toBe(true)
+    ).toBeTruthy()
     expect(
       isProductOptionSelectable(
         option("product_2", brand("brand_2")),
         "brand_1"
       )
-    ).toBe(false)
-    expect(isProductOptionSelectable(option("product_3"), "brand_1")).toBe(true)
+    ).toBeFalsy()
+    expect(
+      isProductOptionSelectable(option("product_3"), "brand_1")
+    ).toBeTruthy()
   })
 
   it("prevents selecting deleted, pending, and already-selected Brands", () => {
-    expect(isBrandSelectable(brand("brand_1"), undefined, false)).toBe(true)
-    expect(isBrandSelectable(brand("brand_1"), "brand_1", false)).toBe(false)
+    expect(isBrandSelectable(brand("brand_1"), undefined, false)).toBeTruthy()
+    expect(isBrandSelectable(brand("brand_1"), "brand_1", false)).toBeFalsy()
     expect(
       isBrandSelectable(brand("brand_1", "2026-07-20"), undefined, false)
-    ).toBe(false)
-    expect(isBrandSelectable(brand("brand_1"), undefined, true)).toBe(false)
+    ).toBeFalsy()
+    expect(isBrandSelectable(brand("brand_1"), undefined, true)).toBeFalsy()
   })
 
   it("does not submit an unchanged inactive Brand as an unlink", () => {
     const inactiveBrand = brand("brand_1", "2026-07-20")
 
-    expect(shouldSubmitProductBrandSelection(inactiveBrand, undefined)).toBe(
-      false
-    )
-    expect(shouldSubmitProductBrandSelection(inactiveBrand, "brand_2")).toBe(
-      true
-    )
-    expect(shouldSubmitProductBrandSelection(brand("brand_1"), undefined)).toBe(
-      true
-    )
+    expect(shouldSubmitProductBrandSelection(inactiveBrand)).toBeFalsy()
+    expect(
+      shouldSubmitProductBrandSelection(inactiveBrand, "brand_2")
+    ).toBeTruthy()
+    expect(shouldSubmitProductBrandSelection(brand("brand_1"))).toBeTruthy()
   })
 
   it("submits only changed product selections", () => {
@@ -87,7 +85,7 @@ describe("Brand DataTable state", () => {
         ["prod_keep", "prod_remove"],
         ["prod_keep", "prod_add", "prod_add"]
       )
-    ).toEqual({
+    ).toStrictEqual({
       add: ["prod_add"],
       remove: ["prod_remove"],
     })

@@ -1,10 +1,8 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import { MedusaError } from "@medusajs/framework/utils"
 
-import {
-  type SendProductReviewRequestWorkflowInput,
-  sendProductReviewRequestWorkflow,
-} from "../workflows/send-product-review-request"
+import { sendProductReviewRequestWorkflow } from "../workflows/send-product-review-request"
+import type { SendProductReviewRequestWorkflowInput } from "../workflows/send-product-review-request"
 
 export const workflowQueueNames = {
   SEND_PRODUCT_REVIEW_REQUEST: "send-product-review-request",
@@ -33,7 +31,7 @@ const workflowQueueRegistry: Record<string, WorkflowQueueRunner> = {
       )
     }
 
-    return sendProductReviewRequestWorkflow(container).run({
+    return await sendProductReviewRequestWorkflow(container).run({
       input,
     })
   },

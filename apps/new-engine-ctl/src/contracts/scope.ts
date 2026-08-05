@@ -7,43 +7,43 @@ const nxStatusSchema = z.enum(["ok", "fallback", "explicit"])
 
 export const scopeCommandInputSchema = z
   .object({
-    lane: laneSchema,
-    servicesCsv: z.string().default(""),
     baseSha: z.string().min(1).optional(),
     headSha: z.string().min(1).default("HEAD"),
-    previewBaselineComplete: z.boolean().default(true),
-    outputJson: z.string().min(1).optional(),
-    stackManifestPath: z.string().min(1),
-    stackInputsPath: z.string().min(1),
+    lane: laneSchema,
     nxIsolatePlugins: z.boolean().default(true),
+    outputJson: z.string().min(1).optional(),
+    previewBaselineComplete: z.boolean().default(true),
+    servicesCsv: z.string().default(""),
+    stackInputsPath: z.string().min(1),
+    stackManifestPath: z.string().min(1),
   })
   .superRefine((value, ctx) => {
     if (!(value.servicesCsv || value.baseSha)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["baseSha"],
         message:
           "Base SHA is required when services-csv is not provided explicitly.",
+        path: ["baseSha"],
       })
     }
   })
 
 export const scopeResponseSchema = z.object({
+  base_sha: z.string().nullable(),
+  changed_files: z.array(z.string()),
+  changed_files_count: z.number().int().nonnegative(),
+  downtime_service_ids: z.string(),
+  head_sha: z.string().nullable(),
   lane: laneSchema,
   mode: scopeModeSchema,
-  base_sha: z.string().nullable(),
-  head_sha: z.string().nullable(),
-  projects_csv: z.string(),
-  services_csv: z.string(),
   nx_status: nxStatusSchema,
-  changed_files_count: z.number().int().nonnegative(),
-  changed_files: z.array(z.string()),
-  relevant_changed_files: z.array(z.string()),
-  should_prepare: z.boolean(),
-  requires_preview_db: z.boolean(),
   preview_db_service_ids: z.string(),
+  projects_csv: z.string(),
+  relevant_changed_files: z.array(z.string()),
   requires_downtime_approval: z.boolean(),
-  downtime_service_ids: z.string(),
+  requires_preview_db: z.boolean(),
+  services_csv: z.string(),
+  should_prepare: z.boolean(),
 })
 
 export type ScopeCommandInput = z.infer<typeof scopeCommandInputSchema>

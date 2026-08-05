@@ -13,7 +13,7 @@ const OUTSIDE_EU_CONFLICT_ERROR =
   /Conflicting gpsr_manufactured_outside_eu values/
 const ATTRIBUTE_CONFLICT_ERROR = /Conflicting attribute "supplier" values/
 
-describe("buildBrandRegistry", () => {
+describe(buildBrandRegistry, () => {
   it.each([
     ["ViolaHerb", "viola-herb"],
     ["BIO RUŽA", "bio-ruza"],
@@ -30,11 +30,11 @@ describe("buildBrandRegistry", () => {
   })
 
   it("retains historical handles only as persistence compatibility candidates", () => {
-    expect(getBrandSeedHandleCandidates("ViolaHerb")).toEqual([
+    expect(getBrandSeedHandleCandidates("ViolaHerb")).toStrictEqual([
       "viola-herb",
       "violaherb",
     ])
-    expect(getBrandSeedHandleCandidates("BIO RUŽA")).toEqual([
+    expect(getBrandSeedHandleCandidates("BIO RUŽA")).toStrictEqual([
       "bio-ruza",
       "bio-ruža",
     ])
@@ -43,22 +43,22 @@ describe("buildBrandRegistry", () => {
   it("canonicalizes brand titles and merges identical non-empty data", () => {
     const registry = buildBrandRegistry([
       {
-        handle: "product-1",
         brand: {
-          title: "Hérbatika Labs",
           attributes: [{ name: "Supplier", value: "Supplier A" }],
           gpsr_contact_email: "contact@example.com",
           gpsr_manufactured_outside_eu: false,
+          title: "Hérbatika Labs",
         },
+        handle: "product-1",
       },
       {
-        handle: "product-2",
         brand: {
-          title: "herbatika-labs",
           attributes: [{ name: "supplier", value: "Supplier A" }],
           gpsr_contact_email: "contact@example.com",
           gpsr_manufactured_outside_eu: false,
+          title: "herbatika-labs",
         },
+        handle: "product-2",
       },
     ])
 
@@ -78,12 +78,12 @@ describe("buildBrandRegistry", () => {
   it("ignores blank GPSR strings but preserves explicit null for authoritative clearing", () => {
     const registry = buildBrandRegistry([
       {
-        handle: "product-1",
         brand: {
-          title: "Brand",
           gpsr_contact_email: " ",
           gpsr_manufacturing_company_name: null,
+          title: "Brand",
         },
+        handle: "product-1",
       },
     ])
 
@@ -95,18 +95,18 @@ describe("buildBrandRegistry", () => {
     expect(() =>
       buildBrandRegistry([
         {
-          handle: "product-1",
           brand: {
-            title: "Brand",
             gpsr_contact_email: "one@example.com",
+            title: "Brand",
           },
+          handle: "product-1",
         },
         {
-          handle: "product-2",
           brand: {
-            title: "brand",
             gpsr_contact_email: "two@example.com",
+            title: "brand",
           },
+          handle: "product-2",
         },
       ])
     ).toThrow(GPSR_EMAIL_CONFLICT_ERROR)
@@ -116,18 +116,18 @@ describe("buildBrandRegistry", () => {
     expect(() =>
       buildBrandRegistry([
         {
-          handle: "product-1",
           brand: {
-            title: "Brand",
             gpsr_manufactured_outside_eu: false,
+            title: "Brand",
           },
+          handle: "product-1",
         },
         {
-          handle: "product-2",
           brand: {
-            title: "Brand",
             gpsr_manufactured_outside_eu: true,
+            title: "Brand",
           },
+          handle: "product-2",
         },
       ])
     ).toThrow(OUTSIDE_EU_CONFLICT_ERROR)
@@ -137,18 +137,18 @@ describe("buildBrandRegistry", () => {
     expect(() =>
       buildBrandRegistry([
         {
-          handle: "product-1",
           brand: {
-            title: "Brand",
             attributes: [{ name: "Supplier", value: "One" }],
+            title: "Brand",
           },
+          handle: "product-1",
         },
         {
-          handle: "product-2",
           brand: {
-            title: "brand",
             attributes: [{ name: " supplier ", value: "Two" }],
+            title: "brand",
           },
+          handle: "product-2",
         },
       ])
     ).toThrow(ATTRIBUTE_CONFLICT_ERROR)
@@ -157,8 +157,8 @@ describe("buildBrandRegistry", () => {
   it("allows product-scoped Supplier values to vary for one Brand", () => {
     const registry = buildBrandRegistry([
       {
+        brand: { attributes: [], title: "Herbatica" },
         handle: "product-1",
-        brand: { title: "Herbatica", attributes: [] },
         productAttributes: [
           {
             input_type: "select",
@@ -170,8 +170,8 @@ describe("buildBrandRegistry", () => {
         ],
       },
       {
+        brand: { attributes: [], title: "Herbatica" },
         handle: "product-2",
-        brand: { title: "Herbatica", attributes: [] },
         productAttributes: [
           {
             input_type: "select",
@@ -184,7 +184,7 @@ describe("buildBrandRegistry", () => {
       },
     ])
 
-    expect(registry.get("herbatica")?.products).toEqual([
+    expect(registry.get("herbatica")?.products).toStrictEqual([
       "product-1",
       "product-2",
     ])
@@ -195,12 +195,12 @@ describe("buildBrandRegistry", () => {
     const existing = {
       attributes: [
         {
-          value: "Old value",
           attributeType: { name: "Source field" },
+          value: "Old value",
         },
         {
-          value: "Keep",
           attributeType: { name: "Unrelated" },
+          value: "Keep",
         },
       ],
       gpsr_contact_email: "old@example.com",
@@ -220,7 +220,7 @@ describe("buildBrandRegistry", () => {
 
     const update = buildExistingBrandReconciliation(existing, incoming)
 
-    expect(update).toEqual({
+    expect(update).toStrictEqual({
       attributes: [
         { name: "Source field", value: "Canonical value" },
         { name: "Unrelated", value: "Keep" },
@@ -230,8 +230,8 @@ describe("buildBrandRegistry", () => {
       title: "ViolaHerb",
     })
     const reconciledAttributes = update.attributes?.map((attribute) => ({
-      value: attribute.value,
       attributeType: { name: attribute.name },
+      value: attribute.value,
     }))
     expect(
       buildExistingBrandReconciliation(
@@ -246,6 +246,6 @@ describe("buildBrandRegistry", () => {
         },
         incoming
       )
-    ).toEqual({})
+    ).toStrictEqual({})
   })
 })

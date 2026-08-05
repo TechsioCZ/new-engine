@@ -6,14 +6,14 @@ const STOCK_UPDATES_BATCH_MAX = 500
 
 const StockUpdateSchema = z
   .object({
-    identifier_type: z.enum(["sku", "ean", "variant_id", "inventory_item_id"]),
-    sku: z.string().min(1).optional(),
     ean: z.string().min(1).optional(),
-    variant_id: z.string().min(1).optional(),
+    identifier_type: z.enum(["sku", "ean", "variant_id", "inventory_item_id"]),
     inventory_item_id: z.string().min(1).optional(),
     location_id: z.string().min(1).optional(),
-    stocked_quantity: z.number().int().nonnegative(),
     reserved_quantity: z.number().int().nonnegative().optional(),
+    sku: z.string().min(1).optional(),
+    stocked_quantity: z.number().int().nonnegative(),
+    variant_id: z.string().min(1).optional(),
   })
   .superRefine(requireIdentifierField)
 

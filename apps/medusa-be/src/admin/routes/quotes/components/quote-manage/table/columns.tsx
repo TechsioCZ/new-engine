@@ -14,19 +14,6 @@ export const useManageItemsTableColumns = (_currencyCode: string) => {
   return useMemo(
     () => [
       columnHelper.display({
-        id: "select",
-        header: ({ table }) => (
-          <Checkbox
-            checked={
-              table.getIsSomePageRowsSelected()
-                ? "indeterminate"
-                : table.getIsAllPageRowsSelected()
-            }
-            onCheckedChange={(value) =>
-              table.toggleAllPageRowsSelected(!!value)
-            }
-          />
-        ),
         cell: ({ row }) => {
           const isSelectable = row.getCanSelect()
 
@@ -34,27 +21,42 @@ export const useManageItemsTableColumns = (_currencyCode: string) => {
             <Checkbox
               checked={row.getIsSelected()}
               disabled={!isSelectable}
-              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              onCheckedChange={(value) => {
+                row.toggleSelected(!!value)
+              }}
               onClick={(e) => {
                 e.stopPropagation()
               }}
             />
           )
         },
+        header: ({ table }) => (
+          <Checkbox
+            checked={
+              table.getIsSomePageRowsSelected()
+                ? "indeterminate"
+                : table.getIsAllPageRowsSelected()
+            }
+            onCheckedChange={(value) => {
+              table.toggleAllPageRowsSelected(!!value)
+            }}
+          />
+        ),
+        id: "select",
       }),
       columnHelper.display({
-        id: "product",
-        header: () => <ProductHeader />,
         cell: ({ row }) =>
           row.original.product ? (
             <ProductCell product={row.original.product} />
           ) : (
             "-"
           ),
+        header: () => <ProductHeader />,
+        id: "product",
       }),
       columnHelper.accessor("sku", {
-        header: t("fields.sku"),
         cell: ({ getValue }) => getValue() || "-",
+        header: t("fields.sku"),
       }),
       columnHelper.accessor("title", {
         header: t("fields.title"),

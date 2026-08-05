@@ -4,29 +4,29 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 type PricePreferenceAttribute = "region_id" | "currency_code"
 
-type EnsurePricePreferencesStepOutput = {
+interface EnsurePricePreferencesStepOutput {
   createdCount: number
   updatedCount: number
   targetCount: number
 }
 
-type ExistingPreference = {
+interface ExistingPreference {
   id: string
   isTaxInclusive: boolean
 }
 
-type PricePreferencePayload = {
+interface PricePreferencePayload {
   attribute: PricePreferenceAttribute
   value: string
   is_tax_inclusive: boolean
 }
 
-type PricePreferencePlan = {
+interface PricePreferencePlan {
   createPayloads: PricePreferencePayload[]
   updateIds: string[]
 }
 
-export type EnsurePricePreferencesStepInput = {
+export interface EnsurePricePreferencesStepInput {
   regionIds?: string[]
   currencyCodes?: string[]
   isTaxInclusive?: boolean
@@ -64,7 +64,7 @@ function buildKey(attribute: PricePreferenceAttribute, value: string): string {
   return `${attribute}:${value}`
 }
 
-function uniqueDefinedStrings(values: Array<string | undefined>): string[] {
+function uniqueDefinedStrings(values: (string | undefined)[]): string[] {
   return [...new Set(values.filter(isDefinedString))]
 }
 
@@ -77,18 +77,18 @@ function normalizeCurrencyCodes(currencyCodes: string[] | undefined): string[] {
 }
 
 function buildExistingPreferenceMap(
-  preferences: Array<{
+  preferences: {
     attribute: unknown
     value: unknown
     id?: unknown
     is_tax_inclusive: boolean
-  }>
+  }[]
 ): Map<string, ExistingPreference> {
   const existingByKey = new Map<string, ExistingPreference>()
 
   for (const preference of preferences) {
-    const attribute = preference.attribute
-    const value = preference.value
+    const { attribute } = preference
+    const { value } = preference
 
     if (
       (attribute !== "region_id" && attribute !== "currency_code") ||
@@ -122,8 +122,8 @@ function addPreferencePlanEntry(params: {
   if (!existingPreference) {
     plan.createPayloads.push({
       attribute,
-      value,
       is_tax_inclusive: isTaxInclusive,
+      value,
     })
     return
   }
@@ -146,21 +146,21 @@ function buildPricePreferencePlan(params: {
 
   for (const regionId of params.regionIds) {
     addPreferencePlanEntry({
-      plan,
-      existingByKey: params.existingByKey,
       attribute: "region_id",
-      value: regionId,
+      existingByKey: params.existingByKey,
       isTaxInclusive: params.isTaxInclusive,
+      plan,
+      value: regionId,
     })
   }
 
   for (const currencyCode of params.currencyCodes) {
     addPreferencePlanEntry({
-      plan,
-      existingByKey: params.existingByKey,
       attribute: "currency_code",
-      value: currencyCode,
+      existingByKey: params.existingByKey,
       isTaxInclusive: params.isTaxInclusive,
+      plan,
+      value: currencyCode,
     })
   }
 
@@ -182,8 +182,8 @@ export const ensurePricePreferencesStep = createStep(
     if (regionIds.length === 0 && currencyCodes.length === 0) {
       const output: EnsurePricePreferencesStepOutput = {
         createdCount: 0,
-        updatedCount: 0,
         targetCount: 0,
+        updatedCount: 0,
       }
 
       return new StepResponse({ result: output })
@@ -210,10 +210,10 @@ export const ensurePricePreferencesStep = createStep(
       ...existingCurrencyPreferences,
     ])
     const { createPayloads, updateIds } = buildPricePreferencePlan({
-      regionIds,
       currencyCodes,
       existingByKey,
       isTaxInclusive,
+      regionIds,
     })
 
     if (createPayloads.length > 0) {
@@ -234,8 +234,8 @@ export const ensurePricePreferencesStep = createStep(
 
     const output: EnsurePricePreferencesStepOutput = {
       createdCount: createPayloads.length,
-      updatedCount: uniqueUpdateIds.length,
       targetCount: regionIds.length + currencyCodes.length,
+      updatedCount: uniqueUpdateIds.length,
     }
 
     return new StepResponse({ result: output })

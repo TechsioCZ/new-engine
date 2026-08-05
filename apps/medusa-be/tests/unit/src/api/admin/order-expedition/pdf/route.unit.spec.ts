@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { PostAdminOrderExpeditionPdfSchemaType } from "../../../../../../../src/api/admin/order-expedition/validators"
 
-vi.mock("@medusajs/framework/utils", () => ({
+vi.mock(import("@medusajs/framework/utils"), () => ({
   ContainerRegistrationKeys: {
     QUERY: "query",
   },
@@ -30,19 +30,16 @@ const { mockAddPage, mockDrawText, mockEmbedFont, mockPage, mockSave } =
 
     return {
       mockAddPage: vi.fn(() => page),
-      mockPage: page,
       mockDrawText: drawText,
       mockEmbedFont: vi.fn().mockResolvedValue({
         widthOfTextAtSize: (text: string) => text.length,
       }),
+      mockPage: page,
       mockSave: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
     }
   })
 
-vi.mock("pdf-lib", () => ({
-  PageSizes: {
-    A4: [595.28, 841.89],
-  },
+vi.mock(import("pdf-lib"), () => ({
   PDFDocument: {
     create: vi.fn().mockResolvedValue({
       addPage: mockAddPage,
@@ -53,11 +50,14 @@ vi.mock("pdf-lib", () => ({
       save: mockSave,
     }),
   },
-  rgb: vi.fn(() => ({})),
+  PageSizes: {
+    A4: [595.28, 841.89],
+  },
   StandardFonts: {
     Helvetica: "Helvetica",
     HelveticaBold: "HelveticaBold",
   },
+  rgb: vi.fn(() => ({})),
 }))
 
 /**
@@ -123,7 +123,7 @@ describe("POST /admin/order-expedition/pdf", () => {
     const { POST } =
       await import("../../../../../../../src/api/admin/order-expedition/pdf/route")
     const graph = vi.fn().mockResolvedValue({
-      data: [{ id: "order_1", display_id: 1001 }],
+      data: [{ display_id: 1001, id: "order_1" }],
     })
     const req = createMockRequest(
       {
@@ -146,9 +146,9 @@ describe("POST /admin/order-expedition/pdf", () => {
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
-          id: "order_1",
-          display_id: 1001,
           customer: { first_name: "Jana", last_name: "Novakova" },
+          display_id: 1001,
+          id: "order_1",
           items: [{ quantity: 1, title: "Tea" }],
           shipping_methods: [{ name: "PPL" }],
           status: "pending",
@@ -167,7 +167,7 @@ describe("POST /admin/order-expedition/pdf", () => {
       })
     )
     expect(res.send).toHaveBeenCalledWith(Buffer.from([1, 2, 3]))
-    expect(mockDrawText).toHaveBeenCalled()
+    expect(mockDrawText).toHaveBeenCalledWith()
   })
 
   it("replaces unsupported Helvetica characters before drawing text", async () => {
@@ -176,9 +176,9 @@ describe("POST /admin/order-expedition/pdf", () => {
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
-          id: "order_1",
-          display_id: 1001,
           customer: { first_name: "Łukasz", last_name: "Őster 😀" },
+          display_id: 1001,
+          id: "order_1",
           items: [{ quantity: 2, title: "Káva Łódź 😀" }],
           shipping_address: {
             address_1: "Dlouhá — ulice",
@@ -199,21 +199,21 @@ describe("POST /admin/order-expedition/pdf", () => {
 
     const drawnTexts = mockDrawText.mock.calls.map(([text]) => text as string)
 
-    expect(drawnTexts.some((text) => text.includes("Lukasz Oster ?"))).toBe(
-      true
-    )
-    expect(drawnTexts.some((text) => text.includes("Dlouha - ulice"))).toBe(
-      true
-    )
-    expect(drawnTexts.some((text) => text.includes("Kava Lodz ?"))).toBe(true)
-    expect(drawnTexts.some((text) => text.includes("2 ks"))).toBe(true)
+    expect(
+      drawnTexts.some((text) => text.includes("Lukasz Oster ?"))
+    ).toBeTruthy()
+    expect(
+      drawnTexts.some((text) => text.includes("Dlouha - ulice"))
+    ).toBeTruthy()
+    expect(drawnTexts.some((text) => text.includes("Kava Lodz ?"))).toBeTruthy()
+    expect(drawnTexts.some((text) => text.includes("2 ks"))).toBeTruthy()
     expect(
       drawnTexts.every((text) =>
-        Array.from(text).every((char) => {
-          const code = char.charCodeAt(0)
+        [...text].every((char) => {
+          const code = char.codePointAt(0)
           return code >= 32 && code <= 126
         })
       )
-    ).toBe(true)
+    ).toBeTruthy()
   })
 })

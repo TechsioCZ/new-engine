@@ -7,12 +7,10 @@ import NextImage from "next/image"
 
 import NextLink from "@/components/app-link"
 
-import {
-  type HerbatikaHeaderSubmenuFeaturedItem,
-  useHerbatikaHeaderSubmenu,
-} from "./use-herbatika-header-submenu"
+import { useHerbatikaHeaderSubmenu } from "./use-herbatika-header-submenu"
+import type { HerbatikaHeaderSubmenuFeaturedItem } from "./use-herbatika-header-submenu"
 
-type HerbatikaDesktopSubmenuProps = {
+interface HerbatikaDesktopSubmenuProps {
   activeRootHandle: string | null
   onClose: () => void
 }

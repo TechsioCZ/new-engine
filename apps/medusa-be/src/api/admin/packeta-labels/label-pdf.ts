@@ -62,7 +62,7 @@ export async function composePacketaLabelsOnA4(
     slot += 1
   }
 
-  return mergedPdf.save()
+  return await mergedPdf.save()
 }
 
 function getSourceLabelBox(

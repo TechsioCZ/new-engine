@@ -17,8 +17,8 @@ import {
 
 export const adminQuotesMiddlewares: MiddlewareRoute[] = [
   {
-    method: ["GET"],
     matcher: "/admin/quotes",
+    method: ["GET"],
     middlewares: [
       validateAndTransformQuery(
         AdminGetQuoteParams,
@@ -27,8 +27,8 @@ export const adminQuotesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    method: ["GET"],
     matcher: "/admin/quotes/:id",
+    method: ["GET"],
     middlewares: [
       validateAndTransformQuery(
         AdminGetQuoteParams,
@@ -37,8 +37,8 @@ export const adminQuotesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    method: ["POST"],
     matcher: "/admin/quotes/:id/send",
+    method: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminSendQuote),
       validateAndTransformQuery(
@@ -48,8 +48,8 @@ export const adminQuotesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    method: ["POST"],
     matcher: "/admin/quotes/:id/reject",
+    method: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminRejectQuote),
       validateAndTransformQuery(
@@ -59,8 +59,8 @@ export const adminQuotesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    method: ["POST"],
     matcher: "/admin/quotes/:id/messages",
+    method: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminCreateQuoteMessage),
       validateAndTransformQuery(

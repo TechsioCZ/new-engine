@@ -19,11 +19,11 @@ const normalizeProductReferenceCode = (value: string) => value.trim()
 const slugifyProductReferenceCode = (value: string) =>
   normalizeProductReferenceCode(value)
     .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[\u0300-\u036F]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/-+/g, "-")
+    .replaceAll(/^-|-$/g, "")
 
 export const resolveProductReferenceHandle = (code: string) => {
   const slug = slugifyProductReferenceCode(code)
@@ -36,8 +36,8 @@ export const resolveRelatedProductReferenceCodes = (
 ): string[] => {
   const metadata = isRecord(product?.metadata) ? product.metadata : null
   const codes = [
-    ...asStringArray(metadata?.["related_products"]),
-    ...asStringArray(metadata?.["alternative_products"]),
+    ...asStringArray(metadata?.related_products),
+    ...asStringArray(metadata?.alternative_products),
   ]
   const seen = new Set<string>()
   const result: string[] = []
@@ -70,7 +70,7 @@ export const orderProductsByReferenceCodes = (
     }
 
     const metadata = isRecord(product.metadata) ? product.metadata : null
-    const sourceShopitemId = metadata?.["source_shopitem_id"]
+    const sourceShopitemId = metadata?.source_shopitem_id
     if (typeof sourceShopitemId === "string" && sourceShopitemId) {
       productBySourceId.set(sourceShopitemId, product)
     }
@@ -136,8 +136,8 @@ export const resolveRelatedSections = (
 ): RelatedProductsSection[] => {
   const recommendationSections = sectionTitles.map((title, sectionIndex) => ({
     id: `related-${sectionIndex}`,
-    title,
     products: fillSectionProducts(products, sectionIndex),
+    title,
   }))
 
   return recommendationSections.filter((section) => section.products.length > 0)

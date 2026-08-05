@@ -19,7 +19,7 @@ const CODE_PREFIX = "[symmy_code:"
 const CODE_SUFFIX = "]"
 const LEADING_NEWLINE = /^\n/
 
-export type PriceIdentifierSets = {
+export interface PriceIdentifierSets {
   skus: Set<string>
   eans: Set<string>
   variantIds: Set<string>
@@ -35,7 +35,7 @@ export class PriceListsClientMapperHelper {
       return { code: null, description: description ?? undefined }
     }
     const end = description.indexOf(CODE_SUFFIX)
-    if (end < 0) {
+    if (end === -1) {
       return { code: null, description }
     }
     return {
@@ -77,9 +77,9 @@ export class PriceListsClientMapperHelper {
       id: priceList.id,
       code,
       name: priceList.title,
-      ...(decoded.description !== undefined
-        ? { description: decoded.description }
-        : {}),
+      ...(decoded.description === undefined
+        ? {}
+        : { description: decoded.description }),
       starts_at: priceList.starts_at,
       ends_at: priceList.ends_at,
     }
@@ -144,11 +144,11 @@ export class PriceListsClientMapperHelper {
   ) {
     const rules = this.buildRules(input, groupIndex)
     return {
-      title: input.name,
       description: input.description,
-      starts_at: input.starts_at ?? null,
       ends_at: input.ends_at ?? null,
+      starts_at: input.starts_at ?? null,
       status: input.status ?? "active",
+      title: input.name,
       type: input.type ?? "sale",
       ...(rules ? { rules } : {}),
     }
@@ -169,7 +169,7 @@ export class PriceListsClientMapperHelper {
         variantIds.add(price.variant_id)
       }
     }
-    return { skus, eans, variantIds }
+    return { eans, skus, variantIds }
   }
 
   buildVariantMap(
@@ -179,7 +179,7 @@ export class PriceListsClientMapperHelper {
     const map = new Map<string, string>()
     for (const variant of variants) {
       const value = variant[field]
-      const id = variant["id"]
+      const { id } = variant
       if (typeof value === "string" && typeof id === "string") {
         map.set(value, id)
       }
@@ -213,7 +213,7 @@ export class PriceListsClientMapperHelper {
       const erpCode = codeByPriceListId.get(priceList.id)
       return {
         ...priceList,
-        ...(erpCode !== undefined ? { erp_code: erpCode } : {}),
+        ...(erpCode === undefined ? {} : { erp_code: erpCode }),
       }
     })
   }
@@ -233,16 +233,16 @@ export class PriceListsClientMapperHelper {
       if (!variantId) {
         results[index] = {
           ...this.buildPriceEcho(price),
-          status: "not_found",
           error: `No variant found for ${price.identifier_type}`,
+          status: "not_found",
         }
         continue
       }
       const payload = {
-        variant_id: variantId,
-        currency_code: price.currency_code.toLowerCase(),
         amount: price.amount,
+        currency_code: price.currency_code.toLowerCase(),
         min_quantity: price.min_quantity ?? 1,
+        variant_id: variantId,
       }
       const existing = existingPrices.get(
         this.priceKey(variantId, payload.currency_code, payload.min_quantity)
@@ -255,7 +255,7 @@ export class PriceListsClientMapperHelper {
       owners.push({ index, input: price })
     }
 
-    return { create, update, owners, results }
+    return { create, owners, results, update }
   }
 
   markPriceBatchSuccess(
@@ -290,11 +290,11 @@ export class PriceListsClientMapperHelper {
   private buildPriceEcho(price: PriceInput) {
     return {
       identifier_type: price.identifier_type,
-      ...(price.sku !== undefined ? { sku: price.sku } : {}),
-      ...(price.ean !== undefined ? { ean: price.ean } : {}),
-      ...(price.variant_id !== undefined
-        ? { variant_id: price.variant_id }
-        : {}),
+      ...(price.sku === undefined ? {} : { sku: price.sku }),
+      ...(price.ean === undefined ? {} : { ean: price.ean }),
+      ...(price.variant_id === undefined
+        ? {}
+        : { variant_id: price.variant_id }),
     }
   }
 
@@ -308,7 +308,7 @@ export class PriceListsClientMapperHelper {
     if (price.identifier_type === "variant_id" && price.variant_id) {
       return maps.byId.get(price.variant_id)
     }
-    return undefined
+    return
   }
 
   private priceKey(

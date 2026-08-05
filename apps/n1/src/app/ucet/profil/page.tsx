@@ -19,12 +19,12 @@ export default function ProfilePage() {
   const pathname = usePathname()
   const activeTab = resolveTab(searchParams.get("tab"), pathname)
   const logoutMutation = useLogout({
+    onError: () => {
+      toast.logoutError()
+    },
     onSuccess: () => {
       toast.logoutSuccess()
       router.push("/prihlaseni")
-    },
-    onError: () => {
-      toast.logoutError()
     },
   })
 
@@ -62,7 +62,9 @@ export default function ProfilePage() {
           <Button
             className="justify-start"
             disabled={logoutMutation.isPending}
-            onClick={() => logoutMutation.mutate()}
+            onClick={() => {
+              logoutMutation.mutate()
+            }}
             size="sm"
           >
             <span className="font-medium hover:underline">
@@ -103,7 +105,9 @@ export default function ProfilePage() {
           <Button
             className="justify-start"
             disabled={logoutMutation.isPending}
-            onClick={() => logoutMutation.mutate()}
+            onClick={() => {
+              logoutMutation.mutate()
+            }}
             size="sm"
           >
             <span className="font-medium hover:underline">

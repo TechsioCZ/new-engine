@@ -9,25 +9,25 @@ const patchBlockedLocalStorage = () => {
     Storage.prototype
   )
 
-  Storage.prototype.getItem = function (key: string) {
+  Storage.prototype.getItem = function getItem(key: string) {
     if (this === window.localStorage) {
       throw new Error(`blocked getItem:${key}`)
     }
     return originalGetItem.call(this, key)
   }
 
-  Storage.prototype.setItem = function (key: string, value: string) {
+  Storage.prototype.setItem = function setItem(key: string, value: string) {
     if (this === window.localStorage) {
       throw new Error(`blocked setItem:${key}`)
     }
-    return originalSetItem.call(this, key, value)
+    originalSetItem.call(this, key, value)
   }
 
-  Storage.prototype.removeItem = function (key: string) {
+  Storage.prototype.removeItem = function removeItem(key: string) {
     if (this === window.localStorage) {
       throw new Error(`blocked removeItem:${key}`)
     }
-    return originalRemoveItem.call(this, key)
+    originalRemoveItem.call(this, key)
   }
 
   return () => {
@@ -60,7 +60,9 @@ describe("createMedusaSdk degraded localStorage", () => {
         baseUrl: "https://example.com",
       })
 
-      expect(() => sdk.setLocale("sk")).not.toThrow()
+      expect(() => {
+        sdk.setLocale("sk")
+      }).not.toThrow()
       expect(sdk.getLocale()).toBe("sk")
     } finally {
       restore()

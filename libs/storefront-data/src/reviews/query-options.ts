@@ -19,11 +19,11 @@ type ProductReviewListService<TReview, TListParams> = Pick<
   "listProductReviews"
 >
 
-export type CreateProductReviewQueryOptionsFactoryConfig<
+export interface CreateProductReviewQueryOptionsFactoryConfig<
   TReview,
   TListInput extends ProductReviewListInputBase,
   TListParams,
-> = {
+> {
   service: ProductReviewListService<TReview, TListParams>
   buildListParams?: (input: TListInput) => TListParams
   queryKeys?: ProductReviewQueryKeys<TListParams>
@@ -32,10 +32,10 @@ export type CreateProductReviewQueryOptionsFactoryConfig<
   defaultPageSize?: number
 }
 
-export type ProductReviewQueryOptionsFactory<
+export interface ProductReviewQueryOptionsFactory<
   TReview,
   TListInput extends ProductReviewListInputBase,
-> = {
+> {
   getProductReviewsQueryOptions: (
     input: TListInput,
     options?: {
@@ -78,8 +78,9 @@ export function createProductReviewQueryOptionsFactory<
       const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
 
       return {
+        queryFn: async ({ signal }) =>
+          service.listProductReviews(listParams, signal),
         queryKey: resolvedQueryKeys.productList(listParams),
-        queryFn: ({ signal }) => service.listProductReviews(listParams, signal),
         ...resolvedCacheConfig[cacheStrategy],
         ...options?.queryOptions,
       }

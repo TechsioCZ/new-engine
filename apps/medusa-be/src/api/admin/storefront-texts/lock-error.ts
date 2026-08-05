@@ -21,7 +21,7 @@ const isLockTimeoutError = (error: unknown) => {
 export const STOREFRONT_TEXT_LOCK_CONFLICT_MESSAGE =
   "Another storefront text operation is already running. Please try again shortly."
 
-export type StorefrontTextLockErrorResponse = {
+export interface StorefrontTextLockErrorResponse {
   status: (code: number) => { json: (body: unknown) => unknown }
 }
 

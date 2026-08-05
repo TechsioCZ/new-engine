@@ -2,11 +2,11 @@ import type { ILockingModule } from "@medusajs/framework/types"
 
 import {
   getProductAttributeProductLockKey,
-  type ProductAttributeAssignmentRecord,
   partitionProductAttributeRecordIds,
 } from "../../utils/product-attributes"
+import type { ProductAttributeAssignmentRecord } from "../../utils/product-attributes"
 
-export type ProductAttributeDeletionCompensation = {
+export interface ProductAttributeDeletionCompensation {
   assignment_ids: string[]
   product_ids: string[]
 }
@@ -18,7 +18,7 @@ export type ProductAttributeDeletionRecord = Pick<
   "deleted_at" | "id"
 >
 
-export type ProductAttributeDeletionService = {
+export interface ProductAttributeDeletionService {
   listProductAttributes: (
     filters: { product_id: { $in: string[] } },
     config: {

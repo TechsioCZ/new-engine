@@ -17,9 +17,9 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   }
 
   res.json({
-    customers: data,
     count: paginationMetadata.count,
-    offset: paginationMetadata.skip,
+    customers: data,
     limit: paginationMetadata.take,
+    offset: paginationMetadata.skip,
   })
 }

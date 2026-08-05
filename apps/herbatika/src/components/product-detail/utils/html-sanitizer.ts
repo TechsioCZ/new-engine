@@ -70,10 +70,10 @@ const IMAGE_DECODING_VALUES: ReadonlySet<string> = new Set([
 const enforceAllowedAttributes = (element: Element, tag: string): void => {
   const allowedForTag = ALLOWED_TAG_ATTRIBUTES[tag]
   // Snapshot: removeAttribute mutates the live NamedNodeMap mid-iteration.
-  for (const attribute of Array.from(element.attributes)) {
+  for (const attribute of [...element.attributes]) {
     const name = attribute.name.toLowerCase()
     const isAllowed =
-      ALLOWED_GLOBAL_ATTRIBUTES.has(name) || allowedForTag?.has(name) === true
+      ALLOWED_GLOBAL_ATTRIBUTES.has(name) || allowedForTag?.has(name)
     if (!isAllowed || attribute.value.trim() === "") {
       element.removeAttribute(attribute.name)
     }
@@ -126,8 +126,8 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
 // ALLOWED_URI_REGEXP is unsuitable because it is applied to every attribute
 // value, not just URI attributes.
 const SANITIZE_CONFIG = {
-  ALLOWED_TAGS: ALLOWED_HTML_TAGS,
   ALLOWED_ATTR: ALLOWED_ATTRIBUTE_NAMES,
+  ALLOWED_TAGS: ALLOWED_HTML_TAGS,
 } as const
 
 export const sanitizeHtml = (html: string): string => {
@@ -156,10 +156,10 @@ export const stripHtml = (value: string | null | undefined): string => {
     return ""
   }
   return value
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/\s+/g, " ")
+    .replaceAll(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replaceAll(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replaceAll(/<[^>]+>/g, " ")
+    .replaceAll(/&nbsp;/gi, " ")
+    .replaceAll(/\s+/g, " ")
     .trim()
 }

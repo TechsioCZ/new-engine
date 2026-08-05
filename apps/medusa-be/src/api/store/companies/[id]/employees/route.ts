@@ -36,10 +36,10 @@ export const GET = async (
   const employees = company?.employees ?? []
 
   res.json({
-    employees,
     count: metadata?.count ?? employees.length,
-    offset: metadata?.skip ?? 0,
+    employees,
     limit: metadata?.take ?? employees.length,
+    offset: metadata?.skip ?? 0,
   })
 }
 
@@ -54,13 +54,13 @@ export const POST = async (
     req.scope
   ).run({
     input: {
+      customerId: req.validatedBody.customer_id,
       employeeData: definedProperties({
         ...req.validatedBody,
         spending_limit: req.validatedBody.spending_limit ?? undefined,
         is_admin: req.validatedBody.is_admin ?? undefined,
         company_id: id,
       }),
-      customerId: req.validatedBody.customer_id,
     },
   })
 

@@ -10,7 +10,7 @@ type RegionLike = {
   country_code?: string
 } | null
 
-type UseHomepagePrefetchResult = {
+interface UseHomepagePrefetchResult {
   handleProductHoverStart: (product: HttpTypes.StoreProduct) => void
   handleProductHoverEnd: (product: HttpTypes.StoreProduct) => void
 }
@@ -30,8 +30,8 @@ export function useHomepagePrefetch(
 
     delayedPrefetch(
       {
-        handle: product.handle,
         fields: PRODUCT_DETAIL_FIELDS,
+        handle: product.handle,
       },
       120,
       `home-product-${product.id}`
@@ -43,7 +43,7 @@ export function useHomepagePrefetch(
   }
 
   return {
-    handleProductHoverStart,
     handleProductHoverEnd,
+    handleProductHoverStart,
   }
 }

@@ -1,59 +1,34 @@
 import type { Meta, StoryObj } from "@storybook/react"
 
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
-import {
-  BreadcrumbTemplate,
-  type BreadcrumbTemplateItem,
-} from "../../src/templates/breadcrumb"
+import { BreadcrumbTemplate } from "../../src/templates/breadcrumb"
+import type { BreadcrumbTemplateItem } from "../../src/templates/breadcrumb"
 
 const defaultItems: BreadcrumbTemplateItem[] = [
-  { label: "Home", href: "/", icon: "token-icon-home" },
-  { label: "Products", href: "/products", icon: "token-icon-shopping-bag" },
+  { href: "/", icon: "token-icon-home", label: "Home" },
+  { href: "/products", icon: "token-icon-shopping-bag", label: "Products" },
   {
-    label: "Electronics",
     href: "/products/electronics",
     icon: "token-icon-cpu",
+    label: "Electronics",
   },
-  { label: "Smartphones", href: "/products/electronics/smartphones" },
+  { href: "/products/electronics/smartphones", label: "Smartphones" },
 ]
 
 const longItems: BreadcrumbTemplateItem[] = [
-  { label: "Home", href: "/" },
-  { label: "Products", href: "/products" },
-  { label: "Electronics", href: "/products/electronics" },
-  { label: "Computers", href: "/products/electronics/computers" },
-  { label: "Laptops", href: "/products/electronics/computers/laptops" },
-  { label: "Gaming", href: "/products/electronics/computers/laptops/gaming" },
+  { href: "/", label: "Home" },
+  { href: "/products", label: "Products" },
+  { href: "/products/electronics", label: "Electronics" },
+  { href: "/products/electronics/computers", label: "Computers" },
+  { href: "/products/electronics/computers/laptops", label: "Laptops" },
+  { href: "/products/electronics/computers/laptops/gaming", label: "Gaming" },
   {
-    label: "High-End",
     href: "/products/electronics/computers/laptops/gaming/high-end",
+    label: "High-End",
   },
 ]
 
 const meta: Meta<typeof BreadcrumbTemplate> = {
-  title: "Templates/BreadcrumbTemplate",
-  component: BreadcrumbTemplate,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component: `
-A ready-to-use breadcrumb template with a data-driven API.
-This template composes Breadcrumb slots into the default e-commerce
-breadcrumb structure.
-Use the molecule directly when a project needs custom slot ordering or per-slot styling.
-        `,
-      },
-    },
-  },
-  tags: ["autodocs"],
-  decorators: [
-    (Story) => (
-      <div className="max-w-md bg-surface p-400">
-        <Story />
-      </div>
-    ),
-  ],
   argTypes: {
     items: {
       control: "object",
@@ -63,7 +38,7 @@ Use the molecule directly when a project needs custom slot ordering or per-slot 
       },
     },
     maxItems: {
-      control: { type: "number", min: 0 },
+      control: { min: 0, type: "number" },
       description: "Maximum number of items before inserting ellipsis.",
       table: {
         category: "Behavior",
@@ -79,8 +54,8 @@ Use the molecule directly when a project needs custom slot ordering or per-slot 
     },
     size: {
       control: "select",
-      options: ["sm", "md", "lg"],
       description: "Controls breadcrumb sizing.",
+      options: ["sm", "md", "lg"],
       table: {
         category: "Appearance",
         defaultValue: { summary: "md" },
@@ -88,8 +63,8 @@ Use the molecule directly when a project needs custom slot ordering or per-slot 
     },
     variant: {
       control: "select",
-      options: ["plain", "underline"],
       description: "Controls the visual style of breadcrumb links.",
+      options: ["plain", "underline"],
       table: {
         category: "Appearance",
         defaultValue: { summary: "plain" },
@@ -102,6 +77,29 @@ Use the molecule directly when a project needs custom slot ordering or per-slot 
     size: "md",
     variant: "plain",
   },
+  component: BreadcrumbTemplate,
+  decorators: [
+    (Story) => (
+      <div className="max-w-md bg-surface p-400">
+        <Story />
+      </div>
+    ),
+  ],
+  parameters: {
+    docs: {
+      description: {
+        component: `
+A ready-to-use breadcrumb template with a data-driven API.
+This template composes Breadcrumb slots into the default e-commerce
+breadcrumb structure.
+Use the molecule directly when a project needs custom slot ordering or per-slot styling.
+        `,
+      },
+    },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Templates/BreadcrumbTemplate",
 }
 
 export default meta
@@ -157,9 +155,9 @@ export const Ellipsis: Story = {
 export const ExplicitCurrent: Story = {
   args: {
     items: [
-      { label: "Home", href: "/" },
-      { label: "Products", href: "/products", isCurrent: true },
-      { label: "Electronics", href: "/products/electronics" },
+      { href: "/", label: "Home" },
+      { href: "/products", isCurrent: true, label: "Products" },
+      { href: "/products/electronics", label: "Electronics" },
     ],
   },
 }

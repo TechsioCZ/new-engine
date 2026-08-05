@@ -4,7 +4,7 @@ import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
 import type ProductListModuleService from "../../../modules/product-list/service"
 import type { ProductListRecord } from "../types"
 
-export type UpdateProductListStepInput = {
+export interface UpdateProductListStepInput {
   list_id: string
   data: {
     title?: string
@@ -39,10 +39,10 @@ export const updateProductListStep = createStep(
     await container
       .resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
       .updateProductLists({
-        id: list.id,
         access_type: list.access_type ?? "private",
         description: list.description ?? null,
         handle: list.handle,
+        id: list.id,
         metadata: list.metadata ?? null,
         title: list.title,
       })

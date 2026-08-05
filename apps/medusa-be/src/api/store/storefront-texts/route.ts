@@ -6,8 +6,8 @@ import { getPublishedStorefrontTextMessages } from "../../../modules/storefront-
 import {
   isStorefrontTextLocale,
   isStorefrontTextMarketLocalePair,
-  type StorefrontTextLocale,
 } from "../../../modules/storefront-text/configuration"
+import type { StorefrontTextLocale } from "../../../modules/storefront-text/configuration"
 import { getStorefrontTextDefaultMessages } from "../../../modules/storefront-text/registry"
 import type StorefrontTextModuleService from "../../../modules/storefront-text/service"
 import type { StoreGetStorefrontTextsSchemaType } from "./validators"

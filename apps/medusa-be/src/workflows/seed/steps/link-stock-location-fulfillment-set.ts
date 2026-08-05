@@ -7,7 +7,7 @@ import type {
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
-export type LinkStockLocationFulfillmentSetStepInput = {
+export interface LinkStockLocationFulfillmentSetStepInput {
   stockLocations: StockLocationDTO[]
   fulfillmentSet: FulfillmentSetDTO
 }

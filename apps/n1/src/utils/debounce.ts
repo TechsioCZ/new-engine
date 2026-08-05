@@ -1,4 +1,4 @@
-export type DebouncedFunction<Args extends unknown[]> = {
+export interface DebouncedFunction<Args extends unknown[]> {
   (...args: Args): void
   cancel: () => void
 }

@@ -4,14 +4,13 @@ import {
   getRuntimeProviderLaneBehavior,
   listRuntimeProviderOutputIds,
   listRuntimeProviderOutputTargets,
-  type StackInputs,
 } from "../contracts/stack-inputs.js"
+import type { StackInputs } from "../contracts/stack-inputs.js"
 import {
   getDeployableService,
-  type Lane,
   listDeployableServices,
-  type StackManifest,
 } from "../contracts/stack-manifest.js"
+import type { Lane, StackManifest } from "../contracts/stack-manifest.js"
 import { getMeiliApiCredentialsProviderSourceService } from "./preview-meili.js"
 import { executeResolveTargetsPayload } from "./resolve-targets.js"
 
@@ -50,13 +49,13 @@ function buildPlanService(
   const service = getDeployableService(manifest, serviceId)
 
   return {
-    id: service.id,
-    service_slug: service.serviceSlug,
     clone_to_preview: service.cloneToPreview,
     deploy_lanes: service.deployLanes,
     deploy_stage: service.deployStage,
     downtime_risk: service.downtimeRisk,
+    id: service.id,
     service_dependencies: service.serviceDependencies,
+    service_slug: service.serviceSlug,
   }
 }
 
@@ -96,7 +95,7 @@ function isMeiliSourceProvisionable(
     return false
   }
 
-  return Boolean((deployment.env?.["MEILI_MASTER_KEY"] ?? "").trim())
+  return Boolean((deployment.env?.MEILI_MASTER_KEY ?? "").trim())
 }
 
 function isHealthyTarget(
@@ -158,8 +157,8 @@ export async function expandPlanForRuntimeProviderPrerequisites(input: {
   if (input.dryRun) {
     return {
       plan: input.plan,
-      transientServiceIds: [],
       transientDowntimeServiceIds: [],
+      transientServiceIds: [],
     }
   }
 
@@ -168,9 +167,9 @@ export async function expandPlanForRuntimeProviderPrerequisites(input: {
   )
   const needsMeiliApiCredentials = planNeedsRuntimeProvider({
     lane: input.lane,
-    stackInputs: input.stackInputs,
     providerId: input.meiliApiCredentialsProviderId,
     serviceIds: requestedServiceIds,
+    stackInputs: input.stackInputs,
   })
   const dependencyServiceIds = collectDependencyServiceIds(
     input.manifest,
@@ -183,18 +182,18 @@ export async function expandPlanForRuntimeProviderPrerequisites(input: {
   let targetByServiceId: Map<string, ResolveTargetsResponse["services"][number]>
   try {
     const targetsResponse = await executeResolveTargetsPayload({
+      apiToken: input.apiToken,
+      baseUrl: input.baseUrl,
+      dryRun: false,
       payload: {
+        environment_name: input.environmentName,
         lane: input.lane,
         project_slug: input.projectSlug,
-        environment_name: input.environmentName,
         services: dependencyServices.map((service) => ({
           service_id: service.id,
           service_slug: service.serviceSlug,
         })),
       },
-      baseUrl: input.baseUrl,
-      apiToken: input.apiToken,
-      dryRun: false,
     })
     targetByServiceId = new Map(
       targetsResponse.services.map((service) => [service.service_id, service])
@@ -221,8 +220,8 @@ export async function expandPlanForRuntimeProviderPrerequisites(input: {
   if (prerequisiteIds.size === 0) {
     return {
       plan: input.plan,
-      transientServiceIds: [],
       transientDowntimeServiceIds: [],
+      transientServiceIds: [],
     }
   }
 
@@ -232,10 +231,10 @@ export async function expandPlanForRuntimeProviderPrerequisites(input: {
       manifest: input.manifest,
       serviceIds: [...prerequisiteIds],
     }),
-    transientServiceIds: [...prerequisiteIds],
     transientDowntimeServiceIds: [...prerequisiteIds].filter(
       (serviceId) =>
         getDeployableService(input.manifest, serviceId).downtimeRisk
     ),
+    transientServiceIds: [...prerequisiteIds],
   }
 }

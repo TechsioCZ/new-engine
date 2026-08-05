@@ -66,9 +66,7 @@ const variantMeasurement = (params: {
 
 const productInput = (params: {
   measurement: ProductInput["measurement"]
-  variantMeasurements?: Array<
-    { product_unit_quantity: number } | null | undefined
-  >
+  variantMeasurements?: ({ product_unit_quantity: number } | null | undefined)[]
 }): ProductInput => ({
   categories: [],
   description: "",
@@ -127,7 +125,7 @@ describe("seed Measurement Unit identity", () => {
       },
     ])
 
-    expect([...canonical.keys()].sort()).toEqual(["g:1", "g:100"])
+    expect([...canonical.keys()].sort()).toStrictEqual(["g:1", "g:100"])
     expect(
       getSeedMeasurementUnitSemanticKey({ base_quantity: 100, symbol: "G" })
     ).toBe("g:100")
@@ -231,36 +229,36 @@ describe("seed Product measurement preflight", () => {
   }
 
   it("rejects Variant ownership when Product reconciliation is omitted", () => {
-    expect(() =>
+    expect(() => {
       validateSeedProductMeasurementInput([
         productInput({
           measurement: undefined,
           variantMeasurements: [null],
         }),
       ])
-    ).toThrow("without owning Product measurement reconciliation")
+    }).toThrow("without owning Product measurement reconciliation")
   })
 
   it("rejects a Variant assignment while clearing the Product measurement", () => {
-    expect(() =>
+    expect(() => {
       validateSeedProductMeasurementInput([
         productInput({
           measurement: null,
           variantMeasurements: [{ product_unit_quantity: 100 }],
         }),
       ])
-    ).toThrow("while clearing its Product measurement")
+    }).toThrow("while clearing its Product measurement")
   })
 
   it("rejects invalid Variant quantities before reconciliation", () => {
-    expect(() =>
+    expect(() => {
       validateSeedProductMeasurementInput([
         productInput({
           measurement,
           variantMeasurements: [{ product_unit_quantity: 0 }],
         }),
       ])
-    ).toThrow("measurement quantity must be positive")
+    }).toThrow("measurement quantity must be positive")
   })
 })
 
@@ -288,8 +286,8 @@ describe("seed Product measurement planning", () => {
       new Map()
     )
 
-    expect([...plan.productIdsToSoftDelete]).toEqual(["pm-active"])
-    expect([...plan.variantIdsToSoftDelete]).toEqual(["vm-active"])
+    expect([...plan.productIdsToSoftDelete]).toStrictEqual(["pm-active"])
+    expect([...plan.variantIdsToSoftDelete]).toStrictEqual(["vm-active"])
     expect(plan.productTargetById.get("product-1")).toBeNull()
   })
 
@@ -323,9 +321,9 @@ describe("seed Product measurement planning", () => {
       new Map([["g:100", grams]])
     )
 
-    expect([...plan.productIdsToSoftDelete]).toEqual(["pm-old"])
-    expect([...plan.productIdsToRestore]).toEqual(["pm-target"])
-    expect([...plan.variantIdsToSoftDelete]).toEqual(["vm-old"])
+    expect([...plan.productIdsToSoftDelete]).toStrictEqual(["pm-old"])
+    expect([...plan.productIdsToRestore]).toStrictEqual(["pm-target"])
+    expect([...plan.variantIdsToSoftDelete]).toStrictEqual(["vm-old"])
     expect(plan.productTargetById.get("product-1")?.id).toBe("pm-target")
   })
 
@@ -365,16 +363,16 @@ describe("seed Product measurement planning", () => {
       productTargetById: productPlan.productTargetById,
       variantIdsToSoftDelete: productPlan.variantIdsToSoftDelete,
       variantMeasurements: [previousVariant],
-    } as Parameters<typeof buildVariantRecordMutationPlan>[1])
+    })
 
-    expect(variantPlan.creates).toEqual([
+    expect(variantPlan.creates).toStrictEqual([
       {
         product_measurement_id: "pm-target",
         product_unit_quantity: 250,
         product_variant_id: "variant-1",
       },
     ])
-    expect([...variantPlan.softDeleteIds]).toEqual(["vm-old"])
+    expect([...variantPlan.softDeleteIds]).toStrictEqual(["vm-old"])
   })
 
   it("sets and clears mixed Variant measurements and converges on rerun", () => {
@@ -411,9 +409,9 @@ describe("seed Product measurement planning", () => {
     } as Parameters<typeof buildVariantRecordMutationPlan>[1]
     const plan = buildVariantRecordMutationPlan(resolved, productState)
 
-    expect(plan.creates).toEqual([])
-    expect(plan.updates).toEqual([])
-    expect([...plan.softDeleteIds]).toEqual(["vm-second"])
+    expect(plan.creates).toStrictEqual([])
+    expect(plan.updates).toStrictEqual([])
+    expect([...plan.softDeleteIds]).toStrictEqual(["vm-second"])
     expect(plan.variantTargetById.get("variant-1")?.id).toBe("vm-first")
     expect(plan.variantTargetById.get("variant-2")).toBeNull()
 
@@ -424,12 +422,12 @@ describe("seed Product measurement planning", () => {
         firstVariant,
         { ...secondVariant, deleted_at: new Date() },
       ],
-    } as Parameters<typeof buildVariantRecordMutationPlan>[1]
+    }
     const rerun = buildVariantRecordMutationPlan(resolved, convergedState)
-    expect(rerun.creates).toEqual([])
-    expect(rerun.updates).toEqual([])
-    expect([...rerun.restoreIds]).toEqual([])
-    expect([...rerun.softDeleteIds]).toEqual([])
+    expect(rerun.creates).toStrictEqual([])
+    expect(rerun.updates).toStrictEqual([])
+    expect([...rerun.restoreIds]).toStrictEqual([])
+    expect([...rerun.softDeleteIds]).toStrictEqual([])
   })
 })
 
@@ -465,7 +463,7 @@ describe("seed measurement link planning", () => {
       targets
     )
     expect(repair.productLinksToDismiss).toHaveLength(1)
-    expect(repair.productMeasurementIdsToRestore).toEqual(["pm-target"])
+    expect(repair.productMeasurementIdsToRestore).toStrictEqual(["pm-target"])
     expect(repair.variantLinksToCreate).toHaveLength(1)
 
     const converged = buildLinkPlan(
@@ -483,7 +481,7 @@ describe("seed measurement link planning", () => {
       ],
       targets
     )
-    expect(converged).toEqual({
+    expect(converged).toStrictEqual({
       productLinksToCreate: [],
       productLinksToDismiss: [],
       productMeasurementIdsToRestore: [],

@@ -7,7 +7,7 @@ import {
 } from "@/lib/utils/request"
 
 describe("request utilities", () => {
-  describe("createRequestTimeout", () => {
+  describe(createRequestTimeout, () => {
     beforeEach(() => {
       vi.useFakeTimers()
     })
@@ -20,17 +20,17 @@ describe("request utilities", () => {
       const result = createRequestTimeout(5000)
 
       expect(result.controller).toBeInstanceOf(AbortController)
-      expect(typeof result.clearTimeout).toBe("function")
+      expect(result.clearTimeout).toBeTypeOf("function")
     })
 
     it("aborts after the specified timeout", () => {
       const { controller } = createRequestTimeout(5000)
 
-      expect(controller.signal.aborted).toBe(false)
+      expect(controller.signal.aborted).toBeFalsy()
 
       vi.advanceTimersByTime(5000)
 
-      expect(controller.signal.aborted).toBe(true)
+      expect(controller.signal.aborted).toBeTruthy()
     })
 
     it("does not abort before timeout", () => {
@@ -38,7 +38,7 @@ describe("request utilities", () => {
 
       vi.advanceTimersByTime(4999)
 
-      expect(controller.signal.aborted).toBe(false)
+      expect(controller.signal.aborted).toBeFalsy()
     })
 
     it("clearTimeout prevents abort", () => {
@@ -48,7 +48,7 @@ describe("request utilities", () => {
       clearTimeout()
       vi.advanceTimersByTime(5000)
 
-      expect(controller.signal.aborted).toBe(false)
+      expect(controller.signal.aborted).toBeFalsy()
     })
 
     it("handles zero timeout (immediate abort)", () => {
@@ -56,21 +56,21 @@ describe("request utilities", () => {
 
       vi.advanceTimersByTime(1)
 
-      expect(controller.signal.aborted).toBe(true)
+      expect(controller.signal.aborted).toBeTruthy()
     })
 
     it("handles large timeout values", () => {
       const { controller } = createRequestTimeout(60_000)
 
       vi.advanceTimersByTime(59_999)
-      expect(controller.signal.aborted).toBe(false)
+      expect(controller.signal.aborted).toBeFalsy()
 
       vi.advanceTimersByTime(1)
-      expect(controller.signal.aborted).toBe(true)
+      expect(controller.signal.aborted).toBeTruthy()
     })
   })
 
-  describe("shouldReturnHtmlForRequest", () => {
+  describe(shouldReturnHtmlForRequest, () => {
     const createMockRequest = (
       method: string,
       headerValue?: string
@@ -81,72 +81,72 @@ describe("request utilities", () => {
       }
 
       return {
-        method,
         headers,
+        method,
       } as unknown as PayloadRequest
     }
 
     it('returns true for GET request with header set to "true"', () => {
       const req = createMockRequest("GET", "true")
-      expect(shouldReturnHtmlForRequest(req)).toBe(true)
+      expect(shouldReturnHtmlForRequest(req)).toBeTruthy()
     })
 
     it("returns false for GET request without header", () => {
       const req = createMockRequest("GET")
-      expect(shouldReturnHtmlForRequest(req)).toBe(false)
+      expect(shouldReturnHtmlForRequest(req)).toBeFalsy()
     })
 
     it('returns false for GET request with header set to "false"', () => {
       const req = createMockRequest("GET", "false")
-      expect(shouldReturnHtmlForRequest(req)).toBe(false)
+      expect(shouldReturnHtmlForRequest(req)).toBeFalsy()
     })
 
     it("returns false for POST request even with header", () => {
       const req = createMockRequest("POST", "true")
-      expect(shouldReturnHtmlForRequest(req)).toBe(false)
+      expect(shouldReturnHtmlForRequest(req)).toBeFalsy()
     })
 
     it("returns false for PUT request even with header", () => {
       const req = createMockRequest("PUT", "true")
-      expect(shouldReturnHtmlForRequest(req)).toBe(false)
+      expect(shouldReturnHtmlForRequest(req)).toBeFalsy()
     })
 
     it("returns false for DELETE request even with header", () => {
       const req = createMockRequest("DELETE", "true")
-      expect(shouldReturnHtmlForRequest(req)).toBe(false)
+      expect(shouldReturnHtmlForRequest(req)).toBeFalsy()
     })
 
     it("returns false for undefined request", () => {
-      expect(shouldReturnHtmlForRequest(undefined)).toBe(false)
+      expect(shouldReturnHtmlForRequest()).toBeFalsy()
     })
 
     it("returns false for null request", () => {
       expect(
         shouldReturnHtmlForRequest(null as unknown as PayloadRequest)
-      ).toBe(false)
+      ).toBeFalsy()
     })
 
     it("returns false when headers object is missing", () => {
       const req = { method: "GET" } as unknown as PayloadRequest
-      expect(shouldReturnHtmlForRequest(req)).toBe(false)
+      expect(shouldReturnHtmlForRequest(req)).toBeFalsy()
     })
 
     it("returns false when headers.get is not a function", () => {
       const req = {
-        method: "GET",
         headers: {},
+        method: "GET",
       } as unknown as PayloadRequest
-      expect(shouldReturnHtmlForRequest(req)).toBe(false)
+      expect(shouldReturnHtmlForRequest(req)).toBeFalsy()
     })
 
     it("is case-sensitive for header value", () => {
       const req = createMockRequest("GET", "TRUE")
-      expect(shouldReturnHtmlForRequest(req)).toBe(false)
+      expect(shouldReturnHtmlForRequest(req)).toBeFalsy()
     })
 
     it("returns false for empty header value", () => {
       const req = createMockRequest("GET", "")
-      expect(shouldReturnHtmlForRequest(req)).toBe(false)
+      expect(shouldReturnHtmlForRequest(req)).toBeFalsy()
     })
   })
 })

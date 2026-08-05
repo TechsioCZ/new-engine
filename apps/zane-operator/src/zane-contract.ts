@@ -54,10 +54,10 @@ interface PreviewRandomOnceSecretValueInput {
   value?: string
   persistTo?: string
   persistedEnvVar?: string
-  targets: Array<{
+  targets: {
     serviceSlug: string
     envVar: string
-  }>
+  }[]
 }
 
 export interface SyncPreviewRandomOnceSecretsInput {
@@ -69,10 +69,10 @@ export interface SyncPreviewRandomOnceSecretsInput {
 export interface SyncPreviewSharedEnvInput {
   projectSlug: string
   environmentName: string
-  variables: Array<{
+  variables: {
     key: string
     source: PreviewRuntimeValueSourceInput
-  }>
+  }[]
 }
 
 export interface PreviewRuntimeValueSourceInput {
@@ -94,14 +94,14 @@ export interface PreviewRuntimeValueSourceInput {
 export interface SyncPreviewServiceEnvInput {
   projectSlug: string
   environmentName: string
-  services: Array<{
+  services: {
     service_id: string
     service_slug: string
     env: Array<{
       env_var: string
       source: PreviewRuntimeValueSourceInput
     }>
-  }>
+  }[]
 }
 
 interface MeiliApiCredentialsPolicy {
@@ -318,14 +318,14 @@ export interface ZaneServiceDetails {
   volumes?: ZaneServiceVolume[]
   healthcheck?: ZaneServiceHealthcheck | null
   resource_limits?: ZaneServiceResourceLimits | null
-  unapplied_changes?: Array<{
+  unapplied_changes?: {
     id: string
     type?: string
     field?: string
     item_id?: string | null
     new_value?: Record<string, unknown> | null
     old_value?: Record<string, unknown> | null
-  }>
+  }[]
 }
 
 interface ZaneResolvedCurrentDeployment {

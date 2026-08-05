@@ -2,7 +2,7 @@ type MedusaCookieSameSite = "lax" | "none" | "strict"
 
 const FEATURE_FLAG_ENABLED_VALUE = "1"
 
-export type MedusaConfigEnv = {
+export interface MedusaConfigEnv {
   adminAllowedHosts: true | string[] | undefined
   adminCors: string
   authCors: string
@@ -108,7 +108,7 @@ function readEnumEnv<const AllowedValues extends readonly string[]>(
     )
   }
 
-  return value as AllowedValues[number]
+  return value
 }
 
 function readBooleanFlagEnv(env: NodeJS.ProcessEnv, name: string): boolean {
@@ -126,11 +126,11 @@ function readCookieOptions(
       : undefined
 
   return {
-    ...(secure !== undefined
-      ? {
+    ...(secure === undefined
+      ? {}
+      : {
           secure: secure === "1" || secure.toLowerCase() === "true",
-        }
-      : {}),
+        }),
     ...(parsedSameSite
       ? {
           sameSite: parsedSameSite,

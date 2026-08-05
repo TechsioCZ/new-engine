@@ -28,8 +28,8 @@ const Quotes = () => {
 }
 
 export const config = defineRouteConfig({
-  label: "menuItem",
   icon: DocumentText,
+  label: "menuItem",
   translationNs: "quotes",
 })
 

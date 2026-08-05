@@ -5,8 +5,8 @@ import {
 } from "@/data/static/categories"
 
 const ROOT_CATEGORIES = rootCategories.map((cat) => ({
-  id: cat.id,
   handle: cat.handle,
+  id: cat.id,
 }))
 
 const CATEGORIES_LEAFS_IDS = ROOT_CATEGORIES.map((cat) => {
@@ -14,8 +14,8 @@ const CATEGORIES_LEAFS_IDS = ROOT_CATEGORIES.map((cat) => {
     .filter((leaf) => leaf.root_category_id === cat.id)
     .map((leaf) => leaf.id)
   return {
-    handle: cat.handle,
     children,
+    handle: cat.handle,
   }
 })
 
@@ -27,26 +27,26 @@ export const CATEGORY_MAP_BY_ID = Object.fromEntries(
 export const VALID_CATEGORY_ROUTES = allCategories.map((cat) => cat.handle)
 
 export const CATEGORY_MAP: Record<string, string[]> = {
-  panske:
-    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "panske")?.children || [],
+  "cyklo-category-378":
+    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "cyklo-category-378")
+      ?.children || [],
   damske:
     CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "damske")?.children || [],
   detske:
     CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "detske")?.children || [],
-  "obleceni-category-347":
-    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "obleceni-category-347")
-      ?.children || [],
-  "cyklo-category-378":
-    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "cyklo-category-378")
-      ?.children || [],
   "moto-category-424":
     CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "moto-category-424")
       ?.children || [],
-  "snb-skate-category-448":
-    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "snb-skate-category-448")
+  "obleceni-category-347":
+    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "obleceni-category-347")
       ?.children || [],
+  panske:
+    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "panske")?.children || [],
   "ski-category-466":
     CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "ski-category-466")
+      ?.children || [],
+  "snb-skate-category-448":
+    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "snb-skate-category-448")
       ?.children || [],
 }
 
@@ -106,10 +106,10 @@ export const DEFAULT_COUNTRY_CODE = "cz"
  */
 export const COUNTRY_OPTIONS = [
   {
-    value: "cz",
-    label: "Česká republika",
     displayValue: "Česká republika",
+    label: "Česká republika",
     phonePrefix: "+420",
+    value: "cz",
   },
   // { value: 'sk', label: 'Slovensko', displayValue: 'Slovensko' },
 ]
@@ -118,12 +118,12 @@ export const COUNTRY_OPTIONS = [
  * Cache times (in milliseconds) for React Query
  */
 export const CACHE_TIMES = {
-  /** Shipping options staleTime - 5 minutes */
-  SHIPPING_OPTIONS_STALE: 5 * 60 * 1000,
-  /** Shipping options gcTime - 30 minutes */
-  SHIPPING_OPTIONS_GC: 30 * 60 * 1000,
   /** Payment providers staleTime - 5 minutes */
   PAYMENT_PROVIDERS_STALE: 5 * 60 * 1000,
+  /** Shipping options gcTime - 30 minutes */
+  SHIPPING_OPTIONS_GC: 30 * 60 * 1000,
+  /** Shipping options staleTime - 5 minutes */
+  SHIPPING_OPTIONS_STALE: 5 * 60 * 1000,
 } as const
 
 /**

@@ -1,7 +1,8 @@
 "use client"
 
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
-import { type ReactNode, useState } from "react"
+import { useState } from "react"
+import type { ReactNode } from "react"
 
 import {
   resolveVisibleFieldFeedback,
@@ -9,7 +10,7 @@ import {
 } from "@/lib/forms/core/field-errors"
 import { useFieldContext } from "@/lib/forms/core/herbatika-form-context"
 
-type FormTextFieldProps = {
+interface FormTextFieldProps {
   id: string
   label?: ReactNode
   type?: "text" | "email" | "password" | "tel"

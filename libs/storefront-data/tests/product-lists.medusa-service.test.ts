@@ -1,3 +1,5 @@
+import { vi, describe, expect, it } from "vitest"
+
 import { createMedusaProductListService } from "../src/product-lists/medusa-service"
 import { createTestMedusaSdk } from "./medusa-fixtures"
 
@@ -8,35 +10,37 @@ const createSdkMock = (response: unknown = {}) => {
   return { fetch, sdk }
 }
 
-describe("createMedusaProductListService", () => {
+describe(createMedusaProductListService, () => {
   it("lists product lists with normalized pagination and forwards signal", async () => {
     const { fetch, sdk } = createSdkMock({
-      product_lists: [{ id: "list_1", title: "Favorites" }],
       count: 1,
       limit: 12,
       offset: 24,
+      product_lists: [{ id: "list_1", title: "Favorites" }],
     })
     const service = createMedusaProductListService(sdk)
     const controller = new AbortController()
 
     const result = await service.listProductLists(
       {
-        type: "custom",
         limit: 12,
         offset: 24,
+        type: "custom",
       },
       controller.signal
     )
 
     expect(fetch).toHaveBeenCalledWith("/store/product-lists", {
       query: {
-        type: "custom",
         limit: 12,
         offset: 24,
+        type: "custom",
       },
       signal: controller.signal,
     })
-    expect(result.productLists).toEqual([{ id: "list_1", title: "Favorites" }])
+    expect(result.productLists).toStrictEqual([
+      { id: "list_1", title: "Favorites" },
+    ])
     expect(result.count).toBe(1)
   })
 
@@ -45,27 +49,27 @@ describe("createMedusaProductListService", () => {
       product_list_item: {
         id: "item_1",
         product_id: "prod_1",
-        variant_id: "var_1",
         quantity: 2,
+        variant_id: "var_1",
       },
     })
     const service = createMedusaProductListService(sdk)
 
     const item = await service.addFavoriteProductListItem({
       productId: "prod_1",
-      variantId: "var_1",
       quantity: 2.9,
+      variantId: "var_1",
     })
 
     expect(fetch).toHaveBeenCalledWith("/store/product-lists/favorites/items", {
-      method: "POST",
       body: {
         product_id: "prod_1",
-        variant_id: "var_1",
         quantity: 2,
+        variant_id: "var_1",
       },
+      method: "POST",
     })
-    expect(item).toEqual(
+    expect(item).toStrictEqual(
       expect.objectContaining({
         id: "item_1",
         quantity: 2,
@@ -104,10 +108,10 @@ describe("createMedusaProductListService", () => {
     expect(fetch).toHaveBeenCalledWith(
       "/store/product-lists/items/item_1/change-quantity",
       {
-        method: "POST",
         body: {
           quantity: 2,
         },
+        method: "POST",
       }
     )
   })
@@ -128,10 +132,10 @@ describe("createMedusaProductListService", () => {
     expect(fetch).toHaveBeenCalledWith(
       "/store/product-lists/items/item_1/increment",
       {
-        method: "POST",
         body: {
           quantity: 1,
         },
+        method: "POST",
       }
     )
   })
@@ -146,23 +150,23 @@ describe("createMedusaProductListService", () => {
     const service = createMedusaProductListService(sdk)
 
     const cart = await service.createProductListCart({
-      listId: "list_1",
-      regionId: "reg_1",
       countryCode: "sk",
       email: "customer@example.com",
+      listId: "list_1",
+      regionId: "reg_1",
       salesChannelId: "sc_1",
     })
 
     expect(fetch).toHaveBeenCalledWith("/store/product-lists/list_1/cart", {
-      method: "POST",
       body: {
-        region_id: "reg_1",
         country_code: "sk",
         email: "customer@example.com",
+        region_id: "reg_1",
         sales_channel_id: "sc_1",
       },
+      method: "POST",
     })
-    expect(cart).toEqual({
+    expect(cart).toStrictEqual({
       id: "cart_1",
       region_id: "reg_1",
     })

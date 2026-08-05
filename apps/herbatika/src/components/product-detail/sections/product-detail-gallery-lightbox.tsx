@@ -3,17 +3,17 @@
 import { ActionIcon } from "@techsio/ui-kit/atoms/action-icon"
 import { Carousel } from "@techsio/ui-kit/molecules/carousel"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
-import {
-  Gallery,
-  type GalleryItem,
-  type GalleryValueChangeDetails,
+import { Gallery } from "@techsio/ui-kit/organisms/gallery"
+import type {
+  GalleryItem,
+  GalleryValueChangeDetails,
 } from "@techsio/ui-kit/organisms/gallery"
 import { useTranslations } from "next-intl"
 
 import { FallbackImage } from "@/components/fallback-image"
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 
-type ProductDetailGalleryLightboxProps = {
+interface ProductDetailGalleryLightboxProps {
   items: GalleryItem[]
   onOpenChange: (open: boolean) => void
   onValueChange: (value: number) => void

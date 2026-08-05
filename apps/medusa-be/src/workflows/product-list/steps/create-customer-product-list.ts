@@ -12,7 +12,7 @@ import {
   findCustomerFavoriteProductList,
 } from "./helpers"
 
-type CompensationInput = {
+interface CompensationInput {
   list_id: string
   created: boolean
 }

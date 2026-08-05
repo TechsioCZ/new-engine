@@ -13,37 +13,37 @@ export const useQuotesTableColumns = () => {
 
   return [
     columnHelper.accessor("draft_order.display_id", {
-      header: t("columns.id"),
       cell: ({ getValue }) => <TextCell text={`#${getValue()}`} />,
+      header: t("columns.id"),
     }),
     columnHelper.accessor("status", {
-      header: t("columns.status"),
       cell: ({ getValue }) => <QuoteStatusBadge status={getValue()} />,
+      header: t("columns.status"),
     }),
     columnHelper.display({
-      id: "email",
-      header: t("columns.email"),
       cell: ({ row }) => <TextCell text={row.original.customer?.email} />,
+      header: t("columns.email"),
+      id: "email",
     }),
     columnHelper.display({
-      id: "company",
-      header: t("columns.company"),
       cell: ({ row }) => (
         <TextCell text={row.original.customer?.employee?.company?.name} />
       ),
+      header: t("columns.company"),
+      id: "company",
     }),
     columnHelper.accessor("draft_order.total", {
-      header: t("columns.total"),
       cell: ({ getValue, row }) => (
         <TextCell
           text={`${row.original.draft_order.currency_code.toUpperCase()} ${getValue()}`}
         />
       ),
+      header: t("columns.total"),
     }),
 
     columnHelper.accessor("created_at", {
-      header: t("columns.createdAt"),
       cell: ({ getValue }) => <DateCell date={getValue()} />,
+      header: t("columns.createdAt"),
     }),
   ]
 }

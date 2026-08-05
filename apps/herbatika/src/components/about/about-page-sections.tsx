@@ -2,7 +2,8 @@ import { Fragment } from "react"
 
 import NextLink from "@/components/app-link"
 
-import { ABOUT_PAGE, type AboutParagraph } from "./about-page.data"
+import { ABOUT_PAGE } from "./about-page.data"
+import type { AboutParagraph } from "./about-page.data"
 import {
   AboutImageFrame,
   AboutParagraphText,

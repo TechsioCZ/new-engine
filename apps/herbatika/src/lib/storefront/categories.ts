@@ -25,7 +25,7 @@ export const useCategories = (
     options
   )
 
-export const usePrefetchCategory = categoryHooks.usePrefetchCategory
+export const { usePrefetchCategory } = categoryHooks
 
 export const usePrefetchCategories = (
   ...args: Parameters<CategoryHooks["usePrefetchCategories"]>
@@ -34,18 +34,6 @@ export const usePrefetchCategories = (
 
   return {
     ...prefetch,
-    prefetchCategories: (
-      input: CategoryListInput,
-      ...prefetchArgs: Parameters<typeof prefetch.prefetchCategories> extends [
-        unknown,
-      ]
-        ? []
-        : never
-    ) =>
-      prefetch.prefetchCategories(
-        toCategoryListParams(buildCategoryListParams(input)),
-        ...prefetchArgs
-      ),
     delayedPrefetch: (
       input: CategoryListInput,
       ...prefetchArgs: Parameters<typeof prefetch.delayedPrefetch> extends [
@@ -56,6 +44,18 @@ export const usePrefetchCategories = (
         : never
     ) =>
       prefetch.delayedPrefetch(
+        toCategoryListParams(buildCategoryListParams(input)),
+        ...prefetchArgs
+      ),
+    prefetchCategories: async (
+      input: CategoryListInput,
+      ...prefetchArgs: Parameters<typeof prefetch.prefetchCategories> extends [
+        unknown,
+      ]
+        ? []
+        : never
+    ) =>
+      prefetch.prefetchCategories(
         toCategoryListParams(buildCategoryListParams(input)),
         ...prefetchArgs
       ),

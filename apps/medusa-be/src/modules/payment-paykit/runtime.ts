@@ -24,7 +24,7 @@ export type PaykitProviderRuntime = Pick<PayKitProvider, "handleWebhook">
 
 type PaykitConstructor = new (provider: PayKitProvider) => PaykitRuntime
 
-type CreatedPaykitClient = {
+interface CreatedPaykitClient {
   client: PaykitPaymentClient
   provider: PayKitProvider
 }
@@ -40,7 +40,7 @@ const isPaykitProviderRuntime = (
 
 const dynamicImport = async (
   specifier: string
-): Promise<Record<string, unknown>> => import(specifier)
+): Promise<Record<string, unknown>> => await import(specifier)
 
 const isMissingPackageImportError = (
   packageName: string,
@@ -145,16 +145,16 @@ export const createPaykitClientWithProvider = async (
   return {
     client: {
       customers: paykit.customers,
+      handleWebhook: async (payload) =>
+        callPaykitProviderWebhook(provider, payload, webhookOptions),
       payments: paykit.payments,
       refunds: paykit.refunds,
-      handleWebhook: (payload) =>
-        callPaykitProviderWebhook(provider, payload, webhookOptions),
     },
     provider,
   }
 }
 
-export const callPaykitProviderWebhook = (
+export const callPaykitProviderWebhook = async (
   provider: PaykitProviderRuntime,
   payload: ProviderWebhookPayload["payload"],
   webhookOptions: Record<string, unknown> = {}
@@ -204,16 +204,16 @@ export const getComgateProviderOptions = (
 ): PaykitComgateProviderOptions => ({
   ...(options.merchant ? { merchant: options.merchant } : {}),
   ...(options.secret ? { secret: options.secret } : {}),
-  isSandbox: options.isSandbox ?? true,
   debug: options.debug ?? false,
+  isSandbox: options.isSandbox ?? true,
 })
 
 const toPaykitWebhookPayload = (
   payload: ProviderWebhookPayload["payload"]
 ) => ({
   body: rawBodyToString(payload.rawData),
-  headersAsObject: toHeadersAsObject(payload.headers),
   fullUrl: getWebhookFullUrl(payload),
+  headersAsObject: toHeadersAsObject(payload.headers),
 })
 
 const getWebhookSecret = (
@@ -227,7 +227,7 @@ const rawBodyToString = (
   rawData: ProviderWebhookPayload["payload"]["rawData"]
 ): string => {
   if (Buffer.isBuffer(rawData)) {
-    return rawData.toString("utf8")
+    return rawData.toString("utf-8")
   }
 
   if (typeof rawData === "string") {

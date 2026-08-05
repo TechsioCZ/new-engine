@@ -11,18 +11,14 @@ import {
   resolveProductReviewSubmitErrorMessage,
   translateProductReviewErrorMessages,
 } from "@/components/reviews/product-review-errors"
-import {
-  ProductReviewForm,
-  type ProductReviewFormSubmitValues,
-} from "@/components/reviews/product-review-form"
-import {
-  type ProductReviewTokenProductStatus,
-  resolveProductStatusMessage,
-} from "@/components/reviews/product-review-token-status"
+import { ProductReviewForm } from "@/components/reviews/product-review-form"
+import type { ProductReviewFormSubmitValues } from "@/components/reviews/product-review-form"
+import { resolveProductStatusMessage } from "@/components/reviews/product-review-token-status"
+import type { ProductReviewTokenProductStatus } from "@/components/reviews/product-review-token-status"
 import { useProducts } from "@/lib/storefront/products"
 import { useCreateProductReview } from "@/lib/storefront/reviews"
 
-type ProductReviewTokenPageProps = {
+interface ProductReviewTokenPageProps {
   productId?: string
   token: string
 }

@@ -7,7 +7,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 
-type UpdateOrderBusinessStatusInput = {
+interface UpdateOrderBusinessStatusInput {
   id: string
   metadata: Record<string, unknown>
 }

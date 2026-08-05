@@ -5,7 +5,7 @@ import { makeQueryClient } from "../shared/query-client"
 const ensureServerEnvironment = () => {
   const isVitest =
     typeof process !== "undefined" &&
-    (process.env["VITEST"] === "true" || process.env["NODE_ENV"] === "test")
+    (process.env.VITEST === "true" || process.env.NODE_ENV === "test")
 
   if (typeof window !== "undefined" && !isVitest) {
     throw new Error(

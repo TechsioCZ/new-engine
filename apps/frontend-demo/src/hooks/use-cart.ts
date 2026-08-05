@@ -13,20 +13,24 @@ import { queryKeys } from "@/lib/query-keys"
 
 export type Cart = HttpTypes.StoreCart | undefined
 
-type ErrorResponse = {
+interface ErrorResponse {
   status?: number
   message?: string
   response?: { status?: number; data?: { message?: string } }
 }
 
 const getErrorStatus = (error: unknown): number | undefined => {
-  if (!error || typeof error !== "object") return undefined
+  if (!error || typeof error !== "object") {
+    return undefined
+  }
   const err = error as ErrorResponse
   return err.status ?? err.response?.status
 }
 
 const resolveErrorMessage = (error: unknown): string | undefined => {
-  if (!error || typeof error !== "object") return undefined
+  if (!error || typeof error !== "object") {
+    return undefined
+  }
   const err = error as ErrorResponse
   return err.message ?? err.response?.data?.message
 }
@@ -45,15 +49,15 @@ export function useCart() {
     error,
   } = useQuery({
     queryKey: queryKeys.cart(
-      typeof window !== "undefined"
-        ? localStorage.getItem(STORAGE_KEYS.CART_ID) || undefined
-        : undefined
+      typeof window === "undefined"
+        ? undefined
+        : localStorage.getItem(STORAGE_KEYS.CART_ID) || undefined
     ),
     queryFn: async () => {
       const cartId =
-        typeof window !== "undefined"
-          ? localStorage.getItem(STORAGE_KEYS.CART_ID)
-          : null
+        typeof window === "undefined"
+          ? null
+          : localStorage.getItem(STORAGE_KEYS.CART_ID)
 
       if (cartId) {
         try {
@@ -68,16 +72,16 @@ export function useCart() {
           }
 
           return cart
-        } catch (err) {
-          console.error("[Cart Hook] Failed to retrieve cart:", err)
+        } catch (error) {
+          console.error("[Cart Hook] Failed to retrieve cart:", error)
           // Only remove cart ID if it's a 404 (cart not found)
-          if (getErrorStatus(err) === 404) {
+          if (getErrorStatus(error) === 404) {
             if (typeof window !== "undefined") {
               localStorage.removeItem(STORAGE_KEYS.CART_ID)
             }
           } else {
             // For other errors, don't remove cart ID - might be network issue
-            throw err
+            throw error
           }
         }
       }
@@ -100,7 +104,9 @@ export function useCart() {
     ...cacheConfig.realtime, // 30s stale, 5m gc, refetch on focus
     retry: (failureCount, error) => {
       // Don't retry if cart was not found
-      if (getErrorStatus(error) === 404) return false
+      if (getErrorStatus(error) === 404) {
+        return false
+      }
       // Retry up to 3 times for other errors
       return failureCount < 3
     },
@@ -125,14 +131,6 @@ export function useCart() {
         }
       )
       return updatedCart
-    },
-    onSuccess: (updatedCart) => {
-      queryClient.setQueryData(queryKeys.cart(updatedCart.id), updatedCart)
-      toast.create({
-        title: "Přidáno do košíku",
-        description: "Položka byla přidána do vašeho košíku",
-        type: "success",
-      })
     },
     onError: async (error) => {
       console.error("[Cart Hook] Add item error:", error)
@@ -170,6 +168,14 @@ export function useCart() {
         })
       }
     },
+    onSuccess: (updatedCart) => {
+      queryClient.setQueryData(queryKeys.cart(updatedCart.id), updatedCart)
+      toast.create({
+        title: "Přidáno do košíku",
+        description: "Položka byla přidána do vašeho košíku",
+        type: "success",
+      })
+    },
   })
 
   // Update quantity mutation
@@ -196,15 +202,15 @@ export function useCart() {
       )
       return updatedCart
     },
-    onSuccess: (updatedCart) => {
-      queryClient.setQueryData(queryKeys.cart(updatedCart.id), updatedCart)
-    },
     onError: (error: Error) => {
       toast.create({
         title: "Nepodařilo se aktualizovat množství",
         description: error.message,
         type: "error",
       })
+    },
+    onSuccess: (updatedCart) => {
+      queryClient.setQueryData(queryKeys.cart(updatedCart.id), updatedCart)
     },
   })
 
@@ -217,6 +223,13 @@ export function useCart() {
       const { cart: updatedCart } = await sdk.store.cart.retrieve(cart.id)
       return updatedCart
     },
+    onError: (error: Error) => {
+      toast.create({
+        title: "Nepodařilo se odebrat položku",
+        description: error.message,
+        type: "error",
+      })
+    },
     onSuccess: (updatedCart) => {
       queryClient.setQueryData(queryKeys.cart(updatedCart.id), updatedCart)
       toast.create({
@@ -225,19 +238,14 @@ export function useCart() {
         type: "success",
       })
     },
-    onError: (error: Error) => {
-      toast.create({
-        title: "Nepodařilo se odebrat položku",
-        description: error.message,
-        type: "error",
-      })
-    },
   })
 
   // Clear cart mutation
   const clearCartMutation = useMutation({
     mutationFn: async () => {
-      if (!cart) throw new Error("No cart available")
+      if (!cart) {
+        throw new Error("No cart available")
+      }
 
       // Remove all items
       for (const item of cart.items || []) {
@@ -250,8 +258,8 @@ export function useCart() {
     onSuccess: (updatedCart) => {
       queryClient.setQueryData(queryKeys.cart(updatedCart.id), updatedCart)
       toast.create({
-        title: "Košík vyprázdněn",
         description: "Všechny položky byly odebrány z vašeho košíku",
+        title: "Košík vyprázdněn",
         type: "success",
       })
     },
@@ -266,19 +274,19 @@ export function useCart() {
       })
       return updatedCart
     },
+    onError: (error: Error) => {
+      toast.create({
+        title: "Neplatný slevový kód",
+        description: error.message,
+        type: "error",
+      })
+    },
     onSuccess: (updatedCart) => {
       queryClient.setQueryData(queryKeys.cart(updatedCart.id), updatedCart)
       toast.create({
         title: "Sleva aplikována",
         description: "Váš slevový kód byl aplikován",
         type: "success",
-      })
-    },
-    onError: (error: Error) => {
-      toast.create({
-        title: "Neplatný slevový kód",
-        description: error.message,
-        type: "error",
       })
     },
   })
@@ -292,22 +300,36 @@ export function useCart() {
 
     // UI state
     isOpen,
-    toggleCart: () => setIsOpen((prev) => !prev),
-    openCart: () => setIsOpen(true),
-    closeCart: () => setIsOpen(false),
+    toggleCart: () => {
+      setIsOpen((prev) => !prev)
+    },
+    openCart: () => {
+      setIsOpen(true)
+    },
+    closeCart: () => {
+      setIsOpen(false)
+    },
 
     // Actions
-    addItem: (variantId: string, quantity?: number) =>
+    addItem: (variantId: string, quantity?: number) => {
       addItemMutation.mutate({
         variantId,
         ...(quantity !== undefined && { quantity }),
-      }),
-    updateQuantity: (lineItemId: string, quantity: number) =>
-      updateQuantityMutation.mutate({ lineItemId, quantity }),
-    removeItem: (lineItemId: string) => removeItemMutation.mutate(lineItemId),
-    clearCart: () => clearCartMutation.mutate(),
-    applyDiscount: (code: string) => applyDiscountMutation.mutate(code),
-    refetch: () =>
+      })
+    },
+    updateQuantity: (lineItemId: string, quantity: number) => {
+      updateQuantityMutation.mutate({ lineItemId, quantity })
+    },
+    removeItem: (lineItemId: string) => {
+      removeItemMutation.mutate(lineItemId)
+    },
+    clearCart: () => {
+      clearCartMutation.mutate()
+    },
+    applyDiscount: (code: string) => {
+      applyDiscountMutation.mutate(code)
+    },
+    refetch: async () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.cart(cart?.id) }),
 
     // Mutations for direct access

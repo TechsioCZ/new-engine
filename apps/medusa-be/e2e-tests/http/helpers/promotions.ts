@@ -1,67 +1,67 @@
 import type { ApiClient } from "./client"
 import { assertOk, authenticateAdmin, createClient } from "./client"
 
-type ApiKey = {
+interface ApiKey {
   id: string
   token: string
 }
 
-export type Brand = {
+export interface Brand {
   id: string
   title: string
 }
 
-type Region = {
+interface Region {
   countries?: Array<{ iso_2?: string }>
   currency_code?: string
   id: string
   name?: string
 }
 
-export type Product = {
+export interface Product {
   id: string
   title: string
   variants: [ProductVariant, ...ProductVariant[]]
 }
 
-export type ProductVariant = {
+export interface ProductVariant {
   id: string
   sku?: string
   title: string
 }
 
-export type Promotion = {
+export interface Promotion {
   code: string
   id: string
   is_automatic?: boolean
 }
 
-export type PromotionRule = {
+export interface PromotionRule {
   attribute: string
   operator: string
   values: string[]
 }
 
-export type CartItem = {
+export interface CartItem {
   adjustments?: Array<{ code?: string; promotion_id?: string }>
   discount_total?: number
   id: string
   variant_id: string
 }
 
-export type Cart = {
+export interface Cart {
   discount_total?: number
   id: string
   items: CartItem[]
 }
 
-export type DraftOrderPreview = {
+export interface DraftOrderPreview {
   discount_total?: number
   id: string
   items: Array<CartItem & { product_id?: string }>
 }
 
-export type TestContext = {
+export interface TestContext {
   admin: ApiClient
   regionId: string
   salesChannelId: string
@@ -76,9 +76,9 @@ const shippingAddress = {
   address_1: "123 Test Street",
   city: "Prague",
   country_code: "us",
-  postal_code: "10001",
   first_name: "Test",
   last_name: "Customer",
+  postal_code: "10001",
 }
 
 export function suffix() {
@@ -172,7 +172,7 @@ export async function createBrand(
   admin: ApiClient,
   title = `Brand ${suffix()}`
 ) {
-  const handle = title.toLowerCase().replace(/[^a-z0-9]+/g, "-")
+  const handle = title.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-")
   const { brand } = await admin.post<{ brand: Brand }>("/admin/brands", {
     handle,
     title,
@@ -195,7 +195,7 @@ export async function createProduct(
   const { product } = await admin.post<{ product: Product }>(
     "/admin/products",
     {
-      handle: title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      handle: title.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-"),
       options: [{ title: "Size", values: ["One Size"] }],
       sales_channels: [{ id: salesChannelId }],
       status: "published",
@@ -303,7 +303,7 @@ export async function createBuyGetPromotion(
 
 export async function createCart(
   context: TestContext,
-  items: Array<{ quantity: number; variantId: string }>
+  items: { quantity: number; variantId: string }[]
 ) {
   const { cart } = await context.store.post<{ cart: Cart }>(
     `/store/carts?fields=${cartFields}`,
@@ -337,7 +337,7 @@ export async function applyPromotion(
 
 export async function createCartAndApplyPromotion(
   context: TestContext,
-  items: Array<{ quantity: number; variantId: string }>,
+  items: { quantity: number; variantId: string }[],
   promotionCode: string
 ) {
   const cart = await createCart(context, items)
@@ -354,7 +354,7 @@ export function getItem(cart: Cart | DraftOrderPreview, variantId: string) {
     throw new Error(`Expected cart item for variant ${variantId}`)
   }
 
-  return item as CartItem
+  return item
 }
 
 export function expectAdjusted(item: CartItem, promotion: Promotion) {

@@ -10,7 +10,7 @@ import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
+  await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
 export async function executeTeardownPreview(
@@ -23,93 +23,93 @@ export async function executeTeardownPreview(
 
   if (input.dryRun) {
     environment = {
-      ok: true,
-      http_code: 200,
-      status: "success",
       deleted: true,
       environment_name: environmentName,
+      error: null,
+      http_code: 200,
       noop: false,
       noop_reason: null,
-      error: null,
+      ok: true,
+      status: "success",
     }
     previewDb = {
-      ok: true,
-      http_code: 200,
-      status: "success",
-      deleted: true,
       db_name: `medusa_pr_${input.prNumber}`,
-      noop: false,
-      noop_reason: null,
-      role_deleted: true,
+      deleted: true,
       dev_grants_cleaned: true,
       error: null,
+      http_code: 200,
+      noop: false,
+      noop_reason: null,
+      ok: true,
+      role_deleted: true,
+      status: "success",
     }
   } else {
     const client = new ZaneOperatorClient(input.baseUrl, input.apiToken)
 
     try {
       const response = await client.archiveEnvironment({
-        project_slug: input.projectSlug,
         environment_name: environmentName,
+        project_slug: input.projectSlug,
       })
       environment = {
-        ok: true,
-        http_code: response.httpCode,
-        status: "success",
         deleted: response.body.deleted,
         environment_name: response.body.environment_name,
+        error: null,
+        http_code: response.httpCode,
         noop: response.body.noop,
         noop_reason: response.body.noop_reason,
-        error: null,
+        ok: true,
+        status: "success",
       }
     } catch (error) {
       environment = {
-        ok: false,
-        http_code: 0,
-        status: "failed",
         deleted: false,
         environment_name: environmentName,
+        error: error instanceof Error ? error.message : String(error),
+        http_code: 0,
         noop: false,
         noop_reason: null,
-        error: error instanceof Error ? error.message : String(error),
+        ok: false,
+        status: "failed",
       }
     }
 
     try {
       const response = await client.teardownPreviewDb(input.prNumber)
       previewDb = {
-        ok: true,
-        http_code: response.httpCode,
-        status: "success",
-        deleted: response.body.deleted,
         db_name: response.body.db_name,
-        noop: response.body.noop,
-        noop_reason: response.body.noop_reason,
-        role_deleted: response.body.role_deleted,
+        deleted: response.body.deleted,
         dev_grants_cleaned: response.body.dev_grants_cleaned,
         error: null,
+        http_code: response.httpCode,
+        noop: response.body.noop,
+        noop_reason: response.body.noop_reason,
+        ok: true,
+        role_deleted: response.body.role_deleted,
+        status: "success",
       }
     } catch (error) {
       previewDb = {
-        ok: false,
-        http_code: 0,
-        status: "failed",
-        deleted: false,
         db_name: `medusa_pr_${input.prNumber}`,
-        noop: false,
-        noop_reason: null,
-        role_deleted: false,
+        deleted: false,
         dev_grants_cleaned: false,
         error: error instanceof Error ? error.message : String(error),
+        http_code: 0,
+        noop: false,
+        noop_reason: null,
+        ok: false,
+        role_deleted: false,
+        status: "failed",
       }
     }
   }
 
   const response = teardownPreviewResponseSchema.parse({
-    project_slug: input.projectSlug,
-    pr_number: input.prNumber,
     environment,
+    pr_number: input.prNumber,
     preview_db: previewDb,
+    project_slug: input.projectSlug,
     success: environment.ok && previewDb.ok,
   })
 

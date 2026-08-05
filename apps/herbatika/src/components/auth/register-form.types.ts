@@ -17,7 +17,7 @@ type RegisterFormAsyncValidate =
   | FormAsyncValidateOrFn<RegisterFormValues>
   | undefined
 
-type HerbatikaFieldComponents = {
+interface HerbatikaFieldComponents {
   CheckboxField: typeof FormCheckboxField
   PhoneField: typeof FormPhoneField
   RadioGroupField: typeof FormRadioGroupField

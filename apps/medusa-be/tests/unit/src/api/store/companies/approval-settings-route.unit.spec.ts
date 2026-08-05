@@ -2,13 +2,13 @@ import { ContainerRegistrationKeys } from "@medusajs/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const workflowMocks = vi.hoisted(() => ({
-  ensureApprovalSettingsWorkflow: vi.fn(),
-  updateApprovalSettingsWorkflow: vi.fn(),
   ensureApprovalSettingsRun: vi.fn(),
+  ensureApprovalSettingsWorkflow: vi.fn(),
   updateApprovalSettingsRun: vi.fn(),
+  updateApprovalSettingsWorkflow: vi.fn(),
 }))
 
-vi.mock("../../../../../../src/workflows/approval/workflows", () => ({
+vi.mock(import("../../../../../../src/workflows/approval/workflows"), () => ({
   ensureApprovalSettingsWorkflow: workflowMocks.ensureApprovalSettingsWorkflow,
   updateApprovalSettingsWorkflow: workflowMocks.updateApprovalSettingsWorkflow,
 }))
@@ -38,8 +38,8 @@ const createMockRequest = ({
 
 const createMockResponse = () =>
   ({
-    status: vi.fn().mockReturnThis(),
     send: vi.fn().mockReturnThis(),
+    status: vi.fn().mockReturnThis(),
   }) as any
 
 describe("POST /store/companies/:id/approval-settings", () => {
@@ -61,7 +61,7 @@ describe("POST /store/companies/:id/approval-settings", () => {
       await import("../../../../../../src/api/store/companies/[id]/approval-settings/route")
     const graph = vi.fn().mockResolvedValue({ data: [] })
     workflowMocks.ensureApprovalSettingsRun.mockResolvedValue({
-      result: [{ id: "apprset_created", company_id: "comp_1" }],
+      result: [{ company_id: "comp_1", id: "apprset_created" }],
     })
     const req = createMockRequest({ graph })
     const res = createMockResponse()
@@ -85,14 +85,14 @@ describe("POST /store/companies/:id/approval-settings", () => {
       },
     })
     expect(res.status).toHaveBeenCalledWith(201)
-    expect(res.send).toHaveBeenCalled()
+    expect(res.send).toHaveBeenCalledWith()
   })
 
   it("updates the existing approval settings record", async () => {
     const { POST } =
       await import("../../../../../../src/api/store/companies/[id]/approval-settings/route")
     const graph = vi.fn().mockResolvedValue({
-      data: [{ id: "apprset_1", company_id: "comp_1" }],
+      data: [{ company_id: "comp_1", id: "apprset_1" }],
     })
     const req = createMockRequest({ graph })
     const res = createMockResponse()
@@ -111,6 +111,6 @@ describe("POST /store/companies/:id/approval-settings", () => {
       },
     })
     expect(res.status).toHaveBeenCalledWith(201)
-    expect(res.send).toHaveBeenCalled()
+    expect(res.send).toHaveBeenCalledWith()
   })
 })

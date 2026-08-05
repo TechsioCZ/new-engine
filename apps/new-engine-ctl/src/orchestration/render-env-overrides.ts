@@ -1,10 +1,10 @@
 import { mkdir, writeFile } from "node:fs/promises"
 import { dirname } from "node:path"
 
-import {
-  type RenderEnvOverridesCommandInput,
-  type RenderEnvOverridesResponse,
-  renderEnvOverridesResponseSchema,
+import { renderEnvOverridesResponseSchema } from "../contracts/render-env-overrides.js"
+import type {
+  RenderEnvOverridesCommandInput,
+  RenderEnvOverridesResponse,
 } from "../contracts/render-env-overrides.js"
 import {
   buildExpectedEnvOverrides,
@@ -14,7 +14,7 @@ import {
 
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
+  await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
 export async function executeRenderEnvOverrides(
@@ -30,8 +30,8 @@ export async function executeRenderEnvOverrides(
     services: buildExpectedEnvOverrides(deployServiceIds, contracts, {
       lane: input.lane,
       previewDbName: input.previewDbName,
-      previewDbUser: input.previewDbUser,
       previewDbPassword: input.previewDbPassword,
+      previewDbUser: input.previewDbUser,
       previewRandomOnceSecrets: input.previewRandomOnceSecrets,
       runtimeProviderOutputs: input.runtimeProviderOutputs,
     }),

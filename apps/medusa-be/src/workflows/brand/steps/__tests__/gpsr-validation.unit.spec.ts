@@ -7,11 +7,11 @@ import {
 } from "../validation"
 
 const validOutsideEuState = {
-  handle: "outside-eu",
-  gpsr_manufactured_outside_eu: true,
+  gpsr_european_reseller_contact_email: "eu@example.com",
   gpsr_european_reseller_manufacturing_company_name: "EU Company",
   gpsr_european_reseller_postal_address: "EU Address",
-  gpsr_european_reseller_contact_email: "eu@example.com",
+  gpsr_manufactured_outside_eu: true,
+  handle: "outside-eu",
 }
 
 describe("workflow-owned brand GPSR validation", () => {

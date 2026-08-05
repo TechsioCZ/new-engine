@@ -11,19 +11,15 @@
  */
 import { mergeProps, normalizeProps, Portal, useMachine } from "@zag-js/react"
 import * as select from "@zag-js/select"
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type ReactNode,
-  type Ref,
-  useContext,
-  useId,
-} from "react"
-import { tv, type VariantProps } from "tailwind-variants"
+import { createContext, useContext, useId } from "react"
+import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react"
+import { tv } from "tailwind-variants"
+import type { VariantProps } from "tailwind-variants"
 
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
-import { Icon, type IconProps } from "../atoms/icon"
+import { Icon } from "../atoms/icon"
+import type { IconProps } from "../atoms/icon"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 
@@ -33,12 +29,12 @@ export type SelectSize = "xs" | "sm" | "md" | "lg"
 const toControlSize = (size: SelectSize): "sm" | "md" | "lg" =>
   size === "xs" ? "sm" : size
 const controlGlyphClass: Record<"sm" | "md" | "lg", string> = {
-  sm: "text-icon-control-sm",
-  md: "text-icon-control-md",
   lg: "text-icon-control-lg",
+  md: "text-icon-control-md",
+  sm: "text-icon-control-sm",
 }
 
-export type SelectItem = {
+export interface SelectItem {
   label: ReactNode
   value: string
   disabled?: boolean | undefined
@@ -47,6 +43,9 @@ export type SelectItem = {
 }
 
 const selectVariants = tv({
+  defaultVariants: {
+    size: "md",
+  },
   slots: {
     root: ["relative", "flex flex-col gap-select", "w-full"],
     control: ["relative flex items-center justify-between", "w-full"],
@@ -120,40 +119,37 @@ const selectVariants = tv({
   },
   variants: {
     size: {
-      xs: {
-        trigger: "p-select-trigger-sm text-select-trigger-xs",
-        item: "text-select-item-xs",
-        valueText: "text-select-value-xs",
-        itemGroupLabel: "text-select-item-group-label-xs",
-      },
-      sm: {
-        trigger:
-          "h-form-control-sm rounded-select-sm p-select-trigger-sm text-select-trigger-sm",
-        item: "text-select-item-sm",
-        valueText: "text-select-value-sm",
-        itemGroupLabel: "text-select-item-group-label-sm",
+      lg: {
+        item: "text-select-item-lg",
+        itemGroupLabel: "text-select-item-group-label-lg",
+        trigger: "p-select-trigger-md text-select-trigger-lg",
+        valueText: "text-select-value-lg",
       },
       md: {
+        item: "text-select-item-md",
+        itemGroupLabel: "text-select-item-group-label-md",
         trigger:
           "h-form-control-md rounded-select-md p-select-trigger-md text-select-trigger-md",
-        item: "text-select-item-md",
         valueText: "text-select-value-md",
-        itemGroupLabel: "text-select-item-group-label-md",
       },
-      lg: {
-        trigger: "p-select-trigger-md text-select-trigger-lg",
-        item: "text-select-item-lg",
-        valueText: "text-select-value-lg",
-        itemGroupLabel: "text-select-item-group-label-lg",
+      sm: {
+        item: "text-select-item-sm",
+        itemGroupLabel: "text-select-item-group-label-sm",
+        trigger:
+          "h-form-control-sm rounded-select-sm p-select-trigger-sm text-select-trigger-sm",
+        valueText: "text-select-value-sm",
+      },
+      xs: {
+        item: "text-select-item-xs",
+        itemGroupLabel: "text-select-item-group-label-xs",
+        trigger: "p-select-trigger-sm text-select-trigger-xs",
+        valueText: "text-select-value-xs",
       },
     },
   },
-  defaultVariants: {
-    size: "md",
-  },
 })
 
-type SelectContextValue = {
+interface SelectContextValue {
   api: ReturnType<typeof select.connect>
   size: SelectSize
   items: SelectItem[]
@@ -171,7 +167,7 @@ function useSelectContext() {
 }
 
 // Item context for sharing item-specific state
-type SelectItemContextValue = {
+interface SelectItemContextValue {
   item: SelectItem
 }
 
@@ -229,36 +225,36 @@ export function Select({
   const invalid = validateStatus === "error"
 
   const collection = select.collection({
-    items,
+    isItemDisabled: (item) => !!item.disabled,
     itemToString: (item) => item.displayValue || item.value,
     itemToValue: (item) => item.value,
-    isItemDisabled: (item) => !!item.disabled,
+    items,
   })
 
   const service = useMachine(select.machine, {
-    id,
-    collection,
-    name,
-    form,
-    multiple,
-    disabled,
-    invalid,
-    required,
-    readOnly,
     closeOnSelect,
-    loopFocus,
+    collection,
     defaultValue,
-    value,
-    onValueChange,
-    onOpenChange,
+    disabled,
+    form,
+    id,
+    invalid,
+    loopFocus,
+    multiple,
+    name,
     onHighlightChange,
+    onOpenChange,
+    onValueChange,
+    readOnly,
+    required,
+    value,
   })
 
   const api = select.connect(service as select.Service, normalizeProps)
   const styles = selectVariants({ size })
 
   return (
-    <SelectContext.Provider value={{ api, size, items, validateStatus }}>
+    <SelectContext.Provider value={{ api, items, size, validateStatus }}>
       {/* Hidden form select for native form submission */}
       <select {...api.getHiddenSelectProps()}>
         {items.map((item) => (
@@ -339,7 +335,7 @@ Select.Trigger = function SelectTrigger({
       {...triggerProps}
       className={styles.trigger({ className })}
       data-validation={
-        validateStatus !== "default" ? validateStatus : undefined
+        validateStatus === "default" ? undefined : validateStatus
       }
       ref={ref}
       size="current"

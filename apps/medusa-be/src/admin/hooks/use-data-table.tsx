@@ -1,18 +1,20 @@
 import {
-  type ColumnDef,
   getCoreRowModel,
   getExpandedRowModel,
   getPaginationRowModel,
-  type OnChangeFn,
-  type PaginationState,
-  type Row,
-  type RowSelectionState,
   useReactTable,
+} from "@tanstack/react-table"
+import type {
+  ColumnDef,
+  OnChangeFn,
+  PaginationState,
+  Row,
+  RowSelectionState,
 } from "@tanstack/react-table"
 import { useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 
-type UseDataTableProps<TData> = {
+interface UseDataTableProps<TData> {
   data?: TData[] | undefined
   // ColumnDef is invariant in TValue, and this table accepts heterogeneous column value types.
   columns: ColumnDef<TData, any>[]

@@ -25,12 +25,12 @@ export function createResolveEnvironmentCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
     )
     .option("--dry-run", "", false)
     .option("--dry-run-created", "", false)
@@ -40,32 +40,30 @@ export function createResolveEnvironmentCommand(): Command {
           ? Number(options.prNumber)
           : undefined
       const input = resolveEnvironmentCommandInputSchema.parse({
-        lane: options.lane,
-        projectSlug:
-          options.projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
-        prNumber: parsedPrNumber,
+        apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
+        baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
+        dryRun: Boolean(options.dryRun),
+        dryRunCreated: Boolean(options.dryRunCreated),
         environmentName: options.environmentName ?? "",
-        sourceEnvironmentName:
-          options.sourceEnvironmentName ??
-          process.env["ZANE_PRODUCTION_ENVIRONMENT_NAME"] ??
-          "",
-        reconcileServiceIdsCsv: options.reconcileServiceIdsCsv,
+        lane: options.lane,
+        outputJson: options.outputJson,
+        prNumber: parsedPrNumber,
         previewClonedServiceIdsCsv: options.previewClonedServiceIdsCsv,
+        previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
         previewExcludedServiceIdsCsv: options.previewExcludedServiceIdsCsv,
         previewGitBranch:
           typeof options.previewGitBranch === "string" &&
           options.previewGitBranch.trim()
             ? options.previewGitBranch.trim()
-            : (process.env["ZANE_PREVIEW_GIT_BRANCH"]?.trim() ?? ""),
-        outputJson: options.outputJson,
-        baseUrl: options.baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
-        apiToken:
-          options.apiToken ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
-        dryRun: Boolean(options.dryRun),
-        dryRunCreated: Boolean(options.dryRunCreated),
-        stackManifestPath: options.stackManifestPath,
+            : (process.env.ZANE_PREVIEW_GIT_BRANCH?.trim() ?? ""),
+        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+        reconcileServiceIdsCsv: options.reconcileServiceIdsCsv,
+        sourceEnvironmentName:
+          options.sourceEnvironmentName ??
+          process.env.ZANE_PRODUCTION_ENVIRONMENT_NAME ??
+          "",
         stackInputsPath: options.stackInputsPath,
-        previewEnvPrefix: process.env["ZANE_PREVIEW_ENV_PREFIX"] ?? "pr-",
+        stackManifestPath: options.stackManifestPath,
       })
 
       const result = await executeResolveEnvironment(input)

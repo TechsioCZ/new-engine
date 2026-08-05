@@ -5,8 +5,8 @@ import {
   getRuntimeProviderReadinessPath,
   getRuntimeProviderSourceServiceId,
   listRuntimeProviderOutputTargets,
-  type StackInputs,
 } from "../contracts/stack-inputs.js"
+import type { StackInputs } from "../contracts/stack-inputs.js"
 import type { StackManifest } from "../contracts/stack-manifest.js"
 import { listDeployableServices } from "../contracts/stack-manifest.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
@@ -90,12 +90,12 @@ export function reusePersistedMedusaPublishableKeyFromTargets(input: {
   )
 
   return {
+    frontendEnvVar,
     frontendKey: resolveSharedPersistedValue({
       targets: input.targets,
       serviceIds: input.consumerIds,
       envVar: frontendEnvVar,
     }),
-    frontendEnvVar,
   }
 }
 
@@ -142,14 +142,14 @@ export async function provisionMedusaPublishableKey(input: {
 
   if (input.dryRun) {
     return {
-      project_slug: input.projectSlug,
       environment_name: input.environmentName,
+      frontend_created: true,
+      frontend_env_var: frontendEnvVar,
+      frontend_key: "dry-run:medusa:publishable",
+      frontend_updated: false,
+      project_slug: input.projectSlug,
       service_slug: input.serviceSlug,
       source_url: `https://${input.serviceSlug}.dry-run.invalid`,
-      frontend_key: "dry-run:medusa:publishable",
-      frontend_env_var: frontendEnvVar,
-      frontend_created: true,
-      frontend_updated: false,
     }
   }
 
@@ -157,11 +157,7 @@ export async function provisionMedusaPublishableKey(input: {
     input.baseUrl,
     input.apiToken
   ).runRuntimeProvider({
-    project_slug: input.projectSlug,
     environment_name: input.environmentName,
-    provider_id: input.providerId,
-    service_slug: input.serviceSlug,
-    readiness_path: readinessPath,
     outputs: [
       {
         output_id: "frontend_key",
@@ -172,19 +168,23 @@ export async function provisionMedusaPublishableKey(input: {
         },
       },
     ],
+    project_slug: input.projectSlug,
+    provider_id: input.providerId,
+    readiness_path: readinessPath,
+    service_slug: input.serviceSlug,
   })
 
   const frontendOutput = requireRuntimeProviderOutput(response, "frontend_key")
 
   return {
-    project_slug: response.project_slug,
     environment_name: response.environment_name,
+    frontend_created: frontendOutput.created,
+    frontend_env_var: frontendEnvVar,
+    frontend_key: frontendOutput.value,
+    frontend_updated: frontendOutput.updated,
+    project_slug: response.project_slug,
     service_slug: response.service_slug,
     source_url: response.source_url,
-    frontend_key: frontendOutput.value,
-    frontend_env_var: frontendEnvVar,
-    frontend_created: frontendOutput.created,
-    frontend_updated: frontendOutput.updated,
   }
 }
 

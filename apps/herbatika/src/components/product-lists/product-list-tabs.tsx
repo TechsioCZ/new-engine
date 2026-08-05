@@ -17,7 +17,7 @@ import {
 
 import type { AccountProductListsController } from "./use-account-product-lists"
 
-type ProductListTabsProps = {
+interface ProductListTabsProps {
   accountLists: AccountProductListsController
 }
 
@@ -239,7 +239,9 @@ export function ProductListTabs({ accountLists }: ProductListTabsProps) {
                     })}
                     disabled={accountLists.deleteListMutation.isPending}
                     icon="token-icon-close"
-                    onClick={() => accountLists.openDeleteListDialog(list.id)}
+                    onClick={() => {
+                      accountLists.openDeleteListDialog(list.id)
+                    }}
                     size="sm"
                     theme="borderless"
                     type="button"

@@ -21,11 +21,13 @@ import {
   deleteProductMeasurement,
   isMeasurementUnitStatus,
   listMeasurementUnitAssignedProducts,
-  type MeasurementUnitAssignedProduct,
-  type MeasurementUnitStatus,
   measurementUnitQueryKeys,
   restoreMeasurementUnit,
   retrieveMeasurementUnit,
+} from "../../../../lib/measurement-units"
+import type {
+  MeasurementUnitAssignedProduct,
+  MeasurementUnitStatus,
 } from "../../../../lib/measurement-units"
 import {
   getPaginationTranslations,
@@ -95,8 +97,12 @@ const AssignedProductRows = ({
         aria-label={product.title ?? product.product_id}
         className="cursor-pointer"
         key={product.product_id}
-        onClick={() => onOpen(product.product_id)}
-        onKeyDown={onRowKeyboardActivate(() => onOpen(product.product_id))}
+        onClick={() => {
+          onOpen(product.product_id)
+        }}
+        onKeyDown={onRowKeyboardActivate(() => {
+          onOpen(product.product_id)
+        })}
         role="button"
         tabIndex={0}
       >
@@ -113,7 +119,11 @@ const AssignedProductRows = ({
             {assignmentDeleted ? t("status.deleted") : t("status.active")}
           </StatusBadge>
         </Table.Cell>
-        <Table.Cell onClick={(event) => event.stopPropagation()}>
+        <Table.Cell
+          onClick={(event) => {
+            event.stopPropagation()
+          }}
+        >
           <div className="flex justify-end">
             {assignmentDeleted ? (
               <Text className="text-ui-fg-muted" size="small">
@@ -123,7 +133,9 @@ const AssignedProductRows = ({
               <IconButton
                 aria-label={t("actions.remove")}
                 disabled={removeProductId === product.product_id}
-                onClick={() => onRemove(product)}
+                onClick={() => {
+                  onRemove(product)
+                }}
                 size="small"
                 type="button"
                 variant="transparent"
@@ -166,7 +178,7 @@ const MeasurementUnitDetailPage = () => {
     isLoading: unitIsLoading,
   } = useQuery({
     enabled: !!id,
-    queryFn: () => {
+    queryFn: async () => {
       if (!id) {
         throw new Error("Measurement unit id is required")
       }
@@ -183,7 +195,7 @@ const MeasurementUnitDetailPage = () => {
   } = useQuery({
     enabled: !!id,
     placeholderData: (previousData) => previousData,
-    queryFn: () => {
+    queryFn: async () => {
       if (!id) {
         throw new Error("Measurement unit id is required")
       }
@@ -194,7 +206,8 @@ const MeasurementUnitDetailPage = () => {
   })
 
   const removeMutation = useMutation({
-    mutationFn: (productId: string) => deleteProductMeasurement(productId),
+    mutationFn: async (productId: string) =>
+      deleteProductMeasurement(productId),
     onError: (error) => {
       toast.error(
         error instanceof Error
@@ -220,7 +233,7 @@ const MeasurementUnitDetailPage = () => {
   })
 
   const restoreMutation = useMutation({
-    mutationFn: (unitId: string) => restoreMeasurementUnit(unitId),
+    mutationFn: async (unitId: string) => restoreMeasurementUnit(unitId),
     onError: (error) => {
       toast.error(
         error instanceof Error ? error.message : t("errors.restoreFailed")
@@ -294,7 +307,9 @@ const MeasurementUnitDetailPage = () => {
         {unit.deleted_at ? (
           <Button
             isLoading={restoreMutation.isPending}
-            onClick={() => restoreMutation.mutate(unit.id)}
+            onClick={() => {
+              restoreMutation.mutate(unit.id)
+            }}
             size="small"
             type="button"
             variant="secondary"
@@ -394,7 +409,9 @@ const MeasurementUnitDetailPage = () => {
             <AssignedProductRows
               error={productsError}
               isLoading={productsAreLoading}
-              onOpen={(productId) => navigate(`/products/${productId}`)}
+              onOpen={(productId) => {
+                navigate(`/products/${productId}`)
+              }}
               onRemove={handleRemove}
               products={products}
               removeProductId={removeMutation.variables}
@@ -405,13 +422,15 @@ const MeasurementUnitDetailPage = () => {
           canNextPage={pageIndex + 1 < pageCount}
           canPreviousPage={pageIndex > 0}
           count={count}
-          nextPage={() => setPageIndex((current) => current + 1)}
+          nextPage={() => {
+            setPageIndex((current) => current + 1)
+          }}
           pageCount={pageCount}
           pageIndex={pageIndex}
           pageSize={PAGE_SIZE}
-          previousPage={() =>
+          previousPage={() => {
             setPageIndex((current) => Math.max(current - 1, 0))
-          }
+          }}
           translations={getPaginationTranslations(t)}
         />
       </Container>

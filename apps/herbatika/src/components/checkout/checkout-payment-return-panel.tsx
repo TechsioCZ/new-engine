@@ -6,7 +6,8 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import type { Route } from "next"
 import { useTranslations } from "next-intl"
 import { useSearchParams } from "next/navigation"
-import { type ReactNode, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import type { ReactNode } from "react"
 
 import NextLink from "@/components/app-link"
 import { readAccountSetupRequested } from "@/components/checkout/account-setup-metadata"
@@ -171,8 +172,8 @@ export function CheckoutPaymentReturnPanel() {
     return <CheckoutCompletedOrderSection completedOrderId={completedOrderId} />
   }
 
-  const summaryHref = resolveCheckoutStepHref("suhrn") as Route
-  const paymentHref = resolveCheckoutStepHref("doprava-platba") as Route
+  const summaryHref = resolveCheckoutStepHref("suhrn")
+  const paymentHref = resolveCheckoutStepHref("doprava-platba")
 
   if (isCancelled) {
     return (

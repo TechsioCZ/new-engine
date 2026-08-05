@@ -9,7 +9,7 @@ import {
   StoreBrandsSchema,
 } from "../../../../../../src/api/store/brands/validators"
 
-vi.mock("../../../../../../src/links/product-brand", () => ({
+vi.mock(import("../../../../../../src/links/product-brand"), () => ({
   ProductBrandLink: {
     entryPoint: "product_brand",
   },
@@ -96,8 +96,8 @@ describe("Store Brand visibility", () => {
     ["detail", StoreBrandsDetailSchema],
     ["products", StoreBrandsDetailProductsSchema],
   ])("rejects with_deleted on the %s query schema", (_name, schema) => {
-    expect(schema.safeParse({ with_deleted: "true" }).success).toBe(false)
-    expect(schema.safeParse({ with_deleted: "false" }).success).toBe(false)
+    expect(schema.safeParse({ with_deleted: "true" }).success).toBeFalsy()
+    expect(schema.safeParse({ with_deleted: "false" }).success).toBeFalsy()
   })
 
   it("retains supported Store product pagination and sales-channel inputs", () => {
@@ -108,7 +108,7 @@ describe("Store Brand visibility", () => {
         offset: "4",
         sales_channel_id: ["sc_1", "sc_2"],
       })
-    ).toEqual({
+    ).toStrictEqual({
       fields: "id,title",
       limit: 12,
       offset: 4,
@@ -133,7 +133,7 @@ describe("Store Brand visibility", () => {
     await expect(GET(req, response)).rejects.toThrow(
       'Brand with id "brand_deleted" was not found'
     )
-    expect(graph).toHaveBeenCalledTimes(1)
+    expect(graph).toHaveBeenCalledOnce()
     expect(response.json).not.toHaveBeenCalled()
   })
 
@@ -156,10 +156,10 @@ describe("Store Brand visibility", () => {
     expect(graph).toHaveBeenCalledTimes(2)
     expect(remoteQuery).not.toHaveBeenCalled()
     expect(response.json).toHaveBeenCalledWith({
-      products: [],
       count: 0,
-      offset: 20,
       limit: 20,
+      offset: 20,
+      products: [],
     })
   })
 
@@ -204,10 +204,10 @@ describe("Store Brand visibility", () => {
       pagination: { skip: 0, take: 20 },
     })
     expect(response.json).toHaveBeenCalledWith({
-      products: [{ id: "prod_visible", title: "Visible" }],
       count: 1,
-      offset: 0,
       limit: 20,
+      offset: 0,
+      products: [{ id: "prod_visible", title: "Visible" }],
     })
   })
 })

@@ -1,6 +1,6 @@
 import type { Query } from "@medusajs/framework/types"
 
-export type PaymentReminderOrder = {
+export interface PaymentReminderOrder {
   id: string
   created_at?: Date | string | null
   display_id: number | string | null

@@ -4,7 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Link from "next/link"
 
-type ErrorProps = {
+interface ErrorProps {
   error: Error & { digest?: string }
   reset: () => void
 }

@@ -16,19 +16,19 @@ type BrandAttributeTypeRecord = Awaited<
   ReturnType<BrandModuleService["listBrandAttributeTypes"]>
 >[number]
 
-type ScopedBrandAttribute = {
+interface ScopedBrandAttribute {
   attributeType?: { id: string } | null | undefined
   brand_id: string
   deleted_at?: Date | string | null | undefined
   id: string
 }
 
-export type CleanupProductBrandAttributesStepInput = {
+export interface CleanupProductBrandAttributesStepInput {
   attributeNames?: string[]
   productIds: string[]
 }
 
-export type CleanupProductBrandAttributesCompensation = {
+export interface CleanupProductBrandAttributesCompensation {
   attributeIds: string[]
   attributeTypeIds: string[]
 }
@@ -41,7 +41,7 @@ const listAllBrandAttributeTypes = async (service: BrandModuleService) => {
   let count = Number.POSITIVE_INFINITY
 
   while (records.length < count) {
-    const [page, total] = (await service.listAndCountBrandAttributeTypes(
+    const [page, total] = await service.listAndCountBrandAttributeTypes(
       {},
       {
         order: { id: "ASC" },
@@ -49,7 +49,7 @@ const listAllBrandAttributeTypes = async (service: BrandModuleService) => {
         take: LEGACY_ATTRIBUTE_BATCH_SIZE,
         withDeleted: true,
       }
-    )) as [BrandAttributeTypeRecord[], number]
+    )
     records.push(...page)
     count = total
 
@@ -70,7 +70,7 @@ const listScopedBrandAttributes = async (
   let count = Number.POSITIVE_INFINITY
 
   while (records.length < count) {
-    const [page, total] = (await service.listAndCountBrandAttributes(
+    const [page, total] = await service.listAndCountBrandAttributes(
       {
         attribute_type_id: { $in: attributeTypeIds },
         brand_id: { $in: brandIds },
@@ -81,7 +81,7 @@ const listScopedBrandAttributes = async (
         skip: records.length,
         take: LEGACY_ATTRIBUTE_BATCH_SIZE,
       }
-    )) as [BrandAttributeRecord[], number]
+    )
     records.push(...page)
     count = total
 
@@ -116,7 +116,7 @@ export function selectExclusivelyScopedBrandIds({
   links,
   productIds,
 }: {
-  links: Array<{ brand_id: string; product_id: string }>
+  links: { brand_id: string; product_id: string }[]
   productIds: Set<string>
 }) {
   const productIdsByBrandId = new Map<string, Set<string>>()
@@ -199,8 +199,8 @@ export const cleanupProductBrandAttributesStep = createStep(
       [...attributeTypeIds]
     )
     const attributeIds = selectScopedLegacyBrandAttributeIds({
-      attributes: scopedAttributes,
       attributeTypeIds,
+      attributes: scopedAttributes,
       brandIds,
     })
 

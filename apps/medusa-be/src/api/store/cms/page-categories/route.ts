@@ -7,8 +7,8 @@ import { optionalStringParam } from "../../../../utils/query-params"
 
 /** Query schema for fetching CMS page categories with pages. */
 export const StoreCmsPageCategoriesSchema = z.object({
-  locale: optionalStringParam,
   categorySlug: optionalStringParam,
+  locale: optionalStringParam,
 })
 
 /** Parsed query type for page category listing. */
@@ -26,8 +26,8 @@ export async function GET(
   const { categorySlug } = req.validatedQuery
 
   const pageCategories = await cmsService.listPageCategoriesWithPages({
-    locale: req.locale,
     categorySlug,
+    locale: req.locale,
   })
 
   return res.json({ pageCategories })

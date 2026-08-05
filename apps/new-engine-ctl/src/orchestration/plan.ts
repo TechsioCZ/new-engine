@@ -3,20 +3,19 @@ import { dirname } from "node:path"
 
 import { parse as parseYaml } from "yaml"
 
+import { planResponseSchema } from "../contracts/plan.js"
+import type { PlanCommandInput, PlanResponse } from "../contracts/plan.js"
 import {
-  type PlanCommandInput,
-  type PlanResponse,
-  planResponseSchema,
-} from "../contracts/plan.js"
-import {
-  type DeployableService,
   getDeployableService,
   listDeployableServices,
-  type StackManifest,
   stackManifestSchema,
 } from "../contracts/stack-manifest.js"
+import type {
+  DeployableService,
+  StackManifest,
+} from "../contracts/stack-manifest.js"
 
-type PreviewServiceSets = {
+interface PreviewServiceSets {
   clonedServices: DeployableService[]
   excludedServices: DeployableService[]
 }
@@ -41,14 +40,16 @@ function normalizeCsvToArray(csv: string): string[] {
 }
 
 async function loadManifest(path: string): Promise<StackManifest> {
-  const raw = await readFile(path, "utf8")
+  const raw = await readFile(path, "utf-8")
   let parsed: unknown
 
   try {
     parsed = parseYaml(raw)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`Failed to parse YAML at ${path}: ${message}`)
+    throw new Error(`Failed to parse YAML at ${path}: ${message}`, {
+      cause: error,
+    })
   }
 
   return stackManifestSchema.parse(parsed)
@@ -74,13 +75,13 @@ function buildPlanService(
   service: DeployableService
 ): PlanResponse["deploy_services"][number] {
   return {
-    id: service.id,
-    service_slug: service.serviceSlug,
     clone_to_preview: service.cloneToPreview,
     deploy_lanes: service.deployLanes,
     deploy_stage: service.deployStage,
     downtime_risk: service.downtimeRisk,
+    id: service.id,
     service_dependencies: service.serviceDependencies,
+    service_slug: service.serviceSlug,
   }
 }
 
@@ -118,14 +119,14 @@ function buildRequestedAndDeploySets(
   }
 
   return {
-    requestedServiceIds,
     deployServiceIds,
+    requestedServiceIds,
   }
 }
 
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
+  await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
 export async function executePlan(
@@ -155,29 +156,29 @@ export async function executePlan(
       : { clonedServices: [], excludedServices: [] }
 
   const response = planResponseSchema.parse({
+    deploy_services: deployServices.map(buildPlanService),
+    deploy_services_csv: deployServices.map((service) => service.id).join(","),
     lane: input.lane,
-    source_services_csv: sourceServiceIds.join(","),
-    requested_services_csv: requestedServices
+    pr_number: input.prNumber ?? null,
+    preview_cloned_service_ids_csv: previewServiceSets.clonedServices
       .map((service) => service.id)
       .join(","),
-    deploy_services_csv: deployServices.map((service) => service.id).join(","),
+    preview_cloned_services:
+      previewServiceSets.clonedServices.map(buildPlanService),
     preview_environment_name:
       input.lane === "preview" && input.prNumber
         ? `${input.previewEnvPrefix}${input.prNumber}`
         : "",
-    preview_cloned_service_ids_csv: previewServiceSets.clonedServices
-      .map((service) => service.id)
-      .join(","),
     preview_excluded_service_ids_csv: previewServiceSets.excludedServices
       .map((service) => service.id)
       .join(","),
-    pr_number: input.prNumber ?? null,
-    requested_services: requestedServices.map(buildPlanService),
-    deploy_services: deployServices.map(buildPlanService),
-    preview_cloned_services:
-      previewServiceSets.clonedServices.map(buildPlanService),
     preview_excluded_services:
       previewServiceSets.excludedServices.map(buildPlanService),
+    requested_services: requestedServices.map(buildPlanService),
+    requested_services_csv: requestedServices
+      .map((service) => service.id)
+      .join(","),
+    source_services_csv: sourceServiceIds.join(","),
   })
 
   if (input.outputJson) {

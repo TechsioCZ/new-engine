@@ -5,14 +5,14 @@ import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
 import type ProductListModuleService from "../../../modules/product-list/service"
 import type { ProductListItemRecord } from "../types"
 
-export type ChangeProductListItemQuantityStepInput = {
+export interface ChangeProductListItemQuantityStepInput {
   item_id: string
   list_id: string
   previous_quantity: number
   quantity: number
 }
 
-type CompensationInput = {
+interface CompensationInput {
   item_id: string
   previous_quantity: number
 }

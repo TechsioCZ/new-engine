@@ -1,10 +1,8 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 
 import { runImportJob } from "../lib/import-job-runner"
-import {
-  SYMMY_CUSTOMER_GROUP_CUSTOMERS_ASSIGN_REQUESTED_EVENT,
-  type SymmyCustomerGroupCustomersAssignRequestedEvent,
-} from "../workflows/customer-group-customers-batch/async"
+import { SYMMY_CUSTOMER_GROUP_CUSTOMERS_ASSIGN_REQUESTED_EVENT } from "../workflows/customer-group-customers-batch/async"
+import type { SymmyCustomerGroupCustomersAssignRequestedEvent } from "../workflows/customer-group-customers-batch/async"
 import type {
   AssignCustomersToGroupBatchInput,
   AssignCustomersToGroupBatchOutput,
@@ -20,6 +18,10 @@ export default async function customerGroupCustomersAssignRequestedHandler({
     AssignCustomersToGroupBatchOutput
   >({
     container,
+    getCompletionStats: (output) => ({
+      processed: output.assigned,
+      failed: output.failed,
+    }),
     jobId: data.job_id,
     jobLabel: "Customer group customers assign",
     lockKey: `symmy-customer-group-customers-assign:${data.job_id}`,
@@ -31,10 +33,6 @@ export default async function customerGroupCustomersAssignRequestedHandler({
       })
       return result
     },
-    getCompletionStats: (output) => ({
-      processed: output.assigned,
-      failed: output.failed,
-    }),
   })
 }
 

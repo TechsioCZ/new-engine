@@ -25,7 +25,7 @@ type CheckoutDetailsStepController = Pick<
   | "updateCartAddressMutation"
 >
 
-type CheckoutDetailsStepSectionProps = {
+interface CheckoutDetailsStepSectionProps {
   backStepHref: string
   controller: CheckoutDetailsStepController
   nextStepHref: AppHref
@@ -40,11 +40,9 @@ export function CheckoutDetailsStepSection({
   const tCheckout = useTranslations("checkout")
   const addressFormId = "checkout-address-form"
   const checkoutDetailsValues = controller.checkoutDetailsForm.values
-  const hasCarrierPickupShipping =
-    controller.checkoutDetailsForm.hasCarrierPickupShipping
-  const carrierPickupAddress =
-    controller.checkoutDetailsForm.carrierPickupAddress
-  const countryItems = controller.countryItems
+  const { hasCarrierPickupShipping } = controller.checkoutDetailsForm
+  const { carrierPickupAddress } = controller.checkoutDetailsForm
+  const { countryItems } = controller
 
   return (
     <section className="space-y-300">

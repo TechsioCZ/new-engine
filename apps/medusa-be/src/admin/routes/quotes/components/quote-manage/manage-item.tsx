@@ -28,7 +28,7 @@ import {
 } from "../../../../hooks/api"
 import { currencySymbolMap } from "../../../../utils"
 
-type ManageItemProps = {
+interface ManageItemProps {
   originalItem?: AdminOrder["items"][0] | undefined
   item: AdminOrderPreview["items"][0]
   currencyCode: string
@@ -94,8 +94,8 @@ function ManageItem({
           itemId: item.id,
         })
       }
-    } catch (e) {
-      toast.error(getErrorMessage(e))
+    } catch (error) {
+      toast.error(getErrorMessage(error))
     }
   }
 
@@ -107,12 +107,12 @@ function ManageItem({
         await undoAction(addItemAction.id)
       } else {
         await updateOriginalItem({
-          quantity: item.detail.fulfilled_quantity,
           itemId: item.id,
+          quantity: item.detail.fulfilled_quantity,
         })
       }
-    } catch (e) {
-      toast.error(getErrorMessage(e))
+    } catch (error) {
+      toast.error(getErrorMessage(error))
     }
   }
 
@@ -125,8 +125,8 @@ function ManageItem({
       if (updateItemAction) {
         await undoAction(updateItemAction.id)
       }
-    } catch (e) {
-      toast.error(getErrorMessage(e))
+    } catch (error) {
+      toast.error(getErrorMessage(error))
     }
   }
 
@@ -139,13 +139,13 @@ function ManageItem({
       await addItems({
         items: [
           {
-            variant_id: item.variant_id,
             quantity: item.quantity,
+            variant_id: item.variant_id,
           },
         ],
       })
-    } catch (e) {
-      toast.error(getErrorMessage(e))
+    } catch (error) {
+      toast.error(getErrorMessage(error))
     }
   }
 
@@ -232,14 +232,16 @@ function ManageItem({
               {
                 actions: [
                   {
-                    label: t("actions.updatePrice"),
-                    onClick: () => setShowPriceForm(!showPriceForm),
                     icon: <PencilSquare />,
+                    label: t("actions.updatePrice"),
+                    onClick: () => {
+                      setShowPriceForm(!showPriceForm)
+                    },
                   },
                   {
+                    icon: <DocumentSeries />,
                     label: t("actions.duplicate"),
                     onClick: onDuplicate,
-                    icon: <DocumentSeries />,
                   },
                 ],
               },
@@ -247,16 +249,16 @@ function ManageItem({
                 actions: [
                   isItemRemoved
                     ? {
+                        icon: <ArrowUturnLeft />,
                         label: t("actions.undo"),
                         onClick: onRemoveUndo,
-                        icon: <ArrowUturnLeft />,
                       }
                     : {
-                        label: t("actions.remove"),
-                        onClick: onRemove,
-                        icon: <XCircle />,
                         disabled:
                           item.detail.fulfilled_quantity === item.quantity,
+                        icon: <XCircle />,
+                        label: t("actions.remove"),
+                        onClick: onRemove,
                       },
                 ].filter(Boolean),
               },
@@ -289,8 +291,8 @@ function ManageItem({
                           field.onChange(field.value)
 
                           void onUpdate({
-                            unit_price: Number.parseFloat(field.value),
                             quantity: item.quantity,
+                            unit_price: Number.parseFloat(field.value),
                           })
                         }}
                         symbol={getCurrencySymbol(currencyCode)}

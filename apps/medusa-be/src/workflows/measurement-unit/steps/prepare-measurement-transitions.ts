@@ -9,9 +9,11 @@ import { ProductMeasurementLink } from "../../../links/product-measurement"
 import { ProductVariantMeasurementLink } from "../../../links/product-variant-measurement"
 import {
   getMeasurementUnitService,
-  type ProductMeasurementRecord,
-  type ProductVariantMeasurementRecord,
   toNumber,
+} from "../../../utils/measurement-units"
+import type {
+  ProductMeasurementRecord,
+  ProductVariantMeasurementRecord,
 } from "../../../utils/measurement-units"
 import type {
   DeleteProductMeasurementWorkflowInput,
@@ -106,14 +108,14 @@ const parseProductVariantMeasurementLinks = (value: unknown) => {
   return value
 }
 
-export type ProductMeasurementTransitionPlan = {
+export interface ProductMeasurementTransitionPlan {
   existing_target?: ProductMeasurementRecord | undefined
   previous?: ProductMeasurementRecord | undefined
   previous_variant_measurements: ProductVariantMeasurementRecord[]
   source_target_same: boolean
 }
 
-export type VariantMeasurementMigrationPlan = {
+export interface VariantMeasurementMigrationPlan {
   creates: Array<{
     product_measurement_id: string
     product_unit_quantity: number
@@ -130,19 +132,19 @@ export type VariantMeasurementMigrationPlan = {
   }>
 }
 
-export type ProductMeasurementLinkPlan = {
+export interface ProductMeasurementLinkPlan {
   links_to_create: ProductMeasurementLinkIds[]
   links_to_dismiss: ProductMeasurementLinkIds[]
   links_to_restore: ProductMeasurementLinkIds[]
 }
 
-export type ProductVariantMeasurementLinkPlan = {
+export interface ProductVariantMeasurementLinkPlan {
   links_to_create: ProductVariantMeasurementLinkIds[]
   links_to_dismiss: ProductVariantMeasurementLinkIds[]
   links_to_restore: ProductVariantMeasurementLinkIds[]
 }
 
-export type SetVariantMeasurementPlan = {
+export interface SetVariantMeasurementPlan {
   create?:
     | {
         product_measurement_id: string
@@ -161,12 +163,12 @@ export type SetVariantMeasurementPlan = {
   }>
 }
 
-export type DeleteProductMeasurementPlan = {
+export interface DeleteProductMeasurementPlan {
   current?: ProductMeasurementRecord | undefined
   variant_measurements: ProductVariantMeasurementRecord[]
 }
 
-export type DeleteProductVariantMeasurementPlan = {
+export interface DeleteProductVariantMeasurementPlan {
   current?: ProductVariantMeasurementRecord | undefined
 }
 

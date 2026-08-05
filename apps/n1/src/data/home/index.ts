@@ -14,66 +14,66 @@ import tretryImg from "@/assets/top-category/tretry.webp"
 
 export const featureBlocks = [
   {
+    icon: carIcon,
     maintText: "DOPRAVA ZDARMA",
     subText: "Pro objednávky nad 2.000 Kč.",
-    icon: carIcon,
   },
   {
+    icon: cardIcon,
     maintText: "BEZPEČNÁ PLATBA",
     subText: "Zabezpečení online platba.",
-    icon: cardIcon,
   },
   {
+    icon: mapIcon,
     maintText: "DOPRAVA ZDARMA",
     subText: "Odběrová místa PPL Parcel Shop",
-    icon: mapIcon,
   },
   {
+    icon: storeIcon,
     maintText: "ŠIŘOKÁ NABÍDKA",
     subText: "Oblečení, přilby, kola, chrániče, skateboardy,...",
-    icon: storeIcon,
   },
 ]
 
 export const heroCarouselSlides: CarouselSlide[] = [
   {
-    id: "1",
     alt: "Sale banner",
+    id: "1",
     imageProps: {
+      height: 400,
+      placeholder: "blur",
+      priority: true,
+      quality: 50,
       src: saleImg,
-      height: 400,
-      priority: true,
-      quality: 50,
-      placeholder: "blur",
     },
   },
   {
-    id: "2",
     alt: "New arrivals banner",
+    id: "2",
     imageProps: {
-      src: nwImg,
       height: 400,
+      placeholder: "blur",
       priority: true,
       quality: 50,
-      placeholder: "blur",
+      src: nwImg,
     },
   },
   {
-    id: "3",
     alt: "Tallboy promotion banner",
+    id: "3",
     imageProps: {
-      src: tallboyImg,
       height: 400,
+      placeholder: "blur",
       priority: true,
       quality: 50,
-      placeholder: "blur",
+      src: tallboyImg,
     },
   },
 ]
 
 export const topCategory = [
-  { src: bestSellerImg, label: "Nejprodávanější přilba FOX" },
-  { src: bicularImg, label: "Purevue pro čistý obraz" },
-  { src: electroImg, label: "Nabídka elektrokol" },
-  { src: tretryImg, label: "Flat podrážky jsou v kurzu" },
+  { label: "Nejprodávanější přilba FOX", src: bestSellerImg },
+  { label: "Purevue pro čistý obraz", src: bicularImg },
+  { label: "Nabídka elektrokol", src: electroImg },
+  { label: "Flat podrážky jsou v kurzu", src: tretryImg },
 ]

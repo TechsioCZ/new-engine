@@ -16,11 +16,10 @@ import { useNavigate } from "react-router-dom"
 
 import {
   listReviews,
-  type Review,
-  type ReviewStatus,
   reviewQueryKeys,
   updateReviewStatus,
 } from "../../lib/reviews"
+import type { Review, ReviewStatus } from "../../lib/reviews"
 import { useDebouncedValue } from "../../lib/use-debounced-value"
 import {
   formatReviewDate,
@@ -30,7 +29,7 @@ import {
 
 const PAGE_SIZE = 20
 
-const STATUS_FILTERS: Array<{ label: string; value?: ReviewStatus }> = [
+const STATUS_FILTERS: { label: string; value?: ReviewStatus }[] = [
   { label: "All" },
   { label: "Pending", value: "pending" },
   { label: "Approved", value: "approved" },
@@ -85,9 +84,15 @@ const ReviewRows = ({
       <Table.Row
         className="cursor-pointer"
         key={review.id}
-        onClick={() => onOpenReview(review.id)}
+        onClick={() => {
+          onOpenReview(review.id)
+        }}
       >
-        <Table.Cell onClick={(event) => event.stopPropagation()}>
+        <Table.Cell
+          onClick={(event) => {
+            event.stopPropagation()
+          }}
+        >
           <input
             aria-label={`Select review ${review.title}`}
             checked={checked}
@@ -152,7 +157,7 @@ const ReviewsPage = () => {
     ...(status ? { status } : {}),
   }
   const { data, isLoading } = useQuery({
-    queryFn: () => listReviews(params),
+    queryFn: async () => listReviews(params),
     queryKey: reviewQueryKeys.list(params),
   })
   const reviews = data?.reviews ?? []
@@ -202,7 +207,9 @@ const ReviewsPage = () => {
           <div className="flex flex-wrap gap-2">
             <Button
               disabled={!selectedCount || statusMutation.isPending}
-              onClick={() => updateSelected("approved")}
+              onClick={() => {
+                updateSelected("approved")
+              }}
               size="small"
               variant="secondary"
             >
@@ -210,7 +217,9 @@ const ReviewsPage = () => {
             </Button>
             <Button
               disabled={!selectedCount || statusMutation.isPending}
-              onClick={() => updateSelected("rejected")}
+              onClick={() => {
+                updateSelected("rejected")
+              }}
               size="small"
               variant="secondary"
             >
@@ -285,7 +294,9 @@ const ReviewsPage = () => {
         <Table.Body>
           <ReviewRows
             isLoading={isLoading}
-            onOpenReview={(reviewId) => navigate(`/reviews/${reviewId}`)}
+            onOpenReview={(reviewId) => {
+              navigate(`/reviews/${reviewId}`)
+            }}
             reviews={reviews}
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
@@ -296,11 +307,15 @@ const ReviewsPage = () => {
         canNextPage={pageIndex + 1 < pageCount}
         canPreviousPage={pageIndex > 0}
         count={count}
-        nextPage={() => setPageIndex((current) => current + 1)}
+        nextPage={() => {
+          setPageIndex((current) => current + 1)
+        }}
         pageCount={pageCount}
         pageIndex={pageIndex}
         pageSize={PAGE_SIZE}
-        previousPage={() => setPageIndex((current) => Math.max(current - 1, 0))}
+        previousPage={() => {
+          setPageIndex((current) => Math.max(current - 1, 0))
+        }}
         translations={{
           next: "Next",
           of: "of",

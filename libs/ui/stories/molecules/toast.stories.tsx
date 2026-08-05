@@ -6,25 +6,10 @@ import { Button } from "../../src/atoms/button"
 import { Toaster, useToast } from "../../src/molecules/toast"
 
 const meta: Meta = {
-  title: "Molecules/Toast",
-  parameters: {
-    layout: "centered",
-  },
-  tags: ["autodocs"],
-  decorators: [
-    (Story) => (
-      <>
-        <Story />
-        <Toaster />
-      </>
-    ),
-  ],
   argTypes: {
-    type: {
-      control: "select",
-      options: ["info", "success", "warning", "error", "loading"],
-      description: "The type of the toast, which determines its styling",
-      table: { defaultValue: { summary: "info" } },
+    description: {
+      control: "text",
+      description: "The description text of the toast",
     },
     duration: {
       control: "number",
@@ -36,17 +21,32 @@ const meta: Meta = {
       control: "text",
       description: "The title text of the toast",
     },
-    description: {
-      control: "text",
-      description: "The description text of the toast",
+    type: {
+      control: "select",
+      description: "The type of the toast, which determines its styling",
+      options: ["info", "success", "warning", "error", "loading"],
+      table: { defaultValue: { summary: "info" } },
     },
   },
   args: {
-    type: "success",
+    description: "Toast description message.",
     duration: 5000,
     title: "Toast Title",
-    description: "Toast description message.",
+    type: "success",
   },
+  decorators: [
+    (Story) => (
+      <>
+        <Story />
+        <Toaster />
+      </>
+    ),
+  ],
+  parameters: {
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/Toast",
 }
 
 export default meta
@@ -54,8 +54,8 @@ type Story = StoryObj
 
 export const Playground: Story = {
   args: {
-    title: "Success!",
     description: "Your action was completed successfully.",
+    title: "Success!",
     type: "success",
   },
   render: (args) => {
@@ -91,10 +91,10 @@ export const UpdateExample: Story = {
               size="sm"
               onClick={() => {
                 const id = toaster.create({
-                  title: "Original Toast",
                   description: "This is the original message",
-                  type: "info",
                   duration: Number.POSITIVE_INFINITY, // Keep it open
+                  title: "Original Toast",
+                  type: "info",
                 })
                 setToastId(id)
                 setStep(0)
@@ -113,18 +113,18 @@ export const UpdateExample: Story = {
 
                   const updates = [
                     {
-                      title: "Step 1",
                       description: "Loading data...",
+                      title: "Step 1",
                       type: "loading",
                     },
                     {
-                      title: "Step 2",
                       description: "Processing...",
+                      title: "Step 2",
                       type: "loading",
                     },
                     {
-                      title: "Complete!",
                       description: "Operation successful",
+                      title: "Complete!",
                       type: "success",
                     },
                   ]
@@ -153,8 +153,8 @@ export const RemoveVsDismiss: Story = {
       instant: string | null
       animated: string | null
     }>({
-      instant: null,
       animated: null,
+      instant: null,
     })
 
     return (
@@ -171,10 +171,10 @@ export const RemoveVsDismiss: Story = {
                 size="sm"
                 onClick={() => {
                   const id = toaster.create({
-                    title: "I will be removed instantly",
                     description: "Click the button below to remove me",
-                    type: "info",
                     duration: Number.POSITIVE_INFINITY,
+                    title: "I will be removed instantly",
+                    type: "info",
                   })
                   setToastIds((prev) => ({ ...prev, instant: id }))
                 }}
@@ -202,10 +202,10 @@ export const RemoveVsDismiss: Story = {
                 size="sm"
                 onClick={() => {
                   const id = toaster.create({
-                    title: "I will be dismissed with animation",
                     description: "Click the button below to dismiss me",
-                    type: "info",
                     duration: Number.POSITIVE_INFINITY,
+                    title: "I will be dismissed with animation",
+                    type: "info",
                   })
                   setToastIds((prev) => ({ ...prev, animated: id }))
                 }}
@@ -251,10 +251,10 @@ export const PauseResumeExample: Story = {
               size="sm"
               onClick={() => {
                 const id = toaster.create({
-                  title: "Auto-closing toast",
                   description: "I will close in 5 seconds unless paused",
-                  type: "info",
                   duration: 5000,
+                  title: "Auto-closing toast",
+                  type: "info",
                 })
                 setToastId(id)
                 setIsPaused(false)
@@ -309,14 +309,14 @@ export const BatchOperations: Story = {
             <Button
               size="sm"
               onClick={() => {
-                const newIds = Array.from({ length: 3 }, (_, i) => {
-                  return toaster.create({
+                const newIds = Array.from({ length: 3 }, (_, i) =>
+                  toaster.create({
                     title: `Toast ${i + 1}`,
                     description: `This is toast number ${i + 1}`,
                     type: ["success", "info", "warning"][i] as any,
                     duration: 5000,
                   })
-                })
+                )
                 setToastIds(newIds)
               }}
             >
@@ -329,7 +329,9 @@ export const BatchOperations: Story = {
                   size="sm"
                   variant="secondary"
                   onClick={() => {
-                    toastIds.forEach((id) => toaster.pause(id))
+                    toastIds.forEach((id) => {
+                      toaster.pause(id)
+                    })
                   }}
                 >
                   Pause All
@@ -339,7 +341,9 @@ export const BatchOperations: Story = {
                   size="sm"
                   variant="secondary"
                   onClick={() => {
-                    toastIds.forEach((id) => toaster.resume(id))
+                    toastIds.forEach((id) => {
+                      toaster.resume(id)
+                    })
                   }}
                 >
                   Resume All
@@ -349,7 +353,9 @@ export const BatchOperations: Story = {
                   size="sm"
                   variant="danger"
                   onClick={() => {
-                    toastIds.forEach((id) => toaster.remove(id))
+                    toastIds.forEach((id) => {
+                      toaster.remove(id)
+                    })
                     setToastIds([])
                   }}
                 >
@@ -369,8 +375,8 @@ export const PromiseExample: Story = {
   render: () => {
     const toaster = useToast()
 
-    const simulateAsyncOperation = () => {
-      return new Promise((resolve, reject) => {
+    const simulateAsyncOperation = async () =>
+      new Promise((resolve, reject) => {
         setTimeout(() => {
           const shouldSucceed = Math.random() > 0.5
           if (shouldSucceed) {
@@ -380,7 +386,6 @@ export const PromiseExample: Story = {
           }
         }, 2000)
       })
-    }
 
     return (
       <VariantContainer>
@@ -393,27 +398,27 @@ export const PromiseExample: Story = {
             size="sm"
             onClick={() => {
               const toastId = toaster.create({
-                title: "Processing...",
                 description: "Please wait while we process your request",
-                type: "loading",
                 duration: Number.POSITIVE_INFINITY,
+                title: "Processing...",
+                type: "loading",
               })
 
               simulateAsyncOperation()
                 .then((result) => {
                   toaster.update(toastId, {
-                    title: "Success!",
                     description: result as string,
-                    type: "success",
                     duration: 3000,
+                    title: "Success!",
+                    type: "success",
                   })
                 })
                 .catch((error) => {
                   toaster.update(toastId, {
-                    title: "Error",
                     description: error.message,
-                    type: "error",
                     duration: 5000,
+                    title: "Error",
+                    type: "error",
                   })
                 })
             }}

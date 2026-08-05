@@ -1,8 +1,6 @@
 import { validateAndTransformQuery } from "@medusajs/framework"
-import {
-  type MiddlewareRoute,
-  validateAndTransformBody,
-} from "@medusajs/framework/http"
+import { validateAndTransformBody } from "@medusajs/framework/http"
+import type { MiddlewareRoute } from "@medusajs/framework/http"
 
 import {
   GetAdminOrderBusinessStatusesByIdsSchema,
@@ -12,8 +10,8 @@ import {
 
 export const adminOrderBusinessStatusesRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/admin/order-business-statuses",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(GetAdminOrderBusinessStatusesSchema, {
         isList: true,
@@ -21,8 +19,8 @@ export const adminOrderBusinessStatusesRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/admin/order-business-statuses/by-ids",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(GetAdminOrderBusinessStatusesByIdsSchema, {
         isList: false,
@@ -30,8 +28,8 @@ export const adminOrderBusinessStatusesRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/order-business-statuses/bulk",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(PostAdminOrderBusinessStatusesBulkSchema),
     ],

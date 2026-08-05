@@ -2,17 +2,17 @@ import { describe, expect, it } from "vitest"
 
 import {
   buildOrderBusinessStatusMetadata,
-  type OrderBusinessStatusOrder,
   parseOrderBusinessStatusOrders,
   toOrderBusinessStatusSummary,
 } from "../../../../../../src/api/admin/order-business-statuses/utils"
+import type { OrderBusinessStatusOrder } from "../../../../../../src/api/admin/order-business-statuses/utils"
 import { ORDER_BUSINESS_STATUS_METADATA_KEY } from "../../../../../../src/utils/order-business-status"
 
 describe("order business status API utilities", () => {
   it("merges manual business status into existing metadata", () => {
     expect(
       buildOrderBusinessStatusMetadata({ existing: true }, "canceled")
-    ).toEqual({
+    ).toStrictEqual({
       existing: true,
       [ORDER_BUSINESS_STATUS_METADATA_KEY]: "canceled",
     })
@@ -27,7 +27,7 @@ describe("order business status API utilities", () => {
         },
         null
       )
-    ).toEqual({
+    ).toStrictEqual({
       existing: true,
       [ORDER_BUSINESS_STATUS_METADATA_KEY]: null,
     })
@@ -38,7 +38,7 @@ describe("order business status API utilities", () => {
       parseOrderBusinessStatusOrders([
         { id: "order_1", payment_status: "captured" },
       ])
-    ).toEqual([{ id: "order_1", payment_status: "captured" }])
+    ).toStrictEqual([{ id: "order_1", payment_status: "captured" }])
   })
 
   it("fails closed for invalid query result shapes", () => {
@@ -54,15 +54,15 @@ describe("order business status API utilities", () => {
 
   it("returns a summary with a computed business status", () => {
     const order: OrderBusinessStatusOrder = {
-      id: "order_123",
       currency_code: "czk",
       display_id: 1001,
       email: "customer@example.com",
+      id: "order_123",
       payment_status: "captured",
       total: 1234,
     }
 
-    expect(toOrderBusinessStatusSummary(order)).toEqual({
+    expect(toOrderBusinessStatusSummary(order)).toStrictEqual({
       business_status: expect.objectContaining({
         id: "paid",
         translation_key: "statuses.paid",

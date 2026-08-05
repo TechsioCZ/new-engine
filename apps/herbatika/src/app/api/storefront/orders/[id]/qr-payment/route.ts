@@ -12,7 +12,7 @@ import {
   parseResponseJson,
 } from "../../../../storefront-auth/_lib"
 
-type RouteContext = {
+interface RouteContext {
   params: Promise<{ id: string }>
 }
 
@@ -43,8 +43,8 @@ export async function GET(_request: Request, context: RouteContext) {
     if (!response.ok) {
       return NextResponse.json(
         {
-          message: "QR payment request failed.",
           details: payload ?? { status: response.status },
+          message: "QR payment request failed.",
         },
         { status: 502 }
       )
@@ -56,8 +56,8 @@ export async function GET(_request: Request, context: RouteContext) {
   } catch (error) {
     return NextResponse.json(
       {
-        message: "QR payment request failed.",
         details: error instanceof Error ? error.message : String(error),
+        message: "QR payment request failed.",
       },
       { status: 502 }
     )

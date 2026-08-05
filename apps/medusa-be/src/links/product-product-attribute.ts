@@ -5,8 +5,8 @@ import ProductAttributeModule from "../modules/product-attribute"
 
 export const ProductProductAttributeLink = defineLink(
   {
-    linkable: ProductModule.linkable["product"],
     field: "id",
+    linkable: ProductModule.linkable["product"],
   },
   {
     ...ProductAttributeModule.linkable.productAttribute.id,

@@ -5,7 +5,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { useTranslations } from "next-intl"
 import type { CSSProperties } from "react"
 
-type FractionalRatingProps = {
+interface FractionalRatingProps {
   label?: string
   value: number
 }

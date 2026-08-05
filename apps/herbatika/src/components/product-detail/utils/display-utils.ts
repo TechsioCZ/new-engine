@@ -12,17 +12,17 @@ export const resolveGalleryItems = (
   if (imageUrls.length === 0) {
     return [
       {
+        alt: title || fallbackProductLabel,
         id: "gallery-fallback",
         src: PRODUCT_FALLBACK_IMAGE,
-        alt: title || fallbackProductLabel,
       },
     ]
   }
 
   return imageUrls.map((imageUrl, index) => ({
+    alt: `${title || fallbackProductLabel} (${index + 1})`,
     id: `gallery-${index}`,
     src: imageUrl,
-    alt: `${title || fallbackProductLabel} (${index + 1})`,
   }))
 }
 

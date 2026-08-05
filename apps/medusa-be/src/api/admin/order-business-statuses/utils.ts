@@ -3,11 +3,13 @@ import { MedusaError } from "@medusajs/framework/utils"
 
 import {
   getManualOrderBusinessStatusId,
-  type ManualOrderBusinessStatusId,
   ORDER_BUSINESS_STATUS_METADATA_KEY,
-  type OrderBusinessStatusInput,
-  type OrderBusinessStatusSummary,
   resolveOrderBusinessStatus,
+} from "../../../utils/order-business-status"
+import type {
+  ManualOrderBusinessStatusId,
+  OrderBusinessStatusInput,
+  OrderBusinessStatusSummary,
 } from "../../../utils/order-business-status"
 
 export type OrderBusinessStatusOrder = OrderBusinessStatusInput & {
@@ -96,9 +98,9 @@ export function toOrderBusinessStatusSummary(
     business_status: resolveOrderBusinessStatus(order),
     created_at: normalizeDate(order.created_at),
     currency_code: order.currency_code ?? null,
-    ...(order.custom_display_id !== undefined
-      ? { custom_display_id: order.custom_display_id }
-      : {}),
+    ...(order.custom_display_id === undefined
+      ? {}
+      : { custom_display_id: order.custom_display_id }),
     display_id: order.display_id ?? null,
     email: order.email ?? null,
     id: order.id,

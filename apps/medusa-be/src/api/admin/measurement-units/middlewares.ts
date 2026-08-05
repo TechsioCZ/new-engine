@@ -15,8 +15,8 @@ import {
 
 export const adminMeasurementUnitRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/admin/measurement-units",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(AdminGetMeasurementUnitsSchema, {
         isList: true,
@@ -24,18 +24,18 @@ export const adminMeasurementUnitRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/measurement-units",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(AdminCreateMeasurementUnitSchema)],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/measurement-units/:id",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(AdminUpdateMeasurementUnitSchema)],
   },
   {
-    methods: ["GET"],
     matcher: "/admin/measurement-units/:id/products",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(AdminGetMeasurementUnitProductsSchema, {
         isList: true,
@@ -43,13 +43,13 @@ export const adminMeasurementUnitRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/products/:id/measurement",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(AdminSetProductMeasurementSchema)],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/products/:id/variants/:variant_id/measurement",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminSetProductVariantMeasurementSchema),
     ],

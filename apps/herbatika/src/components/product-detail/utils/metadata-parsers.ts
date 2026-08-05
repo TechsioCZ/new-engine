@@ -82,7 +82,7 @@ export const resolveProductImages = (product: Product | null): string[] => {
     }
   }
 
-  return imageUrls.size > 0 ? Array.from(imageUrls) : [PRODUCT_FALLBACK_IMAGE]
+  return imageUrls.size > 0 ? [...imageUrls] : [PRODUCT_FALLBACK_IMAGE]
 }
 
 export const resolveVariantLabel = (
@@ -126,24 +126,24 @@ export const resolveOfferState = (
   }
 ): ProductOfferState => {
   const metadata = asRecord(product?.metadata)
-  const topOffer = asRecord(metadata?.["top_offer"])
+  const topOffer = asRecord(metadata?.top_offer)
   const variantMetadata = asRecord(selectedVariant?.metadata)
   const source = topOffer ?? variantMetadata
-  const stock = asRecord(source?.["stock"])
+  const stock = asRecord(source?.stock)
   const variantInventory = resolveVariantInventoryState(selectedVariant)
   const stockAmount =
-    variantInventory.availableQuantity ?? asNumber(stock?.["amount"])
-  const isInStock = variantInventory.isInStock
+    variantInventory.availableQuantity ?? asNumber(stock?.amount)
+  const { isInStock } = variantInventory
 
   const inStockLabel =
-    asString(source?.["availability_in_stock"]) ?? fallbackLabels.inStock
+    asString(source?.availability_in_stock) ?? fallbackLabels.inStock
   const outOfStockLabel =
-    asString(source?.["availability_out_of_stock"]) ?? fallbackLabels.outOfStock
+    asString(source?.availability_out_of_stock) ?? fallbackLabels.outOfStock
   const currentAmount =
-    asNumber(source?.["current_price"]) ?? asNumber(source?.["price_vat"])
+    asNumber(source?.current_price) ?? asNumber(source?.price_vat)
 
-  const actionAmount = asNumber(source?.["action_price"])
-  const hasActiveDiscountFlag = asBoolean(source?.["has_active_discount"])
+  const actionAmount = asNumber(source?.action_price)
+  const hasActiveDiscountFlag = asBoolean(source?.has_active_discount)
   const hasActiveDiscount =
     hasActiveDiscountFlag ??
     (typeof actionAmount === "number" &&
@@ -151,21 +151,19 @@ export const resolveOfferState = (
       actionAmount < currentAmount)
 
   return {
-    code: asString(source?.["code"]) ?? asString(selectedVariant?.sku),
-    ean: asString(source?.["ean"]) ?? asString(selectedVariant?.["ean"]),
-    availabilityLabel: isInStock ? inStockLabel : outOfStockLabel,
-    expectedDeliveryDate: isInStock ? addBusinessDays(new Date(), 3) : null,
-    stockAmount,
-    isInStock,
-    currentAmount,
-    standardAmount: asNumber(source?.["standard_price"]),
     actionAmount,
+    applyLoyaltyDiscount: asBoolean(source?.apply_loyalty_discount) === true,
+    applyQuantityDiscount: asBoolean(source?.apply_quantity_discount) === true,
+    applyVolumeDiscount: asBoolean(source?.apply_volume_discount) === true,
+    availabilityLabel: isInStock ? inStockLabel : outOfStockLabel,
+    code: asString(source?.code) ?? asString(selectedVariant?.sku),
+    currentAmount,
+    ean: asString(source?.ean) ?? asString(selectedVariant?.ean),
+    expectedDeliveryDate: isInStock ? addBusinessDays(new Date(), 3) : null,
     hasActiveDiscount,
-    applyLoyaltyDiscount:
-      asBoolean(source?.["apply_loyalty_discount"]) === true,
-    applyQuantityDiscount:
-      asBoolean(source?.["apply_quantity_discount"]) === true,
-    applyVolumeDiscount: asBoolean(source?.["apply_volume_discount"]) === true,
+    isInStock,
+    standardAmount: asNumber(source?.standard_price),
+    stockAmount,
   }
 }
 
@@ -177,9 +175,9 @@ export const resolveProductContentSections = (
   >
 ): ProductDetailContentSection[] => {
   const metadata = asRecord(product?.metadata)
-  const sectionMap = asRecord(metadata?.["content_sections_map"])
-  const sectionsFromList = Array.isArray(metadata?.["content_sections"])
-    ? metadata["content_sections"]
+  const sectionMap = asRecord(metadata?.content_sections_map)
+  const sectionsFromList = Array.isArray(metadata?.content_sections)
+    ? metadata.content_sections
     : []
   const productDescriptionHtml = asString(product?.description) ?? ""
 
@@ -190,8 +188,8 @@ export const resolveProductContentSections = (
       continue
     }
 
-    const key = normalizeSectionKey(sectionRecord["key"])
-    const html = asString(sectionRecord["html"])
+    const key = normalizeSectionKey(sectionRecord.key)
+    const html = asString(sectionRecord.html)
     if (!(key && html) || sectionHtmlByKey.has(key)) {
       continue
     }
@@ -210,9 +208,9 @@ export const resolveProductContentSections = (
         : metadataSectionHtml
 
     return {
+      html,
       key: sectionKey,
       title: sectionTitles[sectionKey] ?? sectionTitles.content,
-      html,
     }
   }).filter((section) => hasRenderableSectionHtml(section.html))
 

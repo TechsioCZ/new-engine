@@ -11,12 +11,8 @@
  */
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react"
 
-import {
-  Select,
-  type SelectItem,
-  type SelectProps,
-  type SelectSize,
-} from "../molecules/select"
+import { Select } from "../molecules/select"
+import type { SelectItem, SelectProps, SelectSize } from "../molecules/select"
 
 type SelectTemplateLabelProps = Omit<
   ComponentPropsWithoutRef<"label">,

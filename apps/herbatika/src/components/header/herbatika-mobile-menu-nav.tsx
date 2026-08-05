@@ -11,19 +11,19 @@ import { PRIMARY_NAV_ITEMS } from "./herbatika-header.navigation"
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./herbatika-header.submenu-data"
 import { useHerbatikaHeaderSubmenu } from "./use-herbatika-header-submenu"
 
-type HerbatikaMobileMenuChildItem = {
+interface HerbatikaMobileMenuChildItem {
   href: string
   id: string
   label: string
 }
 
-type HerbatikaMobileMenuLinkEntry = {
+interface HerbatikaMobileMenuLinkEntry {
   href: string
   label: string
   type: "link"
 }
 
-type HerbatikaMobileMenuGroupEntry = {
+interface HerbatikaMobileMenuGroupEntry {
   href: string
   items: readonly HerbatikaMobileMenuChildItem[]
   label: string
@@ -48,11 +48,11 @@ const resolveRootHandleFromHref = (href: string) => {
 }
 
 const resolveMobileChildItems = (
-  featuredItems: Array<{
+  featuredItems: {
     handle: string
     id: string
     label: string
-  }>
+  }[]
 ): readonly HerbatikaMobileMenuChildItem[] =>
   featuredItems.map((item) => ({
     href: `/c/${item.handle}`,
@@ -131,7 +131,9 @@ export function HerbatikaMobileMenuNav() {
     )
   }, [mobileMenuEntries, pathname])
 
-  const handleClose = () => setIsMobileMenuOpen(false)
+  const handleClose = () => {
+    setIsMobileMenuOpen(false)
+  }
 
   return (
     <Header.Nav className="w-full min-w-0 gap-y-0">

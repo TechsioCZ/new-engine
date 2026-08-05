@@ -53,8 +53,8 @@ export const resolveEnvLocales = (
   const resolvedLocales = locales.length > 0 ? locales : ["en"]
 
   return {
-    locales: resolvedLocales,
     defaultLocale: resolvedLocales[0] ?? "en",
+    locales: resolvedLocales,
   }
 }
 

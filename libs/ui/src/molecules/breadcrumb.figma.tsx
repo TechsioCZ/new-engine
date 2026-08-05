@@ -6,14 +6,6 @@ figma.connect(
   Breadcrumb,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=828-162",
   {
-    imports: ['import { Breadcrumb } from "@libs/ui/molecules/breadcrumb"'],
-    props: {
-      size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
-        lg: "lg",
-      }),
-    },
     example: ({ size }) => (
       <Breadcrumb size={size}>
         <Breadcrumb.Item>
@@ -24,5 +16,13 @@ figma.connect(
         </Breadcrumb.Item>
       </Breadcrumb>
     ),
+    imports: ['import { Breadcrumb } from "@libs/ui/molecules/breadcrumb"'],
+    props: {
+      size: figma.enum("size", {
+        sm: "sm",
+        md: "md",
+        lg: "lg",
+      }),
+    },
   }
 )

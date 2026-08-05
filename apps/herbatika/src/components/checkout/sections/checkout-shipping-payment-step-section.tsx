@@ -1,7 +1,8 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { useTranslations } from "next-intl"
-import { type ComponentProps, useState } from "react"
+import { useState } from "react"
+import type { ComponentProps } from "react"
 
 import NextLink from "@/components/app-link"
 import { resolveCarrierPickupRequirement } from "@/components/checkout/carrier-pickup.utils"
@@ -22,7 +23,7 @@ type CheckoutShippingPaymentStepController = Pick<
   | "isBusy"
 >
 
-type CheckoutShippingPaymentStepSectionProps = {
+interface CheckoutShippingPaymentStepSectionProps {
   backStepHref: string
   controller: CheckoutShippingPaymentStepController
   nextStepHref: string
@@ -79,7 +80,7 @@ export function CheckoutShippingPaymentStepSection({
         paymentProviders={controller.checkoutPaymentQuery.paymentProviders}
         {...(selectedPaymentProviderId === undefined
           ? {}
-          : { selectedPaymentProviderId: selectedPaymentProviderId })}
+          : { selectedPaymentProviderId })}
         selectionMessage={paymentSelectionMessage}
       />
 

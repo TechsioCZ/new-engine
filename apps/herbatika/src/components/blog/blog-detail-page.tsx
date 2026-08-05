@@ -4,10 +4,8 @@ import { useLocale, useTranslations } from "next-intl"
 import NextImage from "next/image"
 
 import NextLink from "@/components/app-link"
-import {
-  HerbatikaBreadcrumb,
-  type HerbatikaBreadcrumbItem,
-} from "@/components/herbatika-breadcrumb"
+import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
+import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb"
 import type { BlogPost } from "@/lib/storefront/blog-content"
 
 import { BlogArticleSidebar } from "./blog-article-sidebar"
@@ -20,7 +18,7 @@ import {
 import { formatBlogDate } from "./blog-formatters"
 import { BlogRelatedCard } from "./blog-related-card"
 
-type BlogDetailPageProps = {
+interface BlogDetailPageProps {
   post: BlogPost
   recommendedProducts: HttpTypes.StoreProduct[]
   relatedPosts: BlogPost[]
@@ -36,9 +34,9 @@ export function BlogDetailPage({
   const tContent = useTranslations("content")
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
-      label: tContent("pages.blog"),
       href: "/blog",
       icon: "token-icon-home",
+      label: tContent("pages.blog"),
     },
     {
       label: post.title,

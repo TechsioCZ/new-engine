@@ -32,7 +32,7 @@ const clearToken = () => {
   authTokenStorage.clear()
 }
 
-const fetchCustomer = (signal?: AbortSignal) =>
+const fetchCustomer = async (signal?: AbortSignal) =>
   authServiceBase.getCustomer(signal)
 
 const ensureSessionProxyToken = async (): Promise<string | null> => {
@@ -42,7 +42,7 @@ const ensureSessionProxyToken = async (): Promise<string | null> => {
   }
 
   if (sessionBootstrapPromise) {
-    return sessionBootstrapPromise
+    return await sessionBootstrapPromise
   }
 
   sessionBootstrapPromise = (async () => {
@@ -72,7 +72,7 @@ export const authService = {
         return null
       }
 
-      return fetchCustomer(signal)
+      return await fetchCustomer(signal)
     }
 
     if (!getStoredToken()) {
@@ -98,24 +98,12 @@ export const authService = {
       return null
     }
 
-    return fetchCustomer(signal)
+    return await fetchCustomer(signal)
   },
   async login(credentials: AuthLoginInput) {
     const { token } = await requestAuthProxy("login", {
       email: credentials.email,
       password: credentials.password,
-    })
-
-    await storeToken(token)
-    return token
-  },
-  async register(input: AuthRegisterInput) {
-    const { token } = await requestAuthProxy("register", {
-      email: input.email,
-      password: input.password,
-      first_name: input.first_name,
-      last_name: input.last_name,
-      wholesale: input.wholesale,
     })
 
     await storeToken(token)
@@ -129,7 +117,19 @@ export const authService = {
     await authServiceBase.logout()
     clearToken()
   },
-  updateCustomer(input: AuthUpdateInput) {
+  async register(input: AuthRegisterInput) {
+    const { token } = await requestAuthProxy("register", {
+      email: input.email,
+      password: input.password,
+      first_name: input.first_name,
+      last_name: input.last_name,
+      wholesale: input.wholesale,
+    })
+
+    await storeToken(token)
+    return token
+  },
+  async updateCustomer(input: AuthUpdateInput) {
     if (!authServiceBase.updateCustomer) {
       return Promise.reject(
         new Error("updateCustomer service is not configured")

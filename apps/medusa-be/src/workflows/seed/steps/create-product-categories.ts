@@ -23,7 +23,7 @@ export type CreateProductCategoriesStepInput = {
 
 const CreateProductCategoriesStepId = "create-product-categories-seed-step"
 
-function dedupeStringValues(values: Array<string | undefined>): string[] {
+function dedupeStringValues(values: (string | undefined)[]): string[] {
   return [
     ...new Set(
       values.filter((value): value is string => Boolean(value?.trim()))
@@ -112,14 +112,14 @@ export const createProductCategoriesStep = createStep(
 
         return [
           {
-            id: existingProductCategory.id,
-            name: inputProductCategories.name,
-            is_active: inputProductCategories.isActive,
             description: inputProductCategories.description,
             handle: inputProductCategories.handle,
-            metadata: inputProductCategories.metadata,
-            rank: inputProductCategories.rank,
+            id: existingProductCategory.id,
+            is_active: inputProductCategories.isActive,
             is_internal: inputProductCategories.isInternal,
+            metadata: inputProductCategories.metadata,
+            name: inputProductCategories.name,
+            rank: inputProductCategories.rank,
           },
         ]
       }
@@ -133,8 +133,8 @@ export const createProductCategoriesStep = createStep(
       ).run({
         input: {
           product_categories: missingProductCategories.map((category) => ({
-            name: category.name,
             is_active: category.isActive,
+            name: category.name,
             ...(category.description
               ? { description: category.description }
               : {}),
@@ -164,8 +164,8 @@ export const createProductCategoriesStep = createStep(
                 id: updateProductCategory.id,
               },
               update: {
-                name: updateProductCategory.name,
                 is_active: updateProductCategory.is_active,
+                name: updateProductCategory.name,
                 ...(updateProductCategory.description
                   ? { description: updateProductCategory.description }
                   : {}),

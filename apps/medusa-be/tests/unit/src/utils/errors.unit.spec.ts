@@ -2,12 +2,12 @@ import { MedusaError } from "@medusajs/framework/utils"
 import { describe, expect, it } from "vitest"
 
 import {
-  type ErrorWithOriginalThrowable,
   normalizeError,
   shouldCaptureException,
 } from "../../../../src/utils/errors"
+import type { ErrorWithOriginalThrowable } from "../../../../src/utils/errors"
 
-describe("normalizeError", () => {
+describe(normalizeError, () => {
   it("returns the same Error instance if throwable is already an Error", () => {
     const error = new Error("test error")
     const result = normalizeError(error)
@@ -34,14 +34,14 @@ describe("normalizeError", () => {
     const result = normalizeError(null) as ErrorWithOriginalThrowable
     expect(result).toBeInstanceOf(Error)
     expect(result.message).toBe("null")
-    expect(result.originalThrowable).toBe(null)
+    expect(result.originalThrowable).toBeNull()
   })
 
   it("converts undefined to an Error with originalThrowable", () => {
-    const result = normalizeError(undefined) as ErrorWithOriginalThrowable
+    const result = normalizeError() as ErrorWithOriginalThrowable
     expect(result).toBeInstanceOf(Error)
     expect(result.message).toBe("undefined")
-    expect(result.originalThrowable).toBe(undefined)
+    expect(result.originalThrowable).toBeUndefined()
   })
 
   it("converts a number throwable to an Error", () => {
@@ -52,7 +52,7 @@ describe("normalizeError", () => {
   })
 })
 
-describe("shouldCaptureException", () => {
+describe(shouldCaptureException, () => {
   describe("returns false for client error types", () => {
     it.each([
       ["UNAUTHORIZED", MedusaError.Types.UNAUTHORIZED],
@@ -61,7 +61,7 @@ describe("shouldCaptureException", () => {
       ["NOT_FOUND", MedusaError.Types.NOT_FOUND],
     ])("skips %s errors", (_, errorType) => {
       const error = new MedusaError(errorType, "test")
-      expect(shouldCaptureException(error)).toBe(false)
+      expect(shouldCaptureException(error)).toBeFalsy()
     })
   })
 
@@ -77,43 +77,43 @@ describe("shouldCaptureException", () => {
       ["UNEXPECTED_STATE", MedusaError.Types.UNEXPECTED_STATE],
     ])("captures %s errors", (_, errorType) => {
       const error = new MedusaError(errorType, "test")
-      expect(shouldCaptureException(error)).toBe(true)
+      expect(shouldCaptureException(error)).toBeTruthy()
     })
   })
 
   describe("non-MedusaError objects", () => {
     it("captures errors with status codes (not filtered by status)", () => {
-      expect(shouldCaptureException({ status: 400 })).toBe(true)
-      expect(shouldCaptureException({ status: 404 })).toBe(true)
-      expect(shouldCaptureException({ status: 500 })).toBe(true)
-      expect(shouldCaptureException({ statusCode: 429 })).toBe(true)
+      expect(shouldCaptureException({ status: 400 })).toBeTruthy()
+      expect(shouldCaptureException({ status: 404 })).toBeTruthy()
+      expect(shouldCaptureException({ status: 500 })).toBeTruthy()
+      expect(shouldCaptureException({ statusCode: 429 })).toBeTruthy()
     })
 
     it("captures errors without type property", () => {
-      expect(shouldCaptureException({ message: "unknown error" })).toBe(true)
+      expect(shouldCaptureException({ message: "unknown error" })).toBeTruthy()
     })
 
     it("captures errors with unknown type", () => {
-      expect(shouldCaptureException({ type: "custom_error" })).toBe(true)
+      expect(shouldCaptureException({ type: "custom_error" })).toBeTruthy()
     })
   })
 
   describe("edge cases", () => {
     it("returns true for null", () => {
-      expect(shouldCaptureException(null)).toBe(true)
+      expect(shouldCaptureException(null)).toBeTruthy()
     })
 
     it("returns true for undefined", () => {
-      expect(shouldCaptureException(undefined)).toBe(true)
+      expect(shouldCaptureException()).toBeTruthy()
     })
 
     it("returns true for primitive values", () => {
-      expect(shouldCaptureException("string error")).toBe(true)
-      expect(shouldCaptureException(42)).toBe(true)
+      expect(shouldCaptureException("string error")).toBeTruthy()
+      expect(shouldCaptureException(42)).toBeTruthy()
     })
 
     it("returns true for plain Error instances without status", () => {
-      expect(shouldCaptureException(new Error("test"))).toBe(true)
+      expect(shouldCaptureException(new Error("test"))).toBeTruthy()
     })
   })
 })

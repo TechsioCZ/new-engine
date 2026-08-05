@@ -41,11 +41,11 @@ export const AddToCartSection = ({
     // Validate stock availability (checks current cart + new quantity)
     const validation = validateAddToCart({
       cart,
-      variantId: selectedVariant.id,
       quantity,
-      ...(selectedVariant.inventory_quantity !== undefined
-        ? { inventoryQuantity: selectedVariant.inventory_quantity }
-        : {}),
+      variantId: selectedVariant.id,
+      ...(selectedVariant.inventory_quantity === undefined
+        ? {}
+        : { inventoryQuantity: selectedVariant.inventory_quantity }),
     })
 
     if (!validation.valid) {
@@ -58,14 +58,23 @@ export const AddToCartSection = ({
 
     addToCart(
       {
-        variantId: selectedVariant.id,
-        quantity,
         autoCreateCart: true,
         metadata: {
           inventory_quantity: selectedVariant.inventory_quantity || 0,
         },
+        quantity,
+        variantId: selectedVariant.id,
       },
       {
+        onError: (error) => {
+          if (error.message?.includes("stock")) {
+            toast.stockWarning()
+          } else if (error.message?.includes("network")) {
+            toast.networkError()
+          } else {
+            toast.cartError(error.message)
+          }
+        },
         onSuccess: () => {
           const currency = (
             selectedVariant.calculated_price?.currency_code ?? "CZK"
@@ -101,15 +110,6 @@ export const AddToCartSection = ({
           // Dispatch event to open cart popover (optional)
           const event = new CustomEvent("open-cart")
           window.dispatchEvent(event)
-        },
-        onError: (error) => {
-          if (error.message?.includes("stock")) {
-            toast.stockWarning()
-          } else if (error.message?.includes("network")) {
-            toast.networkError()
-          } else {
-            toast.cartError(error.message)
-          }
         },
       }
     )

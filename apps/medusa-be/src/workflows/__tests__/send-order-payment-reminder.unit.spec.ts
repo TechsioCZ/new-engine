@@ -24,7 +24,7 @@ const workflowSdkMock = vi.hoisted(() => {
   }
 })
 
-vi.mock("@medusajs/framework/utils", () => {
+vi.mock(import("@medusajs/framework/utils"), () => {
   class MedusaError extends Error {
     static Types = {
       NOT_FOUND: "not_found",
@@ -47,7 +47,7 @@ vi.mock("@medusajs/framework/utils", () => {
   }
 })
 
-vi.mock("@medusajs/framework/workflows-sdk", () => ({
+vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: workflowSdkMock.StepResponse,
   WorkflowResponse: workflowSdkMock.WorkflowResponse,
   createStep: vi.fn(
@@ -59,19 +59,19 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
   createWorkflow: vi.fn((_name: string, handler: unknown) => handler),
 }))
 
-vi.mock("../../modules/order-receipt", () => ({
+vi.mock(import("../../modules/order-receipt"), () => ({
   ORDER_RECEIPT_MODULE: "order_receipt",
 }))
 
-vi.mock("../steps/send-notification", () => ({
+vi.mock(import("../steps/send-notification"), () => ({
   sendNotificationStep: vi.fn(),
 }))
 
-type Notification = {
+interface Notification {
   data?: Record<string, unknown>
 }
 
-type OrderTotalFixture = {
+interface OrderTotalFixture {
   summary: {
     current_order_total?: number | string | null
     original_order_total?: number | string | null

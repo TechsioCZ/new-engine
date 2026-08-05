@@ -4,9 +4,9 @@ import { afterEach, describe, expect, test, vi } from "vitest"
 
 import {
   getRuntimeProviderMeiliKeyPolicy,
-  type StackInputs,
   stackInputsSchema,
 } from "../contracts/stack-inputs.js"
+import type { StackInputs } from "../contracts/stack-inputs.js"
 import { loadStackInputs } from "../orchestration/deploy-inputs.js"
 import { provisionMeiliKeys } from "../providers/meilisearch.js"
 
@@ -15,17 +15,17 @@ const MEILI_URL = "http://meili.test"
 const MASTER_KEY = "master-key"
 
 const backendPolicy = {
-  uid: "14f4c9c4-1a80-4e2f-8e79-19511d2c5ba5",
-  description: "Backend search key",
   actions: ["search", "documents.add"],
+  description: "Backend search key",
   indexes: ["products", "categories", "brands"],
+  uid: "14f4c9c4-1a80-4e2f-8e79-19511d2c5ba5",
 }
 
 const frontendPolicy = {
-  uid: "4b7f7f7e-8798-4b3f-8e73-c0f76f8b35d6",
-  description: "Frontend search key",
   actions: ["search"],
+  description: "Frontend search key",
   indexes: ["products", "categories", "brands"],
+  uid: "4b7f7f7e-8798-4b3f-8e73-c0f76f8b35d6",
 }
 
 type KeyPolicy = typeof backendPolicy
@@ -35,7 +35,7 @@ type StoredKey = KeyPolicy & {
   expiresAt: null
 }
 
-type RecordedRequest = {
+interface RecordedRequest {
   method: string
   path: string
   body: Record<string, unknown> | null
@@ -46,7 +46,6 @@ function createStackInputs(): StackInputs {
     runtime_providers: {
       providers: [
         {
-          provider_id: PROVIDER_ID,
           outputs: [
             {
               output_id: "backend_key",
@@ -69,6 +68,7 @@ function createStackInputs(): StackInputs {
               policy: frontendPolicy,
             },
           ],
+          provider_id: PROVIDER_ID,
         },
       ],
     },
@@ -81,18 +81,18 @@ function createStoredKey(
 ): StoredKey {
   return {
     ...policy,
-    key: `key-${policy.uid}`,
     expiresAt: null,
+    key: `key-${policy.uid}`,
     ...overrides,
   }
 }
 
 function jsonResponse(value: unknown, status = 200): Response {
   return new Response(JSON.stringify(value), {
-    status,
     headers: {
       "Content-Type": "application/json",
     },
+    status,
   })
 }
 
@@ -114,9 +114,9 @@ function createMeiliFetch(initialKeys: StoredKey[]) {
         : null
 
     requests.push({
+      body,
       method,
       path: url.pathname,
-      body,
     })
 
     if (url.pathname === "/health") {
@@ -124,14 +124,14 @@ function createMeiliFetch(initialKeys: StoredKey[]) {
     }
 
     if (url.pathname === "/keys" && method === "POST") {
-      if (!body || typeof body["uid"] !== "string") {
+      if (!body || typeof body.uid !== "string") {
         return jsonResponse({ message: "Missing key UID" }, 400)
       }
 
       const created = {
         ...(body as KeyPolicy),
-        key: `key-${body["uid"]}`,
         expiresAt: null,
+        key: `key-${body.uid}`,
       }
       keys.set(created.uid, created)
       return jsonResponse(created)
@@ -153,7 +153,7 @@ function createMeiliFetch(initialKeys: StoredKey[]) {
 
       const updated = {
         ...existing,
-        description: String(body["description"]),
+        description: String(body.description),
       }
       keys.set(uid, updated)
       return jsonResponse(updated)
@@ -166,7 +166,7 @@ function createMeiliFetch(initialKeys: StoredKey[]) {
 
     return jsonResponse({ message: "Unexpected request" }, 400)
   }
-  const fetchMock = vi.fn<typeof fetch>((input, init) =>
+  const fetchMock = vi.fn<typeof fetch>(async (input, init) =>
     Promise.resolve(handleRequest(input, init))
   )
 
@@ -179,14 +179,14 @@ function createMeiliFetch(initialKeys: StoredKey[]) {
 
 async function provision(stackInputs = createStackInputs()) {
   return await provisionMeiliKeys({
-    meiliUrl: MEILI_URL,
     masterKey: MASTER_KEY,
-    waitSeconds: 0,
-    timeoutSeconds: 1,
+    meiliUrl: MEILI_URL,
+    providerId: PROVIDER_ID,
     retryCount: 0,
     retryDelaySeconds: 0,
     stackInputs,
-    providerId: PROVIDER_ID,
+    timeoutSeconds: 1,
+    waitSeconds: 0,
   })
 }
 
@@ -207,11 +207,13 @@ describe("Meilisearch key reconciliation", () => {
 
     const result = await provision()
 
-    expect(result.backend_created).toBe(false)
-    expect(result.backend_updated).toBe(false)
-    expect(result.frontend_created).toBe(false)
-    expect(result.frontend_updated).toBe(false)
-    expect(meili.requests.filter(({ method }) => method !== "GET")).toEqual([])
+    expect(result.backend_created).toBeFalsy()
+    expect(result.backend_updated).toBeFalsy()
+    expect(result.frontend_created).toBeFalsy()
+    expect(result.frontend_updated).toBeFalsy()
+    expect(
+      meili.requests.filter(({ method }) => method !== "GET")
+    ).toStrictEqual([])
   })
 
   test("patches only the description when permissions already match", async () => {
@@ -226,15 +228,15 @@ describe("Meilisearch key reconciliation", () => {
     const result = await provision()
     const writes = meili.requests.filter(({ method }) => method !== "GET")
 
-    expect(result.backend_created).toBe(false)
-    expect(result.backend_updated).toBe(true)
-    expect(writes).toEqual([
+    expect(result.backend_created).toBeFalsy()
+    expect(result.backend_updated).toBeTruthy()
+    expect(writes).toStrictEqual([
       {
-        method: "PATCH",
-        path: `/keys/${backendPolicy.uid}`,
         body: {
           description: backendPolicy.description,
         },
+        method: "PATCH",
+        path: `/keys/${backendPolicy.uid}`,
       },
     ])
   })
@@ -252,25 +254,25 @@ describe("Meilisearch key reconciliation", () => {
     const result = await provision()
     const writes = meili.requests.filter(({ method }) => method !== "GET")
 
-    expect(result.backend_created).toBe(false)
-    expect(result.backend_updated).toBe(true)
-    expect(writes).toEqual([
+    expect(result.backend_created).toBeFalsy()
+    expect(result.backend_updated).toBeTruthy()
+    expect(writes).toStrictEqual([
       {
+        body: null,
         method: "DELETE",
         path: `/keys/${backendPolicy.uid}`,
-        body: null,
       },
       {
-        method: "POST",
-        path: "/keys",
         body: {
           ...backendPolicy,
           expiresAt: null,
         },
+        method: "POST",
+        path: "/keys",
       },
     ])
     expect(meili.keys.get(backendPolicy.uid)?.key).toBe(originalBackend.key)
-    expect(meili.keys.get(backendPolicy.uid)?.indexes).toEqual(
+    expect(meili.keys.get(backendPolicy.uid)?.indexes).toStrictEqual(
       backendPolicy.indexes
     )
   })

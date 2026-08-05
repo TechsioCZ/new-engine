@@ -13,7 +13,8 @@ import type { ButtonHTMLAttributes, ReactNode, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { tv } from "../utils"
-import { Icon, type IconType } from "./icon"
+import { Icon } from "./icon"
+import type { IconType } from "./icon"
 
 export const buttonVariants = tv({
   base: [
@@ -26,36 +27,6 @@ export const buttonVariants = tv({
     "focus-visible:outline-offset-(length:--default-ring-offset)",
     "disabled:cursor-not-allowed disabled:text-button-fg-disabled",
   ],
-  variants: {
-    variant: {
-      primary: "",
-      secondary: "",
-      tertiary: "",
-      danger: "",
-      warning: "",
-    },
-    theme: {
-      solid: "disabled:bg-button-bg-disabled",
-      light: "disabled:bg-button-bg-disabled",
-      borderless:
-        "bg-button-bg-borderless-base hover:bg-button-bg-borderless-hover active:bg-button-bg-borderless-active disabled:hover:bg-button-bg-borderless-base",
-      outlined:
-        "border bg-button-bg-outlined disabled:border-0 disabled:bg-button-bg-disabled disabled:hover:bg-button-bg-disabled",
-      unstyled: "",
-    },
-    uppercase: {
-      true: "uppercase",
-    },
-    size: {
-      sm: "h-form-control-sm gap-button-sm rounded-button-sm p-button-sm text-button-sm",
-      md: "h-form-control-md gap-button-md rounded-button-md p-button-md text-button-md",
-      lg: "gap-button-lg rounded-button-lg p-button-lg text-button-lg",
-      current: "gap-button-md text-inherit",
-    },
-    block: {
-      true: "w-full",
-    },
-  },
   compoundVariants: [
     {
       variant: "primary",
@@ -249,10 +220,40 @@ export const buttonVariants = tv({
     },
   ],
   defaultVariants: {
-    variant: "primary",
-    theme: "solid",
-    size: "md",
     light: false,
+    size: "md",
+    theme: "solid",
+    variant: "primary",
+  },
+  variants: {
+    block: {
+      true: "w-full",
+    },
+    size: {
+      current: "gap-button-md text-inherit",
+      lg: "gap-button-lg rounded-button-lg p-button-lg text-button-lg",
+      md: "h-form-control-md gap-button-md rounded-button-md p-button-md text-button-md",
+      sm: "h-form-control-sm gap-button-sm rounded-button-sm p-button-sm text-button-sm",
+    },
+    theme: {
+      borderless:
+        "bg-button-bg-borderless-base hover:bg-button-bg-borderless-hover active:bg-button-bg-borderless-active disabled:hover:bg-button-bg-borderless-base",
+      light: "disabled:bg-button-bg-disabled",
+      outlined:
+        "border bg-button-bg-outlined disabled:border-0 disabled:bg-button-bg-disabled disabled:hover:bg-button-bg-disabled",
+      solid: "disabled:bg-button-bg-disabled",
+      unstyled: "",
+    },
+    uppercase: {
+      true: "uppercase",
+    },
+    variant: {
+      danger: "",
+      primary: "",
+      secondary: "",
+      tertiary: "",
+      warning: "",
+    },
   },
 })
 
@@ -290,12 +291,12 @@ export function Button({
   return (
     <button
       className={buttonVariants({
-        variant,
-        theme,
-        size,
         block,
-        uppercase,
         className,
+        size,
+        theme,
+        uppercase,
+        variant,
       })}
       disabled={disabled}
       {...props}

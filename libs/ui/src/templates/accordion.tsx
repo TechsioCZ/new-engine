@@ -10,7 +10,8 @@
  * the accordion-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import type { IconType } from "../atoms/icon"
-import { Accordion, type AccordionProps } from "../molecules/accordion"
+import { Accordion } from "../molecules/accordion"
+import type { AccordionProps } from "../molecules/accordion"
 
 export interface AccordionItem {
   value: string

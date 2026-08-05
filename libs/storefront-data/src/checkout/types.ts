@@ -11,13 +11,13 @@ export type CheckoutMutationOptions<
   TContext = unknown,
 > = MutationOptions<TData, TVariables, TContext>
 
-export type ShippingOptionLike = {
+export interface ShippingOptionLike {
   id: string
   price_type?: string | null
   amount?: number | null
 }
 
-export type CheckoutCartLike = {
+export interface CheckoutCartLike {
   id: string
   region_id?: string | null
   shipping_methods?: {
@@ -27,25 +27,25 @@ export type CheckoutCartLike = {
   payment_collection?: { payment_sessions?: unknown[] }
 }
 
-export type CheckoutShippingInputBase = {
+export interface CheckoutShippingInputBase {
   cartId?: string
   enabled?: boolean
   cacheKey?: string
 }
 
-export type CheckoutPaymentInputBase = {
+export interface CheckoutPaymentInputBase {
   cartId?: string
   regionId?: string
   enabled?: boolean
 }
 
-export type CheckoutService<
+export interface CheckoutService<
   TCart,
   TShippingOption,
   TPaymentProvider,
   TPaymentCollection,
   TCompleteResult,
-> = {
+> {
   listShippingOptions: (
     cartId: string,
     signal?: AbortSignal
@@ -72,7 +72,7 @@ export type CheckoutService<
   completeCart?: (cartId: string) => Promise<TCompleteResult>
 }
 
-export type CheckoutQueryKeys = {
+export interface CheckoutQueryKeys {
   all: () => QueryKey
   shippingOptions: (cartId: string, cacheKey?: string) => QueryKey
   shippingOptionPrice: (params: {
@@ -83,7 +83,7 @@ export type CheckoutQueryKeys = {
   paymentProviders: (regionId: string) => QueryKey
 }
 
-export type UseCheckoutShippingResult<TShippingOption, TCart = unknown> = {
+export interface UseCheckoutShippingResult<TShippingOption, TCart = unknown> {
   shippingOptions: TShippingOption[]
   shippingPrices: Record<string, number>
   isLoading: boolean
@@ -99,10 +99,10 @@ export type UseCheckoutShippingResult<TShippingOption, TCart = unknown> = {
   selectedShippingMethodData?: Record<string, unknown>
   selectedOption?: TShippingOption
 }
-export type UseCheckoutPaymentResult<
+export interface UseCheckoutPaymentResult<
   TPaymentProvider,
   TPaymentCollection = unknown,
-> = {
+> {
   paymentProviders: TPaymentProvider[]
   initiatePayment: (providerId: string) => void
   initiatePaymentAsync: (providerId: string) => Promise<TPaymentCollection>

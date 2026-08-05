@@ -11,7 +11,7 @@ const REGION_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 const REGION_ID_PATTERN = /^reg_[a-z0-9]+$/i
 const COUNTRY_CODE_PATTERN = /^[a-z]{2}$/i
 
-type BrowserCookieStore = {
+interface BrowserCookieStore {
   set: (options: {
     expires?: number
     name: string
@@ -63,7 +63,7 @@ const writeCookie = (name: string, value: string) => {
     return
   }
 
-  const cookieStore = (window as WindowWithCookieStore).cookieStore
+  const { cookieStore } = window as WindowWithCookieStore
   if (cookieStore) {
     cookieStore
       .set({
@@ -73,7 +73,9 @@ const writeCookie = (name: string, value: string) => {
         sameSite: "lax",
         value,
       })
-      .catch(() => writeDocumentCookie(name, value))
+      .catch(() => {
+        writeDocumentCookie(name, value)
+      })
     return
   }
 
@@ -110,8 +112,8 @@ export const getStoredRegionPreference = (): RegionInfo | null => {
   }
 
   return {
-    region_id: regionId,
     country_code: countryCode,
+    region_id: regionId,
   }
 }
 
@@ -127,7 +129,7 @@ export const resolveRegionInfoFromCookieValues = (
   }
 
   return {
-    region_id: regionId,
     country_code: countryCode,
+    region_id: regionId,
   }
 }

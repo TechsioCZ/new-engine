@@ -1,6 +1,6 @@
 import type { CheckoutAddressValues } from "@/lib/forms/checkout/address.form"
 
-export type CarrierPickupAddress = {
+export interface CarrierPickupAddress {
   address: Pick<
     CheckoutAddressValues,
     "address1" | "address2" | "city" | "countryCode" | "postalCode"
@@ -13,16 +13,16 @@ export function resolveCarrierPickupAddress(
   fallbackCountryCode: string,
   fallbackLabel: string
 ): CarrierPickupAddress | null {
-  if (!(isRecord(data) && readString(data["access_point_id"]))) {
+  if (!(isRecord(data) && readString(data.access_point_id))) {
     return null
   }
 
-  const label = readString(data["access_point_name"]) ?? fallbackLabel
-  const street = readString(data["access_point_street"])
-  const city = readString(data["access_point_city"]) ?? ""
-  const postalCode = readString(data["access_point_zip"]) ?? ""
+  const label = readString(data.access_point_name) ?? fallbackLabel
+  const street = readString(data.access_point_street)
+  const city = readString(data.access_point_city) ?? ""
+  const postalCode = readString(data.access_point_zip) ?? ""
   const countryCode = (
-    readString(data["access_point_country"]) ?? fallbackCountryCode
+    readString(data.access_point_country) ?? fallbackCountryCode
   ).toUpperCase()
 
   return {

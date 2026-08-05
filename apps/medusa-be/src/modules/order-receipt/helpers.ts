@@ -18,7 +18,7 @@ function normalizeTextValue(value: TextValue): string {
   return String(value)
 }
 
-export type OrderReceiptAddress = {
+export interface OrderReceiptAddress {
   address_1?: string | null
   address_2?: string | null
   city?: string | null
@@ -29,7 +29,7 @@ export type OrderReceiptAddress = {
   postal_code?: string | null
 }
 
-export type OrderReceiptLineItem = {
+export interface OrderReceiptLineItem {
   detail?: {
     quantity?: OrderReceiptMoney
     raw_quantity?: OrderReceiptMoney
@@ -51,22 +51,22 @@ export type OrderReceiptLineItem = {
   total?: OrderReceiptMoney
 }
 
-export type OrderReceiptPayment = {
+export interface OrderReceiptPayment {
   data?: Record<string, unknown> | null
   provider_id?: string | null
 }
 
-export type OrderReceiptPaymentCollection = {
+export interface OrderReceiptPaymentCollection {
   payments?: OrderReceiptPayment[] | null
 }
 
-export type OrderReceiptSummary = {
+export interface OrderReceiptSummary {
   accounting_total?: OrderReceiptMoney
   current_order_total?: OrderReceiptMoney
   original_order_total?: OrderReceiptMoney
 }
 
-export type OrderReceiptShippingMethod = {
+export interface OrderReceiptShippingMethod {
   amount?: OrderReceiptMoney
   is_tax_inclusive?: boolean | null
   name?: string | null
@@ -79,7 +79,7 @@ export type OrderReceiptShippingMethod = {
   total?: OrderReceiptMoney
 }
 
-export type OrderReceiptOrder = {
+export interface OrderReceiptOrder {
   billing_address?: OrderReceiptAddress | null
   created_at?: Date | string | null
   currency_code?: string | null
@@ -102,7 +102,7 @@ export type OrderReceiptOrder = {
   total?: OrderReceiptMoney
 }
 
-export type OrderReceiptAttachment = {
+export interface OrderReceiptAttachment {
   content: Buffer
   content_type: "application/pdf"
   filename: string
@@ -147,58 +147,61 @@ function getExplicitMoneyTotal(value: OrderReceiptMoney | undefined) {
 
 export function ascii(value: TextValue) {
   return normalizeTextValue(value)
-    .replace(/\u00a0/g, " ")
+    .replaceAll(/\u00A0/g, " ")
     .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\x20-\x7E]/g, "")
+    .replaceAll(/[\u0300-\u036F]/g, "")
+    .replaceAll(/[^\u0020-\u007E]/g, "")
 }
 
 const PDF_DIACRITIC_CODES: Record<string, string> = {
   "A\u0301": "\\300",
-  "a\u0301": "\\301",
   "C\u030c": "\\302",
-  "c\u030c": "\\303",
   "D\u030c": "\\304",
-  "d\u030c": "\\305",
   "E\u0301": "\\306",
-  "e\u0301": "\\307",
   "E\u030c": "\\310",
-  "e\u030c": "\\311",
   "I\u0301": "\\312",
-  "i\u0301": "\\313",
   "N\u030c": "\\314",
-  "n\u030c": "\\315",
   "O\u0301": "\\316",
-  "o\u0301": "\\317",
   "R\u030c": "\\320",
-  "r\u030c": "\\321",
   "S\u030c": "\\322",
-  "s\u030c": "\\323",
   "T\u030c": "\\324",
-  "t\u030c": "\\325",
   "U\u0301": "\\326",
-  "u\u0301": "\\327",
   "U\u030a": "\\330",
-  "u\u030a": "\\331",
   "Y\u0301": "\\332",
-  "y\u0301": "\\333",
   "Z\u030c": "\\334",
+  "a\u0301": "\\301",
+  "c\u030c": "\\303",
+  "d\u030c": "\\305",
+  "e\u0301": "\\307",
+  "e\u030c": "\\311",
+  "i\u0301": "\\313",
+  "n\u030c": "\\315",
+  "o\u0301": "\\317",
+  "r\u030c": "\\321",
+  "s\u030c": "\\323",
+  "t\u030c": "\\325",
+  "u\u0301": "\\327",
+  "u\u030a": "\\331",
+  "y\u0301": "\\333",
   "z\u030c": "\\335",
 }
 
 export const PDF_CZECH_ENCODING_DIFFERENCES =
   "[192 /Aacute /aacute /Ccaron /ccaron /Dcaron /dcaron /Eacute /eacute /Ecaron /ecaron /Iacute /iacute /Ncaron /ncaron /Oacute /oacute /Rcaron /rcaron /Scaron /scaron /Tcaron /tcaron /Uacute /uacute /Uring /uring /Yacute /yacute /Zcaron /zcaron]"
 
-const COMBINING_MARK_PATTERN = /[\u0300-\u036f]/
-const PDF_ASCII_PATTERN = /[\x20-\x7E]/
+const COMBINING_MARK_PATTERN = /[\u0300-\u036F]/
+const PDF_ASCII_PATTERN = /[\u0020-\u007E]/
 
 function escapePdfAsciiChar(char: string) {
-  return char.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)")
+  return char
+    .replaceAll(/\\/g, "\\\\")
+    .replaceAll(/\(/g, "\\(")
+    .replaceAll(/\)/g, "\\)")
 }
 
 export function escapePdfText(value: TextValue) {
   const normalized = normalizeTextValue(value)
-    .replace(/\u00a0/g, " ")
+    .replaceAll(/\u00A0/g, " ")
     .normalize("NFKD")
   let escaped = ""
 
@@ -267,7 +270,7 @@ export function getOrderNumber(order: OrderReceiptOrder) {
 }
 
 export function getOrderReceiptFilename(order: OrderReceiptOrder) {
-  return `invoice-${ascii(getOrderNumber(order)).replace(
+  return `invoice-${ascii(getOrderNumber(order)).replaceAll(
     /[^a-zA-Z0-9_-]/g,
     "-"
   )}.pdf`
@@ -295,7 +298,7 @@ export function getItemTitle(item: OrderReceiptLineItem) {
 }
 
 function getTaxRate(item: {
-  tax_lines?: Array<{ rate?: OrderReceiptMoney } | null> | null
+  tax_lines?: ({ rate?: OrderReceiptMoney } | null)[] | null
 }) {
   const rate = item.tax_lines?.find(
     (taxLine) => taxLine?.rate !== null && taxLine?.rate !== undefined
@@ -517,7 +520,7 @@ function getShippingMethodsTaxTotal(
 }
 
 function hasCompleteRelationTaxSignal(
-  relation: Array<{ tax_total?: OrderReceiptMoney }> | null | undefined,
+  relation: { tax_total?: OrderReceiptMoney }[] | null | undefined,
   taxTotal: number | null
 ) {
   if (!Array.isArray(relation)) {
@@ -823,7 +826,7 @@ function helveticaCharacterWidth(character: string, font: PdfFont) {
 
 export function truncate(value: TextValue, maxLength: number) {
   const textValue = normalizeTextValue(value)
-    .replace(/\u00a0/g, " ")
+    .replaceAll(/\u00A0/g, " ")
     .trim()
 
   if (textValue.length <= maxLength) {
@@ -839,7 +842,7 @@ export function estimateTextWidth(
   font: PdfFont = "F1"
 ) {
   return (
-    Array.from(ascii(textValue)).reduce(
+    [...ascii(textValue)].reduce(
       (width, character) => width + helveticaCharacterWidth(character, font),
       0
     ) *
@@ -856,7 +859,7 @@ function splitTokenToEstimatedWidth(
   const lines: string[] = []
   let currentLine = ""
 
-  for (const character of Array.from(token)) {
+  for (const character of [...token]) {
     const candidate = `${currentLine}${character}`
 
     if (
@@ -878,7 +881,7 @@ function splitTokenToEstimatedWidth(
   return lines
 }
 
-type TextWrapContext = {
+interface TextWrapContext {
   font: PdfFont
   fontSize: number
   maxWidth: number
@@ -923,8 +926,8 @@ export function wrapToEstimatedWidth(
 ) {
   const context = { font, fontSize, maxWidth }
   const textValue = normalizeTextValue(value)
-    .replace(/\u00a0/g, " ")
-    .replace(/\s+/g, " ")
+    .replaceAll(/\u00A0/g, " ")
+    .replaceAll(/\s+/g, " ")
     .trim()
 
   if (!textValue || maxWidth <= 0) {

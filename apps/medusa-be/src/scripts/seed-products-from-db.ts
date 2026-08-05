@@ -25,7 +25,7 @@ import { sqlRaw } from "../utils/db"
 const CHUNK_SIZE = 50
 
 // Product record shape from the database
-type ProductRecord = {
+interface ProductRecord {
   product_slug: string
   product_name: string
   product_description: string
@@ -42,7 +42,7 @@ type ProductRecord = {
   collection_name: string
 }
 
-type ImportPageResult = {
+interface ImportPageResult {
   createdCount: number
   hasMore: boolean
 }
@@ -92,7 +92,7 @@ function sanitizeHandle(handle: string): string {
   }
 
   // Check if the handle is a date string (common issue with database exports)
-  if (handle.match(DATE_STRING_PATTERN) || !Number.isNaN(Date.parse(handle))) {
+  if (DATE_STRING_PATTERN.exec(handle) || !Number.isNaN(Date.parse(handle))) {
     i += 1
     return `product-${i}-${Date.now()}`
   }
@@ -100,9 +100,9 @@ function sanitizeHandle(handle: string): string {
   // Replace any character that's not alphanumeric, dash, or underscore with a dash
   return handle
     .toLowerCase()
-    .replace(/[^a-z0-9-_]/g, "-")
-    .replace(/-+/g, "-") // Replace multiple consecutive dashes with a single dash
-    .replace(/^-|-$/g, "") // Remove leading and trailing dashes
+    .replaceAll(/[^a-z0-9-_]/g, "-")
+    .replaceAll(/-+/g, "-") // Replace multiple consecutive dashes with a single dash
+    .replaceAll(/^-|-$/g, "") // Remove leading and trailing dashes
 }
 
 /**
@@ -114,7 +114,7 @@ function convertToMedusaProducts(
   categoryMap: Record<string, string>
 ) {
   return products.map((product) => {
-    const safeHandle = sanitizeHandle(`${product.product_name}`)
+    const safeHandle = sanitizeHandle(product.product_name)
 
     return {
       title: product.product_name,
@@ -137,8 +137,6 @@ function convertToMedusaProducts(
       ],
       variants: [
         {
-          title: "Default",
-          sku: `SKU-${safeHandle}`, // Use sanitized handle for SKU as well
           prices: [
             {
               amount: product.product_price,
@@ -149,6 +147,8 @@ function convertToMedusaProducts(
               currency_code: "usd",
             },
           ],
+          sku: `SKU-${safeHandle}`, // Use sanitized handle for SKU as well
+          title: "Default",
         },
       ],
       // Link to default sales channel
@@ -173,10 +173,10 @@ async function checkExistingCategories(
   // Query for existing categories with the given handles
   const { data: existingCategories } = await query.graph({
     entity: "product_category",
+    fields: ["id", "handle"],
     filters: {
       handle: categoryHandles,
     },
-    fields: ["id", "handle"],
   })
 
   // Create a map of handle -> id for existing categories
@@ -200,10 +200,10 @@ async function checkExistingCollections(
   // Query for existing collections with the given handles
   const { data: existingCollections } = await query.graph({
     entity: "product_collection",
+    fields: ["id", "handle"],
     filters: {
       handle: collectionHandles,
     },
-    fields: ["id", "handle"],
   })
 
   // Create a map of handle -> id for existing collections
@@ -227,10 +227,10 @@ async function checkExistingProducts(
   // Query for existing products with the given handles
   const { data: existingProducts } = await query.graph({
     entity: "product",
+    fields: ["id", "handle"],
     filters: {
       handle: productHandles,
     },
-    fields: ["id", "handle"],
   })
 
   // Create a map of handle -> id for existing products
@@ -258,9 +258,9 @@ function extractCategories(products: ProductRecord[]): {
   for (const product of products) {
     if (product.category_slug && !categoriesMap[product.category_slug]) {
       categoriesMap[product.category_slug] = {
-        slug: product.category_slug,
-        name: product.category_name,
         image_url: product.category_image_url,
+        name: product.category_name,
+        slug: product.category_slug,
       }
     }
   }
@@ -363,10 +363,10 @@ async function ensureCategoryMap(
   )
 
   const productCategories = newCategories.map((category) => ({
-    name: category.name,
     handle: category.slug,
     is_active: true,
     is_internal: false,
+    name: category.name,
     ...(category.image_url
       ? { metadata: { image_url: category.image_url } }
       : {}),
@@ -450,12 +450,12 @@ async function ensureDefaultStockLocation(
     input: {
       locations: [
         {
-          name: "Default Warehouse",
           address: {
             address_1: "123 Demo Street",
             city: "Demo City",
             country_code: "us",
           },
+          name: "Default Warehouse",
         },
       ],
     },
@@ -517,9 +517,9 @@ async function setInventoryLevelsForLocation(
   }[] = []
   for (const inventoryItem of inventoryItems) {
     inventoryLevels.push({
-      stocked_quantity: 100,
       inventory_item_id: inventoryItem.id,
       location_id: stockLocationId,
+      stocked_quantity: 100,
     })
   }
 

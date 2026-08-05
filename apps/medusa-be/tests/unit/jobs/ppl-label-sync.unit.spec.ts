@@ -4,8 +4,10 @@ import {
   checkTimeoutConditions,
   MAX_PENDING_AGE_MS,
   MAX_SYNC_ATTEMPTS,
-  type PendingFulfillment,
-  type SyncAttemptInfo,
+} from "../../../src/modules/ppl-client/utils"
+import type {
+  PendingFulfillment,
+  SyncAttemptInfo,
 } from "../../../src/modules/ppl-client/utils"
 
 const FIXED_NOW = new Date("2026-01-01T12:00:00.000Z")
@@ -13,13 +15,13 @@ const FIXED_NOW = new Date("2026-01-01T12:00:00.000Z")
 const createFulfillment = (
   overrides: Partial<PendingFulfillment> = {}
 ): PendingFulfillment => ({
-  id: "ful_123",
+  created_at: new Date().toISOString(),
   data: {
-    status: "pending",
     batch_id: "batch_123",
     product_type: "PRIV",
+    status: "pending",
   },
-  created_at: new Date().toISOString(),
+  id: "ful_123",
   provider_id: "ppl_ppl",
   ...overrides,
 })
@@ -27,9 +29,9 @@ const createFulfillment = (
 const createAttemptInfo = (
   overrides: Partial<SyncAttemptInfo> = {}
 ): SyncAttemptInfo => ({
-  syncAttempts: 1,
   firstSyncAttempt: new Date().toISOString(),
   now: new Date().toISOString(),
+  syncAttempts: 1,
   ...overrides,
 })
 
@@ -43,7 +45,7 @@ describe("ppl-label-sync", () => {
     vi.useRealTimers()
   })
 
-  describe("checkTimeoutConditions", () => {
+  describe(checkTimeoutConditions, () => {
     it("returns null when within limits", () => {
       const fulfillment = createFulfillment()
       const attemptInfo = createAttemptInfo({ syncAttempts: 5 })
@@ -104,9 +106,9 @@ describe("ppl-label-sync", () => {
     it("includes batch_id in error message", () => {
       const fulfillment = createFulfillment({
         data: {
-          status: "pending",
           batch_id: "test_batch_xyz",
           product_type: "PRIV",
+          status: "pending",
         },
       })
       const attemptInfo = createAttemptInfo({ syncAttempts: MAX_SYNC_ATTEMPTS })

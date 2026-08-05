@@ -11,20 +11,16 @@
  */
 import * as menu from "@zag-js/menu"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import {
-  cloneElement,
-  isValidElement,
-  type ReactElement,
-  type ReactNode,
-  useEffect,
-  useId,
-} from "react"
-import { tv, type VariantProps } from "tailwind-variants"
+import { cloneElement, isValidElement, useEffect, useId } from "react"
+import type { ReactElement, ReactNode } from "react"
+import { tv } from "tailwind-variants"
+import type { VariantProps } from "tailwind-variants"
 
 import { Button } from "../atoms/button"
-import { Icon, type IconType } from "../atoms/icon"
+import { Icon } from "../atoms/icon"
+import type { IconType } from "../atoms/icon"
 
-type ActionMenuItem = {
+interface ActionMenuItem {
   type: "action"
   value: string
   label: string
@@ -32,7 +28,7 @@ type ActionMenuItem = {
   disabled?: boolean | undefined
 }
 
-type RadioMenuItem = {
+interface RadioMenuItem {
   type: "radio"
   value: string
   label: string
@@ -40,19 +36,19 @@ type RadioMenuItem = {
   checked: boolean
 }
 
-type CheckboxMenuItem = {
+interface CheckboxMenuItem {
   type: "checkbox"
   value: string
   label: string
   checked: boolean
 }
 
-type SeparatorMenuItem = {
+interface SeparatorMenuItem {
   type: "separator"
   id: string // pro key
 }
 
-type SubmenuMenuItem = {
+interface SubmenuMenuItem {
   type: "submenu"
   value: string
   label: string
@@ -70,9 +66,10 @@ export type MenuItem =
 
 // === COMPONENT VARIANTS ===
 const menuVariants = tv({
+  defaultVariants: {
+    size: "md",
+  },
   slots: {
-    trigger: "",
-    positioner: ["w-(--reference-width)", "isolate z-(--z-index)"],
     content: [
       "border border-menu-content-border bg-menu-content-bg",
       "rounded-menu shadow-menu-content",
@@ -95,36 +92,35 @@ const menuVariants = tv({
       "data-[highlighted]:bg-menu-item-bg-hover",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
+    itemIcon: ["text-menu-item-icon-fg text-menu-item-icon"],
+    itemText: ["flex-grow"],
     optionItem: ["data-[state=checked]:font-semibold"],
+    positioner: ["w-(--reference-width)", "isolate z-(--z-index)"],
     separator: [
       "my-menu-separator-margin",
       "h-menu-separator",
       "bg-menu-separator-bg",
     ],
-    itemText: ["flex-grow"],
-    itemIcon: ["text-menu-item-icon-fg text-menu-item-icon"],
     submenuIndicator: [
       "ms-menu-submenu-indicator text-menu-submenu-indicator-fg",
     ],
+    trigger: "",
   },
   variants: {
     size: {
-      sm: {
-        content: "text-sm",
-        item: "text-sm",
+      lg: {
+        content: "text-lg",
+        item: "text-lg",
       },
       md: {
         content: "text-md",
         item: "text-md",
       },
-      lg: {
-        content: "text-lg",
-        item: "text-lg",
+      sm: {
+        content: "text-sm",
+        item: "text-sm",
       },
     },
-  },
-  defaultVariants: {
-    size: "md",
   },
 })
 
@@ -150,8 +146,8 @@ function SubmenuItem({
   closeOnSelect = true,
 }: SubmenuItemProps) {
   const submenuService = useMachine(menu.machine as any, {
-    id: useId(),
     closeOnSelect,
+    id: useId(),
     onSelect,
   })
 
@@ -202,14 +198,14 @@ function SubmenuItem({
         <li
           className={`${itemSlot()} ${optionItem()}`}
           key={menuItem.value}
-          {...(submenuApi.getOptionItemProps({
-            type: menuItem.type,
-            value: menuItem.value,
+          {...submenuApi.getOptionItemProps({
             checked: menuItem.checked,
             onCheckedChange: (checked) => {
               onCheckedChange?.(menuItem, checked)
             },
-          }) as any)}
+            type: menuItem.type,
+            value: menuItem.value,
+          })}
         >
           {menuItem.checked && (
             <Icon className={itemIcon()} icon="token-icon-check" />
@@ -224,10 +220,10 @@ function SubmenuItem({
       <li
         className={itemSlot()}
         key={menuItem.value}
-        {...(submenuApi.getItemProps({
-          value: menuItem.value,
+        {...submenuApi.getItemProps({
           disabled: menuItem.disabled,
-        }) as any)}
+          value: menuItem.value,
+        })}
       >
         {menuItem.icon && <Icon className={itemIcon()} icon={menuItem.icon} />}
         <span className={itemText()}>{menuItem.label}</span>
@@ -251,11 +247,8 @@ function SubmenuItem({
       </li>
 
       <Portal>
-        <div
-          className={positioner()}
-          {...(submenuApi.getPositionerProps() as any)}
-        >
-          <ul className={content()} {...(submenuApi.getContentProps() as any)}>
+        <div className={positioner()} {...submenuApi.getPositionerProps()}>
+          <ul className={content()} {...submenuApi.getContentProps()}>
             {item.items.map(renderMenuItem)}
           </ul>
         </div>
@@ -336,27 +329,27 @@ export function Menu({
   const generatedId = useId()
 
   const service = useMachine(menu.machine as any, {
-    id: id || generatedId,
-    dir,
-    closeOnSelect,
-    loopFocus,
-    typeahead,
-    positioning,
-    defaultHighlightedValue,
-    highlightedValue,
     anchorPoint,
-    open,
-    defaultOpen,
+    "aria-label": ariaLabel,
+    closeOnSelect,
     composite,
+    defaultHighlightedValue,
+    defaultOpen,
+    dir,
+    highlightedValue,
+    id: id || generatedId,
+    loopFocus,
     navigate,
-    onSelect,
-    onOpenChange,
     onEscapeKeyDown,
-    onPointerDownOutside,
-    onInteractOutside,
     onFocusOutside,
     onHighlightChange,
-    "aria-label": ariaLabel,
+    onInteractOutside,
+    onOpenChange,
+    onPointerDownOutside,
+    onSelect,
+    open,
+    positioning,
+    typeahead,
   })
 
   const api = menu.connect(service as any, normalizeProps)
@@ -400,14 +393,14 @@ export function Menu({
         <li
           className={`${itemSlot()} ${optionItem()}`}
           key={item.value}
-          {...(api.getOptionItemProps({
-            type: item.type,
-            value: item.value,
+          {...api.getOptionItemProps({
             checked: item.checked,
             onCheckedChange: (checked) => {
               onCheckedChange?.(item, checked)
             },
-          }) as any)}
+            type: item.type,
+            value: item.value,
+          })}
         >
           {/* Icon for checked state */}
           {item.checked && (
@@ -423,10 +416,10 @@ export function Menu({
       <li
         className={itemSlot()}
         key={item.value}
-        {...(api.getItemProps({
-          value: item.value,
+        {...api.getItemProps({
           disabled: item.disabled,
-        }) as any)}
+          value: item.value,
+        })}
       >
         {item.icon && <Icon className={itemIcon()} icon={item.icon} />}
         <span className={itemText()}>{item.label}</span>
@@ -458,8 +451,8 @@ export function Menu({
       )}
 
       <Portal>
-        <div className={positioner()} {...(api.getPositionerProps() as any)}>
-          <ul className={content()} {...(api.getContentProps() as any)}>
+        <div className={positioner()} {...api.getPositionerProps()}>
+          <ul className={content()} {...api.getContentProps()}>
             {items.map(renderMenuItem)}
           </ul>
         </div>

@@ -17,7 +17,7 @@ export const HERBATIKA_PRODUCT_GRID_LAYOUT_CLASSNAME = {
 export type HerbatikaProductGridLayout =
   keyof typeof HERBATIKA_PRODUCT_GRID_LAYOUT_CLASSNAME
 
-type HerbatikaProductGridProps = {
+interface HerbatikaProductGridProps {
   products: HttpTypes.StoreProduct[]
   onAddToCart: (product: HttpTypes.StoreProduct) => Promise<void> | void
   layout: HerbatikaProductGridLayout
@@ -48,12 +48,10 @@ export function HerbatikaProductGrid({
           isAdding={isProductAdding?.(product) ?? false}
           key={`${keyPrefix ?? layout}-${product.id}-${index}`}
           onAddToCart={onAddToCart}
-          {...(onProductHoverEnd === undefined
-            ? {}
-            : { onProductHoverEnd: onProductHoverEnd })}
+          {...(onProductHoverEnd === undefined ? {} : { onProductHoverEnd })}
           {...(onProductHoverStart === undefined
             ? {}
-            : { onProductHoverStart: onProductHoverStart })}
+            : { onProductHoverStart })}
           product={product}
         />
       ))}

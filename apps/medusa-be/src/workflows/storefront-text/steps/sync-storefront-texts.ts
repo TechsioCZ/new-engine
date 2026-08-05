@@ -5,14 +5,12 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { STOREFRONT_TEXT_MODULE } from "../../../modules/storefront-text"
 import { validateStorefrontTextOverride } from "../../../modules/storefront-text/message-validation"
 import type { StorefrontTextRecord } from "../../../modules/storefront-text/models/storefront-text"
-import {
-  getStorefrontTextSeedRows,
-  type StorefrontTextSeedRow,
-} from "../../../modules/storefront-text/registry"
+import { getStorefrontTextSeedRows } from "../../../modules/storefront-text/registry"
+import type { StorefrontTextSeedRow } from "../../../modules/storefront-text/registry"
 import type StorefrontTextModuleService from "../../../modules/storefront-text/service"
 import type { SyncStorefrontTextsWorkflowInput } from "../types"
 
-export type StorefrontTextSyncCompensation = {
+export interface StorefrontTextSyncCompensation {
   createdIds: string[]
   previousRecords: StorefrontTextRestoreRecord[]
 }
@@ -28,7 +26,7 @@ type StorefrontTextRestoreRecord = Pick<
   | "override_value"
 >
 
-type StorefrontTextSyncResult = {
+interface StorefrontTextSyncResult {
   created_count: number
   updated_count: number
 }
@@ -108,9 +106,9 @@ export const synchronizeStorefrontTexts = async (
     existingRecords.map((record) => [getRecordIdentity(record), record])
   )
   const createInputs: StorefrontTextSeedRow[] = []
-  const updateInputs: Array<
-    StorefrontTextRestoreRecord & { override_value: null | string }
-  > = []
+  const updateInputs: (StorefrontTextRestoreRecord & {
+    override_value: null | string
+  })[] = []
   const previousRecords: StorefrontTextRestoreRecord[] = []
 
   for (const seedRow of seedRows) {
@@ -194,7 +192,7 @@ export const syncStorefrontTextsStep = createStep(
       STOREFRONT_TEXT_MODULE
     )
     const { compensation, result } = await service.runInTransaction(
-      (sharedContext) =>
+      async (sharedContext) =>
         synchronizeStorefrontTexts(service, input, sharedContext)
     )
 
@@ -209,7 +207,7 @@ export const syncStorefrontTextsStep = createStep(
       STOREFRONT_TEXT_MODULE
     )
 
-    await service.runInTransaction((sharedContext) =>
+    await service.runInTransaction(async (sharedContext) =>
       restoreSynchronizedStorefrontTexts(service, compensation, sharedContext)
     )
   }

@@ -2,7 +2,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import type { ReactNode } from "react"
 
-export type ConfirmDialogProps = {
+export interface ConfirmDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
@@ -65,7 +65,9 @@ export function ConfirmDialog({
       closeOnInteractOutside={!isLoading}
       customTrigger
       description={description}
-      onOpenChange={({ open: nextOpen }) => onOpenChange(nextOpen)}
+      onOpenChange={({ open: nextOpen }) => {
+        onOpenChange(nextOpen)
+      }}
       open={open}
       placement="center"
       role="alertdialog"

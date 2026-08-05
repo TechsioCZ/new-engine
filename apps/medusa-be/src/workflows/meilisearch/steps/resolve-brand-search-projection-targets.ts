@@ -6,11 +6,11 @@ import { ProductBrandLink } from "../../../links/product-brand"
 import { isMeilisearchEnabled } from "../../../modules/meilisearch/env"
 import {
   BRAND_SEARCH_PROJECTION_LOCK_KEY,
-  type BrandSearchProjectionChangedEventData,
   buildBrandSearchProjectionEventData,
 } from "../events"
+import type { BrandSearchProjectionChangedEventData } from "../events"
 
-type ProductBrandLinkRecord = {
+interface ProductBrandLinkRecord {
   product_id?: string
 }
 

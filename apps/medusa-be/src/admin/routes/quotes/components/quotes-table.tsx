@@ -32,10 +32,10 @@ export const QuotesTable = () => {
   const filters = useQuotesTableFilters()
 
   const { table } = useDataTable({
-    data: quotes,
     columns,
-    enablePagination: true,
     count,
+    data: quotes,
+    enablePagination: true,
     pageSize: PAGE_SIZE,
   })
 
@@ -48,8 +48,8 @@ export const QuotesTable = () => {
         isLoading={isPending}
         navigateTo={(row) => `/quotes/${row.original.id}`}
         noRecords={{
-          title: t("noRecords.title"),
           message: t("noRecords.message"),
+          title: t("noRecords.title"),
         }}
         orderBy={["id", "created_at"]}
         pageSize={PAGE_SIZE}

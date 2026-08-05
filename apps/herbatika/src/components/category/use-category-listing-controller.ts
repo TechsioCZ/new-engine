@@ -16,7 +16,7 @@ import {
   useCatalogListingPageBounds,
 } from "@/lib/storefront/use-catalog-listing-interactions"
 
-type UseCategoryListingControllerProps = {
+interface UseCategoryListingControllerProps {
   slug: string
 }
 
@@ -27,8 +27,8 @@ export function useCategoryListingController({
   const [queryState, setQueryState] = useQueryStates(plpQueryParsers)
 
   const listingQueries = useCategoryListingQueries({
-    slug,
     queryState,
+    slug,
   })
 
   const listingInteractions = useCatalogListingInteractions({
@@ -78,10 +78,10 @@ export function useCategoryListingController({
       )
       prefetchCategories.delayedPrefetch(
         {
-          page: 1,
-          limit: 100,
-          parent_category_id: category.id,
           fields: CATEGORY_TREE_FIELDS,
+          limit: 100,
+          page: 1,
+          parent_category_id: category.id,
         },
         300,
         `prefetch-category-children-${category.id}`

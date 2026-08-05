@@ -13,7 +13,7 @@ import { AUTH_MESSAGES } from "@/lib/auth-messages"
 import { loginValidators } from "@/lib/form-validators"
 import { useAnalytics } from "@/providers/analytics-provider"
 
-type LoginFormProps = {
+interface LoginFormProps {
   onSuccess?: () => void
   toggle?: () => void
   showRegisterLink?: boolean
@@ -21,7 +21,7 @@ type LoginFormProps = {
   className?: string
 }
 
-type LoginFormData = {
+interface LoginFormData {
   email: string
   password: string
 }
@@ -44,6 +44,10 @@ export function LoginForm({
   }
 
   const login = useLogin({
+    onError: (error) => {
+      console.error("Login failed:", error.message)
+      setBackendError(AUTH_MESSAGES.INVALID_CREDENTIALS)
+    },
     onSuccess: () => {
       if (!formRef.current) {
         return
@@ -61,10 +65,6 @@ export function LoginForm({
       formRef.current.reset()
       setBackendError(undefined)
       onSuccess?.()
-    },
-    onError: (error) => {
-      console.error("Login failed:", error.message)
-      setBackendError(AUTH_MESSAGES.INVALID_CREDENTIALS)
     },
   })
 
@@ -111,7 +111,9 @@ export function LoginForm({
             externalError={backendError}
             field={field}
             label="Heslo"
-            onExternalErrorClear={() => setBackendError(undefined)}
+            onExternalErrorClear={() => {
+              setBackendError(undefined)
+            }}
             placeholder="••••••••"
             required
             type="password"

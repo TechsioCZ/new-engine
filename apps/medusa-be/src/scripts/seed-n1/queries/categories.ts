@@ -2,7 +2,7 @@ import type { SQL } from "drizzle-orm"
 import { sql } from "drizzle-orm"
 
 /** Category result from database query */
-export type CategoryRaw = {
+export interface CategoryRaw {
   title: string
   description: string
   handle: string

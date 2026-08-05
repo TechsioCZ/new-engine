@@ -6,7 +6,8 @@ import Link from "next/link"
 import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
 
-import { getOrderById, type StoreOrder } from "@/services/order-service"
+import { getOrderById } from "@/services/order-service"
+import type { StoreOrder } from "@/services/order-service"
 import { formatDateString } from "@/utils/format/format-date"
 import {
   getOrderStatusColor,
@@ -32,11 +33,11 @@ export function OrderDetailClient() {
           setOrder(data)
         }
       })
-      .catch((err) => {
+      .catch((error) => {
         if (!active) {
           return
         }
-        setError(err instanceof Error ? err.message : "Chyba při načítání")
+        setError(error instanceof Error ? error.message : "Chyba při načítání")
       })
       .finally(() => {
         if (active) {
@@ -98,9 +99,9 @@ export function OrderDetailClient() {
             </h1>
             <p className="text-fg-secondary">
               {formatDateString(order.created_at as string, {
+                day: "numeric",
                 month: "long",
                 year: "numeric",
-                day: "numeric",
               })}
             </p>
           </div>

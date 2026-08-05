@@ -1,17 +1,15 @@
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import { useTranslations } from "next-intl"
 
-import {
-  type CheckoutAddressScope,
-  resolveCheckoutAddressFieldName,
-} from "@/components/checkout/checkout-address.utils"
+import { resolveCheckoutAddressFieldName } from "@/components/checkout/checkout-address.utils"
+import type { CheckoutAddressScope } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
 import { useCheckoutFieldValidators } from "@/lib/storefront/use-checkout-field-validators"
 
 import { CheckoutLoginPrompt } from "./checkout-login-prompt"
 import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle"
 
-type CheckoutAddressSectionProps = {
+interface CheckoutAddressSectionProps {
   checkoutDetailsForm: CheckoutDetailsFormController
   countryItems: SelectItem[]
   fieldPrefix: string

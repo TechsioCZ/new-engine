@@ -13,21 +13,23 @@ import {
 } from "./search-autocomplete-taxonomy-normalizers"
 import {
   createEmptySearchAutocompleteResponse,
-  type RawSearchAutocompleteFacetItem,
-  type RawSearchAutocompleteProductHit,
   SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH,
   SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH,
-  type SearchAutocompleteResponse,
+} from "./search-autocomplete-types"
+import type {
+  RawSearchAutocompleteFacetItem,
+  RawSearchAutocompleteProductHit,
+  SearchAutocompleteResponse,
 } from "./search-autocomplete-types"
 
-type CatalogAutocompleteResponse = {
+interface CatalogAutocompleteResponse {
   facets?: {
     brand?: RawSearchAutocompleteFacetItem[]
   }
   products?: RawSearchAutocompleteProductHit[]
 }
 
-type FetchSearchAutocompleteInput = {
+interface FetchSearchAutocompleteInput {
   query: string
   countryCode?: string | null
   currencyCode?: string | null
@@ -121,7 +123,8 @@ const fetchCatalogCandidates = async ({
   } catch (error) {
     if (abortController.signal.aborted) {
       throw new Error(
-        `Catalog autocomplete timed out after ${CATALOG_FETCH_TIMEOUT_MS}ms.`
+        `Catalog autocomplete timed out after ${CATALOG_FETCH_TIMEOUT_MS}ms.`,
+        { cause: error }
       )
     }
 
@@ -152,22 +155,22 @@ export const fetchSearchAutocomplete = async ({
   const productHits = catalogResponse.products ?? []
 
   return {
-    query: normalizedQuery,
-    products: createProductSuggestions(
-      productHits,
-      safeCurrencyCode,
-      PRODUCT_LIMIT
-    ),
-    categories: createCategorySuggestions({
-      productHits,
-      query: normalizedQuery,
-      limit: CATEGORY_LIMIT,
-    }),
     brands: createBrandSuggestions({
       brandFacets: catalogResponse.facets?.brand ?? [],
       productHits,
       query: normalizedQuery,
       limit: BRAND_LIMIT,
     }),
+    categories: createCategorySuggestions({
+      productHits,
+      query: normalizedQuery,
+      limit: CATEGORY_LIMIT,
+    }),
+    products: createProductSuggestions(
+      productHits,
+      safeCurrencyCode,
+      PRODUCT_LIMIT
+    ),
+    query: normalizedQuery,
   }
 }

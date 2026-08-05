@@ -20,9 +20,8 @@ const ORDER_FIELDS = new Set(["handle", "status", "title", "created_at"])
 const LEADING_DASH_REGEX = /^-/
 
 const parseOrder = (
-  input?: string
+  value: string = "title"
 ): { direction: "ASC" | "DESC"; field: string } => {
-  const value = input ?? "title"
   const direction: "ASC" | "DESC" = value.startsWith("-") ? "DESC" : "ASC"
   const field = value.replace(LEADING_DASH_REGEX, "")
 

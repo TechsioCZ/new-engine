@@ -1,9 +1,8 @@
-import {
-  defineMiddlewares,
-  errorHandler,
-  type MedusaNextFunction,
-  type MedusaRequest,
-  type MedusaResponse,
+import { defineMiddlewares, errorHandler } from "@medusajs/framework/http"
+import type {
+  MedusaNextFunction,
+  MedusaRequest,
+  MedusaResponse,
 } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 
@@ -29,14 +28,18 @@ const isSymmyRoute = (req: MedusaRequest) => req.path.startsWith("/api/symmy/")
 const getErrorStatus = (error: unknown) => {
   if (error instanceof MedusaError) {
     switch (error.type) {
-      case MedusaError.Types.INVALID_DATA:
+      case MedusaError.Types.INVALID_DATA: {
         return 400
-      case MedusaError.Types.UNAUTHORIZED:
+      }
+      case MedusaError.Types.UNAUTHORIZED: {
         return 401
-      case MedusaError.Types.NOT_FOUND:
+      }
+      case MedusaError.Types.NOT_FOUND: {
         return 404
-      default:
+      }
+      default: {
         return 500
+      }
     }
   }
 
@@ -45,7 +48,7 @@ const getErrorStatus = (error: unknown) => {
   }
 
   const record = error as Record<string, unknown>
-  const status = record["status"] ?? record["statusCode"]
+  const status = record.status ?? record.statusCode
 
   return typeof status === "number" ? status : 500
 }
@@ -59,34 +62,34 @@ const getSymmyError = (error: unknown) => {
 
   if (status === 400) {
     return {
-      status,
       code: "VALIDATION_ERROR",
-      message: "Invalid request parameters",
       details: { message },
+      message: "Invalid request parameters",
+      status,
     }
   }
 
   if (status === 401 || status === 403) {
     return {
-      status: 401,
       code: "UNAUTHORIZED",
       message: "Missing or invalid authentication token",
+      status: 401,
     }
   }
 
   if (status === 404) {
     return {
-      status,
       code: "NOT_FOUND",
-      message: "Resource not found",
       details: { message },
+      message: "Resource not found",
+      status,
     }
   }
 
   return {
-    status: 500,
     code: "INTERNAL_ERROR",
     message: "An unexpected error occurred",
+    status: 500,
   }
 }
 

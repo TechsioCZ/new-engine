@@ -9,20 +9,20 @@ import type { ReactNode } from "react"
 
 import { useAuth } from "@/hooks/use-auth"
 
-const accountLinks: Array<{
+const accountLinks: {
   href: Route
   label: string
   icon: "token-icon-shopping-bag" | "token-icon-profile"
-}> = [
+}[] = [
   {
     href: "/account/orders",
-    label: "Moje objednávky",
     icon: "token-icon-shopping-bag" as const,
+    label: "Moje objednávky",
   },
   {
     href: "/account/profile",
-    label: "Můj profil",
     icon: "token-icon-profile" as const,
+    label: "Můj profil",
   },
 ]
 

@@ -4,7 +4,7 @@ import SymmyImportJob from "./models/symmy-import-job"
 
 export type SymmyImportJobStatus = "queued" | "running" | "completed" | "failed"
 
-export type SymmyImportJobDTO = {
+export interface SymmyImportJobDTO {
   id: string
   type: string
   status: SymmyImportJobStatus
@@ -22,14 +22,14 @@ export type SymmyImportJobDTO = {
   updated_at?: Date | string
 }
 
-type CreateImportJobInput = {
+interface CreateImportJobInput {
   type: string
   payload: Record<string, unknown>
   total: number
   idempotencyKey?: string | null
 }
 
-type CompleteImportJobInput = {
+interface CompleteImportJobInput {
   result: Record<string, unknown>
   processed: number
   failed: number
@@ -51,8 +51,8 @@ export class SymmyImportJobModuleService extends MedusaService({
 
     const existing = await this.listSymmyImportJobs(
       {
-        type,
         idempotency_key: idempotencyKey,
+        type,
       },
       { take: 1 }
     )
@@ -73,18 +73,18 @@ export class SymmyImportJobModuleService extends MedusaService({
 
     try {
       const created = await this.createSymmyImportJobs({
-        type,
-        status: "queued",
-        payload,
-        result: null,
-        error: null,
-        total,
-        processed: 0,
-        failed: 0,
         attempts: 0,
-        idempotency_key: idempotencyKey ?? null,
-        started_at: null,
+        error: null,
+        failed: 0,
         finished_at: null,
+        idempotency_key: idempotencyKey ?? null,
+        payload,
+        processed: 0,
+        result: null,
+        started_at: null,
+        status: "queued",
+        total,
+        type,
       })
 
       return created as SymmyImportJobDTO
@@ -105,12 +105,12 @@ export class SymmyImportJobModuleService extends MedusaService({
   async markRunning(id: string): Promise<SymmyImportJobDTO> {
     const job = await this.retrieveJob(id)
     const updated = await this.updateSymmyImportJobs({
-      id,
-      status: "running",
       attempts: (job.attempts ?? 0) + 1,
-      started_at: new Date(),
-      finished_at: null,
       error: null,
+      finished_at: null,
+      id,
+      started_at: new Date(),
+      status: "running",
     })
 
     return updated as SymmyImportJobDTO
@@ -121,13 +121,13 @@ export class SymmyImportJobModuleService extends MedusaService({
     { result, processed, failed }: CompleteImportJobInput
   ): Promise<SymmyImportJobDTO> {
     const updated = await this.updateSymmyImportJobs({
-      id,
-      status: "completed",
-      result,
       error: null,
-      processed,
       failed,
       finished_at: new Date(),
+      id,
+      processed,
+      result,
+      status: "completed",
     })
 
     return updated as SymmyImportJobDTO
@@ -139,11 +139,11 @@ export class SymmyImportJobModuleService extends MedusaService({
     result?: Record<string, unknown>
   ): Promise<SymmyImportJobDTO> {
     const updated = await this.updateSymmyImportJobs({
-      id,
-      status: "failed",
-      result: result ?? null,
       error,
       finished_at: new Date(),
+      id,
+      result: result ?? null,
+      status: "failed",
     })
 
     return updated as SymmyImportJobDTO

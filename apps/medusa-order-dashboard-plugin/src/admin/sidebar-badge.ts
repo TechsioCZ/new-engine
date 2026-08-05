@@ -103,7 +103,7 @@ function renderOrderDashboardSidebarBadge(count: number | null | undefined) {
     return
   }
 
-  let badge = document.getElementById(ORDER_DASHBOARD_SIDEBAR_BADGE_ID)
+  let badge = document.querySelector(`#${ORDER_DASHBOARD_SIDEBAR_BADGE_ID}`)
 
   if (!badge) {
     badge = document.createElement("span")
@@ -124,7 +124,7 @@ function renderOrderDashboardSidebarBadge(count: number | null | undefined) {
     badge.style.padding = "0 6px"
     badge.style.pointerEvents = "none"
     badge.style.whiteSpace = "nowrap"
-    link.appendChild(badge)
+    link.append(badge)
   }
 
   const countText = String(normalizedCount)
@@ -150,7 +150,7 @@ function normalizeOrderDashboardSidebarBadgeCount(
 }
 
 function removeOrderDashboardSidebarBadge() {
-  document.getElementById(ORDER_DASHBOARD_SIDEBAR_BADGE_ID)?.remove()
+  document.querySelector(`#${ORDER_DASHBOARD_SIDEBAR_BADGE_ID}`)?.remove()
 }
 
 function getOrderDashboardSidebarLink() {

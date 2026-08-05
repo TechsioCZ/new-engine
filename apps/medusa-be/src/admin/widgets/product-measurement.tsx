@@ -24,11 +24,13 @@ import {
   createMeasurementUnit,
   deleteProductMeasurement,
   listMeasurementUnits,
-  type MeasurementUnit,
   measurementUnitQueryKeys,
-  type ProductMeasurement,
   retrieveProductMeasurement,
   setProductMeasurement,
+} from "../lib/measurement-units"
+import type {
+  MeasurementUnit,
+  ProductMeasurement,
 } from "../lib/measurement-units"
 import { getPaginationTranslations } from "../lib/table"
 import { useDebouncedValue } from "../lib/use-debounced-value"
@@ -37,7 +39,7 @@ type ProductMeasurementWidgetProps = Partial<DetailWidgetProps<AdminProduct>>
 
 const PAGE_SIZE = 20
 
-type MissingUnitForm = {
+interface MissingUnitForm {
   base_quantity: string
   code: string
   description: string
@@ -57,8 +59,8 @@ const toUnitCode = (value: string) => {
   const code = value
     .trim()
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, "_")
-    .replace(/^_+|_+$/g, "")
+    .replaceAll(/[^\p{L}\p{N}]+/gu, "_")
+    .replaceAll(/^_+|_+$/g, "")
 
   return code || "unit"
 }
@@ -273,7 +275,7 @@ const ProductMeasurementDrawer = ({
 
   const { data, isLoading } = useQuery({
     enabled: open,
-    queryFn: () => listMeasurementUnits(params),
+    queryFn: async () => listMeasurementUnits(params),
     queryKey: measurementUnitQueryKeys.list(params),
   })
 
@@ -300,7 +302,7 @@ const ProductMeasurementDrawer = ({
     canCreateMissing && (!units.length || createMissingOpen)
 
   const saveMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (!selectedId) {
         return deleteProductMeasurement(productId)
       }
@@ -334,7 +336,7 @@ const ProductMeasurementDrawer = ({
 
   const createMutation = useMutation({
     mutationFn: async (input: MissingUnitForm) =>
-      createMeasurementUnit({
+      await createMeasurementUnit({
         base_quantity: Number(input.base_quantity),
         code: input.code.trim(),
         description: input.description.trim() || null,
@@ -449,7 +451,9 @@ const ProductMeasurementDrawer = ({
             </div>
             <Button
               disabled={!selectedId}
-              onClick={() => setSelectedId(undefined)}
+              onClick={() => {
+                setSelectedId(undefined)
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -459,7 +463,7 @@ const ProductMeasurementDrawer = ({
           </Container>
           <Input
             onChange={(event) => {
-              const value = event.target.value
+              const { value } = event.target
               setPageIndex(0)
               setQ(value)
               setCreateMissingOpen(false)
@@ -474,7 +478,9 @@ const ProductMeasurementDrawer = ({
                 {t("createMissing.title")}
               </Text>
               <Button
-                onClick={() => setCreateMissingOpen(true)}
+                onClick={() => {
+                  setCreateMissingOpen(true)
+                }}
                 size="small"
                 type="button"
                 variant="secondary"
@@ -494,12 +500,12 @@ const ProductMeasurementDrawer = ({
                 </Label>
                 <Input
                   id="missing-measurement-unit-name"
-                  onChange={(event) =>
+                  onChange={(event) => {
                     setMissingUnitForm((current) => ({
                       ...current,
                       name: event.target.value,
                     }))
-                  }
+                  }}
                   placeholder={t("placeholders.name")}
                   required
                   value={missingUnitForm.name}
@@ -512,12 +518,12 @@ const ProductMeasurementDrawer = ({
                   </Label>
                   <Input
                     id="missing-measurement-unit-code"
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setMissingUnitForm((current) => ({
                         ...current,
                         code: event.target.value,
                       }))
-                    }
+                    }}
                     placeholder={t("placeholders.code")}
                     required
                     value={missingUnitForm.code}
@@ -529,12 +535,12 @@ const ProductMeasurementDrawer = ({
                   </Label>
                   <Input
                     id="missing-measurement-unit-symbol"
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setMissingUnitForm((current) => ({
                         ...current,
                         symbol: event.target.value,
                       }))
-                    }
+                    }}
                     placeholder={t("placeholders.symbol")}
                     required
                     value={missingUnitForm.symbol}
@@ -547,12 +553,12 @@ const ProductMeasurementDrawer = ({
                 </Label>
                 <Input
                   id="missing-measurement-unit-base-quantity"
-                  onChange={(event) =>
+                  onChange={(event) => {
                     setMissingUnitForm((current) => ({
                       ...current,
                       base_quantity: event.target.value,
                     }))
-                  }
+                  }}
                   placeholder={t("placeholders.baseQuantity")}
                   required
                   step="any"
@@ -566,12 +572,12 @@ const ProductMeasurementDrawer = ({
                 </Label>
                 <Textarea
                   id="missing-measurement-unit-description"
-                  onChange={(event) =>
+                  onChange={(event) => {
                     setMissingUnitForm((current) => ({
                       ...current,
                       description: event.target.value,
                     }))
-                  }
+                  }}
                   placeholder={t("placeholders.description")}
                   value={missingUnitForm.description}
                 />
@@ -616,20 +622,24 @@ const ProductMeasurementDrawer = ({
             canNextPage={pageIndex + 1 < pageCount}
             canPreviousPage={pageIndex > 0}
             count={count}
-            nextPage={() => setPageIndex((current) => current + 1)}
+            nextPage={() => {
+              setPageIndex((current) => current + 1)
+            }}
             pageCount={pageCount}
             pageIndex={pageIndex}
             pageSize={PAGE_SIZE}
-            previousPage={() =>
+            previousPage={() => {
               setPageIndex((current) => Math.max(current - 1, 0))
-            }
+            }}
             translations={getPaginationTranslations(t)}
           />
         </Drawer.Body>
         <Drawer.Footer>
           <div className="flex justify-end gap-2">
             <Button
-              onClick={() => onOpenChange(false)}
+              onClick={() => {
+                onOpenChange(false)
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -639,7 +649,9 @@ const ProductMeasurementDrawer = ({
             <Button
               disabled={selectedUnitIsDeleted}
               isLoading={saveMutation.isPending}
-              onClick={() => saveMutation.mutate()}
+              onClick={() => {
+                saveMutation.mutate()
+              }}
               size="small"
               type="button"
             >
@@ -660,7 +672,7 @@ const ProductMeasurementWidget = ({
 
   const { data, error, isLoading } = useQuery({
     enabled: !!product?.id,
-    queryFn: () => {
+    queryFn: async () => {
       if (!product?.id) {
         throw new Error("Product id is required")
       }
@@ -683,7 +695,9 @@ const ProductMeasurementWidget = ({
             <Heading level="h2">{t("widget.title")}</Heading>
           </div>
           <Button
-            onClick={() => setOpen(true)}
+            onClick={() => {
+              setOpen(true)
+            }}
             size="small"
             type="button"
             variant="secondary"

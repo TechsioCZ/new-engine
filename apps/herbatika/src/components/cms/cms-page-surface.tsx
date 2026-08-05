@@ -1,13 +1,11 @@
 import { useTranslations } from "next-intl"
 
 import { CategoryRichText } from "@/components/category/category-rich-text"
-import {
-  HerbatikaBreadcrumb,
-  type HerbatikaBreadcrumbItem,
-} from "@/components/herbatika-breadcrumb"
+import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
+import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb"
 import type { CmsPage } from "@/lib/storefront/cms"
 
-type CmsPageSurfaceProps = {
+interface CmsPageSurfaceProps {
   page: CmsPage
 }
 
@@ -20,9 +18,9 @@ export function CmsPageSurface({ page }: CmsPageSurfaceProps) {
 
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
-      label: tNavigation("breadcrumbs.home"),
       href: "/",
       icon: "token-icon-home",
+      label: tNavigation("breadcrumbs.home"),
     },
     {
       label: page.title,

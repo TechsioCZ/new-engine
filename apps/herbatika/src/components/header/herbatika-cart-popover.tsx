@@ -21,14 +21,14 @@ import { useCartLineItemActions } from "@/lib/storefront/use-cart-line-item-acti
 
 import { CartItemRow } from "./herbatika-cart-item-row"
 
-type HerbatikaCartPopoverProps = {
+interface HerbatikaCartPopoverProps {
   cart: HttpTypes.StoreCart | null | undefined
   cartTotalLabel: string
   currencyCode: HerbatikaCurrencyCode
   itemCount: number
 }
 
-type CartTotalsProps = {
+interface CartTotalsProps {
   cartItemsTotalLabel: string
   cartTotalLabel: string
   currencyCode: HerbatikaCartPopoverProps["currencyCode"]
@@ -122,9 +122,9 @@ export function HerbatikaCartPopover({
     currencyCode
   )
   const shippingAmount =
-    asFiniteNumber(cart?.shipping_total) !== null
-      ? resolveCartShippingSubtotalAmount(cart)
-      : null
+    asFiniteNumber(cart?.shipping_total) === null
+      ? null
+      : resolveCartShippingSubtotalAmount(cart)
   const taxAmount = resolveCartTaxAmount(cart)
   const discountAmount = asFiniteNumber(cart?.discount_total)
   const hiddenItemCount = Math.max(cartItems.length - 4, 0)
@@ -170,7 +170,9 @@ export function HerbatikaCartPopover({
     <Popover.Root
       gutter={10}
       id="herbatika-cart-popover"
-      onOpenChange={({ open }) => setIsPopoverOpen(open)}
+      onOpenChange={({ open }) => {
+        setIsPopoverOpen(open)
+      }}
       open={isPopoverOpen}
       placement="bottom-end"
       portalled={false}

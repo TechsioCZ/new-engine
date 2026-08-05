@@ -2,6 +2,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
+import { vi, describe, expect, it } from "vitest"
 
 import type {
   MedusaAuthCredentials,
@@ -12,19 +13,19 @@ import type { AuthService } from "../src/auth/types"
 import type { CartQueryKeys } from "../src/cart/types"
 import type { CatalogFacets } from "../src/catalog/types"
 import {
-  type CheckoutAddressInput,
-  type CheckoutCustomerAddressUpdateInput,
-  type MedusaCartAddressPayload,
   createCheckoutCartAddressAdapter,
   createCheckoutCustomerAddressAdapter,
+} from "../src/checkout/address"
+import type {
+  CheckoutAddressInput,
+  CheckoutCustomerAddressUpdateInput,
+  MedusaCartAddressPayload,
 } from "../src/checkout/address"
 import { StorefrontDataProvider } from "../src/client/provider"
 import type { MedusaCustomerListInput } from "../src/customers/medusa-service"
 import type { CustomerQueryKeys } from "../src/customers/types"
-import {
-  type CreateMedusaStorefrontPresetConfig,
-  createMedusaStorefrontPreset,
-} from "../src/medusa/preset"
+import { createMedusaStorefrontPreset } from "../src/medusa/preset"
+import type { CreateMedusaStorefrontPresetConfig } from "../src/medusa/preset"
 import type {
   MedusaOrderDetailInput,
   MedusaOrderListInput,
@@ -49,7 +50,7 @@ const createWrapper =
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
 
-type StoreCartLike = {
+interface StoreCartLike {
   id: string
   region_id?: string | null
   shipping_methods?: Array<{ shipping_option_id?: string }>
@@ -61,16 +62,16 @@ const createSdkMock = () => {
     async (path: string): Promise<Record<string, unknown>> => {
       if (path === "/store/products") {
         return {
-          products: [{ id: "prod_1", handle: "p-1", title: "Product 1" }],
           count: 1,
           limit: 1,
           offset: 0,
+          products: [{ id: "prod_1", handle: "p-1", title: "Product 1" }],
         }
       }
 
       if (path === "/store/shipping-options") {
         return {
-          shipping_options: [{ id: "ship_1", amount: 150, price_type: "flat" }],
+          shipping_options: [{ amount: 150, id: "ship_1", price_type: "flat" }],
         }
       }
 
@@ -118,27 +119,27 @@ const createSdkMock = () => {
   return {
     sdk,
     spies: {
-      clientFetch,
       addShippingMethod,
+      clientFetch,
     },
   }
 }
 
-describe("createMedusaStorefrontPreset", () => {
+describe(createMedusaStorefrontPreset, () => {
   it("allows thin cart hook overrides without buildAddParams", () => {
     const { sdk } = createSdkMock()
 
     const config = {
-      sdk,
       cart: {
         hooks: {
           cartStorage: {
+            clear: () => undefined,
             get: () => null,
             set: () => undefined,
-            clear: () => undefined,
           },
         },
       },
+      sdk,
     } satisfies CreateMedusaStorefrontPresetConfig
 
     const preset = createMedusaStorefrontPreset(config)
@@ -160,12 +161,24 @@ describe("createMedusaStorefrontPreset", () => {
       CheckoutAddressInput,
       MedusaCartAddressPayload,
       CheckoutAddressInput,
-      CheckoutCustomerAddressUpdateInput<CheckoutAddressInput>
+      CheckoutCustomerAddressUpdateInput
     >({
-      sdk,
       cart: {
         hooks: {
           addressAdapter: createCheckoutCartAddressAdapter(),
+        },
+      },
+      catalog: {
+        fallbackFacets: {
+          brand: [],
+          dosage: [],
+          form: [],
+          ingredient: [],
+          price: {
+            max: null,
+            min: null,
+          },
+          status: [],
         },
       },
       customers: {
@@ -173,19 +186,7 @@ describe("createMedusaStorefrontPreset", () => {
           addressAdapter: createCheckoutCustomerAddressAdapter(),
         },
       },
-      catalog: {
-        fallbackFacets: {
-          status: [],
-          form: [],
-          brand: [],
-          ingredient: [],
-          price: {
-            min: null,
-            max: null,
-          },
-          dosage: [],
-        },
-      },
+      sdk,
     })
 
     expect(preset.hooks.cart).toBeDefined()
@@ -213,11 +214,11 @@ describe("createMedusaStorefrontPreset", () => {
   it("builds namespaced query keys", () => {
     const { sdk } = createSdkMock()
     const preset = createMedusaStorefrontPreset({
-      sdk,
       queryKeyNamespace: ["tenant", "n1"],
+      sdk,
     })
 
-    expect(preset.queryKeys.cart.detail("cart_1")).toEqual([
+    expect(preset.queryKeys.cart.detail("cart_1")).toStrictEqual([
       "tenant",
       "n1",
       "cart",
@@ -229,14 +230,14 @@ describe("createMedusaStorefrontPreset", () => {
       preset.queryKeys.products.list({
         limit: 12,
       })
-    ).toEqual(["tenant", "n1", "products", "list", { limit: 12 }])
+    ).toStrictEqual(["tenant", "n1", "products", "list", { limit: 12 }])
 
     expect(
       preset.queryKeys.productLists.detail({
-        id: "list_1",
         customerId: "cus_1",
+        id: "list_1",
       })
-    ).toEqual([
+    ).toStrictEqual([
       "tenant",
       "n1",
       "product-lists",
@@ -264,19 +265,19 @@ describe("createMedusaStorefrontPreset", () => {
     >[0]
 
     const listInput = {
-      page: 2,
-      limit: 12,
       customerId: "cus_1",
       enabled: false,
+      limit: 12,
+      page: 2,
     } satisfies ProductListsInput
     const detailInput = {
-      id: "list_1",
       customerId: "cus_1",
       enabled: false,
+      id: "list_1",
     } satisfies ProductListInput
     const suspenseDetailInput = {
-      id: "list_1",
       customerId: "cus_1",
+      id: "list_1",
     } satisfies SuspenseProductListInput
     // @ts-expect-error suspense product-list detail input requires id
     const missingSuspenseInput: SuspenseProductListInput = {
@@ -284,7 +285,7 @@ describe("createMedusaStorefrontPreset", () => {
     }
 
     expect(listInput.page).toBe(2)
-    expect(detailInput.enabled).toBe(false)
+    expect(detailInput.enabled).toBeFalsy()
     expect(suspenseDetailInput.id).toBe("list_1")
     expect(missingSuspenseInput.customerId).toBe("cus_1")
   })
@@ -292,12 +293,12 @@ describe("createMedusaStorefrontPreset", () => {
   it("passes domain hook overrides to the composed hooks", async () => {
     const { sdk, spies } = createSdkMock()
     const preset = createMedusaStorefrontPreset({
-      sdk,
       products: {
         hooks: {
           requireRegion: false,
         },
       },
+      sdk,
     })
 
     const queryClient = new QueryClient({
@@ -314,7 +315,7 @@ describe("createMedusaStorefrontPreset", () => {
     )
 
     await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true)
+      expect(result.current.isSuccess).toBeTruthy()
     })
 
     expect(spies.clientFetch).toHaveBeenCalledWith(
@@ -331,22 +332,22 @@ describe("createMedusaStorefrontPreset", () => {
     const { sdk } = createSdkMock()
     const customCartNamespace = ["custom", "cart"] as const
     const customCartQueryKeys: CartQueryKeys = {
-      all: () => createQueryKey(customCartNamespace),
       active: (params) => createQueryKey(customCartNamespace, "active", params),
+      all: () => createQueryKey(customCartNamespace),
       detail: (cartId) => createQueryKey(customCartNamespace, "detail", cartId),
     }
 
     const preset = createMedusaStorefrontPreset({
-      sdk,
       cart: {
         queryKeys: customCartQueryKeys,
       },
+      sdk,
     })
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     const wrapper = createWrapper(queryClient)
@@ -354,17 +355,17 @@ describe("createMedusaStorefrontPreset", () => {
     const { result } = renderHook(
       () =>
         preset.hooks.checkout.useCheckoutShipping({
-          cartId: "cart_1",
           cart: createStoreCart("cart_1", {
             region_id: "reg_1",
             shipping_methods: [],
           }),
+          cartId: "cart_1",
         }),
       { wrapper }
     )
 
     await waitFor(() => {
-      expect(result.current.shippingOptions.length).toBe(1)
+      expect(result.current.shippingOptions).toHaveLength(1)
     })
 
     await act(async () => {
@@ -378,7 +379,7 @@ describe("createMedusaStorefrontPreset", () => {
           regionId: "reg_1",
         })
       )
-    ).toEqual(
+    ).toStrictEqual(
       expect.objectContaining({
         id: "cart_1",
       })
@@ -405,10 +406,10 @@ describe("createMedusaStorefrontPreset", () => {
     const customCustomerNamespace = ["custom", "customers"] as const
     const customCustomerQueryKeys: CustomerQueryKeys<MedusaCustomerListInput> =
       {
-        all: () => createQueryKey(customCustomerNamespace),
-        profile: () => createQueryKey(customCustomerNamespace, "profile"),
         addresses: (params) =>
           createQueryKey(customCustomerNamespace, "addresses", params ?? {}),
+        all: () => createQueryKey(customCustomerNamespace),
+        profile: () => createQueryKey(customCustomerNamespace, "profile"),
       }
     const customOrderNamespace = ["custom", "orders"] as const
     const customOrderQueryKeys: OrderQueryKeys<
@@ -416,10 +417,10 @@ describe("createMedusaStorefrontPreset", () => {
       MedusaOrderDetailInput
     > = {
       all: () => createQueryKey(customOrderNamespace),
-      list: (params) =>
-        createQueryKey(customOrderNamespace, "list", params ?? {}),
       detail: (params) =>
         createQueryKey(customOrderNamespace, "detail", params ?? {}),
+      list: (params) =>
+        createQueryKey(customOrderNamespace, "list", params ?? {}),
     }
     const customProductListNamespace = ["custom", "product-lists"] as const
     const customProductListQueryKeys: ProductListQueryKeys<
@@ -427,14 +428,13 @@ describe("createMedusaStorefrontPreset", () => {
       MedusaProductListDetailKeyInput
     > = {
       all: () => createQueryKey(customProductListNamespace),
-      list: (params) =>
-        createQueryKey(customProductListNamespace, "list", params ?? {}),
       detail: (params) =>
         createQueryKey(customProductListNamespace, "detail", params ?? {}),
+      list: (params) =>
+        createQueryKey(customProductListNamespace, "list", params ?? {}),
     }
 
     const preset = createMedusaStorefrontPreset({
-      sdk,
       auth: {
         service: customAuthService,
       },
@@ -447,12 +447,13 @@ describe("createMedusaStorefrontPreset", () => {
       productLists: {
         queryKeys: customProductListQueryKeys,
       },
+      sdk,
     })
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     queryClient.setQueryData(customCustomerQueryKeys.profile(), {
@@ -486,47 +487,47 @@ describe("createMedusaStorefrontPreset", () => {
     expect(
       queryClient.getQueryState(customCustomerQueryKeys.profile())
         ?.isInvalidated
-    ).toBe(true)
+    ).toBeTruthy()
     expect(
       queryClient.getQueryState(customCustomerQueryKeys.addresses({}))
         ?.isInvalidated
-    ).toBe(true)
+    ).toBeTruthy()
     expect(
       queryClient.getQueryState(customOrderQueryKeys.list({}))?.isInvalidated
-    ).toBe(true)
+    ).toBeTruthy()
     expect(
       queryClient.getQueryState(
         customProductListQueryKeys.list({
           customerId: "cus_old",
         })
       )?.isInvalidated
-    ).toBe(true)
+    ).toBeTruthy()
   })
 
   it("syncs carts created from product lists through preset cart cache", async () => {
     const { sdk, spies } = createSdkMock()
     let storedCartId: string | null = null
     const preset = createMedusaStorefrontPreset({
-      sdk,
       cart: {
         hooks: {
           cartStorage: {
+            clear: () => {
+              storedCartId = null
+            },
             get: () => storedCartId,
             set: (value) => {
               storedCartId = value
             },
-            clear: () => {
-              storedCartId = null
-            },
           },
         },
       },
+      sdk,
     })
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
     const wrapper = createWrapper(queryClient)
@@ -548,16 +549,16 @@ describe("createMedusaStorefrontPreset", () => {
     expect(spies.clientFetch).toHaveBeenCalledWith(
       "/store/product-lists/list_1/cart",
       {
-        method: "POST",
         body: {
           region_id: "reg_1",
         },
+        method: "POST",
       }
     )
     expect(storedCartId).toBe("cart_from_list")
     expect(
       queryClient.getQueryData(preset.queryKeys.cart.detail("cart_from_list"))
-    ).toEqual(
+    ).toStrictEqual(
       expect.objectContaining({
         id: "cart_from_list",
         region_id: "reg_1",
@@ -570,7 +571,7 @@ describe("createMedusaStorefrontPreset", () => {
           regionId: "reg_1",
         })
       )
-    ).toEqual(
+    ).toStrictEqual(
       expect.objectContaining({
         id: "cart_from_list",
         region_id: "reg_1",
@@ -589,6 +590,7 @@ describe("createMedusaStorefrontPreset", () => {
     }
 
     const customOrderService = {
+      getOrder: vi.fn(async () => null),
       getOrders: vi.fn(
         async (): Promise<{
           orders: HttpTypes.StoreOrder[]
@@ -598,10 +600,11 @@ describe("createMedusaStorefrontPreset", () => {
           count: 0,
         })
       ),
-      getOrder: vi.fn(async () => null),
     }
 
     const customCustomerService = {
+      createAddress: vi.fn(async () => createStoreCustomerAddress("addr_1")),
+      deleteAddress: vi.fn(async () => {}),
       getAddresses: vi.fn(
         async (): Promise<{
           addresses: HttpTypes.StoreCustomerAddress[]
@@ -609,23 +612,21 @@ describe("createMedusaStorefrontPreset", () => {
           addresses: [],
         })
       ),
-      createAddress: vi.fn(async () => createStoreCustomerAddress("addr_1")),
       updateAddress: vi.fn(async () => createStoreCustomerAddress("addr_1")),
-      deleteAddress: vi.fn(async () => {}),
       updateCustomer: vi.fn(async () => createStoreCustomer("cus_1")),
     }
 
     const preset = createMedusaStorefrontPreset({
-      sdk,
       auth: {
         service: customAuthService,
-      },
-      orders: {
-        service: customOrderService,
       },
       customers: {
         service: customCustomerService,
       },
+      orders: {
+        service: customOrderService,
+      },
+      sdk,
     })
 
     expect(preset.services.auth).toBe(customAuthService)
@@ -646,7 +647,7 @@ describe("createMedusaStorefrontPreset", () => {
     })
 
     await waitFor(() => {
-      expect(customAuthService.getCustomer).toHaveBeenCalled()
+      expect(customAuthService.getCustomer).toHaveBeenCalledWith()
       expect(customOrderService.getOrders).toHaveBeenCalledWith(
         { limit: 5, offset: 0 },
         expect.any(Object)

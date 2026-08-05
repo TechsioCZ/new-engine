@@ -5,8 +5,8 @@ import { AdminPayloadSsoSchema } from "./route"
 
 export const adminPayloadSsoRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/admin/payload/sso",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(AdminPayloadSsoSchema, { isList: false }),
     ],

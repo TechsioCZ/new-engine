@@ -4,12 +4,12 @@ const CUSTOMER_GROUPS_BATCH_MAX = 500
 
 const CustomerGroupInputSchema = z
   .object({
-    identifier_type: z.enum(["customer_group_id", "name", "code", "erp_code"]),
-    customer_group_id: z.string().min(1).optional(),
-    name: z.string().min(1),
     code: z.string().min(1).optional(),
+    customer_group_id: z.string().min(1).optional(),
     erp_code: z.string().min(1).optional(),
+    identifier_type: z.enum(["customer_group_id", "name", "code", "erp_code"]),
     metadata: z.record(z.string(), z.unknown()).optional(),
+    name: z.string().min(1),
   })
   .superRefine((value, ctx) => {
     if (

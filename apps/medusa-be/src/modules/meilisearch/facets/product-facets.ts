@@ -1,6 +1,6 @@
 type UnknownRecord = Record<string, unknown>
 
-type ProductFacetValue = {
+interface ProductFacetValue {
   id: string
   label: string
 }
@@ -27,19 +27,19 @@ export const STATUS_FACET_DEFINITIONS: ProductFacetValue[] = [
 ]
 
 export const FORM_FACET_DEFINITIONS: FormFacetDefinition[] = [
-  { id: "form-capsules", label: "Kapsuly", keywords: ["kapsul", "capsule"] },
-  { id: "form-tablets", label: "Tablety", keywords: ["tablet", "tbl"] },
-  { id: "form-softgel", label: "Softgel", keywords: ["softgel"] },
-  { id: "form-powder", label: "Prášok", keywords: ["prasok", "prask"] },
+  { id: "form-capsules", keywords: ["kapsul", "capsule"], label: "Kapsuly" },
+  { id: "form-tablets", keywords: ["tablet", "tbl"], label: "Tablety" },
+  { id: "form-softgel", keywords: ["softgel"], label: "Softgel" },
+  { id: "form-powder", keywords: ["prasok", "prask"], label: "Prášok" },
   {
     id: "form-liquid",
-    label: "Tekutiny",
     keywords: ["tekutin", "elixir", "tonikum", "extrakt"],
+    label: "Tekutiny",
   },
-  { id: "form-drink", label: "Nápoj", keywords: ["napoj", "drink", "caj"] },
-  { id: "form-drops", label: "Kvapky", keywords: ["kvapk", "drop"] },
-  { id: "form-spray", label: "Sprej", keywords: ["sprej", "spray"] },
-  { id: "form-syrup", label: "Sirup", keywords: ["sirup", "syrup"] },
+  { id: "form-drink", keywords: ["napoj", "drink", "caj"], label: "Nápoj" },
+  { id: "form-drops", keywords: ["kvapk", "drop"], label: "Kvapky" },
+  { id: "form-spray", keywords: ["sprej", "spray"], label: "Sprej" },
+  { id: "form-syrup", keywords: ["sirup", "syrup"], label: "Sirup" },
 ]
 
 export const STATUS_FACET_IDS = new Set(
@@ -56,7 +56,7 @@ export const FORM_FACET_LABEL_BY_ID = new Map(
   FORM_FACET_DEFINITIONS.map((item) => [item.id, item.label])
 )
 
-export type ProductFacetDocument = {
+export interface ProductFacetDocument {
   facet_product_status?: string | undefined
   facet_sales_channel_ids: string[]
   facet_status: string[]
@@ -211,8 +211,10 @@ const resolveStatusFacetIds = (document: UnknownRecord): string[] => {
     ids.push(IN_STOCK_FACET_ID)
   }
 
-  ids.push(...resolveActiveFlagCodes(document))
-  ids.push(...resolveStatusKeywordCodes(document))
+  ids.push(
+    ...resolveActiveFlagCodes(document),
+    ...resolveStatusKeywordCodes(document)
+  )
 
   return dedupe(ids)
 }
@@ -350,10 +352,9 @@ const normalizeFacetPrice = (value: number | undefined): number | undefined => {
   return Math.round(value * 100) / 100
 }
 
-const toMajorUnitAmount = (value: number): number => {
+const toMajorUnitAmount = (value: number): number =>
   // Medusa price amounts are persisted in minor currency units (for example cents).
-  return Number.isInteger(value) ? value / 100 : value
-}
+  Number.isInteger(value) ? value / 100 : value
 
 const parsePositiveFacetPrice = (value: unknown): number | undefined => {
   const parsedPrice = parseNumericValue(value)
@@ -422,15 +423,15 @@ export const buildProductFacetDocument = (
   const product = asRecord(document) ?? {}
 
   return {
+    facet_brand: resolveBrandFacetIds(product),
+    facet_category_ids: resolveCategoryFacetIds(product),
+    facet_form: resolveFormFacetIds(product),
+    facet_in_stock: resolveProductInStock(product),
+    facet_ingredient: resolveIngredientFacetIds(product),
+    facet_price: resolveFacetPrice(product),
     facet_product_status: getStringField(product, "status"),
     facet_sales_channel_ids: resolveSalesChannelFacetIds(product),
     facet_status: resolveStatusFacetIds(product),
-    facet_form: resolveFormFacetIds(product),
-    facet_brand: resolveBrandFacetIds(product),
-    facet_ingredient: resolveIngredientFacetIds(product),
-    facet_category_ids: resolveCategoryFacetIds(product),
-    facet_in_stock: resolveProductInStock(product),
-    facet_price: resolveFacetPrice(product),
   }
 }
 

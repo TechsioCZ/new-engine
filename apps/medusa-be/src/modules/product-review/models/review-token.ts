@@ -2,14 +2,14 @@ import { model } from "@medusajs/framework/utils"
 
 const ReviewToken = model
   .define("review_token", {
-    id: model.id().primaryKey(),
-    token: model.text(),
-    order_id: model.text(),
-    product_id: model.text(),
     customer_id: model.text().nullable(),
     email: model.text(),
-    used_at: model.dateTime().nullable(),
     expires_at: model.dateTime().nullable(),
+    id: model.id().primaryKey(),
+    order_id: model.text(),
+    product_id: model.text(),
+    token: model.text(),
+    used_at: model.dateTime().nullable(),
   })
   .indexes([
     {

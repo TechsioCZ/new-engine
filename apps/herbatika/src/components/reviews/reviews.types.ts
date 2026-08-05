@@ -1,6 +1,6 @@
 import type { StaticImageData } from "next/image"
 
-export type ReviewItem = {
+export interface ReviewItem {
   id: string
   author: string
   dateLabel: string
@@ -10,7 +10,7 @@ export type ReviewItem = {
   verifiedPurchase?: boolean
 }
 
-export type ReviewTrustSource = {
+export interface ReviewTrustSource {
   id: string
   logo: StaticImageData
   logoAlt: string

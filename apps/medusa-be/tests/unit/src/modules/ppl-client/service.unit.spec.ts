@@ -27,40 +27,40 @@ const asSingleUpdatePplConfigs = (
 
 const { mockPplClient } = vi.hoisted(() => ({
   mockPplClient: {
+    cancelShipment: vi.fn(),
+    createShipmentBatch: vi.fn(),
+    downloadLabel: vi.fn(),
     fetchNewToken: vi.fn(),
+    getAccessPoints: vi.fn(),
+    getBatchStatus: vi.fn(),
     getCodelistCountries: vi.fn(),
     getCodelistCurrencies: vi.fn(),
     getCodelistProducts: vi.fn(),
     getCodelistServices: vi.fn(),
     getCodelistStatuses: vi.fn(),
-    createShipmentBatch: vi.fn(),
-    getBatchStatus: vi.fn(),
-    getShipmentInfo: vi.fn(),
-    cancelShipment: vi.fn(),
-    getAccessPoints: vi.fn(),
-    getCustomerInfo: vi.fn(),
     getCustomerAddresses: vi.fn(),
-    downloadLabel: vi.fn(),
+    getCustomerInfo: vi.fn(),
+    getShipmentInfo: vi.fn(),
   },
 }))
 
 // Mock the client before importing service
-vi.mock("../../../../../src/modules/ppl-client/client", () => ({
-  PplClient: vi.fn(function PplClient() {
+vi.mock(import("../../../../../src/modules/ppl-client/client"), () => ({
+  PplClient: vi.fn(() => {
     return mockPplClient
   }),
 }))
 
 // Mock encryption utilities
-vi.mock("../../../../../src/utils/encryption", () => ({
-  encryptFields: vi.fn((data) => ({ ...data, _encrypted: true })),
+vi.mock(import("../../../../../src/utils/encryption"), () => ({
   decryptFields: vi.fn((data) => ({ ...data, _decrypted: true })),
+  encryptFields: vi.fn((data) => ({ ...data, _encrypted: true })),
 }))
 
 const mockCacheService = {
+  clear: vi.fn(),
   get: vi.fn(),
   set: vi.fn(),
-  clear: vi.fn(),
 }
 
 const mockLockingService = {
@@ -68,10 +68,10 @@ const mockLockingService = {
 }
 
 const mockLogger = {
+  debug: vi.fn(),
+  error: vi.fn(),
   info: vi.fn(),
   warn: vi.fn(),
-  error: vi.fn(),
-  debug: vi.fn(),
 }
 
 const validOptions = {
@@ -81,8 +81,8 @@ const validOptions = {
 const mockEffectiveConfig = {
   client_id: "test-client-id",
   client_secret: "test-client-secret",
-  environment: "testing" as const,
   default_label_format: "Pdf" as const,
+  environment: "testing" as const,
 }
 
 /** Factory for mock PplConfigDTO objects */
@@ -107,26 +107,26 @@ const createMockConfig = (
     sender_email: string | null
   }> = {}
 ) => ({
-  id: "config-1",
-  environment: "testing" as const,
-  is_enabled: true,
   client_id: "id",
   client_secret: "secret",
-  default_label_format: "Pdf",
   cod_bank_account: null,
   cod_bank_code: null,
   cod_iban: null,
   cod_swift: null,
-  sender_name: null,
-  sender_street: null,
-  sender_city: null,
-  sender_zip_code: null,
-  sender_country: null,
-  sender_phone: null,
-  sender_email: null,
   created_at: new Date(),
-  updated_at: new Date(),
+  default_label_format: "Pdf",
   deleted_at: null,
+  environment: "testing" as const,
+  id: "config-1",
+  is_enabled: true,
+  sender_city: null,
+  sender_country: null,
+  sender_email: null,
+  sender_name: null,
+  sender_phone: null,
+  sender_street: null,
+  sender_zip_code: null,
+  updated_at: new Date(),
   ...overrides,
 })
 
@@ -149,7 +149,7 @@ const createService = (
   return service
 }
 
-describe("PplClientModuleService", () => {
+describe(PplClientModuleService, () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Clear mockResolvedValueOnce queue (clearAllMocks doesn't do this)
@@ -225,7 +225,7 @@ describe("PplClientModuleService", () => {
       const service = createService()
       await service.createShipmentBatch([])
 
-      expect(mockPplClient.fetchNewToken).toHaveBeenCalled()
+      expect(mockPplClient.fetchNewToken).toHaveBeenCalledWith()
       expect(mockCacheService.set).toHaveBeenCalledWith(
         expect.objectContaining({ key: "ppl:oauth:token" })
       )
@@ -250,7 +250,7 @@ describe("PplClientModuleService", () => {
       await vi.advanceTimersByTimeAsync(MIN_INTERVAL * 2)
       await promise
 
-      expect(mockPplClient.fetchNewToken).toHaveBeenCalled()
+      expect(mockPplClient.fetchNewToken).toHaveBeenCalledWith()
       expect(mockPplClient.createShipmentBatch).toHaveBeenCalledWith(
         "fallback-token",
         [],
@@ -301,7 +301,7 @@ describe("PplClientModuleService", () => {
       // A provider that never grants the lock within the service's own
       // acquisition timeout (LOCK_ACQUIRE_TIMEOUT_MS = 5000 in service.ts).
       mockLockingService.execute.mockImplementationOnce(
-        () => new Promise<void>(() => {})
+        async () => new Promise<void>(() => {})
       )
       mockCacheService.get.mockResolvedValueOnce({
         accessToken: "cached-token",
@@ -347,7 +347,7 @@ describe("PplClientModuleService", () => {
       const service = createService()
       const result = await service.getCachedCountries()
 
-      expect(result).toEqual(cachedCountries)
+      expect(result).toStrictEqual(cachedCountries)
       expect(mockPplClient.getCodelistCountries).not.toHaveBeenCalled()
     })
 
@@ -366,7 +366,7 @@ describe("PplClientModuleService", () => {
       const service = createService()
       const result = await service.getCachedCountries()
 
-      expect(result).toEqual(freshCountries)
+      expect(result).toStrictEqual(freshCountries)
       expect(mockCacheService.set).toHaveBeenCalledWith(
         expect.objectContaining({
           key: "ppl:codelist:countries",
@@ -425,7 +425,7 @@ describe("PplClientModuleService", () => {
       await vi.advanceTimersByTimeAsync(MIN_INTERVAL * 2)
       await secondPromise
 
-      expect(mockPplClient.fetchNewToken).toHaveBeenCalled()
+      expect(mockPplClient.fetchNewToken).toHaveBeenCalledWith()
     })
   })
 
@@ -522,7 +522,7 @@ describe("PplClientModuleService", () => {
         const service = createServiceForConfigTests()
         const result = await service.getEffectiveConfig()
 
-        expect(result).toEqual(cachedConfig)
+        expect(result).toStrictEqual(cachedConfig)
       })
 
       it("returns null when PPL is disabled", async () => {
@@ -580,22 +580,22 @@ describe("PplClientModuleService", () => {
 
         const result = await service.getEffectiveConfig()
 
-        expect(result).toEqual(
+        expect(result).toStrictEqual(
           expect.objectContaining({
             client_id: "valid-id",
             client_secret: "valid-secret",
-            environment: "testing",
-            default_label_format: "Pdf",
             cod_bank_account: "123456",
             cod_bank_code: "0100",
+            default_label_format: "Pdf",
+            environment: "testing",
             sender_name: "Test Sender",
           })
         )
         expect(mockCacheService.set).toHaveBeenCalledWith(
           expect.objectContaining({
             key: "ppl:config",
-            ttl: 60,
             tags: ["ppl"],
+            ttl: 60,
           })
         )
       })

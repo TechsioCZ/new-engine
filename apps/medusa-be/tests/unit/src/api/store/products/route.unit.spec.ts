@@ -8,7 +8,7 @@ const {
   wrapProductsWithTaxPrices,
   wrapVariantsWithInventoryQuantityForSalesChannel,
 } = vi.hoisted(() => ({
-  decorateProductsWithMeasurements: vi.fn().mockResolvedValue(undefined),
+  decorateProductsWithMeasurements: vi.fn().mockResolvedValue(),
   filterOutInternalProductCategories: vi.fn(),
   getMeasurementDecorationOptions: vi.fn(() => ({
     includePricePerUnit: false,
@@ -16,25 +16,23 @@ const {
     includeVariantMeasurement: false,
   })),
   getMeasurementDecorationQueryFields: vi.fn((fields: string[]) => fields),
-  wrapProductsWithTaxPrices: vi.fn().mockResolvedValue(undefined),
-  wrapVariantsWithInventoryQuantityForSalesChannel: vi
-    .fn()
-    .mockResolvedValue(undefined),
+  wrapProductsWithTaxPrices: vi.fn().mockResolvedValue(),
+  wrapVariantsWithInventoryQuantityForSalesChannel: vi.fn().mockResolvedValue(),
 }))
 
-vi.mock("@medusajs/medusa/api/store/products/helpers", () => ({
+vi.mock(import("@medusajs/medusa/api/store/products/helpers"), () => ({
   filterOutInternalProductCategories,
   wrapProductsWithTaxPrices,
 }))
 
 vi.mock(
-  "@medusajs/medusa/api/utils/middlewares/products/variant-inventory-quantity",
+  import("@medusajs/medusa/api/utils/middlewares/products/variant-inventory-quantity"),
   () => ({
     default: wrapVariantsWithInventoryQuantityForSalesChannel,
   })
 )
 
-vi.mock("../../../../../../src/utils/measurement-units", () => ({
+vi.mock(import("../../../../../../src/utils/measurement-units"), () => ({
   decorateProductsWithMeasurements,
   getMeasurementDecorationOptions,
   getMeasurementDecorationQueryFields,

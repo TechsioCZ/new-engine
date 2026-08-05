@@ -14,7 +14,7 @@ import type {
 } from "./schemas"
 
 /** Configuration options for connecting to the Payload CMS instance. */
-export type PayloadModuleOptions = {
+export interface PayloadModuleOptions {
   serverUrl: string
   apiKey: string
   userCollection?: string
@@ -37,7 +37,7 @@ export type CmsCategoryListOptions = z.infer<
 >
 
 /** Query options supported by the Payload REST API list endpoint. */
-export type PayloadQueryOptions = {
+export interface PayloadQueryOptions {
   limit?: number
   page?: number
   where?: Record<string, unknown>
@@ -49,13 +49,13 @@ export type PayloadQueryOptions = {
 }
 
 /** Response wrapper for single-document Payload API results. */
-export type PayloadItemResult<T> = {
+export interface PayloadItemResult<T> {
   doc: T
   message: string
 }
 
 /** Response wrapper for list-based Payload API results. */
-export type PayloadBulkResult<T> = {
+export interface PayloadBulkResult<T> {
   docs: T[]
   totalDocs: number
   limit: number
@@ -69,7 +69,7 @@ export type PayloadBulkResult<T> = {
 }
 
 /** Generic error envelope for API responses. */
-export type PayloadApiResponse<T> = {
+export interface PayloadApiResponse<T> {
   data?: T
   errors?: Array<{ message: string; field?: string }>
   message?: string

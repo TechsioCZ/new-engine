@@ -16,7 +16,7 @@ import {
 import type { HomepageProductSection } from "./homepage.types"
 import { useHomepagePrefetch } from "./use-homepage-prefetch"
 
-type UseHomepageControllerResult = {
+interface UseHomepageControllerResult {
   productsError: string | null
   shouldShowProductSkeleton: boolean
   leadingSections: HomepageProductSection[]
@@ -28,9 +28,9 @@ type UseHomepageControllerResult = {
 export function useHomepageController(): UseHomepageControllerResult {
   const region = useRegionContext()
   const categoriesQuery = useCategories({
-    page: 1,
-    limit: CATEGORY_TREE_LIMIT,
     fields: CATEGORY_TREE_FIELDS,
+    limit: CATEGORY_TREE_LIMIT,
+    page: 1,
   })
 
   const prefetchActions = useHomepagePrefetch(region)
@@ -56,19 +56,19 @@ export function useHomepageController(): UseHomepageControllerResult {
   })
 
   const newProductsQuery = useCatalogProducts({
-    page: 1,
+    enabled: Boolean(region?.region_id),
     limit: PRODUCTS_PER_COLLECTION_SECTION,
+    page: 1,
     sort: "newest",
     status: ["new"],
-    enabled: Boolean(region?.region_id),
   })
 
   const actionProductsQuery = useCatalogProducts({
-    page: 1,
+    enabled: Boolean(region?.region_id),
     limit: PRODUCTS_PER_COLLECTION_SECTION,
+    page: 1,
     sort: "recommended",
     status: ["action"],
-    enabled: Boolean(region?.region_id),
   })
 
   const sectionQueries = [
@@ -85,29 +85,29 @@ export function useHomepageController(): UseHomepageControllerResult {
 
   const preparedProductSections: HomepageProductSection[] = [
     {
-      ...PRODUCT_SECTIONS[0]!,
+      ...PRODUCT_SECTIONS[0],
       products: bestsellersProductsQuery.products,
     },
     {
-      ...PRODUCT_SECTIONS[1]!,
+      ...PRODUCT_SECTIONS[1],
       products: newProductsQuery.products,
     },
     {
-      ...PRODUCT_SECTIONS[2]!,
+      ...PRODUCT_SECTIONS[2],
       products: actionProductsQuery.products,
     },
   ]
 
   return {
+    handleProductHoverEnd: prefetchActions.handleProductHoverEnd,
+    handleProductHoverStart: prefetchActions.handleProductHoverStart,
+    leadingSections: preparedProductSections.slice(0, 2),
     productsError:
       categoriesQuery.error ??
       bestsellersProductsQuery.error ??
       newProductsQuery.error ??
       actionProductsQuery.error,
     shouldShowProductSkeleton,
-    leadingSections: preparedProductSections.slice(0, 2),
     trailingSections: preparedProductSections.slice(2),
-    handleProductHoverStart: prefetchActions.handleProductHoverStart,
-    handleProductHoverEnd: prefetchActions.handleProductHoverEnd,
   }
 }

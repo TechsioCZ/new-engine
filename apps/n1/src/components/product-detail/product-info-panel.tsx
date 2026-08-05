@@ -12,7 +12,7 @@ import { ProductVariantSelect } from "./product-info-panel/product-variant-selec
 import { SectionBasicInfo } from "./product-info-panel/section-basic-info"
 import { StoreStatus } from "./product-info-panel/store-status"
 
-type ProductInfoPanelProps = {
+interface ProductInfoPanelProps {
   detail: ProductDetail
   selectedVariant: ProductVariantDetail | null
   handle: string

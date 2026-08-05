@@ -1,12 +1,13 @@
 import type { HttpTypes } from "@medusajs/types"
+import { vi, describe, expect, it } from "vitest"
 
-import {
-  type MedusaCollectionDetailInput,
-  type MedusaCollectionListInput,
-  createMedusaCollectionService,
+import { createMedusaCollectionService } from "../src/collections/medusa-service"
+import type {
+  MedusaCollectionDetailInput,
+  MedusaCollectionListInput,
 } from "../src/collections/medusa-service"
 
-type SdkLike = {
+interface SdkLike {
   client: {
     fetch: ReturnType<typeof vi.fn>
   }
@@ -17,7 +18,7 @@ const createCollection = (
   title = "Collection",
   handle = id
 ): HttpTypes.StoreCollection =>
-  ({ id, title, handle }) as HttpTypes.StoreCollection
+  ({ handle, id, title }) as HttpTypes.StoreCollection
 
 function createSdkMock(
   response?: Partial<HttpTypes.StoreCollectionListResponse>
@@ -35,7 +36,7 @@ function createSdkMock(
   }
 }
 
-describe("createMedusaCollectionService", () => {
+describe(createMedusaCollectionService, () => {
   it("applies default list fields and forwards signal", async () => {
     const sdk = createSdkMock({
       collections: [createCollection("pcol_1", "Spring 2026", "spring-2026")],
@@ -47,15 +48,15 @@ describe("createMedusaCollectionService", () => {
     const controller = new AbortController()
 
     await service.getCollections(
-      { limit: 8, offset: 0, enabled: true },
+      { enabled: true, limit: 8, offset: 0 },
       controller.signal
     )
 
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/collections", {
       query: {
+        fields: "id,title,handle",
         limit: 8,
         offset: 0,
-        fields: "id,title,handle",
       },
       signal: controller.signal,
     })
@@ -74,11 +75,11 @@ describe("createMedusaCollectionService", () => {
         ...params,
         search: q,
       }),
-      transformListCollection: (collection) => ({
+      transformDetailCollection: (collection) => ({
         id: collection.id,
         label: collection.title,
       }),
-      transformDetailCollection: (collection) => ({
+      transformListCollection: (collection) => ({
         id: collection.id,
         label: collection.title,
       }),
@@ -98,7 +99,7 @@ describe("createMedusaCollectionService", () => {
       },
       signal: null,
     })
-    expect(result.collections).toEqual([
+    expect(result.collections).toStrictEqual([
       { id: "pcol_2", label: "Summer Picks" },
     ])
     expect(result.count).toBe(1)
@@ -122,21 +123,20 @@ describe("createMedusaCollectionService", () => {
 
     const service = createMedusaCollectionService<
       { slug: string; title: string },
-      MedusaCollectionListInput,
-      MedusaCollectionDetailInput
+      MedusaCollectionListInput
     >(sdk as never, {
       defaultDetailFields: "id,title,handle,metadata",
-      transformListCollection: (collection) => ({
+      transformDetailCollection: (collection) => ({
         slug: collection.handle,
         title: collection.title,
       }),
-      transformDetailCollection: (collection) => ({
+      transformListCollection: (collection) => ({
         slug: collection.handle,
         title: collection.title,
       }),
     })
 
-    const result = await service.getCollection({ id: "pcol_3", enabled: true })
+    const result = await service.getCollection({ enabled: true, id: "pcol_3" })
 
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/collections/pcol_3", {
       query: {
@@ -144,6 +144,6 @@ describe("createMedusaCollectionService", () => {
       },
       signal: null,
     })
-    expect(result).toEqual({ slug: "winter-gear", title: "Winter Gear" })
+    expect(result).toStrictEqual({ slug: "winter-gear", title: "Winter Gear" })
   })
 })

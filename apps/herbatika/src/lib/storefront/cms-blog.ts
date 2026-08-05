@@ -19,11 +19,11 @@ const DEFAULT_AUTHOR_IMAGE =
 const DEFAULT_ARTICLE_IMAGE =
   "https://images.unsplash.com/photo-1461354464878-ad92f492a5a0?auto=format&fit=crop&w=1200&q=80"
 
-type CmsArticleCategoriesResponse = {
+interface CmsArticleCategoriesResponse {
   articleCategories?: CmsArticleCategory[] | null
 }
 
-type CmsArticleResponse = {
+interface CmsArticleResponse {
   article?: CmsArticle | null
 }
 
@@ -35,13 +35,16 @@ const resolveTopicFromCategory = (
 ): Exclude<BlogTopicKey, "all"> => {
   switch (category?.slug) {
     case "beauty":
-    case "krasa":
+    case "krasa": {
       return "krasa"
+    }
     case "fitness":
-    case "sport":
+    case "sport": {
       return "fitness"
-    default:
+    }
+    default: {
       return DEFAULT_CMS_TOPIC
+    }
   }
 }
 
@@ -72,25 +75,25 @@ const mapCmsArticleToBlogPost = (article: CmsArticle): BlogPost | null => {
     article.excerpt?.trim() || stripCmsHtml(contentHtml).slice(0, 180)
 
   return {
-    id: `cms-${article.id}`,
-    slug,
-    title,
-    excerpt,
-    imageSrc:
-      resolveCmsMediaUrl(article.featuredImage) ?? DEFAULT_ARTICLE_IMAGE,
-    topic: resolveTopicFromCategory(article.category),
-    tags: tags.length > 0 ? tags : ["Novinky"],
-    publishedAt: article.publishedDate ?? new Date(0).toISOString(),
     author: resolveAuthorName(article),
-    authorRole: "Článok pre vás pripravila",
     authorBio:
       "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti.",
     authorImageSrc: DEFAULT_AUTHOR_IMAGE,
-    readingTime: `${Math.max(article.readingTime ?? 1, 1)} min`,
-    lead: excerpt,
+    authorRole: "Článok pre vás pripravila",
     bulletPoints: [],
     contentHtml,
+    excerpt,
+    id: `cms-${article.id}`,
+    imageSrc:
+      resolveCmsMediaUrl(article.featuredImage) ?? DEFAULT_ARTICLE_IMAGE,
+    lead: excerpt,
+    publishedAt: article.publishedDate ?? new Date(0).toISOString(),
+    readingTime: `${Math.max(article.readingTime ?? 1, 1)} min`,
     sections: [],
+    slug,
+    tags: tags.length > 0 ? tags : ["Novinky"],
+    title,
+    topic: resolveTopicFromCategory(article.category),
   }
 }
 
@@ -117,15 +120,15 @@ export const fetchCmsBlogPost = async (slug: string) => {
 
 export const fetchCmsBlogPosts = async () => {
   const categories = await fetchCmsArticleCategories()
-  const slugs = Array.from(
-    new Set(
+  const slugs = [
+    ...new Set(
       categories.flatMap((category) =>
         (category.articles ?? [])
           .map((article) => article.slug?.trim())
           .filter(isNonEmptyString)
       )
-    )
-  )
+    ),
+  ]
 
   const articles = await Promise.all(slugs.map(fetchCmsArticleBySlug))
 

@@ -1,7 +1,7 @@
 "use client"
 import { sanitizeHtml } from "@/components/product-detail/utils/html-sanitizer"
 
-type CategoryRichTextProps = {
+interface CategoryRichTextProps {
   className?: string
   html: string | null | undefined
 }

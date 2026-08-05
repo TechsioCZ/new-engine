@@ -1,13 +1,13 @@
 import { Tabs } from "@techsio/ui-kit/molecules/tabs"
 
-type TabConfig = {
+interface TabConfig {
   value: string
   label: string
   headline?: string
   content: React.ReactNode
 }
 
-type ProductTabsProps = {
+interface ProductTabsProps {
   description?: string | null | undefined
   tabs?: TabConfig[]
 }

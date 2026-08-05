@@ -15,7 +15,7 @@ import { cpSync, existsSync, readdirSync, rmSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
-const pluginDir = resolve(dirname(fileURLToPath(import.meta.url)), "..")
+const pluginDir = resolve(import.meta.dirname, "..")
 const srcDir = resolve(pluginDir, "../skills") // libs/ui/skills
 const destDir = resolve(pluginDir, "skills")
 
@@ -51,7 +51,7 @@ for (const name of entries) {
     process.exit(1)
   }
   const dest = resolve(destDir, name)
-  rmSync(dest, { recursive: true, force: true })
+  rmSync(dest, { force: true, recursive: true })
   cpSync(resolve(srcDir, name), dest, { recursive: true })
   copied++
 }

@@ -40,7 +40,7 @@ const resolveLegacyCategoryHref = (
     }
   }
 
-  const normalizedPath = pathname.replace(/^\/+|\/+$/g, "")
+  const normalizedPath = pathname.replaceAll(/^\/+|\/+$/g, "")
   if (!normalizedPath || normalizedPath.startsWith("c/")) {
     return href
   }
@@ -83,7 +83,7 @@ const resolveLegacyMediaUrl = (value: string) => {
 }
 
 const rewriteLegacyMediaUrls = (html: string) =>
-  html.replace(
+  html.replaceAll(
     /\b(src|href)=(["'])(.*?)\2/gi,
     (_match, attribute: string, quote: string, url: string) =>
       `${attribute}=${quote}${resolveLegacyMediaUrl(url)}${quote}`
@@ -93,7 +93,7 @@ const rewriteLegacyCategoryLinks = (
   html: string,
   categoryByHandle: Map<string, HttpTypes.StoreProductCategory>
 ) =>
-  html.replace(
+  html.replaceAll(
     /\bhref=(["'])(.*?)\1/gi,
     (_match, quote: string, href: string) =>
       `href=${quote}${resolveLegacyCategoryHref(

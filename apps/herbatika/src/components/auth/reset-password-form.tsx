@@ -7,14 +7,12 @@ import { useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
 
 import { PasswordRequirements } from "@/components/auth/password-requirements"
-import {
-  createResetPasswordValidators,
-  type ResetPasswordFormValues,
-} from "@/lib/auth/auth-form-validators"
+import { createResetPasswordValidators } from "@/lib/auth/auth-form-validators"
+import type { ResetPasswordFormValues } from "@/lib/auth/auth-form-validators"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
-type ResetPasswordFormText = {
+interface ResetPasswordFormText {
   expiredHref: string
   expiredHelp: string
   expiredLinkLabel: string
@@ -23,7 +21,7 @@ type ResetPasswordFormText = {
   successMessage: string
 }
 
-type ResetPasswordFormProps = {
+interface ResetPasswordFormProps {
   isBusy: boolean
   defaultValues: ResetPasswordFormValues
   loginHref: string
@@ -124,7 +122,9 @@ export const ResetPasswordForm = ({
               autoComplete="new-password"
               id="auth-reset-password"
               label={tAuth("new_password")}
-              onValueChange={() => setSubmitError(null)}
+              onValueChange={() => {
+                setSubmitError(null)
+              }}
               required
               type="password"
               validationMode="blur"
@@ -143,7 +143,9 @@ export const ResetPasswordForm = ({
             autoComplete="new-password"
             id="auth-reset-confirm-password"
             label={tAuth("password_confirmation")}
-            onValueChange={() => setSubmitError(null)}
+            onValueChange={() => {
+              setSubmitError(null)
+            }}
             required
             type="password"
             validationMode="blur"

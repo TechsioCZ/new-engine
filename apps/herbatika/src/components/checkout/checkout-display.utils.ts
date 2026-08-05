@@ -3,7 +3,7 @@ import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { resolveCountryDisplayName } from "@/lib/forms/country-options"
 
 const normalizeProviderValue = (providerId: string) =>
-  providerId.toLowerCase().replace(/[_-]+/g, " ")
+  providerId.toLowerCase().replaceAll(/[_-]+/g, " ")
 
 const isQrPaymentProviderValue = (normalizedValue: string) =>
   normalizedValue.includes("qr manual") ||
@@ -30,7 +30,7 @@ type PaymentProviderKind =
   | "stripe"
   | "unknown"
 
-type PaymentDisplayTextKeys = {
+interface PaymentDisplayTextKeys {
   descriptionKey?: string
   hintKey?: string
   hintValue?: string
@@ -124,7 +124,7 @@ export const resolvePaymentDisplayTextKeys = (
 
 export const formatProviderLabel = (providerId: string) =>
   providerId
-    .replace(/[_-]+/g, " ")
+    .replaceAll(/[_-]+/g, " ")
     .split(" ")
     .filter((part) => part.length > 0)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))

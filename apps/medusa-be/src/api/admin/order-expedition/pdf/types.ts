@@ -1,6 +1,6 @@
 import type { PDFDocument, PDFFont, PDFImage, PDFPage } from "pdf-lib"
 
-type DrawState = {
+interface DrawState {
   boldFont: PDFFont
   barcodeCache: Map<string, null | PDFImage>
   document: PDFDocument

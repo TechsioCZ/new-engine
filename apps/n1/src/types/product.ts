@@ -6,7 +6,7 @@ export interface StoreProductExtended extends StoreProduct {
 }
 
 // Lightweight type for product listing
-export type Product = {
+export interface Product {
   id: string
   title: string
   handle: string
@@ -20,7 +20,7 @@ export type Product = {
 }
 
 // Product image from Medusa
-export type ProductImage = {
+export interface ProductImage {
   id: string
   src: string
 }
@@ -30,7 +30,7 @@ export type ProductImage = {
 // Product option
 
 // Brand information
-export type Brand = {
+export interface Brand {
   id: string
   title: string
   attributes?: Array<{
@@ -43,7 +43,7 @@ export type Brand = {
   }>
 }
 
-export type ProductVariantDetail = {
+export interface ProductVariantDetail {
   id: string
   title: string
   sku?: string | null
@@ -83,6 +83,6 @@ export interface ProductDetail extends Omit<Product, "variants" | "images"> {
   material?: string | null
   images: ProductImage[]
   variants: ProductVariantDetail[]
-  tags?: Array<{ id: string; value: string }>
+  tags?: { id: string; value: string }[]
   brand?: Brand | undefined
 }

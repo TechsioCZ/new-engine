@@ -21,7 +21,7 @@ import {
   normalizeCsvToArray,
 } from "./deploy-inputs.js"
 
-type DryRunResponseOptions = {
+interface DryRunResponseOptions {
   input: VerifyCommandInput
   requestedServiceIds: string[]
   deployServiceIds: string[]
@@ -35,7 +35,7 @@ type DryRunResponseOptions = {
 
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
+  await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
 function buildDryRunResponse({
@@ -50,27 +50,6 @@ function buildDryRunResponse({
   forbiddenEnv,
 }: DryRunResponseOptions): VerifyResponse {
   return {
-    lane: input.lane,
-    project_slug: input.projectSlug,
-    environment_name: input.environmentName,
-    verified: true,
-    requested_service_ids: requestedServiceIds,
-    deploy_service_ids: deployServiceIds,
-    triggered_service_ids: triggeredServiceIds,
-    checked_preview_cloned_service_slugs: expectedPreviewServiceSlugs,
-    warning_only_preview_service_slugs: [],
-    checked_env_override_service_ids: expectedEnvOverrides.map(
-      (override) => override.service_id
-    ),
-    checked_persisted_env_service_ids: requiredPersistedEnv.map(
-      (requirement) => requirement.service_id
-    ),
-    checked_shared_env_keys: requiredSharedEnv.map(
-      (requirement) => requirement.key
-    ),
-    checked_forbidden_env_service_ids: forbiddenEnv.map(
-      (requirement) => requirement.service_id
-    ),
     checked_deployment_service_ids: input.deployments.map(
       (deployment: DeploymentRef) => deployment.service_id
     ),
@@ -81,6 +60,27 @@ function buildDryRunResponse({
       status: deployment.status ?? "HEALTHY",
       status_reason: null,
     })),
+    checked_env_override_service_ids: expectedEnvOverrides.map(
+      (override) => override.service_id
+    ),
+    checked_forbidden_env_service_ids: forbiddenEnv.map(
+      (requirement) => requirement.service_id
+    ),
+    checked_persisted_env_service_ids: requiredPersistedEnv.map(
+      (requirement) => requirement.service_id
+    ),
+    checked_preview_cloned_service_slugs: expectedPreviewServiceSlugs,
+    checked_shared_env_keys: requiredSharedEnv.map(
+      (requirement) => requirement.key
+    ),
+    deploy_service_ids: deployServiceIds,
+    environment_name: input.environmentName,
+    lane: input.lane,
+    project_slug: input.projectSlug,
+    requested_service_ids: requestedServiceIds,
+    triggered_service_ids: triggeredServiceIds,
+    verified: true,
+    warning_only_preview_service_slugs: [],
   }
 }
 
@@ -93,14 +93,14 @@ function resolvePreviewServiceSlugs(
 } {
   if (input.lane !== "preview") {
     return {
-      expectedPreviewServiceSlugs: [],
       excludedPreviewServiceSlugs: [],
+      expectedPreviewServiceSlugs: [],
     }
   }
 
   const serviceSlugById = new Map(
     contracts.manifest.services.flatMap((service) =>
-      service.ci.deployable === true && service.ci.zane
+      service.ci.deployable && service.ci.zane
         ? [[service.id, service.ci.zane.service_slug] as const]
         : []
     )
@@ -118,13 +118,13 @@ function resolvePreviewServiceSlugs(
     })
 
   return {
-    expectedPreviewServiceSlugs: toServiceSlugs(
-      input.previewClonedServiceIdsCsv,
-      "Preview cloned service set"
-    ),
     excludedPreviewServiceSlugs: toServiceSlugs(
       input.previewExcludedServiceIdsCsv,
       "Preview excluded service set"
+    ),
+    expectedPreviewServiceSlugs: toServiceSlugs(
+      input.previewClonedServiceIdsCsv,
+      "Preview cloned service set"
     ),
   }
 }
@@ -147,8 +147,8 @@ export async function executeVerify(
     {
       lane: input.lane,
       previewDbName: input.previewDbName,
-      previewDbUser: input.previewDbUser,
       previewDbPassword: input.previewDbPassword,
+      previewDbUser: input.previewDbUser,
       previewRandomOnceSecrets: input.previewRandomOnceSecrets,
       runtimeProviderOutputs: input.runtimeProviderOutputs,
     }
@@ -169,18 +169,7 @@ export async function executeVerify(
     contracts
   )
   const payload: VerifyDeployPayload = {
-    lane: input.lane,
-    project_slug: input.projectSlug,
-    environment_name: input.environmentName,
-    requested_service_ids: requestedServiceIds,
     deploy_service_ids: deployServiceIds,
-    triggered_service_ids: triggeredServiceIds,
-    expected_preview_service_slugs: expectedPreviewServiceSlugs,
-    excluded_preview_service_slugs: excludedPreviewServiceSlugs,
-    expected_env_overrides: expectedEnvOverrides,
-    required_persisted_env: requiredPersistedEnv,
-    required_shared_env: requiredSharedEnv,
-    forbidden_env: forbiddenEnv,
     deployments: input.deployments.map(
       ({ deployment_hash, service_id, service_slug }: DeploymentRef) => ({
         service_id,
@@ -188,19 +177,30 @@ export async function executeVerify(
         deployment_hash,
       })
     ),
+    environment_name: input.environmentName,
+    excluded_preview_service_slugs: excludedPreviewServiceSlugs,
+    expected_env_overrides: expectedEnvOverrides,
+    expected_preview_service_slugs: expectedPreviewServiceSlugs,
+    forbidden_env: forbiddenEnv,
+    lane: input.lane,
+    project_slug: input.projectSlug,
+    requested_service_ids: requestedServiceIds,
+    required_persisted_env: requiredPersistedEnv,
+    required_shared_env: requiredSharedEnv,
+    triggered_service_ids: triggeredServiceIds,
   }
 
   const response = input.dryRun
     ? buildDryRunResponse({
+        deployServiceIds,
+        expectedEnvOverrides,
+        expectedPreviewServiceSlugs,
+        forbiddenEnv,
         input,
         requestedServiceIds,
-        deployServiceIds,
-        triggeredServiceIds,
-        expectedPreviewServiceSlugs,
-        expectedEnvOverrides,
         requiredPersistedEnv,
         requiredSharedEnv,
-        forbiddenEnv,
+        triggeredServiceIds,
       })
     : await new ZaneOperatorClient(input.baseUrl, input.apiToken).verifyDeploy(
         payload

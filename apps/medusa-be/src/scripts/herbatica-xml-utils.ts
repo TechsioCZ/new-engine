@@ -1,33 +1,33 @@
 import { readFileSync } from "node:fs"
 
-export type XmlElement = {
+export interface XmlElement {
   attributes: Record<string, string>
   inner: string
 }
 
 const ENTITY_MAP: Record<string, string> = {
-  "&quot;": '"',
-  "&apos;": "'",
-  "&lt;": "<",
-  "&gt;": ">",
   "&amp;": "&",
+  "&apos;": "'",
+  "&gt;": ">",
+  "&lt;": "<",
   "&nbsp;": " ",
+  "&quot;": '"',
 }
 
 const HTTP_XML_SOURCE_PATTERN = /^https?:\/\//i
 
 export function decodeXml(value: string): string {
   return value
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => {
+    .replaceAll(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replaceAll(/&#x([0-9a-fA-F]+);/g, (match, hex) => {
       const parsed = Number.parseInt(hex, 16)
       return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : match
     })
-    .replace(/&#([0-9]+);/g, (match, num) => {
+    .replaceAll(/&#([0-9]+);/g, (match, num) => {
       const parsed = Number.parseInt(num, 10)
       return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : match
     })
-    .replace(
+    .replaceAll(
       /&quot;|&apos;|&lt;|&gt;|&amp;|&nbsp;/g,
       (entity) => ENTITY_MAP[entity] ?? entity
     )
@@ -38,7 +38,7 @@ export function normalizeText(value?: string): string | undefined {
     return
   }
 
-  const decoded = decodeXml(value).replace(/\r\n/g, "\n").trim()
+  const decoded = decodeXml(value).replaceAll(/\r\n/g, "\n").trim()
   return decoded === "" ? undefined : decoded
 }
 
@@ -48,7 +48,7 @@ export function normalizeInlineText(value?: string): string | undefined {
     return
   }
 
-  return normalized.replace(/\s+/g, " ").trim()
+  return normalized.replaceAll(/\s+/g, " ").trim()
 }
 
 export function parseAttributes(raw?: string): Record<string, string> {
@@ -70,7 +70,7 @@ export function parseAttributes(raw?: string): Record<string, string> {
 }
 
 function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
 export function extractElements(source: string, tag: string): XmlElement[] {
@@ -115,7 +115,7 @@ export function isHttpXmlSource(source: string): boolean {
 
 export async function readXmlSource(source: string): Promise<string> {
   if (!isHttpXmlSource(source)) {
-    return readFileSync(source, "utf8")
+    return readFileSync(source, "utf-8")
   }
 
   const response = await fetch(source)
@@ -125,5 +125,5 @@ export async function readXmlSource(source: string): Promise<string> {
     )
   }
 
-  return response.text()
+  return await response.text()
 }

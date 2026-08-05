@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react"
 
-type DataTableFilterContextValue = {
+interface DataTableFilterContextValue {
   removeFilter: (key: string) => void
   removeAllFilters: () => void
 }

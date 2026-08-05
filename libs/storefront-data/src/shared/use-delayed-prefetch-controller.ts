@@ -47,7 +47,7 @@ export const useDelayedPrefetchController = () => {
   }
 
   return {
-    schedulePrefetch,
     cancelPrefetch,
+    schedulePrefetch,
   }
 }

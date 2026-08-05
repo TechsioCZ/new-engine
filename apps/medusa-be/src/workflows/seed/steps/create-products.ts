@@ -15,26 +15,27 @@ import {
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import {
-  type BatchVariantImagesWorkflowInput,
   batchProductsWorkflow,
   batchVariantImagesWorkflow,
   createProductsWorkflow,
-  type ProcessProductOptionsForImportInput,
+} from "@medusajs/medusa/core-flows"
+import type {
+  BatchVariantImagesWorkflowInput,
+  ProcessProductOptionsForImportInput,
 } from "@medusajs/medusa/core-flows"
 
 import { BRAND_MODULE } from "../../../modules/brand"
 import type BrandModuleService from "../../../modules/brand/service"
 import {
-  type BrandInput,
-  type BrandScalarWriteInput,
   createBrandsWorkflow,
   restoreBrandsWorkflow,
   setProductBrandsWorkflow,
   updateBrandsWorkflow,
   validateBrandGpsrState,
 } from "../../brand"
+import type { BrandInput, BrandScalarWriteInput } from "../../brand"
 
-export type SeedProductAttributeInput = {
+export interface SeedProductAttributeInput {
   input_type: "select" | "text"
   is_public: boolean
   key: string
@@ -49,7 +50,7 @@ export type SeedProductAttributeInput = {
   text_value?: string | null | undefined
 }
 
-export type SeedMeasurementUnitInput = {
+export interface SeedMeasurementUnitInput {
   base_quantity: number
   code: string
   description?: null | string | undefined
@@ -57,15 +58,15 @@ export type SeedMeasurementUnitInput = {
   symbol: string
 }
 
-export type SeedVariantMeasurementInput = {
+export interface SeedVariantMeasurementInput {
   product_unit_quantity: number
 }
 
-export type SeedProductMeasurementInput = {
+export interface SeedProductMeasurementInput {
   unit: SeedMeasurementUnitInput
 }
 
-export type ProductInput = {
+export interface ProductInput {
   title: string
   categories: {
     name?: string | undefined
@@ -164,7 +165,7 @@ export type ProductInput = {
   productAttributes?: SeedProductAttributeInput[] | undefined
 }
 
-type ProductVariantImagesInput = {
+interface ProductVariantImagesInput {
   images?: string[]
 }
 
@@ -205,7 +206,7 @@ type SeedBrandScalarField = Exclude<
   keyof BrandRegistryEntry,
   "attributes" | "handle" | "products" | "title"
 >
-type ExistingBrand = {
+interface ExistingBrand {
   attributes?:
     | Array<{
         value: string
@@ -254,15 +255,17 @@ function normalizeSeedText(value?: string | null): string | undefined {
 }
 
 function stripBrandHandleDiacritics(title: string) {
-  return title.normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+  return title.normalize("NFKD").replaceAll(/[\u0300-\u036F]/g, "")
 }
 
 export function normalizeBrandRegistryKey(title: string): string {
-  const separated = stripBrandHandleDiacritics(title).replace(
+  const separated = stripBrandHandleDiacritics(title).replaceAll(
     /[^\p{L}\p{N}]+/gu,
     "-"
   )
-  const kebab = kebabCase(separated).replace(/-+/g, "-").replace(/^-|-$/g, "")
+  const kebab = kebabCase(separated)
+    .replaceAll(/-+/g, "-")
+    .replaceAll(/^-|-$/g, "")
 
   if (!BRAND_HANDLE_CONTENT_PATTERN.test(kebab)) {
     return ""
@@ -275,9 +278,9 @@ function getLegacyBrandHandles(title: string): string[] {
   const historicalKebabHandle = kebabCase(title.trim())
   const previousAsciiHandle = stripBrandHandleDiacritics(title)
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/-+/g, "-")
+    .replaceAll(/^-|-$/g, "")
 
   return [...new Set([historicalKebabHandle, previousAsciiHandle])].filter(
     Boolean
@@ -477,9 +480,9 @@ function ensureUniqueVariantSkus(
       }
 
       const candidate = buildUniqueVariantSku({
-        originalSku,
-        inputProduct,
         index,
+        inputProduct,
+        originalSku,
         usedSkus,
       })
       if (renameVariantSku(variant, candidate)) {
@@ -528,9 +531,9 @@ function findExistingVariant(
   const sourceVariantId = getSourceVariantId(inputVariant)
   if (sourceVariantId) {
     const bySourceId = (existingProduct.variants ?? []).find((variant) => {
-      const metadata = (
-        variant as { metadata?: Record<string, unknown> | null }
-      ).metadata
+      const { metadata } = variant as {
+        metadata?: Record<string, unknown> | null
+      }
       return getSourceVariantId({ metadata }) === sourceVariantId
     })
 
@@ -616,9 +619,9 @@ function prepareVariantImagesWorkflowInput(
         .map((img) => img.id)
 
       result.push({
-        variant_id: variant.id,
         add: toAdd,
         remove: toRemove,
+        variant_id: variant.id,
       })
       continue
     }
@@ -631,9 +634,9 @@ function prepareVariantImagesWorkflowInput(
       .map((img) => img.id)
 
     result.push({
-      variant_id: variant.id,
       add: toAdd,
       remove: toRemove,
+      variant_id: variant.id,
     })
   }
   return result
@@ -703,8 +706,8 @@ function buildUpdateVariant(
   const existingVariant = findExistingVariant(existingProduct, inputVariant)
 
   const variantPayload = {
-    title: inputVariant.title,
     sku: inputVariant.sku,
+    title: inputVariant.title,
     ...(inputVariant.ean === undefined ? {} : { ean: inputVariant.ean }),
     ...(inputVariant.material === undefined
       ? {}
@@ -793,8 +796,8 @@ function buildCreateVariant(
   inputVariant: NonNullable<ProductInput["variants"]>[number]
 ) {
   return {
-    title: inputVariant.title,
     sku: inputVariant.sku,
+    title: inputVariant.title,
     ...(inputVariant.ean === undefined ? {} : { ean: inputVariant.ean }),
     ...(inputVariant.material === undefined
       ? {}
@@ -887,11 +890,11 @@ function buildUpdateProductPayloads(params: {
 
     return [
       buildUpdateProductPayload({
-        existingProduct,
-        inputProduct,
         existingCategories: params.existingCategories,
-        existingShippingProfiles: params.existingShippingProfiles,
+        existingProduct,
         existingSalesChannels: params.existingSalesChannels,
+        existingShippingProfiles: params.existingShippingProfiles,
+        inputProduct,
       }),
     ]
   })
@@ -908,10 +911,10 @@ function buildCreateProductPayloads(params: {
     registerProductSideInputs(inputProduct, params.productVariantImages)
 
     return buildCreateProductPayload({
-      inputProduct,
       existingCategories: params.existingCategories,
-      existingShippingProfiles: params.existingShippingProfiles,
       existingSalesChannels: params.existingSalesChannels,
+      existingShippingProfiles: params.existingShippingProfiles,
+      inputProduct,
     })
   })
 }
@@ -1358,11 +1361,11 @@ export const createProductsStep = createStep(
     )
     const updateProducts = existingProducts.flatMap((existingProduct) =>
       buildUpdateProductPayloads({
-        input,
-        existingProducts: [existingProduct],
         existingCategories,
-        existingShippingProfiles,
+        existingProducts: [existingProduct],
         existingSalesChannels,
+        existingShippingProfiles,
+        input,
         productVariantImages,
       })
     )
@@ -1371,10 +1374,10 @@ export const createProductsStep = createStep(
       logger.info("Creating missing products...")
 
       const createProducts = buildCreateProductPayloads({
-        missingProducts,
         existingCategories,
-        existingShippingProfiles,
         existingSalesChannels,
+        existingShippingProfiles,
+        missingProducts,
         productVariantImages,
       })
 
@@ -1388,6 +1391,7 @@ export const createProductsStep = createStep(
       const products = await productService.listProducts(
         { id: { $in: productIds } },
         {
+          relations: ["images", "variants", "variants.images"],
           select: [
             "id",
             "handle",
@@ -1397,7 +1401,6 @@ export const createProductsStep = createStep(
             "variants.images.id",
             "variants.images.url",
           ],
-          relations: ["images", "variants", "variants.images"],
         }
       )
 
@@ -1405,8 +1408,8 @@ export const createProductsStep = createStep(
 
       await applyVariantImageUpdates({
         container,
-        products,
         productVariantImages,
+        products,
         result,
       })
     }
@@ -1431,6 +1434,7 @@ export const createProductsStep = createStep(
       const products = await productService.listProducts(
         { id: { $in: updatedIds } },
         {
+          relations: ["images", "variants", "variants.images"],
           select: [
             "id",
             "handle",
@@ -1440,7 +1444,6 @@ export const createProductsStep = createStep(
             "variants.images.id",
             "variants.images.url",
           ],
-          relations: ["images", "variants", "variants.images"],
         }
       )
 
@@ -1448,17 +1451,17 @@ export const createProductsStep = createStep(
 
       await applyVariantImageUpdates({
         container,
-        products,
         productVariantImages,
+        products,
         result,
       })
     }
 
     await linkBrands({
-      container,
-      productService,
       brandService,
       brands,
+      container,
+      productService,
       seedProducts: input,
     })
 

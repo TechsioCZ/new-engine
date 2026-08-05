@@ -4,12 +4,6 @@ import { useState } from "react"
 import { FormCheckbox } from "../../src/molecules/form-checkbox"
 
 const meta: Meta<typeof FormCheckbox> = {
-  title: "Molecules/FormCheckbox",
-  component: FormCheckbox,
-  parameters: {
-    layout: "centered",
-  },
-  tags: ["autodocs"],
   argTypes: {
     // Text inputs
     label: {
@@ -68,16 +62,22 @@ const meta: Meta<typeof FormCheckbox> = {
     },
   },
   args: {
+    defaultChecked: false,
+    disabled: false,
+    indeterminate: false,
     label: "Accept terms and conditions",
+    readOnly: false,
+    required: false,
+    showHelpTextIcon: false,
     size: "md",
     validateStatus: "default",
-    showHelpTextIcon: false,
-    disabled: false,
-    required: false,
-    readOnly: false,
-    indeterminate: false,
-    defaultChecked: false,
   },
+  component: FormCheckbox,
+  parameters: {
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/FormCheckbox",
 }
 
 export default meta
@@ -85,8 +85,8 @@ type Story = StoryObj<typeof FormCheckbox>
 
 export const Playground: Story = {
   args: {
-    label: "Playground Checkbox",
     helpText: "Helper text",
+    label: "Playground Checkbox",
   },
 }
 
@@ -140,8 +140,8 @@ export const Disabled: Story = {
 
 export const DisabledChecked: Story = {
   args: {
-    disabled: true,
     defaultChecked: true,
+    disabled: true,
   },
 }
 
@@ -193,9 +193,9 @@ export const Sizes: Story = {
 export const IndeterminateExample: Story = {
   render: function Render() {
     const [items, setItems] = useState([
-      { id: 1, name: "Item A", checked: false },
-      { id: 2, name: "Item B", checked: true },
-      { id: 3, name: "Item C", checked: true },
+      { checked: false, id: 1, name: "Item A" },
+      { checked: true, id: 2, name: "Item B" },
+      { checked: true, id: 3, name: "Item C" },
     ])
 
     const checkedCount = items.filter((item) => item.checked).length
@@ -228,7 +228,9 @@ export const IndeterminateExample: Story = {
               key={item.id}
               checked={item.checked}
               label={item.name}
-              onCheckedChange={(checked) => handleChildChange(item.id, checked)}
+              onCheckedChange={(checked) => {
+                handleChildChange(item.id, checked)
+              }}
             />
           ))}
         </div>
@@ -251,7 +253,9 @@ export const Controlled: Story = {
         <button
           type="button"
           className="rounded bg-blue-500 px-4 py-2 text-white"
-          onClick={() => setChecked(!checked)}
+          onClick={() => {
+            setChecked(!checked)
+          }}
         >
           Toggle from outside
         </button>

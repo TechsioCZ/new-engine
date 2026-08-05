@@ -46,7 +46,9 @@ export const EmployeesActionsMenu = ({
         <DropdownMenu.Content>
           <DropdownMenu.Item
             className="gap-x-2"
-            onClick={() => setEditOpen(true)}
+            onClick={() => {
+              setEditOpen(true)
+            }}
           >
             <PencilSquare />
             {t("actions.edit")}
@@ -54,7 +56,9 @@ export const EmployeesActionsMenu = ({
           <DropdownMenu.Separator />
           <DropdownMenu.Item
             className="gap-x-2"
-            onClick={() => setDeleteOpen(true)}
+            onClick={() => {
+              setDeleteOpen(true)
+            }}
           >
             <Trash />
             {t("actions.delete")}

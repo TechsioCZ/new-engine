@@ -64,10 +64,10 @@ function CheckoutContent() {
     const value = cart.total ?? 0
 
     analytics.trackInitiateCheckout({
-      value,
       currency,
       numItems: items.reduce((sum, item) => sum + (item.quantity || 0), 0),
       productIds: items.map((item) => item.variant_id || ""),
+      value,
     })
   }, [cart, hasItems, analytics])
 
@@ -120,7 +120,9 @@ function CheckoutContent() {
             errorMessage={error || ""}
             isCompletingCart={isCompleting}
             isReady={isReady}
-            onBack={() => router.back()}
+            onBack={() => {
+              router.back()
+            }}
             onComplete={completeCheckout}
             selectedShipping={selectedShipping}
           />

@@ -11,10 +11,12 @@ import {
   getOrderExpeditionDisplayId,
   getOrderExpeditionTransitionBlockReason,
   isOrderExpeditionRawOrder,
-  type OrderExpeditionBlockingOrder,
-  type OrderExpeditionRawOrder,
-  type OrderExpeditionTargetStatus,
   toOrderExpeditionBlockingOrder,
+} from "../../../../utils/order-expedition"
+import type {
+  OrderExpeditionBlockingOrder,
+  OrderExpeditionRawOrder,
+  OrderExpeditionTargetStatus,
 } from "../../../../utils/order-expedition"
 import { clearOrderExpeditionSummaryCache } from "../../../../utils/order-expedition-summary-cache"
 import { bulkCancelOrdersWorkflow } from "../../../../workflows/order-expedition/bulk-cancel-orders"
@@ -24,7 +26,7 @@ import {
 } from "../../../../workflows/order-expedition/bulk-update-order-statuses"
 import type { PostAdminOrderExpeditionStatusSchemaType } from "../validators"
 
-type StatusChangedOrder = {
+interface StatusChangedOrder {
   id: string
   order_display_id: string
   status: string | null
@@ -56,10 +58,10 @@ export async function POST(
 
   if (blockingOrders.length) {
     res.status(400).json({
+      blocked_orders: blockingOrders,
       code: "order_expedition_status_blocked",
       message: "One or more selected orders cannot transition to target status",
       target_status: targetStatus,
-      blocked_orders: blockingOrders,
     })
     return
   }
@@ -76,8 +78,8 @@ export async function POST(
 
   res.json({
     count: changedExpeditionOrders.length,
-    target_status: targetStatus,
     orders: changedExpeditionOrders.map(toChangedOrder),
+    target_status: targetStatus,
   })
 }
 

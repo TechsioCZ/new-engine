@@ -17,7 +17,7 @@ function serviceEnvValue(
 }
 
 function firstNonEmpty(
-  ...values: Array<string | null | undefined>
+  ...values: (string | null | undefined)[]
 ): string | undefined {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) {
@@ -42,7 +42,7 @@ function buildStagingDbName(
 
   const stamp = new Date()
     .toISOString()
-    .replace(/[-:TZ.]/g, "")
+    .replaceAll(/[-:TZ.]/g, "")
     .slice(0, 14)
   return `${templateDbName}_staging_${stamp}`
 }
@@ -148,44 +148,44 @@ export async function executeBootstrapPreviewTemplateDbPlan(
   )
   const stagingDbName = buildStagingDbName(input.stagingDbName, templateDbName)
   const blockingReasons = buildBlockingReasons({
-    projectExists: inspectResponse.project_exists,
-    environmentExists: inspectResponse.environment_exists,
-    dbServiceExists: inspectResponse.db_service.exists,
-    operatorServiceExists: inspectResponse.operator_service.exists,
+    dbAdminName,
     dbHost,
-    dbPort,
-    dbUser,
     dbPassword,
+    dbPort,
+    dbServiceExists: inspectResponse.db_service.exists,
+    dbUser,
+    environmentExists: inspectResponse.environment_exists,
+    operatorServiceExists: inspectResponse.operator_service.exists,
+    projectExists: inspectResponse.project_exists,
     templateDbName,
     templateOwner,
-    dbAdminName,
   })
   const dumpFile = resolveOptionalPath(input.dumpFile)
 
   return bootstrapPreviewTemplateDbPlanResponseSchema.parse({
-    project_slug: input.projectSlug,
-    environment_name: input.environmentName,
-    status: blockingReasons.length === 0 ? "ready" : "blocked",
     blocking_reasons: blockingReasons,
-    project_exists: inspectResponse.project_exists,
-    environment_exists: inspectResponse.environment_exists,
-    db_service_slug: input.dbServiceSlug,
-    db_service_exists: inspectResponse.db_service.exists,
-    operator_service_slug: input.operatorServiceSlug,
-    operator_service_exists: inspectResponse.operator_service.exists,
-    source_db_name: input.sourceDbName,
-    template_db_name: templateDbName ?? null,
-    staging_db_name: stagingDbName ?? null,
-    template_owner: templateOwner ?? null,
+    db_admin_name: dbAdminName ?? null,
     db_host: dbHost ?? null,
-    db_port: dbPort ?? null,
-    db_user: dbUser ?? null,
     db_password: input.includeSecrets ? (dbPassword ?? null) : undefined,
     db_password_present: Boolean(dbPassword),
-    db_admin_name: dbAdminName ?? null,
+    db_port: dbPort ?? null,
+    db_service_exists: inspectResponse.db_service.exists,
+    db_service_slug: input.dbServiceSlug,
     db_sslmode: dbSslmode ?? null,
+    db_user: dbUser ?? null,
     docker_network: input.dockerNetwork,
-    postgres_client_image: input.postgresClientImage,
     dump_file: dumpFile ? basename(dumpFile) : null,
+    environment_exists: inspectResponse.environment_exists,
+    environment_name: input.environmentName,
+    operator_service_exists: inspectResponse.operator_service.exists,
+    operator_service_slug: input.operatorServiceSlug,
+    postgres_client_image: input.postgresClientImage,
+    project_exists: inspectResponse.project_exists,
+    project_slug: input.projectSlug,
+    source_db_name: input.sourceDbName,
+    staging_db_name: stagingDbName ?? null,
+    status: blockingReasons.length === 0 ? "ready" : "blocked",
+    template_db_name: templateDbName ?? null,
+    template_owner: templateOwner ?? null,
   })
 }

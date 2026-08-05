@@ -26,7 +26,7 @@ import {
   fetchServerProducts,
 } from "@/lib/storefront/storefront-server"
 
-type BlogDetailRouteProps = {
+interface BlogDetailRouteProps {
   params: Promise<{
     slug: string
   }>
@@ -48,9 +48,9 @@ async function resolveRecommendedProductsForBlogPost(
   const categoryResponse = await fetchServerCategories(
     queryClient,
     buildCategoryListParams({
-      page: 1,
-      limit: CATEGORY_TREE_LIMIT,
       fields: CATEGORY_TREE_FIELDS,
+      limit: CATEGORY_TREE_LIMIT,
+      page: 1,
     })
   )
 
@@ -80,11 +80,11 @@ async function resolveRecommendedProductsForBlogPost(
   const productResponse = await fetchServerProducts(
     queryClient,
     buildProductListParams({
-      page: 1,
-      limit: recommendedProductsCandidateLimit,
-      fields: PRODUCT_CARD_FIELDS,
-      order: "-created_at",
       category_id: recommendedCategoryIds,
+      fields: PRODUCT_CARD_FIELDS,
+      limit: recommendedProductsCandidateLimit,
+      order: "-created_at",
+      page: 1,
       ...(region?.region_id === undefined
         ? {}
         : { region_id: region?.region_id }),

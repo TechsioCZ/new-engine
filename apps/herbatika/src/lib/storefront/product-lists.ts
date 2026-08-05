@@ -20,7 +20,7 @@ import { storefront } from "./storefront"
 const productListHooks = storefront.hooks.productLists
 
 export type StoreProductListItem = ProductListItemBase
-export type StoreProductList = ProductListBase<StoreProductListItem>
+export type StoreProductList = ProductListBase
 export type ProductListListInput = MedusaProductListListHookInput
 
 export const getProductListItems = (
@@ -46,7 +46,7 @@ export const findProductListItem = (
 ): StoreProductListItem | undefined =>
   findSharedProductListItem(list, productId, variantId)
 
-export type ProductListTitleLabels = {
+export interface ProductListTitleLabels {
   favorite: string
   untitled: string
 }
@@ -62,7 +62,7 @@ export const getProductListTitle = (
   return list?.title?.trim() || labels.untitled
 }
 
-type ProductListDetailOptions = {
+interface ProductListDetailOptions {
   customerId?: string | null
   enabled?: boolean
 }
@@ -95,7 +95,7 @@ export function useProductList(
       ? {}
       : { customerId: options?.customerId }),
     ...(options?.enabled === undefined ? {} : { enabled: options?.enabled }),
-    ...(id === undefined ? {} : { id: id }),
+    ...(id === undefined ? {} : { id }),
   })
 
   return {
@@ -124,15 +124,10 @@ export function useProductListDetails(
   )
 }
 
-export const useCreateCustomProductList =
-  productListHooks.useCreateCustomProductList
-export const useCreateProductListCart =
-  productListHooks.useCreateProductListCart
-export const useDeleteProductList = productListHooks.useDeleteProductList
-export const useAddProductListItem = productListHooks.useAddProductListItem
-export const useAddFavoriteProductListItem =
-  productListHooks.useAddFavoriteProductListItem
-export const useUpdateProductListItem =
-  productListHooks.useUpdateProductListItem
-export const useDeleteProductListItem =
-  productListHooks.useDeleteProductListItem
+export const { useCreateCustomProductList } = productListHooks
+export const { useCreateProductListCart } = productListHooks
+export const { useDeleteProductList } = productListHooks
+export const { useAddProductListItem } = productListHooks
+export const { useAddFavoriteProductListItem } = productListHooks
+export const { useUpdateProductListItem } = productListHooks
+export const { useDeleteProductListItem } = productListHooks

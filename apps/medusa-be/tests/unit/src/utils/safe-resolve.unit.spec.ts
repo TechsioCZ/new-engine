@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import { safeResolve } from "../../../../src/utils/safe-resolve"
 
-describe("safeResolve", () => {
+describe(safeResolve, () => {
   it("returns a registered dependency", () => {
     const dependency = { get: vi.fn() }
 

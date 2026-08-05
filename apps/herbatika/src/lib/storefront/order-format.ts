@@ -7,7 +7,7 @@ export type OrderStatusTranslator = (
   status: string
 ) => string
 
-export type StorefrontOrderStatusInput = {
+export interface StorefrontOrderStatusInput {
   fulfillment_status?: string | null
   payment_status?: string | null
   status?: string | null
@@ -211,7 +211,7 @@ export const resolveOrderItemQuantity = (item: {
 }
 
 export const resolveOrderItemCount = (
-  items?: Array<{ quantity?: number | null }> | null
+  items?: { quantity?: number | null }[] | null
 ) => {
   if (!items?.length) {
     return 0

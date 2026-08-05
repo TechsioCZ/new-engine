@@ -25,52 +25,52 @@ const iconControlLabels: Record<string, string> = {
 }
 
 const meta: Meta<typeof StatusText> = {
-  title: "Atoms/StatusText",
+  argTypes: {
+    align: {
+      control: "select",
+      description:
+        "Align icon for multi-line text (centered or aligned to the first line)",
+      options: ["center", "start"],
+    },
+    children: {
+      control: "text",
+      description: "Status text content",
+    },
+    icon: {
+      control: {
+        labels: iconControlLabels,
+        type: "select",
+      },
+      description: "Override the default status icon",
+      options: iconControlOptions,
+    },
+    showIcon: {
+      control: "boolean",
+      description: "Whether to display status icon",
+    },
+    size: {
+      control: "select",
+      description: "Text size",
+      options: ["sm", "md", "lg"],
+    },
+    status: {
+      control: "select",
+      description: "Status type that determines color and icon",
+      options: ["default", "error", "success", "warning"],
+    },
+  },
   component: StatusText,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "StatusText component for displaying validation and status messages with appropriate icons and colors. Supports error, success, warning, and default states.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  argTypes: {
-    status: {
-      control: "select",
-      options: ["default", "error", "success", "warning"],
-      description: "Status type that determines color and icon",
-    },
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-      description: "Text size",
-    },
-    align: {
-      control: "select",
-      options: ["center", "start"],
-      description:
-        "Align icon for multi-line text (centered or aligned to the first line)",
-    },
-    showIcon: {
-      control: "boolean",
-      description: "Whether to display status icon",
-    },
-    icon: {
-      control: {
-        type: "select",
-        labels: iconControlLabels,
-      },
-      options: iconControlOptions,
-      description: "Override the default status icon",
-    },
-    children: {
-      control: "text",
-      description: "Status text content",
-    },
-  },
+  title: "Atoms/StatusText",
 }
 
 export default meta
@@ -80,18 +80,18 @@ type PlaygroundArgs = ComponentPropsWithoutRef<typeof StatusText> & {
 }
 
 export const Playground: StoryObj<PlaygroundArgs> = {
-  args: {
-    children: "This is default status text",
-    status: "default",
-    align: "center",
-    showIcon: false,
-    useLongText: false,
-  },
   argTypes: {
     useLongText: {
       control: "boolean",
       description: "Use a multi-line example text",
     },
+  },
+  args: {
+    align: "center",
+    children: "This is default status text",
+    showIcon: false,
+    status: "default",
+    useLongText: false,
   },
   render: (args) => {
     const { children, useLongText, ...statusArgs } = args

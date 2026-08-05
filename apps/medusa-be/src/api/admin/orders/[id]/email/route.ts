@@ -62,7 +62,7 @@ export async function POST(
   }
 
   switch (template.template) {
-    case "order-payment-reminder":
+    case "order-payment-reminder": {
       await sendOrderPaymentReminderWorkflow(req.scope).run({
         input: definedProperties({
           customer_id: order.customer_id ?? undefined,
@@ -75,11 +75,13 @@ export async function POST(
         }),
       })
       break
-    default:
+    }
+    default: {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Order email template is not supported"
       )
+    }
   }
 
   res.json({

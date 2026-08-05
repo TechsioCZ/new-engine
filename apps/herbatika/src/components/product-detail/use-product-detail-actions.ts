@@ -9,7 +9,7 @@ import {
 } from "@/lib/storefront/products"
 import { useAddProductToCartAction } from "@/lib/storefront/use-add-product-to-cart-action"
 
-type UseProductDetailActionsProps = {
+interface UseProductDetailActionsProps {
   product: ProductDetailDataState["product"]
   quantity: ProductDetailDataState["quantity"]
   region: ProductDetailDataState["region"]
@@ -93,8 +93,8 @@ export function useProductDetailActions({
 
       prefetchProduct.delayedPrefetch(
         {
-          handle: hoveredProduct.handle,
           fields: PRODUCT_DETAIL_FIELDS,
+          handle: hoveredProduct.handle,
         },
         220,
         `${sectionId}-product-${hoveredProduct.id}`

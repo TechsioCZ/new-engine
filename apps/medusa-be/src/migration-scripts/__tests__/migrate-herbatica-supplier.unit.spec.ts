@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 
-vi.mock("../../links/product-brand", () => ({
+vi.mock(import("../../links/product-brand"), () => ({
   ProductBrandLink: { entryPoint: "product_product_brand_brand" },
 }))
 
@@ -27,8 +27,8 @@ describe("tracked Herbatica Supplier migration", () => {
       },
     ])
 
-    expect(result.ambiguousBrandIds).toEqual(new Set())
-    expect(result.supplierByBrandId).toEqual(
+    expect(result.ambiguousBrandIds).toStrictEqual(new Set())
+    expect(result.supplierByBrandId).toStrictEqual(
       new Map([["brand_1", "Current supplier"]])
     )
   })
@@ -43,8 +43,8 @@ describe("tracked Herbatica Supplier migration", () => {
       },
     ])
 
-    expect(result.ambiguousBrandIds).toEqual(new Set())
-    expect(result.supplierByBrandId).toEqual(new Map())
+    expect(result.ambiguousBrandIds).toStrictEqual(new Set())
+    expect(result.supplierByBrandId).toStrictEqual(new Map())
   })
 
   it("marks conflicting active legacy Suppliers as ambiguous", () => {
@@ -61,8 +61,8 @@ describe("tracked Herbatica Supplier migration", () => {
       },
     ])
 
-    expect(result.ambiguousBrandIds).toEqual(new Set(["brand_1"]))
-    expect(result.supplierByBrandId).toEqual(new Map())
+    expect(result.ambiguousBrandIds).toStrictEqual(new Set(["brand_1"]))
+    expect(result.supplierByBrandId).toStrictEqual(new Map())
   })
 
   it("assigns only a Supplier whose Brand is exclusive to the Product", () => {
@@ -84,10 +84,10 @@ describe("tracked Herbatica Supplier migration", () => {
       ]),
     })
 
-    expect(result.assignments).toEqual([
+    expect(result.assignments).toStrictEqual([
       { product_id: "product_safe", supplier: "Supplier A" },
     ])
-    expect(result.unresolved).toEqual([
+    expect(result.unresolved).toStrictEqual([
       expect.objectContaining({
         product_id: "product_shared",
         reason: expect.stringContaining("linked to multiple Products"),
@@ -106,7 +106,7 @@ describe("tracked Herbatica Supplier migration", () => {
       supplierByBrandId: new Map([["brand_1", "Legacy supplier"]]),
     })
 
-    expect(result).toEqual({ assignments: [], unresolved: [] })
+    expect(result).toStrictEqual({ assignments: [], unresolved: [] })
   })
 
   it("does not assign from a Brand with ambiguous Supplier records", () => {
@@ -119,8 +119,8 @@ describe("tracked Herbatica Supplier migration", () => {
       supplierByBrandId: new Map(),
     })
 
-    expect(result.assignments).toEqual([])
-    expect(result.unresolved).toEqual([
+    expect(result.assignments).toStrictEqual([])
+    expect(result.unresolved).toStrictEqual([
       {
         product_id: "product_1",
         reason: "the linked Brand has conflicting legacy Supplier records",
@@ -145,8 +145,8 @@ describe("tracked Herbatica Supplier migration", () => {
       ]),
     })
 
-    expect(result.assignments).toEqual([])
-    expect(result.unresolved).toEqual([
+    expect(result.assignments).toStrictEqual([])
+    expect(result.unresolved).toStrictEqual([
       {
         product_id: "product_1",
         reason: "the Product resolves to multiple legacy Supplier values",
@@ -173,6 +173,6 @@ describe("tracked Herbatica Supplier migration", () => {
       ]),
     })
 
-    expect(removable).toEqual(new Set(["brand_herbatica"]))
+    expect(removable).toStrictEqual(new Set(["brand_herbatica"]))
   })
 })

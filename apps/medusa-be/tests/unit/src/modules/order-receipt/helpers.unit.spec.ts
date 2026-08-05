@@ -31,7 +31,7 @@ describe("order receipt helpers", () => {
     expect(lines.join(" ")).toBe(
       "Extremely Long Street Name With Building Complex And Several Descriptive Parts 12345/678"
     )
-    expect(linesFitWithinCustomerWidth(lines)).toBe(true)
+    expect(linesFitWithinCustomerWidth(lines)).toBeTruthy()
   })
 
   it("splits long unbroken text to the estimated PDF column width", () => {
@@ -41,7 +41,7 @@ describe("order receipt helpers", () => {
 
     expect(lines.length).toBeGreaterThan(1)
     expect(lines.join("")).toBe(longEmail)
-    expect(linesFitWithinCustomerWidth(lines)).toBe(true)
+    expect(linesFitWithinCustomerWidth(lines)).toBeTruthy()
   })
 
   it("wraps wide Helvetica bold glyphs within the PDF column width", () => {
@@ -53,12 +53,12 @@ describe("order receipt helpers", () => {
     )
 
     expect(lines.length).toBeGreaterThan(1)
-    expect(linesFitWithinCustomerWidth(lines, 12, "F2")).toBe(true)
+    expect(linesFitWithinCustomerWidth(lines, 12, "F2")).toBeTruthy()
   })
 
   it("keeps text unchanged when it already fits", () => {
     expect(
       wrapToEstimatedWidth("Customer Name", CUSTOMER_MAX_WIDTH, 10)
-    ).toEqual(["Customer Name"])
+    ).toStrictEqual(["Customer Name"])
   })
 })

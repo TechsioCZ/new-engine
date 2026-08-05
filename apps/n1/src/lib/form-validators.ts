@@ -6,7 +6,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PASSWORD_NUMBER_REGEX = /\d/
 const POSTAL_CODE_REGEX = /^\d{3}\s\d{2}$/
 
-type ConfirmPasswordFieldApi = {
+interface ConfirmPasswordFieldApi {
   form: {
     getFieldValue: (fieldName: RegisterFieldName) => unknown
   }
@@ -81,7 +81,6 @@ const createPhoneValidator = () => ({
  * Used in: RegisterForm
  */
 const createConfirmPasswordValidator = () => ({
-  onChangeListenTo: ["password"] as RegisterFieldName[],
   onChange: ({
     value,
     fieldApi,
@@ -100,6 +99,7 @@ const createConfirmPasswordValidator = () => ({
     }
     return
   },
+  onChangeListenTo: ["password"] as RegisterFieldName[],
 })
 
 // ============================================================================
@@ -167,8 +167,6 @@ export const loginValidators = {
  * Uses shared validators for name and phone fields
  */
 export const addressValidators = {
-  first_name: createFirstNameValidator(),
-  last_name: createLastNameValidator(),
   address_1: {
     onChange: ({ value }: { value: string }) => {
       if (!value?.trim()) {
@@ -180,6 +178,7 @@ export const addressValidators = {
       return
     },
   },
+  address_2: {},
   city: {
     onChange: ({ value }: { value: string }) => {
       if (!value?.trim()) {
@@ -191,6 +190,18 @@ export const addressValidators = {
       return
     },
   },
+  company: {},
+  country_code: {
+    onChange: ({ value }: { value: string }) => {
+      if (!value?.trim()) {
+        return VALIDATION_MESSAGES.country.required
+      }
+      return
+    },
+  },
+  first_name: createFirstNameValidator(),
+  last_name: createLastNameValidator(),
+  phone: createPhoneValidator(),
   postal_code: {
     onChange: ({ value }: { value: string }) => {
       if (!value?.trim()) {
@@ -202,17 +213,6 @@ export const addressValidators = {
       return
     },
   },
-  country_code: {
-    onChange: ({ value }: { value: string }) => {
-      if (!value?.trim()) {
-        return VALIDATION_MESSAGES.country.required
-      }
-      return
-    },
-  },
-  phone: createPhoneValidator(),
-  company: {},
-  address_2: {},
   province: {},
 } as const
 
@@ -222,9 +222,18 @@ export const addressValidators = {
  * Includes password strength validation and confirmPassword
  */
 export const registerValidators = {
+  acceptTerms: {
+    onChange: ({ value }: { value: boolean }) => {
+      if (!value) {
+        return VALIDATION_MESSAGES.terms.required
+      }
+      return
+    },
+  },
+  confirmPassword: createConfirmPasswordValidator(),
+  email: emailValidator,
   first_name: createFirstNameValidator(),
   last_name: createLastNameValidator(),
-  email: emailValidator,
   password: {
     onChange: ({ value }: { value: string }) => {
       if (!value?.trim()) {
@@ -232,15 +241,6 @@ export const registerValidators = {
       }
       if (!isPasswordValid(value)) {
         return VALIDATION_MESSAGES.password.invalid
-      }
-      return
-    },
-  },
-  confirmPassword: createConfirmPasswordValidator(),
-  acceptTerms: {
-    onChange: ({ value }: { value: boolean }) => {
-      if (!value) {
-        return VALIDATION_MESSAGES.terms.required
       }
       return
     },

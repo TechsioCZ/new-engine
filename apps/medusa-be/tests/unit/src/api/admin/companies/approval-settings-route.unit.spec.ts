@@ -2,13 +2,13 @@ import { ContainerRegistrationKeys } from "@medusajs/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const workflowMocks = vi.hoisted(() => ({
-  ensureApprovalSettingsWorkflow: vi.fn(),
   ensureApprovalSettingsRun: vi.fn(),
-  updateApprovalSettingsWorkflow: vi.fn(),
+  ensureApprovalSettingsWorkflow: vi.fn(),
   updateApprovalSettingsRun: vi.fn(),
+  updateApprovalSettingsWorkflow: vi.fn(),
 }))
 
-vi.mock("../../../../../../src/workflows/approval/workflows", () => ({
+vi.mock(import("../../../../../../src/workflows/approval/workflows"), () => ({
   ensureApprovalSettingsWorkflow: workflowMocks.ensureApprovalSettingsWorkflow,
   updateApprovalSettingsWorkflow: workflowMocks.updateApprovalSettingsWorkflow,
 }))

@@ -117,10 +117,12 @@ const Companies = () => {
           aria-label={displayName}
           className="cursor-pointer"
           key={company.id}
-          onClick={() => navigate(`/companies/${company.id}`)}
-          onKeyDown={onRowKeyboardActivate(() =>
+          onClick={() => {
             navigate(`/companies/${company.id}`)
-          )}
+          }}
+          onKeyDown={onRowKeyboardActivate(() => {
+            navigate(`/companies/${company.id}`)
+          })}
           role="button"
           tabIndex={0}
         >
@@ -149,7 +151,11 @@ const Companies = () => {
               "-"
             )}
           </Table.Cell>
-          <Table.Cell onClick={(e) => e.stopPropagation()}>
+          <Table.Cell
+            onClick={(e) => {
+              e.stopPropagation()
+            }}
+          >
             <CompanyActionsMenu company={company} />
           </Table.Cell>
         </Table.Row>
@@ -233,13 +239,15 @@ const Companies = () => {
           canNextPage={pageIndex + 1 < pageCount}
           canPreviousPage={pageIndex > 0}
           count={count}
-          nextPage={() => setPageIndex((current) => current + 1)}
+          nextPage={() => {
+            setPageIndex((current) => current + 1)
+          }}
           pageCount={pageCount}
           pageIndex={pageIndex}
           pageSize={PAGE_SIZE}
-          previousPage={() =>
+          previousPage={() => {
             setPageIndex((current) => Math.max(current - 1, 0))
-          }
+          }}
           translations={getPaginationTranslations(t)}
         />
       </Container>
@@ -249,8 +257,8 @@ const Companies = () => {
 }
 
 export const config = defineRouteConfig({
-  label: "menuItem",
   icon: BuildingStorefront,
+  label: "menuItem",
   translationNs: "companies",
 })
 

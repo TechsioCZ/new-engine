@@ -23,7 +23,7 @@ const cachedSessions = new Map<string, CachedZaneSession>()
 const pendingSessionInitializations = new Map<string, Promise<ZaneSession>>()
 
 function buildCookieHeader(cookies: Map<string, string>): string {
-  return Array.from(cookies.entries())
+  return [...cookies.entries()]
     .map(([name, value]) => `${name}=${value}`)
     .join("; ")
 }
@@ -70,28 +70,28 @@ export function parseErrorMessage(payload: unknown, fallback: string): string {
   }
 
   const object = payload as Record<string, unknown>
-  if (typeof object["detail"] === "string" && object["detail"].trim()) {
-    return object["detail"]
+  if (typeof object.detail === "string" && object.detail.trim()) {
+    return object.detail
   }
-  if (typeof object["message"] === "string" && object["message"].trim()) {
-    return object["message"]
+  if (typeof object.message === "string" && object.message.trim()) {
+    return object.message
   }
 
-  if (Array.isArray(object["errors"]) && object["errors"].length > 0) {
-    const firstError = object["errors"][0]
+  if (Array.isArray(object.errors) && object.errors.length > 0) {
+    const firstError = object.errors[0]
     if (firstError && typeof firstError === "object") {
       const firstErrorObject = firstError as Record<string, unknown>
       if (
-        typeof firstErrorObject["detail"] === "string" &&
-        firstErrorObject["detail"].trim()
+        typeof firstErrorObject.detail === "string" &&
+        firstErrorObject.detail.trim()
       ) {
-        return firstErrorObject["detail"]
+        return firstErrorObject.detail
       }
       if (
-        typeof firstErrorObject["message"] === "string" &&
-        firstErrorObject["message"].trim()
+        typeof firstErrorObject.message === "string" &&
+        firstErrorObject.message.trim()
       ) {
-        return firstErrorObject["message"]
+        return firstErrorObject.message
       }
     }
   }
@@ -127,8 +127,8 @@ function requireZaneDeployConfig(config: AppConfig): {
       ""
     ),
     connectHostHeader: config.zaneConnectHostHeader,
-    username: config.zaneUsername,
     password: config.zanePassword,
+    username: config.zaneUsername,
   }
 }
 
@@ -165,7 +165,7 @@ export class ZaneUpstreamClient {
     if (session) {
       const cookieHeader = buildCookieHeader(session.cookies)
       if (cookieHeader) {
-        headers["Cookie"] = cookieHeader
+        headers.Cookie = cookieHeader
       }
     }
 
@@ -174,7 +174,7 @@ export class ZaneUpstreamClient {
     }
 
     if (this.#connectHostHeader) {
-      headers["Host"] = this.#connectHostHeader
+      headers.Host = this.#connectHostHeader
     }
 
     return headers
@@ -199,8 +199,8 @@ export class ZaneUpstreamClient {
     try {
       const session = await initialization
       cachedSessions.set(this.#sessionCacheKey, {
-        session,
         expiresAt: Date.now() + SESSION_CACHE_TTL_MS,
+        session,
       })
       return session
     } finally {
@@ -216,12 +216,12 @@ export class ZaneUpstreamClient {
     options?: ZaneRequestOptions
   ): Promise<T | null> {
     const response = await fetch(`${this.#baseUrl}${path}`, {
-      method,
-      headers: this.buildHeaders(session, method),
       body:
         payload === null || payload === undefined
           ? undefined
           : JSON.stringify(payload),
+      headers: this.buildHeaders(session, method),
+      method,
     })
 
     updateCookiesFromHeaders(session.cookies, response.headers)
@@ -269,8 +269,8 @@ export class ZaneUpstreamClient {
     }
 
     const csrfResponse = await fetch(`${this.#baseUrl}/api/csrf/`, {
-      method: "GET",
       headers: this.buildHeaders(session, "GET"),
+      method: "GET",
     })
 
     updateCookiesFromHeaders(session.cookies, csrfResponse.headers)
@@ -292,12 +292,12 @@ export class ZaneUpstreamClient {
     }
 
     const loginResponse = await fetch(`${this.#baseUrl}/api/auth/login/`, {
-      method: "POST",
-      headers: this.buildHeaders(session, "POST"),
       body: JSON.stringify({
         username: this.#username,
         password: this.#password,
       }),
+      headers: this.buildHeaders(session, "POST"),
+      method: "POST",
     })
 
     updateCookiesFromHeaders(session.cookies, loginResponse.headers)

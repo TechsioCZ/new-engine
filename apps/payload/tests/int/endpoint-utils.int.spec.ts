@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("payload", () => ({
+vi.mock(import("payload"), () => ({
   headersWithCors: vi.fn(({ headers }: { headers: Headers }) => headers),
 }))
 
@@ -51,9 +51,9 @@ describe("endpoint utilities", () => {
     const req = { url: "http://localhost" } as any
     const response = buildJsonResponse(req, { ok: true })
 
-    expect(headersWithCorsMock).toHaveBeenCalledTimes(1)
+    expect(headersWithCorsMock).toHaveBeenCalledOnce()
     expect(response.status).toBe(200)
     expect(response.headers.get("Content-Type")).toBe("application/json")
-    await expect(response.json()).resolves.toEqual({ ok: true })
+    await expect(response.json()).resolves.toStrictEqual({ ok: true })
   })
 })

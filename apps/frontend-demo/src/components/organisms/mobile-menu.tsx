@@ -33,7 +33,9 @@ export function MobileMenu({
     }
   }, [isOpen])
 
-  if (!isOpen) return null
+  if (!isOpen) {
+    return null
+  }
 
   const toggleExpanded = (title: string) => {
     setExpandedItems((prev) =>
@@ -68,7 +70,9 @@ export function MobileMenu({
                 <>
                   <Button
                     className="flex w-full items-center justify-between rounded-mobile-menu-item px-mobile-menu-item-x py-mobile-menu-item-y font-mobile-menu-item-weight text-mobile-menu-item-size text-mobile-menu-text transition-colors hover:bg-mobile-menu-item-hover-bg"
-                    onClick={() => toggleExpanded(item.title)}
+                    onClick={() => {
+                      toggleExpanded(item.title)
+                    }}
                     theme="borderless"
                   >
                     {item.title}

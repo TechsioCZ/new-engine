@@ -1,35 +1,35 @@
 import type { ProductAttributeInputType } from "../../modules/product-attribute/models/product-attribute-definition"
 
-export type CreateProductAttributeDefinitionInput = {
+export interface CreateProductAttributeDefinitionInput {
   input_type: ProductAttributeInputType
   is_public?: boolean
   key: string
   label: string
 }
 
-export type UpdateProductAttributeDefinitionInput = {
+export interface UpdateProductAttributeDefinitionInput {
   id: string
   input_type?: ProductAttributeInputType
   is_public?: boolean
   label?: string
 }
 
-export type ProductAttributeDefinitionIdsInput = {
+export interface ProductAttributeDefinitionIdsInput {
   ids: string[]
 }
 
-export type CreateProductAttributeOptionInput = {
+export interface CreateProductAttributeOptionInput {
   definition_id: string
   key: string
   label: string
 }
 
-export type UpdateProductAttributeOptionInput = {
+export interface UpdateProductAttributeOptionInput {
   id: string
   label: string
 }
 
-export type ProductAttributeOptionIdsInput = {
+export interface ProductAttributeOptionIdsInput {
   ids: string[]
 }
 
@@ -51,7 +51,7 @@ export type SetProductAttributeOperation =
       text_value: string
     }
 
-export type SetProductAttributesInput = {
+export interface SetProductAttributesInput {
   operations: SetProductAttributeOperation[]
   product_id: string
 }

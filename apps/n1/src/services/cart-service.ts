@@ -24,6 +24,13 @@ export type CompleteCartResult =
 
 const CART_ID_KEY = "n1_cart_id"
 const cartStorage = {
+  clearCartId(): void {
+    if (typeof window === "undefined") {
+      return
+    }
+    localStorage.removeItem(CART_ID_KEY)
+  },
+
   getCartId(): string | null {
     if (typeof window === "undefined") {
       return null
@@ -37,13 +44,6 @@ const cartStorage = {
     }
     localStorage.setItem(CART_ID_KEY, cartId)
   },
-
-  clearCartId(): void {
-    if (typeof window === "undefined") {
-      return
-    }
-    localStorage.removeItem(CART_ID_KEY)
-  },
 }
 
 export async function getCart(): Promise<Cart | null> {
@@ -51,7 +51,7 @@ export async function getCart(): Promise<Cart | null> {
     const cartId = cartStorage.getCartId()
 
     if (!cartId) {
-      if (process.env["NODE_ENV"] === "development") {
+      if (process.env.NODE_ENV === "development") {
         console.log("[CartService] No cart ID found")
       }
       return null
@@ -70,7 +70,7 @@ export async function getCart(): Promise<Cart | null> {
   } catch (error) {
     // 404 is expected - cart was deleted or expired
     if (isNotFoundError(error)) {
-      if (process.env["NODE_ENV"] === "development") {
+      if (process.env.NODE_ENV === "development") {
         console.log("[CartService] Cart not found, clearing stored ID")
       }
       cartStorage.clearCartId()
@@ -117,7 +117,7 @@ export async function createCart(
 
     cartStorage.setCartId(response.cart.id)
 
-    if (process.env["NODE_ENV"] === "development") {
+    if (process.env.NODE_ENV === "development") {
       console.log("[CartService] Cart created:", response.cart.id)
     }
 
@@ -152,8 +152,8 @@ export async function addToCart(
     }
 
     const response = await sdk.store.cart.createLineItem(cartId, {
-      variant_id: variantId,
       quantity,
+      variant_id: variantId,
       ...(metadata ? { metadata } : {}),
     })
 
@@ -164,11 +164,11 @@ export async function addToCart(
       )
     }
 
-    if (process.env["NODE_ENV"] === "development") {
+    if (process.env.NODE_ENV === "development") {
       console.log("[CartService] Item added to cart:", {
-        variantId,
-        quantity,
         metadata,
+        quantity,
+        variantId,
       })
     }
 
@@ -264,7 +264,7 @@ export async function getShippingOptions(
       cart_id: cartId,
     })
 
-    if (process.env["NODE_ENV"] === "development") {
+    if (process.env.NODE_ENV === "development") {
       console.log("[CartService] Shipping options:", response.shipping_options)
     }
 
@@ -287,7 +287,7 @@ export async function getPaymentProviders(regionId: string) {
       region_id: regionId,
     })
 
-    if (process.env["NODE_ENV"] === "development") {
+    if (process.env.NODE_ENV === "development") {
       console.log(
         "[CartService] Payment providers:",
         response.payment_providers
@@ -304,7 +304,7 @@ export async function getPaymentProviders(regionId: string) {
 }
 
 /** Data for PPL Parcel access point selection */
-export type ShippingMethodData = {
+export interface ShippingMethodData {
   access_point_id?: string
   access_point_name?: string
   access_point_type?: string
@@ -340,8 +340,8 @@ export async function setShippingMethod(
         : {}
 
     const response = await sdk.store.cart.addShippingMethod(cartId, {
-      option_id: optionId,
       data: shippingData,
+      option_id: optionId,
     })
 
     if (!response.cart) {
@@ -351,7 +351,7 @@ export async function setShippingMethod(
       )
     }
 
-    if (process.env["NODE_ENV"] === "development") {
+    if (process.env.NODE_ENV === "development") {
       console.log("[CartService] Shipping method set:", optionId)
     }
 
@@ -389,14 +389,14 @@ export async function createPaymentCollection(
 
     // Check if payment sessions already exist (early return optimization)
     if (cart.payment_collection?.payment_sessions?.length) {
-      if (process.env["NODE_ENV"] === "development") {
+      if (process.env.NODE_ENV === "development") {
         console.log("[CartService] Payment sessions already exist:", {
           collectionId: cart.payment_collection?.id,
           sessionCount: cart.payment_collection?.payment_sessions?.length || 0,
           sessions: cart.payment_collection?.payment_sessions?.map((s) => ({
             id: s.id,
-            status: s.status,
             provider_id: s.provider_id,
+            status: s.status,
           })),
         })
       }
@@ -415,14 +415,14 @@ export async function createPaymentCollection(
       )
     }
 
-    if (process.env["NODE_ENV"] === "development") {
+    if (process.env.NODE_ENV === "development") {
       console.log("[CartService] Payment session initialized:", {
         collectionId: response.payment_collection.id,
         sessionCount: response.payment_collection.payment_sessions?.length || 0,
         sessions: response.payment_collection.payment_sessions?.map((s) => ({
           id: s.id,
-          status: s.status,
           provider_id: s.provider_id,
+          status: s.status,
         })),
       })
     }
@@ -433,7 +433,7 @@ export async function createPaymentCollection(
       throw error
     }
 
-    if (process.env["NODE_ENV"] === "development") {
+    if (process.env.NODE_ENV === "development") {
       console.error("[CartService] Payment initialization error:", error)
     }
     throw CartServiceError.fromMedusaError(error, "PAYMENT_INIT_FAILED")
@@ -449,13 +449,12 @@ export async function completeCart(
     }
 
     // Debug: Check cart state before completing
-    if (process.env["NODE_ENV"] === "development") {
+    if (process.env.NODE_ENV === "development") {
       const { cart: currentCart } = await sdk.store.cart.retrieve(cartId)
       console.log("[CartService] Cart state before complete:", {
         hasPaymentCollection: !!currentCart.payment_collection,
+        hasShippingMethod: !!currentCart.shipping_methods?.[0],
         paymentCollectionId: currentCart.payment_collection?.id,
-        paymentSessionsCount:
-          currentCart.payment_collection?.payment_sessions?.length || 0,
         paymentSessions: currentCart.payment_collection?.payment_sessions?.map(
           (s) => ({
             id: s.id,
@@ -463,7 +462,8 @@ export async function completeCart(
             provider_id: s.provider_id,
           })
         ),
-        hasShippingMethod: !!currentCart.shipping_methods?.[0],
+        paymentSessionsCount:
+          currentCart.payment_collection?.payment_sessions?.length || 0,
         shippingMethodId: currentCart.shipping_methods?.[0]?.id,
       })
     }
@@ -475,7 +475,7 @@ export async function completeCart(
       // Clear cart ID from storage ONLY on success
       cartStorage.clearCartId()
 
-      if (process.env["NODE_ENV"] === "development") {
+      if (process.env.NODE_ENV === "development") {
         console.log(
           "[CartService] Cart completed, order created:",
           response.order.id
@@ -483,20 +483,20 @@ export async function completeCart(
       }
 
       return {
-        success: true,
         order: response.order,
+        success: true,
       }
     }
 
     // Failure case - SDK returned cart with validation/payment error
-    if (process.env["NODE_ENV"] === "development") {
+    if (process.env.NODE_ENV === "development") {
       console.warn("[CartService] Cart completion failed:", response.error)
     }
 
     return {
-      success: false,
       cart: response.cart,
       error: response.error,
+      success: false,
     }
   } catch (error) {
     // Network errors or unexpected failures

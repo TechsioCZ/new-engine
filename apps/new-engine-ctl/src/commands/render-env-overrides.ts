@@ -37,12 +37,12 @@ export function createRenderEnvOverridesCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
     )
     .action(async (options) => {
       const previewRandomOnceSecrets = parsePreviewRandomOnceSecrets(
@@ -53,15 +53,15 @@ export function createRenderEnvOverridesCommand(): Command {
       )
       const input = renderEnvOverridesCommandInputSchema.parse({
         lane: options.lane,
-        servicesCsv: options.servicesCsv,
+        outputJson: options.outputJson,
         previewDbName: options.previewDbName,
-        previewDbUser: options.previewDbUser,
         previewDbPassword: options.previewDbPassword,
+        previewDbUser: options.previewDbUser,
         previewRandomOnceSecrets,
         runtimeProviderOutputs,
-        outputJson: options.outputJson,
-        stackManifestPath: options.stackManifestPath,
+        servicesCsv: options.servicesCsv,
         stackInputsPath: options.stackInputsPath,
+        stackManifestPath: options.stackManifestPath,
       })
 
       maskGitHubValue(input.previewDbPassword)

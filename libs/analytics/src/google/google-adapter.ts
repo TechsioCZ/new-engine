@@ -44,27 +44,6 @@ export function useGoogleAdapter(
   return {
     key: adapterKey,
 
-    trackViewContent: createTracker(
-      getGtag,
-      (gtag, params) => {
-        gtag("event", "view_item", {
-          currency: params.currency,
-          value: params.value,
-          items: [
-            {
-              item_id: params.productId,
-              item_name: params.productName,
-              item_category: params.category,
-              price: params.value,
-              quantity: 1,
-            },
-          ],
-        })
-      },
-      debug,
-      adapterKey
-    ),
-
     trackAddToCart: createTracker(
       getGtag,
       (gtag, params) => {
@@ -87,6 +66,9 @@ export function useGoogleAdapter(
       debug,
       adapterKey
     ),
+
+    trackCustom: (eventName, params) =>
+      trackCustom(params === undefined ? { eventName } : { eventName, params }),
 
     trackInitiateCheckout: createTracker(
       getGtag,
@@ -141,7 +123,25 @@ export function useGoogleAdapter(
       adapterKey
     ),
 
-    trackCustom: (eventName, params) =>
-      trackCustom(params === undefined ? { eventName } : { eventName, params }),
+    trackViewContent: createTracker(
+      getGtag,
+      (gtag, params) => {
+        gtag("event", "view_item", {
+          currency: params.currency,
+          value: params.value,
+          items: [
+            {
+              item_id: params.productId,
+              item_name: params.productName,
+              item_category: params.category,
+              price: params.value,
+              quantity: 1,
+            },
+          ],
+        })
+      },
+      debug,
+      adapterKey
+    ),
   }
 }

@@ -10,7 +10,6 @@ import {
   linkPlugin,
   listsPlugin,
   MDXEditor,
-  type MDXEditorMethods,
   markdownShortcutPlugin,
   quotePlugin,
   Separator,
@@ -20,6 +19,7 @@ import {
   toolbarPlugin,
   UndoRedo,
 } from "@mdxeditor/editor"
+import type { MDXEditorMethods } from "@mdxeditor/editor"
 
 import "@mdxeditor/editor/style.css"
 import { marked } from "marked"
@@ -31,7 +31,7 @@ const HEADING_TAG_PATTERN = /^h[1-6]$/
 const TABLE_CELL_LINE_BREAK_PATTERN = /\s*\n+\s*/g
 const TABLE_CELL_PIPE_PATTERN = /\|/g
 
-type RichHtmlEditorProps = {
+interface RichHtmlEditorProps {
   ariaLabel: string
   onChangeHtml?: (html: string) => void
   onError?: (message: string) => void
@@ -71,7 +71,7 @@ export const htmlToMarkdown = (html: string) => {
 
     if (tag === "table") {
       const renderTableCell = (cell: Element) =>
-        Array.from(cell.childNodes)
+        [...cell.childNodes]
           .map(renderNode)
           .join("")
           .trim()
@@ -79,7 +79,7 @@ export const htmlToMarkdown = (html: string) => {
           .replace(TABLE_CELL_PIPE_PATTERN, "\\|")
 
       const renderTableRow = (row: Element) =>
-        Array.from(row.children).map(renderTableCell)
+        [...row.children].map(renderTableCell)
 
       const renderTableLine = (cells: string[], columnTotal: number) =>
         `| ${Array.from(
@@ -92,10 +92,8 @@ export const htmlToMarkdown = (html: string) => {
       }
 
       const headerRow = node.tHead?.rows[0]
-      const bodyRows = Array.from(node.tBodies).flatMap((body) =>
-        Array.from(body.rows)
-      )
-      const rows = headerRow ? [headerRow, ...bodyRows] : Array.from(node.rows)
+      const bodyRows = [...node.tBodies].flatMap((body) => [...body.rows])
+      const rows = headerRow ? [headerRow, ...bodyRows] : [...node.rows]
 
       if (rows.length === 0) {
         return ""
@@ -115,7 +113,7 @@ export const htmlToMarkdown = (html: string) => {
       ].join("\n")}\n\n`
     }
 
-    const children = Array.from(node.childNodes).map(renderNode).join("")
+    const children = [...node.childNodes].map(renderNode).join("")
 
     if (HEADING_TAG_PATTERN.test(tag)) {
       return `${"#".repeat(Number(tag.slice(1)))} ${children.trim()}\n\n`
@@ -151,13 +149,13 @@ export const htmlToMarkdown = (html: string) => {
     }
 
     if (tag === "ul") {
-      return `${Array.from(node.children)
+      return `${[...node.children]
         .map((item) => `- ${renderNode(item).trim()}`)
         .join("\n")}\n\n`
     }
 
     if (tag === "ol") {
-      return `${Array.from(node.children)
+      return `${[...node.children]
         .map((item, index) => `${index + 1}. ${renderNode(item).trim()}`)
         .join("\n")}\n\n`
     }
@@ -169,10 +167,10 @@ export const htmlToMarkdown = (html: string) => {
     return children
   }
 
-  return Array.from(document.body.childNodes)
+  return [...document.body.childNodes]
     .map(renderNode)
     .join("")
-    .replace(/\n{3,}/g, "\n\n")
+    .replaceAll(/\n{3,}/g, "\n\n")
     .trim()
 }
 

@@ -22,7 +22,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const __dirname = import.meta.dirname
 const REPO_ROOT = resolve(__dirname, "..", "..", "..", "..")
 const LIGHT_INPUT = join(
   REPO_ROOT,
@@ -52,10 +52,10 @@ const PROPERTY_PREFIXES = [
 // spacing,base,semantic}.css. Update this table when primitives change.
 const TEXT_PRIMITIVES = {
   "0.8rem": "--text-xs",
-  "1rem": "--text-sm",
   "1.25rem": "--text-md",
   "1.56rem": "--text-lg",
   "1.95rem": "--text-xl",
+  "1rem": "--text-sm",
   "2.44rem": "--text-2xl",
 }
 const SPACING_PRIMITIVES = {
@@ -66,10 +66,10 @@ const SPACING_PRIMITIVES = {
   "1.25rem": "--spacing-250",
   "1.5625rem": "--spacing-300",
   "1.6875rem": "--spacing-350",
-  "2rem": "--spacing-400",
   "2.25rem": "--spacing-450",
   "2.5625rem": "--spacing-500",
   "2.8125rem": "--spacing-550",
+  "2rem": "--spacing-400",
   "3.375rem": "--spacing-600",
   "3.6875rem": "--spacing-650",
   "3.9375rem": "--spacing-700",
@@ -80,26 +80,26 @@ const SPACING_PRIMITIVES = {
   "6.75rem": "--spacing-950",
 }
 const RADIUS_PRIMITIVES = {
-  "0rem": "--radius-none",
   "0.25rem": "--radius-sm",
   "0.5rem": "--radius-md",
   "0.75rem": "--radius-lg",
+  "0rem": "--radius-none",
 }
 const BORDER_WIDTH_PRIMITIVES = {
-  "0rem": "--border-width-none",
-  "0.06rem": "--border-width-sm",
   "0.0625rem": "--border-width-sm",
-  "0.13rem": "--border-width-md",
+  "0.06rem": "--border-width-sm",
   "0.125rem": "--border-width-md",
-  "0.19rem": "--border-width-lg",
+  "0.13rem": "--border-width-md",
   "0.1875rem": "--border-width-lg",
+  "0.19rem": "--border-width-lg",
+  "0rem": "--border-width-none",
 }
 const PRIMITIVE_ALIAS_BY_PREFIX = {
-  text: TEXT_PRIMITIVES,
-  padding: SPACING_PRIMITIVES,
-  spacing: SPACING_PRIMITIVES,
-  radius: RADIUS_PRIMITIVES,
   "border-width": BORDER_WIDTH_PRIMITIVES,
+  padding: SPACING_PRIMITIVES,
+  radius: RADIUS_PRIMITIVES,
+  spacing: SPACING_PRIMITIVES,
+  text: TEXT_PRIMITIVES,
 }
 
 const DECL_RE = /^\s*(--[a-z0-9-]+):\s*([^;]+);/gm
@@ -172,19 +172,19 @@ function findClosingBrace(text, openIdx) {
 function removeFirstBlock(text, startRegex) {
   const m = text.match(startRegex)
   if (!m) {
-    return { text, removed: false }
+    return { removed: false, text }
   }
   const start = m.index
   const open = text.indexOf("{", start)
   const close = findClosingBrace(text, open)
   if (close === -1) {
-    return { text, removed: false }
+    return { removed: false, text }
   }
   let end = close + 1
   while (end < text.length && text[end] === "\n") {
     end += 1
   }
-  return { text: text.slice(0, start) + text.slice(end), removed: true }
+  return { removed: true, text: text.slice(0, start) + text.slice(end) }
 }
 
 // Find [start, end] indexes of the substring bounded by the region markers,
@@ -250,7 +250,7 @@ function transformThemeBlock(css, valueLookup) {
     const startBrace = css.indexOf("{", match.index)
     const close = findClosingBrace(css, startBrace)
     if (close !== -1) {
-      segments.push({ start: match.index, openBrace: startBrace, close })
+      segments.push({ close, openBrace: startBrace, start: match.index })
       THEME_OPEN_RE.lastIndex = close + 1
     }
     match = THEME_OPEN_RE.exec(css)
@@ -368,7 +368,7 @@ function processComponent(component, lightDecls, darkDecls) {
     console.warn(`! skip ${component}: ${compFile} not found`)
     return
   }
-  let css = readFileSync(compFile, "utf8")
+  let css = readFileSync(compFile, "utf-8")
   css = stripSelectorBlocks(css)
   css = stripLeftoverComments(css)
   css = transformThemeBlock(
@@ -389,8 +389,8 @@ function main() {
     console.error("usage: apply-light-dark.mjs <comp> [<comp> ...]")
     process.exit(1)
   }
-  const lightDecls = parseDecls(readFileSync(LIGHT_INPUT, "utf8"))
-  const darkDecls = parseDecls(readFileSync(DARK_INPUT, "utf8"))
+  const lightDecls = parseDecls(readFileSync(LIGHT_INPUT, "utf-8"))
+  const darkDecls = parseDecls(readFileSync(DARK_INPUT, "utf-8"))
   for (const c of args) {
     processComponent(c, lightDecls, darkDecls)
   }

@@ -28,10 +28,10 @@ export const formatAmount = (
     return `0 ${CURRENCY_SYMBOL}`
   }
   return new Intl.NumberFormat("cs-CZ", {
-    style: "currency",
     currency,
-    minimumFractionDigits: 0,
     maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+    style: "currency",
     useGrouping,
   }).format(amount)
 }

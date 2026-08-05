@@ -1,9 +1,9 @@
 import type { HttpTypes } from "@medusajs/types"
-import { vi } from "vitest"
+import { vi, describe, expect, it } from "vitest"
 
 import { createMedusaCheckoutService } from "../src/checkout/medusa-service"
 
-type SdkLike = {
+interface SdkLike {
   store: {
     fulfillment: {
       listCartOptions: ReturnType<typeof vi.fn>
@@ -29,38 +29,38 @@ function createSdkMock(overrides?: {
 }) {
   const sdk: SdkLike = {
     store: {
-      fulfillment: {
-        listCartOptions: vi.fn().mockResolvedValue({ shipping_options: [] }),
-        calculate: vi
-          .fn()
-          .mockResolvedValue({ shipping_option: { id: "opt_1" } }),
-      },
       cart: {
         addShippingMethod: vi
           .fn()
           .mockResolvedValue({ cart: { id: "cart_1" } }),
+        complete: vi.fn().mockResolvedValue({ type: "order" }),
         retrieve: vi.fn().mockImplementation(
           overrides?.retrieveCart ??
-            (() =>
+            (async () =>
               Promise.resolve({
                 cart: { id: "cart_1" } as HttpTypes.StoreCart,
               }))
         ),
-        complete: vi.fn().mockResolvedValue({ type: "order" }),
+      },
+      fulfillment: {
+        calculate: vi
+          .fn()
+          .mockResolvedValue({ shipping_option: { id: "opt_1" } }),
+        listCartOptions: vi.fn().mockResolvedValue({ shipping_options: [] }),
       },
       payment: {
-        listPaymentProviders: vi
-          .fn()
-          .mockResolvedValue({ payment_providers: [] }),
         initiatePaymentSession: vi.fn().mockImplementation(
           overrides?.initiatePaymentSession ??
-            (() =>
+            (async () =>
               Promise.resolve({
                 payment_collection: {
                   id: "pay_col_1",
                 } as HttpTypes.StorePaymentCollection,
               }))
         ),
+        listPaymentProviders: vi
+          .fn()
+          .mockResolvedValue({ payment_providers: [] }),
       },
     },
   }
@@ -68,7 +68,7 @@ function createSdkMock(overrides?: {
   return sdk
 }
 
-describe("createMedusaCheckoutService", () => {
+describe(createMedusaCheckoutService, () => {
   it("uses provided cart and skips cart.retrieve during payment session init", async () => {
     const sdk = createSdkMock()
     const service = createMedusaCheckoutService(sdk as never)
@@ -115,12 +115,12 @@ describe("createMedusaCheckoutService", () => {
     expect(sdk.store.payment.initiatePaymentSession).toHaveBeenCalledWith(
       cart,
       {
-        provider_id: "pp_stripe",
         data: {
           cart_id: "cart_async",
           provider_id: "pp_stripe",
           source: "async-builder",
         },
+        provider_id: "pp_stripe",
       }
     )
   })
@@ -139,8 +139,8 @@ describe("createMedusaCheckoutService", () => {
     expect(sdk.store.cart.addShippingMethod).toHaveBeenCalledWith(
       "cart_1",
       {
-        option_id: "so_1",
         data: { pickup_id: "box_1" },
+        option_id: "so_1",
       },
       query
     )

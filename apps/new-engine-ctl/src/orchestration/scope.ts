@@ -13,8 +13,8 @@ import {
   listDowntimeRiskServiceIds,
   listLaneServiceIds,
   listPrepareServiceIds,
-  type StackManifest,
 } from "../contracts/stack-manifest.js"
+import type { StackManifest } from "../contracts/stack-manifest.js"
 import { loadDeployContracts, normalizeCsvToArray } from "./deploy-inputs.js"
 import { withWorkspaceBinPath } from "./workspace-bin-path.js"
 
@@ -22,7 +22,7 @@ const execFileAsync = promisify(execFile)
 
 type NxStatus = ScopeResponse["nx_status"]
 
-type ExecResult = {
+interface ExecResult {
   stdout: string
   stderr: string
 }
@@ -41,7 +41,7 @@ function toJsonFileContents(value: unknown): string {
 
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, toJsonFileContents(value), "utf8")
+  await writeFile(path, toJsonFileContents(value), "utf-8")
 }
 
 async function runCommand(
@@ -58,8 +58,8 @@ async function runCommand(
   })
 
   return {
-    stdout: result.stdout,
     stderr: result.stderr,
+    stdout: result.stdout,
   }
 }
 
@@ -133,7 +133,7 @@ async function resolveNxAffectedProjects(input: {
     )
     const parsed = JSON.parse(result.stdout) as unknown
     if (!Array.isArray(parsed)) {
-      throw new Error("nx affected output was not an array")
+      throw new TypeError("nx affected output was not an array")
     }
 
     return {
@@ -149,7 +149,7 @@ async function resolveNxAffectedProjects(input: {
       "code" in error &&
       error.code === "ENOENT"
     ) {
-      throw new Error("Required command not found: nubx")
+      throw new Error("Required command not found: nubx", { cause: error })
     }
 
     return {
@@ -213,11 +213,11 @@ function applyPrepareAndDowntimeState(input: {
       : []
 
   return {
-    should_prepare: previewDbServiceIds.length > 0,
-    requires_preview_db: previewDbServiceIds.length > 0,
+    downtime_service_ids: downtimeServiceIds.join(","),
     preview_db_service_ids: previewDbServiceIds.join(","),
     requires_downtime_approval: downtimeServiceIds.length > 0,
-    downtime_service_ids: downtimeServiceIds.join(","),
+    requires_preview_db: previewDbServiceIds.length > 0,
+    should_prepare: previewDbServiceIds.length > 0,
   }
 }
 
@@ -335,9 +335,9 @@ function markAffectedServices(input: {
   for (const service of input.manifest.services) {
     if (
       isServiceAffectedByScope({
-        service,
         nxProjects: nxProjectSet,
         relevantChangedFiles: input.relevantChangedFiles,
+        service,
       })
     ) {
       input.serviceFlags.set(service.id, true)
@@ -396,7 +396,7 @@ export async function executeScope(
     input.stackManifestPath,
     input.stackInputsPath
   )
-  const manifest = contracts.manifest
+  const { manifest } = contracts
 
   let mode: ScopeResponse["mode"] = "git"
   let baseSha: string | null = input.baseSha ?? null
@@ -436,23 +436,23 @@ export async function executeScope(
     projectsCsv = toCsv(nx.projects)
     servicesCsv = resolveServicesFromGitDiff({
       manifest,
-      relevantChangedFiles,
-      nxStatus,
       nxProjects: nx.projects,
+      nxStatus,
+      relevantChangedFiles,
     }).join(",")
     servicesCsv = filterServicesAllowedInLane({
-      manifest,
-      lane: input.lane,
-      servicesCsv,
       defaultOnly: true,
+      lane: input.lane,
+      manifest,
+      servicesCsv,
     })
   }
 
   const prepareAndDowntime = applyPrepareAndDowntimeState({
     lane: input.lane,
-    servicesCsv,
     manifest,
     previewBaselineComplete: input.previewBaselineComplete,
+    servicesCsv,
   })
 
   if (input.lane === "main" && servicesCsv) {
@@ -463,16 +463,16 @@ export async function executeScope(
   }
 
   const response = scopeResponseSchema.parse({
+    base_sha: baseSha,
+    changed_files: changedFiles,
+    changed_files_count: changedFiles.length,
+    head_sha: headSha,
     lane: input.lane,
     mode,
-    base_sha: baseSha,
-    head_sha: headSha,
-    projects_csv: projectsCsv,
-    services_csv: servicesCsv,
     nx_status: nxStatus,
-    changed_files_count: changedFiles.length,
-    changed_files: changedFiles,
+    projects_csv: projectsCsv,
     relevant_changed_files: relevantChangedFiles,
+    services_csv: servicesCsv,
     ...prepareAndDowntime,
   })
 

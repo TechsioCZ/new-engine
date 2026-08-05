@@ -48,11 +48,11 @@ export const CompanyActionsMenu = ({ company }: { company: QueryCompany }) => {
 
   const handleRestore = async () => {
     await mutateRestore(undefined, {
-      onSuccess: () => {
-        toast.success(t("toasts.companyRestored", { name: company.name }))
-      },
       onError: () => {
         toast.error(t("errors.restoreCompanyFailed"))
+      },
+      onSuccess: () => {
+        toast.success(t("toasts.companyRestored", { name: company.name }))
       },
     })
   }
@@ -85,17 +85,23 @@ export const CompanyActionsMenu = ({ company }: { company: QueryCompany }) => {
               {
                 icon: <PencilSquare />,
                 label: t("actions.editDetails"),
-                onClick: () => setEditOpen(true),
+                onClick: () => {
+                  setEditOpen(true)
+                },
               },
               {
                 icon: <Link />,
                 label: t("actions.manageCustomerGroup"),
-                onClick: () => setCustomerGroupOpen(true),
+                onClick: () => {
+                  setCustomerGroupOpen(true)
+                },
               },
               {
                 icon: <LockClosedSolid />,
                 label: t("approvalSettings.title"),
-                onClick: () => setApprovalSettingsOpen(true),
+                onClick: () => {
+                  setApprovalSettingsOpen(true)
+                },
               },
             ],
           },
@@ -104,7 +110,9 @@ export const CompanyActionsMenu = ({ company }: { company: QueryCompany }) => {
               {
                 icon: <Trash />,
                 label: t("actions.delete"),
-                onClick: () => setDeleteOpen(true),
+                onClick: () => {
+                  setDeleteOpen(true)
+                },
               },
             ],
           },

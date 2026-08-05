@@ -2,10 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { APPROVAL_MODULE } from "../../../../../src/modules/approval"
 
-vi.mock("@medusajs/framework/workflows-sdk", () => ({
-  createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
-  ),
+vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: class StepResponse<
     TPayload = unknown,
     TCompensationInput = unknown,
@@ -18,9 +15,12 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
       this.compensateInput = compensateInput
     }
   },
+  createStep: vi.fn((_name, invoke, compensate) =>
+    Object.assign(invoke, { compensate })
+  ),
 }))
 
-type ApprovalService = {
+interface ApprovalService {
   createApprovalSettings: ReturnType<typeof vi.fn>
   deleteApprovalSettings: ReturnType<typeof vi.fn>
   listApprovalSettings: ReturnType<typeof vi.fn>
@@ -28,14 +28,14 @@ type ApprovalService = {
   softDeleteApprovalSettings: ReturnType<typeof vi.fn>
 }
 
-type LinkService = {
+interface LinkService {
   create: ReturnType<typeof vi.fn>
   dismiss: ReturnType<typeof vi.fn>
 }
 
 type MockContainer = ReturnType<typeof makeContainer>
 
-type MockStep<TInput> = {
+interface MockStep<TInput> {
   (
     input: TInput,
     context: { container: MockContainer }
@@ -208,11 +208,11 @@ describe("approval settings steps", () => {
         requires_sales_manager_approval: false,
       },
     ])
-    expect(result.payload).toEqual({
+    expect(result.payload).toStrictEqual({
       approval_settings: [restoredSetting, createdSetting],
       created_approval_settings: [createdSetting],
     })
-    expect(result.compensateInput).toEqual({
+    expect(result.compensateInput).toStrictEqual({
       created_ids: ["apprset_created"],
       restored_ids: ["apprset_deleted"],
     })

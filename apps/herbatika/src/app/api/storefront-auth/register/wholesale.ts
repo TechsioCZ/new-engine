@@ -11,7 +11,7 @@ import {
 } from "../_lib"
 import { asRecordOrUndefined, asStringOrUndefined } from "./parse-utils"
 
-export type ParsedWholesaleRegistration = {
+export interface ParsedWholesaleRegistration {
   companyName: string
   companyIdentifier: string
   currencyCode: string
@@ -24,7 +24,7 @@ export type ParsedWholesaleRegistration = {
   }
 }
 
-type WholesaleParseResult = {
+interface WholesaleParseResult {
   error: NextResponse | null
   value: ParsedWholesaleRegistration | null
 }
@@ -44,7 +44,7 @@ export const parseWholesaleRegistration = (
     }
   }
 
-  const companyName = asStringOrUndefined(wholesale["company_name"])
+  const companyName = asStringOrUndefined(wholesale.company_name)
   if (!companyName) {
     return {
       error: badRequest("Názov firmy je povinný."),
@@ -52,7 +52,7 @@ export const parseWholesaleRegistration = (
     }
   }
 
-  const companyIdentifier = asStringOrUndefined(wholesale["company_identifier"])
+  const companyIdentifier = asStringOrUndefined(wholesale.company_identifier)
   if (!companyIdentifier) {
     return {
       error: badRequest("IČO alebo firemný identifikátor je povinný."),
@@ -60,7 +60,7 @@ export const parseWholesaleRegistration = (
     }
   }
 
-  const billingAddress = asRecordOrUndefined(wholesale["billing_address"])
+  const billingAddress = asRecordOrUndefined(wholesale.billing_address)
   if (!billingAddress) {
     return {
       error: badRequest("Fakturačná adresa je povinná."),
@@ -68,10 +68,10 @@ export const parseWholesaleRegistration = (
     }
   }
 
-  const address1 = asStringOrUndefined(billingAddress["address_1"])
-  const city = asStringOrUndefined(billingAddress["city"])
-  const postalCode = asStringOrUndefined(billingAddress["postal_code"])
-  const rawCountryCode = asStringOrUndefined(billingAddress["country_code"])
+  const address1 = asStringOrUndefined(billingAddress.address_1)
+  const city = asStringOrUndefined(billingAddress.city)
+  const postalCode = asStringOrUndefined(billingAddress.postal_code)
+  const rawCountryCode = asStringOrUndefined(billingAddress.country_code)
 
   if (!(address1 && city && postalCode && rawCountryCode)) {
     return {
@@ -88,15 +88,11 @@ export const parseWholesaleRegistration = (
     }
   }
 
-  const address2 = asStringOrUndefined(billingAddress["address_2"])
+  const address2 = asStringOrUndefined(billingAddress.address_2)
 
   return {
     error: null,
     value: {
-      companyName,
-      companyIdentifier,
-      currencyCode:
-        asStringOrUndefined(wholesale["currency_code"])?.toUpperCase() ?? "EUR",
       billingAddress: {
         address1,
         ...(address2 === undefined ? {} : { address2 }),
@@ -104,6 +100,10 @@ export const parseWholesaleRegistration = (
         postalCode,
         countryCode: countryCode.toUpperCase(),
       },
+      companyIdentifier,
+      companyName,
+      currencyCode:
+        asStringOrUndefined(wholesale.currency_code)?.toUpperCase() ?? "EUR",
     },
   }
 }
@@ -124,12 +124,6 @@ export const createWholesaleCompanyRequest = async ({
   wholesale: ParsedWholesaleRegistration
 }) => {
   const response = await fetch(buildMedusaUrl("/store/companies"), {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${token}`,
-      ...getPublishableHeaders(),
-    },
     body: JSON.stringify({
       name: wholesale.companyName,
       email,
@@ -140,9 +134,15 @@ export const createWholesaleCompanyRequest = async ({
       country: wholesale.billingAddress.countryCode.toLowerCase(),
     }),
     cache: "no-store",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+      ...getPublishableHeaders(),
+    },
+    method: "POST",
   })
 
   return response.ok || isConflictStatus(response.status)
     ? null
-    : buildErrorResponse(response)
+    : await buildErrorResponse(response)
 }

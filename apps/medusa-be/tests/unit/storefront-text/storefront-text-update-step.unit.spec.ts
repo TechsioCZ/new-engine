@@ -8,8 +8,8 @@ import {
 import {
   getStorefrontTextDefaultMessages,
   getStorefrontTextSeedRows,
-  type StorefrontTextSeedRow,
 } from "../../../src/modules/storefront-text/registry"
+import type { StorefrontTextSeedRow } from "../../../src/modules/storefront-text/registry"
 import { importStorefrontTextCatalog } from "../../../src/workflows/storefront-text/steps/import-storefront-text-catalog"
 import { synchronizeStorefrontTexts } from "../../../src/workflows/storefront-text/steps/sync-storefront-texts"
 import { updateStorefrontTextRecord } from "../../../src/workflows/storefront-text/steps/update-storefront-text"
@@ -198,14 +198,14 @@ describe("syncStorefrontTextsStep", () => {
         .mockImplementation(async (rows: StorefrontTextSeedRow[]) =>
           rows.map((row, index) => ({ ...row, id: `sftxt_new_${index}` }))
         ),
-      deleteStorefrontTexts: vi.fn().mockResolvedValue(undefined),
+      deleteStorefrontTexts: vi.fn().mockResolvedValue(),
       listStorefrontTexts: vi.fn().mockResolvedValue([]),
       updateStorefrontTexts: vi.fn(),
     }
 
     await synchronizeStorefrontTexts(service, {}, sharedContext)
 
-    expect(service.createStorefrontTexts).toHaveBeenCalledTimes(1)
+    expect(service.createStorefrontTexts).toHaveBeenCalledOnce()
     expect(service.createStorefrontTexts.mock.calls[0]?.[0]).toHaveLength(
       getStorefrontTextSeedRows().length
     )
@@ -230,23 +230,21 @@ describe("syncStorefrontTextsStep", () => {
       {},
       expect.any(Object)
     )
-    expect(service.createStorefrontTexts).toHaveBeenCalledTimes(1)
+    expect(service.createStorefrontTexts).toHaveBeenCalledOnce()
     expect(
       service.createStorefrontTexts.mock.calls[0]?.[0].every(
         (row: StorefrontTextSeedRow) => row.market === "cz"
       )
-    ).toBe(true)
+    ).toBeTruthy()
   })
 })
 
 describe("importStorefrontTextCatalogStep", () => {
   const createImportService = () => {
-    const records: Array<
-      Omit<StorefrontTextSeedRow, "override_value"> & {
-        id: string
-        override_value: null | string
-      }
-    > = getStorefrontTextSeedRows()
+    const records: (Omit<StorefrontTextSeedRow, "override_value"> & {
+      id: string
+      override_value: null | string
+    })[] = getStorefrontTextSeedRows()
       .filter((row) => row.market === "cz")
       .map((row, index) => ({
         ...row,
@@ -255,7 +253,7 @@ describe("importStorefrontTextCatalogStep", () => {
 
     return {
       createStorefrontTexts: vi.fn().mockResolvedValue([]),
-      deleteStorefrontTexts: vi.fn().mockResolvedValue(undefined),
+      deleteStorefrontTexts: vi.fn().mockResolvedValue(),
       listStorefrontTexts: vi.fn().mockResolvedValue(records),
       records,
       updateStorefrontTexts: vi.fn().mockResolvedValue({}),
@@ -281,7 +279,7 @@ describe("importStorefrontTextCatalogStep", () => {
       sharedContext
     )
 
-    expect(service.updateStorefrontTexts).toHaveBeenCalledTimes(1)
+    expect(service.updateStorefrontTexts).toHaveBeenCalledOnce()
     expect(service.updateStorefrontTexts).toHaveBeenCalledWith(
       [
         {
@@ -292,7 +290,7 @@ describe("importStorefrontTextCatalogStep", () => {
       ],
       expect.any(Object)
     )
-    expect(result.result).toEqual({
+    expect(result.result).toStrictEqual({
       unchanged_count: Object.keys(messages).length - 1,
       updated_count: 1,
     })
@@ -366,7 +364,7 @@ describe("importStorefrontTextCatalogStep", () => {
     )
 
     expect(service.updateStorefrontTexts).not.toHaveBeenCalled()
-    expect(result.result).toEqual({
+    expect(result.result).toStrictEqual({
       unchanged_count: Object.keys(messages).length,
       updated_count: 0,
     })
@@ -408,7 +406,7 @@ describe("importStorefrontTextCatalogStep", () => {
       ],
       expect.any(Object)
     )
-    expect(result.result).toEqual({
+    expect(result.result).toStrictEqual({
       unchanged_count: Object.keys(messages).length - 1,
       updated_count: 1,
     })
@@ -436,7 +434,7 @@ describe("importStorefrontTextCatalogStep", () => {
         sharedContext
       )
     ).rejects.toThrow("Database write failed")
-    expect(service.updateStorefrontTexts).toHaveBeenCalledTimes(1)
+    expect(service.updateStorefrontTexts).toHaveBeenCalledOnce()
     expect(service.updateStorefrontTexts.mock.calls[0]?.[0]).toHaveLength(2)
   })
 })

@@ -1,15 +1,14 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook } from "@testing-library/react"
 import type { ReactNode } from "react"
+import { vi, describe, expect, it } from "vitest"
 
 import { createCheckoutCustomerAddressAdapter } from "../src/checkout/address"
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createCustomerHooks } from "../src/customers/hooks"
 import type { CustomerAddressAdapter } from "../src/customers/types"
-import {
-  StorefrontAddressValidationError,
-  type StorefrontAddressValidationIssue,
-} from "../src/shared/address"
+import { StorefrontAddressValidationError } from "../src/shared/address"
+import type { StorefrontAddressValidationIssue } from "../src/shared/address"
 
 const createWrapper =
   (client: QueryClient) =>
@@ -26,25 +25,39 @@ type DefaultCustomerUpdateInput = Parameters<
 >[0]
 
 describe("customer validation regression", () => {
-  type Customer = { id: string }
-  type Address = { id: string; address_1?: string; city?: string }
+  interface Customer {
+    id: string
+  }
+  interface Address {
+    id: string
+    address_1?: string
+    city?: string
+  }
   type ListParams = Record<string, never>
-  type CreateParams = { address_1?: string; city?: string }
-  type UpdateParams = { address_1?: string; city?: string }
-  type UpdateCustomerParams = { metadata?: Record<string, unknown> }
+  interface CreateParams {
+    address_1?: string
+    city?: string
+  }
+  interface UpdateParams {
+    address_1?: string
+    city?: string
+  }
+  interface UpdateCustomerParams {
+    metadata?: Record<string, unknown>
+  }
 
   const createService = () => ({
-    getAddresses: vi.fn(async () => ({ addresses: [] as Address[] })),
     createAddress: vi.fn(async (params: CreateParams) => ({
       id: "addr_1",
       ...params,
     })),
+    deleteAddress: vi.fn(async () => {}),
+    getAddresses: vi.fn(async () => ({ addresses: [] as Address[] })),
     updateAddress: vi.fn(async (id: string, params: UpdateParams) => ({
       id,
       ...params,
     })),
-    deleteAddress: vi.fn(async () => {}),
-    updateCustomer: vi.fn(async () => ({ id: "cus_1" }) as Customer),
+    updateCustomer: vi.fn(async () => ({ id: "cus_1" })),
   })
 
   it("keeps addressId in the default customer adapter update input type", () => {
@@ -57,7 +70,10 @@ describe("customer validation regression", () => {
   })
 
   it("passes addressId through to custom update adapters", async () => {
-    type UpdateInput = { addressId?: string; city?: string }
+    interface UpdateInput {
+      addressId?: string
+      city?: string
+    }
 
     const service = createService()
     const toUpdateParams = vi.fn((input: UpdateInput) =>
@@ -75,12 +91,12 @@ describe("customer validation regression", () => {
       UpdateCustomerParams,
       UpdateCustomerParams
     >({
-      service,
-      buildListParams: () => ({}),
-      queryKeyNamespace: "customers-update-address-id",
       addressAdapter: {
         toUpdateParams,
       },
+      buildListParams: () => ({}),
+      queryKeyNamespace: "customers-update-address-id",
+      service,
     })
 
     const queryClient = new QueryClient({
@@ -100,7 +116,7 @@ describe("customer validation regression", () => {
           addressId: "addr_1",
           city: "Prague",
         })
-      ).resolves.toMatchObject({ id: "addr_1", city: "Prague" })
+      ).resolves.toMatchObject({ city: "Prague", id: "addr_1" })
     })
 
     expect(toUpdateParams).toHaveBeenCalledWith(
@@ -129,9 +145,6 @@ describe("customer validation regression", () => {
       UpdateCustomerParams,
       UpdateCustomerParams
     >({
-      service,
-      buildListParams: () => ({}),
-      queryKeyNamespace: "customers-validation-errors",
       addressAdapter: {
         validateCreate: (input) => {
           const issues: StorefrontAddressValidationIssue[] = []
@@ -154,6 +167,9 @@ describe("customer validation regression", () => {
           return issues.length ? issues : null
         },
       },
+      buildListParams: () => ({}),
+      queryKeyNamespace: "customers-validation-errors",
+      service,
     })
 
     const queryClient = new QueryClient({
@@ -190,12 +206,12 @@ describe("customer validation regression", () => {
       UpdateCustomerParams,
       UpdateCustomerParams
     >({
-      service,
-      buildListParams: () => ({}),
-      queryKeyNamespace: "customers-validation-ok",
       addressAdapter: {
         validateCreate: () => null,
       },
+      buildListParams: () => ({}),
+      queryKeyNamespace: "customers-validation-ok",
+      service,
     })
 
     const queryClient = new QueryClient({
@@ -217,11 +233,11 @@ describe("customer validation regression", () => {
       expect(created.id).toBe("addr_1")
     })
 
-    expect(service.createAddress).toHaveBeenCalledTimes(1)
+    expect(service.createAddress).toHaveBeenCalledOnce()
   })
 
   it("allows partial update payloads for shared checkout customer adapters", async () => {
-    type CheckoutAddress = {
+    interface CheckoutAddress {
       firstName?: string
       lastName?: string
       street?: string
@@ -232,7 +248,7 @@ describe("customer validation regression", () => {
       isDefaultShipping?: boolean
     }
     type UpdateInput = CheckoutAddress & { addressId?: string }
-    type SharedUpdateParams = {
+    interface SharedUpdateParams {
       first_name?: string
       last_name?: string
       address_1?: string
@@ -263,18 +279,18 @@ describe("customer validation regression", () => {
       UpdateCustomerParams,
       UpdateCustomerParams
     >({
-      service: {
-        ...service,
-        updateAddress,
-      },
-      buildListParams: () => ({}),
-      queryKeyNamespace: "customers-validation-partial-update",
       addressAdapter: createCheckoutCustomerAddressAdapter<
         CheckoutAddress,
         UpdateInput
       >({
         defaultCountryCode: "CZ",
       }),
+      buildListParams: () => ({}),
+      queryKeyNamespace: "customers-validation-partial-update",
+      service: {
+        ...service,
+        updateAddress,
+      },
     })
 
     const queryClient = new QueryClient({

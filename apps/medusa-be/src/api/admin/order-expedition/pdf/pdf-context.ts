@@ -38,8 +38,8 @@ export async function createExpeditionPdfContext(
   return {
     document,
     state: {
-      boldFont,
       barcodeCache: new Map(),
+      boldFont,
       document,
       imageCache: new Map(),
       page: document.addPage(PageSizes.A4),

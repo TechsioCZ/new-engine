@@ -11,13 +11,13 @@ import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
 
-type PaymentProvider = {
+interface PaymentProvider {
   id?: string | null
 }
 
 type CheckoutTranslator = ReturnType<typeof useTranslations<"checkout">>
 
-type CheckoutPaymentSectionProps = {
+interface CheckoutPaymentSectionProps {
   canInitiatePayment: boolean
   isBusy: boolean
   isInitiatingPayment: boolean

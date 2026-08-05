@@ -20,15 +20,16 @@ import type { VariantProps } from "tailwind-variants"
 
 import { tv } from "../utils"
 import { buttonVariants } from "./button"
-import { Icon, type IconProps, type IconType } from "./icon"
+import { Icon } from "./icon"
+import type { IconProps, IconType } from "./icon"
 import { Link } from "./link"
 
 const linkButton = tv({
-  extend: buttonVariants,
   base: "data-disabled:cursor-not-allowed",
   defaultVariants: {
     size: "current",
   },
+  extend: buttonVariants,
 })
 
 type LinkButtonHref<T extends ElementType> =
@@ -70,9 +71,7 @@ export function LinkButton<T extends ElementType = "a">({
   tabIndex,
   ...props
 }: LinkButtonProps<T>) {
-  const handleClick = onClick as
-    | ((event: MouseEvent<Element>) => void)
-    | undefined
+  const handleClick = onClick as ((event: MouseEvent) => void) | undefined
 
   return (
     <Link
@@ -80,12 +79,12 @@ export function LinkButton<T extends ElementType = "a">({
       aria-disabled={disabled}
       as={as as ElementType}
       className={linkButton({
-        variant,
-        theme,
-        size,
         block,
-        uppercase,
         className,
+        size,
+        theme,
+        uppercase,
+        variant,
       })}
       data-disabled={disabled || undefined}
       href={href}

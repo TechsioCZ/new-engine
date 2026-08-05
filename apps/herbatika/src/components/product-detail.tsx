@@ -41,7 +41,7 @@ export function ProductDetail({ handle }: ProductDetailProps) {
       return
     }
 
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+    window.scrollTo({ behavior: "auto", left: 0, top: 0 })
   }, [handle])
 
   // `controller.product?.id` is an intentional trigger — re-selects the reviews tab when navigating to a different product while the reviews hash is in the URL.
@@ -62,7 +62,7 @@ export function ProductDetail({ handle }: ProductDetailProps) {
     )
     window.requestAnimationFrame(() => {
       document
-        .getElementById(PRODUCT_DETAIL_REVIEWS_SECTION_ID)
+        .querySelector(`#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`)
         ?.scrollIntoView({ behavior: "smooth", block: "start" })
     })
   }

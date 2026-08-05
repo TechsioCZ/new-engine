@@ -8,7 +8,7 @@ import { LoginForm } from "./auth/login-form"
 
 type AuthControlsMode = "login" | "register"
 
-type AuthControlsProps = {
+interface AuthControlsProps {
   mode: AuthControlsMode
   afterAuthHref?: string
 }

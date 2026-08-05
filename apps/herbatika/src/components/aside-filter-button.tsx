@@ -1,8 +1,9 @@
 "use client"
 
-import { Button, type ButtonProps } from "@techsio/ui-kit/atoms/button"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import type { ButtonProps } from "@techsio/ui-kit/atoms/button"
 
-type AsideFilterButtonProps = {
+interface AsideFilterButtonProps {
   checked: boolean
   count: number
   disabled?: boolean

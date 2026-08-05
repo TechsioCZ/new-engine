@@ -64,10 +64,10 @@ function normalizeIdentifier(value: string, label: string): string {
 
 export function createDbClient(config: AppConfig): Bun.SQL {
   return new SQL({
-    url: config.databaseUrl,
-    max: 10,
-    idleTimeout: 15,
     connectionTimeout: 10,
+    idleTimeout: 15,
+    max: 10,
+    url: config.databaseUrl,
   })
 }
 
@@ -86,12 +86,12 @@ export async function inspectFileCopyMethod(
     >`SHOW file_copy_method`
     const method = rows[0]?.file_copy_method?.trim().toLowerCase() || null
     if (method === "clone") {
-      return { method, cloneOptimized: true, warning: null }
+      return { cloneOptimized: true, method, warning: null }
     }
 
     return {
-      method,
       cloneOptimized: false,
+      method,
       warning:
         method === null
           ? "file_copy_method is unavailable; preview clone performance can be improved by starting PostgreSQL with -c file_copy_method=clone."
@@ -102,16 +102,16 @@ export async function inspectFileCopyMethod(
     const normalizedMessage = message.toLowerCase()
     if (normalizedMessage.includes("unrecognized configuration parameter")) {
       return {
-        method: null,
         cloneOptimized: false,
+        method: null,
         warning:
           "file_copy_method is not recognized on this PostgreSQL server; preview clone performance can be improved by using PostgreSQL 18+ with -c file_copy_method=clone.",
       }
     }
 
     return {
-      method: null,
       cloneOptimized: false,
+      method: null,
       warning: `unable to read file_copy_method (${message}); preview clone performance can be improved by starting PostgreSQL with -c file_copy_method=clone.`,
     }
   }
@@ -164,11 +164,11 @@ async function withDatabaseClientByUrl<T>(
   operation: (databaseSql: Bun.SQL) => Promise<T>
 ): Promise<T> {
   const databaseSql = new SQL({
-    url: databaseUrl,
-    database: databaseName,
-    max: 4,
-    idleTimeout: 10,
     connectionTimeout: 10,
+    database: databaseName,
+    idleTimeout: 10,
+    max: 4,
+    url: databaseUrl,
   })
 
   try {
@@ -808,7 +808,7 @@ export async function ensurePreviewDatabase(
 
     await syncPreviewDatabaseGrants(lockedSql, config, dbName, appUser)
 
-    return { dbName, created: !alreadyExists, appUser, appPassword }
+    return { appPassword, appUser, created: !alreadyExists, dbName }
   })
 }
 
@@ -863,8 +863,8 @@ async function getActiveConnectionsByRole(
   `
 
   return rows.map((row) => ({
-    role: row.role ?? "unknown",
     activeConnections: row.active_connections,
+    role: row.role ?? "unknown",
   }))
 }
 
@@ -995,7 +995,9 @@ async function mapWithConcurrency<T, R>(
     }
   }
 
-  await Promise.all(Array.from({ length: safeConcurrency }, () => runWorker()))
+  await Promise.all(
+    Array.from({ length: safeConcurrency }, async () => runWorker())
+  )
   return results
 }
 
@@ -1043,10 +1045,10 @@ export async function createOrUpdateDevRole(
     const databases = await listNonTemplateDatabases(sql)
     console.info(
       JSON.stringify({
-        event: "cli.create-dev-user.grant-connect-scope",
-        username,
-        total_databases: databases.length,
         concurrency: DEV_ROLE_DB_GRANT_CONCURRENCY,
+        event: "cli.create-dev-user.grant-connect-scope",
+        total_databases: databases.length,
+        username,
       })
     )
 
@@ -1092,11 +1094,11 @@ export async function createOrUpdateDevRole(
 
         return {
           connectGrantsApplied: 1,
-          schemaGrantsApplied: schemaGrantsAppliedForDatabase,
           defaultPrivilegeOwnersApplied:
             defaultPrivilegeOwnersAppliedForDatabase,
           defaultPrivilegeOwnersSkipped:
             defaultPrivilegeOwnersSkippedForDatabase,
+          schemaGrantsApplied: schemaGrantsAppliedForDatabase,
         }
       }
     )
@@ -1112,13 +1114,13 @@ export async function createOrUpdateDevRole(
   }
 
   return {
-    username,
-    created: !exists,
     connectGrantsApplied,
     connectGrantsRevoked,
-    schemaGrantsApplied,
+    created: !exists,
     defaultPrivilegeOwnersApplied,
     defaultPrivilegeOwnersSkipped,
+    schemaGrantsApplied,
+    username,
   }
 }
 
@@ -1159,14 +1161,14 @@ export async function teardownPreviewDatabase(
     const roleDeleted = await dropPreviewAppRole(lockedSql, appUser)
 
     return {
-      dbName,
-      deleted,
       activeConnectionsAtDrop,
       appUser,
-      roleDeleted,
+      dbName,
+      deleted,
       devGrantsCleaned: deleted,
       noop: !exists,
       noopReason: exists ? null : "database_not_found",
+      roleDeleted,
     }
   })
 }

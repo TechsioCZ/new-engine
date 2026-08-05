@@ -14,7 +14,7 @@ import { getOrderById } from "@/services/order-service"
 export default function OrderPage() {
   const params = useParams()
   const searchParams = useSearchParams()
-  const orderId = params["orderId"] as string
+  const orderId = params.orderId as string
   const showSuccessBanner = searchParams.get("success") === "true"
 
   const analytics = useAnalytics()
@@ -25,8 +25,8 @@ export default function OrderPage() {
   }
 
   const { data: order } = useSuspenseQuery({
+    queryFn: async () => getOrderById(orderId),
     queryKey: queryKeys.orders.detail(orderId),
-    queryFn: () => getOrderById(orderId),
     retry: (failureCount, error) => {
       if (error instanceof Error && error.message?.includes("nenalezena")) {
         return false
@@ -50,10 +50,9 @@ export default function OrderPage() {
     const value = order.total ?? 0
 
     analytics.trackPurchase({
-      orderId: order.id,
-      value,
       currency,
       numItems: items.reduce((sum, item) => sum + (item.quantity || 0), 0),
+      orderId: order.id,
       products: items.map((item) => ({
         id: item.variant_id || "",
         name: item.title || "",
@@ -61,6 +60,7 @@ export default function OrderPage() {
         currency,
         quantity: item.quantity || 1,
       })),
+      value,
       ...(order.email ? { email: order.email } : {}),
     })
   }, [showSuccessBanner, order, analytics])
@@ -70,7 +70,7 @@ export default function OrderPage() {
       {/* Heureka conversion tracking - standalone, SDK loads here */}
       {showSuccessBanner && order && (
         <HeurekaOrder
-          apiKey={process.env["NEXT_PUBLIC_HEUREKA_API_KEY"] ?? ""}
+          apiKey={process.env.NEXT_PUBLIC_HEUREKA_API_KEY ?? ""}
           country="cz"
           currency={(order.currency_code ?? "CZK").toUpperCase()}
           debug

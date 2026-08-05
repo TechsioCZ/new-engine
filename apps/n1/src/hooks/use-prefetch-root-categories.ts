@@ -8,7 +8,7 @@ import { prefetchLogger } from "@/lib/loggers/prefetch"
 import { usePrefetchProducts } from "./use-prefetch-products"
 import { useRegion } from "./use-region"
 
-type UsePrefetchRootCategoriesParams = {
+interface UsePrefetchRootCategoriesParams {
   enabled?: boolean
   currentHandle: string
   delay?: number
@@ -43,6 +43,8 @@ export function usePrefetchRootCategories({
       }
     }, delay)
 
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+    }
   }, [enabled, regionId, currentHandle, delay, prefetchRootCategories])
 }

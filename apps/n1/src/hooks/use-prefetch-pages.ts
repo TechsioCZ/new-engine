@@ -9,7 +9,7 @@ import { buildProductQueryParams } from "@/lib/product-query-params"
 import { queryKeys } from "@/lib/query-keys"
 import { getProducts } from "@/services/product-service"
 
-type UsePrefetchPagesParams = {
+interface UsePrefetchPagesParams {
   enabled?: boolean
   currentPage: number
   hasNextPage: boolean
@@ -60,7 +60,7 @@ export function usePrefetchPages({
       )
 
       void Promise.all(
-        pages.map((page) => {
+        pages.map(async (page) => {
           const queryParams = buildProductQueryParams({
             category_id,
             region_id: regionId,
@@ -70,8 +70,8 @@ export function usePrefetchPages({
           })
 
           return queryClient.prefetchQuery({
+            queryFn: async ({ signal }) => getProducts(queryParams, signal),
             queryKey: queryKeys.products.list(queryParams),
-            queryFn: ({ signal }) => getProducts(queryParams, signal),
             ...cacheConfig.semiStatic,
           })
         })
@@ -95,7 +95,7 @@ export function usePrefetchPages({
       // previous page
       hasPrevPage ? currentPage - 1 : null,
       // first page
-      currentPage !== 1 ? 1 : null,
+      currentPage === 1 ? null : 1,
       // last page
       totalPages > 1 && currentPage !== totalPages ? totalPages : null,
     ].filter((p): p is number => p !== null)

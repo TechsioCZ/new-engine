@@ -2,7 +2,7 @@ import { MedusaService } from "@medusajs/framework/utils"
 
 import SymmyPriceListCode from "./models/symmy-price-list-code"
 
-export type SymmyPriceListCodeDTO = {
+export interface SymmyPriceListCodeDTO {
   code: string
   erp_code: string
   price_list_id: string
@@ -10,12 +10,12 @@ export type SymmyPriceListCodeDTO = {
   updated_at?: Date | string
 }
 
-export type UpsertSymmyPriceListCodeInput = {
+export interface UpsertSymmyPriceListCodeInput {
   erpCode: string
   priceListId: string
 }
 
-export type ListSymmyPriceListCodesInput = {
+export interface ListSymmyPriceListCodesInput {
   erpCode?: string
   limit: number
   offset: number
@@ -30,7 +30,7 @@ export class SymmyPriceListCodeModuleService extends MedusaService({
     }
 
     return await this.listSymmyPriceListCodes({
-      erp_code: Array.from(codes),
+      erp_code: [...codes],
     })
   }
 
@@ -46,14 +46,14 @@ export class SymmyPriceListCodeModuleService extends MedusaService({
     const [mappings, count] = await this.listAndCountSymmyPriceListCodes(
       filters,
       {
+        order: { erp_code: "ASC" },
         skip: offset,
         take: limit,
-        order: { erp_code: "ASC" },
       }
     )
 
     return {
-      mappings: mappings,
+      mappings,
       count,
     }
   }

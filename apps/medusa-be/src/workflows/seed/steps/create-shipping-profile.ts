@@ -9,7 +9,7 @@ import {
   updateShippingProfilesWorkflow,
 } from "@medusajs/medusa/core-flows"
 
-export type CreateDefaultShippingProfileStepInput = {
+export interface CreateDefaultShippingProfileStepInput {
   name: string
 }
 
@@ -24,8 +24,8 @@ export const createDefaultShippingProfileStep = createStep(
 
     const shippingProfiles =
       await fulfillmentModuleService.listShippingProfiles({
-        type: "default",
         name: input.name,
+        type: "default",
       })
     const shippingProfile = shippingProfiles.length ? shippingProfiles[0] : null
 
@@ -34,8 +34,8 @@ export const createDefaultShippingProfileStep = createStep(
       await updateShippingProfilesWorkflow(container).run({
         input: {
           selector: {
-            type: "default",
             name: input.name,
+            type: "default",
           },
           update: {
             name: input.name,

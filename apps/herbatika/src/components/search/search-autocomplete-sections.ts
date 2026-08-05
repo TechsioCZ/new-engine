@@ -2,7 +2,7 @@ import type { SearchAutocompleteResponse } from "@/lib/search-autocomplete/searc
 
 import type { SearchAutocompletePanelSection } from "./search-autocomplete-panel"
 
-type SearchAutocompleteSectionTitles = {
+interface SearchAutocompleteSectionTitles {
   brands: string
   categories: string
   products: string
@@ -12,9 +12,9 @@ export const createSearchAutocompleteSections = (
   data: SearchAutocompleteResponse,
   titles: SearchAutocompleteSectionTitles
 ): SearchAutocompletePanelSection[] => [
-  { key: "product", title: titles.products, items: data.products },
-  { key: "category", title: titles.categories, items: data.categories },
-  { key: "brand", title: titles.brands, items: data.brands },
+  { items: data.products, key: "product", title: titles.products },
+  { items: data.categories, key: "category", title: titles.categories },
+  { items: data.brands, key: "brand", title: titles.brands },
 ]
 
 export const clampSearchAutocompleteIndex = (

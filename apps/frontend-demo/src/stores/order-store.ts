@@ -29,7 +29,7 @@ export const orderHelpers = {
 
   // Get order data - returns current cart or saved completed order
   getOrderData: (currentCart: Cart | null): Cart | null => {
-    const state = orderStore.state
+    const { state } = orderStore
 
     // If we have a completed order saved, use that
     if (state.completedOrder) {

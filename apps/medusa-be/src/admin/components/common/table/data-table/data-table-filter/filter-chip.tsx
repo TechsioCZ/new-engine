@@ -7,7 +7,7 @@ import {
 import type { MouseEvent } from "react"
 import { useTranslation } from "react-i18next"
 
-export type FilterChipProps = {
+export interface FilterChipProps {
   hadPreviousValue?: boolean
   label: string
   value?: string
@@ -65,8 +65,8 @@ const FilterChip = ({
             className={clx(
               "flex-1 cursor-pointer overflow-hidden border-r p-1 px-2",
               {
-                "hover:bg-ui-bg-field-hover": !readonly,
                 "data-[state=open]:bg-ui-bg-field-hover": !readonly,
+                "hover:bg-ui-bg-field-hover": !readonly,
               }
             )}
           >

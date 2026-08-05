@@ -7,13 +7,13 @@ import {
   Button,
   Container,
   createDataTableColumnHelper,
-  type DataTableColumnDef,
   Drawer,
   Heading,
   Input,
   Text,
   toast,
 } from "@medusajs/ui"
+import type { DataTableColumnDef } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -29,13 +29,13 @@ import {
   ProductAttributesDrawer,
 } from "../components/product-attributes/product-attributes-panel"
 import {
-  type Brand,
   brandQueryKeys,
   listBrands,
   productQueryKeys,
   retrieveProductBrands,
   setProductBrands,
 } from "../lib/brands"
+import type { Brand } from "../lib/brands"
 import {
   productAttributeQueryKeys,
   retrieveProductAttributes,
@@ -282,11 +282,11 @@ const BrandAssignmentDrawer = ({
 
   const { data, error, isLoading } = useQuery({
     enabled: open,
-    queryFn: () => listBrands(params),
+    queryFn: async () => listBrands(params),
     queryKey: brandQueryKeys.list(params),
   })
   const mutation = useMutation({
-    mutationFn: (submittedBrandId: string | undefined) =>
+    mutationFn: async (submittedBrandId: string | undefined) =>
       setProductBrands(productId, submittedBrandId),
     onError: (mutationError) => {
       toast.error(
@@ -318,7 +318,7 @@ const BrandAssignmentDrawer = ({
         queryClient.invalidateQueries({
           queryKey: brandQueryKeys.productOptionsLists(),
         }),
-        ...[...affectedBrandIds].map((brandId) =>
+        ...[...affectedBrandIds].map(async (brandId) =>
           queryClient.invalidateQueries({
             queryKey: brandQueryKeys.detail(brandId),
           })
@@ -361,25 +361,25 @@ const BrandAssignmentDrawer = ({
   }
   const columns: DataTableColumnDef<Brand>[] = [
     brandColumnHelper.accessor("title", {
-      header: t("columns.brand"),
       cell: ({ row }) => (
         <span className={row.original.deleted_at ? "opacity-60" : undefined}>
           {row.original.title}
         </span>
       ),
+      header: t("columns.brand"),
     }),
     brandColumnHelper.accessor("handle", {
       header: t("columns.handle"),
     }),
     brandColumnHelper.display({
-      id: "status",
-      header: t("columns.status"),
       cell: ({ row }) =>
         row.original.id === selectedId ? (
           <Badge size="2xsmall">{t("status.selected")}</Badge>
         ) : (
           "-"
         ),
+      header: t("columns.status"),
+      id: "status",
     }),
     brandColumnHelper.action({
       actions: ({ row }) => {
@@ -392,8 +392,9 @@ const BrandAssignmentDrawer = ({
         return [
           {
             label: isSelected ? t("actions.clear") : t("actions.select"),
-            onClick: () =>
-              isSelected ? clearSelection() : selectBrand(row.original),
+            onClick: () => {
+              isSelected ? clearSelection() : selectBrand(row.original)
+            },
           },
         ]
       },
@@ -487,7 +488,9 @@ const BrandAssignmentDrawer = ({
           <div className="flex justify-end gap-2">
             <Button
               disabled={mutation.isPending}
-              onClick={() => handleOpenChange(false)}
+              onClick={() => {
+                handleOpenChange(false)
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -518,7 +521,7 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
 
   const brandQuery = useQuery({
     enabled: !!product?.id,
-    queryFn: () => {
+    queryFn: async () => {
       if (!product?.id) {
         throw new Error(t("errors.productIdRequired"))
       }
@@ -528,7 +531,7 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
   })
   const attributeQuery = useQuery({
     enabled: !!product?.id,
-    queryFn: () => retrieveProductAttributes(product?.id ?? ""),
+    queryFn: async () => retrieveProductAttributes(product?.id ?? ""),
     queryKey: productAttributeQueryKeys.product(product?.id),
   })
   const editableAttributeItems = useMemo(
@@ -587,7 +590,9 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
               </Text>
             </div>
             <Button
-              onClick={() => setBrandDrawerOpen(true)}
+              onClick={() => {
+                setBrandDrawerOpen(true)
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -614,7 +619,9 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
               </Text>
             </div>
             <Button
-              onClick={() => setAttributeDrawerOpen(true)}
+              onClick={() => {
+                setAttributeDrawerOpen(true)
+              }}
               size="small"
               type="button"
               variant="secondary"

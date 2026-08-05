@@ -14,7 +14,7 @@ const _formTypeHelper = (d: AddressFormData) => useForm({ defaultValues: d })
 
 type AddressForm = ReturnType<typeof _formTypeHelper>
 
-type AddressFormFieldsProps = {
+interface AddressFormFieldsProps {
   form: AddressForm
   disabled?: boolean
 }

@@ -42,7 +42,9 @@ import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visit
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { storefront } from "@/lib/storefront/storefront"
 
-type UseProductDetailDataProps = { handle: string }
+interface UseProductDetailDataProps {
+  handle: string
+}
 
 export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const tCatalog = useTranslations("catalog")
@@ -58,8 +60,8 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   >(null)
 
   const productQuery = useProduct({
-    handle,
     fields: PRODUCT_DETAIL_FIELDS,
+    handle,
   })
 
   const product = productQuery.product ?? null
@@ -142,10 +144,10 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     unitPriceLabel,
     vipCreditLabel,
   } = resolveProductPricingLabels({
-    productPrice,
-    regionCurrencyCode,
     offerState,
     priceUnavailableLabel: tCatalog("product_detail.price_on_request"),
+    productPrice,
+    regionCurrencyCode,
   })
   const canAddToCart =
     Boolean(selectedVariant?.id) &&
@@ -153,7 +155,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     selectedVariantInventory.isPurchasable
   const maxQuantity = selectedVariantInventory.maxPurchaseQuantity
 
-  const availableQuantity = selectedVariantInventory.availableQuantity
+  const { availableQuantity } = selectedVariantInventory
   const volumeDiscountOptions = resolveProductVolumeDiscountOptions({
     availableQuantity,
     currentAmount,
@@ -223,22 +225,23 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     canAddToCart,
     currentAmountLabel,
     defaultInfoSectionValue: productContentSections[0]?.key ?? "description",
-    displayOriginalLabel,
     discountPercent,
+    displayOriginalLabel,
     freeShippingThresholdLabel,
     galleryItems,
     isBootstrappingRegion: !region?.region_id,
+    locationAvailabilityState,
     maxQuantity,
     mediaFacts,
+    offerState,
     product,
     productCategories,
     productContentSections,
     productHighlights,
-    locationAvailabilityState,
     productQuery,
     quantity,
-    relatedSections,
     region,
+    relatedSections,
     selectedVariant,
     selectedVariantId: selectedVariant?.id ?? null,
     selectedVolumeDiscountId: selectedVolumeDiscountOption?.id ?? null,
@@ -251,7 +254,6 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     variants,
     vipCreditLabel,
     volumeDiscountOptions,
-    offerState,
   }
 }
 

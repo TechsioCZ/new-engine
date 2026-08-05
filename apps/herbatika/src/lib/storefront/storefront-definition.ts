@@ -13,7 +13,6 @@ import { storefrontCoreDefinition } from "./storefront-core-definition"
 export const storefrontDefinition = {
   ...storefrontCoreDefinition,
   auth: {
-    service: authService,
     hooks: {
       invalidateOnAuthChange: {
         includeDefaults: true,
@@ -21,17 +20,18 @@ export const storefrontDefinition = {
         removeOnLogout: [storefrontCoreDefinition.queryKeys.cart.all()],
       },
     },
+    service: authService,
   },
   cart: {
-    serviceConfig: storefrontCartServiceConfig,
     hooks: {
       addressAdapter: herbatikaCheckoutCartAddressAdapter,
+      buildAddParams: buildAddLineItemParams,
+      buildCreateInputFromAddInput: buildCreateCartInputFromAddLineItemInput,
+      buildCreateParams: buildCreateCartParams,
+      buildUpdateParams: buildUpdateCartParams,
       cartStorage,
       requireRegion: true,
-      buildCreateParams: buildCreateCartParams,
-      buildCreateInputFromAddInput: buildCreateCartInputFromAddLineItemInput,
-      buildUpdateParams: buildUpdateCartParams,
-      buildAddParams: buildAddLineItemParams,
     },
+    serviceConfig: storefrontCartServiceConfig,
   },
 } as const

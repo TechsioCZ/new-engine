@@ -17,10 +17,12 @@ import { ProductVariantMeasurementLink } from "../../../links/product-variant-me
 import { MEASUREMENT_UNIT_MODULE } from "../../../modules/measurement-unit"
 import {
   getMeasurementUnitService,
-  type MeasurementUnitRecord,
-  type ProductMeasurementRecord,
-  type ProductVariantMeasurementRecord,
   toNumber,
+} from "../../../utils/measurement-units"
+import type {
+  MeasurementUnitRecord,
+  ProductMeasurementRecord,
+  ProductVariantMeasurementRecord,
 } from "../../../utils/measurement-units"
 import {
   normalizeDescription,
@@ -40,32 +42,32 @@ import { getSourceVariantId } from "./create-products"
 
 const RECONCILIATION_BATCH_SIZE = 100
 
-type CanonicalMeasurementUnit = {
+interface CanonicalMeasurementUnit {
   semanticKey: string
   source: SeedMeasurementUnitInput
 }
 
 type ExistingProductVariant = NonNullable<ProductDTO["variants"]>[number]
 
-type ResolvedProductInput = {
+interface ResolvedProductInput {
   input: ProductInput
   product: ProductDTO
   variantInputById: Map<string, NonNullable<ProductInput["variants"]>[number]>
 }
 
-type ProductMeasurementLinkRecord = {
+interface ProductMeasurementLinkRecord {
   deleted_at?: Date | string | null
   product_id: string
   product_measurement_id: string
 }
 
-type ProductVariantMeasurementLinkRecord = {
+interface ProductVariantMeasurementLinkRecord {
   deleted_at?: Date | string | null
   product_variant_id: string
   product_variant_measurement_id: string
 }
 
-type MeasurementLinkPlan = {
+interface MeasurementLinkPlan {
   productLinksToCreate: ProductMeasurementLinkRecord[]
   productLinksToDismiss: ProductMeasurementLinkRecord[]
   productMeasurementIdsToRestore: string[]
@@ -74,12 +76,12 @@ type MeasurementLinkPlan = {
   variantMeasurementIdsToRestore: string[]
 }
 
-type BatchReconciliationResult = {
+interface BatchReconciliationResult {
   productTargetById: Map<string, ProductMeasurementRecord | null>
   variantTargetById: Map<string, ProductVariantMeasurementRecord | null>
 }
 
-type ProductRecordMutationPlan = {
+interface ProductRecordMutationPlan {
   creates: Array<{ measurement_unit_id: string; product_id: string }>
   productIdsToRestore: Set<string>
   productIdsToSoftDelete: Set<string>
@@ -87,7 +89,7 @@ type ProductRecordMutationPlan = {
   variantIdsToSoftDelete: Set<string>
 }
 
-type VariantRecordMutationPlan = {
+interface VariantRecordMutationPlan {
   creates: Array<{
     product_measurement_id: string
     product_unit_quantity: number
@@ -104,7 +106,7 @@ type VariantRecordMutationPlan = {
   variantTargetById: Map<string, ProductVariantMeasurementRecord | null>
 }
 
-type ReconciliationSummary = {
+interface ReconciliationSummary {
   products_cleared: number
   products_set: number
   units_created: number
@@ -167,7 +169,7 @@ export function validateSeedProductMeasurementInput(
 ) {
   for (const product of input) {
     for (const variant of product.variants ?? []) {
-      const measurement = variant.measurement
+      const { measurement } = variant
 
       if (product.measurement === undefined && measurement !== undefined) {
         throw new Error(
@@ -192,7 +194,7 @@ export function collectCanonicalSeedMeasurementUnits(
   const canonical = new Map<string, CanonicalMeasurementUnit>()
 
   for (const product of input) {
-    const measurement = product.measurement
+    const { measurement } = product
     if (!measurement) {
       continue
     }
@@ -321,7 +323,7 @@ async function ensureMeasurementUnits(
   return { created, restored, reused, unitBySemanticKey }
 }
 
-type EnsuredMeasurementUnit = {
+interface EnsuredMeasurementUnit {
   action: "created" | "restored" | "reused"
   unit: MeasurementUnitRecord
 }

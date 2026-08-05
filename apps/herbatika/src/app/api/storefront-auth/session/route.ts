@@ -1,4 +1,5 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
 import {
   buildMedusaUrl,
@@ -10,7 +11,7 @@ import {
   setSessionTokenCookie,
 } from "../_lib"
 
-type SessionResponse = {
+interface SessionResponse {
   token: string | null
   authenticated: boolean
   message?: string
@@ -22,10 +23,10 @@ const resolveToken = (
 ) => {
   if (
     payload &&
-    typeof payload["token"] === "string" &&
-    payload["token"].length > 0
+    typeof payload.token === "string" &&
+    payload.token.length > 0
   ) {
-    return payload["token"]
+    return payload.token
   }
 
   return fallbackToken
@@ -37,9 +38,9 @@ export async function GET(request: NextRequest) {
   if (!token) {
     return NextResponse.json<SessionResponse>(
       {
-        token: null,
         authenticated: false,
         message: "Authentication required.",
+        token: null,
       },
       { status: 200 }
     )
@@ -47,18 +48,18 @@ export async function GET(request: NextRequest) {
 
   try {
     const refreshResponse = await fetch(buildMedusaUrl("/auth/token/refresh"), {
-      method: "POST",
+      cache: "no-store",
       headers: {
         authorization: `Bearer ${token}`,
       },
-      cache: "no-store",
+      method: "POST",
     })
 
     if (refreshResponse.ok) {
       const refreshPayload = await parseResponseJson(refreshResponse)
       const refreshedToken = resolveToken(refreshPayload, token)
       const response = NextResponse.json<SessionResponse>(
-        { token: refreshedToken, authenticated: true },
+        { authenticated: true, token: refreshedToken },
         { status: 200 }
       )
       setSessionTokenCookie(response, refreshedToken)
@@ -68,21 +69,21 @@ export async function GET(request: NextRequest) {
     const customerResponse = await fetch(
       buildMedusaUrl("/store/customers/me"),
       {
-        method: "GET",
+        cache: "no-store",
         headers: {
           authorization: `Bearer ${token}`,
           ...getPublishableHeaders(),
         },
-        cache: "no-store",
+        method: "GET",
       }
     )
 
     if (!customerResponse.ok) {
       const unauthorizedResponse = NextResponse.json<SessionResponse>(
         {
-          token: null,
           authenticated: false,
           message: "Authentication required.",
+          token: null,
         },
         { status: 200 }
       )
@@ -91,7 +92,7 @@ export async function GET(request: NextRequest) {
     }
 
     const response = NextResponse.json<SessionResponse>(
-      { token, authenticated: true },
+      { authenticated: true, token },
       { status: 200 }
     )
     setSessionTokenCookie(response, token)

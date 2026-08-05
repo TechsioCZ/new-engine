@@ -4,7 +4,7 @@ import { notFound } from "next/navigation"
 import { CmsPageArticle } from "@/components/cms-page-article"
 import { getCmsPage } from "@/services/cms-service"
 
-type CmsDynamicPageProps = {
+interface CmsDynamicPageProps {
   params: Promise<{
     slug: string
   }>
@@ -21,8 +21,8 @@ export async function generateMetadata({
   }
 
   return {
-    title: page.meta?.title || page.title,
     description: page.meta?.description || undefined,
+    title: page.meta?.title || page.title,
   }
 }
 

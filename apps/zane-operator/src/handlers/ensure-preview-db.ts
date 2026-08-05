@@ -34,7 +34,7 @@ function parsePayload(rawPayload: unknown): EnsurePreviewDbPayload {
   }
 
   return {
-    pr_number: payload["pr_number"],
+    pr_number: payload.pr_number,
   }
 }
 
@@ -53,28 +53,28 @@ export async function handleEnsurePreviewDb(
     const owner = deps.config.previewOwner
 
     const result = await ensurePreviewDatabase(deps.sql, deps.config, {
+      owner,
       prNumber,
       templateDatabase,
-      owner,
     })
 
     console.info(
       JSON.stringify({
-        event: "preview-db.ensure",
-        pr_number: prNumber,
-        db_name: result.dbName,
-        created: result.created,
         app_user: result.appUser,
-        template_db: templateDatabase,
+        created: result.created,
+        db_name: result.dbName,
+        event: "preview-db.ensure",
         owner,
+        pr_number: prNumber,
+        template_db: templateDatabase,
       })
     )
 
     return jsonResponse(200, {
-      db_name: result.dbName,
-      created: result.created,
-      app_user: result.appUser,
       app_password: result.appPassword,
+      app_user: result.appUser,
+      created: result.created,
+      db_name: result.dbName,
     })
   } catch (error: unknown) {
     return mapHandlerError(error, "ensure-preview-db")

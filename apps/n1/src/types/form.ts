@@ -13,7 +13,7 @@ type BivariantChangeHandler = {
   bivarianceHack(value: unknown): void
 }["bivarianceHack"]
 
-export type AnyFieldApiCompat = {
+export interface AnyFieldApiCompat {
   name: string
   state: {
     value: unknown

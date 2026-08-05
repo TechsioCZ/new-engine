@@ -13,38 +13,38 @@ const isEntityRecord = (
 ): value is Record<string, unknown> & object =>
   typeof value === "object" && value !== null
 
-type AuthContext = {
+interface AuthContext {
   actor_id?: string
   actor_type?: string
 }
 
-type CustomerRecord = {
+interface CustomerRecord {
   first_name?: null | string
   id: string
   last_name?: null | string
 }
 
-type ProductRecord = {
+interface ProductRecord {
   id: string
 }
 
-type PaymentRecord = {
+interface PaymentRecord {
   captured_at?: Date | string | null
 }
 
-type PaymentCollectionRecord = {
+interface PaymentCollectionRecord {
   captured_amount?: number | string | null
   payments?: PaymentRecord[] | null
   status?: string | null
 }
 
-type OrderRecord = {
+interface OrderRecord {
   id: string
   items?: { product_id?: string | null }[] | null
   payment_collections?: PaymentCollectionRecord[] | null
 }
 
-export type ReviewTokenDTO = {
+export interface ReviewTokenDTO {
   customer_id: string | null
   email: string
   expires_at?: Date | string | null

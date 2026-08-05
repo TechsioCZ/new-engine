@@ -29,10 +29,10 @@ import type {
   ResolveTargetsResponse,
 } from "../contracts/resolve-targets.js"
 import { resolveTargetsResponseSchema } from "../contracts/resolve-targets.js"
-import {
-  type RuntimeProviderRunResponse,
-  type RuntimeProviderRunPayload,
-  runtimeProviderRunResponseSchema,
+import { runtimeProviderRunResponseSchema } from "../contracts/runtime-provider-run.js"
+import type {
+  RuntimeProviderRunResponse,
+  RuntimeProviderRunPayload,
 } from "../contracts/runtime-provider-run.js"
 import type { TriggerResponse } from "../contracts/trigger.js"
 import { triggerResponseSchema } from "../contracts/trigger.js"
@@ -50,18 +50,18 @@ function extractOperatorMessage(body: unknown): string | undefined {
   }
 
   const record = body as Record<string, unknown>
-  const directMessage = record["message"]
+  const directMessage = record.message
   if (typeof directMessage === "string" && directMessage.trim()) {
     return directMessage.trim()
   }
 
-  const errorField = record["error"]
+  const errorField = record.error
   if (typeof errorField === "string" && errorField.trim()) {
     return errorField.trim()
   }
 
   if (errorField && typeof errorField === "object") {
-    const nestedMessage = (errorField as Record<string, unknown>)["message"]
+    const nestedMessage = (errorField as Record<string, unknown>).message
     if (typeof nestedMessage === "string" && nestedMessage.trim()) {
       return nestedMessage.trim()
     }
@@ -127,8 +127,8 @@ export class ZaneOperatorClient {
     }
 
     return {
-      httpCode: response.status,
       body: parseResponse(responseBody),
+      httpCode: response.status,
     }
   }
 
@@ -140,11 +140,11 @@ export class ZaneOperatorClient {
     const response = await this.#requestJson(
       path,
       {
-        method: "POST",
+        body: JSON.stringify(payload),
         headers: {
           "content-type": "application/json",
         },
-        body: JSON.stringify(payload),
+        method: "POST",
       },
       parseResponse
     )
@@ -152,14 +152,14 @@ export class ZaneOperatorClient {
     return response.body
   }
 
-  resolveEnvironment(payload: {
+  async resolveEnvironment(payload: {
     lane: "preview" | "main"
     project_slug: string
     environment_name: string
     source_environment_name: string
     expected_preview_service_slugs: string[]
     excluded_preview_service_slugs: string[]
-    service_specs: Array<{
+    service_specs: {
       service_id: string
       service_slug: string
       git_source?:
@@ -179,14 +179,14 @@ export class ZaneOperatorClient {
       resource_limits?: {
         sync_from_source: boolean
       }
-    }>
+    }[]
   }): Promise<ResolveEnvironmentResponse> {
     return this.#postJson("/v1/zane/environments/resolve", payload, (value) =>
       resolveEnvironmentResponseSchema.parse(value)
     )
   }
 
-  readPreviewCommitState(payload: {
+  async readPreviewCommitState(payload: {
     project_slug: string
     environment_name: string
   }): Promise<PreviewCommitStateResponse> {
@@ -197,7 +197,7 @@ export class ZaneOperatorClient {
     )
   }
 
-  writePreviewCommitState(payload: {
+  async writePreviewCommitState(payload: {
     project_slug: string
     environment_name: string
     target_commit_sha?: string | undefined
@@ -211,10 +211,10 @@ export class ZaneOperatorClient {
     )
   }
 
-  syncPreviewRandomOnceSecrets(payload: {
+  async syncPreviewRandomOnceSecrets(payload: {
     project_slug: string
     environment_name: string
-    secrets: Array<{
+    secrets: {
       secret_id: string
       value?: string | undefined
       persist_to?: string | undefined
@@ -223,7 +223,7 @@ export class ZaneOperatorClient {
         service_slug: string
         env_var: string
       }>
-    }>
+    }[]
   }): Promise<PreviewRandomOnceSecretsResponse> {
     return this.#postJson(
       "/v1/zane/preview-random-once-secrets/sync",
@@ -232,7 +232,7 @@ export class ZaneOperatorClient {
     )
   }
 
-  syncPreviewSharedEnv(payload: {
+  async syncPreviewSharedEnv(payload: {
     project_slug: string
     environment_name: string
     variables: PreviewSharedEnvVariableInput[]
@@ -244,17 +244,17 @@ export class ZaneOperatorClient {
     )
   }
 
-  syncPreviewServiceEnv(payload: {
+  async syncPreviewServiceEnv(payload: {
     project_slug: string
     environment_name: string
-    services: Array<{
+    services: {
       service_id: string
       service_slug: string
       env: Array<{
         env_var: string
         source: PreviewSharedEnvVariableInput["source"]
       }>
-    }>
+    }[]
   }): Promise<ApplyEnvOverridesResponse> {
     return this.#postJson(
       "/v1/zane/preview-service-env/sync",
@@ -263,7 +263,7 @@ export class ZaneOperatorClient {
     )
   }
 
-  resolveTargets(
+  async resolveTargets(
     payload: ResolveTargetsPayload
   ): Promise<ResolveTargetsResponse> {
     return this.#postJson("/v1/zane/deploy/resolve-targets", payload, (value) =>
@@ -271,7 +271,7 @@ export class ZaneOperatorClient {
     )
   }
 
-  applyEnvOverrides(
+  async applyEnvOverrides(
     payload: ApplyEnvOverridesPayload
   ): Promise<ApplyEnvOverridesResponse> {
     return this.#postJson(
@@ -281,7 +281,7 @@ export class ZaneOperatorClient {
     )
   }
 
-  triggerDeploys(payload: {
+  async triggerDeploys(payload: {
     project_slug: string
     environment_name: string
     targets: ResolveTargetsResponse["services"]
@@ -301,7 +301,7 @@ export class ZaneOperatorClient {
     await this.#postJson("/v1/zane/deploy/cancel", payload, () => null)
   }
 
-  runRuntimeProvider(
+  async runRuntimeProvider(
     payload: RuntimeProviderRunPayload
   ): Promise<RuntimeProviderRunResponse> {
     return this.#postJson("/v1/zane/runtime-providers/run", payload, (value) =>
@@ -309,7 +309,7 @@ export class ZaneOperatorClient {
     )
   }
 
-  verifyDeploy(payload: VerifyDeployPayload): Promise<VerifyResponse> {
+  async verifyDeploy(payload: VerifyDeployPayload): Promise<VerifyResponse> {
     return this.#postJson("/v1/zane/deploy/verify", payload, (value) =>
       verifyResponseSchema.parse(value)
     )
@@ -322,11 +322,11 @@ export class ZaneOperatorClient {
     return await this.#requestJson(
       "/v1/preview-db/ensure",
       {
-        method: "POST",
+        body: JSON.stringify({ pr_number: prNumber }),
         headers: {
           "content-type": "application/json",
         },
-        body: JSON.stringify({ pr_number: prNumber }),
+        method: "POST",
       },
       (value) => ensurePreviewDbResponseSchema.parse(value)
     )
@@ -339,10 +339,10 @@ export class ZaneOperatorClient {
     return await this.#requestJson(
       `/v1/preview-db/${prNumber}`,
       {
-        method: "DELETE",
         headers: {
           Accept: "application/json",
         },
+        method: "DELETE",
       },
       (value) => teardownPreviewDbResponseSchema.parse(value)
     )
@@ -358,11 +358,11 @@ export class ZaneOperatorClient {
     return await this.#requestJson(
       "/v1/zane/environments/archive",
       {
-        method: "POST",
+        body: JSON.stringify(payload),
         headers: {
           "content-type": "application/json",
         },
-        body: JSON.stringify(payload),
+        method: "POST",
       },
       (value) => archiveEnvironmentResponseSchema.parse(value)
     )

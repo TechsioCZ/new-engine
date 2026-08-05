@@ -1,10 +1,12 @@
 import {
-  type AuthenticatedMedusaRequest,
   authenticate,
-  type MedusaNextFunction,
-  type MedusaResponse,
   validateAndTransformBody,
   validateAndTransformQuery,
+} from "@medusajs/framework"
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaNextFunction,
+  MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type { MiddlewareRoute } from "@medusajs/medusa"
@@ -59,20 +61,20 @@ export const ensureQuoteCustomer = async (
 
 export const storeQuotesMiddlewares: MiddlewareRoute[] = [
   {
-    method: "ALL",
     matcher: "/store/quotes*",
+    method: "ALL",
     middlewares: [authenticate("customer", ["session", "bearer"])],
   },
   {
-    method: ["GET"],
     matcher: "/store/quotes",
+    method: ["GET"],
     middlewares: [
       validateAndTransformQuery(GetQuoteParams, listQuotesTransformQueryConfig),
     ],
   },
   {
-    method: ["POST"],
     matcher: "/store/quotes",
+    method: ["POST"],
     middlewares: [
       validateAndTransformBody(CreateQuote),
       validateAndTransformQuery(
@@ -82,8 +84,8 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    method: ["GET"],
     matcher: "/store/quotes/:id",
+    method: ["GET"],
     middlewares: [
       ensureQuoteCustomer,
       validateAndTransformQuery(
@@ -93,8 +95,8 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    method: ["POST"],
     matcher: "/store/quotes/:id/accept",
+    method: ["POST"],
     middlewares: [
       ensureQuoteCustomer,
       validateAndTransformBody(AcceptQuote),
@@ -105,8 +107,8 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    method: ["POST"],
     matcher: "/store/quotes/:id/reject",
+    method: ["POST"],
     middlewares: [
       ensureQuoteCustomer,
       validateAndTransformBody(RejectQuote),
@@ -117,8 +119,8 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    method: ["GET"],
     matcher: "/store/quotes/:id/preview",
+    method: ["GET"],
     middlewares: [
       ensureQuoteCustomer,
       validateAndTransformQuery(
@@ -128,8 +130,8 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    method: ["POST"],
     matcher: "/store/quotes/:id/messages",
+    method: ["POST"],
     middlewares: [
       ensureQuoteCustomer,
       validateAndTransformBody(StoreCreateQuoteMessage),

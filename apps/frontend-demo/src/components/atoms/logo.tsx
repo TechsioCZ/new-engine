@@ -1,16 +1,17 @@
-import { tv, type VariantProps } from "tailwind-variants"
+import { tv } from "tailwind-variants"
+import type { VariantProps } from "tailwind-variants"
 
 const logoVariants = tv({
   base: "inline-flex",
-  variants: {
-    size: {
-      sm: "h-logo-sm gap-logo-gap-sm",
-      md: "h-logo-md gap-logo-gap-md",
-      lg: "h-logo-lg gap-logo-gap-lg",
-    },
-  },
   defaultVariants: {
     size: "md",
+  },
+  variants: {
+    size: {
+      lg: "h-logo-lg gap-logo-gap-lg",
+      md: "h-logo-md gap-logo-gap-md",
+      sm: "h-logo-sm gap-logo-gap-sm",
+    },
   },
 })
 

@@ -5,7 +5,7 @@ import Link from "next/link"
 import type { Brand } from "@/types/product"
 import { parseBrandData } from "@/utils/helpers/parse-brand-data"
 
-type ProductSizesProps = {
+interface ProductSizesProps {
   attributes?: Brand["attributes"]
 }
 

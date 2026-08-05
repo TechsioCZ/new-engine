@@ -1,9 +1,9 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
-import {
-  SYMMY_WEBHOOK_CONFIG_MODULE,
-  type SymmyWebhookConfigModuleService,
-  type UpdateSymmyWebhookConfigInput,
+import { SYMMY_WEBHOOK_CONFIG_MODULE } from "../../../modules/webhook-config"
+import type {
+  SymmyWebhookConfigModuleService,
+  UpdateSymmyWebhookConfigInput,
 } from "../../../modules/webhook-config"
 
 export const symmyUpdateWebhookConfigStep = createStep(

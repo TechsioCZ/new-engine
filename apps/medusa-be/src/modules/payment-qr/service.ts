@@ -22,13 +22,15 @@ export class QrPaymentModuleService extends MedusaService({
     }
 
     if (existing) {
-      return this.updateQrPaymentConfigs({
+      return await (this.updateQrPaymentConfigs({
         id: existing.id,
         ...update,
-      }) as Promise<QrPaymentConfigDTO>
+      }) as Promise<QrPaymentConfigDTO>)
     }
 
-    return this.createQrPaymentConfigs(update) as Promise<QrPaymentConfigDTO>
+    return await (this.createQrPaymentConfigs(
+      update
+    ) as Promise<QrPaymentConfigDTO>)
   }
 
   async getIban(): Promise<string | null> {
@@ -39,7 +41,7 @@ export class QrPaymentModuleService extends MedusaService({
 }
 
 function normalizeIban(value: string | null | undefined) {
-  const normalized = value?.replace(/\s+/g, "").toUpperCase() ?? ""
+  const normalized = value?.replaceAll(/\s+/g, "").toUpperCase() ?? ""
 
   return normalized || null
 }

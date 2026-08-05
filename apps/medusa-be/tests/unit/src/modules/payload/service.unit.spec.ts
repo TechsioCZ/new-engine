@@ -13,9 +13,9 @@ type PayloadDependencies = ConstructorParameters<typeof PayloadModuleService>[0]
 type PayloadCacheService = Pick<ICachingModuleService, "clear" | "get" | "set">
 
 const createCacheService = (): Mocked<PayloadCacheService> => ({
+  clear: vi.fn(),
   get: vi.fn(),
   set: vi.fn(),
-  clear: vi.fn(),
 })
 
 const createDependencies = (
@@ -25,7 +25,10 @@ const createDependencies = (
   ...(cacheService ? { [Modules.CACHING]: cacheService } : {}),
 })
 
-type FetchResponseOverrides = { ok?: boolean; status?: number }
+interface FetchResponseOverrides {
+  ok?: boolean
+  status?: number
+}
 
 const createFetchResponse = (
   payload: unknown,
@@ -44,20 +47,20 @@ const createBulkResponse = <T>(
   options?: { page?: number; limit?: number }
 ) => ({
   docs,
-  totalDocs: docs.length,
-  limit: options?.limit ?? 10,
-  page: options?.page ?? 1,
-  totalPages: 1,
   hasNextPage: false,
   hasPrevPage: false,
+  limit: options?.limit ?? 10,
   nextPage: null,
-  prevPage: null,
+  page: options?.page ?? 1,
   pagingCounter: 1,
+  prevPage: null,
+  totalDocs: docs.length,
+  totalPages: 1,
 })
 
 const defaultOptions: PayloadModuleOptions = {
-  serverUrl: "https://payload.example.com/",
   apiKey: "test-api-key",
+  serverUrl: "https://payload.example.com/",
 }
 
 const createServiceWithCache = (options?: Partial<PayloadModuleOptions>) => {
@@ -67,7 +70,7 @@ const createServiceWithCache = (options?: Partial<PayloadModuleOptions>) => {
     ...options,
   })
 
-  return { service, cacheService }
+  return { cacheService, service }
 }
 
 const createServiceWithoutCache = (options?: Partial<PayloadModuleOptions>) =>
@@ -93,7 +96,7 @@ const callPrivateStringHelper = (
   return result
 }
 
-describe("PayloadModuleService", () => {
+describe(PayloadModuleService, () => {
   const originalFetch = globalThis.fetch
   let fetchMock: ReturnType<typeof vi.fn<typeof fetch>>
 
@@ -112,8 +115,8 @@ describe("PayloadModuleService", () => {
       expect(
         () =>
           new PayloadModuleService(createDependencies(), {
-            serverUrl: "",
             apiKey: "test",
+            serverUrl: "",
           })
       ).toThrow("Payload serverUrl is required")
     })
@@ -122,8 +125,8 @@ describe("PayloadModuleService", () => {
       expect(
         () =>
           new PayloadModuleService(createDependencies(), {
-            serverUrl: "https://payload.example.com",
             apiKey: "",
+            serverUrl: "https://payload.example.com",
           })
       ).toThrow("Payload apiKey is required")
     })
@@ -137,8 +140,8 @@ describe("PayloadModuleService", () => {
       })
 
       const service = new PayloadModuleService(container, {
-        serverUrl: "https://payload.example.com",
         apiKey: "test-api-key",
+        serverUrl: "https://payload.example.com",
       })
 
       expect(service).toBeInstanceOf(PayloadModuleService)
@@ -154,7 +157,7 @@ describe("PayloadModuleService", () => {
 
       const result = await service.getPublishedPage("home", "en")
 
-      expect(result).toEqual(cachedPage)
+      expect(result).toStrictEqual(cachedPage)
       expect(cacheService.get).toHaveBeenCalledWith({
         key: "cms:pages:home:en",
       })
@@ -174,8 +177,8 @@ describe("PayloadModuleService", () => {
 
       const result = await service.getPublishedPage("home", "en")
 
-      expect(result).toEqual(page)
-      expect(fetchMock).toHaveBeenCalledTimes(1)
+      expect(result).toStrictEqual(page)
+      expect(fetchMock).toHaveBeenCalledOnce()
 
       const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit]
       const parsedUrl = new URL(url)
@@ -190,15 +193,15 @@ describe("PayloadModuleService", () => {
 
       expect(options?.method).toBe("GET")
       expect(options?.headers).toMatchObject({
-        "Content-Type": "application/json",
         Authorization: "users API-Key test-api-key",
+        "Content-Type": "application/json",
       })
 
       expect(cacheService.set).toHaveBeenCalledWith({
-        key: "cms:pages:home:en",
         data: page,
-        ttl: 123,
+        key: "cms:pages:home:en",
         tags: ["cms", "cms:pages"],
+        ttl: 123,
       })
     })
 
@@ -230,7 +233,7 @@ describe("PayloadModuleService", () => {
 
       const result = await service.getPublishedArticle("news", "en")
 
-      expect(result).toEqual(article)
+      expect(result).toStrictEqual(article)
       expect(cacheService.set).toHaveBeenCalledWith(
         expect.objectContaining({
           key: "cms:articles:news:en",
@@ -242,17 +245,17 @@ describe("PayloadModuleService", () => {
     it("redacts private Payload auth fields from expanded relationships", async () => {
       const { service, cacheService } = createServiceWithCache()
       const article = {
+        author: {
+          apiKey: "secret-api-key",
+          apiKeyIndex: "secret-index",
+          email: "author@example.com",
+          enableAPIKey: true,
+          id: 1,
+          sessions: [{ id: "session-id" }],
+        },
         id: 1,
         slug: "news",
         title: "News",
-        author: {
-          id: 1,
-          email: "author@example.com",
-          apiKey: "secret-api-key",
-          apiKeyIndex: "secret-index",
-          enableAPIKey: true,
-          sessions: [{ id: "session-id" }],
-        },
       }
 
       cacheService.get.mockResolvedValue(null)
@@ -262,23 +265,23 @@ describe("PayloadModuleService", () => {
 
       const result = await service.getPublishedArticle("news", "en")
 
-      expect(result).toEqual({
-        id: 1,
-        slug: "news",
-        title: "News",
+      expect(result).toStrictEqual({
         author: {
           id: 1,
         },
+        id: 1,
+        slug: "news",
+        title: "News",
       })
       expect(cacheService.set).toHaveBeenCalledWith(
         expect.objectContaining({
           data: {
-            id: 1,
-            slug: "news",
-            title: "News",
             author: {
               id: 1,
             },
+            id: 1,
+            slug: "news",
+            title: "News",
           },
         })
       )
@@ -288,26 +291,26 @@ describe("PayloadModuleService", () => {
       const { service, cacheService } = createServiceWithCache()
 
       cacheService.get.mockResolvedValue({
+        author: {
+          apiKey: "secret-api-key",
+          email: "author@example.com",
+          id: 1,
+          sessions: [{ id: "session-id" }],
+        },
         id: 1,
         slug: "news",
         title: "News",
-        author: {
-          id: 1,
-          email: "author@example.com",
-          apiKey: "secret-api-key",
-          sessions: [{ id: "session-id" }],
-        },
       })
 
       const result = await service.getPublishedArticle("news", "en")
 
-      expect(result).toEqual({
-        id: 1,
-        slug: "news",
-        title: "News",
+      expect(result).toStrictEqual({
         author: {
           id: 1,
         },
+        id: 1,
+        slug: "news",
+        title: "News",
       })
       expect(fetchMock).not.toHaveBeenCalled()
     })
@@ -339,13 +342,13 @@ describe("PayloadModuleService", () => {
 
       const options = {
         limit: 10,
+        locale: "en",
         page: 2,
         sort: "-createdAt",
-        locale: "en",
       }
       const result = await service.listHeroCarousels(options)
 
-      expect(result).toEqual(carousels)
+      expect(result).toStrictEqual(carousels)
 
       const expectedHash = createHash("sha256")
         .update(JSON.stringify({ limit: 10, page: 2, sort: "-createdAt" }))
@@ -364,14 +367,14 @@ describe("PayloadModuleService", () => {
 
       expect(cacheService.set).toHaveBeenCalledWith(
         expect.objectContaining({
-          key: expectedKey,
           data: carousels,
-          ttl: 456,
+          key: expectedKey,
           tags: expect.arrayContaining([
             "cms",
             "cms:hero-carousels",
             "cms:hero-carousels:locale:en",
           ]),
+          ttl: 456,
         })
       )
     })
@@ -400,7 +403,7 @@ describe("PayloadModuleService", () => {
 
       const result = await service.listHeroCarousels()
 
-      expect(result).toEqual(carousels)
+      expect(result).toStrictEqual(carousels)
       expect(cacheService.get).toHaveBeenCalledWith({
         key: "cms:hero-carousels:default:default",
       })
@@ -417,7 +420,7 @@ describe("PayloadModuleService", () => {
 
       const result = await service.listHeroCarousels({ locale: "en" })
 
-      expect(result).toEqual(carousels)
+      expect(result).toStrictEqual(carousels)
       expect(cacheService.get).toHaveBeenCalledWith({
         key: "cms:hero-carousels:en:default",
       })
@@ -432,9 +435,9 @@ describe("PayloadModuleService", () => {
         createFetchResponse(createBulkResponse(carousels))
       )
 
-      const result = await service.listHeroCarousels({ page: 2, locale: "en" })
+      const result = await service.listHeroCarousels({ locale: "en", page: 2 })
 
-      expect(result).toEqual(carousels)
+      expect(result).toStrictEqual(carousels)
 
       const expectedHash = createHash("sha256")
         .update(JSON.stringify({ page: 2 }))
@@ -455,11 +458,11 @@ describe("PayloadModuleService", () => {
       )
 
       const result = await service.listHeroCarousels({
-        sort: "-createdAt",
         locale: "en",
+        sort: "-createdAt",
       })
 
-      expect(result).toEqual(carousels)
+      expect(result).toStrictEqual(carousels)
 
       const expectedHash = createHash("sha256")
         .update(JSON.stringify({ sort: "-createdAt" }))
@@ -481,7 +484,7 @@ describe("PayloadModuleService", () => {
 
       const result = await service.listHeroCarousels({ limit: 5, locale: "en" })
 
-      expect(result).toEqual(carousels)
+      expect(result).toStrictEqual(carousels)
 
       const expectedHash = createHash("sha256")
         .update(JSON.stringify({ limit: 5 }))
@@ -501,11 +504,11 @@ describe("PayloadModuleService", () => {
       fetchMock.mockResolvedValue(createFetchResponse({ categories: [] }))
 
       const result = await service.listPageCategoriesWithPages({
-        locale: "en",
         categorySlug: "news",
+        locale: "en",
       })
 
-      expect(result).toEqual([])
+      expect(result).toStrictEqual([])
       expect(cacheService.get).toHaveBeenCalledWith({
         key: "cms:page-categories:en:news",
       })
@@ -535,7 +538,7 @@ describe("PayloadModuleService", () => {
 
       const result = await service.listPageCategoriesWithPages({ locale: "en" })
 
-      expect(result).toEqual([])
+      expect(result).toStrictEqual([])
       expect(cacheService.get).toHaveBeenCalledWith({
         key: "cms:page-categories:en:all",
       })
@@ -549,7 +552,7 @@ describe("PayloadModuleService", () => {
 
       const result = await service.listPageCategoriesWithPages()
 
-      expect(result).toEqual([])
+      expect(result).toStrictEqual([])
       expect(cacheService.get).toHaveBeenCalledWith({
         key: "cms:page-categories:default:all",
       })
@@ -575,10 +578,10 @@ describe("PayloadModuleService", () => {
       const { service, cacheService } = createServiceWithCache()
       const categories = [
         {
-          id: 1,
-          title: "News",
-          slug: "news",
           articles: [{ title: "Article 1", slug: "article-1" }],
+          id: 1,
+          slug: "news",
+          title: "News",
         },
       ]
 
@@ -586,11 +589,11 @@ describe("PayloadModuleService", () => {
       fetchMock.mockResolvedValue(createFetchResponse({ categories }))
 
       const result = await service.listArticleCategoriesWithArticles({
-        locale: "en",
         categorySlug: "news",
+        locale: "en",
       })
 
-      expect(result).toEqual(categories)
+      expect(result).toStrictEqual(categories)
       expect(cacheService.get).toHaveBeenCalledWith({
         key: "cms:article-categories:en:news",
       })
@@ -620,7 +623,7 @@ describe("PayloadModuleService", () => {
 
       const result = await service.listArticleCategoriesWithArticles()
 
-      expect(result).toEqual([])
+      expect(result).toStrictEqual([])
     })
 
     it("returns empty list when no categories match filter", async () => {
@@ -633,7 +636,7 @@ describe("PayloadModuleService", () => {
         locale: "en",
       })
 
-      expect(result).toEqual([])
+      expect(result).toStrictEqual([])
     })
   })
 
@@ -649,7 +652,7 @@ describe("PayloadModuleService", () => {
     it("clears key and locale tag for pages", async () => {
       const { service, cacheService } = createServiceWithCache()
 
-      cacheService.clear.mockResolvedValue(undefined)
+      cacheService.clear.mockResolvedValue()
 
       await service.invalidateCache("pages", "home", "en")
 
@@ -664,7 +667,7 @@ describe("PayloadModuleService", () => {
     it("clears all locales when locale is not provided", async () => {
       const { service, cacheService } = createServiceWithCache()
 
-      cacheService.clear.mockResolvedValue(undefined)
+      cacheService.clear.mockResolvedValue()
 
       await service.invalidateCache("hero-carousels")
 
@@ -676,7 +679,7 @@ describe("PayloadModuleService", () => {
     it("clears article cache key and article-category locale tag", async () => {
       const { service, cacheService } = createServiceWithCache()
 
-      cacheService.clear.mockResolvedValue(undefined)
+      cacheService.clear.mockResolvedValue()
 
       await service.invalidateCache("articles", "hello-world", "cs")
 
@@ -691,7 +694,7 @@ describe("PayloadModuleService", () => {
     it("clears all CMS cache when media changes", async () => {
       const { service, cacheService } = createServiceWithCache()
 
-      cacheService.clear.mockResolvedValue(undefined)
+      cacheService.clear.mockResolvedValue()
 
       await service.invalidateCache("media")
 
@@ -703,7 +706,7 @@ describe("PayloadModuleService", () => {
     it("clears page category tags when locale is missing", async () => {
       const { service, cacheService } = createServiceWithCache()
 
-      cacheService.clear.mockResolvedValue(undefined)
+      cacheService.clear.mockResolvedValue()
 
       await service.invalidateCache("page-categories")
 
@@ -715,7 +718,7 @@ describe("PayloadModuleService", () => {
     it("clears article-category locale tag when locale is provided", async () => {
       const { service, cacheService } = createServiceWithCache()
 
-      cacheService.clear.mockResolvedValue(undefined)
+      cacheService.clear.mockResolvedValue()
 
       await service.invalidateCache("article-categories", undefined, "sk")
 
@@ -727,7 +730,7 @@ describe("PayloadModuleService", () => {
     it("handles unknown collections without tags", async () => {
       const { service, cacheService } = createServiceWithCache()
 
-      cacheService.clear.mockResolvedValue(undefined)
+      cacheService.clear.mockResolvedValue()
 
       await service.invalidateCache("unknown-collection")
 
@@ -737,7 +740,7 @@ describe("PayloadModuleService", () => {
     it("treats 'null' locale string as missing and clears all locales", async () => {
       const { service, cacheService } = createServiceWithCache()
 
-      cacheService.clear.mockResolvedValue(undefined)
+      cacheService.clear.mockResolvedValue()
 
       await service.invalidateCache("pages", "home", "null")
 

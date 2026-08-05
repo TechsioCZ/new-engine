@@ -1,8 +1,5 @@
-import {
-  type CacheConfig,
-  type CacheStrategy,
-  createCacheConfig,
-} from "../shared/cache-config"
+import { createCacheConfig } from "../shared/cache-config"
+import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
   ReadQueryOptions,
@@ -23,7 +20,7 @@ import type {
   ProductListService,
 } from "./types"
 
-export type CreateProductListQueryOptionsFactoryConfig<
+export interface CreateProductListQueryOptionsFactoryConfig<
   TProductList,
   TProductListItem,
   TCart extends ProductListCartLike,
@@ -33,7 +30,7 @@ export type CreateProductListQueryOptionsFactoryConfig<
   TDetailParams,
   TListKeyParams = TListParams & { customerId?: string | null },
   TDetailKeyParams = TDetailParams & { customerId?: string | null },
-> = {
+> {
   service: ProductListService<
     TProductList,
     TProductListItem,
@@ -57,11 +54,11 @@ export type CreateProductListQueryOptionsFactoryConfig<
   defaultPageSize?: number
 }
 
-export type ProductListQueryOptionsFactory<
+export interface ProductListQueryOptionsFactory<
   TProductList,
   TListInput extends ProductListListInputBase,
   TDetailInput extends ProductListDetailInputBase,
-> = {
+> {
   getListQueryOptions: (
     input: TListInput,
     options?: {
@@ -132,30 +129,31 @@ export function createProductListQueryOptionsFactory<
       withCustomerScope(params, input) as TDetailKeyParams)
 
   return {
-    getListQueryOptions: (input, options) => {
-      const listParams = buildList(input)
-      const cacheStrategy = options?.cacheStrategy ?? "userData"
-
-      return {
-        queryKey: resolvedQueryKeys.list(buildListKey(input, listParams)),
-        queryFn: ({ signal }) => service.listProductLists(listParams, signal),
-        ...resolvedCacheConfig[cacheStrategy],
-        ...options?.queryOptions,
-      }
-    },
     getDetailQueryOptions: (input, options) => {
       const detailParams = buildDetail(input)
       const cacheStrategy = options?.cacheStrategy ?? "userData"
 
       return {
         queryKey: resolvedQueryKeys.detail(buildDetailKey(input, detailParams)),
-        queryFn: ({ signal }) => {
+        queryFn: async ({ signal }) => {
           if (!input.id) {
             throw new Error("Product list id is required")
           }
 
           return service.getProductList(detailParams, signal)
         },
+        ...resolvedCacheConfig[cacheStrategy],
+        ...options?.queryOptions,
+      }
+    },
+    getListQueryOptions: (input, options) => {
+      const listParams = buildList(input)
+      const cacheStrategy = options?.cacheStrategy ?? "userData"
+
+      return {
+        queryKey: resolvedQueryKeys.list(buildListKey(input, listParams)),
+        queryFn: async ({ signal }) =>
+          service.listProductLists(listParams, signal),
         ...resolvedCacheConfig[cacheStrategy],
         ...options?.queryOptions,
       }

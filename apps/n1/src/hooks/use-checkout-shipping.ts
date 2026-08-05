@@ -8,30 +8,26 @@ import {
 import { CACHE_TIMES, TAX_RATE } from "@/lib/constants"
 import { CartServiceError } from "@/lib/errors"
 import { queryKeys } from "@/lib/query-keys"
-import {
-  type Cart,
-  getShippingOptions,
-  type ShippingMethodData,
-  setShippingMethod,
-} from "@/services/cart-service"
+import { getShippingOptions, setShippingMethod } from "@/services/cart-service"
+import type { Cart, ShippingMethodData } from "@/services/cart-service"
 
 import { useCartToast } from "./use-toast"
 
-type CartMutationError = {
+interface CartMutationError {
   message: string
   code?: string
 }
 
-type CartMutationContext = {
+interface CartMutationContext {
   previousCart: Cart | undefined
 }
 
-type SetShippingVariables = {
+interface SetShippingVariables {
   optionId: string
   data?: ShippingMethodData | undefined
 }
 
-export type UseCheckoutShippingReturn = {
+export interface UseCheckoutShippingReturn {
   shippingOptions?: HttpTypes.StoreCartShippingOption[]
   setShipping: (optionId: string, data?: ShippingMethodData) => void
   isSettingShipping: boolean
@@ -73,11 +69,24 @@ export function useCheckoutShipping(
     SetShippingVariables,
     CartMutationContext
   >({
-    mutationFn: ({ optionId, data }) => {
+    mutationFn: async ({ optionId, data }) => {
       if (!cartId) {
         throw new CartServiceError("Cart ID je povinné", "VALIDATION_ERROR")
       }
       return setShippingMethod(cartId, optionId, data)
+    },
+    onError: (error, _variables, context) => {
+      // Rollback to previous cart state
+      if (context?.previousCart) {
+        queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
+      }
+
+      // Show error toast to user
+      toast.shippingError()
+
+      if (process.env.NODE_ENV === "development") {
+        console.error("[useCheckoutShipping] Failed to set shipping:", error)
+      }
     },
     onMutate: async ({ optionId }) => {
       // Cancel outgoing queries to prevent race conditions
@@ -118,7 +127,7 @@ export function useCheckoutShipping(
           // Immediately update UI
           queryClient.setQueryData(queryKeys.cart.active(), optimisticCart)
 
-          if (process.env["NODE_ENV"] === "development") {
+          if (process.env.NODE_ENV === "development") {
             console.log("[useCheckoutShipping] Optimistic update applied")
           }
         }
@@ -126,33 +135,20 @@ export function useCheckoutShipping(
 
       return { previousCart }
     },
+    onSettled: () => {
+      // No invalidations needed - we have fresh data from onSuccess
+      // Shipping options don't change when selecting a method
+    },
     onSuccess: (updatedCart) => {
       // Replace optimistic data with real server data
       queryClient.setQueryData(queryKeys.cart.active(), updatedCart)
 
-      if (process.env["NODE_ENV"] === "development") {
+      if (process.env.NODE_ENV === "development") {
         console.log("[useCheckoutShipping] Shipping method confirmed:", {
           methodId: updatedCart.shipping_methods?.[0]?.shipping_option_id,
           total: updatedCart.shipping_total,
         })
       }
-    },
-    onError: (error, _variables, context) => {
-      // Rollback to previous cart state
-      if (context?.previousCart) {
-        queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
-      }
-
-      // Show error toast to user
-      toast.shippingError()
-
-      if (process.env["NODE_ENV"] === "development") {
-        console.error("[useCheckoutShipping] Failed to set shipping:", error)
-      }
-    },
-    onSettled: () => {
-      // No invalidations needed - we have fresh data from onSuccess
-      // Shipping options don't change when selecting a method
     },
   })
 
@@ -171,12 +167,12 @@ export function useCheckoutShipping(
   }
 
   return {
-    shippingOptions,
-    setShipping,
-    isSettingShipping,
     canLoadShipping,
     canSetShipping,
-    selectedShippingMethodId,
+    isSettingShipping,
     selectedOption,
+    selectedShippingMethodId,
+    setShipping,
+    shippingOptions,
   }
 }

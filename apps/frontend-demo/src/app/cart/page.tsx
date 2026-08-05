@@ -37,8 +37,8 @@ export default function CartPage() {
         <div className="mb-cart-breadcrumb-margin">
           <BreadcrumbTemplate
             items={[
-              { label: "Domů", href: "/" },
-              { label: "Košík", href: "/cart" },
+              { href: "/", label: "Domů" },
+              { href: "/cart", label: "Košík" },
             ]}
             linkAs={Link}
           />
@@ -112,15 +112,17 @@ export default function CartPage() {
                               className="h-fit w-24 py-0"
                               max={99}
                               min={1}
-                              onChange={(value) =>
+                              onChange={(value) => {
                                 updateQuantity(item.id, value)
-                              }
+                              }}
                               size="sm"
                               value={item.quantity}
                             />
                             <Button
                               icon="token-icon-remove"
-                              onClick={() => removeItem(item.id)}
+                              onClick={() => {
+                                removeItem(item.id)
+                              }}
                               size="sm"
                               theme="borderless"
                               variant="tertiary"

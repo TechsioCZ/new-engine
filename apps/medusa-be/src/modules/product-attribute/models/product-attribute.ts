@@ -5,17 +5,17 @@ import ProductAttributeOption from "./product-attribute-option"
 
 const ProductAttribute = model
   .define("product_attribute", {
-    id: model.id({ prefix: "pat" }).primaryKey(),
-    product_id: model.text().searchable(),
-    text_value: model.text().translatable().nullable(),
     definition: model.belongsTo(() => ProductAttributeDefinition, {
       mappedBy: "assignments",
     }),
+    id: model.id({ prefix: "pat" }).primaryKey(),
     option: model
       .belongsTo(() => ProductAttributeOption, {
         mappedBy: "assignments",
       })
       .nullable(),
+    product_id: model.text().searchable(),
+    text_value: model.text().translatable().nullable(),
   })
   .indexes([
     {
@@ -41,9 +41,9 @@ const ProductAttribute = model
   ])
   .checks([
     {
-      name: "product_attribute_exactly_one_value",
       expression: (columns) =>
         `((${columns.text_value} IS NOT NULL)::int + (${columns.option_id} IS NOT NULL)::int) = 1`,
+      name: "product_attribute_exactly_one_value",
     },
   ])
 

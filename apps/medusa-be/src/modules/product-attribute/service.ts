@@ -12,7 +12,7 @@ import ProductAttribute from "./models/product-attribute"
 import ProductAttributeDefinition from "./models/product-attribute-definition"
 import ProductAttributeOption from "./models/product-attribute-option"
 
-export type ProductAttributeUsageCount = {
+export interface ProductAttributeUsageCount {
   count: number | string
   id: string
 }
@@ -76,7 +76,7 @@ class ProductAttributeModuleService extends MedusaService({
       return []
     }
 
-    const manager = sharedContext.manager
+    const { manager } = sharedContext
     if (!manager) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,

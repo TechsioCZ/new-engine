@@ -81,21 +81,21 @@ const normalizeCartPayload = (input: CartPayloadInput) => {
     }
 
     const nextShippingAddress = shippingAddress ?? {}
-    if (nextShippingAddress["countryCode"] !== undefined) {
-      nextShippingAddress["countryCode"] = undefined
+    if (nextShippingAddress.countryCode !== undefined) {
+      nextShippingAddress.countryCode = undefined
     }
     if (
       normalizedCountryCode &&
-      nextShippingAddress["country_code"] === undefined
+      nextShippingAddress.country_code === undefined
     ) {
-      nextShippingAddress["country_code"] = normalizedCountryCode
+      nextShippingAddress.country_code = normalizedCountryCode
     }
 
     return nextShippingAddress
   })()
 
-  if (billingAddress?.["countryCode"] !== undefined) {
-    billingAddress["countryCode"] = undefined
+  if (billingAddress?.countryCode !== undefined) {
+    billingAddress.countryCode = undefined
   }
 
   const payload = {

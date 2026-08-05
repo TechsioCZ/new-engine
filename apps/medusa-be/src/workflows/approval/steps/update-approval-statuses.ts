@@ -6,11 +6,11 @@ import {
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import { APPROVAL_MODULE } from "../../../modules/approval"
-import {
-  ApprovalStatusType,
-  type IApprovalModuleService,
-  type ModuleApproval,
-  type ModuleApprovalStatus,
+import { ApprovalStatusType } from "../../../types"
+import type {
+  IApprovalModuleService,
+  ModuleApproval,
+  ModuleApprovalStatus,
 } from "../../../types"
 
 function toApprovalStatusSnapshot(value: unknown): ModuleApprovalStatus {

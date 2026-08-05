@@ -1,6 +1,6 @@
 import type { Route } from "next"
 
-export type AppHref = Route<string>
+export type AppHref = Route
 
 const STATIC_PATHS = new Set([
   "/",

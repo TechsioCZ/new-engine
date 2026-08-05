@@ -7,9 +7,9 @@ import { useMemo, useRef, useState } from "react"
 
 import {
   CARRIER_PICKUP_FAILURE_KEYS,
-  type CarrierPickupFailureReason,
   resolveCarrierPickupWidgetLanguage,
 } from "@/components/checkout/carrier-pickup.utils"
+import type { CarrierPickupFailureReason } from "@/components/checkout/carrier-pickup.utils"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 
 import { PacketaPickupWidget } from "../packeta-widget"
@@ -20,16 +20,16 @@ import type {
   PacketaWidgetOptions,
 } from "../packeta-widget.types"
 
-type CheckoutPacketaPickupSelectorProps = {
+interface CheckoutPacketaPickupSelectorProps {
   disabled: boolean
   onConfirm: (data: Record<string, unknown>) => void
 }
 
 const PACKETA_WIDGET_API_KEY =
-  process.env["NEXT_PUBLIC_PACKETA_WIDGET_API_KEY"]?.trim() ?? ""
+  process.env.NEXT_PUBLIC_PACKETA_WIDGET_API_KEY?.trim() ?? ""
 const DEFAULT_PACKETA_COUNTRY = "sk"
 const PACKETA_WIDGET_COUNTRIES =
-  process.env["NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES"]?.trim() ??
+  process.env.NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES?.trim() ??
   DEFAULT_PACKETA_COUNTRY
 const ENABLED_PACKETA_COUNTRIES = resolvePacketaCountries(
   PACKETA_WIDGET_COUNTRIES
@@ -164,13 +164,13 @@ function buildPacketaShippingData(
   fallbackPointLabel: string
 ) {
   const payload: Record<string, unknown> = {
+    access_point_city: point.city,
+    access_point_country: point.country,
     access_point_id: point.id,
     access_point_name: resolvePacketaPointLabel(point, fallbackPointLabel),
     access_point_street: point.street,
     access_point_type: point.pickupPointType ?? point.group,
     access_point_zip: point.zip,
-    access_point_city: point.city,
-    access_point_country: point.country,
   }
 
   return Object.fromEntries(

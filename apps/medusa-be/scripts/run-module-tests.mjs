@@ -9,10 +9,10 @@ import { medusaBeDir, repoRoot } from "./hash-safe-workdir.mjs"
 
 const dbEnv = {
   DB_HOST: process.env.DB_HOST || "127.0.0.1",
-  DB_USERNAME: process.env.DB_USERNAME || "root",
   DB_PASSWORD: process.env.DB_PASSWORD || "root",
   DB_PORT: process.env.DB_PORT || "5432",
   DB_TEMP_NAME: process.env.DB_TEMP_NAME || "medusa_test",
+  DB_USERNAME: process.env.DB_USERNAME || "root",
 }
 
 const dbUser = encodeURIComponent(dbEnv.DB_USERNAME)
@@ -39,7 +39,7 @@ const testEnv = {
   TS_NODE_TRANSPILE_ONLY: "true",
 }
 
-function run(command, args, options = {}) {
+async function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd || repoRoot,
@@ -64,14 +64,16 @@ function run(command, args, options = {}) {
   })
 }
 
-function canConnect(host, port, timeoutMs = 1000) {
+async function canConnect(host, port, timeoutMs = 1000) {
   return new Promise((resolve) => {
     const socket = net.connect({ host, port }, () => {
       socket.end()
       resolve(true)
     })
 
-    socket.on("error", () => resolve(false))
+    socket.on("error", () => {
+      resolve(false)
+    })
     socket.setTimeout(timeoutMs, () => {
       socket.destroy()
       resolve(false)
@@ -79,7 +81,7 @@ function canConnect(host, port, timeoutMs = 1000) {
   })
 }
 
-function sleep(ms) {
+async function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
@@ -96,11 +98,11 @@ async function waitUntil(attempts, check) {
 }
 
 async function waitForTcp(host, port, attempts = 30) {
-  return waitUntil(attempts, () => canConnect(host, port))
+  return await waitUntil(attempts, async () => canConnect(host, port))
 }
 
 async function waitForDockerPostgres(containerName, attempts = 60) {
-  return waitUntil(attempts, async () => {
+  return await waitUntil(attempts, async () => {
     const code = await run(
       "docker",
       [
@@ -145,7 +147,7 @@ function dockerContainerName() {
     process.env.GITHUB_RUN_ATTEMPT || process.pid,
   ].join("-")
 
-  return raw.replace(/[^a-zA-Z0-9_.-]/g, "-")
+  return raw.replaceAll(/[^a-zA-Z0-9_.-]/g, "-")
 }
 
 async function ensurePostgres() {
@@ -212,9 +214,9 @@ try {
       "--no-file-parallelism",
     ],
     {
+      allowFailure: true,
       cwd: medusaBeDir,
       env: testEnv,
-      allowFailure: true,
     }
   )
 

@@ -59,8 +59,8 @@ export const buildHerbatikaPaymentSessionData = ({
   return {
     cart_id: cartId,
     item_id: cartId,
-    session_id: cartId,
     metadata,
+    session_id: cartId,
     ...(email
       ? {
           customer: { email },
@@ -71,13 +71,13 @@ export const buildHerbatikaPaymentSessionData = ({
     ...(returnUrl
       ? {
           cancel_url: cancelUrl ?? returnUrl,
-          return_url: returnUrl,
-          success_url: returnUrl,
           provider_metadata: {
             cancel_url: cancelUrl ?? returnUrl,
             return_url: returnUrl,
             success_url: returnUrl,
           },
+          return_url: returnUrl,
+          success_url: returnUrl,
         }
       : {}),
   }

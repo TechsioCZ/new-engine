@@ -4,7 +4,7 @@ import { jsonResponse, mapHandlerError } from "../http"
 import { ZaneClient } from "../zane"
 import { parseRuntimeProviderRunInput } from "../zane-inputs"
 
-type RunRuntimeProviderDeps = {
+interface RunRuntimeProviderDeps {
   config: AppConfig
 }
 

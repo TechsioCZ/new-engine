@@ -47,7 +47,7 @@ const createResponse = () => {
 }
 
 const createRequest = ({
-  emit = vi.fn().mockResolvedValue(undefined),
+  emit = vi.fn().mockResolvedValue(),
   headers = { host: "shop.example" },
   logger = {
     debug: vi.fn(),
@@ -109,7 +109,7 @@ const createRequest = ({
 
 describe("GoPay payment webhook route", () => {
   it("emits Medusa payment webhook events for GoPay GET callbacks", async () => {
-    const emit = vi.fn().mockResolvedValue(undefined)
+    const emit = vi.fn().mockResolvedValue()
     const req = createRequest({ emit })
     const res = createResponse()
 
@@ -117,18 +117,18 @@ describe("GoPay payment webhook route", () => {
 
     expect(emit).toHaveBeenCalledWith(
       {
-        name: PaymentWebhookEvents.WebhookReceived,
         data: {
-          provider: PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
           payload: {
             data: {
               fullUrl: `https://shop.example${PAYKIT_GOPAY_WEBHOOK_PATH}?id=gopay-payment-1`,
               url: `${PAYKIT_GOPAY_WEBHOOK_PATH}?id=gopay-payment-1`,
             },
-            rawData: "",
             headers: req.headers,
+            rawData: "",
           },
+          provider: PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
         },
+        name: PaymentWebhookEvents.WebhookReceived,
       },
       {
         attempts: 2,
@@ -139,7 +139,7 @@ describe("GoPay payment webhook route", () => {
   })
 
   it("preserves explicit zero webhook retry settings", async () => {
-    const emit = vi.fn().mockResolvedValue(undefined)
+    const emit = vi.fn().mockResolvedValue()
     const req = createRequest({
       emit,
       webhookDelay: 0,
@@ -157,7 +157,7 @@ describe("GoPay payment webhook route", () => {
   })
 
   it("rejects callbacks without GoPay payment id", async () => {
-    const emit = vi.fn().mockResolvedValue(undefined)
+    const emit = vi.fn().mockResolvedValue()
     const req = createRequest({
       emit,
       originalUrl: PAYKIT_GOPAY_WEBHOOK_PATH,

@@ -9,22 +9,18 @@ import {
   updatePriceListsWorkflow,
 } from "@medusajs/medusa/core-flows"
 
-import {
-  SYMMY_CUSTOMER_GROUP_CODE_MODULE,
-  type SymmyCustomerGroupCodeModuleService,
-} from "../../modules/customer-group-code"
-import {
-  SYMMY_PRICE_LIST_CODE_MODULE,
-  type SymmyPriceListCodeDTO,
-  type SymmyPriceListCodeModuleService,
+import { SYMMY_CUSTOMER_GROUP_CODE_MODULE } from "../../modules/customer-group-code"
+import type { SymmyCustomerGroupCodeModuleService } from "../../modules/customer-group-code"
+import { SYMMY_PRICE_LIST_CODE_MODULE } from "../../modules/price-list-code"
+import type {
+  SymmyPriceListCodeDTO,
+  SymmyPriceListCodeModuleService,
 } from "../../modules/price-list-code"
-import {
-  type PriceIdentifierSets,
-  priceListsClientMapperHelper,
-} from "./client-mapper-helper"
+import { priceListsClientMapperHelper } from "./client-mapper-helper"
+import type { PriceIdentifierSets } from "./client-mapper-helper"
 import type { ListedPriceList, PriceInput, PriceListInput } from "./types"
 
-export type ExistingPriceList = {
+export interface ExistingPriceList {
   id: string
   title: string
   description: string | null
@@ -36,15 +32,15 @@ export type ExistingPriceList = {
   type?: string
 }
 
-export type ExistingPriceListIndex = {
+export interface ExistingPriceListIndex {
   byCode: Map<string, ExistingPriceList>
 }
 
-export type PriceListCustomerGroupIndex = {
+export interface PriceListCustomerGroupIndex {
   byCode: Map<string, { id: string }>
 }
 
-export type ExistingPrice = {
+export interface ExistingPrice {
   id: string
   currency_code: string
   min_quantity: number | null
@@ -55,14 +51,14 @@ export type ExistingPrice = {
   }
 }
 
-export type VariantLookupMaps = {
+export interface VariantLookupMaps {
   bySku: Map<string, string>
   byEan: Map<string, string>
   byId: Map<string, string>
   priceSetByVariantId: Map<string, string>
 }
 
-export type PriceBatchApplyResult = {
+export interface PriceBatchApplyResult {
   created: unknown[]
   updated: unknown[]
 }
@@ -90,7 +86,7 @@ const PRICE_FIELDS = [
   "price_set.variant.id",
 ] as const
 
-type VariantQueryResult = {
+interface VariantQueryResult {
   byField: Map<string, string>
   priceSetByVariantId: Map<string, string>
 }
@@ -152,7 +148,7 @@ export class PriceListsClient {
     offset: number
   }) {
     const { mappings, count } = await this.priceListCodeService.listPage({
-      ...(code !== undefined ? { erpCode: code } : {}),
+      ...(code === undefined ? {} : { erpCode: code }),
       limit,
       offset,
     })
@@ -167,10 +163,10 @@ export class PriceListsClient {
       .map((priceList) => this.mapper.toListedPriceList(priceList))
       .filter((priceList): priceList is ListedPriceList => priceList !== null)
     return {
-      price_lists,
       count,
-      offset,
       limit,
+      offset,
+      price_lists,
     }
   }
 
@@ -182,7 +178,7 @@ export class PriceListsClient {
       return { byCode: new Map() }
     }
     const [nameGroups, codeMappings] = await Promise.all([
-      this.queryCustomerGroups({ name: Array.from(codes) }),
+      this.queryCustomerGroups({ name: [...codes] }),
       this.customerGroupCodeService.listByCodes(codes),
     ])
     const codeGroups = await this.queryCustomerGroups({
@@ -255,9 +251,9 @@ export class PriceListsClient {
       this.queryVariants("id", identifiers),
     ])
     return {
-      bySku: bySku.byField,
       byEan: byEan.byField,
       byId: byId.byField,
+      bySku: bySku.byField,
       priceSetByVariantId: new Map([
         ...bySku.priceSetByVariantId,
         ...byEan.priceSetByVariantId,
@@ -291,11 +287,11 @@ export class PriceListsClient {
 
     const { data } = await this.query.graph({
       entity: "price",
-      fields: Array.from(PRICE_FIELDS),
+      fields: [...PRICE_FIELDS],
       filters: {
+        currency_code: Array.from(currencyCodes),
         price_list_id: priceListId,
         price_set_id: Array.from(priceSetIds),
-        currency_code: Array.from(currencyCodes),
       },
     })
 
@@ -313,10 +309,10 @@ export class PriceListsClient {
     const { result } = await batchPriceListPricesWorkflow(this.container).run({
       input: {
         data: {
-          id: priceListId,
           create: create as never,
-          update: update as never,
           delete: [],
+          id: priceListId,
+          update: update as never,
         },
       },
     })
@@ -334,8 +330,8 @@ export class PriceListsClient {
     }
     const { data } = await this.query.graph({
       entity: "price_list",
-      fields: Array.from(PRICE_LIST_FIELDS),
-      filters: { id: Array.from(ids) },
+      fields: [...PRICE_LIST_FIELDS],
+      filters: { id: [...ids] },
     })
     return new Map(
       ((data ?? []) as ExistingPriceList[]).map((priceList) => [
@@ -356,10 +352,7 @@ export class PriceListsClient {
     const priceListsById = await this.queryPriceListsByIds(
       new Set(mappings.map((mapping) => mapping.price_list_id))
     )
-    return this.mapper.applyCodeMappings(
-      Array.from(priceListsById.values()),
-      mappings
-    )
+    return this.mapper.applyCodeMappings([...priceListsById.values()], mappings)
   }
 
   private async queryVariants(
@@ -380,7 +373,7 @@ export class PriceListsClient {
     const { data } = await this.query.graph({
       entity: "variant",
       fields: ["id", field, "price_set.id"],
-      filters: { [field]: Array.from(values) },
+      filters: { [field]: [...values] },
     })
     const variants = (data ?? []) as Record<string, unknown>[]
     return {
@@ -394,8 +387,8 @@ export class PriceListsClient {
   ): Map<string, string> {
     const map = new Map<string, string>()
     for (const variant of variants) {
-      const id = variant["id"]
-      const priceSet = variant["price_set"]
+      const { id } = variant
+      const priceSet = variant.price_set
       const priceSetId =
         priceSet && typeof priceSet === "object" && "id" in priceSet
           ? priceSet.id
@@ -420,7 +413,7 @@ export class PriceListsClient {
     if (price.identifier_type === "variant_id" && price.variant_id) {
       return variantMaps.byId.get(price.variant_id)
     }
-    return undefined
+    return
   }
 
   private async queryCustomerGroups(filters: Record<string, string[]>) {

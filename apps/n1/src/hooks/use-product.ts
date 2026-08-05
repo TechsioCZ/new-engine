@@ -9,7 +9,7 @@ import { getProductByHandle } from "@/services/product-service"
 
 import { useSuspenseRegion } from "./use-region"
 
-type UseProductParams = {
+interface UseProductParams {
   handle: string
   fields?: string
 }
@@ -24,7 +24,6 @@ export function useSuspenseProduct({ handle, fields }: UseProductParams) {
   const queryKey = queryKeys.products.detail(handle, regionId, countryCode)
 
   return useSuspenseQuery({
-    queryKey,
     queryFn: async () => {
       const start = performance.now()
       const data = await getProductByHandle({
@@ -35,12 +34,13 @@ export function useSuspenseProduct({ handle, fields }: UseProductParams) {
       })
       const duration = performance.now() - start
 
-      if (process.env["NODE_ENV"] === "development") {
+      if (process.env.NODE_ENV === "development") {
         fetchLogger.current(handle, duration)
       }
 
       return data
     },
+    queryKey,
     ...cacheConfig.semiStatic,
   })
 }

@@ -13,7 +13,7 @@ import { ORDER_FIELDS as PAYMENT_REMINDER_ORDER_FIELDS } from "../../src/utils/o
  * These field lists are consumed by admin routes that returned 200 before the
  * Medusa 2.18.0 upgrade, so the pairing is a hard requirement, not a style rule.
  */
-const FIELD_LISTS: ReadonlyArray<readonly [string, readonly string[]]> = [
+const FIELD_LISTS: readonly (readonly [string, readonly string[]])[] = [
   ["order payment reminders", PAYMENT_REMINDER_ORDER_FIELDS],
   ["order business statuses", ORDER_BUSINESS_STATUS_ORDER_FIELDS],
 ]
@@ -28,7 +28,7 @@ describe("order field lists that select computed totals", () => {
       expect(
         fields.some((field) => field.startsWith("shipping_methods.")),
         `${name} selects \`total\` without any \`shipping_methods.*\` field, so the order module cannot load shipping-method adjustments`
-      ).toBe(true)
+      ).toBeTruthy()
     })
   }
 })

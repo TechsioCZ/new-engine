@@ -7,51 +7,51 @@ import { VariantContainer } from "../../.storybook/decorator"
 import { Rating } from "../../src/atoms/rating"
 
 const meta: Meta<typeof Rating> = {
-  title: "Atoms/Rating",
-  component: Rating,
-  parameters: {
-    layout: "centered",
-  },
-  tags: ["autodocs"],
   argTypes: {
-    value: {
-      control: { type: "number", min: 0, max: 10, step: 0.5 },
-      description: "Current rating value",
-    },
-    defaultValue: {
-      control: { type: "number", min: 0, max: 10, step: 0.5 },
-      description: "Default rating value",
+    allowHalf: {
+      control: "boolean",
+      description: "Allow half star ratings",
     },
     count: {
-      control: { type: "number", min: 1, max: 10 },
+      control: { max: 10, min: 1, type: "number" },
       description: "Number of rating items",
     },
-    size: {
-      control: { type: "select" },
-      options: ["sm", "md", "lg"],
-      description: "Size variant",
-    },
-    labelText: {
-      control: "text",
-      description: "Label text for the rating group",
-    },
-    readOnly: {
-      control: "boolean",
-      description: "Make rating read-only",
+    defaultValue: {
+      control: { max: 10, min: 0, step: 0.5, type: "number" },
+      description: "Default rating value",
     },
     disabled: {
       control: "boolean",
       description: "Disable rating interaction",
     },
-    allowHalf: {
-      control: "boolean",
-      description: "Allow half star ratings",
+    labelText: {
+      control: "text",
+      description: "Label text for the rating group",
     },
     name: {
       control: "text",
       description: "Form field name",
     },
+    readOnly: {
+      control: "boolean",
+      description: "Make rating read-only",
+    },
+    size: {
+      control: { type: "select" },
+      description: "Size variant",
+      options: ["sm", "md", "lg"],
+    },
+    value: {
+      control: { max: 10, min: 0, step: 0.5, type: "number" },
+      description: "Current rating value",
+    },
   },
+  component: Rating,
+  parameters: {
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Atoms/Rating",
 }
 
 export default meta
@@ -59,10 +59,10 @@ type Story = StoryObj<typeof Rating>
 
 export const Playground: Story = {
   args: {
-    defaultValue: 3,
-    count: 5,
-    size: "md",
     allowHalf: true,
+    count: 5,
+    defaultValue: 3,
+    size: "md",
   },
 }
 
@@ -95,13 +95,17 @@ export const Controlled: Story = {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => setValue(0)}
+            onClick={() => {
+              setValue(0)
+            }}
             className="rounded border px-3 py-1 text-sm hover:bg-gray-100/20"
           >
             Clear
           </button>
           <button
-            onClick={() => setValue(5)}
+            onClick={() => {
+              setValue(5)
+            }}
             className="rounded border px-3 py-1 text-sm hover:bg-gray-100/20"
           >
             Max

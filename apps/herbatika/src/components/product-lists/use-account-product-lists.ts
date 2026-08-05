@@ -4,7 +4,8 @@ import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useTranslations } from "next-intl"
 import { useRouter, useSearchParams } from "next/navigation"
-import { type FormEvent, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
+import type { FormEvent } from "react"
 
 import { useAppToast } from "@/hooks/use-app-toast"
 import { useAuth } from "@/lib/storefront/auth"
@@ -12,7 +13,6 @@ import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
   getProductListItems,
   isFavoriteProductList,
-  type StoreProductListItem,
   useCreateCustomProductList,
   useCreateProductListCart,
   useDeleteProductList,
@@ -21,11 +21,9 @@ import {
   useProductLists,
   useUpdateProductListItem,
 } from "@/lib/storefront/product-lists"
-import {
-  PRODUCT_CARD_FIELDS,
-  type ProductListInput,
-  useProducts,
-} from "@/lib/storefront/products"
+import type { StoreProductListItem } from "@/lib/storefront/product-lists"
+import { PRODUCT_CARD_FIELDS, useProducts } from "@/lib/storefront/products"
+import type { ProductListInput } from "@/lib/storefront/products"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import {
   resolveAddProductToCartErrorMessage,
@@ -43,7 +41,7 @@ import {
 
 const MISSING_VARIANT_ERROR_PATTERN = /has no variant selected|no variant/i
 
-type ListCartErrorMessages = {
+interface ListCartErrorMessages {
   addListFailed: string
   allAvailableFailed: string
   missingVariant: string
@@ -114,8 +112,8 @@ export function useAccountProductLists() {
   const customerId = authQuery.customer?.id ?? null
   const listsQuery = useProductLists({
     customerId,
-    limit: 100,
     enabled: authQuery.isAuthenticated,
+    limit: 100,
   })
   const sortedLists = sortProductLists(listsQuery.productLists, {
     favorite: tAuth("product_lists.favorite_title"),
@@ -137,12 +135,12 @@ export function useAccountProductLists() {
   const activeItems = getProductListItems(activeList)
   const productIds = uniqueProductIds(activeItems)
   const productsQuery = useProducts({
-    id: productIds.length > 0 ? productIds : undefined,
-    page: 1,
-    limit: Math.max(productIds.length, 1),
-    fields: PRODUCT_CARD_FIELDS,
     enabled: Boolean(region?.region_id && activeListId && productIds.length),
-  } as ProductListInput)
+    fields: PRODUCT_CARD_FIELDS,
+    id: productIds.length > 0 ? productIds : undefined,
+    limit: Math.max(productIds.length, 1),
+    page: 1,
+  })
   const productsById = buildProductMap(activeItems, productsQuery.products)
   const activeProductsAreLoading =
     productsQuery.isLoading &&
@@ -243,8 +241,8 @@ export function useAccountProductLists() {
 
     try {
       const createdList = await createListMutation.mutateAsync({
-        title,
         access_type: "private",
+        title,
       })
 
       if (createdList?.id) {
@@ -473,8 +471,8 @@ export function useAccountProductLists() {
 
     try {
       await deleteItemMutation.mutateAsync({
-        listId: activeList.id,
         itemId: item.id,
+        listId: activeList.id,
       })
     } catch (error) {
       toast.error({
@@ -494,12 +492,12 @@ export function useAccountProductLists() {
     activeList,
     activeListAvailabilitySummary,
     activeListCanCreateCart,
-    activeListPriceSummary,
     activeListId,
-    activeListSupportsQuantity,
+    activeListPriceSummary,
     activeListQuery,
-    activeProductsAreLoading,
+    activeListSupportsQuantity,
     activeProductId,
+    activeProductsAreLoading,
     activeQuantitySetItemId,
     closeCreateListDialog,
     closeDeleteListDialog,
@@ -507,11 +505,11 @@ export function useAccountProductLists() {
     createListMutation,
     deleteList,
     deleteListMutation,
-    handleAddToCart,
     handleAddListToCart,
+    handleAddToCart,
     handleCreateList,
-    handleDeleteList,
     handleDeleteItem,
+    handleDeleteList,
     handleQuantitySet,
     isAddingListToCart,
     listsQuery,

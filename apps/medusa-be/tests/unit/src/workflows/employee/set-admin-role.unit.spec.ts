@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("@medusajs/framework/utils", () => ({
+vi.mock(import("@medusajs/framework/utils"), () => ({
   ContainerRegistrationKeys: {
     QUERY: "query",
   },
@@ -9,10 +9,7 @@ vi.mock("@medusajs/framework/utils", () => ({
   },
 }))
 
-vi.mock("@medusajs/framework/workflows-sdk", () => ({
-  createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
-  ),
+vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: class StepResponse<
     TPayload = unknown,
     TCompensationInput = unknown,
@@ -25,11 +22,14 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
       this.compensateInput = compensateInput
     }
   },
+  createStep: vi.fn((_name, invoke, compensate) =>
+    Object.assign(invoke, { compensate })
+  ),
 }))
 
 type MockContainer = ReturnType<typeof makeContainer>
 
-type MockStep = {
+interface MockStep {
   (
     input: { employeeId: string; customerId: string },
     context: { container: MockContainer }
@@ -105,7 +105,7 @@ describe("setAdminRoleStep", () => {
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
-        data: [{ id: "employee_1", customer: { has_account: true } }],
+        data: [{ customer: { has_account: true }, id: "employee_1" }],
       })
       .mockResolvedValueOnce({ data: [{ email: "employee@example.com" }] })
       .mockResolvedValueOnce({ data: [] })
@@ -127,11 +127,11 @@ describe("setAdminRoleStep", () => {
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
-        data: [{ id: "employee_1", customer: { has_account: true } }],
+        data: [{ customer: { has_account: true }, id: "employee_1" }],
       })
       .mockResolvedValueOnce({ data: [{ email: "employee@example.com" }] })
       .mockResolvedValueOnce({ data: [{ id: "authpi_1" }] })
-    const updateProviderIdentities = vi.fn().mockResolvedValue(undefined)
+    const updateProviderIdentities = vi.fn().mockResolvedValue()
     const container = makeContainer({ graph, updateProviderIdentities })
 
     const result = await asMockStep(setAdminRoleStep)(
@@ -147,7 +147,7 @@ describe("setAdminRoleStep", () => {
         },
       },
     ])
-    expect(result.compensateInput).toEqual({
+    expect(result.compensateInput).toStrictEqual({
       customerId: "cus_1",
       email: "employee@example.com",
       employeeId: "employee_1",
@@ -175,7 +175,7 @@ describe("setAdminRoleStep", () => {
         ],
       })
       .mockResolvedValueOnce({ data: [{ id: "authpi_1" }] })
-    const updateProviderIdentities = vi.fn().mockResolvedValue(undefined)
+    const updateProviderIdentities = vi.fn().mockResolvedValue()
     const container = makeContainer({ graph, updateProviderIdentities })
 
     await asMockStep(setAdminRoleStep).compensate(
@@ -227,7 +227,7 @@ describe("setAdminRoleStep", () => {
           },
         ],
       })
-    const updateProviderIdentities = vi.fn().mockResolvedValue(undefined)
+    const updateProviderIdentities = vi.fn().mockResolvedValue()
     const container = makeContainer({ graph, updateProviderIdentities })
 
     await asMockStep(setAdminRoleStep).compensate(

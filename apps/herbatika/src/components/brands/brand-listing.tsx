@@ -11,7 +11,7 @@ import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
 
 import { useBrandListingController } from "./use-brand-listing-controller"
 
-type BrandListingProps = {
+interface BrandListingProps {
   brandFacetId: string
   brandTitle: string
 }
@@ -26,11 +26,11 @@ export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
       <HerbatikaBreadcrumb
         items={[
           {
-            label: tNavigation("breadcrumbs.home"),
             href: "/",
             icon: "token-icon-home",
+            label: tNavigation("breadcrumbs.home"),
           },
-          { label: t("brands.label"), href: "/znacka" },
+          { href: "/znacka", label: t("brands.label") },
           { label: brandTitle },
         ]}
       />

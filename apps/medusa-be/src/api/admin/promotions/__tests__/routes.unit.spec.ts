@@ -54,10 +54,10 @@ function createRequest<TQuery = RuleValueOptionsQuerySchemaType>({
 } = {}): MedusaRequest<unknown, TQuery> {
   const candidate: unknown = {
     params: { rule_type: ruleType },
-    validatedQuery,
     scope: {
       resolve: vi.fn().mockReturnValue({ graph }),
     },
+    validatedQuery,
   }
 
   assertMockShape<MedusaRequest<unknown, TQuery>>(candidate, [
@@ -76,30 +76,32 @@ describe("promotion rule attribute route", () => {
       createRequest<RuleAttributeOptionsQuerySchemaType>({
         ruleType: "target-rules",
         validatedQuery: {
-          promotion_type: "standard",
-          application_method_type: "percentage",
           application_method_target_type: "items",
+          application_method_type: "percentage",
+          promotion_type: "standard",
         },
       }),
       res
     )
 
     const payload = res.json.mock.calls[0]?.[0]
-    const attributes = payload.attributes as Array<{
+    const attributes = payload.attributes as {
       id: string
       operators?: Array<{ value: string }>
       value: string
-    }>
+    }[]
 
-    expect(attributes.map((attribute) => attribute.id)).toEqual(
+    expect(attributes.map((attribute) => attribute.id)).toStrictEqual(
       expect.arrayContaining(["product", "brand", "product_variant"])
     )
-    expect(attributes.find((attribute) => attribute.id === "brand")).toEqual(
+    expect(
+      attributes.find((attribute) => attribute.id === "brand")
+    ).toStrictEqual(
       expect.objectContaining({
-        value: "items.brand_ids",
         operators: expect.arrayContaining([
           expect.objectContaining({ value: "ne", label: "Not In" }),
         ]),
+        value: "items.brand_ids",
       })
     )
   })
@@ -126,13 +128,13 @@ describe("promotion custom rule value routes", () => {
 
     await getBrandValues(
       createRequest({
+        graph,
         validatedQuery: {
-          q: "50%_Sale",
-          value: "brand_1",
           limit: 10,
           offset: 5,
+          q: "50%_Sale",
+          value: "brand_1",
         },
-        graph,
       }),
       res
     )
@@ -148,10 +150,10 @@ describe("promotion custom rule value routes", () => {
       pagination: { skip: 5, take: 10 },
     })
     expect(res.json).toHaveBeenCalledWith({
-      values: [{ label: "ACME 50%_Sale", value: "brand_1" }],
       count: 1,
-      offset: 5,
       limit: 10,
+      offset: 5,
+      values: [{ label: "ACME 50%_Sale", value: "brand_1" }],
     })
   })
 
@@ -160,9 +162,9 @@ describe("promotion custom rule value routes", () => {
       data: [
         {
           id: "variant_1",
-          title: "Large",
-          sku: "SHIRT-L",
           product: { title: "Trail Shirt" },
+          sku: "SHIRT-L",
+          title: "Large",
         },
       ],
       metadata: { count: 1, skip: 0, take: 20 },
@@ -171,13 +173,13 @@ describe("promotion custom rule value routes", () => {
 
     await getVariantValues(
       createRequest({
+        graph,
         validatedQuery: {
-          q: "Trail",
           id: ["variant_1"],
           limit: 20,
           offset: 0,
+          q: "Trail",
         },
-        graph,
       }),
       res
     )
@@ -186,16 +188,16 @@ describe("promotion custom rule value routes", () => {
       entity: "product_variant",
       fields: ["id", "title", "sku", "product.title"],
       filters: {
-        id: ["variant_1"],
         $or: [{ title: { $ilike: "%Trail%" } }, { sku: { $ilike: "%Trail%" } }],
+        id: ["variant_1"],
       },
       pagination: { skip: 0, take: 20 },
     })
     expect(res.json).toHaveBeenCalledWith({
-      values: [{ label: "Trail Shirt - Large (SHIRT-L)", value: "variant_1" }],
       count: 1,
-      offset: 0,
       limit: 20,
+      offset: 0,
+      values: [{ label: "Trail Shirt - Large (SHIRT-L)", value: "variant_1" }],
     })
   })
 })

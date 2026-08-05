@@ -3,9 +3,10 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useRegions } from "@/hooks/use-region"
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
-import { getProducts, type ProductListParams } from "@/services/product-service"
+import { getProducts } from "@/services/product-service"
+import type { ProductListParams } from "@/services/product-service"
 
-type UsePrefetchProductsOptions = {
+interface UsePrefetchProductsOptions {
   enabled?: boolean
   // Allow custom cache config if needed
   cacheStrategy?: keyof typeof cacheConfig
@@ -30,6 +31,7 @@ export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
     }
 
     void queryClient.prefetchQuery({
+      queryFn: async () => getProducts(queryParams),
       queryKey: queryKeys.products.list({
         page: params?.offset
           ? Math.floor(params.offset / (params.limit || DEFAULT_LIMIT)) + 1
@@ -41,7 +43,6 @@ export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
         q: params?.q,
         region_id: selectedRegion.id,
       }),
-      queryFn: () => getProducts(queryParams),
       ...cacheConfig[cacheStrategy],
     })
   }
@@ -49,12 +50,12 @@ export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
   // Prefetch default products page (first page, no filters)
   const prefetchDefaultProducts = () => {
     prefetchProducts({
-      limit: DEFAULT_LIMIT,
-      offset: 0,
       filters: {
         categories: [],
         sizes: [],
       },
+      limit: DEFAULT_LIMIT,
+      offset: 0,
       sort: "newest",
     })
   }
@@ -82,9 +83,9 @@ export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
   }
 
   return {
-    prefetchProducts,
-    prefetchDefaultProducts,
     prefetchCategoryProducts,
+    prefetchDefaultProducts,
     prefetchNextPage,
+    prefetchProducts,
   }
 }

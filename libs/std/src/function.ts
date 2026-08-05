@@ -17,6 +17,8 @@ export const debounce = <TArgs extends unknown[]>(
     if (timeout !== undefined) {
       clearTimeout(timeout)
     }
-    timeout = setTimeout(() => callback(...args), milliseconds)
+    timeout = setTimeout(() => {
+      callback(...args)
+    }, milliseconds)
   }
 }

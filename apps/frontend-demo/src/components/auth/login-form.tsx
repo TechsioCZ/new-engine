@@ -3,7 +3,8 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
-import { type FormEvent, useState } from "react"
+import { useState } from "react"
+import type { FormEvent } from "react"
 
 import { useAuth } from "@/hooks/use-auth"
 import {
@@ -61,11 +62,11 @@ export function LoginForm() {
         <FormInput
           {...withLoading(
             authFormFields.email({
-              value: email,
               onChange: (e) => {
                 setEmail(e.target.value)
                 clearErrors()
               },
+              value: email,
             }),
             isFormLoading
           )}
@@ -76,11 +77,11 @@ export function LoginForm() {
         <FormInput
           {...withLoading(
             authFormFields.password({
-              value: password,
               onChange: (e) => {
                 setPassword(e.target.value)
                 clearErrors()
               },
+              value: password,
             }),
             isFormLoading
           )}

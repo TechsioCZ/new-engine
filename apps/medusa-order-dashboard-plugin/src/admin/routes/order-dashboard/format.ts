@@ -2,13 +2,15 @@ import {
   ORDER_DASHBOARD_BUSINESS_STATUS_IDS,
   ORDER_DASHBOARD_CARRIER_KEYS,
   ORDER_DASHBOARD_TARGET_STATUSES,
-  type OrderDashboardBusinessStatusId,
-  type OrderDashboardCarrierKey,
-  type OrderDashboardOrder,
-  type OrderDashboardTargetStatus,
+} from "./types"
+import type {
+  OrderDashboardBusinessStatusId,
+  OrderDashboardCarrierKey,
+  OrderDashboardOrder,
+  OrderDashboardTargetStatus,
 } from "./types"
 
-type TranslationFunction = {
+interface TranslationFunction {
   (key: string): string
   (key: string, values: Record<string, unknown>): string
 }
@@ -202,16 +204,21 @@ function formatPaymentProviderId(providerId: string) {
 
 function formatPaymentProviderToken(token: string) {
   switch (token.toLowerCase()) {
-    case "qr":
+    case "qr": {
       return "QR"
-    case "gopay":
+    }
+    case "gopay": {
       return "GoPay"
-    case "paypal":
+    }
+    case "paypal": {
       return "PayPal"
-    case "skippay":
+    }
+    case "skippay": {
       return "SkipPay"
-    default:
+    }
+    default: {
       return `${token.charAt(0).toUpperCase()}${token.slice(1)}`
+    }
   }
 }
 
@@ -224,7 +231,7 @@ function isOrderDashboardTransitionSourceStatus(
 function formatTransitionStatusLabel(status: string, t: TranslationFunction) {
   return isOrderDashboardTargetStatus(status)
     ? t(`targetStatus.${status}`)
-    : status.replace(/_/g, " ")
+    : status.replaceAll(/_/g, " ")
 }
 
 function formatTransitionStatusSubject(status: string, t: TranslationFunction) {

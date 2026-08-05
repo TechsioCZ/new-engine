@@ -1,9 +1,7 @@
 import type { ExecArgs } from "@medusajs/framework/types"
 
-import {
-  PACKETA_CLIENT_MODULE,
-  type PacketaClientModuleService,
-} from "../modules/packeta-client"
+import { PACKETA_CLIENT_MODULE } from "../modules/packeta-client"
+import type { PacketaClientModuleService } from "../modules/packeta-client"
 
 /**
  * Lists the first few Packeta pickup points in Prague — handy for grabbing a

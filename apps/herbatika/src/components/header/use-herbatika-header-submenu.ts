@@ -16,13 +16,13 @@ import {
 
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./herbatika-header.submenu-data"
 
-type HerbatikaHeaderSubmenuChildItem = {
+interface HerbatikaHeaderSubmenuChildItem {
   id: string
   label: string
   href: string
 }
 
-export type HerbatikaHeaderSubmenuFeaturedItem = {
+export interface HerbatikaHeaderSubmenuFeaturedItem {
   childItems: HerbatikaHeaderSubmenuChildItem[]
   href: string
   id: string
@@ -31,7 +31,7 @@ export type HerbatikaHeaderSubmenuFeaturedItem = {
   src?: StaticImageData
 }
 
-type HerbatikaHeaderSubmenuGroup = {
+interface HerbatikaHeaderSubmenuGroup {
   rootHandle: string
   featuredItems: HerbatikaHeaderSubmenuFeaturedItem[]
 }
@@ -52,9 +52,9 @@ const sortCategories = (categories: HttpTypes.StoreProductCategory[]) =>
 
 export function useHerbatikaHeaderSubmenu() {
   const categoriesQuery = useCategories({
-    page: 1,
-    limit: CATEGORY_TREE_LIMIT,
     fields: CATEGORY_TREE_FIELDS,
+    limit: CATEGORY_TREE_LIMIT,
+    page: 1,
   })
 
   const categoryById = new Map<string, HttpTypes.StoreProductCategory>()
@@ -89,7 +89,7 @@ export function useHerbatikaHeaderSubmenu() {
 
   const groupsByRootHandle = new Map<string, HerbatikaHeaderSubmenuGroup>(
     HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((rootConfig) => {
-      const rootHandle = rootConfig.rootHandle
+      const { rootHandle } = rootConfig
       const rootCategory = categoryByHandle.get(rootHandle) ?? null
       const featuredItems = rootCategory
         ? (childrenByParentId.get(rootCategory.id) ?? []).map((category) => {
@@ -107,9 +107,9 @@ export function useHerbatikaHeaderSubmenu() {
               href: category.handle ? `/c/${category.handle}` : "#",
               childItems: (childrenByParentId.get(category.id) ?? []).map(
                 (child) => ({
+                  href: child.handle ? `/c/${child.handle}` : "#",
                   id: child.id,
                   label: normalizeCategoryName(child.name),
-                  href: child.handle ? `/c/${child.handle}` : "#",
                 })
               ),
             }
@@ -119,8 +119,8 @@ export function useHerbatikaHeaderSubmenu() {
       return [
         rootHandle,
         {
-          rootHandle,
           featuredItems,
+          rootHandle,
         },
       ] as const
     })

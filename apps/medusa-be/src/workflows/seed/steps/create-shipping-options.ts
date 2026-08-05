@@ -17,11 +17,9 @@ export type CreateShippingOptionsStepInput = {
   providerId: string
   serviceZoneId: string
   shippingProfileId: string
-  regions: Array<
-    WorkflowTypes.RegionWorkflow.CreateRegionsWorkflowOutput[0] & {
-      amount: number
-    }
-  >
+  regions: (WorkflowTypes.RegionWorkflow.CreateRegionsWorkflowOutput[0] & {
+    amount: number
+  })[]
   type: {
     label: string
     description: string
@@ -39,14 +37,12 @@ export type CreateShippingOptionsStepInput = {
   data?: Record<string, unknown>
 }[]
 
-export type CreateShippingOptionsStepSeedInput = Array<
-  Omit<
-    CreateShippingOptionsStepInput[0],
-    "serviceZoneId" | "shippingProfileId" | "regions"
-  > & {
-    providerId?: string
-  }
->
+export type CreateShippingOptionsStepSeedInput = (Omit<
+  CreateShippingOptionsStepInput[0],
+  "serviceZoneId" | "shippingProfileId" | "regions"
+> & {
+  providerId?: string
+})[]
 
 export type CreateShippingOptionsStepOutput = {
   id: string
@@ -101,14 +97,6 @@ export const createShippingOptionsStep = createStep(
         const createInput = {
           name: option.name,
           price_type: "flat" as const,
-          provider_id: option.providerId,
-          service_zone_id: option.serviceZoneId,
-          shipping_profile_id: option.shippingProfileId,
-          type: {
-            label: option.type.label,
-            description: option.type.description,
-            code: option.type.code,
-          },
           prices: [
             ...option.prices.flatMap((price) =>
               price.currencyCode
@@ -120,11 +108,19 @@ export const createShippingOptionsStep = createStep(
               amount: region.amount,
             })),
           ],
+          provider_id: option.providerId,
           rules: option.rules.map((rule) => ({
             attribute: rule.attribute,
             operator: rule.operator,
             value: rule.value,
           })),
+          service_zone_id: option.serviceZoneId,
+          shipping_profile_id: option.shippingProfileId,
+          type: {
+            code: option.type.code,
+            description: option.type.description,
+            label: option.type.label,
+          },
         }
         return option.data === undefined
           ? createInput
@@ -157,9 +153,6 @@ export const createShippingOptionsStep = createStep(
             id: existing.id,
             name: inputOption.name,
             price_type: "flat" as const,
-            provider_id: inputOption.providerId,
-            service_zone_id: inputOption.serviceZoneId,
-            shipping_profile_id: inputOption.shippingProfileId,
             prices: [
               ...inputOption.prices.flatMap((price) =>
                 price.currencyCode
@@ -176,11 +169,14 @@ export const createShippingOptionsStep = createStep(
                 amount: region.amount,
               })),
             ],
+            provider_id: inputOption.providerId,
             rules: inputOption.rules.map((rule) => ({
               attribute: rule.attribute,
               operator: rule.operator,
               value: rule.value,
             })),
+            service_zone_id: inputOption.serviceZoneId,
+            shipping_profile_id: inputOption.shippingProfileId,
             ...(inputOption.data === undefined
               ? {}
               : { data: inputOption.data }),
@@ -198,9 +194,9 @@ export const createShippingOptionsStep = createStep(
           return {
             ...baseInput,
             type: {
-              label: inputOption.type.label,
-              description: inputOption.type.description,
               code: inputOption.type.code,
+              description: inputOption.type.description,
+              label: inputOption.type.label,
             },
           }
         }
@@ -231,9 +227,9 @@ export const createShippingOptionsStep = createStep(
             input: {
               selector: { id: existing.type.id },
               update: {
-                label: inputOption.type.label,
-                description: inputOption.type.description,
                 code: inputOption.type.code,
+                description: inputOption.type.description,
+                label: inputOption.type.label,
               },
             },
           })

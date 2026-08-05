@@ -14,8 +14,8 @@ const defineTemplate = <
 export const resendEmailTemplates = {
   ACCOUNT_SETUP: "account-setup",
   FORGOT_PASSWORD: "user-forgotpwd",
-  ORDER_PLACED: "order-placed",
   ORDER_PAYMENT_REMINDER: "order-payment-reminder",
+  ORDER_PLACED: "order-placed",
   PRODUCT_REVIEW_REQUEST: "product-review-request",
 } as const
 

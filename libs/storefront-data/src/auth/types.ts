@@ -7,13 +7,13 @@ import type {
 import type { ReadQueryOptions } from "../shared/hook-types"
 import type { QueryKey } from "../shared/query-keys"
 
-export type AuthQueryKeys = {
+export interface AuthQueryKeys {
   all: () => QueryKey
   customer: () => QueryKey
   session: () => QueryKey
 }
 
-export type AuthService<
+export interface AuthService<
   TCustomer,
   TLoginInput,
   TRegisterInput,
@@ -21,7 +21,7 @@ export type AuthService<
   TCreateCustomerInput = unknown,
   TLoginResult = unknown,
   TRegisterResult = unknown,
-> = {
+> {
   getCustomer: (signal?: AbortSignal) => Promise<TCustomer | null>
   login: (input: TLoginInput) => Promise<TLoginResult>
   logout: () => Promise<void>
@@ -31,7 +31,7 @@ export type AuthService<
   refresh?: () => Promise<unknown>
 }
 
-export type AuthQueryInput<TCustomer = unknown> = {
+export interface AuthQueryInput<TCustomer = unknown> {
   enabled?: boolean
   queryOptions?: ReadQueryOptions<TCustomer | null>
 }

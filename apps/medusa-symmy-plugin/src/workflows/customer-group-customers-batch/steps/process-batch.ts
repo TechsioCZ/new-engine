@@ -18,9 +18,9 @@ const buildFailedResult = (
   identifier: CustomerGroupCustomerIdentifier,
   error: string
 ): AssignCustomersToGroupBatchResult => ({
+  error,
   identifier: client.getIdentifierValue(identifier),
   status: "failed",
-  error,
 })
 
 export const symmyProcessCustomerGroupCustomersBatchStep = createStep(
@@ -32,16 +32,16 @@ export const symmyProcessCustomerGroupCustomersBatchStep = createStep(
 
     if (!groupId) {
       const results = input.customer_identifiers.map((identifier) => ({
+        error: `Customer group code '${input.code}' was not found`,
         identifier: client.getIdentifierValue(identifier),
         status: "failed" as const,
-        error: `Customer group code '${input.code}' was not found`,
       }))
       const output: AssignCustomersToGroupBatchOutput = {
-        success: false,
-        processed: 0,
         assigned: 0,
         failed: results.length,
+        processed: 0,
         results,
+        success: false,
       }
       return new StepResponse(output)
     }
@@ -65,9 +65,9 @@ export const symmyProcessCustomerGroupCustomersBatchStep = createStep(
       try {
         await client.assignCustomerToGroup(customer, groupId)
         results.push({
+          customer_id: customer.id,
           identifier: identifierValue,
           status: "assigned",
-          customer_id: customer.id,
         })
       } catch (error) {
         const message = toErrorMessage(error)
@@ -83,11 +83,11 @@ export const symmyProcessCustomerGroupCustomersBatchStep = createStep(
     ).length
     const failed = results.length - assigned
     const output: AssignCustomersToGroupBatchOutput = {
-      success: failed === 0,
-      processed: assigned,
       assigned,
       failed,
+      processed: assigned,
       results,
+      success: failed === 0,
     }
 
     return new StepResponse(output)

@@ -12,7 +12,8 @@
 import type * as React from "react"
 import type { Ref } from "react"
 
-import { Tabs, type TabsProps } from "../molecules/tabs"
+import { Tabs } from "../molecules/tabs"
+import type { TabsProps } from "../molecules/tabs"
 
 export interface TabItem {
   value: string

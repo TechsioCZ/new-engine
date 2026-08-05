@@ -7,7 +7,7 @@ const resolveObjectErrorMessage = (error: unknown) => {
     return null
   }
 
-  const message = (error as { message?: unknown }).message
+  const { message } = error
   if (typeof message !== "string" || message.trim().length === 0) {
     return null
   }

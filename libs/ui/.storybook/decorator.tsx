@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 
-type VariantGroupProps = {
+interface VariantGroupProps {
   title: string
   children: ReactNode
   fullWidth?: boolean

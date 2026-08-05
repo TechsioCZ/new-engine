@@ -9,11 +9,11 @@ export type CarrierPickupFailureReason =
 
 type CarrierPickupWidgetLanguage = "cs" | "hu" | "ro" | "sk"
 
-export type CarrierPickupRequirement = {
+export interface CarrierPickupRequirement {
   carrier: CarrierPickupType
 }
 
-export type ShippingOptionWithPickupData = {
+export interface ShippingOptionWithPickupData {
   data?: Record<string, unknown> | null
   id: string
   name?: string | null
@@ -39,8 +39,8 @@ export function resolveCarrierPickupRequirement(
   option: ShippingOptionWithPickupData
 ): CarrierPickupRequirement | null {
   const optionData = option.data ?? {}
-  const optionCode = normalizeIdentifier(optionData["code"])
-  const productType = normalizeIdentifier(optionData["product_type"])
+  const optionCode = normalizeIdentifier(optionData.code)
+  const productType = normalizeIdentifier(optionData.product_type)
   const providerId = normalizeIdentifier(option.provider_id)
   const optionName = normalizeIdentifier(option.name)
   const looksLikePickupOption =
@@ -59,7 +59,7 @@ export function resolveCarrierPickupRequirement(
   }
 
   if (
-    optionData["requires_access_point"] === true ||
+    optionData.requires_access_point === true ||
     PPL_PICKUP_PRODUCTS.has(productType) ||
     (providerId.includes("ppl") && looksLikePickupOption)
   ) {

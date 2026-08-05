@@ -5,11 +5,11 @@ import ProductMeasurement from "./product-measurement"
 const ProductVariantMeasurement = model
   .define("product_variant_measurement", {
     id: model.id().primaryKey(),
-    product_variant_id: model.text().searchable(),
-    product_unit_quantity: model.bigNumber(),
     product_measurement: model.belongsTo(() => ProductMeasurement, {
       mappedBy: "variant_measurements",
     }),
+    product_unit_quantity: model.bigNumber(),
+    product_variant_id: model.text().searchable(),
   })
   .indexes([
     {
@@ -32,8 +32,8 @@ const ProductVariantMeasurement = model
   ])
   .checks([
     {
-      name: "product_variant_measurement_quantity_positive",
       expression: (columns) => `${columns.product_unit_quantity} > 0`,
+      name: "product_variant_measurement_quantity_positive",
     },
   ])
 

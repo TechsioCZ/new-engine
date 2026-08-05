@@ -2,17 +2,18 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
-import { type FormEvent, useState } from "react"
+import { useState } from "react"
+import type { FormEvent } from "react"
 
 import { useAuth } from "@/hooks/use-auth"
 import {
   AUTH_ERRORS,
   authFormFields,
-  type ValidationError,
   validateEmail,
   validatePassword,
   withLoading,
 } from "@/lib/auth"
+import type { ValidationError } from "@/lib/auth"
 
 import { AuthFormWrapper } from "./auth-form-wrapper"
 import { PasswordRequirements } from "./password-requirements"
@@ -97,8 +98,10 @@ export function RegisterForm() {
           <FormInput
             {...withLoading(
               authFormFields.firstName({
+                onChange: (e) => {
+                  setFirstName(e.target.value)
+                },
                 value: firstName,
-                onChange: (e) => setFirstName(e.target.value),
               }),
               isFormLoading
             )}
@@ -107,8 +110,10 @@ export function RegisterForm() {
           <FormInput
             {...withLoading(
               authFormFields.lastName({
+                onChange: (e) => {
+                  setLastName(e.target.value)
+                },
                 value: lastName,
-                onChange: (e) => setLastName(e.target.value),
               }),
               isFormLoading
             )}
@@ -118,11 +123,11 @@ export function RegisterForm() {
         <FormInput
           {...withLoading(
             authFormFields.email({
-              value: email,
               onChange: (e) => {
                 setEmail(e.target.value)
                 clearErrors()
               },
+              value: email,
             }),
             isFormLoading
           )}
@@ -134,12 +139,12 @@ export function RegisterForm() {
           <FormInput
             {...withLoading(
               authFormFields.newPassword({
-                value: password,
                 onChange: (e) => {
                   setPassword(e.target.value)
                   clearErrors()
                 },
                 placeholder: "Zadejte heslo",
+                value: password,
               }),
               isFormLoading
             )}
@@ -152,12 +157,12 @@ export function RegisterForm() {
         <FormInput
           {...withLoading(
             authFormFields.confirmPassword({
-              value: confirmPassword,
               onChange: (e) => {
                 setConfirmPassword(e.target.value)
                 clearErrors()
               },
               placeholder: "Znovu zadejte heslo",
+              value: confirmPassword,
             }),
             isFormLoading
           )}

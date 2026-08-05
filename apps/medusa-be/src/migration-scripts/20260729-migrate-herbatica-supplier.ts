@@ -21,10 +21,12 @@ import type BrandModuleService from "../modules/brand/service"
 import {
   getProductAttributeService,
   normalizeRequiredProductAttributeKey,
-  type ProductAttributeAssignmentRecord,
-  type ProductAttributeDefinitionRecord,
-  type ProductAttributeOptionRecord,
   withProductAttributeTransaction,
+} from "../utils/product-attributes"
+import type {
+  ProductAttributeAssignmentRecord,
+  ProductAttributeDefinitionRecord,
+  ProductAttributeOptionRecord,
 } from "../utils/product-attributes"
 import { getCurrentProductBrandLinks } from "../workflows/brand"
 import { setProductAttributesWorkflow } from "../workflows/product-attribute/workflows/set-product-attributes"
@@ -42,19 +44,19 @@ type BrandAttributeRecord = Awaited<
 type BrandAttributeTypeRecord = Awaited<
   ReturnType<BrandModuleService["listBrandAttributeTypes"]>
 >[number]
-type ProductBrandLinkRecord = {
+interface ProductBrandLinkRecord {
   brand_id?: string
   product_id?: string
 }
 
-export type LegacyBrandSupplier = {
+export interface LegacyBrandSupplier {
   brand_id: string
   deleted_at?: Date | null | string
   id: string
   value: string
 }
 
-export type LegacySupplierAssignmentPlan = {
+export interface LegacySupplierAssignmentPlan {
   assignments: Array<{ product_id: string; supplier: string }>
   unresolved: Array<{ product_id: string; reason: string; values: string[] }>
 }
@@ -217,7 +219,7 @@ async function listSupplierAttributeTypes(service: BrandModuleService) {
   let count = Number.POSITIVE_INFINITY
 
   while (offset < count) {
-    const [page, pageCount] = (await service.listAndCountBrandAttributeTypes(
+    const [page, pageCount] = await service.listAndCountBrandAttributeTypes(
       {},
       {
         order: { id: "ASC" },
@@ -225,7 +227,7 @@ async function listSupplierAttributeTypes(service: BrandModuleService) {
         take: BATCH_SIZE,
         withDeleted: true,
       }
-    )) as [BrandAttributeTypeRecord[], number]
+    )
     matching.push(
       ...page.filter(
         (attributeType) =>
@@ -254,7 +256,7 @@ async function listLegacySupplierAttributes(
     let count = Number.POSITIVE_INFINITY
 
     while (offset < count) {
-      const [page, pageCount] = (await service.listAndCountBrandAttributes(
+      const [page, pageCount] = await service.listAndCountBrandAttributes(
         {
           attribute_type_id: { $in: attributeTypeIds },
           brand_id: { $in: brandIdBatch },
@@ -266,7 +268,7 @@ async function listLegacySupplierAttributes(
           take: BATCH_SIZE,
           withDeleted: true,
         }
-      )) as [BrandAttributeRecord[], number]
+      )
       attributes.push(...page)
       count = pageCount
       if (!page.length) {
@@ -280,10 +282,10 @@ async function listLegacySupplierAttributes(
 }
 
 async function findSupplierDefinition(service: ProductAttributeService) {
-  const definitions = (await service.listProductAttributeDefinitions(
+  const definitions = await service.listProductAttributeDefinitions(
     { key: SUPPLIER_DEFINITION_KEY },
     { order: { id: "ASC" }, withDeleted: true }
-  )) as ProductAttributeDefinitionRecord[]
+  )
   const definition =
     definitions.find((candidate) => !candidate.deleted_at) ?? definitions[0]
 
@@ -315,7 +317,7 @@ async function listValidActiveSupplierAssignmentProductIds({
     let count = Number.POSITIVE_INFINITY
 
     while (offset < count) {
-      const [page, pageCount] = (await service.listAndCountProductAttributes(
+      const [page, pageCount] = await service.listAndCountProductAttributes(
         {
           definition_id: definition.id,
           product_id: { $in: productIdBatch },
@@ -326,7 +328,7 @@ async function listValidActiveSupplierAssignmentProductIds({
           take: BATCH_SIZE,
           withDeleted: true,
         }
-      )) as [ProductAttributeAssignmentRecord[], number]
+      )
       assignments.push(...page)
       count = pageCount
       if (!page.length) {
@@ -348,10 +350,10 @@ async function listValidActiveSupplierAssignmentProductIds({
   const activeOptionIds = new Set<string>()
 
   for (const optionIdBatch of chunk(optionIds, BATCH_SIZE)) {
-    const options = (await service.listProductAttributeOptions(
+    const options = await service.listProductAttributeOptions(
       { id: { $in: optionIdBatch } },
       { select: ["id"], take: optionIdBatch.length }
-    )) as ProductAttributeOptionRecord[]
+    )
     for (const option of options) {
       activeOptionIds.add(option.id)
     }
@@ -397,7 +399,7 @@ async function ensureSupplierDefinition(
   let definition = existing
 
   if (!definition) {
-    definition = (await service.createProductAttributeDefinitions(
+    definition = await service.createProductAttributeDefinitions(
       {
         input_type: "select",
         is_public: false,
@@ -405,7 +407,7 @@ async function ensureSupplierDefinition(
         label: SUPPLIER_DEFINITION_LABEL,
       },
       context
-    )) as ProductAttributeDefinitionRecord
+    )
   } else if (definition.deleted_at) {
     await service.restoreProductAttributeDefinitions(
       [definition.id],
@@ -414,14 +416,14 @@ async function ensureSupplierDefinition(
     )
   }
 
-  return (await service.updateProductAttributeDefinitions(
+  return await service.updateProductAttributeDefinitions(
     {
       id: definition.id,
       is_public: false,
       label: SUPPLIER_DEFINITION_LABEL,
     },
     context
-  )) as ProductAttributeDefinitionRecord
+  )
 }
 
 async function ensureSupplierOptions(
@@ -432,14 +434,14 @@ async function ensureSupplierOptions(
 ) {
   const keys = [...labelsByKey.keys()]
   const existing = keys.length
-    ? ((await service.listProductAttributeOptions(
+    ? await service.listProductAttributeOptions(
         {
           definition_id: definition.id,
           key: { $in: keys },
         },
         { order: { id: "ASC" }, withDeleted: true },
         context
-      )) as ProductAttributeOptionRecord[])
+      )
     : []
   const optionByKey = new Map<string, ProductAttributeOptionRecord>()
   for (const option of existing) {
@@ -452,10 +454,10 @@ async function ensureSupplierOptions(
   for (const [key, label] of labelsByKey) {
     const option = optionByKey.get(key)
     if (!option) {
-      const created = (await service.createProductAttributeOptions(
+      const created = await service.createProductAttributeOptions(
         { definition_id: definition.id, key, label },
         context
-      )) as ProductAttributeOptionRecord
+      )
       optionByKey.set(key, created)
       continue
     }
@@ -464,10 +466,10 @@ async function ensureSupplierOptions(
     }
     optionByKey.set(
       key,
-      (await service.updateProductAttributeOptions(
+      await service.updateProductAttributeOptions(
         { id: option.id, label },
         context
-      )) as ProductAttributeOptionRecord
+      )
     )
   }
 
@@ -708,8 +710,8 @@ export default async function migrateHerbaticaSupplier({
     activeAssignmentProductIds,
     ambiguousBrandIds,
     brandIdsByProductId,
-    productIdsByBrandId,
     productIds,
+    productIdsByBrandId,
     supplierByBrandId,
   })
   logUnresolvedSupplierAssignments(logger, plan.unresolved)
@@ -741,8 +743,8 @@ export default async function migrateHerbaticaSupplier({
   }
 
   const cleanup = await cleanupMigratedBrandSupplierAttributes({
-    attributes,
     attributeTypes,
+    attributes,
     coveredProductIds,
     herbaticaProductIds,
     productIdsByBrandId,

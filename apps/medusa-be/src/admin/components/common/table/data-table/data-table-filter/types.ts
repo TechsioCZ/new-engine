@@ -1,4 +1,4 @@
-export type IFilter = {
+export interface IFilter {
   filter: {
     key: string
     label: string

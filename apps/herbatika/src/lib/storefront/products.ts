@@ -31,5 +31,5 @@ export const useProducts = (
   options?: UseProductsOptions
 ) => productHooks.useProducts(toProductListParams(input), options)
 
-export const useProduct = productHooks.useProduct
-export const usePrefetchProduct = productHooks.usePrefetchProduct
+export const { useProduct } = productHooks
+export const { usePrefetchProduct } = productHooks

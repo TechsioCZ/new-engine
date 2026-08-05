@@ -37,7 +37,7 @@ const sortCategories = (categories: HttpTypes.StoreProductCategory[]) =>
     )
   })
 
-type ResolveCategoryIntroTextInput = {
+interface ResolveCategoryIntroTextInput {
   activeCategory: HttpTypes.StoreProductCategory | null
 }
 
@@ -78,7 +78,7 @@ export const resolveCategoryIntroHtml = (input: ResolveCategoryHtmlInput) =>
 export const resolveCategoryBottomHtml = (input: ResolveCategoryHtmlInput) =>
   resolveCategoryMetadataHtml({ ...input, field: "bottom_description_html" })
 
-type ResolveCategoryContextTilesInput = {
+interface ResolveCategoryContextTilesInput {
   activeCategory: HttpTypes.StoreProductCategory | null
   activeCategoryFilterIds: string[]
   categories: HttpTypes.StoreProductCategory[]
@@ -102,10 +102,10 @@ export const resolveCategoryContextImageTiles = ({
         Boolean(category.handle)
     )
   ).map((category) => ({
+    handle: category.handle,
+    href: `/c/${category.handle}`,
     id: category.id,
     label: normalizeCategoryName(category.name),
-    href: `/c/${category.handle}`,
-    handle: category.handle,
     parentCategoryId: category.parent_category_id ?? null,
   }))
 
@@ -129,10 +129,10 @@ export const resolveCategoryContextImageTiles = ({
   )
     .slice(0, 8)
     .map((category) => ({
+      handle: category.handle,
+      href: `/c/${category.handle}`,
       id: category.id,
       label: normalizeCategoryName(category.name),
-      href: `/c/${category.handle}`,
-      handle: category.handle,
       parentCategoryId: category.parent_category_id ?? null,
     }))
 

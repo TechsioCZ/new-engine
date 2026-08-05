@@ -9,6 +9,10 @@ const nextConfig = {
   },
   // Removed 'output: export' to enable SSG with dynamic functions
   images: {
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    formats: ["image/webp"],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    qualities: [20, 40, 50, 60, 75, 90],
     remotePatterns: [
       {
         protocol: "https",
@@ -23,10 +27,6 @@ const nextConfig = {
         hostname: "images.unsplash.com",
       },
     ],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    formats: ["image/webp"],
-    qualities: [20, 40, 50, 60, 75, 90],
   },
   trailingSlash: true,
   // Optimize for serverless - exclude large binaries

@@ -7,8 +7,8 @@ import { QrPaymentModuleService } from "./service"
 export const QR_PAYMENT_MODULE = QR_PAYMENT_MODULE_ID
 
 export default Module(QR_PAYMENT_MODULE, {
-  service: QrPaymentModuleService,
   loaders: [createDefaultConfigLoader],
+  service: QrPaymentModuleService,
 })
 
 export type { QrPaymentModuleService } from "./service"

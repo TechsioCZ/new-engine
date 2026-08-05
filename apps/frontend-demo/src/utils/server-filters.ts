@@ -28,7 +28,9 @@ export function buildMedusaQuery(
 ): MedusaProductQuery {
   const query: MedusaProductQuery = { ...baseQuery }
 
-  if (!filters) return query
+  if (!filters) {
+    return query
+  }
 
   // Category filtering - Medusa supports this natively
   if (filters.categories?.length) {
@@ -43,14 +45,14 @@ export function buildMedusaQuery(
   if (filters.sizes?.length) {
     // For single size
     if (filters.sizes.length === 1) {
-      query["variants"] = {
+      query.variants = {
         options: {
           value: filters.sizes[0],
         },
       }
     } else {
       // For multiple sizes, we need to use $in operator
-      query["variants"] = {
+      query.variants = {
         options: {
           value: {
             $in: filters.sizes,

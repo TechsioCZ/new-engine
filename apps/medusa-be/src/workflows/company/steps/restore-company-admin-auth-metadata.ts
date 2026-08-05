@@ -4,7 +4,7 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import { getProviderIdentityIdsWithoutActiveAdminRole } from "../../employee/utils/admin-auth-metadata"
 
-type CompanyWithEmployees = {
+interface CompanyWithEmployees {
   employees?: Array<{
     customer?: {
       email?: string | null
@@ -15,7 +15,7 @@ type CompanyWithEmployees = {
   }>
 }
 
-type RestoreCompanyAdminAuthMetadataCompensation = {
+interface RestoreCompanyAdminAuthMetadataCompensation {
   admin_candidates: Array<{
     customer_id: string | null | undefined
     email: string | null | undefined
@@ -24,7 +24,7 @@ type RestoreCompanyAdminAuthMetadataCompensation = {
   provider_identity_ids: string[]
 }
 
-type ProviderIdentity = {
+interface ProviderIdentity {
   id?: string
 }
 

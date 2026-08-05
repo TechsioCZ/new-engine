@@ -11,7 +11,8 @@
  */
 import type { ReactNode } from "react"
 
-import { Input, type InputProps } from "../atoms/input"
+import { Input } from "../atoms/input"
+import type { InputProps } from "../atoms/input"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 

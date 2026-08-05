@@ -6,32 +6,7 @@ import { Button } from "../../src/atoms/button"
 import { Accordion } from "../../src/molecules/accordion"
 
 const meta: Meta<typeof Accordion> = {
-  title: "Molecules/Accordion",
-  component: Accordion,
-  parameters: {
-    layout: "centered",
-  },
-  tags: ["autodocs"],
   argTypes: {
-    size: {
-      control: { type: "inline-radio" },
-      options: ["sm", "md", "lg"],
-      description: "Sets the size of the accordion items",
-    },
-    shadow: {
-      control: { type: "inline-radio" },
-      options: ["none", "sm", "md"],
-      description: "Sets the shadow of the accordion",
-    },
-    variant: {
-      control: { type: "inline-radio" },
-      options: ["default", "borderless", "child"],
-      description: "Sets the visual variant of the accordion",
-    },
-    multiple: {
-      control: "boolean",
-      description: "Allows expanding multiple items simultaneously",
-    },
     collapsible: {
       control: "boolean",
       description: "Allows collapsing all items",
@@ -40,7 +15,32 @@ const meta: Meta<typeof Accordion> = {
       control: "boolean",
       description: "Disables interaction with the accordion",
     },
+    multiple: {
+      control: "boolean",
+      description: "Allows expanding multiple items simultaneously",
+    },
+    shadow: {
+      control: { type: "inline-radio" },
+      description: "Sets the shadow of the accordion",
+      options: ["none", "sm", "md"],
+    },
+    size: {
+      control: { type: "inline-radio" },
+      description: "Sets the size of the accordion items",
+      options: ["sm", "md", "lg"],
+    },
+    variant: {
+      control: { type: "inline-radio" },
+      description: "Sets the visual variant of the accordion",
+      options: ["default", "borderless", "child"],
+    },
   },
+  component: Accordion,
+  parameters: {
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/Accordion",
 }
 
 export default meta
@@ -48,12 +48,12 @@ type Story = StoryObj<typeof Accordion>
 
 export const Playground: Story = {
   args: {
-    size: "md",
-    shadow: "none",
-    variant: "default",
-    multiple: false,
     collapsible: true,
     disabled: false,
+    multiple: false,
+    shadow: "none",
+    size: "md",
+    variant: "default",
   },
   render: (args) => (
     <div className="w-md h-96">
@@ -487,7 +487,9 @@ export const ControlledAccordion: Story = {
               size="sm"
               variant="tertiary"
               theme="borderless"
-              onClick={() => setActiveItems([])}
+              onClick={() => {
+                setActiveItems([])
+              }}
             >
               Close All
             </Button>
@@ -549,7 +551,9 @@ export const ConditionalRendering: Story = {
           <Button
             size="sm"
             variant="primary"
-            onClick={() => setShowExtra(!showExtra)}
+            onClick={() => {
+              setShowExtra(!showExtra)
+            }}
           >
             {showExtra ? "Hide" : "Show"} Extra Items
           </Button>

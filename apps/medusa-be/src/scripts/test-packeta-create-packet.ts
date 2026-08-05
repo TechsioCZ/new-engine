@@ -1,9 +1,7 @@
 import type { ExecArgs } from "@medusajs/framework/types"
 
-import {
-  PACKETA_CLIENT_MODULE,
-  type PacketaClientModuleService,
-} from "../modules/packeta-client"
+import { PACKETA_CLIENT_MODULE } from "../modules/packeta-client"
+import type { PacketaClientModuleService } from "../modules/packeta-client"
 
 /**
  * Manual smoke test for Packeta createPacket against the real Packeta API.
@@ -34,7 +32,9 @@ export default async function testPacketaCreatePacket({ container }: ExecArgs) {
   }
   const addressId = Number.parseInt(addressIdRaw, 10)
   if (!Number.isFinite(addressId)) {
-    throw new Error(`PACKETA_ADDRESS_ID must be a number, got: ${addressIdRaw}`)
+    throw new TypeError(
+      `PACKETA_ADDRESS_ID must be a number, got: ${addressIdRaw}`
+    )
   }
 
   const packetaService = container.resolve<PacketaClientModuleService>(
@@ -64,14 +64,14 @@ export default async function testPacketaCreatePacket({ container }: ExecArgs) {
 
   try {
     const result = await packetaService.createPacket({
-      number: orderRef,
-      name: "Jan",
-      surname: "Tester",
-      email: process.env["PACKETA_TEST_EMAIL"] ?? "test@example.com",
-      phone: process.env["PACKETA_TEST_PHONE"] ?? "+420777123456",
       addressId,
-      value,
       currency: "CZK",
+      email: process.env["PACKETA_TEST_EMAIL"] ?? "test@example.com",
+      name: "Jan",
+      number: orderRef,
+      phone: process.env["PACKETA_TEST_PHONE"] ?? "+420777123456",
+      surname: "Tester",
+      value,
       weight,
     })
 

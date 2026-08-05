@@ -7,16 +7,16 @@ export function requireLiveZaneCredentials(
   if (!(value.dryRun || value.baseUrl)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      path: ["baseUrl"],
       message: "Zane operator base URL is required.",
+      path: ["baseUrl"],
     })
   }
 
   if (!(value.dryRun || value.apiToken)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      path: ["apiToken"],
       message: "Zane operator API token is required.",
+      path: ["apiToken"],
     })
   }
 }

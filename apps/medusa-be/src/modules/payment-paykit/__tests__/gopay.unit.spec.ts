@@ -14,21 +14,21 @@ type CapturePaymentInputWithAmount = CapturePaymentInput & {
 const makeCapturePaymentInput = (): CapturePaymentInputWithAmount => ({
   amount: 10.5,
   data: {
-    id: "gopay-payment-1",
     currency: "czk",
+    id: "gopay-payment-1",
   },
 })
 
-describe("PaykitGopayPaymentProvider", () => {
+describe(PaykitGopayPaymentProvider, () => {
   it("normalizes Medusa major-unit amounts to GoPay smallest units", async () => {
     const client = createMockPaykitClient({
       payments: {
         create: vi.fn().mockResolvedValue({
-          id: "gopay-payment-1",
           amount: 1050,
           currency: "czk",
-          status: "requires_action",
+          id: "gopay-payment-1",
           payment_url: "https://gw.example/gopay-payment-1",
+          status: "requires_action",
         }),
       },
     })
@@ -38,16 +38,16 @@ describe("PaykitGopayPaymentProvider", () => {
 
     await provider.initiatePayment({
       amount: 10.5,
-      currency_code: "czk",
-      data: {
-        session_id: "payses_123",
-        item_id: "cart_123",
-      },
       context: {
         customer: {
-          id: "cus_123",
           email: "customer@example.com",
+          id: "cus_123",
         },
+      },
+      currency_code: "czk",
+      data: {
+        item_id: "cart_123",
+        session_id: "payses_123",
       },
     })
 
@@ -66,19 +66,19 @@ describe("PaykitGopayPaymentProvider", () => {
 
     await provider.initiatePayment({
       amount: 10.5,
+      context: {
+        customer: {
+          email: "customer@example.com",
+          id: "cus_123",
+        },
+      },
       currency_code: "czk",
       data: {
-        session_id: "payses_123",
         item_id: "cart_123",
         provider_metadata: {
           return_url: "https://shop.example/pokladna",
         },
-      },
-      context: {
-        customer: {
-          id: "cus_123",
-          email: "customer@example.com",
-        },
+        session_id: "payses_123",
       },
     })
 
@@ -100,28 +100,28 @@ describe("PaykitGopayPaymentProvider", () => {
 
     await provider.initiatePayment({
       amount: 10.5,
-      currency_code: "czk",
-      data: {
-        session_id: "payses_123",
-        item_id: "cart_123",
-        provider_metadata: {
-          success_url: "https://shop.example/success",
-          return_url: "https://shop.example/return",
-        },
-      },
       context: {
         customer: {
-          id: "cus_123",
           email: "customer@example.com",
+          id: "cus_123",
         },
+      },
+      currency_code: "czk",
+      data: {
+        item_id: "cart_123",
+        provider_metadata: {
+          return_url: "https://shop.example/return",
+          success_url: "https://shop.example/success",
+        },
+        session_id: "payses_123",
       },
     })
 
     expect(client.payments.create).toHaveBeenCalledWith(
       expect.objectContaining({
         provider_metadata: {
-          success_url: "https://shop.example/success",
           return_url: "https://shop.example/return",
+          success_url: "https://shop.example/success",
         },
       })
     )
@@ -135,16 +135,16 @@ describe("PaykitGopayPaymentProvider", () => {
 
     await provider.initiatePayment({
       amount: 10.5,
-      currency_code: "czk",
-      data: {
-        session_id: "payses_123",
-        item_id: "cart_123",
-      },
       context: {
         customer: {
-          id: "cus_123",
           email: "customer@example.com",
+          id: "cus_123",
         },
+      },
+      currency_code: "czk",
+      data: {
+        item_id: "cart_123",
+        session_id: "payses_123",
       },
     })
 
@@ -160,18 +160,18 @@ describe("PaykitGopayPaymentProvider", () => {
       getGopayProviderOptions({
         clientId: "client-id",
         clientSecret: "secret",
+        debug: true,
         goId: "go-id",
         isSandbox: true,
         webhookUrl: "https://shop.example/gopay",
-        debug: true,
       })
-    ).toEqual({
+    ).toStrictEqual({
       clientId: "client-id",
       clientSecret: "secret",
+      debug: true,
       goId: "go-id",
       isSandbox: true,
       webhookUrl: "https://shop.example/gopay",
-      debug: true,
     })
   })
 
@@ -183,9 +183,9 @@ describe("PaykitGopayPaymentProvider", () => {
 
     await provider.capturePayment({
       data: {
-        id: "gopay-payment-1",
         amount: 1050,
         currency: "czk",
+        id: "gopay-payment-1",
       },
     })
 
@@ -211,16 +211,16 @@ describe("PaykitGopayPaymentProvider", () => {
     const client = createMockPaykitClient()
     client.handleWebhook = vi.fn().mockResolvedValue([
       {
-        type: "payment.updated",
         data: {
-          id: "gopay-payment-1",
           amount: 1050,
           currency: "czk",
-          status: "succeeded",
+          id: "gopay-payment-1",
           metadata: {
             session_id: "payses_123",
           },
+          status: "succeeded",
         },
+        type: "payment.updated",
       },
     ])
     const provider = new PaykitGopayPaymentProvider(createMockContainer(), {
@@ -232,14 +232,14 @@ describe("PaykitGopayPaymentProvider", () => {
         data: {
           fullUrl: `https://shop.example${PAYKIT_GOPAY_WEBHOOK_PATH}?id=gopay-payment-1`,
         },
-        rawData: "",
         headers: {},
+        rawData: "",
       })
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       action: PaymentActions.SUCCESSFUL,
       data: {
-        session_id: "payses_123",
         amount: 10.5,
+        session_id: "payses_123",
       },
     })
   })

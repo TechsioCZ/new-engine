@@ -1,6 +1,7 @@
 "use client"
 
-import NextImage, { type ImageProps } from "next/image"
+import NextImage from "next/image"
+import type { ImageProps } from "next/image"
 import { useEffect, useState } from "react"
 
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"

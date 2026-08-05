@@ -20,10 +20,8 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 
-import {
-  PACKETA_CLIENT_MODULE,
-  type PacketaClientModuleService,
-} from "../packeta-client"
+import { PACKETA_CLIENT_MODULE } from "../packeta-client"
+import type { PacketaClientModuleService } from "../packeta-client"
 import type {
   PacketaFulfillmentData,
   PacketaOptions,
@@ -40,7 +38,7 @@ type PacketaClientDependency = Pick<
   | "getEffectiveConfig"
   | "getPacketStatus"
 >
-type FileServiceDependency = {
+interface FileServiceDependency {
   createFiles(
     data: CreateFileDTO[],
     sharedContext?: Context
@@ -56,7 +54,7 @@ type InjectedDependencies = {
 const DEFAULT_PACKET_WEIGHT_KG = 0.5
 const GRAMS_PER_KG = 1000
 
-type QueryService = {
+interface QueryService {
   graph: (input: {
     entity: string
     fields: string[]
@@ -64,12 +62,12 @@ type QueryService = {
   }) => Promise<{ data: unknown[] }>
 }
 
-type ProductWeightRecord = {
+interface ProductWeightRecord {
   id: string
   weight?: unknown
 }
 
-type OrderLineItemWithWeight = {
+interface OrderLineItemWithWeight {
   id?: string
   quantity?: unknown
   product_id?: string | null
@@ -82,7 +80,7 @@ type OrderLineItemWithWeight = {
   } | null
 }
 
-type FulfillmentItemWithQuantity = {
+interface FulfillmentItemWithQuantity {
   line_item_id?: string | null
   quantity?: unknown
 }
@@ -120,7 +118,7 @@ const toFiniteNumber = (value: unknown): number | undefined => {
     return Number.isFinite(parsed) ? parsed : undefined
   }
   if (value && typeof value === "object" && "value" in value) {
-    return toFiniteNumber((value as { value: unknown }).value)
+    return toFiniteNumber(value.value)
   }
 
   return
@@ -195,16 +193,16 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
 
     return [
       {
+        code: "z_point",
         id: "packeta-z-point",
         name: "Packeta Z-Point (pickup point)",
-        code: "z_point",
         requires_access_point: true,
         supports_cod: false,
       },
       {
+        code: "z_point_cod",
         id: "packeta-z-point-cod",
         name: "Packeta Z-Point + COD",
-        code: "z_point_cod",
         requires_access_point: true,
         supports_cod: true,
       },
@@ -261,10 +259,10 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     }
 
     const validatedData: PacketaShippingOptionData = {
+      access_point_id: parsedAccessPointId,
       code: optionCode,
       requires_access_point: true,
       supports_cod: optionCode === "z_point_cod",
-      access_point_id: parsedAccessPointId,
     }
     const accessPointName = data["access_point_name"]
     const accessPointZip = data["access_point_zip"]
@@ -325,12 +323,12 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     }
 
     const attributes = await this.buildPacketAttributes({
+      accessPointId: shippingData.access_point_id,
+      config,
+      items: _items,
       order,
       shippingAddress: order.shipping_address,
-      accessPointId: shippingData.access_point_id,
       shippingData,
-      items: _items,
-      config,
     })
 
     const fulfillmentId = fulfillment.id || `temp-${Date.now()}`
@@ -346,9 +344,9 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       const pdfBuffer = await this.getClient().downloadLabelPdf(result.id)
       const uploaded = await this.fileService_.createFiles([
         {
+          content: pdfBuffer.toString("base64"),
           filename: `packeta-label-${result.barcode}.pdf`,
           mimeType: "application/pdf",
-          content: pdfBuffer.toString("base64"),
         },
       ])
       labelUrl = uploaded[0]?.url
@@ -373,9 +371,9 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       labels: labelUrl
         ? [
             {
+              label_url: labelUrl,
               tracking_number: result.barcode,
               tracking_url: trackingUrl,
-              label_url: labelUrl,
             },
           ]
         : [],
@@ -399,8 +397,8 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     if (!cancelled) {
       return {
         cancelled: false,
-        packet_id: packetId,
         note: "Cancellation failed. Packet may have been picked up by carrier. Contact Packeta support.",
+        packet_id: packetId,
       }
     }
     return { cancelled: true, packet_id: packetId }
@@ -441,9 +439,9 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
 
     if (fulfillmentData.label_url) {
       documents.push({
+        format: "pdf",
         type: "label",
         url: fulfillmentData.label_url,
-        format: "pdf",
       })
     }
     if (fulfillmentData.tracking_url) {
@@ -464,16 +462,19 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     const data = getPacketaFulfillmentData(fulfillmentData)
 
     switch (documentType) {
-      case "label":
+      case "label": {
         return data.label_url
           ? { type: "label", url: data.label_url, format: "pdf" }
           : null
-      case "tracking":
+      }
+      case "tracking": {
         return data.tracking_url
           ? { type: "tracking", url: data.tracking_url }
           : null
-      default:
+      }
+      default: {
         return null
+      }
     }
   }
 
@@ -640,12 +641,12 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     } = params
 
     const attributes: PacketaPacketAttributes = {
-      number: orderNumber,
-      name: recipient.firstName,
-      surname: recipient.lastName,
       addressId: accessPointId,
-      value: totalNumber,
       currency,
+      name: recipient.firstName,
+      number: orderNumber,
+      surname: recipient.lastName,
+      value: totalNumber,
       weight: packetWeight,
     }
 

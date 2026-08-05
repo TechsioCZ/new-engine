@@ -2,14 +2,14 @@ import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { batchInventoryItemLevelsWorkflow } from "@medusajs/medusa/core-flows"
 
-import {
-  type ExistingLevel,
-  type LevelDTO,
-  type ResolvedUpdate,
-  type ResolverMaps,
-  type StockBatchPayload,
-  stockBatchClientMapperHelper,
-  type VariantInventoryItemRow,
+import { stockBatchClientMapperHelper } from "./client-mapper-helper"
+import type {
+  ExistingLevel,
+  LevelDTO,
+  ResolvedUpdate,
+  ResolverMaps,
+  StockBatchPayload,
+  VariantInventoryItemRow,
 } from "./client-mapper-helper"
 import type { UpdateStockBatchInput } from "./types"
 
@@ -18,7 +18,7 @@ const getQuery = (container: MedusaContainer) =>
 
 export type Query = ReturnType<typeof getQuery>
 
-export type BatchApplyResult = {
+export interface BatchApplyResult {
   created: LevelDTO[]
   updated: LevelDTO[]
 }
@@ -52,11 +52,11 @@ export class StockBatchClient {
     ])
 
     return {
-      skuMap,
-      eanMap,
-      variantIdMap,
-      validInventoryItemIds,
       defaultLocationId,
+      eanMap,
+      skuMap,
+      validInventoryItemIds,
+      variantIdMap,
     }
   }
 
@@ -109,7 +109,7 @@ export class StockBatchClient {
     const { data: variants } = await this.query.graph({
       entity: "variant",
       fields: [field, "inventory_items.inventory.id"],
-      filters: { [field]: Array.from(values) },
+      filters: { [field]: [...values] },
     })
     return this.mapper.buildVariantInventoryItemMap(
       field,
@@ -126,7 +126,7 @@ export class StockBatchClient {
     const { data: items } = await this.query.graph({
       entity: "inventory_item",
       fields: ["id"],
-      filters: { id: Array.from(ids) },
+      filters: { id: [...ids] },
     })
     return this.mapper.buildValidInventoryItemIdSet(
       (items ?? []) as { id: string }[]

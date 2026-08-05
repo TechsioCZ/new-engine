@@ -9,51 +9,37 @@
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the skeleton-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type ReactNode,
-  type Ref,
-  useContext,
-} from "react"
+import { createContext, useContext } from "react"
+import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react"
 
 import { tv } from "../utils"
 
 const skeletonVariants = tv({
+  defaultVariants: {
+    size: "md",
+    speed: "normal",
+    variant: "primary",
+  },
   slots: {
-    root: ["relative overflow-hidden"],
-    rectangle: "w-full",
     circle: ["rounded-full", "shrink-0"],
+    rectangle: "w-full",
+    root: ["relative overflow-hidden"],
     textContainer: ["flex", "flex-col"],
     textLine: ["h-skeleton-text-line", "rounded-skeleton-text", "w-full"],
   },
   variants: {
-    variant: {
-      primary: {
-        root: "",
-        circle: "bg-skeleton-bg-primary",
-        rectangle: "bg-skeleton-bg-primary",
-        textLine: "bg-skeleton-bg-primary",
-      },
-      secondary: {
-        root: "",
-        circle: "bg-skeleton-bg-secondary",
-        rectangle: "bg-skeleton-bg-secondary",
-        textLine: "bg-skeleton-bg-secondary",
-      },
-    },
     size: {
-      sm: {
-        circle: "size-skeleton-circle-sm",
-        textContainer: "gap-skeleton-text-sm",
+      lg: {
+        circle: "size-skeleton-circle-lg",
+        textContainer: "gap-skeleton-text-lg",
       },
       md: {
         circle: "size-skeleton-circle-md",
         textContainer: "gap-skeleton-text-md",
       },
-      lg: {
-        circle: "size-skeleton-circle-lg",
-        textContainer: "gap-skeleton-text-lg",
+      sm: {
+        circle: "size-skeleton-circle-sm",
+        textContainer: "gap-skeleton-text-sm",
       },
       xl: {
         circle: "size-skeleton-circle-xl",
@@ -61,21 +47,30 @@ const skeletonVariants = tv({
       },
     },
     speed: {
-      slow: {
-        root: "animate-skeleton-pulse-slow",
+      fast: {
+        root: "animate-skeleton-pulse-fast",
       },
       normal: {
         root: "animate-skeleton-pulse-normal",
       },
-      fast: {
-        root: "animate-skeleton-pulse-fast",
+      slow: {
+        root: "animate-skeleton-pulse-slow",
       },
     },
-  },
-  defaultVariants: {
-    variant: "primary",
-    size: "md",
-    speed: "normal",
+    variant: {
+      primary: {
+        circle: "bg-skeleton-bg-primary",
+        rectangle: "bg-skeleton-bg-primary",
+        root: "",
+        textLine: "bg-skeleton-bg-primary",
+      },
+      secondary: {
+        circle: "bg-skeleton-bg-secondary",
+        rectangle: "bg-skeleton-bg-secondary",
+        root: "",
+        textLine: "bg-skeleton-bg-secondary",
+      },
+    },
   },
 })
 
@@ -101,8 +96,8 @@ function useResolvedSkeletonProps(props: {
   const context = useSkeletonContext()
   return {
     isLoaded: props.isLoaded ?? context?.isLoaded ?? false,
-    variant: props.variant ?? context?.variant,
     speed: props.speed ?? context?.speed,
+    variant: props.variant ?? context?.variant,
   }
 }
 
@@ -126,10 +121,10 @@ export function Skeleton({
   ref,
   ...props
 }: SkeletonRootProps) {
-  const styles = skeletonVariants({ variant, speed })
+  const styles = skeletonVariants({ speed, variant })
 
   return (
-    <SkeletonContext.Provider value={{ isLoaded, variant, speed }}>
+    <SkeletonContext.Provider value={{ isLoaded, speed, variant }}>
       {isLoaded ? (
         <>{children}</>
       ) : (
@@ -169,12 +164,12 @@ Skeleton.Circle = function SkeletonCircle({
   ref,
   ...props
 }: SkeletonCircleProps) {
-  const resolved = useResolvedSkeletonProps({ isLoaded, variant, speed })
+  const resolved = useResolvedSkeletonProps({ isLoaded, speed, variant })
 
   const styles = skeletonVariants({
     size,
-    variant: resolved.variant,
     speed: resolved.speed,
+    variant: resolved.variant,
   })
 
   if (resolved.isLoaded) {
@@ -222,12 +217,12 @@ Skeleton.Text = function SkeletonText({
   ref,
   ...props
 }: SkeletonTextProps) {
-  const resolved = useResolvedSkeletonProps({ isLoaded, variant, speed })
+  const resolved = useResolvedSkeletonProps({ isLoaded, speed, variant })
 
   const styles = skeletonVariants({
     size,
-    variant: resolved.variant,
     speed: resolved.speed,
+    variant: resolved.variant,
   })
 
   if (resolved.isLoaded) {
@@ -283,11 +278,11 @@ Skeleton.Rectangle = function SkeletonRectangle({
   ref,
   ...props
 }: SkeletonRectangleProps) {
-  const resolved = useResolvedSkeletonProps({ isLoaded, variant, speed })
+  const resolved = useResolvedSkeletonProps({ isLoaded, speed, variant })
 
   const styles = skeletonVariants({
-    variant: resolved.variant,
     speed: resolved.speed,
+    variant: resolved.variant,
   })
 
   if (resolved.isLoaded) {

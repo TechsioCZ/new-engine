@@ -10,10 +10,7 @@ const { service } = vi.hoisted(() => ({
   },
 }))
 
-vi.mock("@medusajs/framework/workflows-sdk", () => ({
-  createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
-  ),
+vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: class StepResponse<
     TPayload = unknown,
     TCompensationInput = unknown,
@@ -26,13 +23,16 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
       this.compensateInput = compensateInput
     }
   },
+  createStep: vi.fn((_name, invoke, compensate) =>
+    Object.assign(invoke, { compensate })
+  ),
 }))
 
-vi.mock("../../../../../src/utils/measurement-units", () => ({
+vi.mock(import("../../../../../src/utils/measurement-units"), () => ({
   getMeasurementUnitService: vi.fn(() => service),
 }))
 
-type MockStep = {
+interface MockStep {
   (
     input: unknown,
     stepContext: { container: Record<string, never> }
@@ -80,7 +80,7 @@ describe("measurement record mutation compensation", () => {
       context
     )
 
-    expect(result.compensateInput).toEqual({
+    expect(result.compensateInput).toStrictEqual({
       action: "created",
       id: "pm_new",
     })

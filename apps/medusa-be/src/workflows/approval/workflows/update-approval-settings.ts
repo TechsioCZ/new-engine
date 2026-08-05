@@ -19,15 +19,15 @@ export const updateApprovalSettingsWorkflow = createWorkflow(
 
     const updateInput = transform({ input }, (data) => ({
       id: data.input.id,
-      ...(data.input.requires_admin_approval !== undefined
-        ? { requires_admin_approval: data.input.requires_admin_approval }
-        : {}),
-      ...(data.input.requires_sales_manager_approval !== undefined
-        ? {
+      ...(data.input.requires_admin_approval === undefined
+        ? {}
+        : { requires_admin_approval: data.input.requires_admin_approval }),
+      ...(data.input.requires_sales_manager_approval === undefined
+        ? {}
+        : {
             requires_sales_manager_approval:
               data.input.requires_sales_manager_approval,
-          }
-        : {}),
+          }),
     }))
 
     return new WorkflowResponse(updateApprovalSettingsStep(updateInput))

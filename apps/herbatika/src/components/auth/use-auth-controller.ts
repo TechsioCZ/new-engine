@@ -15,10 +15,12 @@ import {
 import { useRegisterCountryItems } from "@/components/auth/use-register-country-items"
 import {
   isWholesaleRegistration,
-  type LoginFormValues,
-  type RegisterFormValues,
   resolveLoginSubmitError,
   resolveRegisterSubmitError,
+} from "@/lib/auth/auth-form-validators"
+import type {
+  LoginFormValues,
+  RegisterFormValues,
 } from "@/lib/auth/auth-form-validators"
 import { buildAuthRegisterInput } from "@/lib/auth/register-payload"
 import { useAuth, useLogin, useRegister } from "@/lib/storefront/auth"
@@ -33,7 +35,7 @@ import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 
 type AuthControlsMode = "login" | "register"
 
-type UseAuthControllerProps = {
+interface UseAuthControllerProps {
   mode: AuthControlsMode
   afterAuthHref?: string
 }
@@ -207,6 +209,7 @@ export const useAuthController = ({
     authQuery,
     cartQuery,
     description,
+    forgotPasswordHref,
     handleLoginSubmit,
     handleRegisterSubmit,
     isBusy,
@@ -215,7 +218,6 @@ export const useAuthController = ({
     registerCountryItems,
     registerDefaultValues,
     registerHref,
-    forgotPasswordHref,
     title,
     transferCartIfAvailable,
     transferCartMutation,

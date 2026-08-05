@@ -1,7 +1,5 @@
-import {
-  type HerbatikaCurrencyCode,
-  normalizeSupportedCurrencyCode,
-} from "./currency"
+import { normalizeSupportedCurrencyCode } from "./currency"
+import type { HerbatikaCurrencyCode } from "./currency"
 
 const FREE_SHIPPING_THRESHOLDS: Partial<Record<HerbatikaCurrencyCode, number>> =
   {

@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
+import { vi, describe, expect, it } from "vitest"
 
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createCustomerHooks } from "../src/customers/hooks"
@@ -17,15 +18,18 @@ import { RegionProvider } from "../src/shared/region-context"
 
 describe("storefront-data cache/query consistency", () => {
   it("keeps separate product cache entries when region context changes", async () => {
-    type Product = { id: string; title: string }
+    interface Product {
+      id: string
+      title: string
+    }
 
-    type ProductListParams = {
+    interface ProductListParams {
       limit: number
       offset: number
       region_id?: string
     }
 
-    type ProductDetailParams = {
+    interface ProductDetailParams {
       handle: string
       region_id?: string
     }
@@ -51,6 +55,7 @@ describe("storefront-data cache/query consistency", () => {
       ProductListParams,
       ProductDetailParams
     > = {
+      getProductByHandle: async () => null,
       getProducts: async (params) => {
         const regionId = params.region_id ?? "unknown"
         seenRegions.push(regionId)
@@ -62,7 +67,6 @@ describe("storefront-data cache/query consistency", () => {
           offset: params.offset,
         }
       },
-      getProductByHandle: async () => null,
     }
 
     const queryKeyNamespace = "cache-consistency-region"
@@ -72,10 +76,10 @@ describe("storefront-data cache/query consistency", () => {
     >(queryKeyNamespace)
 
     const { useProducts } = createProductHooks({
-      service,
       buildListParams,
-      queryKeys,
       queryKeyNamespace,
+      queryKeys,
+      service,
     })
 
     const queryClient = new QueryClient({
@@ -88,14 +92,14 @@ describe("storefront-data cache/query consistency", () => {
 
     const wrapper = ({ children }: { children: ReactNode }) => (
       <StorefrontDataProvider client={queryClient}>
-        <RegionProvider region={{ region_id: regionId, country_code: "cz" }}>
+        <RegionProvider region={{ country_code: "cz", region_id: regionId }}>
           {children}
         </RegionProvider>
       </StorefrontDataProvider>
     )
 
     const { result, rerender } = renderHook(
-      () => useProducts({ page: 1, limit: 1 }),
+      () => useProducts({ limit: 1, page: 1 }),
       {
         wrapper,
       }
@@ -113,10 +117,10 @@ describe("storefront-data cache/query consistency", () => {
     })
 
     const regionCzKey = queryKeys.list(
-      buildListParams({ page: 1, limit: 1, region_id: "reg_cz" })
+      buildListParams({ limit: 1, page: 1, region_id: "reg_cz" })
     )
     const regionUsKey = queryKeys.list(
-      buildListParams({ page: 1, limit: 1, region_id: "reg_us" })
+      buildListParams({ limit: 1, page: 1, region_id: "reg_us" })
     )
 
     expect(queryClient.getQueryData(regionCzKey)).toBeTruthy()
@@ -126,13 +130,25 @@ describe("storefront-data cache/query consistency", () => {
   })
 
   it("invalidates both customer profile and auth customer keys on profile update", async () => {
-    type Address = { id: string }
-    type Customer = { id: string }
+    interface Address {
+      id: string
+    }
+    interface Customer {
+      id: string
+    }
 
-    type ListParams = { enabled?: boolean }
-    type CreateParams = { address_1?: string }
-    type UpdateParams = { address_1?: string }
-    type UpdateCustomerParams = { metadata?: Record<string, unknown> }
+    interface ListParams {
+      enabled?: boolean
+    }
+    interface CreateParams {
+      address_1?: string
+    }
+    interface UpdateParams {
+      address_1?: string
+    }
+    interface UpdateCustomerParams {
+      metadata?: Record<string, unknown>
+    }
 
     const service: CustomerService<
       Customer,
@@ -142,18 +158,16 @@ describe("storefront-data cache/query consistency", () => {
       UpdateParams,
       UpdateCustomerParams
     > = {
-      getAddresses: async () => ({ addresses: [] }),
       createAddress: async () => ({ id: "addr_1" }),
-      updateAddress: async () => ({ id: "addr_1" }),
       deleteAddress: async () => undefined,
+      getAddresses: async () => ({ addresses: [] }),
+      updateAddress: async () => ({ id: "addr_1" }),
       updateCustomer: async () => ({ id: "cust_1" }),
     }
 
     const queryKeyNamespace = "cache-consistency-customer"
 
     const { useUpdateCustomer } = createCustomerHooks({
-      service,
-      buildListParams: (input: ListParams) => input,
       addressAdapter: {
         toCreateParams: (input: CreateParams) => input,
         toUpdateParams: (input: UpdateParams & { addressId?: string }) => {
@@ -161,8 +175,10 @@ describe("storefront-data cache/query consistency", () => {
           return rest
         },
       },
+      buildListParams: (input: ListParams) => input,
       buildUpdateCustomerParams: (input: UpdateCustomerParams) => input,
       queryKeyNamespace,
+      service,
     })
 
     const profileQueryKey = createQueryKey(
@@ -178,8 +194,8 @@ describe("storefront-data cache/query consistency", () => {
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
 
@@ -207,20 +223,34 @@ describe("storefront-data cache/query consistency", () => {
       queryKey: authCustomerQueryKey,
     })
 
-    expect(queryClient.getQueryState(profileQueryKey)?.isInvalidated).toBe(true)
-    expect(queryClient.getQueryState(authCustomerQueryKey)?.isInvalidated).toBe(
-      true
-    )
+    expect(
+      queryClient.getQueryState(profileQueryKey)?.isInvalidated
+    ).toBeTruthy()
+    expect(
+      queryClient.getQueryState(authCustomerQueryKey)?.isInvalidated
+    ).toBeTruthy()
   })
 
   it("invalidates auth customer cache after address mutations", async () => {
-    type Address = { id: string }
-    type Customer = { id: string }
+    interface Address {
+      id: string
+    }
+    interface Customer {
+      id: string
+    }
 
-    type ListParams = { enabled?: boolean }
-    type CreateParams = { address_1?: string }
-    type UpdateParams = { address_1?: string }
-    type UpdateCustomerParams = { metadata?: Record<string, unknown> }
+    interface ListParams {
+      enabled?: boolean
+    }
+    interface CreateParams {
+      address_1?: string
+    }
+    interface UpdateParams {
+      address_1?: string
+    }
+    interface UpdateCustomerParams {
+      metadata?: Record<string, unknown>
+    }
 
     const service: CustomerService<
       Customer,
@@ -230,10 +260,10 @@ describe("storefront-data cache/query consistency", () => {
       UpdateParams,
       UpdateCustomerParams
     > = {
-      getAddresses: async () => ({ addresses: [] }),
       createAddress: async () => ({ id: "addr_1" }),
-      updateAddress: async () => ({ id: "addr_1" }),
       deleteAddress: async () => undefined,
+      getAddresses: async () => ({ addresses: [] }),
+      updateAddress: async () => ({ id: "addr_1" }),
       updateCustomer: async () => ({ id: "cust_1" }),
     }
 
@@ -243,8 +273,6 @@ describe("storefront-data cache/query consistency", () => {
       useUpdateCustomerAddress,
       useDeleteCustomerAddress,
     } = createCustomerHooks({
-      service,
-      buildListParams: (input: ListParams) => input,
       addressAdapter: {
         toCreateParams: (input: CreateParams) => input,
         toUpdateParams: (input: UpdateParams & { addressId?: string }) => {
@@ -252,8 +280,10 @@ describe("storefront-data cache/query consistency", () => {
           return rest
         },
       },
+      buildListParams: (input: ListParams) => input,
       buildUpdateCustomerParams: (input: UpdateCustomerParams) => input,
       queryKeyNamespace,
+      service,
     })
 
     const authCustomerQueryKey = createQueryKey(
@@ -264,8 +294,8 @@ describe("storefront-data cache/query consistency", () => {
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
         mutations: { retry: false },
+        queries: { retry: false },
       },
     })
 
@@ -312,14 +342,14 @@ describe("storefront-data cache/query consistency", () => {
       )
     )
 
-    expect(authInvalidationCalls.length).toBe(3)
-    expect(queryClient.getQueryState(authCustomerQueryKey)?.isInvalidated).toBe(
-      true
-    )
+    expect(authInvalidationCalls).toHaveLength(3)
+    expect(
+      queryClient.getQueryState(authCustomerQueryKey)?.isInvalidated
+    ).toBeTruthy()
   })
 
   it("normalizes order list keys and separates cache by list params", () => {
-    type ListParams = {
+    interface ListParams {
       limit: number
       offset: number
       status?: string[]
@@ -330,42 +360,44 @@ describe("storefront-data cache/query consistency", () => {
       }
     }
 
-    type DetailParams = { id: string }
+    interface DetailParams {
+      id: string
+    }
 
     const queryKeys = createOrderQueryKeys<ListParams, DetailParams>(
       "cache-consistency-orders"
     )
 
     const pendingWithEnabled = queryKeys.list({
-      limit: 20,
-      offset: 0,
-      status: ["pending"],
       enabled: true,
       filters: {
         kind: "retail",
       },
+      limit: 20,
+      offset: 0,
+      status: ["pending"],
     })
 
     const pendingNormalized = queryKeys.list({
-      offset: 0,
-      limit: 20,
-      status: ["pending"],
       filters: {
         kind: "retail",
       },
+      limit: 20,
+      offset: 0,
+      status: ["pending"],
     })
 
     const completed = queryKeys.list({
-      limit: 20,
-      offset: 0,
-      status: ["completed"],
       filters: {
         kind: "retail",
       },
+      limit: 20,
+      offset: 0,
+      status: ["completed"],
     })
 
-    expect(pendingWithEnabled).toEqual(pendingNormalized)
-    expect(pendingNormalized).not.toEqual(completed)
+    expect(pendingWithEnabled).toStrictEqual(pendingNormalized)
+    expect(pendingNormalized).not.toStrictEqual(completed)
   })
 
   it("keeps primitive order detail params as distinct query keys", () => {
@@ -377,7 +409,7 @@ describe("storefront-data cache/query consistency", () => {
     const second = queryKeys.detail("order_2")
     const sameAgain = queryKeys.detail("order_1")
 
-    expect(first).toEqual(sameAgain)
-    expect(first).not.toEqual(second)
+    expect(first).toStrictEqual(sameAgain)
+    expect(first).not.toStrictEqual(second)
   })
 })

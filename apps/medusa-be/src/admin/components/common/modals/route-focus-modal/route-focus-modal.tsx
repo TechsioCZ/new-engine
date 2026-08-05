@@ -1,5 +1,6 @@
 import { clx, FocusModal } from "@medusajs/ui"
-import { type PropsWithChildren, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
+import type { PropsWithChildren } from "react"
 import { useNavigate } from "react-router-dom"
 
 import { RouteModalForm } from "./route-modal-form"
@@ -80,12 +81,12 @@ const Content = ({ stackedModalOpen, children }: ContentProps) => {
   )
 }
 
-const Header = FocusModal.Header
-const Title = FocusModal.Title
-const Description = FocusModal.Description
-const Footer = FocusModal.Footer
-const Body = FocusModal.Body
-const Close = FocusModal.Close
+const { Header } = FocusModal
+const { Title } = FocusModal
+const { Description } = FocusModal
+const { Footer } = FocusModal
+const { Body } = FocusModal
+const { Close } = FocusModal
 const Form = RouteModalForm
 
 /**
@@ -95,11 +96,11 @@ const Form = RouteModalForm
  * a lot of space.
  */
 export const RouteFocusModal = Object.assign(Root, {
-  Header,
-  Title,
   Body,
+  Close,
   Description,
   Footer,
-  Close,
   Form,
+  Header,
+  Title,
 })

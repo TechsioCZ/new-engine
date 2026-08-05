@@ -14,7 +14,9 @@ export function findNodeById(
     }
     if (node.children) {
       const found = findNodeById(node.children, targetId)
-      if (found) return found
+      if (found) {
+        return found
+      }
     }
   }
   return null
@@ -32,7 +34,9 @@ export const getLeafIdsForCategory = (
   parentIds: Set<string>,
   leafParents: LeafParent[]
 ): string[] => {
-  if (leafIds.has(categoryId)) return [categoryId]
+  if (leafIds.has(categoryId)) {
+    return [categoryId]
+  }
   if (parentIds.has(categoryId)) {
     const parent = leafParents.find((p) => p.id === categoryId)
     return parent?.leafs || []

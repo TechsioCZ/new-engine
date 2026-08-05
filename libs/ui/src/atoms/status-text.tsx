@@ -13,9 +13,15 @@ import type { HTMLAttributes, ReactNode, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { tv } from "../utils"
-import { Icon, type IconType } from "./icon"
+import { Icon } from "./icon"
+import type { IconType } from "./icon"
 
 const statusTextVariants = tv({
+  defaultVariants: {
+    align: "center",
+    size: "md",
+    status: "default",
+  },
   slots: {
     base: "flex items-center",
     icon: "",
@@ -47,18 +53,13 @@ const statusTextVariants = tv({
       },
     },
   },
-  defaultVariants: {
-    status: "default",
-    size: "md",
-    align: "center",
-  },
 })
 
 const ICON_MAP = {
+  default: undefined,
   error: "token-icon-status-text-error",
   success: "token-icon-status-text-success",
   warning: "token-icon-status-text-warning",
-  default: undefined,
 } as const
 
 export type StatusTextProps = HTMLAttributes<HTMLDivElement> &
@@ -83,18 +84,18 @@ export function StatusText({
   const resolvedIcon = icon ?? ICON_MAP[status]
 
   const { base, icon: iconSlot } = statusTextVariants({
-    status,
-    size,
     align,
     className,
+    size,
+    status,
   })
 
   return (
     <div
       className={base({
-        status,
-        size,
         className,
+        size,
+        status,
       })}
       ref={ref}
       {...props}

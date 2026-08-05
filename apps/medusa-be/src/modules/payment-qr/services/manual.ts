@@ -35,7 +35,7 @@ import type { QrPaymentModuleService } from "../service"
 
 type QrManualPaymentProviderOptions = Record<string, never>
 
-type QrManualPaymentProviderDependencies = {
+interface QrManualPaymentProviderDependencies {
   [QR_PAYMENT_MODULE]?: QrPaymentModuleService
 }
 
@@ -89,8 +89,6 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
     })
 
     return {
-      id: reference,
-      status: "pending",
       data: {
         [QR_PAYMENT_SPAYD_KEY]: spayd,
         [QR_PAYMENT_DATA_URL_KEY]: qrDataUrl,
@@ -104,6 +102,8 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
           spayd,
         },
       },
+      id: reference,
+      status: "pending",
     }
   }
 
@@ -131,7 +131,7 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
   }
 
   async updatePayment(input: UpdatePaymentInput): Promise<UpdatePaymentOutput> {
-    return this.initiatePayment(input)
+    return await this.initiatePayment(input)
   }
 
   async capturePayment(
@@ -202,7 +202,7 @@ function normalizeAmount(amount: InitiatePaymentInput["amount"]) {
 }
 
 function normalizeIban(value: string | null | undefined) {
-  const normalized = value?.replace(/\s+/g, "").toUpperCase() ?? ""
+  const normalized = value?.replaceAll(/\s+/g, "").toUpperCase() ?? ""
 
   return normalized || null
 }

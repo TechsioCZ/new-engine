@@ -14,7 +14,7 @@ import {
 
 const validRuleTypes = ["rules", "target-rules", "buy-rules"] as const
 
-type VariantFixture = {
+interface VariantFixture {
   id: string
   title: string
   sku: string | null
@@ -25,19 +25,23 @@ const createVariant = (
   overrides: Partial<VariantFixture> = {}
 ): VariantFixture => ({
   id: "variant_test",
-  title: "Test Variant",
-  sku: "TEST-SKU",
   product: { title: "Test Product" },
+  sku: "TEST-SKU",
+  title: "Test Variant",
   ...overrides,
 })
 
-describe("mapVariantToRuleValueOption", () => {
+describe(mapVariantToRuleValueOption, () => {
   it.each<{
     name: string
     variant: VariantFixture
     expected: { label: string; value: string }
   }>([
     {
+      expected: {
+        label: "Blue T-Shirt - Large (SHIRT-L-BLU)",
+        value: "variant_123",
+      },
       name: "returns full label with product title, variant title, and SKU",
       variant: createVariant({
         id: "variant_123",
@@ -45,12 +49,9 @@ describe("mapVariantToRuleValueOption", () => {
         sku: "SHIRT-L-BLU",
         product: { title: "Blue T-Shirt" },
       }),
-      expected: {
-        label: "Blue T-Shirt - Large (SHIRT-L-BLU)",
-        value: "variant_123",
-      },
     },
     {
+      expected: { label: "Red Pants - Medium", value: "variant_123" },
       name: "omits SKU when null",
       variant: createVariant({
         id: "variant_123",
@@ -58,9 +59,9 @@ describe("mapVariantToRuleValueOption", () => {
         sku: null,
         product: { title: "Red Pants" },
       }),
-      expected: { label: "Red Pants - Medium", value: "variant_123" },
     },
     {
+      expected: { label: "Small (SM-001)", value: "variant_456" },
       name: "omits product title when product is undefined",
       variant: createVariant({
         id: "variant_456",
@@ -68,9 +69,12 @@ describe("mapVariantToRuleValueOption", () => {
         sku: "SM-001",
         product: undefined,
       }),
-      expected: { label: "Small (SM-001)", value: "variant_456" },
     },
     {
+      expected: {
+        label: "Single Variant Product (PROD-001)",
+        value: "variant_789",
+      },
       name: "shows only product title with SKU when variant title is empty",
       variant: createVariant({
         id: "variant_789",
@@ -78,12 +82,9 @@ describe("mapVariantToRuleValueOption", () => {
         sku: "PROD-001",
         product: { title: "Single Variant Product" },
       }),
-      expected: {
-        label: "Single Variant Product (PROD-001)",
-        value: "variant_789",
-      },
     },
     {
+      expected: { label: "variant_fallback", value: "variant_fallback" },
       name: "falls back to variant ID when no title or product available",
       variant: createVariant({
         id: "variant_fallback",
@@ -91,9 +92,12 @@ describe("mapVariantToRuleValueOption", () => {
         sku: null,
         product: undefined,
       }),
-      expected: { label: "variant_fallback", value: "variant_fallback" },
     },
     {
+      expected: {
+        label: "variant_only_sku (SKU-ONLY)",
+        value: "variant_only_sku",
+      },
       name: "falls back to variant ID with SKU when no titles available",
       variant: createVariant({
         id: "variant_only_sku",
@@ -101,12 +105,9 @@ describe("mapVariantToRuleValueOption", () => {
         sku: "SKU-ONLY",
         product: undefined,
       }),
-      expected: {
-        label: "variant_only_sku (SKU-ONLY)",
-        value: "variant_only_sku",
-      },
     },
     {
+      expected: { label: "Default", value: "variant_empty_product" },
       name: "handles product with empty title",
       variant: createVariant({
         id: "variant_empty_product",
@@ -114,9 +115,12 @@ describe("mapVariantToRuleValueOption", () => {
         sku: null,
         product: { title: "" },
       }),
-      expected: { label: "Default", value: "variant_empty_product" },
     },
     {
+      expected: {
+        label: 'Photo Frame (Black & White) - Size: 10" x 12" (ITEM-10x12/A)',
+        value: "variant_special",
+      },
       name: "handles special characters in titles and SKU",
       variant: createVariant({
         id: "variant_special",
@@ -124,18 +128,14 @@ describe("mapVariantToRuleValueOption", () => {
         sku: "ITEM-10x12/A",
         product: { title: "Photo Frame (Black & White)" },
       }),
-      expected: {
-        label: 'Photo Frame (Black & White) - Size: 10" x 12" (ITEM-10x12/A)',
-        value: "variant_special",
-      },
     },
   ])("$name", ({ variant, expected }) => {
     const result = mapVariantToRuleValueOption(variant)
-    expect(result).toEqual(expected)
+    expect(result).toStrictEqual(expected)
   })
 })
 
-describe("escapeLikePattern", () => {
+describe(escapeLikePattern, () => {
   it("returns empty string unchanged", () => {
     expect(escapeLikePattern("")).toBe("")
   })
@@ -172,14 +172,18 @@ describe("escapeLikePattern", () => {
 
 describe("isRuleType", () => {
   it("is covered by Medusa's validateRuleType utility", () => {
-    expect(() => validateRuleType("rules")).not.toThrow()
+    expect(() => {
+      validateRuleType("rules")
+    }).not.toThrow()
   })
 })
 
-describe("validateRuleType", () => {
+describe(validateRuleType, () => {
   describe("valid rule types", () => {
     it.each(validRuleTypes)('accepts "%s" as valid', (ruleType) => {
-      expect(() => validateRuleType(ruleType)).not.toThrow()
+      expect(() => {
+        validateRuleType(ruleType)
+      }).not.toThrow()
     })
   })
 
@@ -187,9 +191,9 @@ describe("validateRuleType", () => {
     it.each(["invalid", "RULES", "", "rule", "target", "buy"])(
       'throws for invalid rule type "%s"',
       (invalidType) => {
-        expect(() => validateRuleType(invalidType)).toThrow(
-          `Invalid param rule_type (${invalidType})`
-        )
+        expect(() => {
+          validateRuleType(invalidType)
+        }).toThrow(`Invalid param rule_type (${invalidType})`)
       }
     )
   })
@@ -203,11 +207,11 @@ describe("validateRuleType", () => {
   })
 })
 
-describe("getExtendedRuleAttributesMap", () => {
+describe(getExtendedRuleAttributesMap, () => {
   describe("rules attributes", () => {
     it("includes base rule attributes", () => {
       const map = getExtendedRuleAttributesMap({})
-      const rules = map.rules
+      const { rules } = map
 
       const ruleIds = rules.map((r) => r.id)
       expect(ruleIds).toContain("customer_group")
@@ -221,9 +225,9 @@ describe("getExtendedRuleAttributesMap", () => {
       const cartItemTotal = map.rules.find((r) => r.id === "cart_item_total")
 
       expect(cartItemTotal).toMatchObject({
+        field_type: "number",
         id: "cart_item_total",
         value: "item_total",
-        field_type: "number",
       })
     })
 
@@ -234,7 +238,7 @@ describe("getExtendedRuleAttributesMap", () => {
       const currencyRule = map.rules.find((r) => r.id === "currency_code")
 
       expect(currencyRule).toBeDefined()
-      expect(currencyRule?.required).toBe(true)
+      expect(currencyRule?.required).toBeTruthy()
     })
   })
 
@@ -255,8 +259,8 @@ describe("getExtendedRuleAttributesMap", () => {
       expect(ruleIds).toContain("brand")
 
       expect(targetRules.find((r) => r.id === "brand")).toMatchObject({
-        value: "items.brand_ids",
         field_type: "multiselect",
+        value: "items.brand_ids",
       })
     })
 
@@ -282,12 +286,12 @@ describe("getExtendedRuleAttributesMap", () => {
         (r) => r.id === "apply_to_quantity"
       )
       expect(applyToQuantity).toBeDefined()
-      expect(applyToQuantity?.required).toBe(true)
+      expect(applyToQuantity?.required).toBeTruthy()
       expect(
         applyToQuantity !== undefined &&
           "disguised" in applyToQuantity &&
           applyToQuantity.disguised
-      ).toBe(true)
+      ).toBeTruthy()
     })
   })
 
@@ -324,7 +328,7 @@ describe("getExtendedRuleAttributesMap", () => {
         (r) => r.id === "buy_rules_min_quantity"
       )
       expect(minQuantity).toBeDefined()
-      expect(minQuantity?.required).toBe(true)
+      expect(minQuantity?.required).toBeTruthy()
       expect(minQuantity?.label).toBe("Minimum quantity of items")
     })
   })
@@ -340,7 +344,7 @@ describe("getExtendedRuleAttributesMap", () => {
           expect(attr).toHaveProperty("label")
           expect(attr).toHaveProperty("field_type")
           expect(attr).toHaveProperty("operators")
-          expect(Array.isArray(attr.operators)).toBe(true)
+          expect(Array.isArray(attr.operators)).toBeTruthy()
         }
       }
     })
@@ -383,24 +387,24 @@ describe("custom rule operator compatibility", () => {
         { brand_ids: ["brand_allowed"] },
         ApplicationMethodTargetType.ITEMS
       )
-    ).toBe(true)
+    ).toBeTruthy()
     expect(
       areRulesValidForContext(
         [rule] as never,
         { brand_ids: ["brand_blocked"] },
         ApplicationMethodTargetType.ITEMS
       )
-    ).toBe(false)
+    ).toBeFalsy()
   })
 })
 
-describe("buildBrandPromotionContext", () => {
+describe(buildBrandPromotionContext, () => {
   it("adds brand ids to items without dropping existing item context", async () => {
     const graph = vi.fn().mockResolvedValue({
       data: [
-        { product_id: "prod_1", brand_id: "brand_a" },
-        { product_id: "prod_1", brand_id: "brand_b" },
-        { product_id: "prod_2", brand_id: "brand_c" },
+        { brand_id: "brand_a", product_id: "prod_1" },
+        { brand_id: "brand_b", product_id: "prod_1" },
+        { brand_id: "brand_c", product_id: "prod_2" },
       ],
     })
     const listBrands = vi
@@ -421,14 +425,14 @@ describe("buildBrandPromotionContext", () => {
         items: [
           {
             id: "item_1",
+            product: { id: "prod_1" },
             product_id: "prod_1",
             quantity: 2,
-            product: { id: "prod_1" },
           },
           {
             id: "item_2",
-            variant: { product_id: "prod_2" },
             quantity: 1,
+            variant: { product_id: "prod_2" },
           },
         ],
       },
@@ -443,17 +447,17 @@ describe("buildBrandPromotionContext", () => {
         product_id: { $in: ["prod_1", "prod_2"] },
       },
     })
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       items: [
         expect.objectContaining({
+          brand_ids: ["brand_a", "brand_b"],
           id: "item_1",
           quantity: 2,
-          brand_ids: ["brand_a", "brand_b"],
         }),
         expect.objectContaining({
+          brand_ids: ["brand_c"],
           id: "item_2",
           quantity: 1,
-          brand_ids: ["brand_c"],
         }),
       ],
     })
@@ -471,7 +475,7 @@ describe("buildBrandPromotionContext", () => {
       }
 
       return {
-        data: [{ product_id: "prod_1", brand_id: "brand_a" }],
+        data: [{ brand_id: "brand_a", product_id: "prod_1" }],
       }
     })
     const listBrands = vi.fn().mockResolvedValue([{ id: "brand_a" }])
@@ -506,11 +510,11 @@ describe("buildBrandPromotionContext", () => {
         product_id: { $in: ["prod_1", "prod_2"] },
       },
     })
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       items: [
         expect.objectContaining({
-          id: "item_1",
           brand_ids: ["brand_a"],
+          id: "item_1",
         }),
         expect.objectContaining({
           id: "item_2",
@@ -525,9 +529,9 @@ describe("buildBrandPromotionContext", () => {
   it("excludes links to deleted brands from promotion context", async () => {
     const graph = vi.fn().mockResolvedValue({
       data: [
-        { product_id: "prod_1", brand_id: "brand_active" },
-        { product_id: "prod_1", brand_id: "brand_deleted" },
-        { product_id: "prod_2", brand_id: "brand_deleted" },
+        { brand_id: "brand_active", product_id: "prod_1" },
+        { brand_id: "brand_deleted", product_id: "prod_1" },
+        { brand_id: "brand_deleted", product_id: "prod_2" },
       ],
     })
     const listBrands = vi.fn().mockResolvedValue([{ id: "brand_active" }])
@@ -559,12 +563,12 @@ describe("buildBrandPromotionContext", () => {
         withDeleted: false,
       }
     )
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       items: [
         {
+          brand_ids: ["brand_active"],
           id: "item_1",
           product_id: "prod_1",
-          brand_ids: ["brand_active"],
         },
         {
           id: "item_2",

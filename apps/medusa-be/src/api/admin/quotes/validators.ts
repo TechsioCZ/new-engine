@@ -11,17 +11,17 @@ export const AdminGetQuoteParams = createFindParams({
 })
   .merge(
     z.object({
-      q: z.string().optional(),
-      id: z
-        .union([z.string(), z.array(z.string()), createOperatorMap()])
-        .optional(),
+      created_at: createOperatorMap().optional(),
       draft_order_id: z
         .union([z.string(), z.array(z.string()), createOperatorMap()])
         .optional(),
+      id: z
+        .union([z.string(), z.array(z.string()), createOperatorMap()])
+        .optional(),
+      q: z.string().optional(),
       status: z
         .union([z.string(), z.array(z.string()), createOperatorMap()])
         .optional(),
-      created_at: createOperatorMap().optional(),
       updated_at: createOperatorMap().optional(),
     })
   )
@@ -38,7 +38,7 @@ export type AdminCreateQuoteMessageType = z.infer<
 >
 export const AdminCreateQuoteMessage = z
   .object({
-    text: z.string(),
     item_id: z.string().nullish(),
+    text: z.string(),
   })
   .strict()

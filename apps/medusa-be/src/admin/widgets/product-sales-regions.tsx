@@ -9,8 +9,8 @@ import {
   formatPercent,
   getCountriesByCode,
   getSalesRegionRows,
-  type ProductSalesRegionsResponse,
 } from "../utils/product-sales-regions"
+import type { ProductSalesRegionsResponse } from "../utils/product-sales-regions"
 
 type ProductSalesRegionsWidgetProps = Partial<DetailWidgetProps<AdminProduct>>
 
@@ -72,13 +72,13 @@ const ProductSalesRegionsWidget = ({
     isLoading: regionsLoading,
   } = useQuery({
     enabled: !!productId,
-    queryFn: () => sdk.admin.region.list(),
+    queryFn: async () => sdk.admin.region.list(),
     queryKey: ["product-sales-regions", "regions"],
   })
 
   const { data, error, isLoading } = useQuery({
     enabled: !!productId,
-    queryFn: () =>
+    queryFn: async () =>
       sdk.client.fetch<ProductSalesRegionsResponse>(
         `/admin/products/${productId}/sales-regions`
       ),

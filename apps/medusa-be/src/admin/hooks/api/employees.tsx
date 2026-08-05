@@ -1,11 +1,9 @@
 import type { FetchError } from "@medusajs/js-sdk"
-import {
-  type QueryKey,
-  type UseMutationOptions,
-  type UseQueryOptions,
-  useMutation,
-  useQuery,
-  useQueryClient,
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type {
+  QueryKey,
+  UseMutationOptions,
+  UseQueryOptions,
 } from "@tanstack/react-query"
 
 import type {
@@ -28,14 +26,13 @@ export const useEmployees = (
   options?: UseQueryOptions<
     AdminEmployeesResponse,
     FetchError,
-    AdminEmployeesResponse,
-    QueryKey
+    AdminEmployeesResponse
   >
 ) => {
   const filterQuery = new URLSearchParams(query).toString()
 
   const fetchEmployees = async () =>
-    sdk.client.fetch<AdminEmployeesResponse>(
+    await sdk.client.fetch<AdminEmployeesResponse>(
       `/admin/companies/${companyId}/employees${
         filterQuery ? `?${filterQuery}` : ""
       }`,
@@ -45,8 +42,8 @@ export const useEmployees = (
     )
 
   return useQuery({
-    queryKey: employeeQueryKey.list({ companyId, query }),
     queryFn: fetchEmployees,
+    queryKey: employeeQueryKey.list({ companyId, query }),
     ...options,
   })
 }
@@ -62,15 +59,15 @@ export const useCreateEmployee = (
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (employee: AdminCreateEmployeeBody) =>
+    mutationFn: async (employee: AdminCreateEmployeeBody) =>
       sdk.client.fetch<AdminEmployeeResponse>(
         `/admin/companies/${companyId}/employees`,
         {
-          method: "POST",
+          body: employee,
           headers: {
             "Content-Type": "application/json",
           },
-          body: employee,
+          method: "POST",
         }
       ),
     onSuccess: async (data, variables, context) => {
@@ -101,15 +98,15 @@ export const useUpdateEmployee = (
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (employee: AdminUpdateEmployee) =>
+    mutationFn: async (employee: AdminUpdateEmployee) =>
       sdk.client.fetch<AdminEmployeeResponse>(
         `/admin/companies/${companyId}/employees/${employeeId}`,
         {
-          method: "POST",
+          body: employee,
           headers: {
             "Content-Type": "application/json",
           },
-          body: employee,
+          method: "POST",
         }
       ),
     onSuccess: async (data, variables, context) => {
@@ -138,7 +135,7 @@ export const useDeleteEmployee = (
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (employeeId: string) =>
+    mutationFn: async (employeeId: string) =>
       sdk.client.fetch<void>(
         `/admin/companies/${companyId}/employees/${employeeId}`,
         {

@@ -3,20 +3,23 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"
 
-import { APIError, type Endpoint } from "payload"
+import { APIError } from "payload"
+import type { Endpoint } from "payload"
 
 import {
   ArticleImportError,
-  type ArticleImportOptions,
-  type ImportStatus,
   runImportFromFile,
   STATUS_VALUES,
+} from "../../scripts/import-articles"
+import type {
+  ArticleImportOptions,
+  ImportStatus,
 } from "../../scripts/import-articles"
 import { buildJsonResponse } from "../utils/endpoint"
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
-type ImportFormData = {
+interface ImportFormData {
   file: File
   locale?: string
   sheetName?: string
@@ -85,7 +88,10 @@ const writeUploadToTempFile = async (file: File) => {
     throw new APIError("Only .xlsx files are allowed", 400)
   }
 
-  const safeName = (file.name || "upload.xlsx").replace(/[^a-zA-Z0-9._-]/g, "_")
+  const safeName = (file.name || "upload.xlsx").replaceAll(
+    /[^a-zA-Z0-9._-]/g,
+    "_"
+  )
   const dir = await mkdtemp(path.join(tmpdir(), "payload-import-"))
   const filePath = path.join(dir, `${randomUUID()}-${safeName}`)
 
@@ -93,7 +99,7 @@ const writeUploadToTempFile = async (file: File) => {
     const buffer = Buffer.from(await file.arrayBuffer())
     await writeFile(filePath, buffer)
   } catch (error) {
-    await rm(dir, { recursive: true, force: true })
+    await rm(dir, { force: true, recursive: true })
     throw error
   }
 
@@ -126,7 +132,7 @@ const isAuthorized = (req: ArticleImportRequest) => {
     return true
   }
 
-  const apiKey = process.env["PAYLOAD_API_KEY"]
+  const apiKey = process.env.PAYLOAD_API_KEY
   return Boolean(apiKey && req.headers.get("x-payload-api-key") === apiKey)
 }
 
@@ -145,7 +151,7 @@ const readImportFormData = async (req: ArticleImportRequest) => {
 }
 
 const resolveImportLocale = (req: ArticleImportRequest, value?: string) => {
-  const localization = req.payload.config.localization
+  const { localization } = req.payload.config
   const supportedLocales =
     localization === false ? undefined : localization?.localeCodes
   const locale =
@@ -164,8 +170,6 @@ const resolveImportLocale = (req: ArticleImportRequest, value?: string) => {
 
 /** Endpoint for uploading XLSX and importing articles through Payload admin. */
 export const articleImportEndpoint: Endpoint = {
-  path: "/article-import",
-  method: "post",
   handler: async (req) => {
     if (!isAuthorized(req)) {
       throw new APIError("Unauthorized", 401)
@@ -231,4 +235,6 @@ export const articleImportEndpoint: Endpoint = {
       }
     }
   },
+  method: "post",
+  path: "/article-import",
 }

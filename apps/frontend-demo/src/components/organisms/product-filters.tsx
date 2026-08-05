@@ -48,16 +48,16 @@ export function ProductFilters({
     }
 
     const productFilters = {
-      categories: Array.from(updatedFilters.categories),
-      sizes: Array.from(updatedFilters.sizes),
+      categories: [...updatedFilters.categories],
+      sizes: [...updatedFilters.sizes],
     }
 
     const queryKey = queryKeys.products.list({
-      page: 1,
-      limit: 12,
       filters: productFilters,
-      sort: "newest", // Add default sort to match products page
+      limit: 12,
+      page: 1,
       region_id: selectedRegion?.id,
+      sort: "newest", // Add default sort to match products page,
     })
 
     // Check if data is already in cache and fresh
@@ -67,8 +67,7 @@ export function ProductFilters({
     // Only prefetch if data is not in cache or is stale
     if (!cachedData || queryState?.isInvalidated) {
       void queryClient.prefetchQuery({
-        queryKey,
-        queryFn: () =>
+        queryFn: async () =>
           getProducts({
             limit: 12,
             offset: 0,
@@ -76,6 +75,7 @@ export function ProductFilters({
             sort: "newest",
             region_id: selectedRegion?.id,
           }),
+        queryKey,
         ...cacheConfig.semiStatic, // Use consistent cache config
       })
     }
@@ -120,49 +120,49 @@ export function ProductFilters({
     </FilterSection>
   )
 
-  const renderSizes = () => {
-    return (
-      <FilterSection
-        onClear={
-          filters.sizes.size > 0
-            ? () => updateFilters({ sizes: new Set() })
-            : undefined
-        }
-        title="Velikost"
-      >
-        <div className="flex flex-wrap gap-2">
-          {SIZES.map((size) => {
-            const isSelected = filters.sizes.has(size)
-            return (
-              <Button
-                className="rounded-sm border"
-                key={size}
-                onClick={() => {
-                  const newSizes = new Set<string>()
-                  // If clicking on already selected size, deselect it
-                  // Otherwise, select only this size
-                  if (!isSelected) {
-                    newSizes.add(size)
-                  }
-                  updateFilters({ sizes: newSizes })
-                }}
-                onMouseEnter={() => {
-                  // Prefetch products with this size filter
-                  if (!isSelected) {
-                    prefetchFilteredProducts({ sizes: new Set([size]) })
-                  }
-                }}
-                size="sm"
-                theme={isSelected ? "solid" : "borderless"}
-              >
-                {size}
-              </Button>
-            )
-          })}
-        </div>
-      </FilterSection>
-    )
-  }
+  const renderSizes = () => (
+    <FilterSection
+      onClear={
+        filters.sizes.size > 0
+          ? () => {
+              updateFilters({ sizes: new Set() })
+            }
+          : undefined
+      }
+      title="Velikost"
+    >
+      <div className="flex flex-wrap gap-2">
+        {SIZES.map((size) => {
+          const isSelected = filters.sizes.has(size)
+          return (
+            <Button
+              className="rounded-sm border"
+              key={size}
+              onClick={() => {
+                const newSizes = new Set<string>()
+                // If clicking on already selected size, deselect it
+                // Otherwise, select only this size
+                if (!isSelected) {
+                  newSizes.add(size)
+                }
+                updateFilters({ sizes: newSizes })
+              }}
+              onMouseEnter={() => {
+                // Prefetch products with this size filter
+                if (!isSelected) {
+                  prefetchFilteredProducts({ sizes: new Set([size]) })
+                }
+              }}
+              size="sm"
+              theme={isSelected ? "solid" : "borderless"}
+            >
+              {size}
+            </Button>
+          )
+        })}
+      </div>
+    </FilterSection>
+  )
 
   const filterContent = (
     <>
@@ -193,7 +193,9 @@ export function ProductFilters({
       <Button
         className="flex items-center bg-surface md:hidden"
         icon="icon-[mdi--filter-variant]"
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          setIsOpen(true)
+        }}
         size="sm"
         theme="outlined"
       >
@@ -212,7 +214,9 @@ export function ProductFilters({
       <div className="hidden">
         <Dialog
           description="Upřesněte hledání produktů"
-          onOpenChange={({ open }) => setIsOpen(open)}
+          onOpenChange={({ open }) => {
+            setIsOpen(open)
+          }}
           open={isOpen}
           title="Filtry"
         >
@@ -222,7 +226,9 @@ export function ProductFilters({
               <Button
                 aria-label="Zavřít filtry"
                 icon="icon-[mdi--close]"
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  setIsOpen(false)
+                }}
                 size="sm"
                 theme="borderless"
               />
@@ -242,7 +248,9 @@ export function ProductFilters({
               </Button>
               <Button
                 className="flex-1"
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  setIsOpen(false)
+                }}
                 size="sm"
                 theme="solid"
               >

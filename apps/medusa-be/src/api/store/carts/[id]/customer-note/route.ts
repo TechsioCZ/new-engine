@@ -11,7 +11,7 @@ import { updateCartWorkflow } from "@medusajs/medusa/core-flows"
 
 import type { StoreSetCartCustomerNoteType } from "../../validators"
 
-type CartRecord = {
+interface CartRecord {
   customer_id?: string | null
   id: string
   metadata?: Record<string, unknown> | null

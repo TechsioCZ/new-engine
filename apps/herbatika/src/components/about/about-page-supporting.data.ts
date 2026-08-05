@@ -1,15 +1,67 @@
-import {
-  aboutLink,
-  type AboutMilestone,
-  type AboutPrinciple,
-  type AboutSocialLink,
-  type AboutTextBlock,
+import { aboutLink } from "./about-page.types"
+import type {
+  AboutMilestone,
+  AboutPrinciple,
+  AboutSocialLink,
+  AboutTextBlock,
 } from "./about-page.types"
 
 export const ABOUT_PAGE_SUPPORTING = {
+  closingStatement:
+    "Sme tu pre vás a tešíme sa, že spolu s vami môžeme kráčať cestou k prirodzenému zdraviu a kráse.",
+  contact: {
+    companyDetails: [
+      "Herbatica s.r.o.",
+      "Turzovka-Stred 422",
+      "023 54 Turzovka",
+      "Slovensko",
+      "IČO: 50 176 374",
+      "DIČ: 2120 198 454",
+      "IČ DPH: SK2120 198 454",
+      "Sme platci DPH.",
+    ],
+    paragraphs: [
+      "Online sme vždy pondelok až piatok od 9:00 do 15:00, s výnimkou sviatkov a dní pracovného pokoja.",
+      "V Trenčíne nájdete aj kamenný obchod s prírodnou medicínou a kozmetikou, jeho adresa je: Mierové námestie 33/33, Trenčín. Vždy vám tam ochotne poradia a poslúžia. Otvorené je denne od 12:00 do 17:00.",
+      [
+        "Ak máte pre nás obchodnú ponuku, návrh na zlepšenie, viete si predstaviť náš spoločný rast-rozvoj alebo máte záujem o veľkoobchodnú spoluprácu, kontaktujte nás ",
+        aboutLink("tu", "/napiste-nam/"),
+        ".",
+      ],
+      "Tešíme sa na vás, nech si už vyberiete akýkoľvek spôsob kontaktu s nami.",
+    ],
+    title: "Kontakt",
+  },
+  follow: {
+    paragraphs: [
+      [
+        "Sledujte náš ",
+        aboutLink("blog", "/blog/"),
+        ', kde servírujeme iba tie najzaujímavejšie informácie z "Herbatického sveta". Dozviete sa tam veľa zaujímavostí a získate praktické rady zo sveta alternatívnych doplnkov stravy, tradičnej i modernej liečby, prírodnej kozmetickej starostlivosti a mnoho iného.',
+      ],
+      [
+        "Máme aj ",
+        aboutLink("Instagram", "https://www.instagram.com/herbatica/"),
+        " a ",
+        aboutLink("Facebook", "https://www.facebook.com/vasaherbatica/"),
+        " a pravidelne zasielame aj newsletter s novinkami a akciami. Dajte nám follow na sociálnych sieťach, alebo ",
+        aboutLink("sa prihláste na odber newslettera", "/newsletter/"),
+        " a už vám nič neutečie.",
+      ],
+    ],
+  } satisfies AboutTextBlock,
   logoMeaning: {
     paragraphs: [
       "Logo značky Herbatica predstavuje to najcennejšie, čo v tomto priestore máme. Sú to zdroje našej planéty - rastliny, ktoré nás nielen sýtia, ale hlavne uzdravujú. Zelené lístky v tvare kruhu symbolizujú bohatstvo prírody a liečivú silu rastlín, ktoré sú základom produktov z ponuky.",
+    ],
+  } satisfies AboutTextBlock,
+  loyalty: {
+    paragraphs: [
+      [
+        "Pre verných zákazníkov, ktorí chcú nakupovať opakovane, sme pripravili vernostný program. Veľa v ňom ušetríte a hlavne ostanete v kontakte s komunitou, ktorá tiež verí, že naša konzumná doba je udržateľná. Viac o našom programe ",
+        aboutLink("pre verných zákazníkov nájdete tu", "/vernost/"),
+        ".",
+      ],
     ],
   } satisfies AboutTextBlock,
   milestones: [
@@ -59,8 +111,6 @@ export const ABOUT_PAGE_SUPPORTING = {
       ],
     },
   ] satisfies readonly AboutMilestone[],
-  closingStatement:
-    "Sme tu pre vás a tešíme sa, že spolu s vami môžeme kráčať cestou k prirodzenému zdraviu a kráse.",
   principles: [
     {
       title: "Objavujeme",
@@ -78,24 +128,24 @@ export const ABOUT_PAGE_SUPPORTING = {
         "Všetko, čo sa o udržateľnosti života naučíme, zdieľame s ostatnými. Chceme mať istotu, že každý produkt, ktorý je od nás expedovaný a zabalený s láskou, si nájde toho pravého príjemcu. Príjemcu, ktorý je dostatočne bdelý na to, aby z prostredia prijímal len to, čo naozaj potrebuje.",
     },
   ] satisfies readonly AboutPrinciple[],
-  follow: {
+  reviews: {
     paragraphs: [
       [
-        "Sledujte náš ",
-        aboutLink("blog", "/blog/"),
-        ', kde servírujeme iba tie najzaujímavejšie informácie z "Herbatického sveta". Dozviete sa tam veľa zaujímavostí a získate praktické rady zo sveta alternatívnych doplnkov stravy, tradičnej i modernej liečby, prírodnej kozmetickej starostlivosti a mnoho iného.',
-      ],
-      [
-        "Máme aj ",
-        aboutLink("Instagram", "https://www.instagram.com/herbatica/"),
-        " a ",
-        aboutLink("Facebook", "https://www.facebook.com/vasaherbatica/"),
-        " a pravidelne zasielame aj newsletter s novinkami a akciami. Dajte nám follow na sociálnych sieťach, alebo ",
-        aboutLink("sa prihláste na odber newslettera", "/newsletter/"),
-        " a už vám nič neutečie.",
+        "Zaujíma vás, ako nás vnímajú ostatní zákazníci, ktorí už naše produkty či služby vyskúšali? Prečítajte si, čo o nás napísali: Tu je ",
+        aboutLink(
+          "hodnotenie obchodu na našom e-shope",
+          "/hodnotenie-obchodu/"
+        ),
+        " a tu nájdete hodnotenia/recenzie na ",
+        aboutLink(
+          "Heuréke",
+          "https://obchody.heureka.sk/herbatica-sk/recenze/"
+        ),
+        ".",
       ],
     ],
-  } satisfies AboutTextBlock,
+    title: "Hodnotenia našich zákazníkov",
+  },
   socialLinks: [
     {
       href: "https://www.facebook.com/vasaherbatica",
@@ -113,54 +163,4 @@ export const ABOUT_PAGE_SUPPORTING = {
       label: "YouTube",
     },
   ] satisfies readonly AboutSocialLink[],
-  loyalty: {
-    paragraphs: [
-      [
-        "Pre verných zákazníkov, ktorí chcú nakupovať opakovane, sme pripravili vernostný program. Veľa v ňom ušetríte a hlavne ostanete v kontakte s komunitou, ktorá tiež verí, že naša konzumná doba je udržateľná. Viac o našom programe ",
-        aboutLink("pre verných zákazníkov nájdete tu", "/vernost/"),
-        ".",
-      ],
-    ],
-  } satisfies AboutTextBlock,
-  reviews: {
-    title: "Hodnotenia našich zákazníkov",
-    paragraphs: [
-      [
-        "Zaujíma vás, ako nás vnímajú ostatní zákazníci, ktorí už naše produkty či služby vyskúšali? Prečítajte si, čo o nás napísali: Tu je ",
-        aboutLink(
-          "hodnotenie obchodu na našom e-shope",
-          "/hodnotenie-obchodu/"
-        ),
-        " a tu nájdete hodnotenia/recenzie na ",
-        aboutLink(
-          "Heuréke",
-          "https://obchody.heureka.sk/herbatica-sk/recenze/"
-        ),
-        ".",
-      ],
-    ],
-  },
-  contact: {
-    title: "Kontakt",
-    paragraphs: [
-      "Online sme vždy pondelok až piatok od 9:00 do 15:00, s výnimkou sviatkov a dní pracovného pokoja.",
-      "V Trenčíne nájdete aj kamenný obchod s prírodnou medicínou a kozmetikou, jeho adresa je: Mierové námestie 33/33, Trenčín. Vždy vám tam ochotne poradia a poslúžia. Otvorené je denne od 12:00 do 17:00.",
-      [
-        "Ak máte pre nás obchodnú ponuku, návrh na zlepšenie, viete si predstaviť náš spoločný rast-rozvoj alebo máte záujem o veľkoobchodnú spoluprácu, kontaktujte nás ",
-        aboutLink("tu", "/napiste-nam/"),
-        ".",
-      ],
-      "Tešíme sa na vás, nech si už vyberiete akýkoľvek spôsob kontaktu s nami.",
-    ],
-    companyDetails: [
-      "Herbatica s.r.o.",
-      "Turzovka-Stred 422",
-      "023 54 Turzovka",
-      "Slovensko",
-      "IČO: 50 176 374",
-      "DIČ: 2120 198 454",
-      "IČ DPH: SK2120 198 454",
-      "Sme platci DPH.",
-    ],
-  },
 } as const

@@ -10,8 +10,8 @@ import type BrandModuleService from "../service"
 vi.setConfig({ testTimeout: 60_000 })
 
 moduleIntegrationTestRunner<BrandModuleService>({
-  moduleName: BRAND_MODULE,
   moduleModels: [Brand, BrandAttribute, BrandAttributeType],
+  moduleName: BRAND_MODULE,
   resolve: "./src/modules/brand",
   testSuite: ({ service }) => {
     describe("brand persistence", () => {

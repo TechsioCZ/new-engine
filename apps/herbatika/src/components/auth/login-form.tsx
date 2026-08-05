@@ -7,16 +7,14 @@ import { useMemo } from "react"
 
 import NextLink from "@/components/app-link"
 import { useAppToast } from "@/hooks/use-app-toast"
-import {
-  createLoginValidators,
-  type LoginFormValues,
-} from "@/lib/auth/auth-form-validators"
+import { createLoginValidators } from "@/lib/auth/auth-form-validators"
+import type { LoginFormValues } from "@/lib/auth/auth-form-validators"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
 import { AuthFooter } from "./auth-footer"
 
-type LoginFormProps = {
+interface LoginFormProps {
   isBusy: boolean
   defaultValues: LoginFormValues
   registerHref: string
@@ -82,7 +80,9 @@ export const LoginForm = ({
             <NextLink
               className="font-normal text-fg-secondary text-sm underline-offset-4 transition-colors hover:text-primary hover:underline"
               href={forgotPasswordHref}
-              onMouseDown={(e) => e.preventDefault()}
+              onMouseDown={(e) => {
+                e.preventDefault()
+              }}
             >
               {tAuth("login.forgot_password")}
             </NextLink>

@@ -14,10 +14,12 @@ import {
   getProductAttributeProductLockKey,
   getProductAttributeService,
   normalizeRequiredProductAttributeKey,
-  type ProductAttributeAssignmentRecord,
-  type ProductAttributeDefinitionRecord,
-  type ProductAttributeOptionRecord,
   withProductAttributeTransaction,
+} from "../../../utils/product-attributes"
+import type {
+  ProductAttributeAssignmentRecord,
+  ProductAttributeDefinitionRecord,
+  ProductAttributeOptionRecord,
 } from "../../../utils/product-attributes"
 import type {
   CreateProductsStepInput,
@@ -152,10 +154,10 @@ async function ensureDefinitionsAndOptions(
 ) {
   const canonical = collectCanonicalProductAttributeDefinitions(input)
   const keys = [...canonical.keys()]
-  const existingDefinitions = (await service.listProductAttributeDefinitions(
+  const existingDefinitions = await service.listProductAttributeDefinitions(
     { key: { $in: keys } },
     { take: Math.max(keys.length, 1), withDeleted: true }
-  )) as ProductAttributeDefinitionRecord[]
+  )
   const definitionByKey = new Map(
     existingDefinitions.map((definition) => [definition.key, definition])
   )
@@ -186,23 +188,23 @@ async function ensureDefinition(
     )
   }
   if (!definition) {
-    definition = (await service.createProductAttributeDefinitions({
+    definition = await service.createProductAttributeDefinitions({
       input_type: source.input_type,
       is_public: source.is_public,
       key,
       label: source.label,
-    })) as ProductAttributeDefinitionRecord
+    })
     definitionByKey.set(key, definition)
     return definition
   }
   if (definition.deleted_at) {
     await service.restoreProductAttributeDefinitions([definition.id])
   }
-  const updated = (await service.updateProductAttributeDefinitions({
+  const updated = await service.updateProductAttributeDefinitions({
     id: definition.id,
     is_public: source.is_public,
     label: source.label,
-  })) as ProductAttributeDefinitionRecord
+  })
   const activeDefinition = { ...updated, deleted_at: null }
   definitionByKey.set(key, activeDefinition)
 
@@ -218,13 +220,13 @@ async function ensureOptions(
     return
   }
   const optionKeys = [...sourceOptions.keys()]
-  const existingOptions = (await service.listProductAttributeOptions(
+  const existingOptions = await service.listProductAttributeOptions(
     {
       definition_id: definition.id,
       key: { $in: optionKeys },
     },
     { take: optionKeys.length, withDeleted: true }
-  )) as ProductAttributeOptionRecord[]
+  )
   const optionByKey = new Map(
     existingOptions.map((option) => [option.key, option])
   )
@@ -264,13 +266,13 @@ async function resolveOptions(
     if (!(definition && source.options.size)) {
       continue
     }
-    const options = (await service.listProductAttributeOptions(
+    const options = await service.listProductAttributeOptions(
       {
         definition_id: definition.id,
         key: { $in: [...source.options.keys()] },
       },
       { take: source.options.size }
-    )) as ProductAttributeOptionRecord[]
+    )
     for (const option of options) {
       optionByDefinitionAndKey.set(`${definition.id}:${option.key}`, option)
     }
@@ -373,7 +375,7 @@ async function loadBatchAssignments({
 }) {
   const productIds = resolveBatchProductIds(batch, productByHandle)
   const definitionIds = [...definitionByKey.values()].map(({ id }) => id)
-  const existing = (await service.listProductAttributes(
+  const existing = await service.listProductAttributes(
     {
       definition_id: { $in: definitionIds },
       product_id: { $in: productIds },
@@ -383,7 +385,7 @@ async function loadBatchAssignments({
       withDeleted: true,
     },
     context
-  )) as ProductAttributeAssignmentRecord[]
+  )
 
   return new Map(
     existing.map((assignment) => [
@@ -535,7 +537,7 @@ export const reconcileProductAttributesStep = createStep(
         .sort()
       await lockingModule.execute(
         lockKeys,
-        () =>
+        async () =>
           reconcileProductBatch({
             batch,
             definitionByKey,

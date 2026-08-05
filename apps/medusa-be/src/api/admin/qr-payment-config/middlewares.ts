@@ -5,8 +5,8 @@ import { PostAdminQrPaymentConfigSchema } from "./validators"
 
 export const adminQrPaymentConfigRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["POST"],
     matcher: "/admin/qr-payment-config",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(PostAdminQrPaymentConfigSchema)],
   },
 ]

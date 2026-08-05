@@ -1,4 +1,4 @@
-export type BrandAdminI18nNamespace = {
+export interface BrandAdminI18nNamespace {
   actions: Record<
     | "add"
     | "cancel"
@@ -187,12 +187,18 @@ export const brandAdminI18n = {
       title: "Atributy",
       usageCount: "Používá {{count}} aktivních výrobců",
     },
+    brands: {
+      count: "{{count}} výrobců",
+      empty: "Nebyli nalezeni žádní výrobci.",
+      title: "Výrobci",
+      widgetTitle: "Výrobce",
+    },
     columns: {
       actions: "Akce",
       attributes: "Atributy",
+      brand: "Výrobce",
       handle: "Handle",
       name: "Název",
-      brand: "Výrobce",
       product: "Produkt",
       products: "Produkty",
       status: "Stav",
@@ -212,22 +218,22 @@ export const brandAdminI18n = {
     },
     errors: {
       attributeIdRequired: "ID atributu je povinné",
+      brandIdRequired: "ID výrobce je povinné",
       checkAttributeFailed: "Kontrola atributu selhala",
       createAttributeFailed: "Atribut se nepodařilo vytvořit",
       deleteAttributeFailed: "Atribut se nepodařilo smazat",
       deleteBrandFailed: "Výrobce se nepodařilo smazat",
+      euResponsiblePersonRequired:
+        "Odpovědná osoba v EU musí mít vyplněnou společnost, adresu a e-mail.",
       loadAttributeFailed: "Atribut se nepodařilo načíst.",
       loadBrandFailed: "Výrobce se nepodařilo načíst.",
       loadBrandsFailed: "Výrobce se nepodařilo načíst.",
       productIdRequired: "ID produktu je povinné",
-      brandIdRequired: "ID výrobce je povinné",
       removeProductFailed: "Produkt se nepodařilo odebrat",
       restoreAttributeFailed: "Atribut se nepodařilo obnovit",
       restoreBrandFailed: "Výrobce se nepodařilo obnovit",
       saveBrandFailed: "Výrobce se nepodařilo uložit",
       saveProductsFailed: "Produkty se nepodařilo uložit",
-      euResponsiblePersonRequired:
-        "Odpovědná osoba v EU musí mít vyplněnou společnost, adresu a e-mail.",
     },
     fields: {
       attribute: "Atribut",
@@ -255,10 +261,10 @@ export const brandAdminI18n = {
     },
     menuItem: "Výrobci",
     orderOptions: {
-      handleAsc: "Handle A-Z",
-      newest: "Nejnovější",
       brandAsc: "Výrobce A-Z",
       brandDesc: "Výrobce Z-A",
+      handleAsc: "Handle A-Z",
+      newest: "Nejnovější",
       recentlyUpdated: "Naposledy upravené",
       statusAsc: "Stav A-Z",
       titleAsc: "Název A-Z",
@@ -271,20 +277,6 @@ export const brandAdminI18n = {
       pages: "stránek",
       previous: "Předchozí",
       results: "výsledků",
-    },
-    prompts: {
-      deleteAttributeDescription:
-        'Soft-smazat atribut "{{name}}"?{{usageText}}',
-      deleteAttributeTitle: "Smazat atribut",
-      deleteAttributeUsage: " Aktuálně ho používá {{count}} aktivních výrobců.",
-      deleteBrandDescription: 'Smazat výrobce "{{title}}"?{{linkedText}}',
-      deleteBrandProducts: " Je propojen s {{count}} aktivními produkty.",
-      deleteBrandTitle: "Smazat výrobce",
-      removeProductDescription: 'Odebrat "{{title}}" od tohoto výrobce?',
-      removeProductTitle: "Odebrat produkt",
-      restoreAttributeDescription:
-        'Atribut "{{name}}" už existuje, ale je smazaný. Obnovit ho místo vytvoření nového?',
-      restoreAttributeTitle: "Obnovit atribut",
     },
     products: {
       alreadyLinkedTooltip: 'Už je propojen s výrobcem "{{title}}"',
@@ -299,11 +291,19 @@ export const brandAdminI18n = {
       selectedCount: "{{count}} vybráno",
       title: "Produkty",
     },
-    brands: {
-      count: "{{count}} výrobců",
-      empty: "Nebyli nalezeni žádní výrobci.",
-      title: "Výrobci",
-      widgetTitle: "Výrobce",
+    prompts: {
+      deleteAttributeDescription:
+        'Soft-smazat atribut "{{name}}"?{{usageText}}',
+      deleteAttributeTitle: "Smazat atribut",
+      deleteAttributeUsage: " Aktuálně ho používá {{count}} aktivních výrobců.",
+      deleteBrandDescription: 'Smazat výrobce "{{title}}"?{{linkedText}}',
+      deleteBrandProducts: " Je propojen s {{count}} aktivními produkty.",
+      deleteBrandTitle: "Smazat výrobce",
+      removeProductDescription: 'Odebrat "{{title}}" od tohoto výrobce?',
+      removeProductTitle: "Odebrat produkt",
+      restoreAttributeDescription:
+        'Atribut "{{name}}" už existuje, ale je smazaný. Obnovit ho místo vytvoření nového?',
+      restoreAttributeTitle: "Obnovit atribut",
     },
     search: {
       attributes: "Hledat atributy",
@@ -333,6 +333,12 @@ export const brandAdminI18n = {
       productBrandUpdated: "Výrobce produktu upraven",
       productRemoved: "Produkt odebrán",
     },
+    validation: {
+      invalidEmail: "Zadejte platnou e-mailovou adresu.",
+      mustBeEmpty: "Pro výrobce z EU musí toto pole zůstat prázdné.",
+      required: "Toto pole je povinné.",
+      summary: "Opravte označená pole.",
+    },
     widget: {
       empty: "Žádný výrobce není propojen.",
       inactiveSelectionWarning:
@@ -345,12 +351,6 @@ export const brandAdminI18n = {
       productDetailsTitle: "Výrobce a doplňující informace",
       selectedBrand: "Vybraný výrobce",
       title: "Výrobce",
-    },
-    validation: {
-      invalidEmail: "Zadejte platnou e-mailovou adresu.",
-      mustBeEmpty: "Pro výrobce z EU musí toto pole zůstat prázdné.",
-      required: "Toto pole je povinné.",
-      summary: "Opravte označená pole.",
     },
   },
   en: {
@@ -375,12 +375,18 @@ export const brandAdminI18n = {
       title: "Attributes",
       usageCount: "Used by {{count}} active brands",
     },
+    brands: {
+      count: "{{count}} brands",
+      empty: "No brands found.",
+      title: "Brands",
+      widgetTitle: "Brand",
+    },
     columns: {
       actions: "Actions",
       attributes: "Attributes",
+      brand: "Brand",
       handle: "Handle",
       name: "Name",
-      brand: "Brand",
       product: "Product",
       products: "Products",
       status: "Status",
@@ -400,22 +406,22 @@ export const brandAdminI18n = {
     },
     errors: {
       attributeIdRequired: "Attribute id is required",
+      brandIdRequired: "Brand id is required",
       checkAttributeFailed: "Failed to check attribute",
       createAttributeFailed: "Failed to create attribute",
       deleteAttributeFailed: "Failed to delete attribute",
       deleteBrandFailed: "Failed to delete brand",
+      euResponsiblePersonRequired:
+        "EU responsible person company, address, and email are required.",
       loadAttributeFailed: "Failed to load attribute.",
       loadBrandFailed: "Failed to load brand.",
       loadBrandsFailed: "Failed to load brands.",
       productIdRequired: "Product id is required",
-      brandIdRequired: "Brand id is required",
       removeProductFailed: "Failed to remove product",
       restoreAttributeFailed: "Failed to restore attribute",
       restoreBrandFailed: "Failed to restore brand",
       saveBrandFailed: "Failed to save brand",
       saveProductsFailed: "Failed to save products",
-      euResponsiblePersonRequired:
-        "EU responsible person company, address, and email are required.",
     },
     fields: {
       attribute: "Attribute",
@@ -444,10 +450,10 @@ export const brandAdminI18n = {
     },
     menuItem: "Brands",
     orderOptions: {
-      handleAsc: "Handle A-Z",
-      newest: "Newest",
       brandAsc: "Brand A-Z",
       brandDesc: "Brand Z-A",
+      handleAsc: "Handle A-Z",
+      newest: "Newest",
       recentlyUpdated: "Recently updated",
       statusAsc: "Status A-Z",
       titleAsc: "Title A-Z",
@@ -460,20 +466,6 @@ export const brandAdminI18n = {
       pages: "pages",
       previous: "Previous",
       results: "results",
-    },
-    prompts: {
-      deleteAttributeDescription:
-        'Soft-delete attribute "{{name}}"?{{usageText}}',
-      deleteAttributeTitle: "Delete attribute",
-      deleteAttributeUsage: " It is currently used by {{count}} active brands.",
-      deleteBrandDescription: 'Delete brand "{{title}}"?{{linkedText}}',
-      deleteBrandProducts: " It is linked to {{count}} active products.",
-      deleteBrandTitle: "Delete brand",
-      removeProductDescription: 'Remove "{{title}}" from this brand?',
-      removeProductTitle: "Remove product",
-      restoreAttributeDescription:
-        'Attribute "{{name}}" already exists but is deleted. Restore it instead?',
-      restoreAttributeTitle: "Restore attribute",
     },
     products: {
       alreadyLinkedTooltip: 'Already linked to brand "{{title}}"',
@@ -488,11 +480,19 @@ export const brandAdminI18n = {
       selectedCount: "{{count}} selected",
       title: "Products",
     },
-    brands: {
-      count: "{{count}} brands",
-      empty: "No brands found.",
-      title: "Brands",
-      widgetTitle: "Brand",
+    prompts: {
+      deleteAttributeDescription:
+        'Soft-delete attribute "{{name}}"?{{usageText}}',
+      deleteAttributeTitle: "Delete attribute",
+      deleteAttributeUsage: " It is currently used by {{count}} active brands.",
+      deleteBrandDescription: 'Delete brand "{{title}}"?{{linkedText}}',
+      deleteBrandProducts: " It is linked to {{count}} active products.",
+      deleteBrandTitle: "Delete brand",
+      removeProductDescription: 'Remove "{{title}}" from this brand?',
+      removeProductTitle: "Remove product",
+      restoreAttributeDescription:
+        'Attribute "{{name}}" already exists but is deleted. Restore it instead?',
+      restoreAttributeTitle: "Restore attribute",
     },
     search: {
       attributes: "Search attributes",
@@ -522,6 +522,12 @@ export const brandAdminI18n = {
       productBrandUpdated: "Product brand updated",
       productRemoved: "Product removed",
     },
+    validation: {
+      invalidEmail: "Enter a valid email address.",
+      mustBeEmpty: "This field must be empty for an EU manufacturer.",
+      required: "This field is required.",
+      summary: "Correct the highlighted fields.",
+    },
     widget: {
       empty: "No brand linked.",
       inactiveSelectionWarning:
@@ -534,12 +540,6 @@ export const brandAdminI18n = {
       productDetailsTitle: "Brand and additional information",
       selectedBrand: "Selected brand",
       title: "Brand",
-    },
-    validation: {
-      invalidEmail: "Enter a valid email address.",
-      mustBeEmpty: "This field must be empty for an EU manufacturer.",
-      required: "This field is required.",
-      summary: "Correct the highlighted fields.",
     },
   },
 } satisfies Record<"cs" | "en", BrandAdminI18nNamespace>

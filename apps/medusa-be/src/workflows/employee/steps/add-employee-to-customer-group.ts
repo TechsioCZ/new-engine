@@ -19,8 +19,8 @@ export const addEmployeeToCustomerGroupStep = createStep(
     } = await query.graph(
       {
         entity: "employee",
-        filters: { id: input.employee_id },
         fields: ["id", "company.*"],
+        filters: { id: input.employee_id },
       },
       { throwIfKeyNotFound: true }
     )
@@ -37,8 +37,8 @@ export const addEmployeeToCustomerGroupStep = createStep(
     } = await query.graph(
       {
         entity: "company",
-        filters: { id: employee.company.id },
         fields: ["id", "customer_group.*"],
+        filters: { id: employee.company.id },
       },
       { throwIfKeyNotFound: true }
     )
@@ -62,8 +62,8 @@ export const addEmployeeToCustomerGroupStep = createStep(
     }
 
     await customerModuleService.addCustomerToGroup({
-      customer_id: input.customer_id,
       customer_group_id: company.customer_group.id,
+      customer_id: input.customer_id,
     })
 
     const customerGroup = await customerModuleService.retrieveCustomerGroup(
@@ -90,8 +90,8 @@ export const addEmployeeToCustomerGroupStep = createStep(
     )
 
     await customerModuleService.removeCustomerFromGroup({
-      customer_id: input.customer_id,
       customer_group_id: input.group_id,
+      customer_id: input.customer_id,
     })
   }
 )

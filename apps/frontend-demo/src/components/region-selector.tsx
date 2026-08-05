@@ -1,6 +1,7 @@
 "use client"
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
-import { type SelectItem } from "@techsio/ui-kit/molecules/select"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import type { IconType } from "@techsio/ui-kit/atoms/icon"
+import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
 
 import { SkeletonLoader } from "@/components/atoms/skeleton-loader"
@@ -28,7 +29,7 @@ export function RegionSelector({ className }: { className?: string }) {
   }
 
   const items: SelectItem[] = regions.map((region) => ({
-    value: region.id,
+    displayValue: region.currency_code.toUpperCase(),
     label: (
       <span className="flex items-center gap-1">
         <Icon
@@ -40,7 +41,7 @@ export function RegionSelector({ className }: { className?: string }) {
         {region.currency_code.toUpperCase()}
       </span>
     ),
-    displayValue: region.currency_code.toUpperCase(),
+    value: region.id,
   }))
 
   return (

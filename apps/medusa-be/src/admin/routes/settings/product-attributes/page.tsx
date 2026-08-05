@@ -31,10 +31,6 @@ import {
   listProductAttributeDefinitions,
   listProductAttributeOptionAssignedProducts,
   listProductAttributeOptions,
-  type ProductAttributeDefinition,
-  type ProductAttributeInputType,
-  type ProductAttributeOption,
-  type ProductAttributeStatus,
   permanentlyDeleteProductAttributeDefinition,
   permanentlyDeleteProductAttributeOption,
   productAttributeQueryKeys,
@@ -42,6 +38,12 @@ import {
   restoreProductAttributeOption,
   updateProductAttributeDefinition,
   updateProductAttributeOption,
+} from "../../../lib/product-attributes"
+import type {
+  ProductAttributeDefinition,
+  ProductAttributeInputType,
+  ProductAttributeOption,
+  ProductAttributeStatus,
 } from "../../../lib/product-attributes"
 import { getPaginationTranslations } from "../../../lib/table"
 import { useDebouncedValue } from "../../../lib/use-debounced-value"
@@ -105,7 +107,9 @@ const DefinitionCreateModal = ({
                 </Label>
                 <Input
                   id="product-attribute-label"
-                  onChange={(event) => setLabel(event.target.value)}
+                  onChange={(event) => {
+                    setLabel(event.target.value)
+                  }}
                   placeholder={t("placeholders.label")}
                   required
                   value={label}
@@ -115,7 +119,9 @@ const DefinitionCreateModal = ({
                 <Label htmlFor="product-attribute-key">{t("fields.key")}</Label>
                 <Input
                   id="product-attribute-key"
-                  onChange={(event) => setKey(event.target.value)}
+                  onChange={(event) => {
+                    setKey(event.target.value)
+                  }}
                   placeholder={t("placeholders.key")}
                   required
                   value={key}
@@ -124,9 +130,9 @@ const DefinitionCreateModal = ({
               <div className="flex flex-col gap-2">
                 <Label>{t("fields.inputType")}</Label>
                 <Select
-                  onValueChange={(value) =>
+                  onValueChange={(value) => {
                     setInputType(value as ProductAttributeInputType)
-                  }
+                  }}
                   value={inputType}
                 >
                   <Select.Trigger>
@@ -154,7 +160,9 @@ const DefinitionCreateModal = ({
           </FocusModal.Body>
           <FocusModal.Footer>
             <Button
-              onClick={() => onOpenChange(false)}
+              onClick={() => {
+                onOpenChange(false)
+              }}
               type="button"
               variant="secondary"
             >
@@ -197,7 +205,7 @@ const OptionEditDrawer = ({
     [debouncedProductQ, productPage]
   )
   const productsQuery = useQuery({
-    queryFn: () =>
+    queryFn: async () =>
       listProductAttributeOptionAssignedProducts(option.id, productParams),
     queryKey: productAttributeQueryKeys.optionProducts(
       option.id,
@@ -205,7 +213,7 @@ const OptionEditDrawer = ({
     ),
   })
   const mutation = useMutation({
-    mutationFn: () =>
+    mutationFn: async () =>
       updateProductAttributeOption(option.id, { label: label.trim() }),
     onError: (error) =>
       toast.error(mutationError(error, t("errors.saveFailed"))),
@@ -238,7 +246,9 @@ const OptionEditDrawer = ({
             </Label>
             <Input
               id="product-attribute-option-label"
-              onChange={(event) => setLabel(event.target.value)}
+              onChange={(event) => {
+                setLabel(event.target.value)
+              }}
               value={label}
             />
           </div>
@@ -323,20 +333,24 @@ const OptionEditDrawer = ({
               canNextPage={productPage + 1 < productPageCount}
               canPreviousPage={productPage > 0}
               count={productCount}
-              nextPage={() => setProductPage((current) => current + 1)}
+              nextPage={() => {
+                setProductPage((current) => current + 1)
+              }}
               pageCount={productPageCount}
               pageIndex={productPage}
               pageSize={PAGE_SIZE}
-              previousPage={() =>
+              previousPage={() => {
                 setProductPage((current) => Math.max(current - 1, 0))
-              }
+              }}
               translations={getPaginationTranslations(t)}
             />
           </div>
         </Drawer.Body>
         <Drawer.Footer>
           <Button
-            onClick={() => onOpenChange(false)}
+            onClick={() => {
+              onOpenChange(false)
+            }}
             type="button"
             variant="secondary"
           >
@@ -345,7 +359,9 @@ const OptionEditDrawer = ({
           <Button
             disabled={!label.trim()}
             isLoading={mutation.isPending}
-            onClick={() => mutation.mutate()}
+            onClick={() => {
+              mutation.mutate()
+            }}
             type="button"
           >
             {t("actions.save")}
@@ -387,19 +403,20 @@ const DefinitionEditDrawer = ({
   }
   const optionsQuery = useQuery({
     enabled: definition.input_type === "select",
-    queryFn: () => listProductAttributeOptions(definition.id, optionParams),
+    queryFn: async () =>
+      listProductAttributeOptions(definition.id, optionParams),
     queryKey: productAttributeQueryKeys.options(definition.id, optionParams),
   })
-  const invalidateOptions = () =>
+  const invalidateOptions = async () =>
     queryClient.invalidateQueries({
       queryKey: productAttributeQueryKeys.optionLists(definition.id),
     })
-  const invalidateProductAttributes = () =>
+  const invalidateProductAttributes = async () =>
     queryClient.invalidateQueries({
       queryKey: productAttributeQueryKeys.products(),
     })
   const saveMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: async () =>
       updateProductAttributeDefinition(definition.id, {
         is_public: isPublic,
         label: label.trim(),
@@ -415,7 +432,7 @@ const DefinitionEditDrawer = ({
     },
   })
   const createOptionMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: async () =>
       createProductAttributeOption(definition.id, {
         key: optionKey.trim(),
         label: optionLabel.trim(),
@@ -514,7 +531,9 @@ const DefinitionEditDrawer = ({
               </Label>
               <Input
                 id="product-attribute-definition-label"
-                onChange={(event) => setLabel(event.target.value)}
+                onChange={(event) => {
+                  setLabel(event.target.value)
+                }}
                 value={label}
               />
             </div>
@@ -536,20 +555,26 @@ const DefinitionEditDrawer = ({
                 <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
                   <Input
                     aria-label={t("fields.label")}
-                    onChange={(event) => setOptionLabel(event.target.value)}
+                    onChange={(event) => {
+                      setOptionLabel(event.target.value)
+                    }}
                     placeholder={t("fields.label")}
                     value={optionLabel}
                   />
                   <Input
                     aria-label={t("fields.key")}
-                    onChange={(event) => setOptionKey(event.target.value)}
+                    onChange={(event) => {
+                      setOptionKey(event.target.value)
+                    }}
                     placeholder={t("fields.key")}
                     value={optionKey}
                   />
                   <Button
                     disabled={!(optionKey.trim() && optionLabel.trim())}
                     isLoading={createOptionMutation.isPending}
-                    onClick={() => createOptionMutation.mutate()}
+                    onClick={() => {
+                      createOptionMutation.mutate()
+                    }}
                     type="button"
                     variant="secondary"
                   >
@@ -627,9 +652,9 @@ const DefinitionEditDrawer = ({
                                       isLoading={
                                         restoreOptionMutation.isPending
                                       }
-                                      onClick={() =>
+                                      onClick={() => {
                                         restoreOptionMutation.mutate(option.id)
-                                      }
+                                      }}
                                       size="small"
                                       type="button"
                                       variant="secondary"
@@ -644,7 +669,7 @@ const DefinitionEditDrawer = ({
                                         restoreOptionMutation.isPending ||
                                         permanentlyDeleteOptionMutation.isPending
                                       }
-                                      onClick={() =>
+                                      onClick={async () =>
                                         handlePermanentDeleteOption(option)
                                       }
                                       size="small"
@@ -657,7 +682,9 @@ const DefinitionEditDrawer = ({
                                   <>
                                     <IconButton
                                       aria-label={t("actions.edit")}
-                                      onClick={() => setEditingOption(option)}
+                                      onClick={() => {
+                                        setEditingOption(option)
+                                      }}
                                       size="small"
                                       variant="transparent"
                                     >
@@ -665,7 +692,9 @@ const DefinitionEditDrawer = ({
                                     </IconButton>
                                     <IconButton
                                       aria-label={t("actions.delete")}
-                                      onClick={() => handleDeleteOption(option)}
+                                      onClick={async () =>
+                                        handleDeleteOption(option)
+                                      }
                                       size="small"
                                       variant="transparent"
                                     >
@@ -691,13 +720,15 @@ const DefinitionEditDrawer = ({
                   canNextPage={optionPage + 1 < optionPageCount}
                   canPreviousPage={optionPage > 0}
                   count={optionCount}
-                  nextPage={() => setOptionPage((current) => current + 1)}
+                  nextPage={() => {
+                    setOptionPage((current) => current + 1)
+                  }}
                   pageCount={optionPageCount}
                   pageIndex={optionPage}
                   pageSize={PAGE_SIZE}
-                  previousPage={() =>
+                  previousPage={() => {
                     setOptionPage((current) => Math.max(current - 1, 0))
-                  }
+                  }}
                   translations={getPaginationTranslations(t)}
                 />
               </div>
@@ -705,7 +736,9 @@ const DefinitionEditDrawer = ({
           </Drawer.Body>
           <Drawer.Footer>
             <Button
-              onClick={() => onOpenChange(false)}
+              onClick={() => {
+                onOpenChange(false)
+              }}
               type="button"
               variant="secondary"
             >
@@ -714,7 +747,9 @@ const DefinitionEditDrawer = ({
             <Button
               disabled={!label.trim()}
               isLoading={saveMutation.isPending}
-              onClick={() => saveMutation.mutate()}
+              onClick={() => {
+                saveMutation.mutate()
+              }}
               type="button"
             >
               {t("actions.save")}
@@ -757,14 +792,14 @@ const ProductAttributesSettingsPage = () => {
     [debouncedQ, pageIndex, status]
   )
   const query = useQuery({
-    queryFn: () => listProductAttributeDefinitions(params),
+    queryFn: async () => listProductAttributeDefinitions(params),
     queryKey: productAttributeQueryKeys.definitions(params),
   })
-  const invalidateDefinitions = () =>
+  const invalidateDefinitions = async () =>
     queryClient.invalidateQueries({
       queryKey: productAttributeQueryKeys.definitionLists(),
     })
-  const invalidateProductAttributes = () =>
+  const invalidateProductAttributes = async () =>
     queryClient.invalidateQueries({
       queryKey: productAttributeQueryKeys.products(),
     })
@@ -848,7 +883,11 @@ const ProductAttributesSettingsPage = () => {
               {t("description")}
             </Text>
           </div>
-          <Button onClick={() => setCreateOpen(true)}>
+          <Button
+            onClick={() => {
+              setCreateOpen(true)
+            }}
+          >
             {t("actions.add")}
           </Button>
         </div>
@@ -921,7 +960,9 @@ const ProductAttributesSettingsPage = () => {
                         <Button
                           disabled={permanentlyDeleteMutation.isPending}
                           isLoading={restoreMutation.isPending}
-                          onClick={() => restoreMutation.mutate(definition.id)}
+                          onClick={() => {
+                            restoreMutation.mutate(definition.id)
+                          }}
                           size="small"
                           variant="secondary"
                         >
@@ -933,7 +974,9 @@ const ProductAttributesSettingsPage = () => {
                             restoreMutation.isPending ||
                             permanentlyDeleteMutation.isPending
                           }
-                          onClick={() => handlePermanentDelete(definition)}
+                          onClick={async () =>
+                            handlePermanentDelete(definition)
+                          }
                           size="small"
                           variant="transparent"
                         >
@@ -944,7 +987,9 @@ const ProductAttributesSettingsPage = () => {
                       <>
                         <IconButton
                           aria-label={t("actions.edit")}
-                          onClick={() => setEditing(definition)}
+                          onClick={() => {
+                            setEditing(definition)
+                          }}
                           size="small"
                           variant="transparent"
                         >
@@ -952,7 +997,7 @@ const ProductAttributesSettingsPage = () => {
                         </IconButton>
                         <IconButton
                           aria-label={t("actions.delete")}
-                          onClick={() => handleDelete(definition)}
+                          onClick={async () => handleDelete(definition)}
                           size="small"
                           variant="transparent"
                         >
@@ -983,13 +1028,15 @@ const ProductAttributesSettingsPage = () => {
           canNextPage={pageIndex + 1 < pageCount}
           canPreviousPage={pageIndex > 0}
           count={count}
-          nextPage={() => setPageIndex((current) => current + 1)}
+          nextPage={() => {
+            setPageIndex((current) => current + 1)
+          }}
           pageCount={pageCount}
           pageIndex={pageIndex}
           pageSize={PAGE_SIZE}
-          previousPage={() =>
+          previousPage={() => {
             setPageIndex((current) => Math.max(current - 1, 0))
-          }
+          }}
           translations={getPaginationTranslations(t)}
         />
       </Container>

@@ -4,23 +4,23 @@ import { laneSchema } from "./stack-manifest.js"
 
 export const resolveEnvironmentCommandInputSchema = z
   .object({
-    lane: laneSchema,
-    projectSlug: z.string().min(1, "Zane canonical project slug is required."),
-    prNumber: z.number().int().positive().optional(),
-    environmentName: z.string().default(""),
-    sourceEnvironmentName: z.string().default(""),
-    reconcileServiceIdsCsv: z.string().default(""),
-    previewClonedServiceIdsCsv: z.string().default(""),
-    previewExcludedServiceIdsCsv: z.string().default(""),
-    previewGitBranch: z.string().default(""),
-    outputJson: z.string().min(1).optional(),
-    baseUrl: z.string().default(""),
     apiToken: z.string().default(""),
+    baseUrl: z.string().default(""),
     dryRun: z.boolean().default(false),
     dryRunCreated: z.boolean().default(false),
-    stackManifestPath: z.string().min(1),
-    stackInputsPath: z.string().min(1),
+    environmentName: z.string().default(""),
+    lane: laneSchema,
+    outputJson: z.string().min(1).optional(),
+    prNumber: z.number().int().positive().optional(),
+    previewClonedServiceIdsCsv: z.string().default(""),
     previewEnvPrefix: z.string().min(1).default("pr-"),
+    previewExcludedServiceIdsCsv: z.string().default(""),
+    previewGitBranch: z.string().default(""),
+    projectSlug: z.string().min(1, "Zane canonical project slug is required."),
+    reconcileServiceIdsCsv: z.string().default(""),
+    sourceEnvironmentName: z.string().default(""),
+    stackInputsPath: z.string().min(1),
+    stackManifestPath: z.string().min(1),
   })
   .superRefine((value, ctx) => {
     if (
@@ -29,8 +29,8 @@ export const resolveEnvironmentCommandInputSchema = z
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["prNumber"],
         message: "Preview lane requires PR number or environment name.",
+        path: ["prNumber"],
       })
     }
 
@@ -40,32 +40,32 @@ export const resolveEnvironmentCommandInputSchema = z
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["sourceEnvironmentName"],
         message: "Preview lane requires canonical source environment name.",
+        path: ["sourceEnvironmentName"],
       })
     }
 
     if (value.lane === "main" && !value.environmentName) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["environmentName"],
         message: "Main lane requires environment name.",
+        path: ["environmentName"],
       })
     }
 
     if (!(value.dryRun || value.baseUrl)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["baseUrl"],
         message: "Zane operator base URL is required.",
+        path: ["baseUrl"],
       })
     }
 
     if (!(value.dryRun || value.apiToken)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["apiToken"],
         message: "Zane operator API token is required.",
+        path: ["apiToken"],
       })
     }
   })
@@ -76,19 +76,19 @@ const warningSchema = z.looseObject({
 })
 
 export const resolveEnvironmentResponseSchema = z.object({
-  lane: laneSchema,
-  project_slug: z.string().min(1),
-  environment_id: z.string().min(1),
-  environment_name: z.string().min(1),
-  is_preview: z.boolean().optional(),
-  created: z.boolean().default(false),
   baseline_complete: z.boolean().default(false),
   cloned_from_environment: z.string().nullable().optional(),
-  ready: z.boolean().default(true),
-  expected_preview_service_slugs: z.array(z.string()).default([]),
+  created: z.boolean().default(false),
+  environment_id: z.string().min(1),
+  environment_name: z.string().min(1),
   excluded_preview_service_slugs: z.array(z.string()).default([]),
-  present_service_slugs: z.array(z.string()).default([]),
+  expected_preview_service_slugs: z.array(z.string()).default([]),
+  is_preview: z.boolean().optional(),
+  lane: laneSchema,
   missing_preview_service_slugs: z.array(z.string()).default([]),
+  present_service_slugs: z.array(z.string()).default([]),
+  project_slug: z.string().min(1),
+  ready: z.boolean().default(true),
   warnings: z.array(warningSchema).default([]),
 })
 

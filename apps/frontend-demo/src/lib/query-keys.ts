@@ -7,17 +7,8 @@ export const queryKeys = {
   // Product-related queries with hierarchical structure
   products: {
     all: () => [...queryKeys.all, "products"] as const,
-    lists: () => [...queryKeys.products.all(), "list"] as const,
-    list: (params?: {
-      page?: number | undefined
-      limit?: number | undefined
-      filters?: unknown
-      sort?: string | undefined
-      fields?: string | undefined
-      q?: string | undefined
-      category?: string | string[] | undefined
-      region_id?: string | undefined
-    }) => [...queryKeys.products.lists(), params || {}] as const,
+    detail: (handle: string, region_id?: string) =>
+      [...queryKeys.products.all(), "detail", handle, region_id] as const,
     infinite: (params?: {
       page?: number | undefined
       pageRange?: string | undefined
@@ -29,8 +20,17 @@ export const queryKeys = {
       category?: string | string[] | undefined
       region_id?: string | undefined
     }) => [...queryKeys.products.all(), "infinite", params || {}] as const,
-    detail: (handle: string, region_id?: string) =>
-      [...queryKeys.products.all(), "detail", handle, region_id] as const,
+    list: (params?: {
+      page?: number | undefined
+      limit?: number | undefined
+      filters?: unknown
+      sort?: string | undefined
+      fields?: string | undefined
+      q?: string | undefined
+      category?: string | string[] | undefined
+      region_id?: string | undefined
+    }) => [...queryKeys.products.lists(), params || {}] as const,
+    lists: () => [...queryKeys.products.all(), "list"] as const,
   },
 
   // Region queries
@@ -56,9 +56,9 @@ export const queryKeys = {
   // Order queries
   orders: {
     all: () => [...queryKeys.all, "orders"] as const,
+    detail: (id: string) => [...queryKeys.orders.all(), "detail", id] as const,
     list: (params?: { page?: number; limit?: number; status?: string[] }) =>
       [...queryKeys.orders.all(), "list", params || {}] as const,
-    detail: (id: string) => [...queryKeys.orders.all(), "detail", id] as const,
   },
 
   // Customer queries

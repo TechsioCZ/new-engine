@@ -3,29 +3,34 @@ import type { Meta, StoryObj } from "@storybook/react"
 import { NumericInputTemplate } from "../../src/templates/numeric-input"
 
 const meta: Meta<typeof NumericInputTemplate> = {
-  title: "Templates/NumericInputTemplate",
-  component: NumericInputTemplate,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component: `
-          A ready-to-use numeric input template with props-based API.
-          This template provides a simplified interface for the NumericInput compound component,
-          making it ideal for Storybook controls and rapid prototyping.
-
-          Part of the templates layer in atomic design architecture.
-        `,
+  argTypes: {
+    allowMouseWheel: {
+      control: "boolean",
+      description: "Allow mouse wheel to change value",
+      table: {
+        category: "Behavior",
       },
     },
-  },
-  tags: ["autodocs"],
-  argTypes: {
-    value: {
-      control: "number",
-      description: "Current value",
+    allowOverflow: {
+      control: "boolean",
+      description: "Allow values outside min/max range",
       table: {
-        category: "Value",
+        category: "Behavior",
+      },
+    },
+    clampValueOnBlur: {
+      control: "boolean",
+      description: "Clamp to min/max on blur",
+      table: {
+        category: "Behavior",
+      },
+    },
+    controlsPosition: {
+      control: "select",
+      description: "Position of control buttons",
+      options: ["right", "sides"],
+      table: {
+        category: "Controls",
       },
     },
     defaultValue: {
@@ -35,11 +40,18 @@ const meta: Meta<typeof NumericInputTemplate> = {
         category: "Value",
       },
     },
-    min: {
-      control: "number",
-      description: "Minimum value",
+    disabled: {
+      control: "boolean",
+      description: "Disable the input",
       table: {
-        category: "Constraints",
+        category: "State",
+      },
+    },
+    invalid: {
+      control: "boolean",
+      description: "Show invalid state",
+      table: {
+        category: "State",
       },
     },
     max: {
@@ -49,55 +61,24 @@ const meta: Meta<typeof NumericInputTemplate> = {
         category: "Constraints",
       },
     },
-    step: {
+    min: {
       control: "number",
-      description: "Step increment",
+      description: "Minimum value",
       table: {
         category: "Constraints",
+      },
+    },
+    onChange: {
+      action: "changed",
+      table: {
+        category: "Events",
       },
     },
     precision: {
-      control: { type: "number", min: 0, max: 10 },
+      control: { max: 10, min: 0, type: "number" },
       description: "Number of decimal places",
       table: {
         category: "Constraints",
-      },
-    },
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-      description: "Size variant",
-      table: {
-        category: "Appearance",
-      },
-    },
-    showControls: {
-      control: "boolean",
-      description: "Show increment/decrement buttons",
-      table: {
-        category: "Controls",
-      },
-    },
-    showScrubber: {
-      control: "boolean",
-      description: "Enable drag to change value",
-      table: {
-        category: "Controls",
-      },
-    },
-    controlsPosition: {
-      control: "select",
-      options: ["right", "sides"],
-      description: "Position of control buttons",
-      table: {
-        category: "Controls",
-      },
-    },
-    disabled: {
-      control: "boolean",
-      description: "Disable the input",
-      table: {
-        category: "State",
       },
     },
     readOnly: {
@@ -114,32 +95,26 @@ const meta: Meta<typeof NumericInputTemplate> = {
         category: "State",
       },
     },
-    invalid: {
+    showControls: {
       control: "boolean",
-      description: "Show invalid state",
+      description: "Show increment/decrement buttons",
       table: {
-        category: "State",
+        category: "Controls",
       },
     },
-    allowOverflow: {
+    showScrubber: {
       control: "boolean",
-      description: "Allow values outside min/max range",
+      description: "Enable drag to change value",
       table: {
-        category: "Behavior",
+        category: "Controls",
       },
     },
-    allowMouseWheel: {
-      control: "boolean",
-      description: "Allow mouse wheel to change value",
+    size: {
+      control: "select",
+      description: "Size variant",
+      options: ["sm", "md", "lg"],
       table: {
-        category: "Behavior",
-      },
-    },
-    clampValueOnBlur: {
-      control: "boolean",
-      description: "Clamp to min/max on blur",
-      table: {
-        category: "Behavior",
+        category: "Appearance",
       },
     },
     spinOnPress: {
@@ -149,13 +124,38 @@ const meta: Meta<typeof NumericInputTemplate> = {
         category: "Behavior",
       },
     },
-    onChange: {
-      action: "changed",
+    step: {
+      control: "number",
+      description: "Step increment",
       table: {
-        category: "Events",
+        category: "Constraints",
+      },
+    },
+    value: {
+      control: "number",
+      description: "Current value",
+      table: {
+        category: "Value",
       },
     },
   },
+  component: NumericInputTemplate,
+  parameters: {
+    docs: {
+      description: {
+        component: `
+          A ready-to-use numeric input template with props-based API.
+          This template provides a simplified interface for the NumericInput compound component,
+          making it ideal for Storybook controls and rapid prototyping.
+
+          Part of the templates layer in atomic design architecture.
+        `,
+      },
+    },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Templates/NumericInputTemplate",
 }
 
 export default meta
@@ -164,27 +164,27 @@ type Story = StoryObj<typeof NumericInputTemplate>
 export const Default: Story = {
   args: {
     defaultValue: 0,
-    min: 0,
     max: 100,
-    step: 1,
+    min: 0,
     showControls: true,
     size: "md",
+    step: 1,
   },
 }
 
 export const Playground: Story = {
-  name: "🎮 Interactive Playground",
   args: {
-    defaultValue: 50,
-    min: 0,
-    max: 100,
-    step: 5,
-    showControls: true,
-    showScrubber: false,
-    controlsPosition: "right",
-    size: "md",
     allowMouseWheel: true,
     clampValueOnBlur: true,
+    controlsPosition: "right",
+    defaultValue: 50,
+    max: 100,
+    min: 0,
+    showControls: true,
+    showScrubber: false,
+    size: "md",
     spinOnPress: true,
+    step: 5,
   },
+  name: "🎮 Interactive Playground",
 }

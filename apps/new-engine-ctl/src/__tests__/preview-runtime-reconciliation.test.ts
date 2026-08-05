@@ -9,29 +9,29 @@ import {
 
 const manifest = stackManifestSchema.parse({
   ci: {
-    ignore_path_globs: [],
     global_runtime_rules: [],
+    ignore_path_globs: [],
   },
   services: [
     {
-      id: "medusa-be",
       ci: {
         deployable: true,
         zane: {
-          service_slug: "medusa-be",
           deploy_lanes: ["preview", "main"],
+          service_slug: "medusa-be",
         },
       },
+      id: "medusa-be",
     },
     {
-      id: "payload",
       ci: {
-        deployable: false,
         affected_path_globs: [
           "apps/payload/**",
           "docker/development/payload/**",
         ],
+        deployable: false,
       },
+      id: "payload",
     },
   ],
 })
@@ -40,11 +40,11 @@ const stackInputs = stackInputsSchema.parse({})
 
 test("preview service reconciliation pins git source to the PR branch", () => {
   const specs = buildServiceReconciliationSpecs({
-    stackInputs,
-    manifest,
     lane: "preview",
-    serviceIds: ["medusa-be"],
+    manifest,
     previewGitBranch: "ci/pipeline-smoke-20260428",
+    serviceIds: ["medusa-be"],
+    stackInputs,
   })
 
   expect(specs[0]?.git_source?.branch_name).toBe("ci/pipeline-smoke-20260428")
@@ -52,11 +52,11 @@ test("preview service reconciliation pins git source to the PR branch", () => {
 
 test("main service reconciliation does not override source branch", () => {
   const specs = buildServiceReconciliationSpecs({
-    stackInputs,
-    manifest,
     lane: "main",
-    serviceIds: ["medusa-be"],
+    manifest,
     previewGitBranch: "ci/pipeline-smoke-20260428",
+    serviceIds: ["medusa-be"],
+    stackInputs,
   })
 
   expect(specs[0]?.git_source?.branch_name).toBeUndefined()
@@ -65,11 +65,11 @@ test("main service reconciliation does not override source branch", () => {
 test("service reconciliation rejects local-only payload service", () => {
   expect(() =>
     buildServiceReconciliationSpecs({
-      stackInputs,
-      manifest,
       lane: "preview",
-      serviceIds: ["payload"],
+      manifest,
       previewGitBranch: "ci/pipeline-smoke-20260428",
+      serviceIds: ["payload"],
+      stackInputs,
     })
   ).toThrow("Service is not deployable or missing Zane metadata: payload")
 })
@@ -79,8 +79,8 @@ test("preview shared env sync rejects empty literal values before operator calls
     preview_runtime_reconciliation: {
       shared_env: [
         {
-          key: "MEDUSA_APP_DB_PASSWORD",
           consumed_by_service_ids: ["medusa-be"],
+          key: "MEDUSA_APP_DB_PASSWORD",
           source: {
             kind: "prepare_preview_db_password",
           },
@@ -91,15 +91,15 @@ test("preview shared env sync rejects empty literal values before operator calls
 
   expect(() =>
     buildPreviewSharedEnvSyncVariables({
-      stackInputs: inputs,
-      manifest,
-      deployServiceIds: ["medusa-be"],
       context: {
-        sourceEnvironmentName: "production",
         previewDbName: "medusa_pr_387",
-        previewDbUser: "medusa_pr_app_387",
         previewDbPassword: "",
+        previewDbUser: "medusa_pr_app_387",
+        sourceEnvironmentName: "production",
       },
+      deployServiceIds: ["medusa-be"],
+      manifest,
+      stackInputs: inputs,
     })
   ).toThrow("preview shared env MEDUSA_APP_DB_PASSWORD")
 })
@@ -109,8 +109,8 @@ test("preview shared env sync carries prepared DB credentials", () => {
     preview_runtime_reconciliation: {
       shared_env: [
         {
-          key: "MEDUSA_APP_DB_PASSWORD",
           consumed_by_service_ids: ["medusa-be"],
+          key: "MEDUSA_APP_DB_PASSWORD",
           source: {
             kind: "prepare_preview_db_password",
           },
@@ -120,18 +120,18 @@ test("preview shared env sync carries prepared DB credentials", () => {
   })
 
   const variables = buildPreviewSharedEnvSyncVariables({
-    stackInputs: inputs,
-    manifest,
-    deployServiceIds: ["medusa-be"],
     context: {
-      sourceEnvironmentName: "production",
       previewDbName: "medusa_pr_387",
-      previewDbUser: "medusa_pr_app_387",
       previewDbPassword: "secret-password",
+      previewDbUser: "medusa_pr_app_387",
+      sourceEnvironmentName: "production",
     },
+    deployServiceIds: ["medusa-be"],
+    manifest,
+    stackInputs: inputs,
   })
 
-  expect(variables).toEqual([
+  expect(variables).toStrictEqual([
     {
       key: "MEDUSA_APP_DB_PASSWORD",
       source: {

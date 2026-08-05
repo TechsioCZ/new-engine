@@ -22,14 +22,16 @@ export function AddressList() {
     return <div className="text-fg-secondary">Načítám adresy...</div>
   }
 
-  const addresses = customer.addresses
+  const { addresses } = customer
 
   return (
     <div className="space-y-250">
       {!(isAdding || editingId) && addresses.length > 0 && (
         <div className="flex justify-end">
           <Button
-            onClick={() => setIsAdding(true)}
+            onClick={() => {
+              setIsAdding(true)
+            }}
             size="sm"
             variant="secondary"
           >
@@ -41,8 +43,12 @@ export function AddressList() {
       {isAdding && (
         <div className="rounded border border-border-secondary bg-surface p-200">
           <AddressForm
-            onCancel={() => setIsAdding(false)}
-            onSuccess={() => setIsAdding(false)}
+            onCancel={() => {
+              setIsAdding(false)
+            }}
+            onSuccess={() => {
+              setIsAdding(false)
+            }}
           />
         </div>
       )}
@@ -61,13 +67,19 @@ export function AddressList() {
               {editingId === address.id ? (
                 <AddressForm
                   address={address}
-                  onCancel={() => setEditingId(null)}
-                  onSuccess={() => setEditingId(null)}
+                  onCancel={() => {
+                    setEditingId(null)
+                  }}
+                  onSuccess={() => {
+                    setEditingId(null)
+                  }}
                 />
               ) : (
                 <AddressCard
                   address={address}
-                  onEdit={() => setEditingId(address.id)}
+                  onEdit={() => {
+                    setEditingId(address.id)
+                  }}
                 />
               )}
             </div>
@@ -81,7 +93,9 @@ export function AddressList() {
             Zatím nemáte uložené žádné adresy.
           </p>
           <Button
-            onClick={() => setIsAdding(true)}
+            onClick={() => {
+              setIsAdding(true)
+            }}
             size="sm"
             variant="secondary"
           >
@@ -106,12 +120,12 @@ function AddressCard({
 
   const handleDelete = () => {
     deleteAddress.mutate(address.id, {
+      onError: () => {
+        toaster.create({ title: "Chyba při mazání", type: "error" })
+      },
       onSuccess: () => {
         toaster.create({ title: "Adresa smazána", type: "success" })
         setIsDeleteDialogOpen(false)
-      },
-      onError: () => {
-        toaster.create({ title: "Chyba při mazání", type: "error" })
       },
     })
   }
@@ -139,7 +153,9 @@ function AddressCard({
           Upravit
         </Button>
         <Button
-          onClick={() => setIsDeleteDialogOpen(true)}
+          onClick={() => {
+            setIsDeleteDialogOpen(true)
+          }}
           size="sm"
           variant="danger"
         >

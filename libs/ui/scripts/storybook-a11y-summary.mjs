@@ -13,7 +13,9 @@ function readArg(name) {
     return direct.slice(name.length + 1)
   }
   const index = process.argv.indexOf(name)
-  if (index === -1 || index + 1 >= process.argv.length) return null
+  if (index === -1 || index + 1 >= process.argv.length) {
+    return null
+  }
   return process.argv[index + 1]
 }
 
@@ -38,20 +40,20 @@ if (!inputPath || !outputPath) {
 function loadNdjson(path, label) {
   let raw
   try {
-    raw = fs.readFileSync(path, "utf8")
-  } catch (err) {
-    throw new Error(`Failed to read ${label} file: ${path}`, { cause: err })
+    raw = fs.readFileSync(path, "utf-8")
+  } catch (error) {
+    throw new Error(`Failed to read ${label} file: ${path}`, { cause: error })
   }
 
   const lines = raw.split(/\r?\n/).filter((line) => line.trim().length > 0)
   return lines.map((line, index) => {
     try {
       return JSON.parse(line)
-    } catch (err) {
+    } catch (error) {
       throw new Error(
         `Failed to parse NDJSON line ${index + 1} from ${label} file: ${path}`,
         {
-          cause: err,
+          cause: error,
         }
       )
     }
@@ -65,15 +67,15 @@ function loadReport(path, label) {
 
   let raw
   try {
-    raw = fs.readFileSync(path, "utf8")
-  } catch (err) {
-    throw new Error(`Failed to read ${label} file: ${path}`, { cause: err })
+    raw = fs.readFileSync(path, "utf-8")
+  } catch (error) {
+    throw new Error(`Failed to read ${label} file: ${path}`, { cause: error })
   }
 
   let data
   try {
     data = JSON.parse(raw)
-  } catch (err) {
+  } catch (error) {
     const ndjsonPath = path.replace(/\.json$/i, ".ndjson")
     if (ndjsonPath !== path && fs.existsSync(ndjsonPath)) {
       console.warn(
@@ -82,7 +84,7 @@ function loadReport(path, label) {
       return loadNdjson(ndjsonPath, label)
     }
     throw new Error(`Failed to parse JSON from ${label} file: ${path}`, {
-      cause: err,
+      cause: error,
     })
   }
 
@@ -103,8 +105,8 @@ function loadReport(path, label) {
 let data
 try {
   data = loadReport(inputPath, "input")
-} catch (err) {
-  console.error(err instanceof Error ? err.message : String(err))
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error))
   process.exit(1)
 }
 
@@ -113,8 +115,8 @@ let baselineError = null
 if (baselinePath) {
   try {
     baselineData = loadReport(baselinePath, `baseline (${baselineLabel})`)
-  } catch (err) {
-    baselineError = err instanceof Error ? err.message : String(err)
+  } catch (error) {
+    baselineError = error instanceof Error ? error.message : String(error)
     baselineData = null
   }
 }
@@ -139,13 +141,13 @@ function isApcaViolation(violation) {
  */
 function escapePipes(value) {
   return String(value)
-    .replace(/\r?\n/g, " ")
-    .replace(/\s+/g, " ")
-    .replace(/\|/g, "\\|")
+    .replaceAll(/\r?\n/g, " ")
+    .replaceAll(/\s+/g, " ")
+    .replaceAll(/\|/g, "\\|")
     .trim()
 }
 
-const KEY_SEPARATOR = "\x00"
+const KEY_SEPARATOR = "\u0000"
 
 /**
  * Summarize a report for full output.
@@ -155,7 +157,7 @@ function summarizeReport(report) {
   const groupStats = new Map()
   const storyRows = []
 
-  let totalStories = report.length
+  const totalStories = report.length
   let storiesWithViolations = 0
   let totalViolations = 0
   let apcaViolations = 0
@@ -175,10 +177,10 @@ function summarizeReport(report) {
 
     const groupName = String(title).split("/")[0]?.trim() || "Other"
     const group = groupStats.get(groupName) ?? {
+      apca: 0,
       stories: 0,
       storiesWithViolations: 0,
       violations: 0,
-      apca: 0,
     }
     group.stories += 1
     group.violations += violationCount
@@ -189,19 +191,19 @@ function summarizeReport(report) {
     groupStats.set(groupName, group)
 
     storyRows.push({
+      apca: apcaCount,
       story: `${title} / ${name}`,
       violations: violationCount,
-      apca: apcaCount,
     })
   }
 
   return {
-    totalStories,
-    storiesWithViolations,
-    totalViolations,
     apcaViolations,
     groupStats,
+    storiesWithViolations,
     storyRows,
+    totalStories,
+    totalViolations,
   }
 }
 
@@ -224,7 +226,7 @@ function collectViolations(report) {
       const impact = violation?.impact ?? "unknown"
       const apca = isApcaViolation(violation)
       const key = `${storyKey}${KEY_SEPARATOR}${id}`
-      entries.push({ key, story: storyKey, group, id, impact, apca })
+      entries.push({ apca, group, id, impact, key, story: storyKey })
     }
   }
 
@@ -238,23 +240,26 @@ function collectViolations(report) {
  */
 function buildFullSummaryLines(summary, notice) {
   const lines = []
-  lines.push("# Storybook A11y Report")
-  lines.push("")
+  lines.push("# Storybook A11y Report", "")
   if (notice) {
-    lines.push(`> ${notice}`)
-    lines.push("")
+    lines.push(`> ${notice}`, "")
   }
-  lines.push(`- Total stories: ${summary.totalStories}`)
-  lines.push(`- Stories with violations: ${summary.storiesWithViolations}`)
-  lines.push(`- Total violations: ${summary.totalViolations}`)
-  lines.push(`- APCA violations: ${summary.apcaViolations}`)
-  lines.push("")
-  lines.push("## By group")
-  lines.push("")
-  lines.push("| Group | Stories | Stories w/ violations | Violations | APCA |")
+  lines.push(
+    `- Total stories: ${summary.totalStories}`,
+    `- Stories with violations: ${summary.storiesWithViolations}`
+  )
+  lines.push(
+    `- Total violations: ${summary.totalViolations}`,
+    `- APCA violations: ${summary.apcaViolations}`
+  )
+  lines.push("", "## By group")
+  lines.push(
+    "",
+    "| Group | Stories | Stories w/ violations | Violations | APCA |"
+  )
   lines.push("| --- | --- | --- | --- | --- |")
 
-  const sortedGroups = Array.from(summary.groupStats.entries()).sort((a, b) =>
+  const sortedGroups = [...summary.groupStats.entries()].sort((a, b) =>
     a[0].localeCompare(b[0])
   )
   for (const [groupName, stats] of sortedGroups) {
@@ -266,8 +271,12 @@ function buildFullSummaryLines(summary, notice) {
   const violatingRows = summary.storyRows
     .filter((row) => row.violations > 0)
     .sort((a, b) => {
-      if (b.violations !== a.violations) return b.violations - a.violations
-      if (b.apca !== a.apca) return b.apca - a.apca
+      if (b.violations !== a.violations) {
+        return b.violations - a.violations
+      }
+      if (b.apca !== a.apca) {
+        return b.apca - a.apca
+      }
       return a.story.localeCompare(b.story)
     })
 
@@ -276,18 +285,15 @@ function buildFullSummaryLines(summary, notice) {
   if (violatingRows.length === 0) {
     lines.push("No violations found.")
   } else {
-    lines.push("<details>")
-    lines.push("<summary>Stories with violations</summary>")
-    lines.push("")
-    lines.push("| Story | Violations | APCA |")
+    lines.push("<details>", "<summary>Stories with violations</summary>")
+    lines.push("", "| Story | Violations | APCA |")
     lines.push("| --- | --- | --- |")
     for (const row of violatingRows) {
       lines.push(
         `| ${escapePipes(row.story)} | ${row.violations} | ${row.apca} |`
       )
     }
-    lines.push("")
-    lines.push("</details>")
+    lines.push("", "</details>")
   }
 
   return lines
@@ -321,39 +327,53 @@ function buildDeltaLines(currentReport, baselineReport, label) {
   const groupStats = new Map()
   const addGroupStats = (entry, type) => {
     const group = groupStats.get(entry.group) ?? {
-      newCount: 0,
       newApca: 0,
-      resolvedCount: 0,
+      newCount: 0,
       resolvedApca: 0,
+      resolvedCount: 0,
     }
     if (type === "new") {
       group.newCount += 1
-      if (entry.apca) group.newApca += 1
+      if (entry.apca) {
+        group.newApca += 1
+      }
     } else {
       group.resolvedCount += 1
-      if (entry.apca) group.resolvedApca += 1
+      if (entry.apca) {
+        group.resolvedApca += 1
+      }
     }
     groupStats.set(entry.group, group)
   }
 
-  for (const entry of newEntries) addGroupStats(entry, "new")
-  for (const entry of resolvedEntries) addGroupStats(entry, "resolved")
+  for (const entry of newEntries) {
+    addGroupStats(entry, "new")
+  }
+  for (const entry of resolvedEntries) {
+    addGroupStats(entry, "resolved")
+  }
 
   const buildStoryRows = (entries) => {
     const map = new Map()
     for (const entry of entries) {
       const stats = map.get(entry.story) ?? {
+        apca: 0,
         story: entry.story,
         violations: 0,
-        apca: 0,
       }
       stats.violations += 1
-      if (entry.apca) stats.apca += 1
+      if (entry.apca) {
+        stats.apca += 1
+      }
       map.set(entry.story, stats)
     }
-    return Array.from(map.values()).sort((a, b) => {
-      if (b.violations !== a.violations) return b.violations - a.violations
-      if (b.apca !== a.apca) return b.apca - a.apca
+    return [...map.values()].sort((a, b) => {
+      if (b.violations !== a.violations) {
+        return b.violations - a.violations
+      }
+      if (b.apca !== a.apca) {
+        return b.apca - a.apca
+      }
       return a.story.localeCompare(b.story)
     })
   }
@@ -362,28 +382,28 @@ function buildDeltaLines(currentReport, baselineReport, label) {
   const resolvedStoryRows = buildStoryRows(resolvedEntries)
 
   const lines = []
-  lines.push(`# Storybook A11y Report (Delta vs ${label})`)
-  lines.push("")
-  lines.push(`- New violations: ${newEntries.length} (APCA: ${newApca})`)
+  lines.push(`# Storybook A11y Report (Delta vs ${label})`, "")
   lines.push(
+    `- New violations: ${newEntries.length} (APCA: ${newApca})`,
     `- Resolved violations: ${resolvedEntries.length} (APCA: ${resolvedApca})`
   )
   lines.push(
-    `- Net change: ${newEntries.length - resolvedEntries.length} (APCA: ${newApca - resolvedApca})`
+    `- Net change: ${newEntries.length - resolvedEntries.length} (APCA: ${newApca - resolvedApca})`,
+    ""
   )
-  lines.push("")
 
   if (groupStats.size === 0) {
     lines.push("No changes detected against baseline.")
     return lines
   }
 
-  lines.push("## By group")
-  lines.push("")
-  lines.push("| Group | New | New APCA | Resolved | Resolved APCA |")
-  lines.push("| --- | --- | --- | --- | --- |")
+  lines.push("## By group", "")
+  lines.push(
+    "| Group | New | New APCA | Resolved | Resolved APCA |",
+    "| --- | --- | --- | --- | --- |"
+  )
 
-  const sortedGroups = Array.from(groupStats.entries()).sort((a, b) =>
+  const sortedGroups = [...groupStats.entries()].sort((a, b) =>
     a[0].localeCompare(b[0])
   )
   for (const [groupName, stats] of sortedGroups) {
@@ -395,36 +415,34 @@ function buildDeltaLines(currentReport, baselineReport, label) {
   lines.push("")
 
   if (newStoryRows.length > 0) {
-    lines.push("<details>")
-    lines.push(`<summary>New violations (${newEntries.length})</summary>`)
-    lines.push("")
-    lines.push("| Story | Violations | APCA |")
+    lines.push(
+      "<details>",
+      `<summary>New violations (${newEntries.length})</summary>`
+    )
+    lines.push("", "| Story | Violations | APCA |")
     lines.push("| --- | --- | --- |")
     for (const row of newStoryRows) {
       lines.push(
         `| ${escapePipes(row.story)} | ${row.violations} | ${row.apca} |`
       )
     }
-    lines.push("")
-    lines.push("</details>")
+    lines.push("", "</details>")
     lines.push("")
   }
 
   if (resolvedStoryRows.length > 0) {
-    lines.push("<details>")
     lines.push(
+      "<details>",
       `<summary>Resolved violations (${resolvedEntries.length})</summary>`
     )
-    lines.push("")
-    lines.push("| Story | Violations | APCA |")
+    lines.push("", "| Story | Violations | APCA |")
     lines.push("| --- | --- | --- |")
     for (const row of resolvedStoryRows) {
       lines.push(
         `| ${escapePipes(row.story)} | ${row.violations} | ${row.apca} |`
       )
     }
-    lines.push("")
-    lines.push("</details>")
+    lines.push("", "</details>")
   }
 
   return lines
@@ -443,4 +461,4 @@ const lines = baselineData
   : buildFullSummaryLines(summary, notice)
 
 fs.mkdirSync(path.dirname(outputPath), { recursive: true })
-fs.writeFileSync(outputPath, `${lines.join("\n")}\n`, "utf8")
+fs.writeFileSync(outputPath, `${lines.join("\n")}\n`, "utf-8")

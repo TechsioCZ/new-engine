@@ -38,7 +38,7 @@ function parseThreshold(value, label) {
 }
 
 function loadConfig(configPath) {
-  const configContent = fs.readFileSync(configPath, "utf8")
+  const configContent = fs.readFileSync(configPath, "utf-8")
   const config = JSON.parse(configContent)
 
   if (!config || typeof config !== "object" || Array.isArray(config)) {
@@ -77,13 +77,13 @@ function loadConfig(configPath) {
   }
 
   return {
-    scanDirectories,
-    fileExtensions,
-    exclude,
     allowlist,
+    exclude,
+    fileExtensions,
+    scanDirectories,
     thresholds: {
-      warning: warningThreshold,
       error: errorThreshold,
+      warning: warningThreshold,
     },
   }
 }
@@ -106,8 +106,8 @@ function collectFiles({
       collectFiles({
         cwd,
         directory: absolutePath,
-        fileExtensions,
         excludeMatchers,
+        fileExtensions,
         output,
       })
       continue
@@ -166,7 +166,7 @@ function buildReport({ cwd, files, allowlistMatchers, thresholds }) {
 
   for (const file of files) {
     const absolutePath = path.resolve(cwd, file)
-    const content = fs.readFileSync(absolutePath, "utf8")
+    const content = fs.readFileSync(absolutePath, "utf-8")
     const lineCount = resolveLineCount(content)
     const sourceSeverity = resolveSeverity(lineCount, thresholds)
 
@@ -196,11 +196,7 @@ function buildReport({ cwd, files, allowlistMatchers, thresholds }) {
   })
 
   const summary = {
-    scannedFiles: files.length,
-    thresholds,
     counts: {
-      errors: findings.filter((item) => item.severity === "error").length,
-      warnings: findings.filter((item) => item.severity === "warning").length,
       allowlisted: findings.filter((item) => item.severity === "allowlisted")
         .length,
       allowlistedErrors: findings.filter(
@@ -211,7 +207,11 @@ function buildReport({ cwd, files, allowlistMatchers, thresholds }) {
         (item) =>
           item.severity === "allowlisted" && item.sourceSeverity === "warning"
       ).length,
+      errors: findings.filter((item) => item.severity === "error").length,
+      warnings: findings.filter((item) => item.severity === "warning").length,
     },
+    scannedFiles: files.length,
+    thresholds,
   }
 
   return {
@@ -300,8 +300,8 @@ function main() {
     collectFiles({
       cwd,
       directory: path.resolve(cwd, scanDirectory),
-      fileExtensions: config.fileExtensions,
       excludeMatchers,
+      fileExtensions: config.fileExtensions,
       output: files,
     })
   }
@@ -309,9 +309,9 @@ function main() {
   files.sort((left, right) => left.localeCompare(right))
 
   const report = buildReport({
+    allowlistMatchers,
     cwd,
     files,
-    allowlistMatchers,
     thresholds: config.thresholds,
   })
 

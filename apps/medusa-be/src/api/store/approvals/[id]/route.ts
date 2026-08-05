@@ -22,16 +22,16 @@ export const POST = async (
     req.scope
   ).run({
     input: {
-      status,
       handled_by: customer_id,
       id: approvalId,
+      status,
     },
   })
 
   if (errors.length > 0) {
     res.status(400).json({
-      message: errors[0]?.error.message,
       code: "INVALID_DATA",
+      message: errors[0]?.error.message,
     })
     return
   }

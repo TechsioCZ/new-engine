@@ -28,9 +28,9 @@ export async function GET(
   const orders = parseOrderBusinessStatusOrders(data)
 
   res.json({
-    orders: orders.map(toOrderBusinessStatusSummary),
     count: metadata?.count ?? orders.length,
     limit,
     offset,
+    orders: orders.map(toOrderBusinessStatusSummary),
   })
 }

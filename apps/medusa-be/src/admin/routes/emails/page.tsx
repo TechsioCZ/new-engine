@@ -6,7 +6,7 @@ import { useState } from "react"
 
 import { sdk } from "../../lib/sdk"
 
-type EmailLog = {
+interface EmailLog {
   id: string
   email_id: string
   customer_id: string | null
@@ -20,14 +20,14 @@ type EmailLog = {
   updated_at: string
 }
 
-type EmailLogsResponse = {
+interface EmailLogsResponse {
   email_logs: EmailLog[]
   count: number
   limit: number
   offset: number
 }
 
-type ResendEmail = {
+interface ResendEmail {
   id?: string
   from?: string
   to?: string | string[]
@@ -39,7 +39,7 @@ type ResendEmail = {
   [key: string]: unknown
 }
 
-type EmailLogDetailResponse = {
+interface EmailLogDetailResponse {
   email_log: EmailLog
   resend_email: ResendEmail | null
 }
@@ -167,7 +167,9 @@ const EmailRows = ({
       </Table.Cell>
       <Table.Cell className="text-right">
         <Button
-          onClick={() => onOpen(emailLog.id)}
+          onClick={() => {
+            onOpen(emailLog.id)
+          }}
           size="small"
           type="button"
           variant="secondary"
@@ -269,7 +271,7 @@ const EmailsPage = () => {
   const offset = pageIndex * PAGE_SIZE
 
   const { data, isLoading, error } = useQuery({
-    queryFn: () =>
+    queryFn: async () =>
       sdk.client.fetch<EmailLogsResponse>(
         `/admin/email-logs?limit=${PAGE_SIZE}&offset=${offset}`
       ),
@@ -278,7 +280,7 @@ const EmailsPage = () => {
 
   const detailQuery = useQuery({
     enabled: !!selectedEmailLogId,
-    queryFn: () =>
+    queryFn: async () =>
       sdk.client.fetch<EmailLogDetailResponse>(
         `/admin/email-logs/${selectedEmailLogId}`
       ),
@@ -334,13 +336,15 @@ const EmailsPage = () => {
               canNextPage={pageIndex + 1 < pageCount}
               canPreviousPage={pageIndex > 0}
               count={count}
-              nextPage={() => setPageIndex((current) => current + 1)}
+              nextPage={() => {
+                setPageIndex((current) => current + 1)
+              }}
               pageCount={pageCount}
               pageIndex={pageIndex}
               pageSize={PAGE_SIZE}
-              previousPage={() =>
+              previousPage={() => {
                 setPageIndex((current) => Math.max(current - 1, 0))
-              }
+              }}
             />
           </>
         )}

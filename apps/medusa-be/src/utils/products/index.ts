@@ -20,7 +20,7 @@ function safeJsonParse<T>(
 }
 
 /** Raw product data from the database (JSON strings) */
-type RawProductFromDb = {
+interface RawProductFromDb {
   title: string
   handle: string
   description?: string
@@ -33,13 +33,13 @@ type RawProductFromDb = {
 }
 
 /** Raw option data after JSON parsing */
-type RawOption = {
+interface RawOption {
   title?: string
   option_values?: string[]
 }
 
 /** Raw variant data after JSON parsing */
-type RawVariant = {
+interface RawVariant {
   title?: string
   sku?: string | null
   ean?: string
@@ -60,7 +60,7 @@ type RawVariant = {
 }
 
 /** Raw brand data after JSON parsing */
-type RawBrand = {
+interface RawBrand {
   title?: string
   attributes?: { name: string; value: string }[]
 }

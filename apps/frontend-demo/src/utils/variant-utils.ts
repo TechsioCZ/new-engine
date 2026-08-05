@@ -15,8 +15,12 @@ export function sortVariantsBySize(
     if (aIndex === -1 && bIndex === -1) {
       return aTitle.localeCompare(bTitle)
     }
-    if (aIndex === -1) return 1
-    if (bIndex === -1) return -1
+    if (aIndex === -1) {
+      return 1
+    }
+    if (bIndex === -1) {
+      return -1
+    }
 
     return aIndex - bIndex
   })

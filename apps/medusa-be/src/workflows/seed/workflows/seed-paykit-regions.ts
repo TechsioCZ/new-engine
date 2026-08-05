@@ -3,20 +3,14 @@ import {
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import {
-  type SetRegionsPaymentProvidersStepInput,
-  setRegionsPaymentProvidersStep,
-} from "@medusajs/medusa/core-flows"
+import { setRegionsPaymentProvidersStep } from "@medusajs/medusa/core-flows"
+import type { SetRegionsPaymentProvidersStepInput } from "@medusajs/medusa/core-flows"
 
 import { withPaykitPaymentProviders } from "../paykit-payment-providers"
-import {
-  type CreateMissingPaykitRegionsStepInput,
-  createMissingPaykitRegionsStep,
-} from "../steps/create-missing-paykit-regions"
-import {
-  type SyncExistingPaykitRegionsStepInput,
-  syncExistingPaykitRegionsStep,
-} from "../steps/sync-existing-paykit-regions"
+import { createMissingPaykitRegionsStep } from "../steps/create-missing-paykit-regions"
+import type { CreateMissingPaykitRegionsStepInput } from "../steps/create-missing-paykit-regions"
+import { syncExistingPaykitRegionsStep } from "../steps/sync-existing-paykit-regions"
+import type { SyncExistingPaykitRegionsStepInput } from "../steps/sync-existing-paykit-regions"
 
 const SeedPaykitRegionsWorkflowId = "seed-paykit-regions-workflow"
 
@@ -28,7 +22,7 @@ type SeedPaykitRegionInput = Omit<
   paymentProviders?: string[]
 }
 
-export type SeedPaykitRegionsWorkflowInput = {
+export interface SeedPaykitRegionsWorkflowInput {
   regions: SeedPaykitRegionInput[]
   paymentProviderIds: string[]
 }
@@ -73,8 +67,8 @@ function seedPaykitRegionsWorkflowComposer(
         region.id
           ? [
               {
-                id: region.id,
                 currencyCode: region.currencyCode,
+                id: region.id,
               },
             ]
           : []
@@ -92,8 +86,8 @@ function seedPaykitRegionsWorkflowComposer(
 
   return new WorkflowResponse({
     createMissingPaykitRegionsResult,
-    syncExistingPaykitRegionsResult,
     setExistingRegionPaymentProvidersResult,
+    syncExistingPaykitRegionsResult,
   })
 }
 

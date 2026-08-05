@@ -17,11 +17,11 @@ interface UseContactFormProps {
 
 async function sendContactForm(data: ContactFormData) {
   const response = await fetch("/api/contact", {
-    method: "POST",
+    body: JSON.stringify(data),
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(data),
+    method: "POST",
   })
 
   const result = await response.json()
@@ -37,18 +37,28 @@ export function useContactForm({ onSuccess }: UseContactFormProps = {}) {
   const toast = useToast()
 
   const initialFormData: ContactFormData = {
+    email: "",
     firstName: "",
     lastName: "",
-    email: "",
+    message: "",
     phone: "",
     subject: "general",
-    message: "",
   }
 
   const [formData, setFormData] = useState<ContactFormData>(initialFormData)
 
   const mutation = useMutation({
     mutationFn: sendContactForm,
+    onError: (error: Error) => {
+      toast.create({
+        title: "Chyba",
+        description:
+          error.message ||
+          "Nepodařilo se odeslat zprávu. Zkuste to prosím později.",
+        type: "error",
+        duration: 5000,
+      })
+    },
     onSuccess: () => {
       toast.create({
         title: "Zpráva odeslána",
@@ -63,16 +73,6 @@ export function useContactForm({ onSuccess }: UseContactFormProps = {}) {
 
       // Call custom success handler if provided
       onSuccess?.()
-    },
-    onError: (error: Error) => {
-      toast.create({
-        title: "Chyba",
-        description:
-          error.message ||
-          "Nepodařilo se odeslat zprávu. Zkuste to prosím později.",
-        type: "error",
-        duration: 5000,
-      })
     },
   })
 
@@ -89,12 +89,12 @@ export function useContactForm({ onSuccess }: UseContactFormProps = {}) {
   }
 
   return {
+    error: mutation.error,
     formData,
-    updateField,
     handleSubmit,
+    isError: mutation.isError,
     isSubmitting: mutation.isPending,
     isSuccess: mutation.isSuccess,
-    isError: mutation.isError,
-    error: mutation.error,
+    updateField,
   }
 }

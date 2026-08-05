@@ -39,8 +39,8 @@ export function AddToCartDialog({
       : ""
 
     return {
-      value: variant.id,
       label: `${variantName}${price ? ` - ${price}` : ""}`,
+      value: variant.id,
     }
   })
 

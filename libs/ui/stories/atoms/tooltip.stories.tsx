@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { type ComponentPropsWithoutRef, useState } from "react"
+import { useState } from "react"
+import type { ComponentPropsWithoutRef } from "react"
 
 import { Button } from "@/atoms/button"
-import { type IconType } from "@/atoms/icon"
+import type { IconType } from "@/atoms/icon"
 import { Input } from "@/atoms/input"
 import { Label } from "@/atoms/label"
 import { Link } from "@/atoms/link"
@@ -20,50 +21,58 @@ type PlaygroundArgs = ComponentPropsWithoutRef<typeof Tooltip> & {
 }
 
 const meta: Meta<typeof Tooltip> = {
-  title: "Atoms/Tooltip",
-  component: Tooltip,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component: `
-A tooltip component built with Zag.js that provides accessible, customizable tooltips with rich positioning and interaction options.
-
-## Features
-- Accessible with proper ARIA attributes
-- Customizable delays and interactions
-- Rich positioning with auto-flip
-- Interactive mode for complex content
-- Multiple close triggers
-        `,
-      },
-    },
-  },
-  tags: ["autodocs"],
   argTypes: {
+    closeDelay: {
+      control: { max: 2000, min: 0, step: 100, type: "range" },
+      description: "Delay before tooltip closes (ms)",
+    },
+    closeOnClick: {
+      control: "boolean",
+      description: "Close on any click",
+    },
+    closeOnEscape: {
+      control: "boolean",
+      description: "Close on ESC key press",
+    },
+    closeOnPointerDown: {
+      control: "boolean",
+      description: "Close on any pointer down",
+    },
+    closeOnScroll: {
+      control: "boolean",
+      description: "Close when page scrolls",
+    },
     content: {
       control: "text",
       description: "Content to display in the tooltip",
     },
-    size: {
-      control: { type: "select" },
-      options: ["sm", "md", "lg"],
-      description: "Visual size of the tooltip",
+    defaultOpen: {
+      control: "boolean",
+      description: "Initial open state",
     },
-    openDelay: {
-      control: { type: "range", min: 0, max: 2000, step: 100 },
-      description: "Delay before tooltip opens (ms)",
+    disabled: {
+      control: "boolean",
+      description: "Disable tooltip functionality",
     },
-    closeDelay: {
-      control: { type: "range", min: 0, max: 2000, step: 100 },
-      description: "Delay before tooltip closes (ms)",
+    flip: {
+      control: "boolean",
+      description: "Auto-flip to opposite side if doesn't fit",
+    },
+    gutter: {
+      control: { max: 50, min: 0, step: 5, type: "range" },
+      description: "Minimum distance from screen edges",
     },
     interactive: {
       control: "boolean",
       description: "Allow hovering over tooltip content",
     },
+    openDelay: {
+      control: { max: 2000, min: 0, step: 100, type: "range" },
+      description: "Delay before tooltip opens (ms)",
+    },
     placement: {
       control: { type: "select" },
+      description: "Where tooltip appears relative to trigger",
       options: [
         "top",
         "top-start",
@@ -78,94 +87,86 @@ A tooltip component built with Zag.js that provides accessible, customizable too
         "left-start",
         "left-end",
       ],
-      description: "Where tooltip appears relative to trigger",
-    },
-    gutter: {
-      control: { type: "range", min: 0, max: 50, step: 5 },
-      description: "Minimum distance from screen edges",
-    },
-    flip: {
-      control: "boolean",
-      description: "Auto-flip to opposite side if doesn't fit",
     },
     sameWidth: {
       control: "boolean",
       description: "Match trigger element width",
     },
+    size: {
+      control: { type: "select" },
+      description: "Visual size of the tooltip",
+      options: ["sm", "md", "lg"],
+    },
     strategy: {
       control: { type: "select" },
-      options: ["absolute", "fixed"],
       description: "CSS positioning strategy",
-    },
-    defaultOpen: {
-      control: "boolean",
-      description: "Initial open state",
-    },
-    disabled: {
-      control: "boolean",
-      description: "Disable tooltip functionality",
-    },
-    closeOnEscape: {
-      control: "boolean",
-      description: "Close on ESC key press",
-    },
-    closeOnPointerDown: {
-      control: "boolean",
-      description: "Close on any pointer down",
-    },
-    closeOnScroll: {
-      control: "boolean",
-      description: "Close when page scrolls",
-    },
-    closeOnClick: {
-      control: "boolean",
-      description: "Close on any click",
+      options: ["absolute", "fixed"],
     },
   },
+  component: Tooltip,
+  parameters: {
+    docs: {
+      description: {
+        component: `
+A tooltip component built with Zag.js that provides accessible, customizable tooltips with rich positioning and interaction options.
+
+## Features
+- Accessible with proper ARIA attributes
+- Customizable delays and interactions
+- Rich positioning with auto-flip
+- Interactive mode for complex content
+- Multiple close triggers
+        `,
+      },
+    },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Atoms/Tooltip",
 }
 
 export default meta
 type Story = StoryObj<typeof meta>
 
 export const Playground: StoryObj<PlaygroundArgs> = {
-  args: {
-    content: "This is a helpful tooltip!",
-    triggerType: "button",
-    triggerLabel: "Hover me",
-    triggerIcon: "icon-[mdi--magnify]",
-    triggerVariant: "primary",
-    triggerSize: "md",
-  },
   argTypes: {
-    triggerType: {
-      control: "select",
-      options: ["button", "icon"],
-      description: "Type of trigger element",
+    triggerIcon: {
+      control: {
+        labels: iconLabels,
+        type: "select",
+      },
+      description: "Icon for icon trigger",
+      options: iconOptions.filter((option): option is IconType =>
+        Boolean(option)
+      ),
     },
     triggerLabel: {
       control: "text",
       description: "Label for button trigger",
     },
-    triggerIcon: {
-      control: {
-        type: "select",
-        labels: iconLabels,
-      },
-      options: iconOptions.filter((option): option is IconType =>
-        Boolean(option)
-      ),
-      description: "Icon for icon trigger",
+    triggerSize: {
+      control: "select",
+      description: "Button size for trigger",
+      options: ["sm", "md", "lg"],
+    },
+    triggerType: {
+      control: "select",
+      description: "Type of trigger element",
+      options: ["button", "icon"],
     },
     triggerVariant: {
       control: "select",
-      options: ["primary", "secondary", "tertiary", "warning", "danger"],
       description: "Button variant for trigger",
+      options: ["primary", "secondary", "tertiary", "warning", "danger"],
     },
-    triggerSize: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-      description: "Button size for trigger",
-    },
+  },
+  args: {
+    content: "This is a helpful tooltip!",
+    triggerIcon: "icon-[mdi--magnify]",
+    triggerLabel: "Hover me",
+    triggerSize: "md",
+    triggerType: "button",
+    triggerVariant: "primary",
   },
   render: (args) => {
     const {
@@ -217,16 +218,17 @@ export const Sizes: Story = {
 
 export const WithIcon: Story = {
   args: {
-    content: "Get help and support",
     children: (
       <Button theme="unstyled" icon="icon-[mdi--help-circle-outline]" />
     ),
+    content: "Get help and support",
     placement: "top",
   },
 }
 
 export const RichContent: Story = {
   args: {
+    children: <Button variant="secondary">Rich Content</Button>,
     content: (
       <div className="space-y-200">
         <div className="font-semibold">User Profile</div>
@@ -242,19 +244,21 @@ export const RichContent: Story = {
       </div>
     ),
     interactive: true,
-    children: <Button variant="secondary">Rich Content</Button>,
   },
 }
 
 export const WithLinks: Story = {
   args: {
+    children: <Button theme="unstyled" icon="icon-[mdi--information]" />,
     content: (
       <div>
         Learn more in our{" "}
         <Link
           href="#"
           className="text-primary underline hover:no-underline"
-          onClick={(e) => e.preventDefault()}
+          onClick={(e) => {
+            e.preventDefault()
+          }}
         >
           documentation
         </Link>
@@ -262,7 +266,6 @@ export const WithLinks: Story = {
     ),
     interactive: true,
     placement: "top",
-    children: <Button theme="unstyled" icon="icon-[mdi--information]" />,
   },
 }
 
@@ -424,11 +427,17 @@ export const ControlledTooltip: Story = {
         <VariantGroup title="External State Control" fullWidth>
           <div className="w-full space-y-400">
             <div className="flex justify-center gap-400">
-              <Button onClick={() => setIsOpen(!isOpen)}>
+              <Button
+                onClick={() => {
+                  setIsOpen(!isOpen)
+                }}
+              >
                 {isOpen ? "Close" : "Open"} Tooltip
               </Button>
               <Button
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  setIsOpen(false)
+                }}
                 variant="secondary"
                 disabled={!isOpen}
               >
@@ -440,7 +449,9 @@ export const ControlledTooltip: Story = {
               <Tooltip
                 content="This tooltip is controlled externally"
                 open={isOpen}
-                onOpenChange={(details) => setIsOpen(details.open)}
+                onOpenChange={(details) => {
+                  setIsOpen(details.open)
+                }}
                 interactive={true}
               >
                 <Button variant="primary">Controlled Tooltip</Button>
@@ -459,6 +470,7 @@ export const ControlledTooltip: Story = {
 
 export const LongContent: Story = {
   args: {
+    children: <Button>Long Content</Button>,
     content: (
       <div className="max-w-xs">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
@@ -467,7 +479,6 @@ export const LongContent: Story = {
       </div>
     ),
     placement: "top",
-    children: <Button>Long Content</Button>,
   },
 }
 
@@ -565,9 +576,9 @@ export const DataPreview: Story = {
       <VariantGroup title="Dashboard Cards" fullWidth>
         <div className="grid w-full grid-cols-3 gap-400">
           {[
-            { value: "1,234", label: "Users", change: "+12%" },
-            { value: "$45.2K", label: "Revenue", change: "+8%" },
-            { value: "98.5%", label: "Uptime", change: "+0.2%" },
+            { change: "+12%", label: "Users", value: "1,234" },
+            { change: "+8%", label: "Revenue", value: "$45.2K" },
+            { change: "+0.2%", label: "Uptime", value: "98.5%" },
           ].map(({ value, label, change }) => (
             <Tooltip
               key={label}

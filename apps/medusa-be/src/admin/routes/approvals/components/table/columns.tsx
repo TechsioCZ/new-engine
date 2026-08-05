@@ -7,7 +7,8 @@ import { ApprovalStatusType } from "../../../../../types"
 import { DateCell } from "../../../../components/common/table/table-cells/date-cell"
 import { TextCell } from "../../../../components/common/table/table-cells/text-cell"
 import { ApprovalActions } from "../approval-actions"
-import ItemsPopover, { type ApprovalItem } from "../approvals-items-popover"
+import ItemsPopover from "../approvals-items-popover"
+import type { ApprovalItem } from "../approvals-items-popover"
 
 const columnHelper = createColumnHelper<AdminCartWithApprovals>()
 
@@ -40,20 +41,19 @@ export const useApprovalsTableColumns = () => {
 
   return [
     columnHelper.accessor("id", {
-      header: t("columns.id"),
       cell: ({ getValue }) => <TextCell text={`#${getValue().slice(-4)}`} />,
+      header: t("columns.id"),
     }),
     columnHelper.accessor("updated_at", {
-      header: t("columns.updatedAt"),
       cell: ({ getValue }) => <DateCell date={getValue() ?? null} />,
+      header: t("columns.updatedAt"),
     }),
     columnHelper.display({
-      id: "company",
-      header: t("columns.company"),
       cell: ({ row }) => <TextCell text={row.original.company?.name ?? "-"} />,
+      header: t("columns.company"),
+      id: "company",
     }),
     columnHelper.accessor("approval_status.status", {
-      header: t("columns.status"),
       cell: ({ getValue }) => {
         const status = getValue()
         return (
@@ -62,21 +62,22 @@ export const useApprovalsTableColumns = () => {
           </StatusBadge>
         )
       },
+      header: t("columns.status"),
     }),
     columnHelper.display({
-      id: "items",
-      header: t("columns.items"),
       cell: ({ row }) => (
         <ItemsPopover
           currencyCode={row.original.currency_code ?? ""}
           items={getApprovalItems(row.original.items)}
         />
       ),
+      header: t("columns.items"),
+      id: "items",
     }),
     columnHelper.display({
-      id: "actions",
-      header: t("columns.actions"),
       cell: ({ row }) => <ApprovalActions cart={row.original} />,
+      header: t("columns.actions"),
+      id: "actions",
     }),
   ]
 }

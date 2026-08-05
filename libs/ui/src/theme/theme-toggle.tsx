@@ -8,22 +8,23 @@
 
 import { Button } from "../atoms/button"
 import { tv } from "../utils"
-import { getBrand, type ModeSetting } from "./theme-config"
+import { getBrand } from "./theme-config"
+import type { ModeSetting } from "./theme-config"
 import { useAppTheme } from "./theme-provider"
 
 const themeToggle = tv({
   slots: {
-    root: "",
     group: "flex flex-col gap-100",
-    modeGroup: "mt-150 flex flex-col gap-100",
     label: "text-sm",
+    modeGroup: "mt-150 flex flex-col gap-100",
+    root: "",
     row: "flex gap-50",
   },
 })
 
 const MODE_LABELS: Record<ModeSetting, string> = {
-  light: "Light",
   dark: "Dark",
+  light: "Light",
   system: "System",
 }
 
@@ -41,7 +42,9 @@ export function ThemeToggle({ className }: { className?: string }) {
           {brands.map((key) => (
             <Button
               key={key}
-              onClick={() => setBrand(key)}
+              onClick={() => {
+                setBrand(key)
+              }}
               size="sm"
               theme={mounted && key === brand ? "solid" : "outlined"}
               variant="primary"
@@ -59,7 +62,9 @@ export function ThemeToggle({ className }: { className?: string }) {
             {availableModes.map((value) => (
               <Button
                 key={value}
-                onClick={() => setMode(value)}
+                onClick={() => {
+                  setMode(value)
+                }}
                 size="sm"
                 theme={mounted && value === mode ? "solid" : "outlined"}
                 variant="secondary"

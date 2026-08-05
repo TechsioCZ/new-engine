@@ -5,10 +5,8 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { useTranslations } from "next-intl"
 
 import NextLink from "@/components/app-link"
-import {
-  HerbatikaBreadcrumb,
-  type HerbatikaBreadcrumbItem,
-} from "@/components/herbatika-breadcrumb"
+import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
+import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb"
 import type {
   BlogTopicFilter,
   BlogTopicKey,
@@ -17,7 +15,7 @@ import type {
 
 import { BlogListingCard } from "./blog-listing-card"
 
-type BlogListingPageProps = {
+interface BlogListingPageProps {
   listing: ReturnType<typeof resolveBlogListing>
 }
 
@@ -49,9 +47,9 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
   const tContent = useTranslations("content")
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
-      label: tContent("pages.blog"),
       href: "/blog",
       icon: "token-icon-home",
+      label: tContent("pages.blog"),
     },
   ]
 
@@ -84,8 +82,8 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
                     as={NextLink}
                     className={`h-full rounded-full border-1 border-primary px-450 py-250 font-bold font-open-sans text-md leading-[18px] ${!isActive && "border-border-muted bg-surface text-fg-muted"}`}
                     href={resolveBlogListingHref({
-                      topic: filter.key,
                       page: 1,
+                      topic: filter.key,
                     })}
                     key={filter.key}
                     size="sm"
@@ -112,8 +110,8 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
                   as={NextLink}
                   className="rounded-full px-550 py-250 font-open-sans font-semibold text-sm"
                   href={resolveBlogListingHref({
-                    topic: listing.topic,
                     page: nextPage,
+                    topic: listing.topic,
                   })}
                   size="sm"
                   theme="outlined"
@@ -128,8 +126,8 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
                   as={NextLink}
                   className="absolute right-0 font-semibold text-primary text-sm leading-normal underline underline-offset-2 hover:text-primary-hover"
                   href={resolveBlogListingHref({
-                    topic: listing.topic,
                     page: nextPage,
+                    topic: listing.topic,
                   })}
                 >
                   {tContent("blog.pagination.summary", {

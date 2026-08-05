@@ -5,7 +5,7 @@ import {
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
-type EmployeeAdminState = {
+interface EmployeeAdminState {
   id: string
   is_admin: boolean
 }

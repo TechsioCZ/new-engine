@@ -139,7 +139,7 @@ export type LeadhubEventName =
   | "Identify"
   | "Purchase"
 
-export type LeadhubFunction = {
+export interface LeadhubFunction {
   (event: "pageview"): void
   (event: "ViewContent", params: LeadhubViewContentParams): void
   (event: "ViewCategory", params: LeadhubViewCategoryParams): void

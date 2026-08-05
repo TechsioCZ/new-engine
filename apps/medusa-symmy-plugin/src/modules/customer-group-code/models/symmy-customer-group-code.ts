@@ -2,10 +2,10 @@ import { model } from "@medusajs/framework/utils"
 
 const SymmyCustomerGroupCode = model
   .define("symmy_customer_group_code", {
-    id: model.id().primaryKey(),
     code: model.text().nullable(),
-    erp_code: model.text().nullable(),
     customer_group_id: model.text(),
+    erp_code: model.text().nullable(),
+    id: model.id().primaryKey(),
   })
   .indexes([
     {

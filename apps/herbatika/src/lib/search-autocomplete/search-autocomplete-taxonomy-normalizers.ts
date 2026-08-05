@@ -38,10 +38,10 @@ const createCategorySuggestion = (
   }
 
   return {
-    id,
-    type: "category",
-    title,
     href: `/c/${handle}`,
+    id,
+    title,
+    type: "category",
   }
 }
 
@@ -95,10 +95,10 @@ const createBrandSuggestion = (
   }
 
   return {
-    id,
-    type: "brand",
-    title,
     href: createBrandHref({ slug }),
+    id,
+    title,
+    type: "brand",
   }
 }
 
@@ -116,10 +116,10 @@ const createBrandSuggestionFromFacet = (
   }
 
   return {
-    id,
-    type: "brand",
-    title,
     href: createBrandHref({ slug }),
+    id,
+    title,
+    type: "brand",
   }
 }
 
@@ -163,7 +163,7 @@ export const createBrandSuggestions = ({
   }
 
   for (const product of productHits) {
-    const brand = product.brand
+    const { brand } = product
     if (!(brand && brandMatchesQuery(brand, query))) {
       continue
     }

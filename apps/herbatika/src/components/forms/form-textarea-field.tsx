@@ -1,7 +1,8 @@
 "use client"
 
 import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea"
-import { type ComponentPropsWithoutRef, type ReactNode, useState } from "react"
+import { useState } from "react"
+import type { ComponentPropsWithoutRef, ReactNode } from "react"
 
 import {
   resolveVisibleFieldFeedback,

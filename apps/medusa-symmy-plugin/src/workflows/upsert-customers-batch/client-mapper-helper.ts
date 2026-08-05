@@ -13,7 +13,7 @@ type CustomerMetadataIdentifier =
   | "erp_id"
   | "vat_id"
 
-export type CustomerLookupKeys = {
+export interface CustomerLookupKeys {
   ids: Set<string>
   emails: Set<string>
   metadataIdentifiers: Record<CustomerMetadataIdentifier, Set<string>>
@@ -52,7 +52,7 @@ export class CustomerBatchClientMapperHelper {
       }
     }
 
-    return { ids, emails, metadataIdentifiers }
+    return { emails, ids, metadataIdentifiers }
   }
 
   collectGroupCodes(customers: CustomerInput[]): Set<string> {
@@ -63,11 +63,11 @@ export class CustomerBatchClientMapperHelper {
 
   buildCustomerIndex(customers: ExistingCustomer[]): ExistingCustomerIndex {
     const index: ExistingCustomerIndex = {
-      byId: new Map(),
+      byCompanyRegistrationNumber: new Map(),
       byEmail: new Map(),
       byErpId: new Map(),
+      byId: new Map(),
       byVatId: new Map(),
-      byCompanyRegistrationNumber: new Map(),
     }
 
     for (const customer of customers) {
@@ -83,11 +83,11 @@ export class CustomerBatchClientMapperHelper {
     customerId: string
   ): void {
     this.addCustomerToIndex(index, {
-      id: customerId,
-      email: customer.email ?? null,
-      metadata: this.buildMetadata(null, customer),
-      groups: [],
       addresses: [],
+      email: customer.email ?? null,
+      groups: [],
+      id: customerId,
+      metadata: this.buildMetadata(null, customer),
     })
   }
 
@@ -162,11 +162,11 @@ export class CustomerBatchClientMapperHelper {
   buildCreatePayload(customer: CustomerInput) {
     return {
       company_name: customer.company_name,
+      email: this.normalizeEmail(customer.email),
       first_name: customer.first_name,
       last_name: customer.last_name,
-      email: this.normalizeEmail(customer.email),
-      phone: customer.phone,
       metadata: this.buildMetadata(null, customer),
+      phone: customer.phone,
     }
   }
 

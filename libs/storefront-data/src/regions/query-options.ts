@@ -15,13 +15,14 @@ import type {
   RegionQueryKeys,
   RegionService,
 } from "./types"
-export type CreateRegionQueryOptionsFactoryConfig<
+
+export interface CreateRegionQueryOptionsFactoryConfig<
   TRegion,
   TListInput extends RegionListInputBase,
   TListParams,
   TDetailInput extends RegionDetailInputBase,
   TDetailParams,
-> = {
+> {
   service: RegionService<TRegion, TListParams, TDetailParams>
   buildListParams?: (input: TListInput) => TListParams
   buildDetailParams?: (input: TDetailInput) => TDetailParams
@@ -30,11 +31,11 @@ export type CreateRegionQueryOptionsFactoryConfig<
   cacheConfig?: CacheConfig
 }
 
-export type RegionQueryOptionsFactory<
+export interface RegionQueryOptionsFactory<
   TRegion,
   TListInput extends RegionListInputBase,
   TDetailInput extends RegionDetailInputBase,
-> = {
+> {
   getListQueryOptions: (
     input: TListInput,
     options?: {
@@ -77,14 +78,14 @@ export function createRegionQueryOptionsFactory<
 
   return createSimpleListDetailQueryOptionsFactory(
     omitUndefined({
-      getList: service.getRegions,
-      getDetail: service.getRegion,
-      buildListParams,
       buildDetailParams,
-      queryKeys: resolvedQueryKeys,
+      buildListParams,
       cacheConfig,
       defaultCacheStrategy: "static" as const,
+      getDetail: service.getRegion,
+      getList: service.getRegions,
       missingDetailErrorMessage: "Region id is required for region queries",
+      queryKeys: resolvedQueryKeys,
     })
   )
 }

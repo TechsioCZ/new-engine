@@ -19,12 +19,12 @@ import { loadDeployContracts } from "./deploy-inputs.js"
 import {
   buildStagePlan,
   collectStageNumbers,
-  type DeploymentLike,
   filterTargetsForGitCommit,
   mergeCsvValues,
   mergeDeployments,
   waitForDeployments,
 } from "./deploy-shared.js"
+import type { DeploymentLike } from "./deploy-shared.js"
 import { executePlan } from "./plan.js"
 import { generatePreviewRandomOnceSecrets } from "./preview-random-secrets.js"
 import {
@@ -44,13 +44,13 @@ import {
 import { expandPlanForRuntimeProviderPrerequisites } from "./runtime-provider-prerequisites.js"
 import { executeTriggerPayload } from "./trigger.js"
 
-export type DeployPreviewExecutionResult = {
+export interface DeployPreviewExecutionResult {
   response: DeployPreviewResponse
   previewRandomOnceSecretsJson: string
   runtimeProviderOutputs: RuntimeProviderOutputs
 }
 
-type PreviewDbContext = {
+interface PreviewDbContext {
   previewDbName: string
   previewDbUser: string
   previewDbPassword: string
@@ -62,14 +62,14 @@ const DEFAULT_PREVIEW_DB_APP_USER_PREFIX = "medusa_pr_app_"
 function supportsPrettyLogs(): boolean {
   return Boolean(
     process.stderr.isTTY &&
-    !process.env["GITHUB_ACTIONS"] &&
-    !process.env["NO_COLOR"] &&
-    process.env["TERM"] !== "dumb"
+    !process.env.GITHUB_ACTIONS &&
+    !process.env.NO_COLOR &&
+    process.env.TERM !== "dumb"
   )
 }
 
 function colorize(text: string, code: string): string {
-  return supportsPrettyLogs() ? `\u001b[${code}m${text}\u001b[0m` : text
+  return supportsPrettyLogs() ? `\u001B[${code}m${text}\u001B[0m` : text
 }
 
 function logDeployProgress(message: string): void {
@@ -138,12 +138,12 @@ async function resolvePreviewDbContext(input: {
       previewDbName:
         input.initialContext.previewDbName ||
         `${DEFAULT_PREVIEW_DB_PREFIX}${input.prNumber}`,
-      previewDbUser:
-        input.initialContext.previewDbUser ||
-        `${DEFAULT_PREVIEW_DB_APP_USER_PREFIX}${input.prNumber}`,
       previewDbPassword:
         input.initialContext.previewDbPassword ||
         `dry-run:preview-db:${input.prNumber}`,
+      previewDbUser:
+        input.initialContext.previewDbUser ||
+        `${DEFAULT_PREVIEW_DB_APP_USER_PREFIX}${input.prNumber}`,
     }
   }
 
@@ -163,14 +163,14 @@ async function resolvePreviewDbContext(input: {
 
   return {
     previewDbName: previewDb.db_name,
-    previewDbUser: previewDb.app_user,
     previewDbPassword: previewDb.app_password,
+    previewDbUser: previewDb.app_user,
   }
 }
 
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
+  await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
 async function resolvePreviewRandomOnceSecrets(input: {
@@ -192,7 +192,7 @@ async function resolvePreviewRandomOnceSecrets(input: {
   }
 
   const resolveSecrets = (
-    syncedSecrets: Array<{ secret_id: string; value: string }>
+    syncedSecrets: { secret_id: string; value: string }[]
   ): PreviewRandomOnceSecretInput[] => {
     const resolvedValueBySecretId = new Map(
       syncedSecrets.map((secret) => [secret.secret_id, secret.value])
@@ -216,12 +216,12 @@ async function resolvePreviewRandomOnceSecrets(input: {
   if (input.environmentCreated) {
     const generatedSecrets = generatePreviewRandomOnceSecrets(input.stackInputs)
     const generatedValuesBySecretId = new Map(
-      generatedSecrets.map((secret) => [secret["secret_id"], secret.value])
+      generatedSecrets.map((secret) => [secret.secret_id, secret.value])
     )
     const materialized =
       await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
-        project_slug: input.projectSlug,
         environment_name: input.environmentName,
+        project_slug: input.projectSlug,
         secrets: definitions.map((definition) => ({
           secret_id: definition.secret_id,
           value: generatedValuesBySecretId.get(definition.secret_id),
@@ -244,8 +244,8 @@ async function resolvePreviewRandomOnceSecrets(input: {
   }
 
   const synced = await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
-    project_slug: input.projectSlug,
     environment_name: input.environmentName,
+    project_slug: input.projectSlug,
     secrets: definitions.map((definition) => ({
       secret_id: definition.secret_id,
       persist_to: definition.persist_to,
@@ -272,12 +272,12 @@ async function resolvePreviewRandomOnceSecrets(input: {
   const missingSecretIds = new Set(synced.missing_secret_ids)
   const generatedSecrets = generatePreviewRandomOnceSecrets(input.stackInputs)
   const generatedValuesBySecretId = new Map(
-    generatedSecrets.map((secret) => [secret["secret_id"], secret.value])
+    generatedSecrets.map((secret) => [secret.secret_id, secret.value])
   )
   const materialized =
     await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
-      project_slug: input.projectSlug,
       environment_name: input.environmentName,
+      project_slug: input.projectSlug,
       secrets: definitions.map((definition) => ({
         secret_id: definition.secret_id,
         ...(missingSecretIds.has(definition.secret_id)
@@ -317,15 +317,15 @@ async function syncPreviewSharedEnv(input: {
   }
 
   const variables = buildPreviewSharedEnvSyncVariables({
-    stackInputs: input.contracts.stackInputs,
-    manifest: input.contracts.manifest,
-    deployServiceIds: input.deployServiceIds,
     context: {
-      sourceEnvironmentName: input.sourceEnvironmentName,
       previewDbName: input.previewDbName,
-      previewDbUser: input.previewDbUser,
       previewDbPassword: input.previewDbPassword,
+      previewDbUser: input.previewDbUser,
+      sourceEnvironmentName: input.sourceEnvironmentName,
     },
+    deployServiceIds: input.deployServiceIds,
+    manifest: input.contracts.manifest,
+    stackInputs: input.contracts.stackInputs,
   })
 
   if (variables.length === 0) {
@@ -333,8 +333,8 @@ async function syncPreviewSharedEnv(input: {
   }
 
   await input.zaneOperatorClient.syncPreviewSharedEnv({
-    project_slug: input.projectSlug,
     environment_name: input.environmentName,
+    project_slug: input.projectSlug,
     variables,
   })
 }
@@ -355,15 +355,15 @@ async function syncPreviewServiceEnv(input: {
   }
 
   const services = buildPreviewServiceEnvSyncServices({
-    stackInputs: input.contracts.stackInputs,
-    manifest: input.contracts.manifest,
-    deployServiceIds: input.deployServiceIds,
     context: {
-      sourceEnvironmentName: input.sourceEnvironmentName,
       previewDbName: input.previewDbName,
-      previewDbUser: input.previewDbUser,
       previewDbPassword: input.previewDbPassword,
+      previewDbUser: input.previewDbUser,
+      sourceEnvironmentName: input.sourceEnvironmentName,
     },
+    deployServiceIds: input.deployServiceIds,
+    manifest: input.contracts.manifest,
+    stackInputs: input.contracts.stackInputs,
   })
 
   if (services.length === 0) {
@@ -371,8 +371,8 @@ async function syncPreviewServiceEnv(input: {
   }
 
   await input.zaneOperatorClient.syncPreviewServiceEnv({
-    project_slug: input.projectSlug,
     environment_name: input.environmentName,
+    project_slug: input.projectSlug,
     services,
   })
 }
@@ -387,31 +387,31 @@ export async function executeDeployPreview(
   )
   const plan = await executePlan({
     lane: "preview",
-    servicesCsv: input.servicesCsv,
-    prNumber: input.prNumber,
     outputJson: undefined,
-    stackManifestPath: input.stackManifestPath,
+    prNumber: input.prNumber,
     previewEnvPrefix: input.previewEnvPrefix,
+    servicesCsv: input.servicesCsv,
+    stackManifestPath: input.stackManifestPath,
   })
   const previewGitBranch = await resolveGitHubPreviewHeadBranch()
   const environment = await executeResolveEnvironment({
-    lane: "preview",
-    projectSlug: input.projectSlug,
-    prNumber: input.prNumber,
-    environmentName: plan.preview_environment_name,
-    sourceEnvironmentName: input.sourceEnvironmentName,
-    reconcileServiceIdsCsv: "",
-    previewClonedServiceIdsCsv: plan.preview_cloned_service_ids_csv,
-    previewExcludedServiceIdsCsv: plan.preview_excluded_service_ids_csv,
-    outputJson: undefined,
-    baseUrl: input.baseUrl,
     apiToken: input.apiToken,
+    baseUrl: input.baseUrl,
     dryRun: input.dryRun,
     dryRunCreated: input.dryRunCreated,
-    stackManifestPath: input.stackManifestPath,
-    stackInputsPath: input.stackInputsPath,
+    environmentName: plan.preview_environment_name,
+    lane: "preview",
+    outputJson: undefined,
+    prNumber: input.prNumber,
+    previewClonedServiceIdsCsv: plan.preview_cloned_service_ids_csv,
     previewEnvPrefix: input.previewEnvPrefix,
+    previewExcludedServiceIdsCsv: plan.preview_excluded_service_ids_csv,
     previewGitBranch,
+    projectSlug: input.projectSlug,
+    reconcileServiceIdsCsv: "",
+    sourceEnvironmentName: input.sourceEnvironmentName,
+    stackInputsPath: input.stackInputsPath,
+    stackManifestPath: input.stackManifestPath,
   })
   const baselineDeploy = environment.created || !environment.baseline_complete
   logDeployProgress(
@@ -425,16 +425,16 @@ export async function executeDeployPreview(
       }
     : plan
   const prerequisitePlan = await expandPlanForRuntimeProviderPrerequisites({
-    lane: "preview",
-    plan: runtimePlan,
-    manifest: contracts.manifest,
-    stackInputs: contracts.stackInputs,
-    projectSlug: input.projectSlug,
-    environmentName: environment.environment_name,
-    baseUrl: input.baseUrl,
     apiToken: input.apiToken,
+    baseUrl: input.baseUrl,
     dryRun: input.dryRun,
+    environmentName: environment.environment_name,
+    lane: "preview",
+    manifest: contracts.manifest,
     meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
+    plan: runtimePlan,
+    projectSlug: input.projectSlug,
+    stackInputs: contracts.stackInputs,
   })
   const effectiveRuntimePlan = prerequisitePlan.plan
   if (prerequisitePlan.transientServiceIds.length > 0) {
@@ -452,40 +452,40 @@ export async function executeDeployPreview(
   const previewDbContext = await resolvePreviewDbContext({
     contracts,
     deployServiceIds: effectiveDeployServiceIds,
-    prNumber: input.prNumber,
+    dryRun: input.dryRun,
     initialContext: {
       previewDbName: input.previewDbName,
-      previewDbUser: input.previewDbUser,
       previewDbPassword: input.previewDbPassword,
+      previewDbUser: input.previewDbUser,
     },
-    dryRun: input.dryRun,
+    prNumber: input.prNumber,
     zaneOperatorClient,
   })
   await syncPreviewSharedEnv({
-    zaneOperatorClient,
-    projectSlug: input.projectSlug,
-    environmentName: environment.environment_name,
-    sourceEnvironmentName: input.sourceEnvironmentName,
     contracts,
     deployServiceIds: effectiveDeployServiceIds,
+    environmentName: environment.environment_name,
+    projectSlug: input.projectSlug,
+    sourceEnvironmentName: input.sourceEnvironmentName,
+    zaneOperatorClient,
     ...previewDbContext,
   })
   await syncPreviewServiceEnv({
-    zaneOperatorClient,
-    projectSlug: input.projectSlug,
-    environmentName: environment.environment_name,
-    sourceEnvironmentName: input.sourceEnvironmentName,
     contracts,
     deployServiceIds: effectiveDeployServiceIds,
+    environmentName: environment.environment_name,
+    projectSlug: input.projectSlug,
+    sourceEnvironmentName: input.sourceEnvironmentName,
+    zaneOperatorClient,
     ...previewDbContext,
   })
   const previewRandomOnceSecrets = await resolvePreviewRandomOnceSecrets({
-    stackInputs: contracts.stackInputs,
-    projectSlug: input.projectSlug,
-    environmentName: environment.environment_name,
-    environmentCreated: environment.created,
     allowGenerateMissing: baselineDeploy,
     dryRun: input.dryRun,
+    environmentCreated: environment.created,
+    environmentName: environment.environment_name,
+    projectSlug: input.projectSlug,
+    stackInputs: contracts.stackInputs,
     zaneOperatorClient,
   })
   const previewRandomOnceSecretsJson =
@@ -495,9 +495,9 @@ export async function executeDeployPreview(
   const runtimeProviderNeeds = collectConfiguredRuntimeProviderNeeds({
     lane: "preview",
     manifest: contracts.manifest,
-    stackInputs: contracts.stackInputs,
-    services: effectiveRuntimePlan.deploy_services,
     meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
+    services: effectiveRuntimePlan.deploy_services,
+    stackInputs: contracts.stackInputs,
   })
   const runtimeProviderState = createRuntimeProviderState({})
   let targetCommitSha: string | null = null
@@ -539,30 +539,30 @@ export async function executeDeployPreview(
             .join(", ")}.`
         )
         const baselineTargets = await executeResolveTargetsPayload({
+          apiToken: input.apiToken,
+          baseUrl: input.baseUrl,
+          dryRun: input.dryRun,
           payload: {
+            environment_name: environment.environment_name,
             lane: "preview",
             project_slug: input.projectSlug,
-            environment_name: environment.environment_name,
             services: baselineTargetServices.map((service) => ({
               service_id: service.id,
               service_slug: service.service_slug,
             })),
           },
-          baseUrl: input.baseUrl,
-          apiToken: input.apiToken,
-          dryRun: input.dryRun,
         })
 
         await executeApplyEnvOverridesPayload({
-          payload: {
-            project_slug: input.projectSlug,
-            environment_name: environment.environment_name,
-            targets: baselineTargets.services,
-            env_overrides: baselineEnvOverrides.services,
-          },
-          baseUrl: input.baseUrl,
           apiToken: input.apiToken,
+          baseUrl: input.baseUrl,
           dryRun: input.dryRun,
+          payload: {
+            env_overrides: baselineEnvOverrides.services,
+            environment_name: environment.environment_name,
+            project_slug: input.projectSlug,
+            targets: baselineTargets.services,
+          },
         })
 
         envOverrideServiceIdsCsv = mergeCsvValues(
@@ -581,8 +581,8 @@ export async function executeDeployPreview(
     )
     const previewCommitState = await zaneOperatorClient.writePreviewCommitState(
       {
-        project_slug: input.projectSlug,
         environment_name: environment.environment_name,
+        project_slug: input.projectSlug,
         target_commit_sha: input.targetCommitSha,
         ...(baselineDeploy ? { baseline_complete: false } : {}),
       }
@@ -594,21 +594,21 @@ export async function executeDeployPreview(
 
   if (!baselineDeploy) {
     await reuseRuntimeProviderOutputs({
-      lane: "preview",
-      projectSlug: input.projectSlug,
+      apiToken: input.apiToken,
+      baseUrl: input.baseUrl,
+      dryRun: input.dryRun,
       environmentName: environment.environment_name,
+      lane: "preview",
+      meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
+      needs: runtimeProviderNeeds,
+      onProgress: logDeployProgress,
       planServices: effectiveRuntimePlan.deploy_services.map((service) => ({
         id: service.id,
         service_slug: service.service_slug,
       })),
-      needs: runtimeProviderNeeds,
+      projectSlug: input.projectSlug,
       stackInputs: contracts.stackInputs,
-      baseUrl: input.baseUrl,
-      apiToken: input.apiToken,
-      dryRun: input.dryRun,
       state: runtimeProviderState,
-      meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
-      onProgress: logDeployProgress,
     })
   }
 
@@ -623,27 +623,27 @@ export async function executeDeployPreview(
       `Starting preview deploy stage ${stage} for services: ${stageServicesCsv}.`
     )
     await ensureStageRuntimeProviderOutputs({
-      lane: "preview",
-      stage,
-      stageServices: stagePlan.deploy_services.map((service) => ({
-        id: service.id,
-        service_slug: service.service_slug,
-      })),
+      apiToken: input.apiToken,
+      baseUrl: input.baseUrl,
+      dryRun: input.dryRun,
+      environmentName: environment.environment_name,
       fullPlanServices: effectiveRuntimePlan.deploy_services.map((service) => ({
         id: service.id,
         service_slug: service.service_slug,
         deploy_stage: service.deploy_stage,
       })),
-      needs: runtimeProviderNeeds,
-      projectSlug: input.projectSlug,
-      environmentName: environment.environment_name,
-      stackInputs: contracts.stackInputs,
-      baseUrl: input.baseUrl,
-      apiToken: input.apiToken,
-      dryRun: input.dryRun,
-      state: runtimeProviderState,
+      lane: "preview",
       meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
+      needs: runtimeProviderNeeds,
       onProgress: logDeployProgress,
+      projectSlug: input.projectSlug,
+      stackInputs: contracts.stackInputs,
+      stage,
+      stageServices: stagePlan.deploy_services.map((service) => ({
+        id: service.id,
+        service_slug: service.service_slug,
+      })),
+      state: runtimeProviderState,
     })
 
     logDeployProgress(
@@ -665,19 +665,19 @@ export async function executeDeployPreview(
       `Resolving deploy targets for preview stage ${stage}: ${stageServicesCsv}.`
     )
     const resolveTargetsPayload: ResolveTargetsPayload = {
+      environment_name: environment.environment_name,
       lane: "preview",
       project_slug: input.projectSlug,
-      environment_name: environment.environment_name,
       services: stagePlan.deploy_services.map((service) => ({
         service_id: service.id,
         service_slug: service.service_slug,
       })),
     }
     const targets = await executeResolveTargetsPayload({
-      payload: resolveTargetsPayload,
-      baseUrl: input.baseUrl,
       apiToken: input.apiToken,
+      baseUrl: input.baseUrl,
       dryRun: input.dryRun,
+      payload: resolveTargetsPayload,
     })
     const desiredCommitSha = input.targetCommitSha || targetCommitSha || ""
     const filtered = desiredCommitSha
@@ -687,10 +687,10 @@ export async function executeDeployPreview(
           desiredCommitSha
         )
       : {
-          services: targets.services,
-          skippedServices: [],
           adoptedDeployments: [] as DeploymentLike[],
           filteredEnvOverrides: envOverrides.services,
+          services: targets.services,
+          skippedServices: [],
         }
 
     allDeployments = mergeDeployments(
@@ -737,15 +737,15 @@ export async function executeDeployPreview(
           .join(", ")}.`
       )
       await executeApplyEnvOverridesPayload({
-        payload: {
-          project_slug: input.projectSlug,
-          environment_name: environment.environment_name,
-          targets: filtered.services,
-          env_overrides: filtered.filteredEnvOverrides,
-        },
-        baseUrl: input.baseUrl,
         apiToken: input.apiToken,
+        baseUrl: input.baseUrl,
         dryRun: input.dryRun,
+        payload: {
+          env_overrides: filtered.filteredEnvOverrides,
+          environment_name: environment.environment_name,
+          project_slug: input.projectSlug,
+          targets: filtered.services,
+        },
       })
       logDeployProgress(
         `Triggering deploys for preview stage ${stage}: ${filtered.services
@@ -753,13 +753,13 @@ export async function executeDeployPreview(
           .join(", ")}.`
       )
       const trigger = await executeTriggerPayload({
-        projectSlug: input.projectSlug,
-        environmentName: environment.environment_name,
-        targets: filtered.services,
-        gitCommitSha: input.targetCommitSha,
-        baseUrl: input.baseUrl,
         apiToken: input.apiToken,
+        baseUrl: input.baseUrl,
         dryRun: input.dryRun,
+        environmentName: environment.environment_name,
+        gitCommitSha: input.targetCommitSha,
+        projectSlug: input.projectSlug,
+        targets: filtered.services,
       })
 
       stageDeployments = mergeDeployments(stageDeployments, trigger.services)
@@ -825,9 +825,9 @@ export async function executeDeployPreview(
     )
     const previewCommitState = await zaneOperatorClient.writePreviewCommitState(
       {
-        project_slug: input.projectSlug,
         environment_name: environment.environment_name,
         last_deployed_commit_sha: input.targetCommitSha,
+        project_slug: input.projectSlug,
         ...(baselineDeploy ? { baseline_complete: true } : {}),
       }
     )
@@ -841,24 +841,24 @@ export async function executeDeployPreview(
     buildRuntimeProviderRenderContext(runtimeProviderState)
 
   const response = deployPreviewResponseSchema.parse({
-    lane: "preview",
-    project_slug: input.projectSlug,
-    environment_name: environment.environment_name,
-    environment_id: environment.environment_id,
+    deploy_services_csv: effectiveRuntimePlan.deploy_services_csv,
+    deployments: allDeployments,
+    env_override_service_ids_csv: envOverrideServiceIdsCsv,
     environment_created: environment.created,
+    environment_id: environment.environment_id,
+    environment_name: environment.environment_name,
     environment_ready: environment.ready,
+    environment_warnings: environment.warnings,
+    lane: "preview",
+    last_deployed_commit_sha: lastDeployedCommitSha,
     preview_cloned_service_ids_csv:
       effectiveRuntimePlan.preview_cloned_service_ids_csv,
     preview_excluded_service_ids_csv:
       effectiveRuntimePlan.preview_excluded_service_ids_csv,
-    environment_warnings: environment.warnings,
+    project_slug: input.projectSlug,
     requested_services_csv: plan.requested_services_csv,
-    deploy_services_csv: effectiveRuntimePlan.deploy_services_csv,
     target_commit_sha: targetCommitSha,
-    last_deployed_commit_sha: lastDeployedCommitSha,
-    env_override_service_ids_csv: envOverrideServiceIdsCsv,
     triggered_services_csv: triggeredServicesCsv,
-    deployments: allDeployments,
   })
 
   if (input.outputJson) {
@@ -866,8 +866,8 @@ export async function executeDeployPreview(
   }
 
   return {
-    response,
     previewRandomOnceSecretsJson,
+    response,
     runtimeProviderOutputs: runtimeProviderRenderContext.runtimeProviderOutputs,
   }
 }

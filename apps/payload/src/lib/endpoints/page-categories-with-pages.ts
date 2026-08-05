@@ -1,6 +1,7 @@
 import type { Endpoint } from "payload"
 
-import { type CategoryDoc, getCategoryDoc } from "../utils/doc-selectors"
+import { getCategoryDoc } from "../utils/doc-selectors"
+import type { CategoryDoc } from "../utils/doc-selectors"
 import {
   buildJsonResponse,
   getLocaleFromRequest,
@@ -10,7 +11,7 @@ import {
 const DEFAULT_MAX_PAGES = 500
 
 /** Minimal page record used to group by category. */
-type PageDoc = {
+interface PageDoc {
   title: string | null
   slug?: string | null
   category?: number | CategoryDoc | null
@@ -18,8 +19,6 @@ type PageDoc = {
 
 /** Endpoint returning page categories grouped with their pages. */
 export const pageCategoriesWithPagesEndpoint: Endpoint = {
-  path: "/page-categories-with-pages",
-  method: "get",
   handler: async (req) => {
     const locale = getLocaleFromRequest(req)
     const categorySlug = getQueryParam(req, "categorySlug")
@@ -75,4 +74,6 @@ export const pageCategoriesWithPagesEndpoint: Endpoint = {
       categories: Array.from(categoriesById.values()),
     })
   },
+  method: "get",
+  path: "/page-categories-with-pages",
 }

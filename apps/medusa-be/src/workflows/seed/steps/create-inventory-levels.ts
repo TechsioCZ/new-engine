@@ -18,7 +18,7 @@ import {
   updateInventoryLevelsWorkflow,
 } from "@medusajs/medusa/core-flows"
 
-export type CreateInventoryLevelsStepInput = {
+export interface CreateInventoryLevelsStepInput {
   stockLocations: StockLocationDTO[]
   inventoryItems: {
     sku: string
@@ -60,9 +60,9 @@ function buildInventoryLevelsForItem(
       }
 
       return {
+        inventory_item_id: inventoryItemId,
         location_id: stockLocation.id,
         stocked_quantity: locationQuantity.quantity,
-        inventory_item_id: inventoryItemId,
       }
     })
   }
@@ -70,12 +70,12 @@ function buildInventoryLevelsForItem(
   if (inventoryItem.quantity === undefined) {
     return []
   }
-  const quantity = inventoryItem.quantity
+  const { quantity } = inventoryItem
 
   return stockLocations.map((stockLocation) => ({
+    inventory_item_id: inventoryItemId,
     location_id: stockLocation.id,
     stocked_quantity: quantity,
-    inventory_item_id: inventoryItemId,
   }))
 }
 
@@ -102,8 +102,8 @@ export const createInventoryLevelsStep = createStep(
       return {
         id: inventoryItem?.id,
         sku: ii.sku,
-        ...(ii.quantity !== undefined ? { quantity: ii.quantity } : {}),
-        ...(ii.locations !== undefined ? { locations: ii.locations } : {}),
+        ...(ii.quantity === undefined ? {} : { quantity: ii.quantity }),
+        ...(ii.locations === undefined ? {} : { locations: ii.locations }),
       }
     })
 
@@ -118,8 +118,8 @@ export const createInventoryLevelsStep = createStep(
 
     const existingInventoryLevels =
       await inventoryLevelService.listInventoryLevels({
-        location_id: input.stockLocations.map((l) => l.id),
         inventory_item_id: inventoryItems.map((i) => i.id),
+        location_id: input.stockLocations.map((l) => l.id),
       })
 
     const missingInventoryLevels = inventoryLevels.filter(
@@ -140,8 +140,8 @@ export const createInventoryLevelsStep = createStep(
         if (inputInventoryLevel?.stocked_quantity !== undefined) {
           return [
             {
-              location_id: eil.location_id,
               inventory_item_id: eil.inventory_item_id,
+              location_id: eil.location_id,
               stocked_quantity: inputInventoryLevel.stocked_quantity,
             },
           ]

@@ -8,10 +8,8 @@ import {
   toProductListItemResponse,
   withProductListItemSelections,
 } from "../../../utils"
-import {
-  type StoreIncrementProductListItemQuantitySchemaType,
-  StoreProductListItemParamsSchema,
-} from "../../../validators"
+import { StoreProductListItemParamsSchema } from "../../../validators"
+import type { StoreIncrementProductListItemQuantitySchemaType } from "../../../validators"
 
 export async function POST(
   req: AuthenticatedMedusaRequest<StoreIncrementProductListItemQuantitySchemaType>,

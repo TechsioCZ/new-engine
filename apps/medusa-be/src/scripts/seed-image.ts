@@ -13,10 +13,10 @@ export default async function seedImages({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
 
   const PRODUCTS = {
-    MedusaTShirt: "Medusa T-Shirt",
-    MedusaSweatshirt: "Medusa Sweatshirt",
-    MedusaSweatpants: "Medusa Sweatpants",
     MedusaShorts: "Medusa Shorts",
+    MedusaSweatpants: "Medusa Sweatpants",
+    MedusaSweatshirt: "Medusa Sweatshirt",
+    MedusaTShirt: "Medusa T-Shirt",
   } as const
 
   async function readLocalUploadFile(
@@ -31,10 +31,10 @@ export default async function seedImages({ container }: ExecArgs) {
 
       logger.info(`Successfully read file: ${filename} (${mimeType})`)
       return {
+        access,
+        content: buffer.toString("base64"),
         filename,
         mimeType,
-        content: buffer.toString("base64"),
-        access,
       }
     } catch (error) {
       const errorMessage =
@@ -57,7 +57,7 @@ export default async function seedImages({ container }: ExecArgs) {
     )
 
     const files = await Promise.all(
-      filePaths.map((filePath) => readLocalUploadFile(filePath, access))
+      filePaths.map(async (filePath) => readLocalUploadFile(filePath, access))
     )
     const validFiles = files.filter(
       (f): f is NonNullable<typeof f> => f !== null

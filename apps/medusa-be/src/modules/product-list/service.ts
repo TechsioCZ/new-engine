@@ -11,9 +11,8 @@ import { normalizeTrimmedText } from "../../utils/string"
 import {
   DEFAULT_FAVORITE_LIST_HANDLE,
   DEFAULT_FAVORITE_LIST_TITLE,
-  type ProductListAccessType,
-  type ProductListType,
 } from "./constants"
+import type { ProductListAccessType, ProductListType } from "./constants"
 import ProductList from "./models/product-list"
 import ProductListItem from "./models/product-list-item"
 import {
@@ -25,14 +24,14 @@ import {
 
 export type ProductListMetadata = Record<string, unknown>
 
-export type CreateFavoriteProductListDTO = {
+export interface CreateFavoriteProductListDTO {
   title?: string
   handle?: string
   description?: string | null
   metadata?: ProductListMetadata | null
 }
 
-export type CreateCustomProductListDTO = {
+export interface CreateCustomProductListDTO {
   title: string
   handle?: string
   access_type?: ProductListAccessType
@@ -40,7 +39,7 @@ export type CreateCustomProductListDTO = {
   metadata?: ProductListMetadata | null
 }
 
-export type UpdateCustomProductListDTO = {
+export interface UpdateCustomProductListDTO {
   title?: string
   handle?: string
   access_type?: ProductListAccessType
@@ -48,7 +47,7 @@ export type UpdateCustomProductListDTO = {
   metadata?: ProductListMetadata | null
 }
 
-export type CreateProductListItemDTO = {
+export interface CreateProductListItemDTO {
   list_id: string
   list_type: ProductListType
   quantity?: number
@@ -57,7 +56,7 @@ export type CreateProductListItemDTO = {
   metadata?: ProductListMetadata | null
 }
 
-export type UpdateProductListItemDTO = {
+export interface UpdateProductListItemDTO {
   quantity?: number
   note?: string | null
   sort_order?: number
@@ -77,14 +76,14 @@ class ProductListModuleService extends MedusaService({
   ) {
     return await this.createProductLists(
       {
-        title: normalizeTrimmedText(input.title, DEFAULT_FAVORITE_LIST_TITLE),
+        description: input.description ?? null,
         handle: normalizeTrimmedText(
           input.handle,
           DEFAULT_FAVORITE_LIST_HANDLE
         ),
-        type: "favorite",
-        description: input.description ?? null,
         metadata: input.metadata ?? null,
+        title: normalizeTrimmedText(input.title, DEFAULT_FAVORITE_LIST_TITLE),
+        type: "favorite",
       },
       sharedContext
     )
@@ -111,12 +110,12 @@ class ProductListModuleService extends MedusaService({
 
     return await this.createProductLists(
       {
-        title,
-        handle,
-        type: "custom",
         access_type: normalizeProductListAccessType(input.access_type),
         description: input.description ?? null,
+        handle,
         metadata: input.metadata ?? null,
+        title,
+        type: "custom",
       },
       sharedContext
     )
@@ -191,10 +190,10 @@ class ProductListModuleService extends MedusaService({
     return await this.createProductListItems(
       {
         list_id: input.list_id,
-        quantity,
-        note: input.note ?? null,
-        sort_order: normalizeNonNegativeInteger("sort_order", input.sort_order),
         metadata: input.metadata ?? null,
+        note: input.note ?? null,
+        quantity,
+        sort_order: normalizeNonNegativeInteger("sort_order", input.sort_order),
       },
       sharedContext
     )

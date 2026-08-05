@@ -44,46 +44,51 @@ export interface HomeContent {
 }
 
 export const homeContent: HomeContent = {
+  categories: {
+    subtitle: "Najděte, co hledáte",
+    title: "Nakupovat podle kategorie",
+  },
   hero: {
-    title: "Nová kolekce",
-    subtitle: "Objevte nejnovější módní trendy",
     backgroundImage: "/assets/hero/home.webp",
     primaryAction: {
-      label: "Nakupovat",
       href: "/products",
+      label: "Nakupovat",
     },
     secondaryAction: {
-      label: "Zobrazit kolekci",
       href: "/products",
+      label: "Zobrazit kolekci",
     },
-  },
-  trending: {
-    title: "Aktuální trendy",
-    subtitle: "Podívejte se na nejpopulárnější položky",
-    linkText: "Zobrazit všechny produkty",
-    linkHref: "/products",
-  },
-  categories: {
-    title: "Nakupovat podle kategorie",
-    subtitle: "Najděte, co hledáte",
-  },
-  saleBanner: {
-    title: "Sezónní výprodej",
-    subtitle: "Až 50% sleva na vybrané položky",
-    backgroundImage:
-      "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=1920&h=600&fit=crop",
-    linkText: "Nakupovat ve výprodeji",
-    linkHref: "/products?onSale=true",
+    subtitle: "Objevte nejnovější módní trendy",
+    title: "Nová kolekce",
   },
   newArrivals: {
-    title: "Nové přírůstky",
-    subtitle: "Čerstvé styly právě dorazily",
     linkHref: "/products",
+    subtitle: "Čerstvé styly právě dorazily",
+    title: "Nové přírůstky",
+  },
+  saleBanner: {
+    backgroundImage:
+      "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=1920&h=600&fit=crop",
+    linkHref: "/products?onSale=true",
+    linkText: "Nakupovat ve výprodeji",
+    subtitle: "Až 50% sleva na vybrané položky",
+    title: "Sezónní výprodej",
+  },
+  trending: {
+    linkHref: "/products",
+    linkText: "Zobrazit všechny produkty",
+    subtitle: "Podívejte se na nejpopulárnější položky",
+    title: "Aktuální trendy",
   },
 }
 
 const categoryHandles = {
-  panske: ["kratke-rukavy", "na-zip", "street", "svetry"],
+  cyklo: [
+    "ostatni-category-400",
+    "ponozky-category-394",
+    "dlouhe-category-391",
+    "dlouhe",
+  ],
   damske: [
     "pres-hlavu-category-140",
     "svetry-category-144",
@@ -96,13 +101,8 @@ const categoryHandles = {
     "street-category-274",
     "boty-category-282",
   ],
-  cyklo: [
-    "ostatni-category-400",
-    "ponozky-category-394",
-    "dlouhe-category-391",
-    "dlouhe",
-  ],
   moto: ["bundy-category-81", "kalhoty-category-82", "mx-offroad", "otevrene"],
+  panske: ["kratke-rukavy", "na-zip", "street", "svetry"],
   snowboard: [
     "kulichy-category-124",
     "rukavice-category-123",
@@ -118,46 +118,46 @@ const categoryConfig: {
   description: string
 }[] = [
   {
+    description: "Od formálního po sportovní - vše pro pány",
+    image: "cat-men.webp",
     key: "panske",
     name: "Pánské",
-    image: "cat-men.webp",
-    description: "Od formálního po sportovní - vše pro pány",
   },
   {
+    description: "Elegance a trendy pro každou příležitost",
+    image: "cat-women.webp",
     key: "damske",
     name: "Dámské",
-    image: "cat-women.webp",
-    description: "Elegance a trendy pro každou příležitost",
   },
   {
+    description: "Pohodlné a odolné pro každodenní radosti",
+    image: "cat-kids.webp",
     key: "detske",
     name: "Dětské",
-    image: "cat-kids.webp",
-    description: "Pohodlné a odolné pro každodenní radosti",
   },
   {
+    description: "Vybavení pro vášnivé cyklisty",
+    image: "cat-cyclo.webp",
     key: "cyklo",
     name: "Cyklo",
-    image: "cat-cyclo.webp",
-    description: "Vybavení pro vášnivé cyklisty",
   },
   {
+    description: "Bezpečnost a styl pro motorkáře",
+    image: "cat-moto.webp",
     key: "moto",
     name: "Moto",
-    image: "cat-moto.webp",
-    description: "Bezpečnost a styl pro motorkáře",
   },
   {
+    description: "Pro ty, co milují adrenalin na sněhu",
+    image: "cat-ski.webp",
     key: "snowboard",
     name: "Snowboard",
-    image: "cat-ski.webp",
-    description: "Pro ty, co milují adrenalin na sněhu",
   },
 ]
 
 export const homeCategories: HomeCategory[] = categoryConfig.map((cat) => ({
-  name: cat.name,
+  description: cat.description,
   imageUrl: `/assets/cat-images/${cat.image}`,
   leaves: getCategoryIdsByHandles(categoryHandles[cat.key]),
-  description: cat.description,
+  name: cat.name,
 }))

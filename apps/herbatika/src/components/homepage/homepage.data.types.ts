@@ -1,4 +1,4 @@
-export type HeroBannerItem = {
+export interface HeroBannerItem {
   id: string
   title?: string
   subtitle?: string
@@ -9,7 +9,7 @@ export type HeroBannerItem = {
   imageSrc: string
 }
 
-export type BlogTeaserItem = {
+export interface BlogTeaserItem {
   id: string
   title: string
   excerpt: string
@@ -31,7 +31,7 @@ type HomepageProductSectionTitleKey =
   | "home.product_sections.new_products"
   | "home.product_sections.sale"
 
-export type ProductSectionDefinition = {
+export interface ProductSectionDefinition {
   id: string
   titleKey: HomepageProductSectionTitleKey
   viewAllHref: string

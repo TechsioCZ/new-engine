@@ -4,7 +4,7 @@ type HerbatikaMarketCode = "sk" | "cz" | "hu" | "ro"
 export type HerbatikaLocale = "sk-SK" | "cs-CZ" | "hu-HU" | "ro-RO"
 type HerbatikaCountryCode = "sk" | "cz" | "hu" | "ro"
 
-export type HerbatikaMarketContext = {
+export interface HerbatikaMarketContext {
   code: HerbatikaMarketCode
   locale: HerbatikaLocale
   htmlLang: HerbatikaLocale
@@ -16,75 +16,75 @@ export type HerbatikaMarketContext = {
   }
 }
 
-type ResolveMarketContextInput = {
+interface ResolveMarketContextInput {
   acceptLanguage?: string | null
   host?: string | null
 }
 
 const MARKET_CONFIG = {
-  sk: {
-    code: "sk",
-    locale: "sk-SK",
-    htmlLang: "sk-SK",
-    countryCode: "sk",
-    domain: "herbatica.sk",
-    metadata: {
-      title: "Herbatica",
-      description: "Herbatica e-shop - prírodné produkty",
-    },
-  },
   cz: {
     code: "cz",
-    locale: "cs-CZ",
-    htmlLang: "cs-CZ",
     countryCode: "cz",
     domain: "herbatica.cz",
+    htmlLang: "cs-CZ",
+    locale: "cs-CZ",
     metadata: {
-      title: "Herbatica",
       description: "Herbatica e-shop - přírodní produkty",
+      title: "Herbatica",
     },
   },
   hu: {
     code: "hu",
-    locale: "hu-HU",
-    htmlLang: "hu-HU",
     countryCode: "hu",
     domain: "herbatica.hu",
+    htmlLang: "hu-HU",
+    locale: "hu-HU",
     metadata: {
-      title: "Herbatica",
       description: "Herbatica webáruház - természetes termékek",
+      title: "Herbatica",
     },
   },
   ro: {
     code: "ro",
-    locale: "ro-RO",
-    htmlLang: "ro-RO",
     countryCode: "ro",
     domain: "herbatica.ro",
+    htmlLang: "ro-RO",
+    locale: "ro-RO",
     metadata: {
-      title: "Herbatica",
       description: "Herbatica magazin online - produse naturale",
+      title: "Herbatica",
+    },
+  },
+  sk: {
+    code: "sk",
+    countryCode: "sk",
+    domain: "herbatica.sk",
+    htmlLang: "sk-SK",
+    locale: "sk-SK",
+    metadata: {
+      description: "Herbatica e-shop - prírodné produkty",
+      title: "Herbatica",
     },
   },
 } as const satisfies Record<HerbatikaMarketCode, HerbatikaMarketContext>
 
 const HOST_MARKET_MAP: Record<string, HerbatikaMarketCode> = {
-  "herbatica.sk": "sk",
-  "www.herbatica.sk": "sk",
-  "herbatika.sk": "sk",
-  "www.herbatika.sk": "sk",
   "herbatica.cz": "cz",
-  "www.herbatica.cz": "cz",
-  "herbatika.cz": "cz",
-  "www.herbatika.cz": "cz",
   "herbatica.hu": "hu",
-  "www.herbatica.hu": "hu",
-  "herbatika.hu": "hu",
-  "www.herbatika.hu": "hu",
   "herbatica.ro": "ro",
-  "www.herbatica.ro": "ro",
+  "herbatica.sk": "sk",
+  "herbatika.cz": "cz",
+  "herbatika.hu": "hu",
   "herbatika.ro": "ro",
+  "herbatika.sk": "sk",
+  "www.herbatica.cz": "cz",
+  "www.herbatica.hu": "hu",
+  "www.herbatica.ro": "ro",
+  "www.herbatica.sk": "sk",
+  "www.herbatika.cz": "cz",
+  "www.herbatika.hu": "hu",
   "www.herbatika.ro": "ro",
+  "www.herbatika.sk": "sk",
 }
 
 const LANGUAGE_MARKET_MAP: Record<string, HerbatikaMarketCode> = {

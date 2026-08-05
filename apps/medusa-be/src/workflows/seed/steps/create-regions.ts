@@ -46,10 +46,10 @@ export const createRegionsStep = createStep(
         return [
           {
             ...existingRegion,
-            currency_code: inputRegion.currencyCode,
             countries: inputRegion.countries,
-            payment_providers: inputRegion.paymentProviders,
+            currency_code: inputRegion.currencyCode,
             is_tax_inclusive: inputRegion.isTaxInclusive ?? true,
+            payment_providers: inputRegion.paymentProviders,
           },
         ]
       }

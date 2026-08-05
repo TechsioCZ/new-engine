@@ -9,7 +9,7 @@ export function SelectedParcelCard({
   accessPoint: PplAccessPointData
   onChangeClick: () => void
 }) {
-  const address = accessPoint.address
+  const { address } = accessPoint
 
   return (
     <div className="mt-300 rounded border border-border-secondary bg-overlay/30 p-300">

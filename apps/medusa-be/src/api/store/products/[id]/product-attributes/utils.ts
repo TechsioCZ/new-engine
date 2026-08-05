@@ -20,7 +20,7 @@ const PRODUCT_ATTRIBUTE_STORE_FIELDS = [
   "option.label",
 ]
 
-export type StoreProductAttributeResponse = {
+export interface StoreProductAttributeResponse {
   definition: {
     id: string
     input_type: "select" | "text"
@@ -48,7 +48,7 @@ export const toPublicStoreProductAttributes = (
   assignments: TranslatedProductAttributeAssignment[]
 ) =>
   assignments.flatMap((assignment) => {
-    const definition = assignment.definition
+    const { definition } = assignment
     if (!definition?.is_public) {
       return []
     }

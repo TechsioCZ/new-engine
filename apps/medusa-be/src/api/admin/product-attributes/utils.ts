@@ -6,10 +6,12 @@ import { MedusaError, Modules } from "@medusajs/framework/utils"
 
 import {
   getProductAttributeService,
-  type ProductAttributeAssignmentRecord,
-  type ProductAttributeDefinitionRecord,
-  type ProductAttributeOptionRecord,
   toUsageCountMap,
+} from "../../../utils/product-attributes"
+import type {
+  ProductAttributeAssignmentRecord,
+  ProductAttributeDefinitionRecord,
+  ProductAttributeOptionRecord,
 } from "../../../utils/product-attributes"
 
 export type ProductAttributeListStatus = "active" | "all" | "deleted"
@@ -51,8 +53,7 @@ export const listAllProductAttributeRecords = async <T>(
 export const escapeProductAttributeLikePattern = (value: string) =>
   value.replace(LIKE_WILDCARD_REGEX, (match) => `\\${match}`)
 
-export const parseProductAttributeOrder = (input?: string) => {
-  const value = input ?? "label"
+export const parseProductAttributeOrder = (value: string = "label") => {
   const direction: "ASC" | "DESC" = value.startsWith("-") ? "DESC" : "ASC"
   const requestedField = value.replace(LEADING_DASH_REGEX, "")
   const field = ORDER_FIELDS.has(requestedField) ? requestedField : "label"
@@ -76,12 +77,9 @@ export const retrieveProductAttributeDefinitionOrThrow = async (
   id: string,
   withDeleted = false
 ) => {
-  const definitions = (await getProductAttributeService(
+  const definitions = await getProductAttributeService(
     scope
-  ).listProductAttributeDefinitions(
-    { id },
-    { take: 1, withDeleted }
-  )) as ProductAttributeDefinitionRecord[]
+  ).listProductAttributeDefinitions({ id }, { take: 1, withDeleted })
   const definition = definitions[0]
 
   if (!definition) {
@@ -98,12 +96,9 @@ export const retrieveProductAttributeOptionOrThrow = async (
   id: string,
   withDeleted = false
 ) => {
-  const options = (await getProductAttributeService(
+  const options = await getProductAttributeService(
     scope
-  ).listProductAttributeOptions(
-    { id },
-    { take: 1, withDeleted }
-  )) as ProductAttributeOptionRecord[]
+  ).listProductAttributeOptions({ id }, { take: 1, withDeleted })
   const option = options[0]
 
   if (!option) {
@@ -150,7 +145,7 @@ const listOptionAssignmentProductIds = async (
   let skip = 0
 
   while (true) {
-    const assignments = (await service.listProductAttributes(
+    const assignments = await service.listProductAttributes(
       { option_id: optionId },
       {
         order: { id: "ASC" },
@@ -158,7 +153,7 @@ const listOptionAssignmentProductIds = async (
         skip,
         take: ASSIGNMENT_QUERY_BATCH_SIZE,
       }
-    )) as ProductAttributeAssignmentRecord[]
+    )
 
     for (const assignment of assignments) {
       productIds.add(assignment.product_id)
@@ -281,22 +276,22 @@ export const getProductAttributeDetail = async (
   const [definitions, assignments] = await Promise.all([
     listAllProductAttributeRecords(
       async (skip, take) =>
-        (await service.listAndCountProductAttributeDefinitions(
+        await service.listAndCountProductAttributeDefinitions(
           {},
           {
-            order: { label: "ASC", id: "ASC" },
+            order: { id: "ASC", label: "ASC" },
             skip,
             take,
             withDeleted: true,
           }
-        )) as [ProductAttributeDefinitionRecord[], number]
+        )
     ),
     listAllProductAttributeRecords(
       async (skip, take) =>
-        (await service.listAndCountProductAttributes(
+        await service.listAndCountProductAttributes(
           { product_id: productId },
           { order: { id: "ASC" }, skip, take }
-        )) as [ProductAttributeAssignmentRecord[], number]
+        )
     ),
   ])
   const selectedOptionIds = [
@@ -307,14 +302,14 @@ export const getProductAttributeDetail = async (
     ),
   ]
   const options = selectedOptionIds.length
-    ? ((await service.listProductAttributeOptions(
+    ? await service.listProductAttributeOptions(
         { id: { $in: selectedOptionIds } },
         {
-          order: { label: "ASC", id: "ASC" },
+          order: { id: "ASC", label: "ASC" },
           take: selectedOptionIds.length,
           withDeleted: true,
         }
-      )) as ProductAttributeOptionRecord[])
+      )
     : []
   const [definitionUsageCounts, optionUsageCounts] = await Promise.all([
     getDefinitionUsageCountMap(

@@ -1,12 +1,10 @@
 import type { HttpTypes } from "@medusajs/framework/types"
 import type { ClientHeaders, FetchError } from "@medusajs/js-sdk"
-import {
-  type QueryKey,
-  type UseMutationOptions,
-  type UseQueryOptions,
-  useMutation,
-  useQuery,
-  useQueryClient,
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type {
+  QueryKey,
+  UseMutationOptions,
+  UseQueryOptions,
 } from "@tanstack/react-query"
 
 import type {
@@ -27,7 +25,7 @@ type UpdateQuoteItemPayload = HttpTypes.AdminUpdateOrderEditItem & {
 }
 
 type QueryOptions<TData> = Omit<
-  UseQueryOptions<TData, FetchError, TData, QueryKey>,
+  UseQueryOptions<TData, FetchError, TData>,
   "queryFn" | "queryKey"
 >
 
@@ -35,7 +33,10 @@ export const useQuotes = (
   quoteQuery: QuoteFilterParams,
   options?: QueryOptions<StoreQuotesResponse>
 ) => {
-  const fetchQuotes = (filters: QuoteFilterParams, headers?: ClientHeaders) =>
+  const fetchQuotes = async (
+    filters: QuoteFilterParams,
+    headers?: ClientHeaders
+  ) =>
     sdk.client.fetch<StoreQuotesResponse>("/admin/quotes", {
       query: filters,
       ...(headers ? { headers } : {}),
@@ -43,7 +44,7 @@ export const useQuotes = (
 
   const { data, ...rest } = useQuery({
     ...options,
-    queryFn: () => fetchQuotes(quoteQuery),
+    queryFn: async () => fetchQuotes(quoteQuery),
     queryKey: quoteQueryKey.list(quoteQuery),
   })
 
@@ -55,7 +56,7 @@ export const useQuote = (
   quoteQuery?: QuoteFilterParams,
   options?: QueryOptions<StoreQuoteResponse>
 ) => {
-  const fetchQuote = (
+  const fetchQuote = async (
     quoteId: string,
     filters?: QuoteFilterParams,
     headers?: ClientHeaders
@@ -66,7 +67,7 @@ export const useQuote = (
     })
 
   const { data, ...rest } = useQuery({
-    queryFn: () => fetchQuote(id, quoteQuery),
+    queryFn: async () => fetchQuote(id, quoteQuery),
     queryKey: quoteQueryKey.detail(id, quoteQuery),
     ...options,
   })
@@ -85,7 +86,7 @@ export const useAddItemsToQuote = (
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (payload: HttpTypes.AdminAddOrderEditItems) =>
+    mutationFn: async (payload: HttpTypes.AdminAddOrderEditItems) =>
       sdk.admin.orderEdit.addItems(id, payload),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
@@ -109,7 +110,7 @@ export const useUpdateQuoteItem = (
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       itemId,
       ...payload
     }: UpdateQuoteItemPayload & { itemId: string }) =>
@@ -136,7 +137,7 @@ export const useRemoveQuoteItem = (
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (actionId: string) =>
+    mutationFn: async (actionId: string) =>
       sdk.admin.orderEdit.removeAddedItem(id, actionId),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
@@ -159,7 +160,7 @@ export const useUpdateAddedQuoteItem = (
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       actionId,
       ...payload
     }: UpdateQuoteItemPayload & { actionId: string }) =>
@@ -179,14 +180,13 @@ export const useConfirmQuote = (
   id: string,
   options?: UseMutationOptions<
     HttpTypes.AdminOrderEditPreviewResponse,
-    FetchError,
-    void
+    FetchError
   >
 ) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () => sdk.admin.orderEdit.request(id),
+    mutationFn: async () => sdk.admin.orderEdit.request(id),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
         queryKey: orderPreviewQueryKey.details(),
@@ -200,17 +200,20 @@ export const useConfirmQuote = (
 
 export const useSendQuote = (
   id: string,
-  options?: UseMutationOptions<AdminQuoteResponse, FetchError, void>
+  options?: UseMutationOptions<AdminQuoteResponse, FetchError>
 ) => {
   const queryClient = useQueryClient()
 
   const sendQuote = async (quoteId: string) =>
-    sdk.client.fetch<AdminQuoteResponse>(`/admin/quotes/${quoteId}/send`, {
-      method: "POST",
-    })
+    await sdk.client.fetch<AdminQuoteResponse>(
+      `/admin/quotes/${quoteId}/send`,
+      {
+        method: "POST",
+      }
+    )
 
   return useMutation({
-    mutationFn: () => sendQuote(id),
+    mutationFn: async () => sendQuote(id),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
         queryKey: orderPreviewQueryKey.details(),
@@ -232,17 +235,20 @@ export const useSendQuote = (
 
 export const useRejectQuote = (
   id: string,
-  options?: UseMutationOptions<AdminQuoteResponse, FetchError, void>
+  options?: UseMutationOptions<AdminQuoteResponse, FetchError>
 ) => {
   const queryClient = useQueryClient()
 
   const rejectQuote = async (quoteId: string) =>
-    sdk.client.fetch<AdminQuoteResponse>(`/admin/quotes/${quoteId}/reject`, {
-      method: "POST",
-    })
+    await sdk.client.fetch<AdminQuoteResponse>(
+      `/admin/quotes/${quoteId}/reject`,
+      {
+        method: "POST",
+      }
+    )
 
   return useMutation({
-    mutationFn: () => rejectQuote(id),
+    mutationFn: async () => rejectQuote(id),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
         queryKey: orderPreviewQueryKey.details(),
@@ -273,13 +279,16 @@ export const useCreateQuoteMessage = (
   const queryClient = useQueryClient()
 
   const sendQuote = async (quoteId: string, body: AdminCreateQuoteMessage) =>
-    sdk.client.fetch<AdminQuoteResponse>(`/admin/quotes/${quoteId}/messages`, {
-      body,
-      method: "POST",
-    })
+    await sdk.client.fetch<AdminQuoteResponse>(
+      `/admin/quotes/${quoteId}/messages`,
+      {
+        body,
+        method: "POST",
+      }
+    )
 
   return useMutation({
-    mutationFn: (body) => sendQuote(id, body),
+    mutationFn: async (body) => sendQuote(id, body),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
         queryKey: quoteQueryKey.details(),

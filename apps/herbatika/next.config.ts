@@ -5,7 +5,7 @@ import createNextIntlPlugin from "next-intl/plugin"
 
 const withNextIntl = createNextIntlPlugin()
 
-type ImageRemotePattern = {
+interface ImageRemotePattern {
   protocol: "http" | "https"
   hostname: string
 }
@@ -23,8 +23,8 @@ const resolveImageRemotePattern = (baseUrl: string | undefined) => {
 
     return [
       {
-        protocol,
         hostname: parsedUrl.hostname,
+        protocol,
       },
     ] as const
   } catch {
@@ -33,19 +33,19 @@ const resolveImageRemotePattern = (baseUrl: string | undefined) => {
 }
 
 const resolveMedusaImageRemotePattern = () =>
-  resolveImageRemotePattern(process.env["NEXT_PUBLIC_MEDUSA_BACKEND_URL"])
+  resolveImageRemotePattern(process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL)
 
 const resolvePayloadImageRemotePattern = () =>
-  resolveImageRemotePattern(process.env["NEXT_PUBLIC_PAYLOAD_BASE_URL"])
+  resolveImageRemotePattern(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL)
 
 const imageRemotePatterns: ImageRemotePattern[] = [
   {
-    protocol: "https",
     hostname: "cdn.myshoptet.com", // Herbatika CDN
+    protocol: "https",
   },
   {
-    protocol: "https",
     hostname: "images.unsplash.com",
+    protocol: "https",
   },
   ...resolveMedusaImageRemotePattern(),
   ...resolvePayloadImageRemotePattern(),
@@ -62,17 +62,25 @@ const nextConfig: NextConfig = {
     "herbatica.hu",
     "herbatica.ro",
   ],
-  reactStrictMode: true,
-  typedRoutes: true,
-  output: "standalone",
-  transpilePackages: [
-    "@techsio/ui-kit",
-    "@techsio/storefront-data",
-    "@techsio/storefront-i18n",
-  ],
-  reactCompiler: true,
   cacheComponents: true,
-  outputFileTracingRoot: join(__dirname, "../../"),
+  cacheLife: {
+    product: {
+      expire: 86_400,
+      revalidate: 3600,
+      stale: 3600,
+    },
+  },
+  experimental: {
+    typedEnv: true,
+  },
+  images: {
+    // Browser-facing loopback URLs cannot be resolved correctly by the Next
+    // image optimizer from inside Docker. Non-loopback deployments stay optimized.
+    unoptimized: shouldDisableImageOptimization,
+    remotePatterns: imageRemotePatterns,
+    qualities: [40, 50, 60, 75, 90],
+  },
+  output: "standalone",
   outputFileTracingExcludes: {
     "*": [
       "node_modules/@swc/core-linux-x64-gnu",
@@ -90,25 +98,15 @@ const nextConfig: NextConfig = {
       "node_modules/@playwright",
     ],
   },
-  images: {
-    // Browser-facing loopback URLs cannot be resolved correctly by the Next
-    // image optimizer from inside Docker. Non-loopback deployments stay optimized.
-    unoptimized: shouldDisableImageOptimization,
-    remotePatterns: imageRemotePatterns,
-    qualities: [40, 50, 60, 75, 90],
-  },
-
-  cacheLife: {
-    product: {
-      stale: 3600,
-      revalidate: 3600,
-      expire: 86_400,
-    },
-  },
-
-  experimental: {
-    typedEnv: true,
-  },
+  outputFileTracingRoot: join(__dirname, "../../"),
+  reactCompiler: true,
+  reactStrictMode: true,
+  transpilePackages: [
+    "@techsio/ui-kit",
+    "@techsio/storefront-data",
+    "@techsio/storefront-i18n",
+  ],
+  typedRoutes: true,
 }
 
 export default withNextIntl(nextConfig)

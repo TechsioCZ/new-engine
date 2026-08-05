@@ -8,20 +8,20 @@ import {
 
 export const adminPromotionsExtensionMiddlewares: MiddlewareRoute[] = [
   {
-    method: ["GET"],
     matcher: "/admin/promotions/rule-attribute-options/:rule_type",
+    method: ["GET"],
     middlewares: [
       validateAndTransformQuery(RuleAttributeOptionsQuerySchema, {}),
     ],
   },
   {
-    method: ["GET"],
     matcher: "/admin/promotions/rule-value-options/:rule_type/product_variant",
+    method: ["GET"],
     middlewares: [validateAndTransformQuery(RuleValueOptionsQuerySchema, {})],
   },
   {
-    method: ["GET"],
     matcher: "/admin/promotions/rule-value-options/:rule_type/brand",
+    method: ["GET"],
     middlewares: [validateAndTransformQuery(RuleValueOptionsQuerySchema, {})],
   },
 ]

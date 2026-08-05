@@ -5,8 +5,8 @@ import { StoreGetStorefrontTextsSchema } from "./validators"
 
 export const storeStorefrontTextRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/store/storefront-texts",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(StoreGetStorefrontTextsSchema, {
         isList: false,

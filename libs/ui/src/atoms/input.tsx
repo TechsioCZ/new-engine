@@ -32,11 +32,27 @@ const inputVariants = tv({
     "focus-visible:outline-offset-(length:--default-ring-offset)",
     "disabled:cursor-not-allowed disabled:hover:bg-input-bg-disabled",
   ],
+  defaultVariants: {
+    hideSearchClear: true,
+    size: "md",
+    variant: "default",
+    withIconInside: false,
+  },
   variants: {
+    disabled: {
+      true: [
+        "bg-input-bg-disabled",
+        "border-input-border-disabled",
+        "text-input-fg-disabled",
+      ],
+    },
+    hideSearchClear: {
+      true: "[&::-ms-clear]:hidden [&::-webkit-search-cancel-button]:hidden",
+    },
     size: {
-      sm: "h-form-control-sm rounded-input-sm p-input-sm text-input-sm",
-      md: "h-form-control-md rounded-input-md p-input-md text-input-md",
       lg: "h-form-control-lg rounded-input-lg p-input-lg text-input-lg",
+      md: "h-form-control-md rounded-input-md p-input-md text-input-md",
+      sm: "h-form-control-sm rounded-input-sm p-input-sm text-input-sm",
     },
     variant: {
       default: "",
@@ -61,25 +77,9 @@ const inputVariants = tv({
     },
     withButtonInside: {
       false: "",
-      right: "pe-input-with-button",
       left: "ps-input-with-button",
+      right: "pe-input-with-button",
     },
-    hideSearchClear: {
-      true: "[&::-ms-clear]:hidden [&::-webkit-search-cancel-button]:hidden",
-    },
-    disabled: {
-      true: [
-        "bg-input-bg-disabled",
-        "border-input-border-disabled",
-        "text-input-fg-disabled",
-      ],
-    },
-  },
-  defaultVariants: {
-    size: "md",
-    variant: "default",
-    hideSearchClear: true,
-    withIconInside: false,
   },
 })
 
@@ -102,11 +102,11 @@ export function Input({
   return (
     <input
       className={inputVariants({
+        className,
+        disabled,
         size,
         variant,
-        disabled,
         withButtonInside,
-        className,
       })}
       disabled={disabled}
       ref={ref}

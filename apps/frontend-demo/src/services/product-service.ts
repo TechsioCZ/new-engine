@@ -94,10 +94,10 @@ export const getProducts = async (
 
   // Build base query
   const baseQuery: Record<string, unknown> = {
+    country_code: country_code ?? "cz",
+    fields,
     limit,
     offset,
-    fields,
-    country_code: country_code ?? "cz",
     ...(q !== undefined && { q }),
     ...(categoryIds !== undefined && { category_id: categoryIds }),
     ...(region_id !== undefined && { region_id }),
@@ -106,13 +106,13 @@ export const getProducts = async (
   // Add sorting
   if (sort) {
     const sortMap: Record<string, string> = {
+      "name-asc": "title",
+      "name-desc": "-title",
       newest: "id",
       "price-asc": "variants.prices.amount",
       "price-desc": "-variants.prices.amount",
-      "name-asc": "title",
-      "name-desc": "-title",
     }
-    baseQuery["order"] = sortMap[sort] || sort
+    baseQuery.order = sortMap[sort] || sort
   }
 
   // Build query with server-side filters
@@ -123,16 +123,16 @@ export const getProducts = async (
 
     if (!response.products) {
       console.error("[ProductService] Invalid response structure:", response)
-      return { products: [], count: 0, limit, offset }
+      return { count: 0, limit, offset, products: [] }
     }
 
     const products = response.products.map((p) => transformProduct(p, true))
 
     return {
-      products,
       count: response.count || products.length,
       limit,
       offset,
+      products,
     }
   } catch (error) {
     console.error("[ProductService] Error fetching products:", error)
@@ -173,12 +173,12 @@ const transformProduct = (
   return {
     ...productWithoutVariants,
     ...(variants !== undefined && { variants }),
-    thumbnail: product.thumbnail,
     images: reducedImages || product.images,
     inStock,
     price,
     priceWithTax,
     primaryVariant,
+    thumbnail: product.thumbnail,
   }
 }
 

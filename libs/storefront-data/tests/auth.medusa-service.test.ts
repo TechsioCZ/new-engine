@@ -1,11 +1,12 @@
 import type { HttpTypes } from "@medusajs/types"
+import { vi, describe, expect, it } from "vitest"
 
 import {
   MedusaRegistrationSignInError,
   createMedusaAuthService,
 } from "../src/auth/medusa-service"
 
-type SdkLike = {
+interface SdkLike {
   client: {
     fetch: ReturnType<typeof vi.fn>
   }
@@ -30,6 +31,12 @@ function createSdkMock(overrides?: {
   fetchCustomer?: SdkLike["client"]["fetch"]
 }): SdkLike {
   return {
+    auth: {
+      login: vi.fn().mockResolvedValue("token_1"),
+      logout: overrides?.logout ?? vi.fn().mockResolvedValue(undefined),
+      refresh: vi.fn().mockResolvedValue("token_2"),
+      register: vi.fn().mockResolvedValue("token_1"),
+    },
     client: {
       fetch:
         overrides?.fetchCustomer ??
@@ -37,22 +44,16 @@ function createSdkMock(overrides?: {
           customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
         }),
     },
-    auth: {
-      register: vi.fn().mockResolvedValue("token_1"),
-      login: vi.fn().mockResolvedValue("token_1"),
-      refresh: vi.fn().mockResolvedValue("token_2"),
-      logout: overrides?.logout ?? vi.fn().mockResolvedValue(undefined),
-    },
     store: {
       customer: {
-        retrieve: vi.fn().mockResolvedValue({
-          customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
-        }),
         create:
           overrides?.createCustomer ??
           vi.fn().mockResolvedValue({
             customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
           }),
+        retrieve: vi.fn().mockResolvedValue({
+          customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
+        }),
         update: vi.fn().mockResolvedValue({
           customer: { id: "cus_1" } as HttpTypes.StoreCustomer,
         }),
@@ -61,16 +62,16 @@ function createSdkMock(overrides?: {
   }
 }
 
-describe("createMedusaAuthService", () => {
+describe(createMedusaAuthService, () => {
   it("forwards AbortSignal in getCustomer and sorts addresses by creation time", async () => {
     const sdk = createSdkMock({
       fetchCustomer: vi.fn().mockResolvedValue({
         customer: {
-          id: "cus_1",
           addresses: [
             { id: "addr_2", created_at: "2026-02-21T12:00:00.000Z" },
             { id: "addr_1", created_at: "2026-02-21T10:00:00.000Z" },
           ],
+          id: "cus_1",
         } as HttpTypes.StoreCustomer,
       }),
     })
@@ -82,7 +83,7 @@ describe("createMedusaAuthService", () => {
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/customers/me", {
       signal: controller.signal,
     })
-    expect(customer?.addresses?.map((address) => address.id)).toEqual([
+    expect(customer?.addresses?.map((address) => address.id)).toStrictEqual([
       "addr_1",
       "addr_2",
     ])
@@ -111,9 +112,9 @@ describe("createMedusaAuthService", () => {
       })
     ).resolves.toBe("session_token")
 
-    expect(sdk.auth.register).toHaveBeenCalledTimes(1)
-    expect(sdk.auth.login).toHaveBeenCalledTimes(1)
-    expect(sdk.store.customer.create).toHaveBeenCalledTimes(1)
+    expect(sdk.auth.register).toHaveBeenCalledOnce()
+    expect(sdk.auth.login).toHaveBeenCalledOnce()
+    expect(sdk.store.customer.create).toHaveBeenCalledOnce()
     expect(sdk.auth.refresh).toHaveBeenCalledWith({
       Authorization: "Bearer login_token",
     })
@@ -145,7 +146,7 @@ describe("createMedusaAuthService", () => {
     expect(sdk.auth.login).not.toHaveBeenCalled()
     expect(sdk.store.customer.create).not.toHaveBeenCalled()
     expect(sdk.auth.refresh).not.toHaveBeenCalled()
-    expect(sdk.auth.logout).toHaveBeenCalledTimes(1)
+    expect(sdk.auth.logout).toHaveBeenCalledOnce()
   })
 
   it("cleans up and rejects when register login requires multi-step auth", async () => {
@@ -162,7 +163,7 @@ describe("createMedusaAuthService", () => {
 
     expect(sdk.store.customer.create).not.toHaveBeenCalled()
     expect(sdk.auth.refresh).not.toHaveBeenCalled()
-    expect(sdk.auth.logout).toHaveBeenCalledTimes(1)
+    expect(sdk.auth.logout).toHaveBeenCalledOnce()
   })
 
   it("logs logout errors by default and rethrows logout failures", async () => {
@@ -232,7 +233,7 @@ describe("createMedusaAuthService", () => {
       cleanupLogoutError,
       "register-cleanup"
     )
-    expect(sdk.auth.logout).toHaveBeenCalledTimes(1)
+    expect(sdk.auth.logout).toHaveBeenCalledOnce()
   })
 
   it("does not report benign auth errors during register cleanup logout", async () => {
@@ -254,7 +255,7 @@ describe("createMedusaAuthService", () => {
 
     expect(onLogoutError).not.toHaveBeenCalled()
     expect(warnSpy).not.toHaveBeenCalled()
-    expect(sdk.auth.logout).toHaveBeenCalledTimes(1)
+    expect(sdk.auth.logout).toHaveBeenCalledOnce()
   })
 
   it("surfaces refresh failures after customer creation as sign-in errors", async () => {
@@ -269,11 +270,11 @@ describe("createMedusaAuthService", () => {
       password: "secret123",
     })
 
-    await expect(registration).rejects.toEqual(
+    await expect(registration).rejects.toStrictEqual(
       expect.objectContaining({
-        name: "MedusaRegistrationSignInError",
         code: "registration_sign_in_failed",
         email: "john@example.com",
+        name: "MedusaRegistrationSignInError",
         reason: refreshError,
       })
     )
@@ -281,7 +282,7 @@ describe("createMedusaAuthService", () => {
     await expect(registration).rejects.toBeInstanceOf(
       MedusaRegistrationSignInError
     )
-    expect(sdk.store.customer.create).toHaveBeenCalledTimes(1)
-    expect(sdk.auth.logout).toHaveBeenCalledTimes(1)
+    expect(sdk.store.customer.create).toHaveBeenCalledOnce()
+    expect(sdk.auth.logout).toHaveBeenCalledOnce()
   })
 })

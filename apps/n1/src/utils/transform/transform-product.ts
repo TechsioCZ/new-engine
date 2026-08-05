@@ -27,13 +27,13 @@ const formatStockValue = (
  * Extracts base product fields that are common between Product and ProductDetail
  */
 const getBaseProductFields = (product: StoreProduct) => ({
-  id: product.id,
   handle: product.handle,
-  title: product.title,
-  price: formatPrice({ variants: product.variants }),
-  withoutTax: formatPrice({ variants: product.variants, tax: false }),
+  id: product.id,
   imageSrc: product.thumbnail || "/placeholder.jpg",
+  price: formatPrice({ variants: product.variants }),
   stockValue: formatStockValue(product.variants),
+  title: product.title,
+  withoutTax: formatPrice({ variants: product.variants, tax: false }),
 })
 
 export const transformProduct = (product: StoreProduct): Product => ({
@@ -79,17 +79,8 @@ export const transformProductDetail = (
 
   const variants: ProductVariantDetail[] =
     product.variants?.map((variant) => ({
-      id: variant.id,
-      title: variant.title || "",
-      sku: variant.sku,
-      barcode: variant.barcode,
-      ean: variant.ean,
-      upc: variant.upc,
-      material: variant.material,
       allow_backorder: variant.allow_backorder ?? false,
-      inventory_quantity: variant.inventory_quantity ?? undefined,
-      manage_inventory: variant.manage_inventory ?? true,
-      metadata: variant.metadata as ProductVariantDetail["metadata"],
+      barcode: variant.barcode,
       calculated_price: variant.calculated_price
         ? {
             calculated_amount: variant.calculated_price.calculated_amount,
@@ -101,6 +92,15 @@ export const transformProductDetail = (
             currency_code: variant.calculated_price.currency_code,
           }
         : undefined,
+      ean: variant.ean,
+      id: variant.id,
+      inventory_quantity: variant.inventory_quantity ?? undefined,
+      manage_inventory: variant.manage_inventory ?? true,
+      material: variant.material,
+      metadata: variant.metadata as ProductVariantDetail["metadata"],
+      sku: variant.sku,
+      title: variant.title || "",
+      upc: variant.upc,
     })) || []
 
   return {
@@ -127,8 +127,6 @@ export const transformProductDetail = (
     // Brand data
     brand: product.brand
       ? {
-          id: product.brand.id,
-          title: product.brand.title,
           attributes:
             product.brand.attributes?.map((attr) => ({
               value: attr.value,
@@ -138,6 +136,8 @@ export const transformProductDetail = (
                   }
                 : undefined,
             })) || [],
+          id: product.brand.id,
+          title: product.brand.title,
         }
       : undefined,
   }

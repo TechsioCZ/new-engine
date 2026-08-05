@@ -26,7 +26,7 @@ describe("Product Attribute keys", () => {
   })
 
   it("directs callers to restore a colliding deleted record", () => {
-    expect(() =>
+    expect(() => {
       assertProductAttributeKeyAvailable({
         collision: {
           deleted_at: new Date(),
@@ -36,11 +36,11 @@ describe("Product Attribute keys", () => {
         key: "bioherba",
         kind: "option",
       })
-    ).toThrow(RESTORE_DELETED_OPTION_ERROR)
+    }).toThrow(RESTORE_DELETED_OPTION_ERROR)
   })
 
   it("rejects an active key collision without restore guidance", () => {
-    expect(() =>
+    expect(() => {
       assertProductAttributeKeyAvailable({
         collision: {
           deleted_at: null,
@@ -49,7 +49,7 @@ describe("Product Attribute keys", () => {
         key: "supplier",
         kind: "definition",
       })
-    ).toThrow(ACTIVE_COLLISION_ERROR)
+    }).toThrow(ACTIVE_COLLISION_ERROR)
   })
 })
 
@@ -60,7 +60,7 @@ describe("Product Attribute soft-delete partitions", () => {
         { deleted_at: null, id: "active" },
         { deleted_at: new Date("2026-01-01"), id: "deleted" },
       ])
-    ).toEqual({
+    ).toStrictEqual({
       active_ids: ["active"],
       deleted_ids: ["deleted"],
     })

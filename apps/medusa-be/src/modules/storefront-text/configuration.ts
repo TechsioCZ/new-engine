@@ -114,7 +114,7 @@ export type StorefrontTextRegistryAssertions = [
   >,
 ]
 
-export type StorefrontTextDefinition = {
+export interface StorefrontTextDefinition {
   description: string
   key: string
   namespace: StorefrontTextNamespace

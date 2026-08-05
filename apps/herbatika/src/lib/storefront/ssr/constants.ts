@@ -14,16 +14,16 @@ export const SSR_FETCH_OPTIONS: Record<
     }
   }
 > = {
-  static: {
-    cache: "force-cache",
-    next: {
-      revalidate: SSR_STATIC_REVALIDATE_SECONDS,
-    },
-  },
   semiStatic: {
     cache: "force-cache",
     next: {
       revalidate: SSR_SEMI_STATIC_REVALIDATE_SECONDS,
+    },
+  },
+  static: {
+    cache: "force-cache",
+    next: {
+      revalidate: SSR_STATIC_REVALIDATE_SECONDS,
     },
   },
 }
@@ -31,4 +31,4 @@ export const SSR_FETCH_OPTIONS: Record<
 export const MEDUSA_BACKEND_URL = resolveMedusaBackendUrl()
 
 export const MEDUSA_PUBLISHABLE_KEY =
-  process.env["NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"] ?? ""
+  process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""

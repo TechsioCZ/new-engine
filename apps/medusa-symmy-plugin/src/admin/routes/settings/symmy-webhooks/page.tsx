@@ -12,20 +12,21 @@ import {
   Tooltip,
   toast,
 } from "@medusajs/ui"
-import { type ChangeEvent, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
+import type { ChangeEvent } from "react"
 
-type SymmyWebhookEndpoint = {
+interface SymmyWebhookEndpoint {
   url: string
   enabled: boolean
 }
 
-type SymmyWebhookConfigResponse = {
+interface SymmyWebhookConfigResponse {
   id: string
   is_enabled: boolean
   endpoints: SymmyWebhookEndpoint[]
 }
 
-type SymmyWebhookConfigInput = {
+interface SymmyWebhookConfigInput {
   is_enabled: boolean
   endpoints: SymmyWebhookEndpoint[]
 }
@@ -47,18 +48,18 @@ const fetchJson = async <T,>(
     throw new Error(`Request failed with ${response.status}`)
   }
 
-  return response.json() as Promise<T>
+  return await (response.json() as Promise<T>)
 }
 
 const createEmptyEndpoint = (): SymmyWebhookEndpoint => ({
-  url: "",
   enabled: true,
+  url: "",
 })
 
 const SymmyWebhooksSettingsPage = () => {
   const [formData, setFormData] = useState<SymmyWebhookConfigInput>({
-    is_enabled: false,
     endpoints: [createEmptyEndpoint()],
+    is_enabled: false,
   })
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -72,15 +73,15 @@ const SymmyWebhooksSettingsPage = () => {
         )
 
         setFormData({
-          is_enabled: data.config.is_enabled,
           endpoints: data.config.endpoints.length
             ? data.config.endpoints
             : [createEmptyEndpoint()],
+          is_enabled: data.config.is_enabled,
         })
         setLoadError(null)
-      } catch (err) {
+      } catch (error) {
         const message =
-          err instanceof Error ? err.message : "Unknown request error"
+          error instanceof Error ? error.message : "Unknown request error"
         setLoadError(message)
       } finally {
         setIsLoading(false)
@@ -120,13 +121,13 @@ const SymmyWebhooksSettingsPage = () => {
 
   const saveConfig = async () => {
     const payload = {
-      is_enabled: formData.is_enabled,
       endpoints: formData.endpoints
         .map((endpoint) => ({
           url: endpoint.url.trim(),
           enabled: endpoint.enabled,
         }))
         .filter((endpoint) => endpoint.url.length > 0),
+      is_enabled: formData.is_enabled,
     }
 
     setIsSaving(true)
@@ -134,21 +135,21 @@ const SymmyWebhooksSettingsPage = () => {
       const data = await fetchJson<{ config: SymmyWebhookConfigResponse }>(
         "/admin/symmy-webhooks",
         {
-          method: "POST",
           body: JSON.stringify(payload),
+          method: "POST",
         }
       )
 
       setFormData({
-        is_enabled: data.config.is_enabled,
         endpoints: data.config.endpoints.length
           ? data.config.endpoints
           : [createEmptyEndpoint()],
+        is_enabled: data.config.is_enabled,
       })
       toast.success("Symmy webhook configuration saved")
-    } catch (err) {
+    } catch (error) {
       const message =
-        err instanceof Error ? err.message : "Unknown request error"
+        error instanceof Error ? error.message : "Unknown request error"
       toast.error(`Failed to save webhook configuration: ${message}`)
     } finally {
       setIsSaving(false)
@@ -219,12 +220,12 @@ const SymmyWebhooksSettingsPage = () => {
               aria-labelledby="symmy-webhooks-enabled-label"
               checked={formData.is_enabled}
               id="symmy-webhooks-enabled"
-              onCheckedChange={(checked) =>
+              onCheckedChange={(checked) => {
                 setFormData((current) => ({
                   ...current,
                   is_enabled: checked,
                 }))
-              }
+              }}
             />
           </div>
         </div>
@@ -277,16 +278,18 @@ const SymmyWebhooksSettingsPage = () => {
                     <Switch
                       checked={endpoint.enabled}
                       id={switchId}
-                      onCheckedChange={(checked) =>
+                      onCheckedChange={(checked) => {
                         updateEndpoint(index, { enabled: checked })
-                      }
+                      }}
                     />
                   </div>
                   <Tooltip content="Remove endpoint">
                     <IconButton
                       aria-label="Remove endpoint"
                       className="mb-0"
-                      onClick={() => removeEndpoint(index)}
+                      onClick={() => {
+                        removeEndpoint(index)
+                      }}
                       type="button"
                       variant="transparent"
                     >

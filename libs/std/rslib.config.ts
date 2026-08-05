@@ -1,6 +1,11 @@
 import { defineConfig } from "@rslib/core"
 
 export default defineConfig({
+  lib: [
+    { id: "esm", bundle: false, dts: true, format: "esm" },
+    { id: "cjs", bundle: false, dts: false, format: "cjs" },
+  ],
+  output: { target: "web" },
   source: {
     entry: {
       array: "./src/array.ts",
@@ -11,9 +16,4 @@ export default defineConfig({
       string: "./src/string.ts",
     },
   },
-  lib: [
-    { id: "esm", bundle: false, dts: true, format: "esm" },
-    { id: "cjs", bundle: false, dts: false, format: "cjs" },
-  ],
-  output: { target: "web" },
 })

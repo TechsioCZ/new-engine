@@ -13,7 +13,7 @@ import {
 } from "../../../../review-normalizers"
 import type { StoreGetProductReviewsSchemaType } from "./validators"
 
-type ReviewRatingRecord = {
+interface ReviewRatingRecord {
   rating: number
 }
 

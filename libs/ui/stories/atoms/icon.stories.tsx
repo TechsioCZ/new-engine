@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react"
 
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
-import { Icon, type IconType } from "../../src/atoms/icon"
+import { Icon } from "../../src/atoms/icon"
+import type { IconType } from "../../src/atoms/icon"
 import { iconLabels, iconOptions } from "../helpers/icon-options"
 
 const tokenIconOptions: IconType[] = [
@@ -23,41 +24,20 @@ const iconControlOptions: IconType[] = [
 const iconControlLabels: Record<string, string> = {
   ...iconLabels,
   "token-icon-error": "Token Error",
-  "token-icon-success": "Token Success",
-  "token-icon-warning": "Token Warning",
   "token-icon-info": "Token Info",
   "token-icon-input-error": "Token Input Error",
+  "token-icon-input-info": "Token Input Info",
   "token-icon-input-success": "Token Input Success",
   "token-icon-input-warning": "Token Input Warning",
-  "token-icon-input-info": "Token Input Info",
+  "token-icon-success": "Token Success",
+  "token-icon-warning": "Token Warning",
 }
 
 const meta: Meta<typeof Icon> = {
-  title: "Atoms/Icon",
-  component: Icon,
-  parameters: {
-    layout: "centered",
-  },
-  tags: ["autodocs"],
   argTypes: {
-    icon: {
-      control: {
-        type: "select",
-        labels: iconControlLabels,
-      },
-      options: iconControlOptions,
-      description: "Icon token or inline icon class",
-    },
-    size: {
-      control: "select",
-      options: ["current", "xs", "sm", "md", "lg", "xl", "2xl"],
-      description: "Size token for the icon",
-      table: {
-        defaultValue: { summary: "current" },
-      },
-    },
     color: {
       control: "select",
+      description: "Color token for the icon",
       options: [
         "current",
         "primary",
@@ -66,17 +46,38 @@ const meta: Meta<typeof Icon> = {
         "danger",
         "warning",
       ],
-      description: "Color token for the icon",
+      table: {
+        defaultValue: { summary: "current" },
+      },
+    },
+    icon: {
+      control: {
+        labels: iconControlLabels,
+        type: "select",
+      },
+      description: "Icon token or inline icon class",
+      options: iconControlOptions,
+    },
+    size: {
+      control: "select",
+      description: "Size token for the icon",
+      options: ["current", "xs", "sm", "md", "lg", "xl", "2xl"],
       table: {
         defaultValue: { summary: "current" },
       },
     },
   },
   args: {
+    color: "current",
     icon: "token-icon-error",
     size: "md",
-    color: "current",
   },
+  component: Icon,
+  parameters: {
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Atoms/Icon",
 }
 
 export default meta

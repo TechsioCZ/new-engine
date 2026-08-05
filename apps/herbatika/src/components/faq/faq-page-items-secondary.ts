@@ -2,10 +2,6 @@ import type { FaqItem } from "./faq-page.types"
 
 export const secondaryFaqItems = [
   {
-    id: "kamenna-predajna",
-    question:
-      "Chcel by som si kúpiť veci osobne, máte aj predajňu, kde by som Vás navštívil?",
-    updatedAt: "15.8.2019",
     answer: [
       {
         type: "paragraph",
@@ -29,11 +25,12 @@ export const secondaryFaqItems = [
         ],
       },
     ],
+    id: "kamenna-predajna",
+    question:
+      "Chcel by som si kúpiť veci osobne, máte aj predajňu, kde by som Vás navštívil?",
+    updatedAt: "15.8.2019",
   },
   {
-    id: "affiliate",
-    question: "Máte záujem o spoluprácu s Herbatica ako affiliate partner?",
-    updatedAt: "15.8.2019",
     answer: [
       {
         type: "paragraph",
@@ -51,12 +48,11 @@ export const secondaryFaqItems = [
         ],
       },
     ],
+    id: "affiliate",
+    question: "Máte záujem o spoluprácu s Herbatica ako affiliate partner?",
+    updatedAt: "15.8.2019",
   },
   {
-    id: "eurobio-lab",
-    question:
-      "Vysvetlenie označenia spotreby na produktoch produkcie výrobcu: EUROBIO LAB",
-    updatedAt: "8.3.2021",
     answer: [
       {
         type: "paragraph",
@@ -72,12 +68,12 @@ export const secondaryFaqItems = [
         ],
       },
     ],
+    id: "eurobio-lab",
+    question:
+      "Vysvetlenie označenia spotreby na produktoch produkcie výrobcu: EUROBIO LAB",
+    updatedAt: "8.3.2021",
   },
   {
-    id: "vratenie-reklamacia",
-    question:
-      "Ako postupovať pri vrátení a reklamácii tovaru + formuláre na stiahnutie",
-    updatedAt: "12.3.2021",
     answer: [
       {
         type: "paragraph",
@@ -97,11 +93,12 @@ export const secondaryFaqItems = [
         ],
       },
     ],
+    id: "vratenie-reklamacia",
+    question:
+      "Ako postupovať pri vrátení a reklamácii tovaru + formuláre na stiahnutie",
+    updatedAt: "12.3.2021",
   },
   {
-    id: "odstupenie-od-zmluvy",
-    question: "Ako môžem odstúpiť od kúpnej zmluvy + formuláre na stiahnutie",
-    updatedAt: "12.3.2021",
     answer: [
       {
         type: "paragraph",
@@ -117,5 +114,8 @@ export const secondaryFaqItems = [
         ],
       },
     ],
+    id: "odstupenie-od-zmluvy",
+    question: "Ako môžem odstúpiť od kúpnej zmluvy + formuláre na stiahnutie",
+    updatedAt: "12.3.2021",
   },
 ] satisfies FaqItem[]

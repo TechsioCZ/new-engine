@@ -12,8 +12,8 @@ import {
 
 export const adminReviewRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/admin/reviews",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(AdminGetReviewsSchema, {
         isList: true,
@@ -21,13 +21,13 @@ export const adminReviewRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["PATCH"],
     matcher: "/admin/reviews/:id",
+    methods: ["PATCH"],
     middlewares: [validateAndTransformBody(AdminUpdateReviewSchema)],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/reviews/status",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(AdminUpdateReviewStatusSchema)],
   },
 ]

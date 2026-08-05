@@ -3,29 +3,51 @@ import type { MedusaPluginConfig } from "../../config/types"
 import { buildProductFacetDocument } from "./facets/product-facets"
 
 const MEILISEARCH_TYPO_TOLERANCE_SETTINGS = {
+  disableOnAttributes: [],
+  disableOnNumbers: false,
+  disableOnWords: [],
   enabled: true,
   minWordSizeForTypos: {
     oneTypo: 4,
     twoTypos: 10,
   },
-  disableOnWords: [],
-  disableOnAttributes: [],
-  disableOnNumbers: false,
 }
 
 export function buildMeilisearchPlugin(
   env: MedusaConfigEnv
 ): MedusaPluginConfig {
   return {
-    resolve: "@rokmohar/medusa-plugin-meilisearch",
     options: {
       config: {
-        host: env.meilisearchHost,
         apiKey: env.meilisearchApiKey,
+        host: env.meilisearchHost,
       },
       settings: {
+        brands: {
+          enabled: true,
+          fields: ["id", "title", "handle"],
+          indexSettings: {
+            displayedAttributes: ["id", "title", "handle"],
+            filterableAttributes: ["id", "title", "handle"],
+            searchableAttributes: ["title", "handle"],
+            typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
+          },
+          primaryKey: "id",
+          type: "brands",
+        },
+        categories: {
+          enabled: true,
+          fields: ["id", "description", "handle"],
+          indexSettings: {
+            displayedAttributes: ["id", "description", "handle"],
+            filterableAttributes: ["id", "handle", "description"],
+            searchableAttributes: ["description"],
+            typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
+          },
+          primaryKey: "id",
+          type: "categories",
+        },
         products: {
-          type: "products",
           enabled: true,
           fields: [
             "id",
@@ -49,14 +71,6 @@ export function buildMeilisearchPlugin(
             "variants.prices.currency_code",
           ],
           indexSettings: {
-            searchableAttributes: [
-              "title",
-              "description",
-              "handle",
-              "brand.title",
-              "categories.name",
-              "variants.sku",
-            ],
             displayedAttributes: [
               "id",
               "status",
@@ -92,8 +106,6 @@ export function buildMeilisearchPlugin(
               "facet_in_stock",
               "facet_price",
             ],
-            sortableAttributes: ["created_at", "title", "facet_price"],
-            typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
             rankingRules: [
               "sort",
               "words",
@@ -102,7 +114,18 @@ export function buildMeilisearchPlugin(
               "attribute",
               "exactness",
             ],
+            searchableAttributes: [
+              "title",
+              "description",
+              "handle",
+              "brand.title",
+              "categories.name",
+              "variants.sku",
+            ],
+            sortableAttributes: ["created_at", "title", "facet_price"],
+            typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
           },
+          primaryKey: "id",
           transformer: async (
             document: Record<string, unknown>,
             defaultTransformer: (
@@ -116,33 +139,10 @@ export function buildMeilisearchPlugin(
               ...buildProductFacetDocument(transformedDocument),
             }
           },
-          primaryKey: "id",
-        },
-        categories: {
-          type: "categories",
-          enabled: true,
-          fields: ["id", "description", "handle"],
-          indexSettings: {
-            searchableAttributes: ["description"],
-            displayedAttributes: ["id", "description", "handle"],
-            filterableAttributes: ["id", "handle", "description"],
-            typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
-          },
-          primaryKey: "id",
-        },
-        brands: {
-          type: "brands",
-          enabled: true,
-          fields: ["id", "title", "handle"],
-          indexSettings: {
-            searchableAttributes: ["title", "handle"],
-            displayedAttributes: ["id", "title", "handle"],
-            filterableAttributes: ["id", "title", "handle"],
-            typoTolerance: MEILISEARCH_TYPO_TOLERANCE_SETTINGS,
-          },
-          primaryKey: "id",
+          type: "products",
         },
       },
     },
+    resolve: "@rokmohar/medusa-plugin-meilisearch",
   }
 }

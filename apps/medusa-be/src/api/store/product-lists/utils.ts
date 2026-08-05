@@ -12,7 +12,7 @@ import {
 
 export const INLINE_PRODUCT_LIST_ITEMS_LIMIT = 100
 
-export type ProductListRecord = {
+export interface ProductListRecord {
   id: string
   title: string
   handle: string
@@ -25,7 +25,7 @@ export type ProductListRecord = {
   updated_at?: string | Date
 }
 
-export type ProductListItemRecord = {
+export interface ProductListItemRecord {
   id: string
   product_id?: string | null
   variant_id?: string | null
@@ -39,11 +39,11 @@ export type ProductListItemRecord = {
 }
 
 export const toProductListResponse = (list: ProductListRecord) => ({
+  access_type: list.access_type ?? "private",
   created_at: list.created_at,
   description: list.description ?? null,
   handle: list.handle,
   id: list.id,
-  access_type: list.access_type ?? "private",
   items: list.items?.map(toProductListItemResponse) ?? [],
   metadata: list.metadata ?? null,
   title: list.title,
@@ -131,7 +131,7 @@ export const withProductListItems = async (
   const service =
     container.resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
   const config: Record<string, unknown> = {
-    order: { list_id: "ASC", sort_order: "ASC", created_at: "ASC" },
+    order: { created_at: "ASC", list_id: "ASC", sort_order: "ASC" },
   }
 
   const items =
@@ -144,7 +144,7 @@ export const withProductListItems = async (
         )
       : (
           await Promise.all(
-            listIds.map((listId) =>
+            listIds.map(async (listId) =>
               service.listProductListItems(
                 {
                   list_id: listId,

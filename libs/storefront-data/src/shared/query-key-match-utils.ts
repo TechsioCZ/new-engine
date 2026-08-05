@@ -35,7 +35,7 @@ export const areQueryKeySegmentsEqual = (
 export const getSortedRecordKeys = (
   ...records: readonly Record<string, unknown>[]
 ): string[] =>
-  Array.from(new Set(records.flatMap((record) => Object.keys(record)))).sort()
+  [...new Set(records.flatMap((record) => Object.keys(record)))].sort()
 
 export const hasQueryKeyPrefix = (
   queryKey: QueryKey,

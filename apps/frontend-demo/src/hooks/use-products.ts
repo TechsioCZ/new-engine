@@ -4,11 +4,8 @@ import { useQuery } from "@tanstack/react-query"
 
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
-import {
-  getProduct,
-  getProducts,
-  type ProductListParams,
-} from "@/services/product-service"
+import { getProduct, getProducts } from "@/services/product-service"
+import type { ProductListParams } from "@/services/product-service"
 import type { Product } from "@/types/product"
 
 interface UseProductsParams extends ProductListParams {
@@ -45,16 +42,8 @@ export function useProducts(params: UseProductsParams = {}): UseProductsReturn {
   const offset = (page - 1) * limit
 
   const { data, isLoading, error } = useQuery({
-    queryKey: queryKeys.products.list({
-      page,
-      limit,
-      filters,
-      sort,
-      region_id,
-      q,
-      category,
-    }),
-    queryFn: () =>
+    enabled: enabled !== undefined ? enabled : !!region_id,
+    queryFn: async () =>
       getProducts({
         limit,
         offset,
@@ -65,7 +54,15 @@ export function useProducts(params: UseProductsParams = {}): UseProductsReturn {
         category,
         region_id,
       }),
-    enabled: enabled !== undefined ? enabled : !!region_id,
+    queryKey: queryKeys.products.list({
+      page,
+      limit,
+      filters,
+      sort,
+      region_id,
+      q,
+      category,
+    }),
     ...cacheConfig.semiStatic,
   })
 
@@ -73,15 +70,15 @@ export function useProducts(params: UseProductsParams = {}): UseProductsReturn {
   const totalPages = Math.ceil(totalCount / limit)
 
   return {
-    products: data?.products || [],
-    isLoading,
+    currentPage: page,
     error:
       error instanceof Error ? error.message : error ? String(error) : null,
-    totalCount,
-    currentPage: page,
-    totalPages,
     hasNextPage: page < totalPages,
     hasPrevPage: page > 1,
+    isLoading,
+    products: data?.products || [],
+    totalCount,
+    totalPages,
   }
 }
 
@@ -94,16 +91,16 @@ export function useProduct(handle: string, regionId?: string) {
     isLoading,
     error,
   } = useQuery({
-    queryKey: queryKeys.product(handle, regionId),
-    queryFn: () => getProduct(handle, regionId),
     enabled: !!handle,
+    queryFn: async () => getProduct(handle, regionId),
+    queryKey: queryKeys.product(handle, regionId),
     ...cacheConfig.semiStatic,
   })
 
   return {
-    product,
-    isLoading,
     error:
       error instanceof Error ? error.message : error ? String(error) : null,
+    isLoading,
+    product,
   }
 }

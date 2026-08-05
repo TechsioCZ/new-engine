@@ -7,11 +7,11 @@ import {
 } from "../../../src/migration-scripts/20260728-migrate-herbatica-warranty"
 
 const sections = (other: string) => [
-  { key: "description", title: "Description", html: "<p>Description</p>" },
-  { key: "usage", title: "Usage", html: "" },
-  { key: "composition", title: "Composition", html: "" },
-  { key: "warning", title: "Warning", html: "" },
-  { key: "other", title: "Other", html: other },
+  { html: "<p>Description</p>", key: "description", title: "Description" },
+  { html: "", key: "usage", title: "Usage" },
+  { html: "", key: "composition", title: "Composition" },
+  { html: "", key: "warning", title: "Warning" },
+  { html: other, key: "other", title: "Other" },
 ]
 
 describe("legacy Warranty migration preparation", () => {
@@ -21,13 +21,13 @@ describe("legacy Warranty migration preparation", () => {
         source: "herbatica-products-complete-xml",
         warranty: "2 roky",
       })
-    ).toBe(true)
+    ).toBeTruthy()
     expect(
       isLegacyHerbaticaWarrantyMetadata({
         source: "n1",
         warranty: "2 roky",
       })
-    ).toBe(false)
+    ).toBeFalsy()
   })
 
   it("removes only the exact generated fragment and preserves fixed shape", () => {
@@ -36,11 +36,11 @@ describe("legacy Warranty migration preparation", () => {
     const result = prepareLegacyWarrantyMigration({
       content_sections: sections(other),
       content_sections_map: {
-        description: "<p>Description</p>",
-        usage: "",
         composition: "",
-        warning: "",
+        description: "<p>Description</p>",
         other,
+        usage: "",
+        warning: "",
       },
       unrelated: { keep: true },
       warranty: "2 roky",
@@ -54,10 +54,10 @@ describe("legacy Warranty migration preparation", () => {
       throw new Error(result.reason)
     }
     expect(result.metadata).not.toHaveProperty("warranty")
-    expect(result.metadata["unrelated"]).toEqual({ keep: true })
+    expect(result.metadata["unrelated"]).toStrictEqual({ keep: true })
     expect(result.metadata["content_sections"]).toHaveLength(5)
     expect(
-      (result.metadata["content_sections"] as Array<{ html: string }>)[4]?.html
+      (result.metadata["content_sections"] as { html: string }[])[4]?.html
     ).toBe("<p>Keep before</p>\n<p>Keep after</p>")
     expect(
       (result.metadata["content_sections_map"] as { other: string }).other
@@ -70,16 +70,16 @@ describe("legacy Warranty migration preparation", () => {
     const metadata = {
       content_sections: sections(other),
       content_sections_map: {
-        description: "<p>Description</p>",
-        usage: "",
         composition: "",
-        warning: "",
+        description: "<p>Description</p>",
         other,
+        usage: "",
+        warning: "",
       },
       warranty: "2 roky",
     }
 
-    expect(prepareLegacyWarrantyMigration(metadata)).toEqual({
+    expect(prepareLegacyWarrantyMigration(metadata)).toStrictEqual({
       reason:
         "the exact generated Warranty fragment was not found exactly once",
       safe: false,

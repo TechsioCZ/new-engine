@@ -12,7 +12,9 @@ export const adminHeaders: { headers: Record<string, string> } = {
   headers: {},
 }
 
-type TestHeaders = { headers: Record<string, string> }
+interface TestHeaders {
+  headers: Record<string, string>
+}
 
 export const createAdminUser = async (
   targetAdminHeaders: TestHeaders,
@@ -21,15 +23,18 @@ export const createAdminUser = async (
   const userModule = appContainer.resolve<IUserModuleService>(Modules.USER)
   const authModule = appContainer.resolve<IAuthModuleService>(Modules.AUTH)
   const user = await userModule.createUsers({
+    email: "admin@medusa.js",
     first_name: "Admin",
     last_name: "User",
-    email: "admin@medusa.js",
   })
 
-  const hashConfig = { logN: 15, r: 8, p: 1 }
+  const hashConfig = { logN: 15, p: 1, r: 8 }
   const passwordHash = await Scrypt.kdf("somepassword", hashConfig)
 
   const authIdentity = await authModule.createAuthIdentities({
+    app_metadata: {
+      user_id: user.id,
+    },
     provider_identities: [
       {
         provider: "emailpass",
@@ -39,9 +44,6 @@ export const createAdminUser = async (
         },
       },
     ],
-    app_metadata: {
-      user_id: user.id,
-    },
   })
 
   const jwtSecret = process.env["JWT_SECRET"]
@@ -62,7 +64,7 @@ export const createAdminUser = async (
 
   targetAdminHeaders.headers["authorization"] = `Bearer ${token}`
 
-  return { user, authIdentity }
+  return { authIdentity, user }
 }
 
 export const createStoreUser = async ({
@@ -79,7 +81,7 @@ export const createStoreUser = async ({
     })
   ).data.token
 
-  const customer = (
+  const { customer } = (
     await api.post(
       "/store/customers",
       {
@@ -92,14 +94,14 @@ export const createStoreUser = async ({
         },
       }
     )
-  ).data.customer
+  ).data
 
-  const token = (
+  const { token } = (
     await api.post("/auth/customer/emailpass", {
       email: "test@email.com",
       password: "password",
     })
-  ).data.token
+  ).data
 
   return { customer, token }
 }

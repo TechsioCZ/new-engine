@@ -8,7 +8,7 @@ import { promisify } from "node:util"
 import { expect, test } from "vitest"
 import { parse as parseYaml } from "yaml"
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..")
+const repoRoot = resolve(import.meta.dirname, "../../../..")
 const execFileAsync = promisify(execFile)
 
 const workflowPaths = [
@@ -49,8 +49,8 @@ function collectEnvMaps(
     return envMaps
   }
 
-  if (isRecord(value["env"])) {
-    envMaps.push(value["env"])
+  if (isRecord(value.env)) {
+    envMaps.push(value.env)
   }
 
   for (const child of Object.values(value)) {
@@ -70,19 +70,17 @@ function collectEnvMaps(
 // ZaneOps workflows are temporarily disabled.
 test.skip("ZaneOps workflows alias the prefixed project slug secret for ctl", async () => {
   for (const workflowPath of workflowPaths) {
-    const raw = await readFile(join(repoRoot, workflowPath), "utf8")
+    const raw = await readFile(join(repoRoot, workflowPath), "utf-8")
     const parsed = parseYaml(raw)
     const envMaps = collectEnvMaps(parsed)
 
-    expect(raw.includes("ZANE_CANONICAL_PROJECT_SLUG")).toBe(false)
+    expect(raw).not.toContain("ZANE_CANONICAL_PROJECT_SLUG")
 
     for (const envMap of envMaps) {
-      expect(Object.hasOwn(envMap, "ZANE_CANONICAL_PROJECT_SLUG")).toBe(false)
+      expect(Object.hasOwn(envMap, "ZANE_CANONICAL_PROJECT_SLUG")).toBeFalsy()
 
       if (Object.hasOwn(envMap, "ZANEOPS_ZANE_PROJECT_SLUG")) {
-        expect(envMap["ZANE_PROJECT_SLUG"]).toBe(
-          envMap["ZANEOPS_ZANE_PROJECT_SLUG"]
-        )
+        expect(envMap.ZANE_PROJECT_SLUG).toBe(envMap.ZANEOPS_ZANE_PROJECT_SLUG)
       }
     }
   }
@@ -92,7 +90,7 @@ test.skip("ZaneOps workflows alias the prefixed project slug secret for ctl", as
 test.skip("main deploy passes downtime approval only after the approval gate", async () => {
   const raw = await readFile(
     join(repoRoot, ".github/workflows/zaneops-main-after-ci.yml"),
-    "utf8"
+    "utf-8"
   )
 
   expect(raw).toMatch(downtimeEnvironmentPattern)
@@ -104,7 +102,7 @@ test.skip("main deploy passes downtime approval only after the approval gate", a
 test.skip("main verify falls back to the production environment secret", async () => {
   const raw = await readFile(
     join(repoRoot, ".github/workflows/zaneops-main-after-ci.yml"),
-    "utf8"
+    "utf-8"
   )
 
   expect(raw).toMatch(mainVerifyEnvironmentFallbackPattern)
@@ -115,7 +113,7 @@ test.skip("main verify falls back to the production environment secret", async (
 test.skip("preview scope feeds baseline state into prepare decisions", async () => {
   const raw = await readFile(
     join(repoRoot, ".github/workflows/zaneops-preview-after-ci.yml"),
-    "utf8"
+    "utf-8"
   )
 
   expect(raw).toMatch(baselineCompleteOutputPattern)
@@ -124,7 +122,10 @@ test.skip("preview scope feeds baseline state into prepare decisions", async () 
 })
 
 test("main CI runs new-engine-ctl tests on the supported Node version", async () => {
-  const raw = await readFile(join(repoRoot, ".github/workflows/ci.yml"), "utf8")
+  const raw = await readFile(
+    join(repoRoot, ".github/workflows/ci.yml"),
+    "utf-8"
+  )
 
   expect(raw).toMatch(node24Pattern)
   expect(raw).toMatch(ciCtlTestPattern)
@@ -133,11 +134,11 @@ test("main CI runs new-engine-ctl tests on the supported Node version", async ()
 test("Storybook accessibility CI compares against an immutable base baseline", async () => {
   const workflow = await readFile(
     join(repoRoot, ".github/workflows/storybook-a11y.yml"),
-    "utf8"
+    "utf-8"
   )
   const baselineWorkflow = await readFile(
     join(repoRoot, ".github/workflows/storybook-a11y-baseline.yml"),
-    "utf8"
+    "utf-8"
   )
 
   expect(workflow).toContain("fail-on-violations: false")
@@ -154,11 +155,11 @@ test("Storybook accessibility CI compares against an immutable base baseline", a
 test("Storybook baseline changes run and require the explicit authorized workflow", async () => {
   const workflow = await readFile(
     join(repoRoot, ".github/workflows/storybook-a11y.yml"),
-    "utf8"
+    "utf-8"
   )
   const baselineWorkflow = await readFile(
     join(repoRoot, ".github/workflows/storybook-a11y-baseline.yml"),
-    "utf8"
+    "utf-8"
   )
 
   expect(workflow).not.toContain("!libs/ui/a11y-baseline.json")

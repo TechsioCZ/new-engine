@@ -7,11 +7,11 @@ import {
   serverError,
 } from "../_lib"
 
-type ForgotPasswordBody = {
+interface ForgotPasswordBody {
   email?: string
 }
 
-type ForgotPasswordResponse = {
+interface ForgotPasswordResponse {
   success: true
 }
 
@@ -34,15 +34,15 @@ export async function POST(request: Request) {
     const medusaResponse = await fetch(
       buildMedusaUrl("/auth/customer/emailpass/reset-password"),
       {
-        method: "POST",
-        headers: {
-          accept: "text/plain",
-          "content-type": "application/json",
-        },
         body: JSON.stringify({
           identifier: email,
         }),
         cache: "no-store",
+        headers: {
+          accept: "text/plain",
+          "content-type": "application/json",
+        },
+        method: "POST",
       }
     )
 

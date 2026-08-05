@@ -4,16 +4,14 @@ import { useState } from "react"
 import { Switch } from "../../src/molecules/switch"
 
 const meta: Meta<typeof Switch> = {
-  title: "Molecules/Switch",
-  component: Switch,
-  parameters: {
-    layout: "centered",
-  },
-  tags: ["autodocs"],
   argTypes: {
     checked: {
       control: "boolean",
       description: "Checked state of the switch",
+    },
+    children: {
+      control: "text",
+      description: "Label text for the switch",
     },
     defaultChecked: {
       control: "boolean",
@@ -23,6 +21,11 @@ const meta: Meta<typeof Switch> = {
       control: "boolean",
       description: "Disabled state of the switch",
     },
+    helpText: {
+      control: "text",
+      description: "Help text displayed below the switch",
+    },
+    onCheckedChange: { action: "changed" },
     readOnly: {
       control: "boolean",
       description: "Read-only state",
@@ -31,24 +34,15 @@ const meta: Meta<typeof Switch> = {
       control: "boolean",
       description: "Marks switch as required",
     },
-    validateStatus: {
-      control: { type: "select" },
-      options: ["default", "error", "success", "warning"],
-      description: "Validation status of the switch",
-    },
-    helpText: {
-      control: "text",
-      description: "Help text displayed below the switch",
-    },
     showHelpTextIcon: {
       control: "boolean",
       description: "Whether to show an icon with the help text",
     },
-    children: {
-      control: "text",
-      description: "Label text for the switch",
+    validateStatus: {
+      control: { type: "select" },
+      description: "Validation status of the switch",
+      options: ["default", "error", "success", "warning"],
     },
-    onCheckedChange: { action: "changed" },
   },
   args: {
     defaultChecked: false,
@@ -56,6 +50,12 @@ const meta: Meta<typeof Switch> = {
     readOnly: false,
     required: false,
   },
+  component: Switch,
+  parameters: {
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/Switch",
 }
 
 export default meta
@@ -106,67 +106,63 @@ export const WithValidation: Story = {
 
 // All states showcase
 export const AllStates: Story = {
-  render: () => {
-    return (
-      <div className="space-y-6">
-        <div className="grid gap-4">
-          <Switch>Default switch</Switch>
+  render: () => (
+    <div className="space-y-6">
+      <div className="grid gap-4">
+        <Switch>Default switch</Switch>
 
-          <Switch defaultChecked>Checked switch</Switch>
+        <Switch defaultChecked>Checked switch</Switch>
 
-          <Switch disabled>Disabled switch</Switch>
+        <Switch disabled>Disabled switch</Switch>
 
-          <Switch disabled defaultChecked>
-            Disabled checked
-          </Switch>
+        <Switch disabled defaultChecked>
+          Disabled checked
+        </Switch>
 
-          <Switch validateStatus="error" helpText="Error state">
-            Error switch
-          </Switch>
+        <Switch validateStatus="error" helpText="Error state">
+          Error switch
+        </Switch>
 
-          <Switch required>Required switch</Switch>
+        <Switch required>Required switch</Switch>
 
-          <Switch readOnly defaultChecked>
-            Read-only switch
-          </Switch>
-        </div>
+        <Switch readOnly defaultChecked>
+          Read-only switch
+        </Switch>
       </div>
-    )
-  },
+    </div>
+  ),
 }
 
 // With descriptions
 export const WithDescriptions: Story = {
-  render: () => {
-    return (
-      <div className="space-y-6">
-        <Switch helpText="Get notified when someone mentions you">
-          Push notifications
-        </Switch>
+  render: () => (
+    <div className="space-y-6">
+      <Switch helpText="Get notified when someone mentions you">
+        Push notifications
+      </Switch>
 
-        <Switch
-          defaultChecked
-          helpText="Automatically save your work every 5 minutes"
-        >
-          Auto-save
-        </Switch>
+      <Switch
+        defaultChecked
+        helpText="Automatically save your work every 5 minutes"
+      >
+        Auto-save
+      </Switch>
 
-        <Switch
-          disabled
-          helpText="Contact your administrator to enable this feature"
-        >
-          Advanced settings
-        </Switch>
+      <Switch
+        disabled
+        helpText="Contact your administrator to enable this feature"
+      >
+        Advanced settings
+      </Switch>
 
-        <Switch
-          validateStatus="error"
-          helpText="You must enable this for compliance"
-        >
-          Data encryption
-        </Switch>
-      </div>
-    )
-  },
+      <Switch
+        validateStatus="error"
+        helpText="You must enable this for compliance"
+      >
+        Data encryption
+      </Switch>
+    </div>
+  ),
 }
 
 // Controlled switch example
@@ -187,7 +183,9 @@ export const ControlledSwitch: Story = {
           <span className="text-sm">Status: {isChecked ? "ON" : "OFF"}</span>
         </div>
         <button
-          onClick={() => setIsChecked((prev) => !prev)}
+          onClick={() => {
+            setIsChecked((prev) => !prev)
+          }}
           className="rounded border px-3 py-1 text-sm hover:bg-gray-100/20"
         >
           Toggle switch
@@ -201,9 +199,9 @@ export const ControlledSwitch: Story = {
 export const SettingsPanel: Story = {
   render: () => {
     const [settings, setSettings] = useState({
-      notifications: true,
-      marketing: false,
       analytics: true,
+      marketing: false,
+      notifications: true,
       security: true,
     })
 
@@ -246,9 +244,9 @@ export const SettingsPanel: Story = {
             onCheckedChange={handleSettingChange("security")}
             validateStatus={settings.security ? "success" : "error"}
             helpText={
-              !settings.security
-                ? "Required for account security"
-                : "Enhanced security is enabled"
+              settings.security
+                ? "Enhanced security is enabled"
+                : "Required for account security"
             }
           >
             Two-factor authentication

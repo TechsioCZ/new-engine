@@ -6,11 +6,11 @@ export function createProductQueryKeys<TListParams, TDetailParams>(
   namespace: QueryNamespace
 ): ProductQueryKeys<TListParams, TDetailParams> {
   return {
-    list: (params) =>
+    detail: (params) =>
       createQueryKey(
         namespace,
         "products",
-        "list",
+        "detail",
         normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
       ),
     infinite: (params) =>
@@ -20,11 +20,11 @@ export function createProductQueryKeys<TListParams, TDetailParams>(
         "infinite",
         normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
       ),
-    detail: (params) =>
+    list: (params) =>
       createQueryKey(
         namespace,
         "products",
-        "detail",
+        "list",
         normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
       ),
   }

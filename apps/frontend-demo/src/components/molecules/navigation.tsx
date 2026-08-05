@@ -1,12 +1,13 @@
 "use client"
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import { slugify } from "@techsio/ui-kit/utils"
 import type { Route } from "next"
 import Link from "next/link"
 import type { ComponentPropsWithoutRef } from "react"
 
-export type NavItem = {
+export interface NavItem {
   title: string
   href?: Route
   prefetch?: boolean

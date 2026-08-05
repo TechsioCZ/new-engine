@@ -17,13 +17,15 @@ import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 
 import {
-  type Review,
-  type ReviewFormInput,
-  type ReviewInput,
-  type ReviewStatus,
   retrieveReview,
   reviewQueryKeys,
   updateReview,
+} from "../../../lib/reviews"
+import type {
+  Review,
+  ReviewFormInput,
+  ReviewInput,
+  ReviewStatus,
 } from "../../../lib/reviews"
 import {
   formatReviewDate,
@@ -61,7 +63,7 @@ const ReviewEditDrawer = ({
   }, [open, review])
 
   const mutation = useMutation({
-    mutationFn: (input: ReviewInput) => updateReview(review.id, input),
+    mutationFn: async (input: ReviewInput) => updateReview(review.id, input),
     onError: () => {
       toast.error("Failed to update review")
     },
@@ -85,24 +87,24 @@ const ReviewEditDrawer = ({
           <div className="flex flex-col gap-2">
             <Label>Title</Label>
             <Input
-              onChange={(event) =>
+              onChange={(event) => {
                 setForm((current) => ({
                   ...current,
                   title: event.target.value,
                 }))
-              }
+              }}
               value={form.title}
             />
           </div>
           <div className="flex flex-col gap-2">
             <Label>Content</Label>
             <Textarea
-              onChange={(event) =>
+              onChange={(event) => {
                 setForm((current) => ({
                   ...current,
                   content: event.target.value,
                 }))
-              }
+              }}
               rows={8}
               value={form.content}
             />
@@ -113,12 +115,12 @@ const ReviewEditDrawer = ({
               <Input
                 max={5}
                 min={1}
-                onChange={(event) =>
+                onChange={(event) => {
                   setForm((current) => ({
                     ...current,
                     rating: Number(event.target.value),
                   }))
-                }
+                }}
                 type="number"
                 value={form.rating}
               />
@@ -126,12 +128,12 @@ const ReviewEditDrawer = ({
             <div className="flex flex-col gap-2">
               <Label>Status</Label>
               <Select
-                onValueChange={(value) =>
+                onValueChange={(value) => {
                   setForm((current) => ({
                     ...current,
                     status: value as ReviewStatus,
                   }))
-                }
+                }}
                 value={form.status}
               >
                 <Select.Trigger>
@@ -151,24 +153,24 @@ const ReviewEditDrawer = ({
             <div className="flex flex-col gap-2">
               <Label>First name</Label>
               <Input
-                onChange={(event) =>
+                onChange={(event) => {
                   setForm((current) => ({
                     ...current,
                     first_name: event.target.value,
                   }))
-                }
+                }}
                 value={form.first_name ?? ""}
               />
             </div>
             <div className="flex flex-col gap-2">
               <Label>Last name</Label>
               <Input
-                onChange={(event) =>
+                onChange={(event) => {
                   setForm((current) => ({
                     ...current,
                     last_name: event.target.value,
                   }))
-                }
+                }}
                 value={form.last_name ?? ""}
               />
             </div>
@@ -183,7 +185,9 @@ const ReviewEditDrawer = ({
           <Button
             disabled={mutation.isPending}
             isLoading={mutation.isPending}
-            onClick={() => mutation.mutate(form)}
+            onClick={() => {
+              mutation.mutate(form)
+            }}
             size="small"
           >
             Save
@@ -199,7 +203,7 @@ const ReviewsDetailPage = () => {
   const [editOpen, setEditOpen] = useState(false)
   const { data, isLoading } = useQuery({
     enabled: Boolean(id),
-    queryFn: () => retrieveReview(id as string),
+    queryFn: async () => retrieveReview(id as string),
     queryKey: reviewQueryKeys.detail(id as string),
   })
   const review = data?.review
@@ -232,7 +236,9 @@ const ReviewsDetailPage = () => {
             </Text>
           </div>
           <Button
-            onClick={() => setEditOpen(true)}
+            onClick={() => {
+              setEditOpen(true)
+            }}
             size="small"
             variant="secondary"
           >

@@ -21,9 +21,9 @@ export const GET = async (
   })
 
   res.json({
-    quotes,
     count: metadata?.count ?? 0,
-    offset: metadata?.skip ?? skip,
     limit: metadata?.take ?? pagination.take,
+    offset: metadata?.skip ?? skip,
+    quotes,
   })
 }

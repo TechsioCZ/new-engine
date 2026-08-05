@@ -15,7 +15,7 @@ import { ProductBrandLink } from "../../../links/product-brand"
 import { BRAND_MODULE } from "../../../modules/brand"
 import type BrandModuleService from "../../../modules/brand/service"
 
-export type BrandAttributeResponse = {
+export interface BrandAttributeResponse {
   attribute_type_id?: string
   attribute_type_deleted_at?: string | Date | null
   id?: string | undefined
@@ -23,7 +23,7 @@ export type BrandAttributeResponse = {
   value: string
 }
 
-export type BrandAttributeTypeResponse = {
+export interface BrandAttributeTypeResponse {
   deleted_at?: string | Date | null
   id: string
   name: string
@@ -34,7 +34,7 @@ export type BrandAttributeTypeBrandResponse = BrandResponse & {
   attribute_value: string
 }
 
-export type BrandResponse = {
+export interface BrandResponse {
   active_product_count: number
   id: string
   title: string
@@ -52,7 +52,7 @@ export type BrandResponse = {
   updated_at?: string | Date | undefined
 }
 
-export type BrandAttributeRecord = {
+export interface BrandAttributeRecord {
   deleted_at?: string | Date | null
   id?: string
   value: string
@@ -76,13 +76,13 @@ export type BrandAttributeRecord = {
   brand_id?: string
 }
 
-type BrandAttributeTypeRecord = {
+interface BrandAttributeTypeRecord {
   deleted_at?: string | Date | null
   id: string
   name: string
 }
 
-type BrandRecord = {
+interface BrandRecord {
   id: string
   title: string
   handle: string
@@ -107,7 +107,7 @@ type ProductRecord = Pick<ProductTypes.ProductDTO, "id"> &
     >
   >
 
-type LinkRecord = {
+interface LinkRecord {
   deleted_at?: string | Date | null
   product_id?: string
   brand_id?: string
@@ -149,14 +149,14 @@ type BrandService = BrandModuleService & {
   ) => Promise<BrandRecord>
 }
 
-type ListProductsOptions = {
+interface ListProductsOptions {
   order?: Record<string, "ASC" | "DESC"> | undefined
   q?: string | undefined
   skip?: number | undefined
   take?: number | undefined
 }
 
-type RetrieveBrandOptions = {
+interface RetrieveBrandOptions {
   withDeleted?: boolean
 }
 
@@ -556,7 +556,7 @@ export const listBrandsByIds = async (
     return []
   }
 
-  return getBrandService(scope).listBrands(
+  return await getBrandService(scope).listBrands(
     {
       id: { $in: brandIds },
     },
@@ -597,7 +597,7 @@ export const listAndCountProducts = async (
 ): Promise<[ProductRecord[], number]> => {
   const { order, q, skip, take } = options
 
-  return getProductService(scope).listAndCountProducts(
+  return await getProductService(scope).listAndCountProducts(
     {
       ...filters,
       ...(q ? { q } : {}),
@@ -622,7 +622,7 @@ export const listAndCountProductsByIds = async (
     return [[], 0] as [ProductRecord[], number]
   }
 
-  return listAndCountProducts(
+  return await listAndCountProducts(
     scope,
     {
       id: { $in: ids },

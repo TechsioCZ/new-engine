@@ -12,13 +12,13 @@ const eslintConfig = [
       "@typescript-eslint/no-unused-vars": [
         "warn",
         {
-          vars: "all",
           args: "after-used",
-          ignoreRestSiblings: false,
           argsIgnorePattern: "^_",
-          varsIgnorePattern: "^_",
-          destructuredArrayIgnorePattern: "^_",
           caughtErrorsIgnorePattern: "^(_|ignore)",
+          destructuredArrayIgnorePattern: "^_",
+          ignoreRestSiblings: false,
+          vars: "all",
+          varsIgnorePattern: "^_",
         },
       ],
     },

@@ -1,13 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react"
 
 const meta: Meta = {
-  title: "Overview/APCA Contrast Test",
   parameters: {
-    layout: "centered",
     a11y: {
       context: "#apca-test-root",
     },
+    layout: "centered",
   },
+  title: "Overview/APCA Contrast Test",
 }
 
 export default meta

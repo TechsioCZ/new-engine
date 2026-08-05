@@ -19,30 +19,32 @@ import { StatusText } from "../atoms/status-text"
 import { slugify, tv } from "../utils"
 
 const sliderVariants = tv({
+  defaultVariants: {
+    size: "md",
+  },
   slots: {
-    root: [
-      "flex w-full flex-col gap-slider",
-      "data-[orientation=vertical]:h-full",
-      "data-disabled:cursor-not-allowed",
-    ],
-    header: ["flex items-center justify-between"],
-    value: ["text-slider-value-size"],
-    label: ["block font-medium"],
     control: [
       "relative grid place-items-center",
       "data-[orientation=vertical]:h-full data-[orientation=vertical]:grid-rows-1",
     ],
-    track: [
-      "flex-1 rounded-slider-track bg-slider-track-bg",
-      "data-[orientation=horizontal]:w-full",
+    header: ["flex items-center justify-between"],
+    label: ["block font-medium"],
+    marker: [
+      "relative flex h-full flex-col items-center justify-center",
+      "data-[orientation=vertical]:w-full",
+      "data-[orientation=vertical]:h-marker-vertical",
+      "data-[orientation=vertical]:flex-row",
+    ],
+    markerGroup: ["relative flex h-full items-center"],
+    markerLine: [
+      "h-full w-slider-marker bg-slider-marker-bg",
+      "data-[orientation=vertical]:h-slider-marker data-[orientation=vertical]:w-full",
+    ],
+    markerText: [
+      "absolute top-full",
+      "data-[orientation=vertical]:top-0 data-[orientation=vertical]:left-full",
       "data-[orientation=vertical]:h-full",
-      "data-disabled:bg-slider-track-bg-disabled",
-      "border-(length:--border-width-slider) border-slider-border",
-      "data-disabled:border-slider-border-disabled",
-      "transition-colors duration-200 motion-reduce:transition-none",
-      "hover:bg-slider-track-bg-hover",
-      "data-[invalid=true]:border-(length:--border-width-validation)",
-      "data-[invalid=true]:border-slider-border-error",
+      "data-[orientation=vertical]:p-marker-text",
     ],
     range: [
       "h-full rounded-slider-track bg-slider-range-bg",
@@ -51,6 +53,11 @@ const sliderVariants = tv({
       "hover:bg-slider-range-bg-hover",
       "data-[invalid=true]:bg-slider-range-bg-error",
       "transition-colors duration-200 motion-reduce:transition-none",
+    ],
+    root: [
+      "flex w-full flex-col gap-slider",
+      "data-[orientation=vertical]:h-full",
+      "data-disabled:cursor-not-allowed",
     ],
     thumb: [
       "flex items-center justify-center",
@@ -66,48 +73,41 @@ const sliderVariants = tv({
       "cursor-grab data-disabled:cursor-not-allowed data-dragging:cursor-grabbing",
       "shadow-slider-thumb",
     ],
-    markerGroup: ["relative flex h-full items-center"],
-    marker: [
-      "relative flex h-full flex-col items-center justify-center",
-      "data-[orientation=vertical]:w-full",
-      "data-[orientation=vertical]:h-marker-vertical",
-      "data-[orientation=vertical]:flex-row",
-    ],
-    markerLine: [
-      "h-full w-slider-marker bg-slider-marker-bg",
-      "data-[orientation=vertical]:h-slider-marker data-[orientation=vertical]:w-full",
-    ],
-    markerText: [
-      "absolute top-full",
-      "data-[orientation=vertical]:top-0 data-[orientation=vertical]:left-full",
+    track: [
+      "flex-1 rounded-slider-track bg-slider-track-bg",
+      "data-[orientation=horizontal]:w-full",
       "data-[orientation=vertical]:h-full",
-      "data-[orientation=vertical]:p-marker-text",
+      "data-disabled:bg-slider-track-bg-disabled",
+      "border-(length:--border-width-slider) border-slider-border",
+      "data-disabled:border-slider-border-disabled",
+      "transition-colors duration-200 motion-reduce:transition-none",
+      "hover:bg-slider-track-bg-hover",
+      "data-[invalid=true]:border-(length:--border-width-validation)",
+      "data-[invalid=true]:border-slider-border-error",
     ],
+    value: ["text-slider-value-size"],
   },
   variants: {
     size: {
-      sm: {
-        track: [
-          "h-slider-track-sm data-[orientation=vertical]:w-slider-track-sm",
-        ],
-        thumb: ["w-slider-thumb-sm", "h-slider-thumb-sm"],
-      },
-      md: {
-        track: [
-          "h-slider-track-md data-[orientation=vertical]:w-slider-track-md",
-        ],
-        thumb: ["w-slider-thumb-md", "h-slider-thumb-md"],
-      },
       lg: {
+        thumb: ["w-slider-thumb-lg", "h-slider-thumb-lg"],
         track: [
           "h-slider-track-lg data-[orientation=vertical]:w-slider-track-lg",
         ],
-        thumb: ["w-slider-thumb-lg", "h-slider-thumb-lg"],
+      },
+      md: {
+        thumb: ["w-slider-thumb-md", "h-slider-thumb-md"],
+        track: [
+          "h-slider-track-md data-[orientation=vertical]:w-slider-track-md",
+        ],
+      },
+      sm: {
+        thumb: ["w-slider-thumb-sm", "h-slider-thumb-sm"],
+        track: [
+          "h-slider-track-sm data-[orientation=vertical]:w-slider-track-sm",
+        ],
       },
     },
-  },
-  defaultVariants: {
-    size: "md",
   },
 })
 
@@ -201,7 +201,7 @@ const resolveThumbCount = (
   return 2
 }
 
-type ResolvedSliderConfig = {
+interface ResolvedSliderConfig {
   min: number
   max: number
   step: number
@@ -238,10 +238,10 @@ const resolveSliderConfig = (
   )
 
   return {
-    min: resolvedMin,
     max: resolvedMax,
-    step: resolvedStep,
+    min: resolvedMin,
     minStepsBetweenThumbs: resolvedMinStepsBetweenThumbs,
+    step: resolvedStep,
   }
 }
 

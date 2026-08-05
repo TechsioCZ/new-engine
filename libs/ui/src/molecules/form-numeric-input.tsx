@@ -12,7 +12,8 @@
 import type { ReactNode } from "react"
 
 import { Label } from "../atoms/label"
-import { NumericInput, type NumericInputProps } from "../atoms/numeric-input"
+import { NumericInput } from "../atoms/numeric-input"
+import type { NumericInputProps } from "../atoms/numeric-input"
 import { StatusText } from "../atoms/status-text"
 
 type ValidateStatus = "default" | "error" | "success" | "warning"

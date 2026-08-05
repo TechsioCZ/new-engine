@@ -3,7 +3,7 @@ import { Button, clx, Text } from "@medusajs/ui"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 
-export type NoResultsProps = {
+export interface NoResultsProps {
   title?: string
   message?: string
   className?: string
@@ -32,7 +32,7 @@ export const NoResults = ({ title, message, className }: NoResultsProps) => {
   )
 }
 
-type ActionProps = {
+interface ActionProps {
   action?: {
     to: string
     label: string

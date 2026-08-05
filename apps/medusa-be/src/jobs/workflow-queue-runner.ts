@@ -12,7 +12,7 @@ const JOB_LOCK_TIMEOUT = 60
 const DEFAULT_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE = 500
 const DEFAULT_WORKFLOW_QUEUE_RUNNER_SCHEDULE = "0 * * * *"
 
-type WorkflowQueueItemDTO = {
+interface WorkflowQueueItemDTO {
   id: string
   arguments: Record<string, unknown> | null
   run_at: Date | string

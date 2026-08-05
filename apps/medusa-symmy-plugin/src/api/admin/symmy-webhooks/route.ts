@@ -1,18 +1,18 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
-import {
-  SYMMY_WEBHOOK_CONFIG_MODULE,
-  type SymmyWebhookConfigDTO,
-  type SymmyWebhookConfigModuleService,
+import { SYMMY_WEBHOOK_CONFIG_MODULE } from "../../../modules/webhook-config"
+import type {
+  SymmyWebhookConfigDTO,
+  SymmyWebhookConfigModuleService,
 } from "../../../modules/webhook-config"
 import { symmyUpdateWebhookConfigWorkflow } from "../../../workflows/update-webhook-config/workflow"
 import type { PostAdminSymmyWebhookConfigSchemaType } from "./validators"
 
 const toConfigResponse = (config: SymmyWebhookConfigDTO) => ({
+  created_at: config.created_at,
+  endpoints: config.endpoints,
   id: config.id,
   is_enabled: config.is_enabled,
-  endpoints: config.endpoints,
-  created_at: config.created_at,
   updated_at: config.updated_at,
 })
 

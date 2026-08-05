@@ -14,19 +14,23 @@ export const resolveProductStatusMessage = (
   }
 ) => {
   switch (status) {
-    case "loading":
+    case "loading": {
       return { status: "default" as const, text: messages.loading }
-    case "error":
+    }
+    case "error": {
       return {
         status: "warning" as const,
         text: messages.loadFailed,
       }
-    case "not-found":
+    }
+    case "not-found": {
       return {
         status: "warning" as const,
         text: messages.notFound,
       }
-    default:
+    }
+    default: {
       return null
+    }
   }
 }

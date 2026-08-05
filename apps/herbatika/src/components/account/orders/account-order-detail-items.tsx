@@ -8,7 +8,7 @@ import {
   resolveOrderItemTotalAmount,
 } from "@/lib/storefront/order-format"
 
-type AccountOrderDetailItemsProps = {
+interface AccountOrderDetailItemsProps {
   order: HttpTypes.StoreOrder
 }
 

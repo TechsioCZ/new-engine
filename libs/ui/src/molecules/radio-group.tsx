@@ -11,14 +11,8 @@
  */
 import * as zagRadioGroup from "@zag-js/radio-group"
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type ReactNode,
-  type Ref,
-  useContext,
-  useId,
-} from "react"
+import { createContext, useContext, useId } from "react"
+import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { Label } from "../atoms/label"
@@ -26,20 +20,19 @@ import { StatusText } from "../atoms/status-text"
 import { tv } from "../utils"
 
 const radioGroupVariants = tv({
+  defaultVariants: {
+    size: "md",
+    variant: "outline",
+  },
   slots: {
-    root: ["flex w-full flex-col"],
-    itemGroup: [
-      "relative flex",
-      "data-[orientation=horizontal]:flex-row",
-      "data-[orientation=horizontal]:flex-wrap",
-      "data-[orientation=vertical]:flex-col",
-    ],
+    hiddenInput: "sr-only",
     item: [
       "grid grid-cols-(--radio-group-item-grid) items-start",
       "cursor-pointer select-none",
       "data-disabled:cursor-not-allowed",
       "data-readonly:cursor-default",
     ],
+    itemContent: ["col-start-2 row-start-1 min-w-0 flex flex-col"],
     itemControl: [
       "row-start-1 self-center",
       "inline-grid shrink-0 place-items-center rounded-radio-group-control",
@@ -58,7 +51,16 @@ const radioGroupVariants = tv({
       "data-invalid:border-radio-group-item-border-error",
       "data-invalid:outline-offset-(length:--default-ring-offset)",
     ],
-    itemContent: ["col-start-2 row-start-1 min-w-0 flex flex-col"],
+    itemDescription: [
+      "col-start-2 row-start-2 min-w-0 text-radio-group-item-description leading-normal",
+      "data-disabled:text-radio-group-item-description-disabled",
+    ],
+    itemGroup: [
+      "relative flex",
+      "data-[orientation=horizontal]:flex-row",
+      "data-[orientation=horizontal]:flex-wrap",
+      "data-[orientation=vertical]:flex-col",
+    ],
     itemIndicator: [
       "pointer-events-none block leading-none",
       "token-icon-radio-group-checked",
@@ -70,13 +72,44 @@ const radioGroupVariants = tv({
       "min-w-0 text-radio-group-item-fg leading-normal",
       "data-disabled:text-radio-group-item-fg-disabled",
     ],
-    itemDescription: [
-      "col-start-2 row-start-2 min-w-0 text-radio-group-item-description leading-normal",
-      "data-disabled:text-radio-group-item-description-disabled",
-    ],
-    hiddenInput: "sr-only",
+    root: ["flex w-full flex-col"],
   },
   variants: {
+    size: {
+      lg: {
+        item: "gap-x-radio-group-item-lg",
+        itemContent: "gap-radio-group-item-content-lg",
+        itemControl: "size-radio-group-control-lg",
+        itemDescription: "text-radio-group-item-description-lg",
+        itemGroup:
+          "data-[orientation=horizontal]:gap-radio-group-stack-horizontal-lg data-[orientation=vertical]:gap-radio-group-stack-vertical-lg",
+        itemIndicator: "size-radio-group-indicator-lg",
+        itemText: "text-radio-group-item-lg",
+        root: "gap-radio-group-stack-lg",
+      },
+      md: {
+        item: "gap-x-radio-group-item-md",
+        itemContent: "gap-radio-group-item-content-md",
+        itemControl: "size-radio-group-control-md",
+        itemDescription: "text-radio-group-item-description-md",
+        itemGroup:
+          "data-[orientation=horizontal]:gap-radio-group-stack-horizontal-md data-[orientation=vertical]:gap-radio-group-stack-vertical-md",
+        itemIndicator: "size-radio-group-indicator-md",
+        itemText: "text-radio-group-item-md",
+        root: "gap-radio-group-stack-md",
+      },
+      sm: {
+        item: "gap-x-radio-group-item-sm",
+        itemContent: "gap-radio-group-item-content-sm",
+        itemControl: "size-radio-group-control-sm",
+        itemDescription: "text-radio-group-item-description-sm",
+        itemGroup:
+          "data-[orientation=horizontal]:gap-radio-group-stack-horizontal-sm data-[orientation=vertical]:gap-radio-group-stack-vertical-sm",
+        itemIndicator: "size-radio-group-indicator-sm",
+        itemText: "text-radio-group-item-sm",
+        root: "gap-radio-group-stack-sm",
+      },
+    },
     variant: {
       outline: {
         itemControl: [
@@ -87,15 +120,6 @@ const radioGroupVariants = tv({
         ],
         itemIndicator: "text-radio-group-item-indicator-outline",
       },
-      subtle: {
-        itemControl: [
-          "data-[state=checked]:bg-radio-group-item-bg-subtle-checked",
-          "data-[state=checked]:border-radio-group-item-border-subtle-checked",
-          "data-hover:data-[state=checked]:bg-radio-group-item-bg-subtle-checked-hover",
-          "data-hover:data-[state=checked]:border-radio-group-item-border-subtle-checked-hover",
-        ],
-        itemIndicator: "text-radio-group-item-indicator-subtle",
-      },
       solid: {
         itemControl: [
           "data-[state=checked]:bg-radio-group-item-bg-solid-checked",
@@ -105,46 +129,16 @@ const radioGroupVariants = tv({
         ],
         itemIndicator: "text-radio-group-item-indicator-solid",
       },
-    },
-    size: {
-      sm: {
-        root: "gap-radio-group-stack-sm",
-        itemGroup:
-          "data-[orientation=horizontal]:gap-radio-group-stack-horizontal-sm data-[orientation=vertical]:gap-radio-group-stack-vertical-sm",
-        item: "gap-x-radio-group-item-sm",
-        itemControl: "size-radio-group-control-sm",
-        itemContent: "gap-radio-group-item-content-sm",
-        itemIndicator: "size-radio-group-indicator-sm",
-        itemText: "text-radio-group-item-sm",
-        itemDescription: "text-radio-group-item-description-sm",
-      },
-      md: {
-        root: "gap-radio-group-stack-md",
-        itemGroup:
-          "data-[orientation=horizontal]:gap-radio-group-stack-horizontal-md data-[orientation=vertical]:gap-radio-group-stack-vertical-md",
-        item: "gap-x-radio-group-item-md",
-        itemControl: "size-radio-group-control-md",
-        itemContent: "gap-radio-group-item-content-md",
-        itemIndicator: "size-radio-group-indicator-md",
-        itemText: "text-radio-group-item-md",
-        itemDescription: "text-radio-group-item-description-md",
-      },
-      lg: {
-        root: "gap-radio-group-stack-lg",
-        itemGroup:
-          "data-[orientation=horizontal]:gap-radio-group-stack-horizontal-lg data-[orientation=vertical]:gap-radio-group-stack-vertical-lg",
-        item: "gap-x-radio-group-item-lg",
-        itemControl: "size-radio-group-control-lg",
-        itemContent: "gap-radio-group-item-content-lg",
-        itemIndicator: "size-radio-group-indicator-lg",
-        itemText: "text-radio-group-item-lg",
-        itemDescription: "text-radio-group-item-description-lg",
+      subtle: {
+        itemControl: [
+          "data-[state=checked]:bg-radio-group-item-bg-subtle-checked",
+          "data-[state=checked]:border-radio-group-item-border-subtle-checked",
+          "data-hover:data-[state=checked]:bg-radio-group-item-bg-subtle-checked-hover",
+          "data-hover:data-[state=checked]:border-radio-group-item-border-subtle-checked-hover",
+        ],
+        itemIndicator: "text-radio-group-item-indicator-subtle",
       },
     },
-  },
-  defaultVariants: {
-    variant: "outline",
-    size: "md",
   },
 })
 
@@ -158,7 +152,7 @@ type RadioGroupSize = NonNullable<
 
 type RadioGroupValidateStatus = "default" | "error" | "success" | "warning"
 
-type RadioGroupContextValue = {
+interface RadioGroupContextValue {
   api: ReturnType<typeof zagRadioGroup.connect>
   variant: RadioGroupVariant
   size: RadioGroupSize
@@ -178,7 +172,7 @@ function useRadioGroupContext() {
   return context
 }
 
-type RadioGroupItemContextValue = {
+interface RadioGroupItemContextValue {
   itemProps: zagRadioGroup.ItemProps
 }
 
@@ -231,14 +225,14 @@ export function RadioGroup({
 
   const service = useMachine(zagRadioGroup.machine, {
     ...machineProps,
-    id,
     disabled,
-    required,
-    orientation,
+    id,
     invalid,
     onValueChange: ({ value: nextValue }: zagRadioGroup.ValueChangeDetails) => {
       onValueChange?.(nextValue)
     },
+    orientation,
+    required,
   })
 
   const api = zagRadioGroup.connect(service, normalizeProps)
@@ -248,12 +242,12 @@ export function RadioGroup({
     <RadioGroupContext.Provider
       value={{
         api,
-        variant,
-        size,
-        orientation,
         disabled,
+        orientation,
         required,
+        size,
         validateStatus,
+        variant,
       }}
     >
       <div
@@ -346,7 +340,7 @@ RadioGroup.Item = function RadioGroupItem({
 }: RadioGroupItemProps) {
   const { api, size, variant } = useRadioGroupContext()
   const styles = radioGroupVariants({ size, variant })
-  const itemProps = { value, disabled, invalid }
+  const itemProps = { disabled, invalid, value }
 
   return (
     <RadioGroupItemContext.Provider value={{ itemProps }}>

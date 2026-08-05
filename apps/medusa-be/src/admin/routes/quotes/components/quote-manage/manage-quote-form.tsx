@@ -10,7 +10,7 @@ import { useConfirmQuote, useOrderPreview } from "../../../../hooks/api"
 import { formatAmount } from "../../../../utils/format-amount"
 import { ManageItemsSection } from "./manage-items-section"
 
-type ReturnCreateFormProps = {
+interface ReturnCreateFormProps {
   order: AdminOrder
 }
 
@@ -28,7 +28,7 @@ export const ManageQuoteForm = ({ order }: ReturnCreateFormProps) => {
    * FORM
    */
   const form = useForm({
-    defaultValues: () => Promise.resolve({}),
+    defaultValues: async () => Promise.resolve({}),
   })
 
   const handleSubmit = form.handleSubmit(async () => {
@@ -37,9 +37,9 @@ export const ManageQuoteForm = ({ order }: ReturnCreateFormProps) => {
 
       toast.success(t("toasts.quoteUpdated"))
       handleSuccess()
-    } catch (e) {
+    } catch (error) {
       toast.error(t("validation.genericError"), {
-        description: getErrorMessage(e),
+        description: getErrorMessage(error),
       })
     }
   })

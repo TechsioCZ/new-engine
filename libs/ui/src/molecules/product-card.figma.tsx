@@ -6,13 +6,6 @@ figma.connect(
   ProductCard,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1182-51",
   {
-    imports: ['import { ProductCard } from "@libs/ui/molecules/product-card"'],
-    props: {
-      layout: figma.enum("layout", {
-        column: "column",
-        row: "row",
-      }),
-    },
     example: ({ layout }) => (
       <ProductCard layout={layout}>
         <ProductCard.Image alt="Product" src="/product.jpg" />
@@ -23,5 +16,12 @@ figma.connect(
         </ProductCard.Actions>
       </ProductCard>
     ),
+    imports: ['import { ProductCard } from "@libs/ui/molecules/product-card"'],
+    props: {
+      layout: figma.enum("layout", {
+        column: "column",
+        row: "row",
+      }),
+    },
   }
 )

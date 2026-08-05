@@ -12,7 +12,7 @@ export type UpdateStoreCurrenciesStepCurrenciesInput = {
   default: boolean
 }[]
 
-export type UpdateStoreCurrenciesStepInput = {
+export interface UpdateStoreCurrenciesStepInput {
   currencies: UpdateStoreCurrenciesStepCurrenciesInput
   defaultSalesChannelId: string
 }
@@ -42,8 +42,8 @@ export const updateStoreCurrenciesStep = createStep(
       input: {
         selector: { id: store.id },
         update: {
-          supported_currencies: currencies,
           default_sales_channel_id: input.defaultSalesChannelId,
+          supported_currencies: currencies,
         },
       },
     })

@@ -7,7 +7,7 @@ import { storefrontSdk } from "./sdk"
 export const fetchStorefrontTextMessages = async (
   marketContext: HerbatikaMarketContext
 ) =>
-  loadMedusaStorefrontMessages(storefrontSdk.client, {
+  await loadMedusaStorefrontMessages(storefrontSdk.client, {
     locale: marketContext.locale,
     market: marketContext.code,
   })

@@ -12,11 +12,8 @@
 import type { ElementType } from "react"
 
 import type { IconType } from "../atoms/icon"
-import {
-  Carousel,
-  type CarouselRootProps,
-  type CarouselSlide,
-} from "../molecules/carousel"
+import { Carousel } from "../molecules/carousel"
+import type { CarouselRootProps, CarouselSlide } from "../molecules/carousel"
 
 export interface CarouselTemplateProps<T extends ElementType> extends Omit<
   CarouselRootProps<T>,

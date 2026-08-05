@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { PostAdminOrderExpeditionStatusSchemaType } from "../../../../../../../src/api/admin/order-expedition/validators"
 
-vi.mock("@medusajs/framework/utils", () => ({
+vi.mock(import("@medusajs/framework/utils"), () => ({
   ContainerRegistrationKeys: {
     QUERY: "query",
   },
@@ -21,20 +21,20 @@ const {
   mockCompleteRun: vi.fn(),
 }))
 
-vi.mock("@medusajs/medusa/core-flows", () => ({
+vi.mock(import("@medusajs/medusa/core-flows"), () => ({
   archiveOrderWorkflow: vi.fn(() => ({ run: mockArchiveRun })),
   completeOrderWorkflow: vi.fn(() => ({ run: mockCompleteRun })),
 }))
 
 vi.mock(
-  "../../../../../../../src/workflows/order-expedition/bulk-cancel-orders",
+  import("../../../../../../../src/workflows/order-expedition/bulk-cancel-orders"),
   () => ({
     bulkCancelOrdersWorkflow: vi.fn(() => ({ run: mockBulkCancelRun })),
   })
 )
 
 vi.mock(
-  "../../../../../../../src/workflows/order-expedition/bulk-update-order-statuses",
+  import("../../../../../../../src/workflows/order-expedition/bulk-update-order-statuses"),
   () => ({
     bulkUpdateOrderStatusesWorkflow: vi.fn(() => ({ run: mockBulkUpdateRun })),
     isOrderExpeditionDirectUpdateStatus: vi.fn((status: string) =>
@@ -105,7 +105,7 @@ describe("POST /admin/order-expedition/status", () => {
     const { POST } =
       await import("../../../../../../../src/api/admin/order-expedition/status/route")
     const graph = vi.fn().mockResolvedValue({
-      data: [{ id: "order_1", display_id: 1001, status: "pending" }],
+      data: [{ display_id: 1001, id: "order_1", status: "pending" }],
     })
     const req = createMockRequest(
       {
@@ -144,14 +144,14 @@ describe("POST /admin/order-expedition/status", () => {
       .fn()
       .mockResolvedValueOnce({
         data: [
-          { id: "order_1", display_id: 1001, status: "pending" },
-          { id: "order_2", display_id: 1002, status: "pending" },
+          { display_id: 1001, id: "order_1", status: "pending" },
+          { display_id: 1002, id: "order_2", status: "pending" },
         ],
       })
       .mockResolvedValueOnce({
         data: [
-          { id: "order_1", display_id: 1001, status: "completed" },
-          { id: "order_2", display_id: 1002, status: "completed" },
+          { display_id: 1001, id: "order_1", status: "completed" },
+          { display_id: 1002, id: "order_2", status: "completed" },
         ],
       })
     const req = createMockRequest(
@@ -183,14 +183,14 @@ describe("POST /admin/order-expedition/status", () => {
       .fn()
       .mockResolvedValueOnce({
         data: [
-          { id: "order_1", display_id: 1001, status: "pending" },
-          { id: "order_2", display_id: 1002, status: "pending" },
+          { display_id: 1001, id: "order_1", status: "pending" },
+          { display_id: 1002, id: "order_2", status: "pending" },
         ],
       })
       .mockResolvedValueOnce({
         data: [
-          { id: "order_1", display_id: 1001, status: "requires_action" },
-          { id: "order_2", display_id: 1002, status: "requires_action" },
+          { display_id: 1001, id: "order_1", status: "requires_action" },
+          { display_id: 1002, id: "order_2", status: "requires_action" },
         ],
       })
     const req = createMockRequest(
@@ -227,9 +227,9 @@ describe("POST /admin/order-expedition/status", () => {
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
+          display_id: 1001,
           fulfillments: [{ canceled_at: null, id: "ful_1" }],
           id: "order_1",
-          display_id: 1001,
           status: "pending",
         },
       ],
@@ -266,8 +266,8 @@ describe("POST /admin/order-expedition/status", () => {
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
-          id: "order_1",
           display_id: 1001,
+          id: "order_1",
           status: "archived",
         },
       ],
@@ -304,8 +304,8 @@ describe("POST /admin/order-expedition/status", () => {
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
-          id: "order_1",
           display_id: 1001,
+          id: "order_1",
           status: "pending",
         },
       ],
@@ -344,8 +344,8 @@ describe("POST /admin/order-expedition/status", () => {
       .mockResolvedValueOnce({
         data: [
           {
-            id: "order_1",
             display_id: 1001,
+            id: "order_1",
             status: "canceled",
           },
         ],
@@ -353,8 +353,8 @@ describe("POST /admin/order-expedition/status", () => {
       .mockResolvedValueOnce({
         data: [
           {
-            id: "order_1",
             display_id: 1001,
+            id: "order_1",
             status: "archived",
           },
         ],
@@ -389,9 +389,9 @@ describe("POST /admin/order-expedition/status", () => {
       .mockResolvedValueOnce({
         data: [
           {
+            display_id: 1001,
             fulfillments: [],
             id: "order_1",
-            display_id: 1001,
             status: "pending",
           },
         ],
@@ -399,8 +399,8 @@ describe("POST /admin/order-expedition/status", () => {
       .mockResolvedValueOnce({
         data: [
           {
-            id: "order_1",
             display_id: 1001,
+            id: "order_1",
             status: "canceled",
           },
         ],

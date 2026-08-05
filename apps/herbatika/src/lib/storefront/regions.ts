@@ -20,7 +20,7 @@ const regionHooks = storefront.hooks.regions
 
 export const { useRegions } = regionHooks
 
-type UseRegionBootstrapOptions = {
+interface UseRegionBootstrapOptions {
   initialRegion?: RegionInfo | null
 }
 
@@ -94,13 +94,13 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
   }
 
   return {
+    error,
+    isFetching,
+    isLoading,
     region,
     regions,
     selectedRegion,
     selectedRegionId,
-    isLoading,
-    isFetching,
-    error,
     setRegionById,
   }
 }

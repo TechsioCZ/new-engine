@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next"
 
 import { Thumbnail } from "../../thumbnail"
 
-type ProductCellProps = {
+interface ProductCellProps {
   product: HttpTypes.AdminProduct
 }
 

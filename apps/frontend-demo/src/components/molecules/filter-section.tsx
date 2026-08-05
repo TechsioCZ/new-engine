@@ -57,7 +57,9 @@ export function FilterSection<T>({
       {hasMore && (
         <div className="mt-filter-section-view-more-margin">
           <Button
-            onClick={() => setShowAll(!showAll)}
+            onClick={() => {
+              setShowAll(!showAll)
+            }}
             size="sm"
             theme="borderless"
             variant="tertiary"

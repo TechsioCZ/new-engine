@@ -5,14 +5,14 @@ import { sdk } from "@/lib/medusa-client"
 // Export types for reuse in components/hooks
 export type { StoreOrder } from "@medusajs/types"
 
-export type OrdersResponse = {
+export interface OrdersResponse {
   orders: StoreOrder[]
   count: number
   offset: number
   limit: number
 }
 
-export type GetOrdersParams = {
+export interface GetOrdersParams {
   limit?: number
   offset?: number
   fields?: string
@@ -28,22 +28,22 @@ export async function getOrders(
   try {
     const response = await sdk.store.order.list({
       fields,
-      order: "-created_at", // Sort by newest first
       limit,
       offset,
+      order: "-created_at", // Sort by newest first,
     })
 
     return {
-      orders: response.orders || [],
       count: response.count || 0,
-      offset,
       limit,
+      offset,
+      orders: response.orders || [],
     }
-  } catch (err) {
-    if (process.env["NODE_ENV"] === "development") {
-      console.error("[OrderService] Failed to fetch orders:", err)
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("[OrderService] Failed to fetch orders:", error)
     }
-    throw new Error("Nepodařilo se načíst objednávky")
+    throw new Error("Nepodařilo se načíst objednávky", { cause: err })
   }
 }
 
@@ -56,10 +56,10 @@ export async function getOrderById(orderId: string): Promise<StoreOrder> {
     }
 
     return response.order
-  } catch (err) {
-    if (process.env["NODE_ENV"] === "development") {
-      console.error("[OrderService] Failed to fetch order:", err)
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("[OrderService] Failed to fetch order:", error)
     }
-    throw new Error("Nepodařilo se načíst objednávku")
+    throw new Error("Nepodařilo se načíst objednávku", { cause: err })
   }
 }

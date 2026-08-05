@@ -25,7 +25,9 @@ export default function AccountLayout({
     const timeout = setTimeout(() => {
       router.push("/prihlaseni")
     }, 3000)
-    return () => clearTimeout(timeout)
+    return () => {
+      clearTimeout(timeout)
+    }
   }, [isTokenExpired, router])
 
   useEffect(() => {

@@ -4,7 +4,7 @@ import { omitUndefined } from "@techsio/std/object"
 
 import type { CheckoutService } from "./types"
 
-export type MedusaPaymentSessionDataInput = {
+export interface MedusaPaymentSessionDataInput {
   cart: HttpTypes.StoreCart
   cartId: string
   providerId: string
@@ -12,7 +12,7 @@ export type MedusaPaymentSessionDataInput = {
 
 type MaybePromise<T> = T | Promise<T>
 
-export type MedusaCheckoutServiceConfig = {
+export interface MedusaCheckoutServiceConfig {
   cartFields?: string
   buildPaymentSessionData?: (
     input: MedusaPaymentSessionDataInput
@@ -61,21 +61,25 @@ export function createMedusaCheckoutService(
   const cartQuery = buildCartSelectParams(config?.cartFields)
 
   return {
-    async listShippingOptions(
+    async addShippingMethod(
       cartId: string,
-      signal?: AbortSignal
-    ): Promise<HttpTypes.StoreCartShippingOption[]> {
-      const response =
-        await sdk.client.fetch<HttpTypes.StoreShippingOptionListResponse>(
-          "/store/shipping-options",
-          {
-            query: {
-              cart_id: cartId,
-            },
-            signal: signal ?? null,
-          }
-        )
-      return response.shipping_options ?? []
+      optionId: string,
+      data?: Record<string, unknown>
+    ): Promise<HttpTypes.StoreCart> {
+      const response = cartQuery
+        ? await sdk.store.cart.addShippingMethod(
+            cartId,
+            omitUndefined({ option_id: optionId, data }),
+            cartQuery
+          )
+        : await sdk.store.cart.addShippingMethod(
+            cartId,
+            omitUndefined({ option_id: optionId, data })
+          )
+      if (!response.cart) {
+        throw new Error("Failed to add shipping method")
+      }
+      return response.cart
     },
 
     async calculateShippingOption(
@@ -98,42 +102,10 @@ export function createMedusaCheckoutService(
       return response.shipping_option
     },
 
-    async addShippingMethod(
-      cartId: string,
-      optionId: string,
-      data?: Record<string, unknown>
-    ): Promise<HttpTypes.StoreCart> {
-      const response = cartQuery
-        ? await sdk.store.cart.addShippingMethod(
-            cartId,
-            omitUndefined({ option_id: optionId, data }),
-            cartQuery
-          )
-        : await sdk.store.cart.addShippingMethod(
-            cartId,
-            omitUndefined({ option_id: optionId, data })
-          )
-      if (!response.cart) {
-        throw new Error("Failed to add shipping method")
-      }
-      return response.cart
-    },
-
-    async listPaymentProviders(
-      regionId: string,
-      signal?: AbortSignal
-    ): Promise<HttpTypes.StorePaymentProvider[]> {
-      const response =
-        await sdk.client.fetch<HttpTypes.StorePaymentProviderListResponse>(
-          "/store/payment-providers",
-          {
-            query: {
-              region_id: regionId,
-            },
-            signal: signal ?? null,
-          }
-        )
-      return response.payment_providers ?? []
+    async completeCart(
+      cartId: string
+    ): Promise<HttpTypes.StoreCompleteCartResponse> {
+      return sdk.store.cart.complete(cartId)
     },
 
     async initiatePaymentSession(
@@ -169,8 +141,38 @@ export function createMedusaCheckoutService(
       return response.payment_collection
     },
 
-    completeCart(cartId: string): Promise<HttpTypes.StoreCompleteCartResponse> {
-      return sdk.store.cart.complete(cartId)
+    async listPaymentProviders(
+      regionId: string,
+      signal?: AbortSignal
+    ): Promise<HttpTypes.StorePaymentProvider[]> {
+      const response =
+        await sdk.client.fetch<HttpTypes.StorePaymentProviderListResponse>(
+          "/store/payment-providers",
+          {
+            query: {
+              region_id: regionId,
+            },
+            signal: signal ?? null,
+          }
+        )
+      return response.payment_providers ?? []
+    },
+
+    async listShippingOptions(
+      cartId: string,
+      signal?: AbortSignal
+    ): Promise<HttpTypes.StoreCartShippingOption[]> {
+      const response =
+        await sdk.client.fetch<HttpTypes.StoreShippingOptionListResponse>(
+          "/store/shipping-options",
+          {
+            query: {
+              cart_id: cartId,
+            },
+            signal: signal ?? null,
+          }
+        )
+      return response.shipping_options ?? []
     },
   }
 }

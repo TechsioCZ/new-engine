@@ -19,7 +19,7 @@ export const handle = {
   breadcrumb: () => "Packeta",
 }
 
-type PacketaConfigResponse = {
+interface PacketaConfigResponse {
   id: string
   environment: string
   is_enabled: boolean
@@ -41,7 +41,7 @@ type PacketaConfigResponse = {
   sender_email: string | null
 }
 
-type PacketaConfigInput = {
+interface PacketaConfigInput {
   is_enabled?: boolean
   api_password?: string | null
   sender_label?: string
@@ -90,13 +90,13 @@ const getStringField = (
 }
 
 const LABEL_FORMATS = [
-  { value: "A6", label: "A6 (thermal)" },
-  { value: "A7", label: "A7" },
+  { label: "A6 (thermal)", value: "A6" },
+  { label: "A7", value: "A7" },
 ]
 
 const DEFAULT_LABEL_FORMAT = "A6"
 
-type FieldConfig = {
+interface FieldConfig {
   field: keyof PacketaConfigInput
   label: string
   placeholder: string
@@ -165,7 +165,9 @@ const FormField = ({
       <Input
         disabled={isCleared}
         id={inputId}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          onChange(e.target.value)
+        }}
         placeholder={getPlaceholder(isCleared, fieldConfig)}
         type={fieldConfig.type ?? "text"}
         value={isCleared ? "" : value}
@@ -182,7 +184,7 @@ const PacketaSettingsPage = () => {
   )
 
   const { data, isLoading, error } = useQuery({
-    queryFn: () =>
+    queryFn: async () =>
       sdk.client.fetch<{ config: PacketaConfigResponse }>(
         "/admin/packeta-config"
       ),
@@ -190,17 +192,17 @@ const PacketaSettingsPage = () => {
   })
 
   const { mutate, isPending } = useMutation({
-    mutationFn: (payload: PacketaConfigInput) =>
+    mutationFn: async (payload: PacketaConfigInput) =>
       sdk.client.fetch("/admin/packeta-config", {
         method: "POST",
         body: payload,
       }),
+    onError: (err) => {
+      toast.error(`Failed to save configuration: ${err.message}`)
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["packeta-config"] })
       toast.success("Packeta configuration saved")
-    },
-    onError: (err) => {
-      toast.error(`Failed to save configuration: ${err.message}`)
     },
   })
 
@@ -209,19 +211,19 @@ const PacketaSettingsPage = () => {
   useEffect(() => {
     if (packetaConfig) {
       setFormData({
-        is_enabled: packetaConfig.is_enabled,
-        sender_label: packetaConfig.sender_label ?? "",
-        eshop_id: packetaConfig.eshop_id ?? "",
         default_label_format:
           packetaConfig.default_label_format ?? DEFAULT_LABEL_FORMAT,
         default_label_offset: packetaConfig.default_label_offset,
-        sender_name: packetaConfig.sender_name ?? "",
-        sender_street: packetaConfig.sender_street ?? "",
+        eshop_id: packetaConfig.eshop_id ?? "",
+        is_enabled: packetaConfig.is_enabled,
         sender_city: packetaConfig.sender_city ?? "",
-        sender_zip_code: packetaConfig.sender_zip_code ?? "",
         sender_country: packetaConfig.sender_country ?? "",
-        sender_phone: packetaConfig.sender_phone ?? "",
         sender_email: packetaConfig.sender_email ?? "",
+        sender_label: packetaConfig.sender_label ?? "",
+        sender_name: packetaConfig.sender_name ?? "",
+        sender_phone: packetaConfig.sender_phone ?? "",
+        sender_street: packetaConfig.sender_street ?? "",
+        sender_zip_code: packetaConfig.sender_zip_code ?? "",
       })
       setClearedFields(new Set())
     }
@@ -294,12 +296,12 @@ const PacketaSettingsPage = () => {
 
   const credentialFields: FieldConfig[] = [
     {
+      colSpan: 2,
       field: "api_password",
+      isSet: packetaConfig?.api_password_set ?? false,
       label: "API Password",
       placeholder: "Your Packeta API password",
       type: "password",
-      isSet: packetaConfig?.api_password_set ?? false,
-      colSpan: 2,
     },
     {
       field: "sender_label",
@@ -316,27 +318,27 @@ const PacketaSettingsPage = () => {
   const codFields: FieldConfig[] = [
     {
       field: "cod_bank_account",
+      isSet: packetaConfig?.cod_bank_account_set ?? false,
       label: "Bank Account",
       placeholder: "Bank account",
-      isSet: packetaConfig?.cod_bank_account_set ?? false,
     },
     {
       field: "cod_bank_code",
+      isSet: packetaConfig?.cod_bank_code_set ?? false,
       label: "Bank Code",
       placeholder: "Bank code",
-      isSet: packetaConfig?.cod_bank_code_set ?? false,
     },
     {
       field: "cod_iban",
+      isSet: packetaConfig?.cod_iban_set ?? false,
       label: "IBAN",
       placeholder: "IBAN (alternative)",
-      isSet: packetaConfig?.cod_iban_set ?? false,
     },
     {
       field: "cod_swift",
+      isSet: packetaConfig?.cod_swift_set ?? false,
       label: "SWIFT",
       placeholder: "SWIFT (with IBAN)",
-      isSet: packetaConfig?.cod_swift_set ?? false,
     },
   ]
 
@@ -356,11 +358,11 @@ const PacketaSettingsPage = () => {
     },
     { field: "sender_phone", label: "Phone", placeholder: "Phone number" },
     {
+      colSpan: 2,
       field: "sender_email",
       label: "Email",
       placeholder: "Email address",
       type: "email",
-      colSpan: 2,
     },
   ]
 
@@ -400,18 +402,18 @@ const PacketaSettingsPage = () => {
                 aria-labelledby="packeta-is-enabled-label"
                 checked={formData.is_enabled ?? false}
                 id="packeta-is-enabled"
-                onCheckedChange={(checked) =>
+                onCheckedChange={(checked) => {
                   updateField("is_enabled", checked)
-                }
+                }}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="packeta-label-format">Label Format</Label>
                 <Select
-                  onValueChange={(value) =>
+                  onValueChange={(value) => {
                     updateField("default_label_format", value)
-                  }
+                  }}
                   value={
                     formData.default_label_format ??
                     packetaConfig?.default_label_format ??
@@ -436,12 +438,12 @@ const PacketaSettingsPage = () => {
                   id="packeta-label-offset"
                   max={3}
                   min={0}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     updateField(
                       "default_label_offset",
                       Number.parseInt(e.target.value, 10) || 0
                     )
-                  }
+                  }}
                   type="number"
                   value={formData.default_label_offset ?? 0}
                 />
@@ -461,8 +463,12 @@ const PacketaSettingsPage = () => {
                 fieldConfig={f}
                 isCleared={isFieldCleared(f.field)}
                 key={f.field}
-                onChange={(v) => updateField(f.field, v)}
-                onClear={() => clearField(f.field)}
+                onChange={(v) => {
+                  updateField(f.field, v)
+                }}
+                onClear={() => {
+                  clearField(f.field)
+                }}
                 value={getStringField(formData, f.field)}
               />
             ))}
@@ -483,8 +489,12 @@ const PacketaSettingsPage = () => {
                 fieldConfig={f}
                 isCleared={isFieldCleared(f.field)}
                 key={f.field}
-                onChange={(v) => updateField(f.field, v)}
-                onClear={() => clearField(f.field)}
+                onChange={(v) => {
+                  updateField(f.field, v)
+                }}
+                onClear={() => {
+                  clearField(f.field)
+                }}
                 value={getStringField(formData, f.field)}
               />
             ))}
@@ -504,7 +514,9 @@ const PacketaSettingsPage = () => {
               <FormField
                 fieldConfig={f}
                 key={f.field}
-                onChange={(v) => updateField(f.field, v)}
+                onChange={(v) => {
+                  updateField(f.field, v)
+                }}
                 value={getStringField(formData, f.field)}
               />
             ))}

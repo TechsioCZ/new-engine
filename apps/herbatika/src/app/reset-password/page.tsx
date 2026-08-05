@@ -2,7 +2,7 @@ import { redirect } from "next/navigation"
 
 import { appHref } from "@/lib/routing"
 
-type ResetPasswordRedirectPageProps = {
+interface ResetPasswordRedirectPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 

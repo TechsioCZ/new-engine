@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react"
 import { RichHtmlEditor } from "../components/rich-html-editor"
 import { sdk } from "../lib/sdk"
 
-type ProductCategoryWithMetadata = {
+interface ProductCategoryWithMetadata {
   id: string
   metadata?: Record<string, unknown> | null
 }
@@ -16,7 +16,7 @@ type CategoryDescriptionEditorProps = Partial<
   DetailWidgetProps<ProductCategoryWithMetadata>
 >
 
-type UpdateCategoryResponse = {
+interface UpdateCategoryResponse {
   product_category: ProductCategoryWithMetadata
 }
 
@@ -62,7 +62,7 @@ const CategoryDescriptionEditor = ({
   }, [category?.metadata])
 
   const mutation = useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       bottomDescriptionHtml,
       topDescriptionHtml,
     }: {

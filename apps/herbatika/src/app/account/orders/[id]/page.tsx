@@ -1,6 +1,6 @@
 import { AccountOrderDetail } from "@/components/account-order-detail"
 
-type AccountOrderDetailPageProps = {
+interface AccountOrderDetailPageProps {
   params: Promise<{
     id: string
   }>

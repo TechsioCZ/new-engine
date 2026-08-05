@@ -1,8 +1,5 @@
-import {
-  type CacheConfig,
-  type CacheStrategy,
-  createCacheConfig,
-} from "../shared/cache-config"
+import { createCacheConfig } from "../shared/cache-config"
+import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
   ReadQueryOptions,
@@ -21,13 +18,14 @@ import type {
   ProductService,
   RegionInfo,
 } from "./types"
-export type CreateProductQueryOptionsFactoryConfig<
+
+export interface CreateProductQueryOptionsFactoryConfig<
   TProduct,
   TListInput extends ProductListInputBase,
   TListParams,
   TDetailInput extends ProductDetailInputBase,
   TDetailParams,
-> = {
+> {
   service: ProductService<TProduct, TListParams, TDetailParams>
   buildListParams?: (input: TListInput) => TListParams
   buildDetailParams?: (input: TDetailInput) => TDetailParams
@@ -36,11 +34,11 @@ export type CreateProductQueryOptionsFactoryConfig<
   cacheConfig?: CacheConfig
 }
 
-export type ProductQueryOptionsFactory<
+export interface ProductQueryOptionsFactory<
   TProduct,
   TListInput extends ProductListInputBase,
   TDetailInput extends ProductDetailInputBase,
-> = {
+> {
   getListQueryOptions: (
     input: TListInput,
     options?: {
@@ -92,6 +90,26 @@ export function createProductQueryOptionsFactory<
     ((input: TDetailInput) => ({ ...input }) as TDetailInput & TDetailParams)
 
   return {
+    getDetailQueryOptions: (
+      input,
+      options
+    ): QueryFactoryOptions<TProduct | null> => {
+      const { queryKey, queryFn } = createProductDetailQueryDefinition({
+        input,
+        service,
+        buildDetailParams: buildDetail,
+        queryKeys: resolvedQueryKeys,
+        ...(options?.region !== undefined ? { region: options.region } : {}),
+      })
+      const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
+
+      return {
+        queryKey,
+        queryFn,
+        ...resolvedCacheConfig[cacheStrategy],
+        ...options?.queryOptions,
+      }
+    },
     getListQueryOptions: (
       input,
       options
@@ -105,26 +123,6 @@ export function createProductQueryOptionsFactory<
         ...(options?.useGlobalFetcher !== undefined
           ? { useGlobalFetcher: options.useGlobalFetcher }
           : {}),
-      })
-      const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
-
-      return {
-        queryKey,
-        queryFn,
-        ...resolvedCacheConfig[cacheStrategy],
-        ...options?.queryOptions,
-      }
-    },
-    getDetailQueryOptions: (
-      input,
-      options
-    ): QueryFactoryOptions<TProduct | null> => {
-      const { queryKey, queryFn } = createProductDetailQueryDefinition({
-        input,
-        service,
-        buildDetailParams: buildDetail,
-        queryKeys: resolvedQueryKeys,
-        ...(options?.region !== undefined ? { region: options.region } : {}),
       })
       const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
 

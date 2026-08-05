@@ -14,13 +14,17 @@ export const formatBlogDate = (value: string, locale: string) => {
 
 export const formatTopicFromKey = (topicKey: string) => {
   switch (topicKey) {
-    case "fitness":
+    case "fitness": {
       return "Fitness"
-    case "krasa":
+    }
+    case "krasa": {
       return "Krása"
-    case "zdravie":
+    }
+    case "zdravie": {
       return "Zdravie"
-    default:
+    }
+    default: {
       return "Všetky"
+    }
   }
 }

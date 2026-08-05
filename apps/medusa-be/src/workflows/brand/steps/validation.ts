@@ -1,7 +1,7 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
 
-export type BrandScalarWriteInput = {
+export interface BrandScalarWriteInput {
   handle?: string | undefined
   title?: string | undefined
   gpsr_contact_email?: string | null | undefined
@@ -43,13 +43,13 @@ export const normalizeBrandWriteInput = (
   brand: BrandScalarWriteInput
 ): BrandScalarWriteInput => {
   const normalized: BrandScalarWriteInput = {
-    ...(brand.handle !== undefined ? { handle: brand.handle.trim() } : {}),
-    ...(brand.title !== undefined ? { title: brand.title.trim() } : {}),
-    ...(brand.gpsr_manufactured_outside_eu !== undefined
-      ? {
+    ...(brand.handle === undefined ? {} : { handle: brand.handle.trim() }),
+    ...(brand.title === undefined ? {} : { title: brand.title.trim() }),
+    ...(brand.gpsr_manufactured_outside_eu === undefined
+      ? {}
+      : {
           gpsr_manufactured_outside_eu: brand.gpsr_manufactured_outside_eu,
-        }
-      : {}),
+        }),
   }
 
   for (const field of GPSR_TEXT_FIELDS) {

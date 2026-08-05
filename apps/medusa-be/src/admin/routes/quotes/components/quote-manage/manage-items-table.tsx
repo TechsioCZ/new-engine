@@ -11,7 +11,7 @@ import { useManageItemsTableQuery } from "./table/query"
 const PAGE_SIZE = 50
 const PREFIX = "rit"
 
-type ManageItemsTableProps = {
+interface ManageItemsTableProps {
   onSelectionChange: (ids: string[]) => void
   currencyCode: string
 }
@@ -45,13 +45,13 @@ export const ManageItemsTable = ({
   const filters = useManageItemsTableFilters()
 
   const { table } = useDataTable({
-    data: variants,
     columns,
     count: count ?? 0,
+    data: variants,
     enablePagination: true,
+    enableRowSelection: (_row) => true,
     getRowId: (row) => row.id,
     pageSize: PAGE_SIZE,
-    enableRowSelection: (_row) => true,
     rowSelection: {
       state: rowSelection,
       updater,

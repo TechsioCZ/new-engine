@@ -17,13 +17,11 @@ import {
 import { ORDER_RECEIPT_MODULE } from "../modules/order-receipt"
 import type OrderReceiptModuleService from "../modules/order-receipt/service"
 import type { OrderReceiptOrder } from "../modules/order-receipt/service"
-import {
-  formatTotal,
-  type PaymentReminderOrder,
-} from "../utils/order-payment-reminders"
+import { formatTotal } from "../utils/order-payment-reminders"
+import type { PaymentReminderOrder } from "../utils/order-payment-reminders"
 import { sendNotificationStep } from "./steps/send-notification"
 
-type WorkflowInput = {
+interface WorkflowInput {
   customer_id?: string
   email: string
   order_display_id: string
@@ -157,9 +155,9 @@ const buildOrderPaymentReminderNotificationStep = createStep(
           store_name: input.store_name,
           total: formatTotal(order) ?? input.total,
         },
-        ...(input.customer_id !== undefined
-          ? { receiver_id: input.customer_id }
-          : {}),
+        ...(input.customer_id === undefined
+          ? {}
+          : { receiver_id: input.customer_id }),
         resource_id: input.order_id,
         resource_type: "order",
         template: "order-payment-reminder",

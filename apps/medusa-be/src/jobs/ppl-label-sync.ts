@@ -9,18 +9,18 @@ import type {
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
-import {
-  PPL_CLIENT_MODULE,
-  type PplBatchItem,
-  type PplBatchResponse,
-  type PplClientModuleService,
-  type PplFulfillmentData,
+import { PPL_CLIENT_MODULE } from "../modules/ppl-client"
+import type {
+  PplBatchItem,
+  PplBatchResponse,
+  PplClientModuleService,
+  PplFulfillmentData,
 } from "../modules/ppl-client"
-import {
-  checkTimeoutConditions,
-  type FulfillmentRecord,
-  type PendingFulfillment,
-  type SyncAttemptInfo,
+import { checkTimeoutConditions } from "../modules/ppl-client/utils"
+import type {
+  FulfillmentRecord,
+  PendingFulfillment,
+  SyncAttemptInfo,
 } from "../modules/ppl-client/utils"
 import { executeWithLockTimeout } from "../utils/locking"
 
@@ -31,7 +31,7 @@ const JOB_LOCK_KEY = "ppl-label-sync-job"
 const JOB_LOCK_TIMEOUT = 120
 
 /** Context passed to helper functions */
-type SyncContext = {
+interface SyncContext {
   logger: Logger
   fulfillmentService: IFulfillmentModuleService
   fileService: IFileModuleService
@@ -110,10 +110,10 @@ async function executeSync(
 
   try {
     const ctx: SyncContext = {
-      logger,
-      fulfillmentService,
-      fileService,
       eventBus,
+      fileService,
+      fulfillmentService,
+      logger,
       pplClient,
     }
 
@@ -180,9 +180,9 @@ async function processFulfillment(
   const now = new Date().toISOString()
 
   const attemptInfo: SyncAttemptInfo = {
-    syncAttempts: (fulfillmentData.sync_attempts || 0) + 1,
     firstSyncAttempt: fulfillmentData.first_sync_attempt || now,
     now,
+    syncAttempts: (fulfillmentData.sync_attempts || 0) + 1,
   }
 
   try {
@@ -252,9 +252,9 @@ async function handleBatchResult(
     await fulfillmentService.updateFulfillment(fulfillment.id, {
       data: {
         ...fulfillmentData,
-        sync_attempts: attemptInfo.syncAttempts,
         first_sync_attempt: attemptInfo.firstSyncAttempt,
         last_sync_attempt: attemptInfo.now,
+        sync_attempts: attemptInfo.syncAttempts,
       },
     })
   }
@@ -299,14 +299,14 @@ async function handleCompletedItem(
   // Update fulfillment with completed data
   const updatedData: PplFulfillmentData = {
     ...fulfillmentData,
-    status: "completed",
-    shipment_number: shipmentNumber,
-    ppl_label_url: labelUrl,
-    label_url: storedLabelUrl,
-    tracking_url: trackingUrl,
-    sync_attempts: attemptInfo.syncAttempts,
     first_sync_attempt: attemptInfo.firstSyncAttempt,
+    label_url: storedLabelUrl,
     last_sync_attempt: attemptInfo.now,
+    ppl_label_url: labelUrl,
+    shipment_number: shipmentNumber,
+    status: "completed",
+    sync_attempts: attemptInfo.syncAttempts,
+    tracking_url: trackingUrl,
   }
 
   await fulfillmentService.updateFulfillment(fulfillment.id, {
@@ -318,13 +318,13 @@ async function handleCompletedItem(
   )
 
   await eventBus.emit({
-    name: "fulfillment.label_ready",
     data: {
       fulfillment_id: fulfillment.id,
-      shipment_number: shipmentNumber,
       label_url: storedLabelUrl,
+      shipment_number: shipmentNumber,
       tracking_url: trackingUrl,
     },
+    name: "fulfillment.label_ready",
   })
 }
 
@@ -343,9 +343,9 @@ async function downloadAndStoreLabel(
 
     const uploadedFiles = await fileService.createFiles([
       {
+        content: labelBuffer.toString("base64"),
         filename: `ppl-label-${shipmentNumber}.png`,
         mimeType: "image/png",
-        content: labelBuffer.toString("base64"),
       },
     ])
 
@@ -378,9 +378,9 @@ async function updateAttemptCount(
     await fulfillmentService.updateFulfillment(fulfillment.id, {
       data: {
         ...fulfillment.data,
-        sync_attempts: attemptInfo.syncAttempts,
         first_sync_attempt: attemptInfo.firstSyncAttempt,
         last_sync_attempt: attemptInfo.now,
+        sync_attempts: attemptInfo.syncAttempts,
       },
     })
   } catch (error) {
@@ -405,11 +405,11 @@ async function markAsError(
 
   const updatedData: PplFulfillmentData = {
     ...fulfillmentData,
-    status: "error",
     error_message: errorMessage,
-    sync_attempts: attemptInfo.syncAttempts,
     first_sync_attempt: attemptInfo.firstSyncAttempt,
     last_sync_attempt: attemptInfo.now,
+    status: "error",
+    sync_attempts: attemptInfo.syncAttempts,
   }
 
   await fulfillmentService.updateFulfillment(fulfillment.id, {
@@ -417,11 +417,11 @@ async function markAsError(
   })
 
   await eventBus.emit({
-    name: "fulfillment.label_failed",
     data: {
-      fulfillment_id: fulfillment.id,
       batch_id: fulfillmentData.batch_id,
       error_message: errorMessage,
+      fulfillment_id: fulfillment.id,
     },
+    name: "fulfillment.label_failed",
   })
 }

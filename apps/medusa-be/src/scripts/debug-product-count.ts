@@ -1,7 +1,7 @@
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
-type QueryService = {
+interface QueryService {
   graph: (config: {
     entity: string
     fields: string[]
@@ -36,14 +36,14 @@ type QueryService = {
   }>
 }
 
-type PgConnection = {
+interface PgConnection {
   raw: (
     sql: string,
     bindings?: unknown[]
   ) => Promise<{ rows?: Record<string, unknown>[] }>
 }
 
-type SnapshotContext = {
+interface SnapshotContext {
   label: string
   logger: Logger
   pg: PgConnection
@@ -119,8 +119,8 @@ async function resolvePublishableKey(query: QueryService) {
   }
 
   return {
-    token,
     salesChannelIds,
+    token,
   }
 }
 
@@ -143,12 +143,12 @@ async function getExactCounts(pg: PgConnection, salesChannelIds: string[]) {
   const row = toRows(result)[0]
 
   return {
-    publishedProducts: getFirstNumber(row, "published_products"),
-    productSalesChannelRows: getFirstNumber(row, "product_sales_channel_rows"),
     productSalesChannelProducts: getFirstNumber(
       row,
       "product_sales_channel_products"
     ),
+    productSalesChannelRows: getFirstNumber(row, "product_sales_channel_rows"),
+    publishedProducts: getFirstNumber(row, "published_products"),
   }
 }
 
@@ -161,10 +161,10 @@ async function getIndexCounts(
     entity: "product",
     fields: ["id", "handle"],
     filters: {
-      status: "published",
       sales_channels: {
         id: salesChannelIds,
       },
+      status: "published",
     },
     pagination: {
       skip: 0,
@@ -179,9 +179,9 @@ async function getIndexCounts(
   )
 
   return {
+    estimateCount: result.metadata?.estimate_count ?? null,
     returnedProducts: result.data?.length ?? 0,
     uniqueReturnedProducts: productIds.size,
-    estimateCount: result.metadata?.estimate_count ?? null,
   }
 }
 
@@ -221,9 +221,9 @@ async function getGraphCounts(
   )
 
   return {
+    count: result.metadata?.count ?? null,
     returnedProducts: result.data?.length ?? 0,
     uniqueReturnedProducts: productIds.size,
-    count: result.metadata?.count ?? null,
   }
 }
 

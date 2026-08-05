@@ -2,7 +2,7 @@ import { useTranslations } from "next-intl"
 
 import NextLink from "@/components/app-link"
 
-type TextActionLinkProps = {
+interface TextActionLinkProps {
   href: string
   text?: string
 }

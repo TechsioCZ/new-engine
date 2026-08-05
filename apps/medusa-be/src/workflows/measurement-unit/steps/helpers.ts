@@ -8,7 +8,7 @@ import {
 import { MEASUREMENT_UNIT_MODULE } from "../../../modules/measurement-unit"
 import { getMeasurementUnitService } from "../../../utils/measurement-units"
 
-type TimestampedRecord = {
+interface TimestampedRecord {
   created_at?: Date | string
   deleted_at?: Date | string | null
   id: string
@@ -59,7 +59,7 @@ export const pickCanonicalRecord = <TRecord extends TimestampedRecord>(
 }
 
 export const normalizeUnitCode = (code: string) =>
-  code.trim().toLowerCase().replace(/\s+/g, "_")
+  code.trim().toLowerCase().replaceAll(/\s+/g, "_")
 
 export const normalizeDescription = (description?: null | string) =>
   description?.trim() || null

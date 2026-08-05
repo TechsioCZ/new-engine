@@ -7,17 +7,11 @@ figma.connect(
   Icon,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=365-170",
   {
+    example: ({ color, size, icon }) => (
+      <Icon color={color} icon={icon ?? "token-icon-plus"} size={size} />
+    ),
     imports: ['import { Icon } from "@techsio/ui-kit/atoms/icon"'],
     props: {
-      size: figma.enum("size", {
-        current: "current",
-        xs: "xs",
-        sm: "sm",
-        md: "md",
-        lg: "lg",
-        xl: "xl",
-        "2xl": "2xl",
-      }),
       color: figma.enum("color", {
         current: "current",
         primary: "primary",
@@ -27,9 +21,15 @@ figma.connect(
         warning: "warning",
       }),
       icon: figma.instance<IconType | undefined>("icon"),
+      size: figma.enum("size", {
+        current: "current",
+        xs: "xs",
+        sm: "sm",
+        md: "md",
+        lg: "lg",
+        xl: "xl",
+        "2xl": "2xl",
+      }),
     },
-    example: ({ color, size, icon }) => (
-      <Icon color={color} icon={icon ?? "token-icon-plus"} size={size} />
-    ),
   }
 )

@@ -30,21 +30,12 @@ export function useCheckout(): UseCheckoutReturn {
 
   // Update addresses in cart
   const updateAddresses = async (data: CheckoutAddressData) => {
-    if (!cart?.id) return
+    if (!cart?.id) {
+      return
+    }
 
     try {
       await sdk.store.cart.update(cart.id, {
-        email: data.shipping.email,
-        shipping_address: {
-          first_name: data.shipping.firstName,
-          last_name: data.shipping.lastName,
-          address_1: data.shipping.street,
-          city: data.shipping.city,
-          postal_code: data.shipping.postalCode,
-          phone: data.shipping.phone,
-          country_code: (data.shipping.country || "CZ").toLowerCase(),
-          company: data.shipping.company || null,
-        },
         billing_address: data.useSameAddress
           ? {
               first_name: data.shipping.firstName,
@@ -65,16 +56,27 @@ export function useCheckout(): UseCheckoutReturn {
               country_code: (data.billing.country || "CZ").toLowerCase(),
               company: data.billing.company || null,
             },
+        email: data.shipping.email,
+        shipping_address: {
+          address_1: data.shipping.street,
+          city: data.shipping.city,
+          company: data.shipping.company || null,
+          country_code: (data.shipping.country || "CZ").toLowerCase(),
+          first_name: data.shipping.firstName,
+          last_name: data.shipping.lastName,
+          phone: data.shipping.phone,
+          postal_code: data.shipping.postalCode,
+        },
       })
       setAddressData(data)
-    } catch (err) {
-      console.error("Failed to update cart with addresses:", err)
+    } catch (error) {
+      console.error("Failed to update cart with addresses:", error)
       toast.create({
         title: "Chyba při ukládání adresy",
         description: "Zkuste to prosím znovu",
         type: "error",
       })
-      throw err
+      throw error
     }
   }
 
@@ -83,7 +85,7 @@ export function useCheckout(): UseCheckoutReturn {
     isLoading: isLoadingShipping,
     error: shippingError,
   } = useQuery({
-    queryKey: queryKeys.fulfillment.cartOptions(cart?.id || ""),
+    enabled: !!cart?.id,
     queryFn: async () => {
       if (!cart?.id) throw new Error("No cart ID available")
       const response = await sdk.store.fulfillment.listCartOptions({
@@ -97,13 +99,15 @@ export function useCheckout(): UseCheckoutReturn {
       }))
       return reducedShippingMethods
     },
-    enabled: !!cart?.id,
+    queryKey: queryKeys.fulfillment.cartOptions(cart?.id || ""),
     ...cacheConfig.semiStatic,
   })
 
   // Add shipping method to cart
   const addShippingMethod = async (methodId: string) => {
-    if (!cart?.id) return
+    if (!cart?.id) {
+      return
+    }
 
     try {
       await sdk.store.cart.addShippingMethod(cart.id, {
@@ -113,8 +117,8 @@ export function useCheckout(): UseCheckoutReturn {
     } catch (error) {
       console.error("Failed to add shipping method:", error)
       toast.create({
-        title: "Chyba při výběru dopravy",
         description: "Zkuste to prosím znovu",
+        title: "Chyba při výběru dopravy",
         type: "error",
       })
       throw error
@@ -123,7 +127,9 @@ export function useCheckout(): UseCheckoutReturn {
 
   // Process order
   const processOrder = async () => {
-    if (!cart?.id) return
+    if (!cart?.id) {
+      return
+    }
 
     setIsProcessingPayment(true)
 
@@ -137,8 +143,8 @@ export function useCheckout(): UseCheckoutReturn {
         currentCart.shipping_methods.length === 0
       ) {
         toast.create({
-          title: "Chyba",
           description: "Prosím vyberte způsob dopravy",
+          title: "Chyba",
           type: "error",
         })
         setCurrentStep(1)
@@ -149,8 +155,8 @@ export function useCheckout(): UseCheckoutReturn {
       if (!currentCart.payment_collection) {
         if (!currentCart.region_id) {
           toast.create({
-            title: "Chyba",
             description: "Košík nemá nastavenou region",
+            title: "Chyba",
             type: "error",
           })
           return
@@ -185,7 +191,7 @@ export function useCheckout(): UseCheckoutReturn {
       const result = await sdk.store.cart.complete(cart.id)
 
       if (result.type === "order") {
-        const order = result.order
+        const { order } = result
 
         // Save completed order data
         if (currentCart) {
@@ -208,15 +214,15 @@ export function useCheckout(): UseCheckoutReturn {
         return order
       }
 
-      return undefined
+      return
     } catch (error) {
       console.error("Order creation error:", error)
       toast.create({
-        title: "Chyba při vytváření objednávky",
         description:
           error instanceof Error
             ? error.message
             : "Něco se pokazilo. Zkuste to prosím znovu.",
+        title: "Chyba při vytváření objednávky",
         type: "error",
       })
       throw error
@@ -228,14 +234,21 @@ export function useCheckout(): UseCheckoutReturn {
   // Check if can proceed to step
   const canProceedToStep = (step: number) => {
     switch (step) {
-      case 1: // Shipping
+      case 1: {
+        // Shipping
         return !!address
-      case 2: // Payment
+      }
+      case 2: {
+        // Payment
         return !!address && !!selectedShipping
-      case 3: // Summary
+      }
+      case 3: {
+        // Summary
         return !!address && !!selectedShipping && !!selectedPayment
-      default:
+      }
+      default: {
         return true
+      }
     }
   }
 

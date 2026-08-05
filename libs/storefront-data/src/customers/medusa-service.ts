@@ -45,7 +45,7 @@ const addressMatchesCreateInput = (
   address: HttpTypes.StoreCustomerAddress,
   input: MedusaCustomerAddressCreateInput
 ) => {
-  const stringComparisons: Array<{
+  const stringComparisons: {
     key:
       | "first_name"
       | "last_name"
@@ -58,7 +58,7 @@ const addressMatchesCreateInput = (
       | "country_code"
       | "phone"
     lowercase?: boolean
-  }> = [
+  }[] = [
     { key: "first_name" },
     { key: "last_name" },
     { key: "company" },
@@ -89,9 +89,10 @@ const addressMatchesCreateInput = (
     }
   }
 
-  const booleanComparisons: Array<
-    "is_default_shipping" | "is_default_billing"
-  > = ["is_default_shipping", "is_default_billing"]
+  const booleanComparisons: ("is_default_shipping" | "is_default_billing")[] = [
+    "is_default_shipping",
+    "is_default_billing",
+  ]
 
   for (const key of booleanComparisons) {
     const expected = input[key]
@@ -162,11 +163,11 @@ const resolveCreatedAddress = (
   return pickNewestAddress(addresses)
 }
 
-export type MedusaCustomerListInput = {
+export interface MedusaCustomerListInput {
   enabled?: boolean
 }
 
-export type MedusaCustomerAddressCreateInput = {
+export interface MedusaCustomerAddressCreateInput {
   first_name?: string
   last_name?: string
   company?: string
@@ -184,7 +185,7 @@ export type MedusaCustomerAddressCreateInput = {
 
 export type MedusaCustomerAddressUpdateInput = MedusaCustomerAddressCreateInput
 
-export type MedusaCustomerProfileUpdateInput = {
+export interface MedusaCustomerProfileUpdateInput {
   first_name?: string
   last_name?: string
   phone?: string
@@ -251,27 +252,6 @@ export function createMedusaCustomerService(
   }
 
   return {
-    async getAddresses(
-      _params: MedusaCustomerListInput,
-      signal?: AbortSignal
-    ): Promise<CustomerAddressListResponse<HttpTypes.StoreCustomerAddress>> {
-      try {
-        const response =
-          await sdk.client.fetch<HttpTypes.StoreCustomerAddressListResponse>(
-            "/store/customers/me/addresses",
-            {
-              signal: signal ?? null,
-            }
-          )
-        return { addresses: response.addresses ?? [] }
-      } catch (error) {
-        if (isAuthError(error)) {
-          return { addresses: [] }
-        }
-        throw error
-      }
-    },
-
     async createAddress(
       params: MedusaCustomerAddressCreateInput
     ): Promise<HttpTypes.StoreCustomerAddress> {
@@ -297,6 +277,31 @@ export function createMedusaCustomerService(
       throw new Error("Failed to create address")
     },
 
+    async deleteAddress(addressId: string): Promise<void> {
+      await sdk.store.customer.deleteAddress(addressId)
+    },
+
+    async getAddresses(
+      _params: MedusaCustomerListInput,
+      signal?: AbortSignal
+    ): Promise<CustomerAddressListResponse<HttpTypes.StoreCustomerAddress>> {
+      try {
+        const response =
+          await sdk.client.fetch<HttpTypes.StoreCustomerAddressListResponse>(
+            "/store/customers/me/addresses",
+            {
+              signal: signal ?? null,
+            }
+          )
+        return { addresses: response.addresses ?? [] }
+      } catch (error) {
+        if (isAuthError(error)) {
+          return { addresses: [] }
+        }
+        throw error
+      }
+    },
+
     async updateAddress(
       addressId: string,
       params: MedusaCustomerAddressUpdateInput
@@ -313,10 +318,6 @@ export function createMedusaCustomerService(
         throw new Error("Failed to update address")
       }
       return address
-    },
-
-    async deleteAddress(addressId: string): Promise<void> {
-      await sdk.store.customer.deleteAddress(addressId)
     },
 
     async updateCustomer(

@@ -6,7 +6,7 @@ import { loadMedusaStorefrontMessages } from "../src/medusa/messages"
 const createClient = (response: unknown) => {
   const calls: [FetchInput, FetchArgs | undefined][] = []
   const client = {
-    fetch<T>(input: FetchInput, init?: FetchArgs): Promise<T> {
+    async fetch<T>(input: FetchInput, init?: FetchArgs): Promise<T> {
       calls.push([input, init])
       return Promise.resolve(response as T)
     },
@@ -18,7 +18,7 @@ const createClient = (response: unknown) => {
   }
 }
 
-describe("loadMedusaStorefrontMessages", () => {
+describe(loadMedusaStorefrontMessages, () => {
   it("loads the exact market and locale without caching", async () => {
     const { calls, client } = createClient({
       locale: "cs-CZ",
@@ -31,9 +31,9 @@ describe("loadMedusaStorefrontMessages", () => {
         locale: "cs-CZ",
         market: "cz",
       })
-    ).resolves.toEqual({ "cart.title": "Košík" })
+    ).resolves.toStrictEqual({ "cart.title": "Košík" })
 
-    expect(calls).toEqual([
+    expect(calls).toStrictEqual([
       [
         "/store/storefront-texts",
         {

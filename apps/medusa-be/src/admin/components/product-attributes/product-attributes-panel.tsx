@@ -19,11 +19,13 @@ import { useTranslation } from "react-i18next"
 
 import {
   listProductAttributeOptions,
-  type ProductAttributeDetailItem,
-  type ProductAttributeOption,
   productAttributeQueryKeys,
-  type SetProductAttributeOperation,
   setProductAttributes,
+} from "../../lib/product-attributes"
+import type {
+  ProductAttributeDetailItem,
+  ProductAttributeOption,
+  SetProductAttributeOperation,
 } from "../../lib/product-attributes"
 import { getPaginationTranslations } from "../../lib/table"
 import { useDebouncedValue } from "../../lib/use-debounced-value"
@@ -76,7 +78,7 @@ const AttributeOptionSelector = ({
     status: "active" as const,
   }
   const { data, error, isLoading } = useQuery({
-    queryFn: () => listProductAttributeOptions(definitionId, params),
+    queryFn: async () => listProductAttributeOptions(definitionId, params),
     queryKey: productAttributeQueryKeys.options(definitionId, params),
   })
   const columns = useMemo(
@@ -85,7 +87,6 @@ const AttributeOptionSelector = ({
         header: t("columns.label"),
       }),
       optionColumnHelper.display({
-        id: "selection",
         cell: ({ row }) =>
           row.original.id === selectedId ? (
             <Text size="small" weight="plus">
@@ -94,7 +95,9 @@ const AttributeOptionSelector = ({
           ) : (
             <Button
               disabled={disabled}
-              onClick={() => onSelect(row.original)}
+              onClick={() => {
+                onSelect(row.original)
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -102,6 +105,7 @@ const AttributeOptionSelector = ({
               {t("actions.select")}
             </Button>
           ),
+        id: "selection",
       }),
     ],
     [disabled, onSelect, selectedId, t]
@@ -112,7 +116,9 @@ const AttributeOptionSelector = ({
     getRowId: (option) => option.id,
     isLoading,
     pagination: {
-      onPaginationChange: (next) => setPageIndex(next.pageIndex),
+      onPaginationChange: (next) => {
+        setPageIndex(next.pageIndex)
+      },
       state: { pageIndex, pageSize: PAGE_SIZE },
     },
     rowCount: data?.count ?? 0,
@@ -226,7 +232,9 @@ const AttributeEditorCard = ({
               <Input
                 disabled={disabled}
                 id={inputId}
-                onChange={(event) => onTextChange(event.target.value)}
+                onChange={(event) => {
+                  onTextChange(event.target.value)
+                }}
                 placeholder={t("placeholders.textValue")}
                 value={value}
               />
@@ -282,7 +290,7 @@ export const ProductAttributesDrawer = ({
   }, [open])
 
   const mutation = useMutation({
-    mutationFn: (operations: SetProductAttributeOperation[]) =>
+    mutationFn: async (operations: SetProductAttributeOperation[]) =>
       setProductAttributes(productId, operations),
     onError: (error) =>
       toast.error(
@@ -301,11 +309,13 @@ export const ProductAttributesDrawer = ({
       onOpenChange(false)
     },
   })
-  const updateValue = (definitionId: string, value: string) =>
+  const updateValue = (definitionId: string, value: string) => {
     setValues((current) => ({ ...current, [definitionId]: value }))
-  const updateOptionLabel = (definitionId: string, value: string) =>
+  }
+  const updateOptionLabel = (definitionId: string, value: string) => {
     setOptionLabels((current) => ({ ...current, [definitionId]: value }))
-  const toggleDefinition = (definitionId: string) =>
+  }
+  const toggleDefinition = (definitionId: string) => {
     setOpenDefinitionIds((current) => {
       const next = new Set(current)
       if (next.has(definitionId)) {
@@ -315,6 +325,7 @@ export const ProductAttributesDrawer = ({
       }
       return next
     })
+  }
   const handleOpenChange = (nextOpen: boolean) => {
     if (!mutation.isPending) {
       onOpenChange(nextOpen)
@@ -377,10 +388,12 @@ export const ProductAttributesDrawer = ({
                   updateValue(item.definition.id, option.id)
                   updateOptionLabel(item.definition.id, option.label)
                 }}
-                onTextChange={(nextValue) =>
+                onTextChange={(nextValue) => {
                   updateValue(item.definition.id, nextValue)
-                }
-                onToggle={() => toggleDefinition(item.definition.id)}
+                }}
+                onToggle={() => {
+                  toggleDefinition(item.definition.id)
+                }}
                 value={value}
                 valueLabel={valueLabel ?? ""}
               />
@@ -390,7 +403,9 @@ export const ProductAttributesDrawer = ({
         <Drawer.Footer>
           <Button
             disabled={mutation.isPending}
-            onClick={() => handleOpenChange(false)}
+            onClick={() => {
+              handleOpenChange(false)
+            }}
             size="small"
             type="button"
             variant="secondary"

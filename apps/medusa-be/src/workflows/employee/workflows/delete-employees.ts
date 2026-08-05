@@ -1,13 +1,13 @@
 import {
   createWorkflow,
-  type WorkflowData,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+import type { WorkflowData } from "@medusajs/framework/workflows-sdk"
 
 import { validateCompanyActiveStep } from "../../company/steps"
 import { deleteEmployeesStep } from "../steps"
 
-type DeleteEmployeesWorkflowInput = {
+interface DeleteEmployeesWorkflowInput {
   company_id?: string
   id: string | string[]
 }

@@ -4,7 +4,7 @@ import type { CarrierPickupRequirement } from "../carrier-pickup.utils"
 import { CheckoutPacketaPickupSelector } from "./checkout-packeta-pickup-selector"
 import { CheckoutPplPickupSelector } from "./checkout-ppl-pickup-selector"
 
-type CheckoutCarrierPickupDetailsProps = {
+interface CheckoutCarrierPickupDetailsProps {
   disabled: boolean
   requirement: CarrierPickupRequirement
   onConfirm: (data: Record<string, unknown>) => void

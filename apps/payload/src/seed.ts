@@ -22,7 +22,7 @@ const SEED_ADMIN_EMAIL = requireEnv("PAYLOAD_SSO_USER_EMAIL")
 const SEED_ADMIN_API_KEY = requireEnv("PAYLOAD_API_KEY")
 const SSO_PRIVATE_KEY = requireEnv("PAYLOAD_SSO_PRIVATE_KEY")
 
-const normalizeKey = (value: string) => value.replace(/\\n/g, "\n").trim()
+const normalizeKey = (value: string) => value.replaceAll(/\\n/g, "\n").trim()
 
 const deriveSeedPassword = (privateKey: string) =>
   createHash("sha256").update(normalizeKey(privateKey)).digest("hex")
@@ -40,11 +40,6 @@ const isEnabled = (value: string | undefined): boolean =>
 
 const paragraph = (text: string): SeedRichText => ({
   root: {
-    type: "root",
-    format: "",
-    indent: 0,
-    version: 1,
-    direction: "ltr",
     children: [
       {
         type: "paragraph",
@@ -66,6 +61,11 @@ const paragraph = (text: string): SeedRichText => ({
         ],
       },
     ],
+    direction: "ltr",
+    format: "",
+    indent: 0,
+    type: "root",
+    version: 1,
   },
 })
 
@@ -81,14 +81,14 @@ const hasDocs = async (payload: SeedPayload, collection: string) => {
 const findUserByEmail = async (payload: SeedPayload, email: string) => {
   const result = await payload.find({
     collection: "users",
+    limit: 1,
+    overrideAccess: true,
+    pagination: false,
     where: {
       email: {
         equals: email,
       },
     },
-    limit: 1,
-    pagination: false,
-    overrideAccess: true,
   })
 
   return result.docs[0]
@@ -100,27 +100,27 @@ const createSeedUser = async (payload: SeedPayload) => {
     payload.logger.info(`Seed admin user already exists: ${SEED_ADMIN_EMAIL}`)
     await payload.update({
       collection: "users",
-      id: existingUser.id,
       data: {
         apiKey: SEED_ADMIN_API_KEY,
         enableAPIKey: true,
         password: SEED_ADMIN_PASSWORD,
       },
+      id: existingUser.id,
       overrideAccess: true,
     })
     return existingUser
   }
 
   payload.logger.info(`Creating seed admin user: ${SEED_ADMIN_EMAIL}`)
-  return payload.create({
+  return await payload.create({
     collection: "users",
     data: {
-      email: SEED_ADMIN_EMAIL,
       apiKey: SEED_ADMIN_API_KEY,
+      email: SEED_ADMIN_EMAIL,
       enableAPIKey: true,
-      password: SEED_ADMIN_PASSWORD,
       firstName: "Payload",
       lastName: "Admin",
+      password: SEED_ADMIN_PASSWORD,
     },
     overrideAccess: true,
   })
@@ -131,8 +131,8 @@ const createSeedMedia = async (payload: SeedPayload) => {
     const result = await payload.find({
       collection: "media",
       limit: 1,
-      pagination: false,
       overrideAccess: true,
+      pagination: false,
     })
     const existingMedia = result.docs[0]
     if (!existingMedia) {
@@ -143,7 +143,7 @@ const createSeedMedia = async (payload: SeedPayload) => {
   }
 
   payload.logger.info("Creating seed media")
-  return payload.create({
+  return await payload.create({
     collection: "media",
     data: {
       alt: "Seed placeholder image",
@@ -163,7 +163,7 @@ const createArticleSeed = async (
   userId: PayloadId,
   mediaId: PayloadId
 ) => {
-  if (!isEnabled(process.env["FEATURE_PAYLOAD_ARTICLES_ENABLED"])) {
+  if (!isEnabled(process.env.FEATURE_PAYLOAD_ARTICLES_ENABLED)) {
     return
   }
 
@@ -172,8 +172,8 @@ const createArticleSeed = async (
     const result = await payload.find({
       collection: "article-categories",
       limit: 1,
-      pagination: false,
       overrideAccess: true,
+      pagination: false,
     })
     const category = result.docs[0]
     if (!category) {
@@ -188,8 +188,8 @@ const createArticleSeed = async (
     const category = await payload.create({
       collection: "article-categories",
       data: {
-        title: "News",
         slug: "news",
+        title: "News",
         translationSync: false,
       },
       overrideAccess: true,
@@ -206,18 +206,18 @@ const createArticleSeed = async (
   await payload.create({
     collection: "articles",
     data: {
-      title: "Welcome to Payload CMS",
-      slug: "welcome-to-payload-cms",
-      excerpt: "A starter article created by the local seed script.",
+      author: userId,
+      category: categoryId,
       content: paragraph(
         "This starter article confirms Payload content is available."
       ),
+      excerpt: "A starter article created by the local seed script.",
       featuredImage: mediaId,
-      category: categoryId,
-      tags: ["seed"],
-      author: userId,
-      status: "published",
       publishedDate: new Date().toISOString(),
+      slug: "welcome-to-payload-cms",
+      status: "published",
+      tags: ["seed"],
+      title: "Welcome to Payload CMS",
       translationSync: false,
     },
     overrideAccess: true,
@@ -225,7 +225,7 @@ const createArticleSeed = async (
 }
 
 const createPageSeed = async (payload: SeedPayload) => {
-  if (!isEnabled(process.env["FEATURE_PAYLOAD_PAGES_ENABLED"])) {
+  if (!isEnabled(process.env.FEATURE_PAYLOAD_PAGES_ENABLED)) {
     return
   }
 
@@ -234,8 +234,8 @@ const createPageSeed = async (payload: SeedPayload) => {
     const result = await payload.find({
       collection: "page-categories",
       limit: 1,
-      pagination: false,
       overrideAccess: true,
+      pagination: false,
     })
     const category = result.docs[0]
     if (!category) {
@@ -250,8 +250,8 @@ const createPageSeed = async (payload: SeedPayload) => {
     const category = await payload.create({
       collection: "page-categories",
       data: {
-        title: "Information",
         slug: "information",
+        title: "Information",
         translationSync: false,
       },
       overrideAccess: true,
@@ -268,16 +268,16 @@ const createPageSeed = async (payload: SeedPayload) => {
   await payload.create({
     collection: "pages",
     data: {
-      title: "About Herbatica",
-      slug: "about-herbatica",
       category: categoryId,
       content: paragraph(
         "This starter page confirms Payload pages are available."
       ),
-      visibility: "public",
-      status: "published",
       publishedDate: new Date().toISOString(),
+      slug: "about-herbatica",
+      status: "published",
+      title: "About Herbatica",
       translationSync: false,
+      visibility: "public",
     },
     overrideAccess: true,
   })
@@ -287,7 +287,7 @@ const createHeroCarouselSeed = async (
   payload: SeedPayload,
   mediaId: PayloadId
 ) => {
-  if (!isEnabled(process.env["FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED"])) {
+  if (!isEnabled(process.env.FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED)) {
     return
   }
 
@@ -300,12 +300,12 @@ const createHeroCarouselSeed = async (
   await payload.create({
     collection: "hero-carousels",
     data: {
-      internalTitle: "Herbatica homepage hero",
-      image: mediaId,
-      heading: "Herbatica",
-      subheading: "Starter CMS content",
       button: "Browse products",
       buttonHref: "/",
+      heading: "Herbatica",
+      image: mediaId,
+      internalTitle: "Herbatica homepage hero",
+      subheading: "Starter CMS content",
       translationSync: false,
     },
     overrideAccess: true,

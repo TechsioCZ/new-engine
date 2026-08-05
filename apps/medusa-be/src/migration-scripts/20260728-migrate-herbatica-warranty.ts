@@ -17,9 +17,11 @@ import { isRecord } from "@techsio/std/object"
 import {
   getProductAttributeService,
   normalizeRequiredProductAttributeKey,
-  type ProductAttributeDefinitionRecord,
-  type ProductAttributeOptionRecord,
   withProductAttributeTransaction,
+} from "../utils/product-attributes"
+import type {
+  ProductAttributeDefinitionRecord,
+  ProductAttributeOptionRecord,
 } from "../utils/product-attributes"
 import { setProductAttributesWorkflow } from "../workflows/product-attribute/workflows/set-product-attributes"
 
@@ -37,7 +39,7 @@ const CONTENT_SECTION_KEYS = [
 const HTML_TAG_REGEX = /<[a-z][\s\S]*?>/i
 
 type ProductMetadata = Record<string, unknown>
-type ContentSection = {
+interface ContentSection {
   html: string
   key: string
   title: string
@@ -51,7 +53,7 @@ export type LegacyWarrantyMigrationPreparation =
       warranty: string
     }
 
-type UnsafeProduct = {
+interface UnsafeProduct {
   id: string
   reason: string
 }
@@ -68,14 +70,14 @@ export const isLegacyHerbaticaWarrantyMetadata = (
 
 const escapeHtml = (value: string) =>
   value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;")
+    .replaceAll(/&/g, "&amp;")
+    .replaceAll(/</g, "&lt;")
+    .replaceAll(/>/g, "&gt;")
+    .replaceAll(/"/g, "&quot;")
+    .replaceAll(/'/g, "&#39;")
 
 export const buildLegacyWarrantyFragment = (value: string) => {
-  const normalized = value.replace(/\r\n/g, "\n").trim()
+  const normalized = value.replaceAll(/\r\n/g, "\n").trim()
   return HTML_TAG_REGEX.test(normalized)
     ? `<h3>Zaruka</h3>\n${normalized}`
     : `<p><strong>Zaruka:</strong> ${escapeHtml(normalized)}</p>`
@@ -84,8 +86,8 @@ export const buildLegacyWarrantyFragment = (value: string) => {
 const removeExactFragment = (html: string, fragment: string) => {
   const firstIndex = html.indexOf(fragment)
   if (
-    firstIndex < 0 ||
-    html.indexOf(fragment, firstIndex + fragment.length) >= 0
+    firstIndex === -1 ||
+    html.includes(fragment, firstIndex + fragment.length)
   ) {
     return
   }
@@ -127,7 +129,7 @@ export function prepareLegacyWarrantyMigration(
 ): LegacyWarrantyMigrationPreparation {
   const warranty =
     typeof metadata["warranty"] === "string"
-      ? metadata["warranty"].replace(/\r\n/g, "\n").trim()
+      ? metadata["warranty"].replaceAll(/\r\n/g, "\n").trim()
       : ""
   if (!warranty) {
     return { reason: "metadata.warranty is absent or empty", safe: false }
@@ -145,7 +147,7 @@ export function prepareLegacyWarrantyMigration(
   const otherHtml = sections[otherIndex]?.html
   const mappedOtherHtml = sectionsMap["other"]
   if (
-    otherIndex < 0 ||
+    otherIndex === -1 ||
     typeof otherHtml !== "string" ||
     typeof mappedOtherHtml !== "string" ||
     otherHtml !== mappedOtherHtml
@@ -219,11 +221,11 @@ async function ensureWarrantyDefinition(
   service: ProductAttributeService,
   context: ProductAttributeContext
 ) {
-  const definitions = (await service.listProductAttributeDefinitions(
+  const definitions = await service.listProductAttributeDefinitions(
     { key: WARRANTY_DEFINITION_KEY },
     { order: { id: "ASC" }, withDeleted: true },
     context
-  )) as ProductAttributeDefinitionRecord[]
+  )
   const definition =
     definitions.find((candidate) => !candidate.deleted_at) ?? definitions[0]
   if (definition && definition.input_type !== "select") {
@@ -233,7 +235,7 @@ async function ensureWarrantyDefinition(
     )
   }
   if (!definition) {
-    return (await service.createProductAttributeDefinitions(
+    return await service.createProductAttributeDefinitions(
       {
         input_type: "select",
         is_public: true,
@@ -241,7 +243,7 @@ async function ensureWarrantyDefinition(
         label: WARRANTY_DEFINITION_LABEL,
       },
       context
-    )) as ProductAttributeDefinitionRecord
+    )
   }
   if (definition.deleted_at) {
     await service.restoreProductAttributeDefinitions(
@@ -250,14 +252,14 @@ async function ensureWarrantyDefinition(
       context
     )
   }
-  return (await service.updateProductAttributeDefinitions(
+  return await service.updateProductAttributeDefinitions(
     {
       id: definition.id,
       is_public: true,
       label: WARRANTY_DEFINITION_LABEL,
     },
     context
-  )) as ProductAttributeDefinitionRecord
+  )
 }
 
 function collectWarrantyLabelsByKey(warranties: string[]) {
@@ -287,14 +289,14 @@ async function ensureWarrantyOptions(
 ) {
   const labelsByKey = collectWarrantyLabelsByKey(warranties)
   const keys = [...labelsByKey.keys()]
-  const existing = (await service.listProductAttributeOptions(
+  const existing = await service.listProductAttributeOptions(
     {
       definition_id: definition.id,
       key: { $in: keys },
     },
     { order: { id: "ASC" }, withDeleted: true },
     context
-  )) as ProductAttributeOptionRecord[]
+  )
   const optionByKey = new Map<string, ProductAttributeOptionRecord>()
   for (const option of existing) {
     const current = optionByKey.get(option.key)
@@ -306,20 +308,20 @@ async function ensureWarrantyOptions(
   for (const [key, label] of labelsByKey) {
     const option = optionByKey.get(key)
     if (!option) {
-      const created = (await service.createProductAttributeOptions(
+      const created = await service.createProductAttributeOptions(
         { definition_id: definition.id, key, label },
         context
-      )) as ProductAttributeOptionRecord
+      )
       optionByKey.set(key, created)
       continue
     }
     if (option.deleted_at) {
       await service.restoreProductAttributeOptions([option.id], {}, context)
     }
-    const updated = (await service.updateProductAttributeOptions(
+    const updated = await service.updateProductAttributeOptions(
       { id: option.id, label },
       context
-    )) as ProductAttributeOptionRecord
+    )
     optionByKey.set(key, updated)
   }
 
@@ -350,11 +352,11 @@ export default async function migrateHerbaticaWarranty({
     Modules.PRODUCT
   )
   const products = await listProductsWithLegacyWarranty(productService)
-  const safe: Array<{
+  const safe: {
     id: string
     metadata: ProductMetadata
     warranty: string
-  }> = []
+  }[] = []
   const unsafe: UnsafeProduct[] = []
 
   for (const product of products) {

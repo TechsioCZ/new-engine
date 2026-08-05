@@ -7,13 +7,13 @@ import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
 
 import { usePrefetchProducts } from "./use-prefetch-products"
 
-type UsePrefetchOnHoverReturn = {
+interface UsePrefetchOnHoverReturn {
   handleHover: (categoryHandle: string) => void
   cancelHover: () => void
 }
 
 export function usePrefetchOnHover(): UsePrefetchOnHoverReturn {
-  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>()
   const { prefetchCategoryProducts } = usePrefetchProducts()
 
   const handleHover = (categoryHandle: string) => {
@@ -26,7 +26,7 @@ export function usePrefetchOnHover(): UsePrefetchOnHoverReturn {
     timeoutRef.current = setTimeout(() => {
       const categoryIds = ALL_CATEGORIES_MAP[categoryHandle]
 
-      if (process.env["NODE_ENV"] === "development") {
+      if (process.env.NODE_ENV === "development") {
         console.log(
           "[usePrefetchOnHover] Prefetch:",
           categoryHandle,
@@ -58,5 +58,5 @@ export function usePrefetchOnHover(): UsePrefetchOnHoverReturn {
     []
   )
 
-  return { handleHover, cancelHover }
+  return { cancelHover, handleHover }
 }

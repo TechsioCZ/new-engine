@@ -6,22 +6,20 @@ import { useState } from "react"
 
 import { stripHtml } from "@/components/product-detail/utils/html-sanitizer"
 
-import {
-  type CategoryContextImageTile,
-  CategoryContextImageTileGrid,
-} from "./category-context-image-tile-grid"
+import { CategoryContextImageTileGrid } from "./category-context-image-tile-grid"
+import type { CategoryContextImageTile } from "./category-context-image-tile-grid"
 import {
   CATEGORY_RICH_TEXT_CLASS,
   sanitizeCategoryRichTextHtml,
 } from "./category-rich-text"
 
-type CategoryContextPanelProps = {
+interface CategoryContextPanelProps {
   imageTiles?: CategoryContextImageTile[]
   introHtml?: string | null
   introText?: string | null
 }
 
-type CategoryIntroProps = {
+interface CategoryIntroProps {
   introText?: string | null
   isExpanded: boolean
   onExpandedChange: (isExpanded: boolean) => void
@@ -99,7 +97,7 @@ export function CategoryContextPanel({
   return (
     <section className="space-y-350">
       <CategoryIntro
-        {...(introText === undefined ? {} : { introText: introText })}
+        {...(introText === undefined ? {} : { introText })}
         isExpanded={isExpanded}
         onExpandedChange={setIsExpanded}
         sanitizedIntroHtml={sanitizedIntroHtml}

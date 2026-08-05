@@ -11,14 +11,17 @@
  */
 import { connect, machine } from "@zag-js/checkbox"
 import { normalizeProps, useMachine } from "@zag-js/react"
-import { type ReactNode, useId } from "react"
+import { useId } from "react"
+import type { ReactNode } from "react"
 
 import { StatusText } from "../atoms/status-text"
 import { tv } from "../utils"
 
 const checkboxVariants = tv({
+  defaultVariants: {
+    size: "md",
+  },
   slots: {
-    root: "flex items-center gap-form-checkbox-gap",
     control: [
       "relative shrink-0 cursor-pointer",
       "size-checkbox",
@@ -39,6 +42,7 @@ const checkboxVariants = tv({
       "data-invalid:border-(length:--border-width-validation)",
       "data-invalid:border-checkbox-border-error",
     ],
+    hiddenInput: "sr-only",
     indicator: [
       "text-checkbox-fg-checked",
       "data-[state=checked]:token-icon-checkbox",
@@ -53,22 +57,19 @@ const checkboxVariants = tv({
       "data-disabled:cursor-not-allowed",
       "data-disabled:text-label-fg-disabled",
     ],
-    hiddenInput: "sr-only",
+    root: "flex items-center gap-form-checkbox-gap",
     textIndented: "data-[icon=false]:pl-form-checkbox-text-offset",
   },
   variants: {
     size: {
-      sm: { label: "text-label-sm" },
-      md: { label: "text-label-md" },
       lg: { label: "text-label-lg" },
+      md: { label: "text-label-md" },
+      sm: { label: "text-label-sm" },
     },
-  },
-  defaultVariants: {
-    size: "md",
   },
 })
 
-export type FormCheckboxProps = {
+export interface FormCheckboxProps {
   id?: string | undefined
   name?: string | undefined
   value?: string | undefined

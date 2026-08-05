@@ -6,7 +6,9 @@ const storage = new Map<string, string>()
 Object.defineProperty(globalThis, "localStorage", {
   configurable: true,
   value: {
-    clear: () => storage.clear(),
+    clear: () => {
+      storage.clear()
+    },
     getItem: (key: string) => storage.get(key) ?? null,
     key: (index: number) => [...storage.keys()][index] ?? null,
     get length() {

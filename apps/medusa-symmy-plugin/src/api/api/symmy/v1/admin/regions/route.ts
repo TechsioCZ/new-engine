@@ -8,19 +8,19 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
   const query = remoteQueryObjectFromString({
     entryPoint: "region",
+    fields: req.queryConfig.fields,
     variables: {
       filters: req.filterableFields,
       ...req.queryConfig.pagination,
     },
-    fields: req.queryConfig.fields,
   })
 
   const { rows: regions, metadata } = await remoteQuery(query)
 
   res.json({
-    regions,
     count: metadata.count,
-    offset: metadata.skip,
     limit: metadata.take,
+    offset: metadata.skip,
+    regions,
   })
 }

@@ -3,10 +3,8 @@ import type { QueryClient } from "@tanstack/react-query"
 import { dehydrate } from "@tanstack/react-query"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 
-import {
-  buildCatalogProductsParams,
-  type CatalogQueryState,
-} from "../catalog-query-state"
+import { buildCatalogProductsParams } from "../catalog-query-state"
+import type { CatalogQueryState } from "../catalog-query-state"
 import {
   buildCategoryListParams,
   CATEGORY_TREE_FIELDS,
@@ -22,7 +20,7 @@ import {
 } from "../storefront-server"
 import { getRegionServerContext } from "./context"
 
-type HomepageCatalogPrefetchInput = {
+interface HomepageCatalogPrefetchInput {
   categoryIds?: string[]
   queryClient: QueryClient
   region: RegionInfo
@@ -34,18 +32,18 @@ const buildHomepageCatalogQueryState = (
   sort: CatalogQueryState["sort"],
   status: string[] = []
 ): CatalogQueryState => ({
+  brand: [],
+  form: [],
+  ingredient: [],
   page: 1,
+  price_max: null,
+  price_min: null,
   q: "",
   sort,
   status,
-  form: [],
-  brand: [],
-  ingredient: [],
-  price_min: null,
-  price_max: null,
 })
 
-const prefetchHomepageCatalogProducts = ({
+const prefetchHomepageCatalogProducts = async ({
   categoryIds,
   queryClient,
   region,
@@ -68,9 +66,9 @@ const prefetchHomepageCatalogProducts = ({
 export const prefetchHomePageStorefrontData = async () => {
   const { queryClient, region } = await getRegionServerContext()
   const categoryListParams = buildCategoryListParams({
-    page: 1,
-    limit: CATEGORY_TREE_LIMIT,
     fields: CATEGORY_TREE_FIELDS,
+    limit: CATEGORY_TREE_LIMIT,
+    page: 1,
   })
   const categoryResponse = await fetchServerCategories(
     queryClient,
@@ -111,7 +109,7 @@ export const prefetchHomePageStorefrontData = async () => {
   }
 
   return {
-    region,
     dehydratedState: dehydrate(queryClient),
+    region,
   }
 }

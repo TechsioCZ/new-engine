@@ -5,7 +5,7 @@ import type {
 } from "@techsio/storefront-data/auth/medusa-service"
 
 export type AuthLoginInput = MedusaAuthCredentials
-type AuthRegisterWholesaleInput = {
+interface AuthRegisterWholesaleInput {
   company_name: string
   company_identifier: string
   currency_code: string
@@ -23,6 +23,6 @@ export type AuthRegisterInput = MedusaRegisterData & {
 }
 export type AuthUpdateInput = MedusaUpdateCustomerData
 
-export type AuthProxyResponse = {
+export interface AuthProxyResponse {
   token: string
 }

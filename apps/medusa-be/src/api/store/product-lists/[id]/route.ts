@@ -16,10 +16,8 @@ import {
   toProductListResponse,
   withProductListItems,
 } from "../utils"
-import {
-  StoreProductListParamsSchema,
-  type StoreUpdateProductListSchemaType,
-} from "../validators"
+import { StoreProductListParamsSchema } from "../validators"
+import type { StoreUpdateProductListSchemaType } from "../validators"
 
 type RequestWithOptionalCustomerAuth = MedusaRequest & {
   auth_context?: { actor_id?: unknown } | null

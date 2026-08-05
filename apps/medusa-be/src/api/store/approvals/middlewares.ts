@@ -1,10 +1,12 @@
 import {
-  type AuthenticatedMedusaRequest,
   authenticate,
-  type MedusaNextFunction,
-  type MedusaResponse,
   validateAndTransformBody,
   validateAndTransformQuery,
+} from "@medusajs/framework"
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaNextFunction,
+  MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type { MiddlewareRoute } from "@medusajs/medusa"
@@ -75,13 +77,13 @@ const ensureApprovalType = async (
 
 export const storeApprovalsMiddlewares: MiddlewareRoute[] = [
   {
-    method: "ALL",
     matcher: "/store/approvals*",
+    method: "ALL",
     middlewares: [authenticate("customer", ["session", "bearer"])],
   },
   {
-    method: ["GET"],
     matcher: "/store/approvals",
+    method: ["GET"],
     middlewares: [
       ensureRole("company_admin"),
       validateAndTransformQuery(
@@ -91,8 +93,8 @@ export const storeApprovalsMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    method: ["POST"],
     matcher: "/store/approvals/:id",
+    method: ["POST"],
     middlewares: [
       ensureApprovalType,
       validateAndTransformBody(StoreUpdateApproval),

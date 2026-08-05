@@ -9,22 +9,22 @@ import { handleFormSubmit } from "@/utils/form-utils"
 
 const footerSections: NavSection[] = [
   {
-    title: "Rychlé odkazy",
     links: [
       { href: "/products", label: "Všechny produkty" },
       { href: "/products", label: "Kategorie" },
       { href: "/about", label: "O nás" },
       { href: "/contact", label: "Kontakt" },
     ],
+    title: "Rychlé odkazy",
   },
   {
-    title: "Zákaznický servis",
     links: [
       { href: "/faq", label: "Informace o dopravě" },
       { href: "/contact", label: "Reklamace" },
       { href: "/faq", label: "Časté dotazy" },
       { href: "/contact", label: "Podpora" },
     ],
+    title: "Zákaznický servis",
   },
 ]
 

@@ -4,11 +4,11 @@ import type { IconType } from "@techsio/ui-kit/atoms/icon"
 
 export type Product = HttpTypes.StoreProduct
 
-export type ProductDetailProps = {
+export interface ProductDetailProps {
   handle: string
 }
 
-export type ProductPriceState = {
+export interface ProductPriceState {
   currentLabel: string
   originalLabel: string | null
   currentAmount: number | null
@@ -17,7 +17,7 @@ export type ProductPriceState = {
   pricePerUnit: StorePricePerUnit | null
 }
 
-export type ProductOfferState = {
+export interface ProductOfferState {
   code: string | null
   ean: string | null
   availabilityLabel: string
@@ -33,20 +33,20 @@ export type ProductOfferState = {
   applyVolumeDiscount: boolean
 }
 
-export type ProductMediaFact = {
+export interface ProductMediaFact {
   id: "doses" | "daily-intake"
   icon: IconType
   value: string
   label: string
 }
 
-export type ProductDetailContentSection = {
+export interface ProductDetailContentSection {
   key: string
   title: string
   html: string
 }
 
-export type VolumeDiscountOption = {
+export interface VolumeDiscountOption {
   id: string
   title: string
   quantity: number
@@ -55,7 +55,7 @@ export type VolumeDiscountOption = {
   oldTotalAmountLabel: string | null
 }
 
-export type RelatedProductsSection = {
+export interface RelatedProductsSection {
   id: string
   title: string
   products: Product[]

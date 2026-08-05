@@ -12,7 +12,7 @@ import MeasurementUnit from "./models/measurement-unit"
 import ProductMeasurement from "./models/product-measurement"
 import ProductVariantMeasurement from "./models/product-variant-measurement"
 
-export type ActiveProductCountRow = {
+export interface ActiveProductCountRow {
   count: number | string
   measurement_unit_id: string
 }
@@ -49,7 +49,7 @@ class MeasurementUnitModuleService extends MedusaService({
       return [] as ActiveProductCountRow[]
     }
 
-    const manager = sharedContext.manager
+    const { manager } = sharedContext
 
     if (!manager) {
       throw new MedusaError(

@@ -24,7 +24,7 @@ describe("hero carousel internal title", () => {
       req: { locale: "en" },
     })
 
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       heading: "  Seasonal offer  ",
       internalTitle: "Seasonal offer",
     })
@@ -55,8 +55,8 @@ describe("hero carousel internal title", () => {
       },
       operation: "update",
       originalDoc: {
-        id: 1,
         heading: "Previous campaign",
+        id: 1,
         internalTitle: "Editorial title",
       },
       req: { locale: "en" },

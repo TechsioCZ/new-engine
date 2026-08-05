@@ -118,7 +118,9 @@ export const StringFilter = ({
                 <Input
                   defaultValue={query?.[0] || undefined}
                   name={key}
-                  onChange={(event) => debouncedOnChange(event.target.value)}
+                  onChange={(event) => {
+                    debouncedOnChange(event.target.value)
+                  }}
                   size="small"
                 />
               </div>

@@ -13,18 +13,16 @@ import NextLink from "@/components/app-link"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
-import {
-  type ProductListPickerRow,
-  useProductListPicker,
-} from "./use-product-list-picker"
+import { useProductListPicker } from "./use-product-list-picker"
+import type { ProductListPickerRow } from "./use-product-list-picker"
 
-type ProductListPickerPopoverProps = {
+interface ProductListPickerPopoverProps {
   product: Product
   quantity: number
   selectedVariantId: string | null
 }
 
-type ProductListPickerListRowProps = {
+interface ProductListPickerListRowProps {
   isMutating: boolean
   isPending: boolean
   onAdd: (row: ProductListPickerRow) => void
@@ -222,7 +220,9 @@ export function ProductListPickerPopover({
       border
       gutter={10}
       id="product-list-picker"
-      onOpenChange={({ open }) => picker.setIsOpen(open)}
+      onOpenChange={({ open }) => {
+        picker.setIsOpen(open)
+      }}
       open={picker.isOpen}
       portalled={false}
       size="sm"

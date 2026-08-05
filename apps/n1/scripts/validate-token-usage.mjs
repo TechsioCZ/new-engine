@@ -88,7 +88,7 @@ function findFilesWithExtension(dir, extension, ignore = []) {
   return results
 }
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const __dirname = import.meta.dirname
 const ROOT = path.resolve(__dirname, "..")
 
 // Token CSS files to check for definitions (direct paths)
@@ -107,6 +107,9 @@ const TOKEN_DIRS = ["src/tokens/app-components"]
 
 // Tailwind v4 namespace to utility prefix mappings
 const NAMESPACE_MAPPINGS = {
+  blur: ["blur"],
+  border: ["border"],
+  "border-width": ["border"],
   color: [
     "bg",
     "text",
@@ -131,6 +134,12 @@ const NAMESPACE_MAPPINGS = {
     "border-y",
   ],
   container: ["w", "h", "min-w", "min-h", "max-w", "max-h"],
+  ease: ["ease"],
+  font: ["font"],
+  "font-weight": ["font"],
+  opacity: ["opacity"],
+  radius: ["rounded"],
+  shadow: ["shadow", "drop-shadow", "inset-shadow"],
   spacing: [
     "p",
     "px",
@@ -170,17 +179,8 @@ const NAMESPACE_MAPPINGS = {
     "inset-y",
   ],
   text: ["text"],
-  "font-weight": ["font"],
-  font: ["font"],
-  radius: ["rounded"],
-  shadow: ["shadow", "drop-shadow", "inset-shadow"],
-  blur: ["blur"],
-  opacity: ["opacity"],
-  border: ["border"],
-  "border-width": ["border"],
-  z: ["z"],
   transition: ["transition", "duration", "delay"],
-  ease: ["ease"],
+  z: ["z"],
 }
 
 // Standard Tailwind utilities to ignore (not custom tokens)
@@ -581,33 +581,27 @@ function mapClassToPossibleTokens(className) {
 
   // Add specific namespace alternatives
   if (["p", "px", "py", "pt", "pr", "pb", "pl", "ps", "pe"].includes(prefix)) {
-    possibleTokens.push(`--padding-${value}`)
-    possibleTokens.push(`--spacing-${value}`)
+    possibleTokens.push(`--padding-${value}`, `--spacing-${value}`)
   }
 
   if (["m", "mx", "my", "mt", "mr", "mb", "ml", "ms", "me"].includes(prefix)) {
-    possibleTokens.push(`--margin-${value}`)
-    possibleTokens.push(`--spacing-${value}`)
+    possibleTokens.push(`--margin-${value}`, `--spacing-${value}`)
   }
 
   if (["gap", "gap-x", "gap-y"].includes(prefix)) {
-    possibleTokens.push(`--gap-${value}`)
-    possibleTokens.push(`--spacing-${value}`)
+    possibleTokens.push(`--gap-${value}`, `--spacing-${value}`)
   }
 
   if (["w", "min-w", "max-w"].includes(prefix)) {
-    possibleTokens.push(`--width-${value}`)
-    possibleTokens.push(`--container-${value}`)
+    possibleTokens.push(`--width-${value}`, `--container-${value}`)
   }
 
   if (["h", "min-h", "max-h"].includes(prefix)) {
-    possibleTokens.push(`--height-${value}`)
-    possibleTokens.push(`--container-${value}`)
+    possibleTokens.push(`--height-${value}`, `--container-${value}`)
   }
 
   if (["space-x", "space-y"].includes(prefix)) {
-    possibleTokens.push(`--space-${value}`)
-    possibleTokens.push(`--spacing-${value}`)
+    possibleTokens.push(`--space-${value}`, `--spacing-${value}`)
   }
 
   if (
@@ -615,8 +609,7 @@ function mapClassToPossibleTokens(className) {
       prefix
     )
   ) {
-    possibleTokens.push(`--inset-${value}`)
-    possibleTokens.push(`--spacing-${value}`)
+    possibleTokens.push(`--inset-${value}`, `--spacing-${value}`)
   }
 
   // Component-specific tokens
@@ -657,14 +650,14 @@ function loadDefinedTokens() {
     const fullPath = path.join(ROOT, file)
     try {
       if (fs.existsSync(fullPath)) {
-        const content = fs.readFileSync(fullPath, "utf8")
+        const content = fs.readFileSync(fullPath, "utf-8")
         const tokenMatches = content.matchAll(/--([\w-]+)\s*:/g)
         for (const match of tokenMatches) {
           tokens.add(`--${match[1]}`)
         }
       }
-    } catch (err) {
-      console.error(`⚠️  Failed to read ${file}:`, err.message)
+    } catch (error) {
+      console.error(`⚠️  Failed to read ${file}:`, error.message)
     }
   }
 
@@ -674,13 +667,13 @@ function loadDefinedTokens() {
     const cssFiles = findCssFiles(fullDir)
     for (const file of cssFiles) {
       try {
-        const content = fs.readFileSync(file, "utf8")
+        const content = fs.readFileSync(file, "utf-8")
         const tokenMatches = content.matchAll(/--([\w-]+)\s*:/g)
         for (const match of tokenMatches) {
           tokens.add(`--${match[1]}`)
         }
-      } catch (err) {
-        console.error(`⚠️  Failed to read ${file}:`, err.message)
+      } catch (error) {
+        console.error(`⚠️  Failed to read ${file}:`, error.message)
       }
     }
   }
@@ -723,7 +716,7 @@ function extractTokensFromArbitraryUtility(className) {
     tokens.add(m[1])
   }
 
-  return Array.from(tokens)
+  return [...tokens]
 }
 
 // Valid N1 spacing values (50-1000 in steps of 50)
@@ -963,7 +956,7 @@ function validateTokenUsage() {
 
   for (const file of componentFiles) {
     const fullPath = path.join(ROOT, file)
-    const content = fs.readFileSync(fullPath, "utf8")
+    const content = fs.readFileSync(fullPath, "utf-8")
     const classesWithLines = extractTailwindClassesWithLines(content, file)
     const fileErrors = []
 

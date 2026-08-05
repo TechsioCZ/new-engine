@@ -11,14 +11,16 @@ import {
   PPL_CLIENT_MODULE,
   PPL_DELIVERED_STATES,
   PPL_FAILED_STATES,
-  type PplClientModuleService,
-  type PplFulfillmentData,
-  type PplShipmentInfo,
-  type PplShipmentState,
+} from "../modules/ppl-client"
+import type {
+  PplClientModuleService,
+  PplFulfillmentData,
+  PplShipmentInfo,
+  PplShipmentState,
 } from "../modules/ppl-client"
 
 // Types
-type FulfillmentRecord = {
+interface FulfillmentRecord {
   id: string
   data: PplFulfillmentData | null
   shipped_at: string | null
@@ -30,7 +32,7 @@ interface PendingFulfillment extends FulfillmentRecord {
   data: PplFulfillmentData & { shipment_number: string }
 }
 
-type TrackingContext = {
+interface TrackingContext {
   logger: Logger
   fulfillmentService: IFulfillmentModuleService
   eventBus: IEventBusModuleService
@@ -88,7 +90,7 @@ export default async function pplTrackingSyncJob(container: MedusaContainer) {
       `PPL Tracking Sync: Found ${pendingFulfillments.length} pending fulfillments`
     )
 
-    const ctx: TrackingContext = { logger, fulfillmentService, eventBus }
+    const ctx: TrackingContext = { eventBus, fulfillmentService, logger }
     await processFulfillmentsInBatches(ctx, pplClient, pendingFulfillments)
 
     logger.info("PPL Tracking Sync: Completed")
@@ -182,7 +184,7 @@ async function processFulfillmentStatus(
 ): Promise<void> {
   const fulfillmentData = fulfillment.data
   const currentStatus = fulfillmentData.last_status
-  const newStatus = info.shipmentState as PplShipmentState
+  const newStatus = info.shipmentState
 
   if (currentStatus === newStatus) {
     return
@@ -219,22 +221,22 @@ async function handleDelivered(
     : new Date()
 
   await fulfillmentService.updateFulfillment(fulfillment.id, {
-    delivered_at: deliveredAt,
     data: {
       ...fulfillmentData,
       last_status: newStatus,
       last_status_date: info.stateDate,
     },
+    delivered_at: deliveredAt,
   })
 
   await eventBus.emit({
-    name: "ppl.delivered",
     data: {
+      delivered_at: deliveredAt.toISOString(),
       fulfillment_id: fulfillment.id,
       shipment_number: fulfillmentData.shipment_number,
-      delivered_at: deliveredAt.toISOString(),
       status: newStatus,
     },
+    name: "ppl.delivered",
   })
 }
 
@@ -254,20 +256,20 @@ async function handleFailed(
   await fulfillmentService.updateFulfillment(fulfillment.id, {
     data: {
       ...fulfillmentData,
+      delivery_failed: true,
       last_status: newStatus,
       last_status_date: info.stateDate,
-      delivery_failed: true,
     },
   })
 
   await eventBus.emit({
-    name: "ppl.delivery_failed",
     data: {
       fulfillment_id: fulfillment.id,
       shipment_number: fulfillmentData.shipment_number,
       status: newStatus,
       status_date: info.stateDate,
     },
+    name: "ppl.delivery_failed",
   })
 }
 

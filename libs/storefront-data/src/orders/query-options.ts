@@ -15,13 +15,14 @@ import type {
   OrderQueryKeys,
   OrderService,
 } from "./types"
-export type CreateOrderQueryOptionsFactoryConfig<
+
+export interface CreateOrderQueryOptionsFactoryConfig<
   TOrder,
   TListInput extends OrderListInputBase,
   TListParams,
   TDetailInput extends OrderDetailInputBase,
   TDetailParams,
-> = {
+> {
   service: OrderService<TOrder, TListParams, TDetailParams>
   buildListParams?: (input: TListInput) => TListParams
   buildDetailParams?: (input: TDetailInput) => TDetailParams
@@ -30,11 +31,11 @@ export type CreateOrderQueryOptionsFactoryConfig<
   cacheConfig?: CacheConfig
 }
 
-export type OrderQueryOptionsFactory<
+export interface OrderQueryOptionsFactory<
   TOrder,
   TListInput extends OrderListInputBase,
   TDetailInput extends OrderDetailInputBase,
-> = {
+> {
   getListQueryOptions: (
     input: TListInput,
     options?: {
@@ -77,14 +78,14 @@ export function createOrderQueryOptionsFactory<
 
   return createSimpleListDetailQueryOptionsFactory(
     omitUndefined({
-      getList: service.getOrders,
-      getDetail: service.getOrder,
-      buildListParams,
       buildDetailParams,
-      queryKeys: resolvedQueryKeys,
+      buildListParams,
       cacheConfig,
       defaultCacheStrategy: "userData" as const,
+      getDetail: service.getOrder,
+      getList: service.getOrders,
       missingDetailErrorMessage: "Order id is required for order queries",
+      queryKeys: resolvedQueryKeys,
     })
   )
 }

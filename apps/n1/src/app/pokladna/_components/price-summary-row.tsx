@@ -1,4 +1,4 @@
-type PriceSummaryRowProps = {
+interface PriceSummaryRowProps {
   label: string
   value: string | number
   variant?: "default" | "success" | "bold"
@@ -10,15 +10,15 @@ export function PriceSummaryRow({
   variant = "default",
 }: PriceSummaryRowProps) {
   const valueClasses = {
+    bold: "font-bold text-fg-primary text-lg",
     default: "text-fg-primary",
     success: "text-success",
-    bold: "font-bold text-fg-primary text-lg",
   }
 
   const labelClasses = {
+    bold: "font-bold text-fg-primary text-lg",
     default: "text-fg-secondary",
     success: "text-fg-secondary",
-    bold: "font-bold text-fg-primary text-lg",
   }
 
   return (

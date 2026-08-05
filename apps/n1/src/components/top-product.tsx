@@ -1,6 +1,7 @@
-import Image, { type StaticImageData } from "next/image"
+import Image from "next/image"
+import type { StaticImageData } from "next/image"
 
-type TopProductProps = {
+interface TopProductProps {
   src: StaticImageData
   label: string
 }

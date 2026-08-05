@@ -20,55 +20,54 @@ const storefrontServerRead = createMedusaStorefrontServerReadPreset<
   HttpTypes.StoreProduct,
   HttpTypes.StoreProductCategory,
   HttpTypes.StoreCollection,
-  HttpTypes.StoreProduct,
-  CatalogFacets
+  HttpTypes.StoreProduct
 >({
-  sdk: storefrontSdk,
-  queryKeyNamespace: storefrontCoreDefinition.namespace,
   cacheConfig: storefrontCoreDefinition.cacheConfig,
-  products: {
-    serviceConfig: storefrontCoreDefinition.products.serviceConfig,
-    hooks: {
-      buildListParams: storefrontCoreDefinition.products.hooks.buildListParams,
-      buildDetailParams:
-        storefrontCoreDefinition.products.hooks.buildDetailParams,
-    },
-    queryKeys: storefrontCoreDefinition.queryKeys.products,
+  catalog: {
+    queryKeys: storefrontCoreDefinition.queryKeys.catalog,
+    serviceConfig: storefrontCoreDefinition.catalog.serviceConfig,
   },
-  productLists: {
-    queryKeys: storefrontCoreDefinition.productLists.queryKeys,
+  categories: {
+    hooks: {
+      buildDetailParams:
+        storefrontCoreDefinition.categories.hooks.buildDetailParams,
+      buildListParams:
+        storefrontCoreDefinition.categories.hooks.buildListParams,
+    },
+    queryKeys: storefrontCoreDefinition.queryKeys.categories,
+    serviceConfig: storefrontCoreDefinition.categories.serviceConfig,
+  },
+  orders: {
+    hooks: storefrontCoreDefinition.orders.hooks,
+    queryKeys: storefrontCoreDefinition.queryKeys.orders,
+    serviceConfig: storefrontCoreDefinition.orders.serviceConfig,
   },
   productAttributes: {
     queryKeys: storefrontCoreDefinition.productAttributes.queryKeys,
   },
-  reviews: {
-    queryKeys: storefrontCoreDefinition.reviews.queryKeys,
+  productLists: {
+    queryKeys: storefrontCoreDefinition.productLists.queryKeys,
   },
-  orders: {
-    serviceConfig: storefrontCoreDefinition.orders.serviceConfig,
-    hooks: storefrontCoreDefinition.orders.hooks,
-    queryKeys: storefrontCoreDefinition.queryKeys.orders,
+  products: {
+    hooks: {
+      buildDetailParams:
+        storefrontCoreDefinition.products.hooks.buildDetailParams,
+      buildListParams: storefrontCoreDefinition.products.hooks.buildListParams,
+    },
+    queryKeys: storefrontCoreDefinition.queryKeys.products,
+    serviceConfig: storefrontCoreDefinition.products.serviceConfig,
   },
+  queryKeyNamespace: storefrontCoreDefinition.namespace,
   regions: {
     queryKeys: storefrontCoreDefinition.queryKeys.regions,
   },
-  categories: {
-    serviceConfig: storefrontCoreDefinition.categories.serviceConfig,
-    hooks: {
-      buildListParams:
-        storefrontCoreDefinition.categories.hooks.buildListParams,
-      buildDetailParams:
-        storefrontCoreDefinition.categories.hooks.buildDetailParams,
-    },
-    queryKeys: storefrontCoreDefinition.queryKeys.categories,
+  reviews: {
+    queryKeys: storefrontCoreDefinition.reviews.queryKeys,
   },
-  catalog: {
-    serviceConfig: storefrontCoreDefinition.catalog.serviceConfig,
-    queryKeys: storefrontCoreDefinition.queryKeys.catalog,
-  },
+  sdk: storefrontSdk,
 })
 
-export const fetchServerRegions = (
+export const fetchServerRegions = async (
   queryClient: QueryClient,
   listParams: RegionListParams
 ) =>
@@ -76,7 +75,7 @@ export const fetchServerRegions = (
     storefrontServerRead.queries.regions.getListQueryOptions(listParams)
   )
 
-export const prefetchServerProducts = (
+export const prefetchServerProducts = async (
   queryClient: QueryClient,
   listParams: ProductListParams
 ) =>
@@ -84,7 +83,7 @@ export const prefetchServerProducts = (
     storefrontServerRead.queries.products.getListQueryOptions(listParams)
   )
 
-export const fetchServerProducts = (
+export const fetchServerProducts = async (
   queryClient: QueryClient,
   listParams: ProductListParams
 ) =>
@@ -92,7 +91,7 @@ export const fetchServerProducts = (
     storefrontServerRead.queries.products.getListQueryOptions(listParams)
   )
 
-export const fetchServerProduct = (
+export const fetchServerProduct = async (
   queryClient: QueryClient,
   detailParams: ProductDetailParams
 ) =>
@@ -100,7 +99,7 @@ export const fetchServerProduct = (
     storefrontServerRead.queries.products.getDetailQueryOptions(detailParams)
   )
 
-export const prefetchServerProductReviews = (
+export const prefetchServerProductReviews = async (
   queryClient: QueryClient,
   listParams: MedusaProductReviewListInput
 ) =>
@@ -110,7 +109,7 @@ export const prefetchServerProductReviews = (
     )
   )
 
-export const prefetchServerProductAttributes = (
+export const prefetchServerProductAttributes = async (
   queryClient: QueryClient,
   input: MedusaProductAttributesInput
 ) =>
@@ -118,7 +117,7 @@ export const prefetchServerProductAttributes = (
     storefrontServerRead.queries.productAttributes.getDetailQueryOptions(input)
   )
 
-export const fetchServerCategories = (
+export const fetchServerCategories = async (
   queryClient: QueryClient,
   listParams: CategoryListParams
 ) =>
@@ -126,7 +125,7 @@ export const fetchServerCategories = (
     storefrontServerRead.queries.categories.getListQueryOptions(listParams)
   )
 
-export const prefetchServerCatalogProducts = (
+export const prefetchServerCatalogProducts = async (
   queryClient: QueryClient,
   listParams: CatalogListParams
 ) =>

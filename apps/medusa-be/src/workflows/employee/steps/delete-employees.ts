@@ -23,7 +23,7 @@ type DeleteEmployeesStepInput =
       id: string | string[]
     }
 
-type DeletedEmployee = {
+interface DeletedEmployee {
   company?: {
     customer_group?: {
       id?: string | null
@@ -37,7 +37,7 @@ type DeletedEmployee = {
   is_admin?: boolean
 }
 
-type DeleteEmployeesCompensation = {
+interface DeleteEmployeesCompensation {
   employee_link_delete_input: DeleteEntityInput
   employee_ids: string[]
   provider_identity_ids: string[]
@@ -107,12 +107,12 @@ export const deleteEmployeesStep = createStep(
     const adminCandidates = employees
       .filter((employee) => employee.is_admin)
       .map((employee) => ({
-        ...(employee.customer?.id !== undefined
-          ? { customer_id: employee.customer?.id }
-          : {}),
-        ...(employee.customer?.email !== undefined
-          ? { email: employee.customer?.email }
-          : {}),
+        ...(employee.customer?.id === undefined
+          ? {}
+          : { customer_id: employee.customer?.id }),
+        ...(employee.customer?.email === undefined
+          ? {}
+          : { email: employee.customer?.email }),
       }))
     const providerIdentityIds =
       await getProviderIdentityIdsWithoutActiveAdminRole({
@@ -154,8 +154,8 @@ export const deleteEmployeesStep = createStep(
     await companyModuleService.softDeleteEmployees(ids)
 
     return new StepResponse(ids, {
-      employee_link_delete_input: employeeLinkDeleteInput,
       employee_ids: ids,
+      employee_link_delete_input: employeeLinkDeleteInput,
       provider_identity_ids: providerIdentityIds,
       removed_customer_groups: removedCustomerGroups,
     })

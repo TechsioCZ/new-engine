@@ -1,11 +1,13 @@
 import type { HttpTypes } from "@medusajs/types"
 import { omitUndefined } from "@techsio/std/object"
 
-export type CheckoutCartWithId = {
+export interface CheckoutCartWithId {
   id?: string | null
 }
 
-export type ResolveCheckoutCartInputResult<TCart extends CheckoutCartWithId> = {
+export interface ResolveCheckoutCartInputResult<
+  TCart extends CheckoutCartWithId,
+> {
   resolvedCartId?: string
   normalizedCart?: TCart | null
 }
@@ -25,8 +27,8 @@ export const resolveCheckoutCartInput = <TCart extends CheckoutCartWithId>({
   }
 
   return omitUndefined({
-    resolvedCartId,
     normalizedCart: cart,
+    resolvedCartId,
   })
 }
 

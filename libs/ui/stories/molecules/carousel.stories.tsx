@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react"
 
-import { Carousel, type CarouselSlide } from "../../src/molecules/carousel"
+import { Carousel } from "../../src/molecules/carousel"
+import type { CarouselSlide } from "../../src/molecules/carousel"
 
 const mixedImageOne = new URL(
   "../../assets/gallery/shoes-1.jpg",
@@ -13,55 +14,54 @@ const mixedImageTwo = new URL(
 
 const sampleImages: CarouselSlide[] = [
   {
+    alt: "Beautiful landscape",
     id: "slide-1",
     src: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800",
-    alt: "Beautiful landscape",
   },
   {
+    alt: "City skyline",
     id: "slide-2",
     src: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400",
-    alt: "City skyline",
   },
   {
+    alt: "Ocean view",
     id: "slide-3",
     src: "https://images.unsplash.com/photo-1747258294931-79af146bd74c?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    alt: "Ocean view",
   },
   {
+    alt: "Coffee",
     id: "coffee",
     src: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600",
-    alt: "Coffee",
   },
   {
+    alt: "Architecture",
     id: "architecture",
     src: "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600",
-    alt: "Architecture",
   },
   {
+    alt: "City panorama",
     id: "city-panorama",
     src: "https://images.unsplash.com/photo-1514565131-fce0801e5785?w=1200",
-    alt: "City panorama",
   },
   {
+    alt: "Beach panorama",
     id: "beach-wide",
     src: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200",
-    alt: "Beach panorama",
   },
   {
+    alt: "Skyscraper",
     id: "skyscraper",
     src: "https://images.unsplash.com/photo-1494145904049-0dca59b4bbad?w=400",
-    alt: "Skyscraper",
   },
 ]
 
 const mixedSlides: CarouselSlide[] = [
   {
+    alt: "Sample image",
     id: "image-1",
     src: mixedImageOne,
-    alt: "Sample image",
   },
   {
-    id: "content-1",
     content: (
       <div className="flex h-full flex-col items-center justify-center bg-overlay p-400 text-center">
         <h3 className="mb-250 font-bold text-xl text-fg-primary">
@@ -72,17 +72,17 @@ const mixedSlides: CarouselSlide[] = [
         </p>
       </div>
     ),
+    id: "content-1",
   },
   {
+    alt: "Another image",
     id: "image-2",
     src: mixedImageTwo,
-    alt: "Another image",
   },
 ]
 
 const contentSlides: CarouselSlide[] = [
   {
-    id: "content-1",
     content: (
       <div className="flex flex-col items-center justify-center bg-bg-secondary-base p-400 text-center">
         <h3 className="mb-250 font-bold text-xl text-fg-primary">Welcome</h3>
@@ -91,9 +91,9 @@ const contentSlides: CarouselSlide[] = [
         </p>
       </div>
     ),
+    id: "content-1",
   },
   {
-    id: "content-2",
     content: (
       <div className="flex flex-col items-center justify-center bg-bg-success p-400 text-center">
         <h3 className="mb-250 font-bold text-xl text-fg-primary">Features</h3>
@@ -102,9 +102,9 @@ const contentSlides: CarouselSlide[] = [
         </p>
       </div>
     ),
+    id: "content-2",
   },
   {
-    id: "content-3",
     content: (
       <div className="flex flex-col items-center justify-center bg-bg-info p-400 text-center">
         <h3 className="mb-250 font-bold text-xl text-fg-primary">
@@ -113,14 +113,82 @@ const contentSlides: CarouselSlide[] = [
         <p className="text-fg-secondary">Ready to begin your journey?</p>
       </div>
     ),
+    id: "content-3",
   },
 ]
 
 const meta: Meta<typeof Carousel> = {
-  title: "Molecules/Carousel",
+  argTypes: {
+    allowMouseDrag: {
+      control: "boolean",
+      description: "Allow mouse/touch drag to navigate",
+      table: { defaultValue: { summary: "true" } },
+    },
+    aspectRatio: {
+      control: "select",
+      description: "Aspect ratio of slides",
+      options: ["square", "landscape", "portrait", "wide", "none"],
+      table: { defaultValue: { summary: "square" } },
+    },
+    autoplay: {
+      control: "boolean",
+      description: "Whether carousel auto-advances",
+      table: { defaultValue: { summary: "false" } },
+    },
+    loop: {
+      control: "boolean",
+      description: "Whether carousel loops infinitely",
+      table: { defaultValue: { summary: "true" } },
+    },
+    objectFit: {
+      control: "select",
+      description: "How images fit within slides",
+      options: ["cover", "contain", "fill", "none"],
+      table: { defaultValue: { summary: "cover" } },
+    },
+    orientation: {
+      control: "radio",
+      description: "Direction of carousel movement",
+      options: ["horizontal", "vertical"],
+      table: { defaultValue: { summary: "horizontal" } },
+    },
+    size: {
+      control: "select",
+      description: "Size of the carousel",
+      options: ["sm", "md", "lg", "full"],
+      table: { defaultValue: { summary: "md" } },
+    },
+    slidesPerMove: {
+      control: { max: 5, min: 1, type: "number" },
+      description: "Number of slides to move per navigation",
+      table: { defaultValue: { summary: "1" } },
+    },
+    slidesPerPage: {
+      control: { max: 5, min: 1, type: "number" },
+      description: "Number of slides visible at once",
+      table: { defaultValue: { summary: "1" } },
+    },
+  },
+  args: {
+    allowMouseDrag: true,
+    aspectRatio: "square",
+    autoplay: false,
+    loop: true,
+    objectFit: "cover",
+    orientation: "horizontal",
+    size: "md",
+    slidesPerMove: 1,
+    slidesPerPage: 1,
+  },
   component: Carousel,
+  decorators: [
+    (Story) => (
+      <div className="flex">
+        <Story />
+      </div>
+    ),
+  ],
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component: `
@@ -183,77 +251,10 @@ A flexible carousel component using compound component pattern, built with Zag.j
         `,
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  decorators: [
-    (Story) => (
-      <div className="flex">
-        <Story />
-      </div>
-    ),
-  ],
-  argTypes: {
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg", "full"],
-      description: "Size of the carousel",
-      table: { defaultValue: { summary: "md" } },
-    },
-    objectFit: {
-      control: "select",
-      options: ["cover", "contain", "fill", "none"],
-      description: "How images fit within slides",
-      table: { defaultValue: { summary: "cover" } },
-    },
-    aspectRatio: {
-      control: "select",
-      options: ["square", "landscape", "portrait", "wide", "none"],
-      description: "Aspect ratio of slides",
-      table: { defaultValue: { summary: "square" } },
-    },
-    orientation: {
-      control: "radio",
-      options: ["horizontal", "vertical"],
-      description: "Direction of carousel movement",
-      table: { defaultValue: { summary: "horizontal" } },
-    },
-    loop: {
-      control: "boolean",
-      description: "Whether carousel loops infinitely",
-      table: { defaultValue: { summary: "true" } },
-    },
-    autoplay: {
-      control: "boolean",
-      description: "Whether carousel auto-advances",
-      table: { defaultValue: { summary: "false" } },
-    },
-    slidesPerPage: {
-      control: { type: "number", min: 1, max: 5 },
-      description: "Number of slides visible at once",
-      table: { defaultValue: { summary: "1" } },
-    },
-    slidesPerMove: {
-      control: { type: "number", min: 1, max: 5 },
-      description: "Number of slides to move per navigation",
-      table: { defaultValue: { summary: "1" } },
-    },
-    allowMouseDrag: {
-      control: "boolean",
-      description: "Allow mouse/touch drag to navigate",
-      table: { defaultValue: { summary: "true" } },
-    },
-  },
-  args: {
-    size: "md",
-    objectFit: "cover",
-    aspectRatio: "square",
-    orientation: "horizontal",
-    loop: true,
-    autoplay: false,
-    slidesPerPage: 1,
-    slidesPerMove: 1,
-    allowMouseDrag: true,
-  },
+  title: "Molecules/Carousel",
 }
 
 export default meta
@@ -285,6 +286,14 @@ export const Playground: Story = {
 }
 
 export const CustomControlLayout: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Demonstrates custom control layouts outside the default Control wrapper.",
+      },
+    },
+  },
   render: () => (
     <Carousel.Root slideCount={sampleImages.length} size="md" loop>
       <Carousel.Slides slides={sampleImages} />
@@ -295,24 +304,9 @@ export const CustomControlLayout: Story = {
       </div>
     </Carousel.Root>
   ),
-  parameters: {
-    docs: {
-      description: {
-        story:
-          "Demonstrates custom control layouts outside the default Control wrapper.",
-      },
-    },
-  },
 }
 
 export const MinimalControls: Story = {
-  render: () => (
-    <Carousel.Root slideCount={sampleImages.length} loop className="relative">
-      <Carousel.Slides slides={sampleImages} />
-      <Carousel.Previous className="absolute top-1/2 left-0 -translate-y-1/2 translate-x-1/2 bg-transparent text-xl hover:bg-transparent hover:text-primary" />
-      <Carousel.Next className="absolute top-1/2 right-0 bg-transparent text-xl hover:bg-transparent hover:text-primary -translate-1/2" />
-    </Carousel.Root>
-  ),
   parameters: {
     docs: {
       description: {
@@ -320,9 +314,24 @@ export const MinimalControls: Story = {
       },
     },
   },
+  render: () => (
+    <Carousel.Root slideCount={sampleImages.length} loop className="relative">
+      <Carousel.Slides slides={sampleImages} />
+      <Carousel.Previous className="absolute top-1/2 left-0 -translate-y-1/2 translate-x-1/2 bg-transparent text-xl hover:bg-transparent hover:text-primary" />
+      <Carousel.Next className="absolute top-1/2 right-0 bg-transparent text-xl hover:bg-transparent hover:text-primary -translate-1/2" />
+    </Carousel.Root>
+  ),
 }
 
 export const CustomIndicators: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Demonstrates custom indicator styling with elongated active indicator.",
+      },
+    },
+  },
   render: () => (
     <Carousel.Root slideCount={sampleImages.length} loop>
       <Carousel.Slides slides={sampleImages} />
@@ -341,17 +350,16 @@ export const CustomIndicators: Story = {
       </Carousel.Control>
     </Carousel.Root>
   ),
-  parameters: {
-    docs: {
-      description: {
-        story:
-          "Demonstrates custom indicator styling with elongated active indicator.",
-      },
-    },
-  },
 }
 
 export const NumberedIndicators: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: "Carousel with numbered indicators showing slide position.",
+      },
+    },
+  },
   render: () => (
     <div className="space-y-250">
       <Carousel.Root
@@ -378,16 +386,17 @@ export const NumberedIndicators: Story = {
       </Carousel.Root>
     </div>
   ),
-  parameters: {
-    docs: {
-      description: {
-        story: "Carousel with numbered indicators showing slide position.",
-      },
-    },
-  },
 }
 
 export const MixedContent: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Demonstrates the hybrid approach with both image sources and custom JSX content in the same carousel.",
+      },
+    },
+  },
   render: () => (
     <Carousel.Root slideCount={mixedSlides.length} size="md" loop>
       <Carousel.Slides slides={mixedSlides} />
@@ -398,17 +407,16 @@ export const MixedContent: Story = {
       </Carousel.Control>
     </Carousel.Root>
   ),
-  parameters: {
-    docs: {
-      description: {
-        story:
-          "Demonstrates the hybrid approach with both image sources and custom JSX content in the same carousel.",
-      },
-    },
-  },
 }
 
 export const Sizes: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: "Different size variants of the carousel component.",
+      },
+    },
+  },
   render: () => (
     <div className="space-y-400">
       <div>
@@ -450,21 +458,14 @@ export const Sizes: Story = {
       </div>
     </div>
   ),
-  parameters: {
-    docs: {
-      description: {
-        story: "Different size variants of the carousel component.",
-      },
-    },
-  },
 }
 
 export const ObjectFitDemo: Story = {
   render: () => {
     const testImage = {
+      alt: "Portrait for object-fit testing",
       id: "test",
       src: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400",
-      alt: "Portrait for object-fit testing",
     }
 
     return (
@@ -555,9 +556,9 @@ export const ObjectFitDemo: Story = {
 export const AspectRatioDemo: Story = {
   render: () => {
     const landscapeImage = {
+      alt: "Mountain landscape",
       id: "landscape",
       src: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800",
-      alt: "Mountain landscape",
     }
 
     return (

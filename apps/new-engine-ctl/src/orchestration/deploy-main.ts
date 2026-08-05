@@ -13,13 +13,13 @@ import { loadDeployContracts } from "./deploy-inputs.js"
 import {
   buildStagePlan,
   collectStageNumbers,
-  type DeploymentLike,
   filterTargetsForGitCommit,
   mergeCsvValues,
   mergeDeployments,
   stageHasService,
   waitForDeployments,
 } from "./deploy-shared.js"
+import type { DeploymentLike } from "./deploy-shared.js"
 import { executePlan } from "./plan.js"
 import { executeRenderEnvOverrides } from "./render-env-overrides.js"
 import { executeResolveEnvironment } from "./resolve-environment.js"
@@ -34,7 +34,7 @@ import {
 import { expandPlanForRuntimeProviderPrerequisites } from "./runtime-provider-prerequisites.js"
 import { executeTriggerPayload } from "./trigger.js"
 
-export type DeployMainExecutionResult = {
+export interface DeployMainExecutionResult {
   response: DeployMainResponse
   runtimeProviderOutputs: RuntimeProviderOutputs
 }
@@ -42,14 +42,14 @@ export type DeployMainExecutionResult = {
 function supportsPrettyLogs(): boolean {
   return Boolean(
     process.stderr.isTTY &&
-    !process.env["GITHUB_ACTIONS"] &&
-    !process.env["NO_COLOR"] &&
-    process.env["TERM"] !== "dumb"
+    !process.env.GITHUB_ACTIONS &&
+    !process.env.NO_COLOR &&
+    process.env.TERM !== "dumb"
   )
 }
 
 function colorize(text: string, code: string): string {
-  return supportsPrettyLogs() ? `\u001b[${code}m${text}\u001b[0m` : text
+  return supportsPrettyLogs() ? `\u001B[${code}m${text}\u001B[0m` : text
 }
 
 function logDeployProgress(message: string): void {
@@ -75,7 +75,7 @@ function logDeployProgress(message: string): void {
 
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
+  await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
 export async function executeDeployMain(
@@ -87,41 +87,41 @@ export async function executeDeployMain(
   )
   const plan = await executePlan({
     lane: "main",
-    servicesCsv: input.servicesCsv,
-    prNumber: undefined,
     outputJson: undefined,
-    stackManifestPath: input.stackManifestPath,
+    prNumber: undefined,
     previewEnvPrefix: "pr-",
+    servicesCsv: input.servicesCsv,
+    stackManifestPath: input.stackManifestPath,
   })
   const environment = await executeResolveEnvironment({
-    lane: "main",
-    projectSlug: input.projectSlug,
-    prNumber: undefined,
-    environmentName: input.environmentName,
-    sourceEnvironmentName: input.environmentName,
-    reconcileServiceIdsCsv: plan.deploy_services_csv,
-    previewClonedServiceIdsCsv: "",
-    previewExcludedServiceIdsCsv: "",
-    outputJson: undefined,
-    baseUrl: input.baseUrl,
     apiToken: input.apiToken,
+    baseUrl: input.baseUrl,
     dryRun: input.dryRun,
     dryRunCreated: false,
-    stackManifestPath: input.stackManifestPath,
-    stackInputsPath: input.stackInputsPath,
+    environmentName: input.environmentName,
+    lane: "main",
+    outputJson: undefined,
+    prNumber: undefined,
+    previewClonedServiceIdsCsv: "",
     previewEnvPrefix: "pr-",
+    previewExcludedServiceIdsCsv: "",
+    projectSlug: input.projectSlug,
+    reconcileServiceIdsCsv: plan.deploy_services_csv,
+    sourceEnvironmentName: input.environmentName,
+    stackInputsPath: input.stackInputsPath,
+    stackManifestPath: input.stackManifestPath,
   })
   const prerequisitePlan = await expandPlanForRuntimeProviderPrerequisites({
-    lane: "main",
-    plan,
-    manifest: contracts.manifest,
-    stackInputs: contracts.stackInputs,
-    projectSlug: input.projectSlug,
-    environmentName: environment.environment_name,
-    baseUrl: input.baseUrl,
     apiToken: input.apiToken,
+    baseUrl: input.baseUrl,
     dryRun: input.dryRun,
+    environmentName: environment.environment_name,
+    lane: "main",
+    manifest: contracts.manifest,
     meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
+    plan,
+    projectSlug: input.projectSlug,
+    stackInputs: contracts.stackInputs,
   })
   const effectivePlan = prerequisitePlan.plan
 
@@ -147,9 +147,9 @@ export async function executeDeployMain(
   const runtimeProviderNeeds = collectConfiguredRuntimeProviderNeeds({
     lane: "main",
     manifest: contracts.manifest,
-    stackInputs: contracts.stackInputs,
-    services: effectivePlan.deploy_services,
     meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
+    services: effectivePlan.deploy_services,
+    stackInputs: contracts.stackInputs,
   })
   const runtimeProviderState = createRuntimeProviderState({})
 
@@ -158,21 +158,21 @@ export async function executeDeployMain(
   let skippedServicesCsv = ""
   let allDeployments: DeploymentLike[] = []
   await reuseRuntimeProviderOutputs({
-    lane: "main",
-    projectSlug: input.projectSlug,
+    apiToken: input.apiToken,
+    baseUrl: input.baseUrl,
+    dryRun: input.dryRun,
     environmentName: environment.environment_name,
+    lane: "main",
+    meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
+    needs: runtimeProviderNeeds,
+    onProgress: logDeployProgress,
     planServices: effectivePlan.deploy_services.map((service) => ({
       id: service.id,
       service_slug: service.service_slug,
     })),
-    needs: runtimeProviderNeeds,
+    projectSlug: input.projectSlug,
     stackInputs: contracts.stackInputs,
-    baseUrl: input.baseUrl,
-    apiToken: input.apiToken,
-    dryRun: input.dryRun,
     state: runtimeProviderState,
-    meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
-    onProgress: logDeployProgress,
   })
 
   for (const stage of collectStageNumbers(effectivePlan)) {
@@ -186,27 +186,27 @@ export async function executeDeployMain(
       `Starting deploy stage ${stage} for services: ${stageServicesCsv}.`
     )
     await ensureStageRuntimeProviderOutputs({
-      lane: "main",
-      stage,
-      stageServices: stagePlan.deploy_services.map((service) => ({
-        id: service.id,
-        service_slug: service.service_slug,
-      })),
+      apiToken: input.apiToken,
+      baseUrl: input.baseUrl,
+      dryRun: input.dryRun,
+      environmentName: environment.environment_name,
       fullPlanServices: effectivePlan.deploy_services.map((service) => ({
         id: service.id,
         service_slug: service.service_slug,
         deploy_stage: service.deploy_stage,
       })),
-      needs: runtimeProviderNeeds,
-      projectSlug: input.projectSlug,
-      environmentName: environment.environment_name,
-      stackInputs: contracts.stackInputs,
-      baseUrl: input.baseUrl,
-      apiToken: input.apiToken,
-      dryRun: input.dryRun,
-      state: runtimeProviderState,
+      lane: "main",
       meiliApiCredentialsProviderId: input.meiliApiCredentialsProviderId,
+      needs: runtimeProviderNeeds,
       onProgress: logDeployProgress,
+      projectSlug: input.projectSlug,
+      stackInputs: contracts.stackInputs,
+      stage,
+      stageServices: stagePlan.deploy_services.map((service) => ({
+        id: service.id,
+        service_slug: service.service_slug,
+      })),
+      state: runtimeProviderState,
     })
 
     logDeployProgress(
@@ -214,36 +214,36 @@ export async function executeDeployMain(
     )
     const envOverrides = await executeRenderEnvOverrides({
       lane: "main",
-      servicesCsv: stageServicesCsv,
+      outputJson: undefined,
       previewDbName: "",
-      previewDbUser: "",
       previewDbPassword: "",
+      previewDbUser: "",
       previewRandomOnceSecrets: [],
       runtimeProviderOutputs:
         buildRuntimeProviderRenderContext(runtimeProviderState)
           .runtimeProviderOutputs,
-      outputJson: undefined,
-      stackManifestPath: input.stackManifestPath,
+      servicesCsv: stageServicesCsv,
       stackInputsPath: input.stackInputsPath,
+      stackManifestPath: input.stackManifestPath,
     })
 
     logDeployProgress(
       `Resolving deploy targets for stage ${stage}: ${stageServicesCsv}.`
     )
     const resolveTargetsPayload: ResolveTargetsPayload = {
+      environment_name: environment.environment_name,
       lane: "main",
       project_slug: input.projectSlug,
-      environment_name: environment.environment_name,
       services: stagePlan.deploy_services.map((service) => ({
         service_id: service.id,
         service_slug: service.service_slug,
       })),
     }
     const targets = await executeResolveTargetsPayload({
-      payload: resolveTargetsPayload,
-      baseUrl: input.baseUrl,
       apiToken: input.apiToken,
+      baseUrl: input.baseUrl,
       dryRun: input.dryRun,
+      payload: resolveTargetsPayload,
     })
     const filtered = filterTargetsForGitCommit(
       targets.services,
@@ -291,15 +291,15 @@ export async function executeDeployMain(
           .join(", ")}.`
       )
       await executeApplyEnvOverridesPayload({
-        payload: {
-          project_slug: input.projectSlug,
-          environment_name: environment.environment_name,
-          targets: filtered.services,
-          env_overrides: filtered.filteredEnvOverrides,
-        },
-        baseUrl: input.baseUrl,
         apiToken: input.apiToken,
+        baseUrl: input.baseUrl,
         dryRun: input.dryRun,
+        payload: {
+          env_overrides: filtered.filteredEnvOverrides,
+          environment_name: environment.environment_name,
+          project_slug: input.projectSlug,
+          targets: filtered.services,
+        },
       })
       logDeployProgress(
         `Triggering deploys for stage ${stage}: ${filtered.services
@@ -307,13 +307,13 @@ export async function executeDeployMain(
           .join(", ")}.`
       )
       const trigger = await executeTriggerPayload({
-        projectSlug: input.projectSlug,
-        environmentName: environment.environment_name,
-        targets: filtered.services,
-        gitCommitSha: input.gitCommitSha,
-        baseUrl: input.baseUrl,
         apiToken: input.apiToken,
+        baseUrl: input.baseUrl,
         dryRun: input.dryRun,
+        environmentName: environment.environment_name,
+        gitCommitSha: input.gitCommitSha,
+        projectSlug: input.projectSlug,
+        targets: filtered.services,
       })
       stageDeployments = mergeDeployments(stageDeployments, trigger.services)
       allDeployments = mergeDeployments(allDeployments, trigger.services)
@@ -347,32 +347,32 @@ export async function executeDeployMain(
       `Waiting for stage ${stage} deployments to become healthy.`
     )
     await waitForDeployments({
-      lane: "main",
-      projectSlug: input.projectSlug,
-      environmentName: environment.environment_name,
-      requestedServicesCsv: stageServicesCsv,
+      apiToken: input.apiToken,
+      baseUrl: input.baseUrl,
+      cancelOnInterrupt: true,
       deployServicesCsv: stageServicesCsv,
-      triggeredServicesCsv: stageTriggeredServicesCsv,
+      deployments: stageDeployments,
+      dryRun: input.dryRun,
+      environmentName: environment.environment_name,
+      lane: "main",
+      onProgress: logDeployProgress,
+      pollIntervalSeconds: input.pollIntervalSeconds,
       previewClonedServiceIdsCsv: "",
-      previewExcludedServiceIdsCsv: "",
       previewDbName: "",
-      previewDbUser: "",
       previewDbPassword: "",
+      previewDbUser: "",
+      previewExcludedServiceIdsCsv: "",
       previewRandomOnceSecrets: [],
+      projectSlug: input.projectSlug,
+      requestedServicesCsv: stageServicesCsv,
       runtimeProviderOutputs:
         buildRuntimeProviderRenderContext(runtimeProviderState)
           .runtimeProviderOutputs,
-      deployments: stageDeployments,
-      baseUrl: input.baseUrl,
-      apiToken: input.apiToken,
-      dryRun: input.dryRun,
-      pollIntervalSeconds: input.pollIntervalSeconds,
-      waitTimeoutSeconds: input.waitTimeoutSeconds,
-      tolerateBaseUrlUnavailable: stageHasService(plan, stage, "zane-operator"),
-      stackManifestPath: input.stackManifestPath,
       stackInputsPath: input.stackInputsPath,
-      onProgress: logDeployProgress,
-      cancelOnInterrupt: true,
+      stackManifestPath: input.stackManifestPath,
+      tolerateBaseUrlUnavailable: stageHasService(plan, stage, "zane-operator"),
+      triggeredServicesCsv: stageTriggeredServicesCsv,
+      waitTimeoutSeconds: input.waitTimeoutSeconds,
     })
   }
 
@@ -380,17 +380,17 @@ export async function executeDeployMain(
     buildRuntimeProviderRenderContext(runtimeProviderState)
 
   const response = deployMainResponseSchema.parse({
+    deploy_services_csv: effectivePlan.deploy_services_csv,
+    deployments: allDeployments,
+    env_override_service_ids_csv: envOverrideServiceIdsCsv,
+    environment_created: environment.created,
+    environment_id: environment.environment_id,
+    environment_name: environment.environment_name,
     lane: "main",
     project_slug: input.projectSlug,
-    environment_name: environment.environment_name,
-    environment_id: environment.environment_id,
-    environment_created: environment.created,
     requested_services_csv: plan.requested_services_csv,
-    deploy_services_csv: effectivePlan.deploy_services_csv,
-    env_override_service_ids_csv: envOverrideServiceIdsCsv,
-    triggered_services_csv: triggeredServicesCsv,
     skipped_services_csv: skippedServicesCsv,
-    deployments: allDeployments,
+    triggered_services_csv: triggeredServicesCsv,
   })
 
   if (input.outputJson) {

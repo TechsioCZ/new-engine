@@ -2,9 +2,6 @@ import type { FaqItem } from "./faq-page.types"
 
 export const primaryFaqItems = [
   {
-    id: "stav-objednavky",
-    question: "V akom stave je Vaša objednávka?",
-    updatedAt: "24.9.2018",
     answer: [
       {
         type: "paragraph",
@@ -29,11 +26,11 @@ export const primaryFaqItems = [
         ],
       },
     ],
+    id: "stav-objednavky",
+    question: "V akom stave je Vaša objednávka?",
+    updatedAt: "24.9.2018",
   },
   {
-    id: "vypredany-tovar",
-    question: "Chcete byť informovaný, keď bude vypredaný tovar opäť skladom?",
-    updatedAt: "15.8.2019",
     answer: [
       {
         type: "paragraph",
@@ -78,11 +75,11 @@ export const primaryFaqItems = [
         ],
       },
     ],
+    id: "vypredany-tovar",
+    question: "Chcete byť informovaný, keď bude vypredaný tovar opäť skladom?",
+    updatedAt: "15.8.2019",
   },
   {
-    id: "zlavovy-kupon",
-    question: "Nedá sa Vám uplatniť zľavový kupón?",
-    updatedAt: "15.8.2019",
     answer: [
       {
         type: "paragraph",
@@ -106,11 +103,11 @@ export const primaryFaqItems = [
         ],
       },
     ],
+    id: "zlavovy-kupon",
+    question: "Nedá sa Vám uplatniť zľavový kupón?",
+    updatedAt: "15.8.2019",
   },
   {
-    id: "obchodna-ponuka",
-    question: "Máte pre nás obchodnú ponuku?",
-    updatedAt: "15.8.2019",
     answer: [
       {
         type: "paragraph",
@@ -135,12 +132,11 @@ export const primaryFaqItems = [
         ],
       },
     ],
+    id: "obchodna-ponuka",
+    question: "Máte pre nás obchodnú ponuku?",
+    updatedAt: "15.8.2019",
   },
   {
-    id: "byt-v-obraze",
-    question:
-      "Čo robiť keď chcem byť v obraze a mať stále prehľad o tom, čo má Herbatica nové, aké zmeny sa u nich dejú, aké majú práve akcie?",
-    updatedAt: "15.8.2019",
     answer: [
       {
         type: "paragraph",
@@ -188,5 +184,9 @@ export const primaryFaqItems = [
         ],
       },
     ],
+    id: "byt-v-obraze",
+    question:
+      "Čo robiť keď chcem byť v obraze a mať stále prehľad o tom, čo má Herbatica nové, aké zmeny sa u nich dejú, aké majú práve akcie?",
+    updatedAt: "15.8.2019",
   },
 ] satisfies FaqItem[]

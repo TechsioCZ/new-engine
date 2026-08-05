@@ -2,7 +2,7 @@ import { Image } from "@techsio/ui-kit/atoms/image"
 import type { StaticImageData } from "next/image"
 import NextImage from "next/image"
 
-type FeatureBlockProps = {
+interface FeatureBlockProps {
   maintText: string
   subText: string
   icon: StaticImageData

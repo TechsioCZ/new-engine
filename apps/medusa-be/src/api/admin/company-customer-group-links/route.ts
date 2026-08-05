@@ -9,7 +9,7 @@ import type { ICompanyModuleService } from "../../../types"
 
 const COMPANY_CUSTOMER_GROUP_LINK_ENTRY_POINT = "company_customer_group"
 
-type CompanyCustomerGroupLinkRow = {
+interface CompanyCustomerGroupLinkRow {
   company_id?: string
   customer_group_id?: string
 }

@@ -6,19 +6,6 @@ figma.connect(
   Table,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1393-232",
   {
-    imports: ['import { Table } from "@libs/ui/organisms/table"'],
-    props: {
-      variant: figma.enum("variant", {
-        line: "line",
-        outline: "outline",
-        striped: "striped",
-      }),
-      size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
-        lg: "lg",
-      }),
-    },
     example: ({ variant, size }) => (
       <Table size={size} variant={variant}>
         <Table.Caption>Recent orders</Table.Caption>
@@ -50,5 +37,18 @@ figma.connect(
         </Table.Footer>
       </Table>
     ),
+    imports: ['import { Table } from "@libs/ui/organisms/table"'],
+    props: {
+      size: figma.enum("size", {
+        sm: "sm",
+        md: "md",
+        lg: "lg",
+      }),
+      variant: figma.enum("variant", {
+        line: "line",
+        outline: "outline",
+        striped: "striped",
+      }),
+    },
   }
 )

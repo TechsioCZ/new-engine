@@ -17,7 +17,7 @@ import {
 } from "./providers"
 import type { MedusaModuleConfig, MedusaModulesConfig } from "./types"
 
-type PaymentProviderConfig = {
+interface PaymentProviderConfig {
   id: string
   options?: Record<string, unknown>
   resolve: string
@@ -28,9 +28,9 @@ function buildPaymentProviders(env: MedusaConfigEnv): PaymentProviderConfig[] {
 
   if (env.featurePaymentQrEnabled) {
     providers.push({
-      resolve: "./src/modules/payment-qr/services/manual",
       id: QR_PAYMENT_PROVIDER_ID,
       options: {},
+      resolve: "./src/modules/payment-qr/services/manual",
     })
   }
 
@@ -51,11 +51,11 @@ function buildPaymentDependencies(env: MedusaConfigEnv): string[] {
 
 function buildPaymentModule(env: MedusaConfigEnv): MedusaModuleConfig {
   return {
-    resolve: "@medusajs/medusa/payment",
     dependencies: buildPaymentDependencies(env),
     options: {
       providers: buildPaymentProviders(env),
     },
+    resolve: "@medusajs/medusa/payment",
   }
 }
 
@@ -78,21 +78,21 @@ function buildFulfillmentClientModules(
 
   if (env.featurePplEnabled) {
     modules.push({
-      resolve: "./src/modules/ppl-client",
       dependencies: [Modules.LOCKING],
       options: {
         environment: env.pplEnvironment,
       },
+      resolve: "./src/modules/ppl-client",
     })
   }
 
   if (env.featurePacketaEnabled) {
     modules.push({
-      resolve: "./src/modules/packeta-client",
       dependencies: [Modules.LOCKING],
       options: {
         environment: env.packetaEnvironment,
       },
+      resolve: "./src/modules/packeta-client",
     })
   }
 
@@ -122,22 +122,22 @@ function buildFulfillmentProviders(
 ): PaymentProviderConfig[] {
   const providers: PaymentProviderConfig[] = [
     {
-      resolve: "@medusajs/medusa/fulfillment-manual",
       id: "manual",
+      resolve: "@medusajs/medusa/fulfillment-manual",
     },
   ]
 
   if (env.featurePplEnabled) {
     providers.push({
-      resolve: "./src/modules/fulfillment-ppl",
       id: "ppl",
+      resolve: "./src/modules/fulfillment-ppl",
     })
   }
 
   if (env.featurePacketaEnabled) {
     providers.push({
-      resolve: "./src/modules/fulfillment-packeta",
       id: "packeta",
+      resolve: "./src/modules/fulfillment-packeta",
     })
   }
 
@@ -152,11 +152,11 @@ function buildFulfillmentModules(env: MedusaConfigEnv): MedusaModuleConfig[] {
   }
 
   modules.push({
-    resolve: "@medusajs/medusa/fulfillment",
     dependencies: buildFulfillmentDependencies(env),
     options: {
       providers: buildFulfillmentProviders(env),
     },
+    resolve: "@medusajs/medusa/fulfillment",
   })
 
   return modules
@@ -167,13 +167,13 @@ function buildPayloadModules(env: MedusaConfigEnv): MedusaModuleConfig[] {
 
   if (env.featurePayloadEnabled) {
     modules.push({
-      resolve: "./src/modules/payload",
       options: {
-        serverUrl: env.payloadBaseUrl,
         apiKey: env.payloadApiKey,
         contentCacheTtl: env.payloadContentCacheTtl,
         listCacheTtl: env.payloadListCacheTtl,
+        serverUrl: env.payloadBaseUrl,
       },
+      resolve: "./src/modules/payload",
     })
   }
 
@@ -186,10 +186,10 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
       resolve: "@medusajs/medusa/translation",
     },
     {
-      resolve: "@medusajs/medusa/notification",
       options: {
         providers: buildNotificationProviders(env),
       },
+      resolve: "@medusajs/medusa/notification",
     },
     buildCachingModule(env),
     {
@@ -220,8 +220,8 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
       resolve: "./src/modules/database",
     },
     {
-      resolve: "./src/modules/order-note",
       dependencies: [DATABASE_MODULE],
+      resolve: "./src/modules/order-note",
     },
     {
       resolve: "./src/modules/approval",

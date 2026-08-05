@@ -26,10 +26,14 @@ export function HerbatikaMobileMenuDialog() {
     handleChange(mediaQuery)
     mediaQuery.addEventListener("change", handleChange)
 
-    return () => mediaQuery.removeEventListener("change", handleChange)
+    return () => {
+      mediaQuery.removeEventListener("change", handleChange)
+    }
   }, [setIsMobileMenuOpen])
 
-  const handleClose = () => setIsMobileMenuOpen(false)
+  const handleClose = () => {
+    setIsMobileMenuOpen(false)
+  }
 
   return (
     <div data-herbatika-mobile-menu-dialog-root="">
@@ -39,7 +43,9 @@ export function HerbatikaMobileMenuDialog() {
         customTrigger
         hideCloseButton
         modal
-        onOpenChange={({ open }) => setIsMobileMenuOpen(open)}
+        onOpenChange={({ open }) => {
+          setIsMobileMenuOpen(open)
+        }}
         open={isMobileMenuOpen}
         placement="top"
         portal={false}

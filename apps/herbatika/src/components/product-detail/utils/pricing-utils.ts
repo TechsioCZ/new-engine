@@ -41,11 +41,11 @@ export const resolvePriceState = (
     resolveSupportedCurrencyCode(expectedCurrencyCode, DEFAULT_CURRENCY_CODE)
   if (typeof resolvedCalculatedAmount !== "number" || !price) {
     return {
-      currentLabel: priceUnavailableLabel,
-      originalLabel: null,
-      currentAmount: null,
-      originalAmount: null,
       currencyCode: currencyCode.toUpperCase(),
+      currentAmount: null,
+      currentLabel: priceUnavailableLabel,
+      originalAmount: null,
+      originalLabel: null,
       pricePerUnit: null,
     }
   }
@@ -53,15 +53,15 @@ export const resolvePriceState = (
   const normalizedOriginalAmount = price?.originalAmount ?? null
 
   return {
+    currencyCode: currencyCode.toUpperCase(),
+    currentAmount: resolvedCalculatedAmount,
     currentLabel: formatCurrencyAmount(resolvedCalculatedAmount, currencyCode),
+    originalAmount: normalizedOriginalAmount,
     originalLabel:
       normalizedOriginalAmount &&
       normalizedOriginalAmount > resolvedCalculatedAmount
         ? formatCurrencyAmount(normalizedOriginalAmount, currencyCode)
         : null,
-    currentAmount: resolvedCalculatedAmount,
-    originalAmount: normalizedOriginalAmount,
-    currencyCode: currencyCode.toUpperCase(),
     pricePerUnit: resolveVariantPricePerUnit(selectedVariant, {
       currencyCode: price.currencyCode,
       source: price.source,
@@ -135,19 +135,19 @@ export const resolveVolumeDiscountOptions = (
 
     return {
       id: `quantity-tier-${option.quantity}`,
-      title: labels.title(option.quantity),
-      quantity: option.quantity,
-      totalAmountLabel: formatCurrencyAmount(
-        discountedTotalAmount,
-        currencyCode
-      ),
-      perUnitLabel: labels.perUnit(
-        formatCurrencyAmount(discountedUnitAmount, currencyCode)
-      ),
       oldTotalAmountLabel:
         discountedTotalAmount < originalTotalAmount
           ? formatCurrencyAmount(originalTotalAmount, currencyCode)
           : null,
+      perUnitLabel: labels.perUnit(
+        formatCurrencyAmount(discountedUnitAmount, currencyCode)
+      ),
+      quantity: option.quantity,
+      title: labels.title(option.quantity),
+      totalAmountLabel: formatCurrencyAmount(
+        discountedTotalAmount,
+        currencyCode
+      ),
     }
   })
 }

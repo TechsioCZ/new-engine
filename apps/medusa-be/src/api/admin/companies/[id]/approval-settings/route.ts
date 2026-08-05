@@ -37,8 +37,8 @@ export const GET = async (
   res.json({
     approvalSettings,
     count: metadata?.count ?? approvalSettings.length,
-    offset: metadata?.skip ?? 0,
     limit: metadata?.take ?? approvalSettings.length,
+    offset: metadata?.skip ?? 0,
   })
 }
 

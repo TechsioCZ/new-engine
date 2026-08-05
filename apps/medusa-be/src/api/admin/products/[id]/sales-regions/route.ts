@@ -15,18 +15,17 @@ import { normalizeCountryCode } from "../../../../../utils/country-code"
 import {
   getRegionCountryCodes,
   isTaxRateRule,
-  type RegionWithCountries,
   resolveEffectiveRate,
-  type TaxRateRule,
   toRegionWithCountries,
   toSalesRegionProduct,
 } from "./utils"
+import type { RegionWithCountries, TaxRateRule } from "./utils"
 
 const CHUNK_SIZE = 100
 const CONFIG_CACHE_TTL_MS = 30_000
 const PRODUCT_NOT_FOUND_MESSAGE = "Product not found"
 
-type CacheEntry<TValue> = {
+interface CacheEntry<TValue> {
   expiresAt: number
   value: Promise<TValue>
 }
@@ -36,7 +35,7 @@ const taxRegionsCache = new Map<string, CacheEntry<TaxRegionDTO[]>>()
 const taxRatesCache = new Map<string, CacheEntry<TaxRateDTO[]>>()
 const taxRateRulesCache = new Map<string, CacheEntry<TaxRateRule[]>>()
 
-function getCachedConfig<TValue>(
+async function getCachedConfig<TValue>(
   cache: Map<string, CacheEntry<TValue>>,
   key: string,
   load: () => Promise<TValue>
@@ -207,7 +206,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const salesChannels = product.sales_channels ?? []
   const countryCodes = salesChannels.length
     ? getRegionCountryCodes(
-        await getCachedConfig(regionsCache, "all", () =>
+        await getCachedConfig(regionsCache, "all", async () =>
           listAllRegions(regionService)
         )
       )
@@ -216,7 +215,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     ? await getCachedConfig(
         taxRegionsCache,
         getCountryCodeSetCacheKey(countryCodes),
-        () => listAllTaxRegions(taxService, countryCodes)
+        async () => listAllTaxRegions(taxService, countryCodes)
       )
     : []
   const topLevelCountryTaxRegions = taxRegions.filter(
@@ -227,14 +226,18 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     (taxRegion) => taxRegion.id
   )
   const taxRates = taxRegionIds.length
-    ? await getCachedConfig(taxRatesCache, getSetCacheKey(taxRegionIds), () =>
-        listAllTaxRates(taxService, taxRegionIds)
+    ? await getCachedConfig(
+        taxRatesCache,
+        getSetCacheKey(taxRegionIds),
+        async () => listAllTaxRates(taxService, taxRegionIds)
       )
     : []
   const taxRateIds = taxRates.map((taxRate) => taxRate.id)
   const taxRateRules = taxRateIds.length
-    ? await getCachedConfig(taxRateRulesCache, getSetCacheKey(taxRateIds), () =>
-        listAllTaxRateRules(taxService, taxRateIds)
+    ? await getCachedConfig(
+        taxRateRulesCache,
+        getSetCacheKey(taxRateIds),
+        async () => listAllTaxRateRules(taxService, taxRateIds)
       )
     : []
 
@@ -278,10 +281,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   })
 
   res.status(200).json({
+    country_rates: ratesByCountry,
     product: {
       id: product.id,
       sales_channels: salesChannels,
     },
-    country_rates: ratesByCountry,
   })
 }

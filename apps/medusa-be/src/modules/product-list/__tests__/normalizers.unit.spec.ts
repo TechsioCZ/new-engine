@@ -21,9 +21,9 @@ const catchError = (callback: () => unknown) => {
 }
 
 describe("product-list normalizers", () => {
-  describe("normalizeProductListAccessType", () => {
+  describe(normalizeProductListAccessType, () => {
     it("defaults to private access", () => {
-      expect(normalizeProductListAccessType(undefined)).toBe("private")
+      expect(normalizeProductListAccessType()).toBe("private")
     })
 
     it.each(["private", "public"] as const)(
@@ -37,21 +37,21 @@ describe("product-list normalizers", () => {
       expect(
         catchError(() => normalizeProductListAccessType("shared"))
       ).toMatchObject({
-        type: MedusaError.Types.INVALID_DATA,
         message: "Unsupported product list access type: shared",
+        type: MedusaError.Types.INVALID_DATA,
       })
     })
   })
 
-  describe("normalizeProductListType", () => {
+  describe(normalizeProductListType, () => {
     it.each(["favorite", "custom"] as const)("accepts %s lists", (type) => {
       expect(normalizeProductListType(type)).toBe(type)
     })
 
     it("rejects non-string list types", () => {
       expect(catchError(() => normalizeProductListType(null))).toMatchObject({
-        type: MedusaError.Types.INVALID_DATA,
         message: "Unsupported product list type: null",
+        type: MedusaError.Types.INVALID_DATA,
       })
     })
 
@@ -59,15 +59,15 @@ describe("product-list normalizers", () => {
       expect(
         catchError(() => normalizeProductListType("collection"))
       ).toMatchObject({
-        type: MedusaError.Types.INVALID_DATA,
         message: "Unsupported product list type: collection",
+        type: MedusaError.Types.INVALID_DATA,
       })
     })
   })
 
-  describe("normalizePositiveInteger", () => {
+  describe(normalizePositiveInteger, () => {
     it("returns the default when omitted", () => {
-      expect(normalizePositiveInteger("quantity", undefined)).toBe(1)
+      expect(normalizePositiveInteger("quantity")).toBe(1)
       expect(normalizePositiveInteger("quantity", undefined, 3)).toBe(3)
     })
 
@@ -80,15 +80,15 @@ describe("product-list normalizers", () => {
       expect(
         catchError(() => normalizePositiveInteger("quantity", value))
       ).toMatchObject({
-        type: MedusaError.Types.INVALID_DATA,
         message: "quantity must be a positive integer",
+        type: MedusaError.Types.INVALID_DATA,
       })
     })
   })
 
-  describe("normalizeNonNegativeInteger", () => {
+  describe(normalizeNonNegativeInteger, () => {
     it("returns the default when omitted", () => {
-      expect(normalizeNonNegativeInteger("sort_order", undefined)).toBe(0)
+      expect(normalizeNonNegativeInteger("sort_order")).toBe(0)
       expect(normalizeNonNegativeInteger("sort_order", undefined, 2)).toBe(2)
     })
 
@@ -101,8 +101,8 @@ describe("product-list normalizers", () => {
       expect(
         catchError(() => normalizeNonNegativeInteger("sort_order", value))
       ).toMatchObject({
-        type: MedusaError.Types.INVALID_DATA,
         message: "sort_order must be a non-negative integer",
+        type: MedusaError.Types.INVALID_DATA,
       })
     })
   })

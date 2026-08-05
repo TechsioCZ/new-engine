@@ -3,7 +3,7 @@ import type { CatalogQueryState } from "./parsers"
 import { normalizeStatusFilterInput } from "./status-filters"
 import { normalizePriceRange, toNonEmptyArray } from "./utils"
 
-type BuildCatalogProductsParamsInput = {
+interface BuildCatalogProductsParamsInput {
   queryState: CatalogQueryState
   categoryIds?: string[]
   limit?: number
@@ -12,7 +12,7 @@ type BuildCatalogProductsParamsInput = {
   currencyCode?: string
 }
 
-export type CatalogProductsParams = {
+export interface CatalogProductsParams {
   q?: string
   page: number
   limit: number
@@ -38,8 +38,8 @@ export const resolveCatalogPriceBounds = (priceFacet: {
   }
 
   return {
-    min: priceFacet.min ?? 0,
     max: priceFacet.max ?? priceFacet.min ?? 1,
+    min: priceFacet.min ?? 0,
   }
 }
 
@@ -64,8 +64,8 @@ export const buildCatalogProductsParams = ({
   const ingredient = toNonEmptyArray(queryState.ingredient)
   const params: CatalogProductsParams = {
     ...(normalizedSearchQuery ? { q: normalizedSearchQuery } : {}),
-    page: queryState.page,
     limit,
+    page: queryState.page,
     sort: queryState.sort,
     ...(categoryIdsValue === undefined
       ? {}

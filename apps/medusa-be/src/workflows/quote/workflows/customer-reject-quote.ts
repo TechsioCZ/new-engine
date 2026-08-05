@@ -15,9 +15,9 @@ export const customerRejectQuoteWorkflow = createWorkflow(
     useRemoteQueryStep({
       entry_point: "quote",
       fields: ["id", "customer_id"],
-      variables: { id: input.quote_id, customer_id: input.customer_id },
       list: false,
       throw_if_key_not_found: true,
+      variables: { customer_id: input.customer_id, id: input.quote_id },
     })
 
     updateQuotesWorkflow.runAsStep({

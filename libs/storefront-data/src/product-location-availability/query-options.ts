@@ -12,11 +12,11 @@ import type {
   ProductLocationAvailabilityService,
 } from "./types"
 
-export type CreateProductLocationAvailabilityQueryOptionsFactoryConfig<
+export interface CreateProductLocationAvailabilityQueryOptionsFactoryConfig<
   TResponse,
   TInput extends ProductLocationAvailabilityInputBase,
   TParams,
-> = {
+> {
   service: ProductLocationAvailabilityService<TResponse, TParams>
   buildDetailParams?: ((input: TInput) => TParams) | undefined
   queryKeys?: ProductLocationAvailabilityQueryKeys<TParams>
@@ -24,10 +24,10 @@ export type CreateProductLocationAvailabilityQueryOptionsFactoryConfig<
   cacheConfig?: CacheConfig
 }
 
-export type ProductLocationAvailabilityQueryOptionsFactory<
+export interface ProductLocationAvailabilityQueryOptionsFactory<
   TResponse,
   TInput extends ProductLocationAvailabilityInputBase,
-> = {
+> {
   getDetailQueryOptions: (
     input: TInput,
     options?: {
@@ -64,14 +64,14 @@ export function createProductLocationAvailabilityQueryOptionsFactory<
       const cacheStrategy = options?.cacheStrategy ?? "realtime"
 
       return {
-        queryKey: resolvedQueryKeys.detail(detailParams),
-        queryFn: ({ signal }) => {
+        queryFn: async ({ signal }) => {
           if (!input.productId) {
             throw new Error("Product id is required for location availability.")
           }
 
           return service.getProductLocationAvailability(detailParams, signal)
         },
+        queryKey: resolvedQueryKeys.detail(detailParams),
         ...resolvedCacheConfig[cacheStrategy],
         ...options?.queryOptions,
       }

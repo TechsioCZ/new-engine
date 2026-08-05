@@ -28,7 +28,7 @@ import {
   resolveOriginalLineItemTotalAmount,
 } from "../utils/resolve-availability-text"
 
-type CheckoutCartItemRowProps = {
+interface CheckoutCartItemRowProps {
   currencyCode: HerbatikaCurrencyCode
   isPending: boolean
   item: HttpTypes.StoreCartLineItem
@@ -37,7 +37,7 @@ type CheckoutCartItemRowProps = {
   product?: HttpTypes.StoreProduct | null
 }
 
-type CheckoutCartItemPriceProps = {
+interface CheckoutCartItemPriceProps {
   currencyCode: CheckoutCartItemRowProps["currencyCode"]
   currentLineAmount: number
   originalLineAmount: number | null
@@ -181,7 +181,9 @@ export function CheckoutCartItemRow({
             className="text-2xl text-fg-secondary hover:text-fg-primary"
             disabled={isPending}
             icon="token-icon-trash"
-            onClick={() => onRemove(item.id)}
+            onClick={() => {
+              onRemove(item.id)
+            }}
             size="sm"
             theme="unstyled"
             variant="secondary"

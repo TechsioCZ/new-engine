@@ -6,42 +6,7 @@ import { Button } from "../../src/atoms/button"
 import { iconLabels, iconOptions } from "../helpers/icon-options"
 
 const meta: Meta<typeof Button> = {
-  title: "Atoms/Button",
-  component: Button,
-  tags: ["autodocs"],
   argTypes: {
-    variant: {
-      control: "select",
-      options: ["primary", "secondary", "tertiary", "warning", "danger"],
-      description: "Controls the semantic style of the button",
-      table: {
-        defaultValue: { summary: "primary" },
-      },
-    },
-    theme: {
-      control: "select",
-      options: ["solid", "light", "outlined", "borderless", "unstyled"],
-      description: "Controls the visual weight/theme of the button",
-      table: {
-        defaultValue: { summary: "solid" },
-      },
-    },
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg", "current"],
-      description: "Controls the size of the button",
-      table: {
-        defaultValue: { summary: "md" },
-      },
-    },
-    type: {
-      control: "radio",
-      options: ["button", "submit", "reset"],
-      description: "The HTML type of the button",
-      table: {
-        defaultValue: { summary: "button" },
-      },
-    },
     block: {
       control: "boolean",
       description:
@@ -50,18 +15,31 @@ const meta: Meta<typeof Button> = {
         defaultValue: { summary: "false" },
       },
     },
-    uppercase: {
-      control: "boolean",
-      description: "Whether the button text should be uppercase",
-      table: {
-        defaultValue: { summary: "false" },
-      },
+    children: {
+      control: "text",
+      description: "Content of the button",
     },
     disabled: {
       control: "boolean",
       description: "Whether the button is disabled",
       table: {
         defaultValue: { summary: "false" },
+      },
+    },
+    icon: {
+      control: {
+        labels: iconLabels,
+        type: "select",
+      },
+      description: "Icon to display in the button",
+      options: iconOptions,
+    },
+    iconPosition: {
+      control: "radio",
+      description: "Position of the icon relative to the text",
+      options: ["left", "right"],
+      table: {
+        defaultValue: { summary: "left" },
       },
     },
     isLoading: {
@@ -75,47 +53,69 @@ const meta: Meta<typeof Button> = {
       control: "text",
       description: "Text to display when isLoading is true",
     },
-    icon: {
-      control: {
-        type: "select",
-        labels: iconLabels,
-      },
-      options: iconOptions,
-      description: "Icon to display in the button",
-    },
-    iconPosition: {
-      control: "radio",
-      options: ["left", "right"],
-      description: "Position of the icon relative to the text",
-      table: {
-        defaultValue: { summary: "left" },
-      },
-    },
-    children: {
-      control: "text",
-      description: "Content of the button",
-    },
     onClick: {
       description: "Click handler",
     },
+    size: {
+      control: "select",
+      description: "Controls the size of the button",
+      options: ["sm", "md", "lg", "current"],
+      table: {
+        defaultValue: { summary: "md" },
+      },
+    },
+    theme: {
+      control: "select",
+      description: "Controls the visual weight/theme of the button",
+      options: ["solid", "light", "outlined", "borderless", "unstyled"],
+      table: {
+        defaultValue: { summary: "solid" },
+      },
+    },
+    type: {
+      control: "radio",
+      description: "The HTML type of the button",
+      options: ["button", "submit", "reset"],
+      table: {
+        defaultValue: { summary: "button" },
+      },
+    },
+    uppercase: {
+      control: "boolean",
+      description: "Whether the button text should be uppercase",
+      table: {
+        defaultValue: { summary: "false" },
+      },
+    },
+    variant: {
+      control: "select",
+      description: "Controls the semantic style of the button",
+      options: ["primary", "secondary", "tertiary", "warning", "danger"],
+      table: {
+        defaultValue: { summary: "primary" },
+      },
+    },
   },
   args: {
-    variant: "primary",
-    theme: "solid",
-    size: "md",
-    type: "button",
     block: false,
-    uppercase: false,
+    children: "Button",
     disabled: false,
+    iconPosition: "left",
     isLoading: false,
     loadingText: "Loading...",
-    children: "Button",
-    iconPosition: "left",
     onClick: fn(),
+    size: "md",
+    theme: "solid",
+    type: "button",
+    uppercase: false,
+    variant: "primary",
   },
+  component: Button,
   parameters: {
     layout: "centered",
   },
+  tags: ["autodocs"],
+  title: "Atoms/Button",
 }
 
 export default meta
@@ -223,35 +223,33 @@ export const Sizes: Story = {
 }
 
 export const States: Story = {
-  render: () => {
-    return (
-      <VariantContainer>
-        <VariantGroup title="Disabled states">
-          <Button disabled>Solid</Button>
-          <Button variant="secondary" theme="light" disabled>
-            Light
-          </Button>
-          <Button variant="tertiary" theme="borderless" disabled>
-            Borderless
-          </Button>
-          <Button variant="warning" theme="outlined" disabled>
-            Outlined
-          </Button>
-        </VariantGroup>
+  render: () => (
+    <VariantContainer>
+      <VariantGroup title="Disabled states">
+        <Button disabled>Solid</Button>
+        <Button variant="secondary" theme="light" disabled>
+          Light
+        </Button>
+        <Button variant="tertiary" theme="borderless" disabled>
+          Borderless
+        </Button>
+        <Button variant="warning" theme="outlined" disabled>
+          Outlined
+        </Button>
+      </VariantGroup>
 
-        <VariantGroup title="Loading states">
-          <Button isLoading>Primary</Button>
-          <Button isLoading theme="outlined" loadingText="Loading...">
-            Outlined
-          </Button>
+      <VariantGroup title="Loading states">
+        <Button isLoading>Primary</Button>
+        <Button isLoading theme="outlined" loadingText="Loading...">
+          Outlined
+        </Button>
 
-          <Button variant="danger" isLoading>
-            Danger
-          </Button>
-        </VariantGroup>
-      </VariantContainer>
-    )
-  },
+        <Button variant="danger" isLoading>
+          Danger
+        </Button>
+      </VariantGroup>
+    </VariantContainer>
+  ),
 }
 
 export const AllVariants: Story = {

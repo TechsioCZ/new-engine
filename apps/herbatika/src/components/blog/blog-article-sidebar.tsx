@@ -5,7 +5,7 @@ import { BLOG_PROMO_BANNER } from "@/lib/storefront/blog-content"
 
 import { BlogFeaturedProductCard } from "./blog-featured-product-card"
 
-type BlogArticleSidebarProps = {
+interface BlogArticleSidebarProps {
   featuredProduct: HttpTypes.StoreProduct | null
 }
 

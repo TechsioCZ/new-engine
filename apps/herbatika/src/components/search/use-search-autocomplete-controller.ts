@@ -2,20 +2,12 @@
 
 import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
-import {
-  type FocusEvent,
-  type FormEvent,
-  type KeyboardEvent,
-  type MouseEvent,
-  useId,
-  useState,
-} from "react"
+import { useId, useState } from "react"
+import type { FocusEvent, FormEvent, KeyboardEvent, MouseEvent } from "react"
 
 import { appHref } from "@/lib/routing"
-import {
-  SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH,
-  type SearchAutocompleteSuggestion,
-} from "@/lib/search-autocomplete/search-autocomplete-types"
+import { SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH } from "@/lib/search-autocomplete/search-autocomplete-types"
+import type { SearchAutocompleteSuggestion } from "@/lib/search-autocomplete/search-autocomplete-types"
 
 import { getSearchAutocompleteOptionId } from "./search-autocomplete-panel"
 import {
@@ -24,7 +16,7 @@ import {
 } from "./search-autocomplete-sections"
 import { useSearchAutocomplete } from "./use-search-autocomplete"
 
-type UseSearchAutocompleteControllerInput = {
+interface UseSearchAutocompleteControllerInput {
   countryCode?: string
   currencyCode: string
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
@@ -151,17 +143,17 @@ export function useSearchAutocompleteController({
   return {
     activeItemId,
     closePanel,
-    handleFocus,
     handleBlur,
+    handleFocus,
     handleItemMouseEnter,
     handleKeyDown,
     handlePanelMouseDown,
     handleSubmit,
     handleValueChange,
+    hasItems,
     normalizedQuery,
     panelId,
     sections,
-    hasItems,
     shouldShowPanel,
     status: autocomplete.status,
     value,

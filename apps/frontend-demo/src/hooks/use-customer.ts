@@ -16,7 +16,6 @@ export function useCustomer() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: queryKeys.customer.addresses(),
     queryFn: async () => {
       try {
         const response = await sdk.store.customer.listAddress()
@@ -25,6 +24,7 @@ export function useCustomer() {
         return { addresses: [] }
       }
     },
+    queryKey: queryKeys.customer.addresses(),
   })
 
   // Get the first address as the main address
@@ -49,6 +49,20 @@ export function useCustomer() {
         )
       }
       return await sdk.store.customer.createAddress(medusaAddress)
+    },
+    onError: (error: Error, _newData, context) => {
+      // Rollback on error
+      if (context?.previousAddresses) {
+        queryClient.setQueryData(
+          queryKeys.customer.addresses(),
+          context.previousAddresses
+        )
+      }
+      toast.create({
+        title: "Chyba při ukládání adresy",
+        description: error?.message || "Zkuste to prosím znovu",
+        type: "error",
+      })
     },
     onMutate: async (newData) => {
       // Cancel any outgoing refetches to avoid overwriting optimistic update
@@ -82,20 +96,6 @@ export function useCustomer() {
       // Return context with snapshot for rollback
       return { previousAddresses }
     },
-    onError: (error: Error, _newData, context) => {
-      // Rollback on error
-      if (context?.previousAddresses) {
-        queryClient.setQueryData(
-          queryKeys.customer.addresses(),
-          context.previousAddresses
-        )
-      }
-      toast.create({
-        title: "Chyba při ukládání adresy",
-        description: error?.message || "Zkuste to prosím znovu",
-        type: "error",
-      })
-    },
     onSuccess: () => {
       toast.create({
         title: "Adresa byla úspěšně uložena",
@@ -115,6 +115,20 @@ export function useCustomer() {
       }
       const updatedCustomer = await sdk.store.customer.update(updateData)
       return updatedCustomer
+    },
+    onError: (error: Error, _newData, context) => {
+      // Rollback on error
+      if (context?.previousCustomer) {
+        queryClient.setQueryData(
+          queryKeys.auth.customer(),
+          context.previousCustomer
+        )
+      }
+      toast.create({
+        title: "Chyba při aktualizaci profilu",
+        description: error?.message || "Zkuste to prosím znovu",
+        type: "error",
+      })
     },
     onMutate: async (newData) => {
       // Cancel any outgoing refetches
@@ -139,20 +153,6 @@ export function useCustomer() {
       // Return context with snapshot
       return { previousCustomer }
     },
-    onError: (error: Error, _newData, context) => {
-      // Rollback on error
-      if (context?.previousCustomer) {
-        queryClient.setQueryData(
-          queryKeys.auth.customer(),
-          context.previousCustomer
-        )
-      }
-      toast.create({
-        title: "Chyba při aktualizaci profilu",
-        description: error?.message || "Zkuste to prosím znovu",
-        type: "error",
-      })
-    },
     onSuccess: () => {
       toast.create({
         title: "Profil byl úspěšně aktualizován",
@@ -164,20 +164,20 @@ export function useCustomer() {
   // Map the Medusa address to FormAddressData format
   const mappedAddress: FormAddressData | null = mainAddress
     ? {
-        street: mainAddress.address_1 || "",
         city: mainAddress.city || "",
-        postalCode: mainAddress.postal_code || "",
         country: mainAddress.country_code || "cz",
+        postalCode: mainAddress.postal_code || "",
+        street: mainAddress.address_1 || "",
       }
     : null
 
   return {
     address: mappedAddress,
-    isLoading,
     error,
-    saveAddress: saveAddressMutation.mutateAsync,
+    isLoading,
     isSaving: saveAddressMutation.isPending,
-    updateProfile: updateProfileMutation.mutateAsync,
     isUpdating: updateProfileMutation.isPending,
+    saveAddress: saveAddressMutation.mutateAsync,
+    updateProfile: updateProfileMutation.mutateAsync,
   }
 }

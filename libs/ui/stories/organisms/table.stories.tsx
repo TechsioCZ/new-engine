@@ -7,41 +7,41 @@ import { Checkbox } from "../../src/atoms/checkbox"
 import { Table } from "../../src/organisms/table"
 
 const meta = {
-  title: "Organisms/Table",
-  component: Table,
-  parameters: {
-    layout: "padded",
-  },
-  tags: ["autodocs"],
   argTypes: {
-    variant: {
+    captionPlacement: {
       control: "select",
-      options: ["line", "outline", "striped"],
-      description: "Visual style variant of the table",
-    },
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-      description: "Size of table cells and text",
+      description: "Position of table caption",
+      options: ["top", "bottom"],
     },
     interactive: {
       control: "boolean",
       description: "Enable hover effects and pointer cursor on rows",
     },
-    stickyHeader: {
-      control: "boolean",
-      description: "Make header sticky on scroll",
-    },
     showColumnBorder: {
       control: "boolean",
       description: "Show vertical borders between columns",
     },
-    captionPlacement: {
+    size: {
       control: "select",
-      options: ["top", "bottom"],
-      description: "Position of table caption",
+      description: "Size of table cells and text",
+      options: ["sm", "md", "lg"],
+    },
+    stickyHeader: {
+      control: "boolean",
+      description: "Make header sticky on scroll",
+    },
+    variant: {
+      control: "select",
+      description: "Visual style variant of the table",
+      options: ["line", "outline", "striped"],
     },
   },
+  component: Table,
+  parameters: {
+    layout: "padded",
+  },
+  tags: ["autodocs"],
+  title: "Organisms/Table",
 } satisfies Meta<typeof Table>
 
 export default meta
@@ -50,37 +50,37 @@ type Story = StoryObj<typeof meta>
 // Sample data for stories
 const sampleProducts = [
   {
+    category: "Electronics",
     id: 1,
     name: "Laptop",
-    category: "Electronics",
     price: 999.99,
     stock: 50,
   },
   {
+    category: "Home Appliances",
     id: 2,
     name: "Coffee Maker",
-    category: "Home Appliances",
     price: 49.99,
     stock: 120,
   },
   {
+    category: "Furniture",
     id: 3,
     name: "Desk Chair",
-    category: "Furniture",
     price: 150.0,
     stock: 30,
   },
   {
+    category: "Electronics",
     id: 4,
     name: "Smartphone",
-    category: "Electronics",
     price: 799.99,
     stock: 75,
   },
   {
+    category: "Accessories",
     id: 5,
     name: "Headphones",
-    category: "Accessories",
     price: 199.99,
     stock: 200,
   },
@@ -90,8 +90,8 @@ const sampleProducts = [
 
 export const Basic: Story = {
   args: {
-    variant: "line",
     size: "md",
+    variant: "line",
   },
   render: (args) => (
     <Table {...args}>
@@ -120,8 +120,8 @@ export const Basic: Story = {
 
 export const Outline: Story = {
   args: {
-    variant: "outline",
     size: "md",
+    variant: "outline",
   },
   render: (args) => (
     <Table {...args}>
@@ -150,9 +150,9 @@ export const Outline: Story = {
 
 export const Interactive: Story = {
   args: {
-    variant: "line",
-    size: "md",
     interactive: true,
+    size: "md",
+    variant: "line",
   },
   render: (args) => (
     <Table {...args}>
@@ -169,7 +169,9 @@ export const Interactive: Story = {
         {sampleProducts.map((product) => (
           <Table.Row
             key={product.id}
-            onClick={() => alert(`Selected: ${product.name}`)}
+            onClick={() => {
+              alert(`Selected: ${product.name}`)
+            }}
           >
             <Table.Cell>{product.name}</Table.Cell>
             <Table.Cell>{product.category}</Table.Cell>
@@ -184,8 +186,8 @@ export const Interactive: Story = {
 
 export const Striped: Story = {
   args: {
-    variant: "striped",
     size: "md",
+    variant: "striped",
   },
   render: (args) => (
     <Table {...args}>
@@ -256,8 +258,8 @@ export const Sizes: Story = {
 
 export const WithFooter: Story = {
   args: {
-    variant: "line",
     size: "md",
+    variant: "line",
   },
   render: (args) => {
     const total = sampleProducts.reduce((sum, p) => sum + p.price, 0)
@@ -304,16 +306,16 @@ export const WithFooter: Story = {
 
 export const StickyHeader: Story = {
   args: {
-    variant: "line",
     size: "md",
     stickyHeader: true,
+    variant: "line",
   },
   render: (args) => {
     // Generate more rows for scrolling demo
     const manyProducts = Array.from({ length: 20 }, (_, i) => ({
+      category: ["Electronics", "Furniture", "Accessories"][i % 3],
       id: i + 1,
       name: `Product ${i + 1}`,
-      category: ["Electronics", "Furniture", "Accessories"][i % 3],
       price: Math.random() * 1000,
       stock: Math.floor(Math.random() * 200),
     }))
@@ -350,8 +352,8 @@ export const StickyHeader: Story = {
 
 export const ComplexTable: Story = {
   args: {
-    variant: "outline",
     size: "md",
+    variant: "outline",
   },
   render: (args) => (
     <Table {...args}>
@@ -426,8 +428,8 @@ export const ComplexTable: Story = {
 
 export const MinimalTable: Story = {
   args: {
-    variant: "line",
     size: "md",
+    variant: "line",
   },
   render: (args) => (
     <Table {...args}>
@@ -449,9 +451,9 @@ export const MinimalTable: Story = {
 
 export const WithColumnBorders: Story = {
   args: {
-    variant: "outline",
-    size: "md",
     showColumnBorder: true,
+    size: "md",
+    variant: "outline",
   },
   render: (args) => (
     <Table {...args}>
@@ -480,9 +482,9 @@ export const WithColumnBorders: Story = {
 
 export const CaptionBottom: Story = {
   args: {
-    variant: "line",
-    size: "md",
     captionPlacement: "bottom",
+    size: "md",
+    variant: "line",
   },
   render: (args) => (
     <Table {...args}>
@@ -509,8 +511,8 @@ export const CaptionBottom: Story = {
 
 export const WithStickyColumn: Story = {
   args: {
-    variant: "line",
     size: "md",
+    variant: "line",
   },
   render: (args) => (
     <div className="max-w-xl overflow-auto">
@@ -553,8 +555,8 @@ export const WithStickyColumn: Story = {
 
 export const WithSelection: Story = {
   args: {
-    variant: "line",
     size: "md",
+    variant: "line",
   },
   render: (args) => {
     const [selection, setSelection] = useState<number[]>([])
@@ -610,7 +612,9 @@ export const WithSelection: Story = {
                   <Table.Cell>
                     <Checkbox
                       checked={isSelected}
-                      onChange={() => handleSelectRow(product.id)}
+                      onChange={() => {
+                        handleSelectRow(product.id)
+                      }}
                       aria-label={`Select ${product.name}`}
                     />
                   </Table.Cell>
@@ -636,8 +640,8 @@ export const WithSelection: Story = {
 
 export const WithSelectionAndActions: Story = {
   args: {
-    variant: "line",
     size: "md",
+    variant: "line",
   },
   render: (args) => {
     const [selection, setSelection] = useState<number[]>([])
@@ -687,7 +691,9 @@ export const WithSelectionAndActions: Story = {
                 variant="secondary"
                 theme="outlined"
                 size="sm"
-                onClick={() => setSelection([])}
+                onClick={() => {
+                  setSelection([])
+                }}
               >
                 Clear Selection
               </Button>
@@ -721,7 +727,9 @@ export const WithSelectionAndActions: Story = {
                   <Table.Cell>
                     <Checkbox
                       checked={isSelected}
-                      onChange={() => handleSelectRow(product.id)}
+                      onChange={() => {
+                        handleSelectRow(product.id)
+                      }}
                       aria-label={`Select ${product.name}`}
                     />
                   </Table.Cell>

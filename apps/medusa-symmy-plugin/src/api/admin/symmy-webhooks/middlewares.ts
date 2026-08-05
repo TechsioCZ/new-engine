@@ -5,8 +5,8 @@ import { PostAdminSymmyWebhookConfigSchema } from "./validators"
 
 export const adminSymmyWebhookRoutes: MiddlewareRoute[] = [
   {
-    methods: ["POST"],
     matcher: "/admin/symmy-webhooks",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(PostAdminSymmyWebhookConfigSchema)],
   },
 ]

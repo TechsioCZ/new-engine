@@ -14,19 +14,19 @@ import {
   getProductSectionHtml,
   getSavedSectionHtml,
   PRODUCT_CONTENT_SECTIONS,
-  type ProductContentSectionHtml,
 } from "../lib/product-content-sections"
+import type { ProductContentSectionHtml } from "../lib/product-content-sections"
 import { sdk } from "../lib/sdk"
 
 type ProductDescriptionEditorProps = Partial<DetailWidgetProps<AdminProduct>>
 
-type UpdateProductContentInput = {
+interface UpdateProductContentInput {
   changeVersion: number
   productId: string
   sectionsHtml: ProductContentSectionHtml
 }
 
-type UpdateProductResponse = {
+interface UpdateProductResponse {
   product: AdminProduct
 }
 
@@ -217,7 +217,10 @@ const ProductDescriptionEditor = ({
   }, [])
 
   const mutation = useMutation({
-    mutationFn: ({ productId, sectionsHtml }: UpdateProductContentInput) =>
+    mutationFn: async ({
+      productId,
+      sectionsHtml,
+    }: UpdateProductContentInput) =>
       sdk.client.fetch<UpdateProductResponse>(`/admin/products/${productId}`, {
         body: {
           description:

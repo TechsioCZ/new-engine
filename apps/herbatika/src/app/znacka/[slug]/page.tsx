@@ -10,7 +10,7 @@ import { fetchStorefrontBrands } from "@/lib/storefront/brands.server"
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state"
 import { prefetchBrandPageStorefrontData } from "@/lib/storefront/ssr"
 
-type BrandPageProps = {
+interface BrandPageProps {
   params: Promise<{
     slug: string
   }>
@@ -58,10 +58,10 @@ export async function generateMetadata({
   }
 
   return {
-    title: tCatalog("brands.metadata.detail_title", {
+    description: tCatalog("brands.metadata.detail_description", {
       brandName: brand.title,
     }),
-    description: tCatalog("brands.metadata.detail_description", {
+    title: tCatalog("brands.metadata.detail_title", {
       brandName: brand.title,
     }),
   }

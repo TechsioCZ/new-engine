@@ -137,7 +137,7 @@ export abstract class PaykitPaymentProviderBase<
   protected async getClient(): Promise<PaykitPaymentClient> {
     this.client_ ??= (async () => {
       const configuredClient = await resolveConfiguredClient(this.options_)
-      return configuredClient ?? this.createDefaultClient()
+      return await (configuredClient ?? this.createDefaultClient())
     })()
 
     return await this.client_
@@ -292,7 +292,7 @@ export abstract class PaykitPaymentProviderBase<
       return
     }
 
-    const address = billing["address"]
+    const { address } = billing
     const currency =
       typeof billing["currency"] === "string" && billing["currency"].length > 0
         ? billing["currency"]
@@ -556,7 +556,7 @@ export abstract class PaykitPaymentProviderBase<
   async authorizePayment(
     input: AuthorizePaymentInput
   ): Promise<AuthorizePaymentOutput> {
-    return this.getPaymentStatus(input)
+    return await this.getPaymentStatus(input)
   }
 
   async retrievePayment(
@@ -654,10 +654,10 @@ export abstract class PaykitPaymentProviderBase<
 
     if (client.refunds?.create) {
       const refund = await client.refunds.create({
-        payment_id: id,
         amount,
-        reason: null,
         metadata: null,
+        payment_id: id,
+        reason: null,
       })
 
       if (!refund.id) {
@@ -718,7 +718,7 @@ export abstract class PaykitPaymentProviderBase<
   async retrieveAccountHolder(
     input: RetrieveAccountHolderInput
   ): Promise<RetrieveAccountHolderOutput> {
-    const id = input.id
+    const { id } = input
 
     if (typeof id !== "string" || !id) {
       throw new MedusaError(
@@ -752,13 +752,13 @@ export abstract class PaykitPaymentProviderBase<
       )
     }
 
-    return { id: customer.id, data: customer }
+    return { data: customer, id: customer.id }
   }
 
   async createAccountHolder(
     input: CreateAccountHolderInput
   ): Promise<CreateAccountHolderOutput> {
-    const customer = input.context.customer
+    const { customer } = input.context
 
     if (!customer?.email) {
       return noAccountHolderCreated()
@@ -789,7 +789,7 @@ export abstract class PaykitPaymentProviderBase<
         return noAccountHolderCreated()
       }
 
-      return { id: providerCustomer.id, data: providerCustomer }
+      return { data: providerCustomer, id: providerCustomer.id }
     } catch (error) {
       if (isProviderNotSupportedError(error)) {
         return noAccountHolderCreated()
@@ -802,7 +802,7 @@ export abstract class PaykitPaymentProviderBase<
   async updateAccountHolder(
     input: UpdateAccountHolderInput
   ): Promise<UpdateAccountHolderOutput> {
-    const id = input.context.account_holder.data["id"]
+    const { id } = input.context.account_holder.data
 
     if (typeof id !== "string" || !id) {
       throw new MedusaError(
@@ -817,7 +817,7 @@ export abstract class PaykitPaymentProviderBase<
       return {}
     }
 
-    const customer = input.context.customer
+    const { customer } = input.context
 
     try {
       const billing = this.mapBillingInfo(input)

@@ -50,7 +50,7 @@ export default defineMiddlewares({
     if (shouldCaptureException(error)) {
       captureException(normalizedError)
     }
-    return originalErrorHandler(error, req, res, next)
+    originalErrorHandler(error, req, res, next)
   },
   routes: [
     {
@@ -58,9 +58,9 @@ export default defineMiddlewares({
       middlewares: [serveAdminAppStatic],
     },
     {
-      methods: ["POST"],
-      matcher: "/webhooks/*",
       bodyParser: { preserveRawBody: true },
+      matcher: "/webhooks/*",
+      methods: ["POST"],
     },
     ...adminMiddlewares,
     ...adminOrderExpeditionRoutesMiddlewares,

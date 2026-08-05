@@ -1,12 +1,10 @@
 import type { Query } from "@medusajs/framework/types"
 
 import type OrderNoteModuleService from "../modules/order-note/service"
-import {
-  getOrderExpeditionNote,
-  type OrderExpeditionRawOrder,
-} from "./order-expedition"
+import { getOrderExpeditionNote } from "./order-expedition"
+import type { OrderExpeditionRawOrder } from "./order-expedition"
 
-export type OrderExpeditionCustomerSignalCounts = {
+export interface OrderExpeditionCustomerSignalCounts {
   note: number
   returning_customer: number
   storn_orders: number
@@ -17,7 +15,7 @@ type OrderSignalSource = Pick<
   "customer_id" | "id" | "metadata" | "status"
 >
 
-type CustomerOrderCounters = {
+interface CustomerOrderCounters {
   canceledCount: number
   totalCount: number
 }
@@ -36,9 +34,9 @@ export async function resolveOrderExpeditionCustomerSignals(
   counts: OrderExpeditionCustomerSignalCounts
   signalsByOrderId: Map<string, SharedOrderExpeditionCustomerSignals>
 }> {
-  const customerIds = Array.from(
-    new Set(orders.map((order) => order.customer_id).filter(isString))
-  )
+  const customerIds = [
+    ...new Set(orders.map((order) => order.customer_id).filter(isString)),
+  ]
 
   const customerCounters =
     customerCountersOverride ??
@@ -119,7 +117,7 @@ async function fetchCustomerOrderCounters(
     return new Map()
   }
 
-  return fetchCustomerOrderCountersPage(query, customerIds, new Map(), 0)
+  return await fetchCustomerOrderCountersPage(query, customerIds, new Map(), 0)
 }
 
 async function fetchCustomerOrderCountersPage(
@@ -162,7 +160,7 @@ async function fetchCustomerOrderCountersPage(
     return counters
   }
 
-  return fetchCustomerOrderCountersPage(
+  return await fetchCustomerOrderCountersPage(
     query,
     customerIds,
     counters,

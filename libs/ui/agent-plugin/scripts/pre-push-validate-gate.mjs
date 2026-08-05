@@ -76,7 +76,9 @@ function stripQuotes(s) {
 function effectiveGitCwd(command, startCwd) {
   const tokens = command.trim().split(/\s+/)
   const gitIdx = tokens.findIndex((t) => t === "git" || t.endsWith("/git"))
-  if (gitIdx === -1) return { dir: startCwd, trusted: true }
+  if (gitIdx === -1) {
+    return { dir: startCwd, trusted: true }
+  }
   let dir = startCwd
   let gitDir
   let trusted = true
@@ -85,10 +87,15 @@ function effectiveGitCwd(command, startCwd) {
   // `--git-dir` retargets the repo. Shell-expansion syntax makes the value unresolvable here (this
   // hook sees the command PRE-expansion), so mark the target untrusted → the caller fails closed.
   const apply = (name, rawValue) => {
-    if (SHELL_EXPANSION.test(rawValue)) trusted = false
+    if (SHELL_EXPANSION.test(rawValue)) {
+      trusted = false
+    }
     const value = resolve(dir, stripQuotes(rawValue)) // relative to the current effective dir
-    if (name === "-C") dir = value
-    else gitDir = value
+    if (name === "-C") {
+      dir = value
+    } else {
+      gitDir = value
+    }
   }
 
   // Environment assignments prefixed before the git executable (`GIT_DIR=… git …`, incl. via `env`
@@ -97,7 +104,9 @@ function effectiveGitCwd(command, startCwd) {
   // command-line `--git-dir` overrides the env var, so we seed gitDir here and let the flag loop win.
   for (let i = 0; i < gitIdx; i++) {
     const m = /^GIT_DIR=(.*)$/.exec(tokens[i])
-    if (m) apply("--git-dir", m[1])
+    if (m) {
+      apply("--git-dir", m[1])
+    }
   }
 
   for (let i = gitIdx + 1; i < tokens.length; i++) {
@@ -118,7 +127,9 @@ function effectiveGitCwd(command, startCwd) {
       i++
       continue
     }
-    if (t.startsWith("-")) continue
+    if (t.startsWith("-")) {
+      continue
+    }
     break // first non-flag token = the subcommand; the selectors only precede it
   }
   return { dir, gitDir, trusted }
@@ -135,14 +146,16 @@ function effectiveGitCwd(command, startCwd) {
  * `--git-dir` is set. So we resolve the git dir explicitly and derive its worktree.
  */
 function resolveTargetWorktree({ dir, gitDir }) {
-  if (!gitDir) return dir // no repo-selection override — the effective cwd is the target
+  if (!gitDir) {
+    return dir
+  } // no repo-selection override — the effective cwd is the target
   try {
     const absGitDir = execFileSync(
       "git",
       ["--git-dir", gitDir, "rev-parse", "--absolute-git-dir"],
       {
         cwd: dir,
-        encoding: "utf8",
+        encoding: "utf-8",
         stdio: ["ignore", "pipe", "ignore"],
       }
     ).trim()
@@ -233,14 +246,18 @@ const GIT_BUILTINS = new Set([
 function gitSubcommand(command) {
   const tokens = command.trim().split(/\s+/)
   const gitIdx = tokens.findIndex((t) => t === "git" || t.endsWith("/git"))
-  if (gitIdx === -1) return ""
+  if (gitIdx === -1) {
+    return ""
+  }
   for (let i = gitIdx + 1; i < tokens.length; i++) {
     const t = tokens[i]
     if (GIT_GLOBAL_WITH_VALUE.has(t)) {
       i++
       continue
     }
-    if (t.startsWith("-")) continue
+    if (t.startsWith("-")) {
+      continue
+    }
     return t
   }
   return ""
@@ -250,7 +267,7 @@ const gitConfig = (key, cwd) => {
   try {
     return execFileSync("git", ["config", "--get", key], {
       cwd,
-      encoding: "utf8",
+      encoding: "utf-8",
       stdio: ["ignore", "pipe", "ignore"],
     }).trim()
   } catch {
@@ -268,7 +285,9 @@ function expandAliases(command, cwd) {
   for (let round = 0; round < 5; round++) {
     const tokens = expanded.trim().split(/\s+/)
     const gitIdx = tokens.findIndex((t) => t === "git" || t.endsWith("/git"))
-    if (gitIdx === -1) return expanded
+    if (gitIdx === -1) {
+      return expanded
+    }
 
     // Inline `-c alias.x=...` definitions are part of this very command — honour them.
     const inline = new Map()
@@ -277,8 +296,9 @@ function expandAliases(command, cwd) {
       const t = tokens[i]
       if (t === "-c" && tokens[i + 1]) {
         const [k, ...v] = tokens[i + 1].split("=")
-        if (k.startsWith("alias."))
+        if (k.startsWith("alias.")) {
           inline.set(k.slice("alias.".length), v.join("="))
+        }
         i++
         continue
       }
@@ -286,15 +306,21 @@ function expandAliases(command, cwd) {
         i++
         continue
       }
-      if (t.startsWith("-")) continue
+      if (t.startsWith("-")) {
+        continue
+      }
       break // first non-flag token = the subcommand
     }
 
     const sub = tokens[i]
-    if (!sub) return expanded
+    if (!sub) {
+      return expanded
+    }
 
     const definition = inline.get(sub) ?? gitConfig(`alias.${sub}`, cwd)
-    if (!definition) return expanded // not an alias — done
+    if (!definition) {
+      return expanded
+    } // not an alias — done
 
     // Replace the subcommand with its definition and go round again (aliases can nest).
     const next = [
@@ -302,7 +328,9 @@ function expandAliases(command, cwd) {
       definition,
       ...tokens.slice(i + 1),
     ].join(" ")
-    if (next === expanded) return expanded
+    if (next === expanded) {
+      return expanded
+    }
     expanded = next
   }
 
@@ -324,7 +352,9 @@ process.stdin.on("end", () => {
   // Claude Code passes a string; Codex's shell tool passes an argv array.
   const rawCommand = input?.tool_input?.command ?? input?.tool_input?.cmd ?? ""
   const command = Array.isArray(rawCommand) ? rawCommand.join(" ") : rawCommand
-  if (typeof command !== "string" || !/\bgit\b/.test(command)) process.exit(0)
+  if (typeof command !== "string" || !/\bgit\b/.test(command)) {
+    process.exit(0)
+  }
 
   const cwd = input?.cwd || process.cwd()
   // Honour the repo selectors: the command may target the ui-kit repo from a different cwd via
@@ -363,7 +393,9 @@ process.stdin.on("end", () => {
   }
 
   // Scope out only when we can prove the target is a non-ui-kit repo (resolvable target).
-  if (!isUiKitSourceRepo(target)) process.exit(0)
+  if (!isUiKitSourceRepo(target)) {
+    process.exit(0)
+  }
 
   const resolved = expandAliases(command, target)
 

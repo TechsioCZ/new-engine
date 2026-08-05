@@ -10,7 +10,7 @@ import {
   updateTaxRegionsWorkflow,
 } from "@medusajs/medusa/core-flows"
 
-export type CreateTaxRegionsStepInput = {
+export interface CreateTaxRegionsStepInput {
   countries: string[]
   taxProviderId?: string
 }

@@ -4,7 +4,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { getErrorStatus } from "../shared/medusa-errors"
 import type { OrderListResponse, OrderService } from "./types"
 
-export type MedusaOrderServiceConfig = {
+export interface MedusaOrderServiceConfig {
   defaultFields?: string
   defaultListFields?: string
   defaultDetailFields?: string
@@ -12,7 +12,7 @@ export type MedusaOrderServiceConfig = {
   returnNullOnNotFound?: boolean
 }
 
-export type MedusaOrderListInput = {
+export interface MedusaOrderListInput {
   limit?: number
   offset?: number
 }
@@ -22,7 +22,7 @@ export type MedusaOrderListHookInput = MedusaOrderListInput & {
   enabled?: boolean
 }
 
-export type MedusaOrderDetailInput = {
+export interface MedusaOrderDetailInput {
   id?: string
 }
 
@@ -67,28 +67,6 @@ export function createMedusaOrderService(
   const detailFields = defaultDetailFields ?? defaultFields
 
   return {
-    async getOrders(
-      params: MedusaOrderListInput,
-      signal?: AbortSignal
-    ): Promise<OrderListResponse<HttpTypes.StoreOrder>> {
-      const response = await sdk.client.fetch<HttpTypes.StoreOrderListResponse>(
-        "/store/orders",
-        {
-          query: {
-            fields: listFields,
-            order: defaultOrder,
-            limit: params.limit,
-            offset: params.offset,
-          },
-          signal: signal ?? null,
-        }
-      )
-      return {
-        orders: response.orders ?? [],
-        count: response.count,
-      }
-    },
-
     async getOrder(
       params: MedusaOrderDetailInput,
       signal?: AbortSignal
@@ -114,6 +92,28 @@ export function createMedusaOrderService(
         }
 
         throw error
+      }
+    },
+
+    async getOrders(
+      params: MedusaOrderListInput,
+      signal?: AbortSignal
+    ): Promise<OrderListResponse<HttpTypes.StoreOrder>> {
+      const response = await sdk.client.fetch<HttpTypes.StoreOrderListResponse>(
+        "/store/orders",
+        {
+          query: {
+            fields: listFields,
+            order: defaultOrder,
+            limit: params.limit,
+            offset: params.offset,
+          },
+          signal: signal ?? null,
+        }
+      )
+      return {
+        orders: response.orders ?? [],
+        count: response.count,
       }
     },
   }

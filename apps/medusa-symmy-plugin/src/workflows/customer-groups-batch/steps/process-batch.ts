@@ -2,10 +2,8 @@ import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
-import {
-  CustomerGroupsBatchClient,
-  type ExistingCustomerGroupIndex,
-} from "../client"
+import { CustomerGroupsBatchClient } from "../client"
+import type { ExistingCustomerGroupIndex } from "../client"
 import { customerGroupsBatchClientMapperHelper } from "../client-mapper-helper"
 import type {
   CustomerGroupInput,
@@ -22,8 +20,8 @@ const buildFailedResult = (
   error: string
 ): UpsertCustomerGroupsBatchResult => ({
   ...customerGroupsBatchClientMapperHelper.buildResultEcho(group),
-  status: "failed",
   error,
+  status: "failed",
 })
 
 const processCustomerGroupForBatch = async ({
@@ -47,16 +45,16 @@ const processCustomerGroupForBatch = async ({
       client.cacheCustomerGroup(customerGroupIndex, group, created.id)
       return {
         ...echo,
-        status: "created",
         customer_group_id: created.id,
+        status: "created",
       }
     }
 
     await client.updateCustomerGroup(existing.id, existing, group)
     return {
       ...echo,
-      status: "updated",
       customer_group_id: existing.id,
+      status: "updated",
     }
   } catch (error) {
     const message = toErrorMessage(error)
@@ -91,10 +89,10 @@ export const symmyProcessCustomerGroupsBatchStep = createStep(
     const failed = results.length - processed
 
     const output: UpsertCustomerGroupsBatchOutput = {
-      success: failed === 0,
-      processed,
       failed,
+      processed,
       results,
+      success: failed === 0,
     }
     return new StepResponse(output)
   }

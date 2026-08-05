@@ -8,18 +8,18 @@ import type { ModuleQuoteFilters } from "./service"
 export interface QuoteFilterParams extends FindParams, ModuleQuoteFilters {}
 
 /* Admin */
-export type AdminQuoteResponse = {
+export interface AdminQuoteResponse {
   quote: QueryQuote
 }
 
-export type AdminCreateQuoteMessage = {
+export interface AdminCreateQuoteMessage {
   text: string
   item_id?: string
 }
 
 /* Store */
 
-export type StoreQuoteResponse = {
+export interface StoreQuoteResponse {
   quote: QueryQuote
 }
 

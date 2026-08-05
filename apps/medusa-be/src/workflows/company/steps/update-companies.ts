@@ -3,7 +3,7 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { COMPANY_MODULE } from "../../../modules/company"
 import type { ICompanyModuleService, ModuleUpdateCompany } from "../../../types"
 
-type UpdateCompaniesStepInput = {
+interface UpdateCompaniesStepInput {
   id: string
   update: Omit<ModuleUpdateCompany, "id">
 }

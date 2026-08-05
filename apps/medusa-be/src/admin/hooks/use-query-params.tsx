@@ -1,8 +1,6 @@
 import { useSearchParams } from "react-router-dom"
 
-type QueryParams<T extends string> = {
-  [key in T]: string | undefined
-}
+type QueryParams<T extends string> = Record<T, string | undefined>
 
 export function useQueryParams<T extends string>(
   keys: T[],

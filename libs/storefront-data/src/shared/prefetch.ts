@@ -42,15 +42,18 @@ export const shouldSkipPrefetch = (params: {
   }
 
   switch (params.skipMode) {
-    case "any":
+    case "any": {
       return params.queryClient.getQueryData(params.queryKey) !== undefined
-    case "fresh":
+    }
+    case "fresh": {
       return isQueryFresh(
         params.queryClient,
         params.queryKey,
         params.cacheOptions.staleTime
       )
-    default:
+    }
+    default: {
       return assertNever(params.skipMode)
+    }
   }
 }

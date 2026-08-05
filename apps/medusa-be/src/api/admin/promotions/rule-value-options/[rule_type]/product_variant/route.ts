@@ -44,8 +44,8 @@ export async function GET(
     filters["id"] = Array.isArray(valueFilter) ? valueFilter : [valueFilter]
   }
 
-  const limit = req.validatedQuery.limit
-  const offset = req.validatedQuery.offset
+  const { limit } = req.validatedQuery
+  const { offset } = req.validatedQuery
   const { data, metadata } = await query.graph({
     entity: "product_variant",
     fields: ["id", "title", "sku", "product.title"],
@@ -61,9 +61,9 @@ export async function GET(
     : []
 
   res.json({
-    values,
     count: metadata?.count ?? 0,
-    offset: metadata?.skip ?? offset,
     limit: metadata?.take ?? limit,
+    offset: metadata?.skip ?? offset,
+    values,
   })
 }

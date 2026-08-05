@@ -10,7 +10,7 @@ import {
 import { DEFAULT_CHECKOUT_STEP_SLUG } from "@/components/checkout/checkout.constants"
 import { appHref } from "@/lib/routing"
 
-type CheckoutStepPageProps = {
+interface CheckoutStepPageProps {
   params: Promise<{
     step: string
   }>

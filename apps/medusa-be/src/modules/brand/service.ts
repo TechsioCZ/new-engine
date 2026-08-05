@@ -10,12 +10,12 @@ import Brand from "./models/brand"
 import BrandAttribute from "./models/brand-attribute"
 import BrandAttributeType from "./models/brand-attribute-type"
 
-export type BrandAttributeInput = {
+export interface BrandAttributeInput {
   name: string
   value: string
 }
 
-export type BrandAttributeRecord = {
+export interface BrandAttributeRecord {
   deleted_at?: string | Date | null | undefined
   id: string
   value: string
@@ -26,7 +26,7 @@ export type BrandAttributeRecord = {
   }
 }
 
-type BrandAttributeTypeRecord = {
+interface BrandAttributeTypeRecord {
   deleted_at?: string | Date | null
   id: string
   name: string
@@ -150,7 +150,7 @@ class BrandModuleService extends MedusaService({
       const createdAttributeTypes = (await this.createBrandAttributeTypes(
         missingAttributeTypeNames.map((name) => ({ name })),
         sharedContext
-      )) as Array<{ id: string; name: string }>
+      )) as { id: string; name: string }[]
 
       for (const attributeType of createdAttributeTypes) {
         attributeTypeIdsByName.set(attributeType.name, attributeType.id)
@@ -237,11 +237,7 @@ class BrandModuleService extends MedusaService({
     inputAttributes: BrandAttributeInput[] = [],
     @MedusaContext() sharedContext: Context = {}
   ) {
-    return await this.setBrandAttributes_(
-      brandId,
-      inputAttributes,
-      sharedContext
-    )
+    await this.setBrandAttributes_(brandId, inputAttributes, sharedContext)
   }
 
   @InjectTransactionManager()

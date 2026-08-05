@@ -15,13 +15,14 @@ import type {
   CollectionQueryKeys,
   CollectionService,
 } from "./types"
-export type CreateCollectionQueryOptionsFactoryConfig<
+
+export interface CreateCollectionQueryOptionsFactoryConfig<
   TCollection,
   TListInput extends CollectionListInputBase,
   TListParams,
   TDetailInput extends CollectionDetailInputBase,
   TDetailParams,
-> = {
+> {
   service: CollectionService<TCollection, TListParams, TDetailParams>
   buildListParams?: (input: TListInput) => TListParams
   buildDetailParams?: (input: TDetailInput) => TDetailParams
@@ -30,11 +31,11 @@ export type CreateCollectionQueryOptionsFactoryConfig<
   cacheConfig?: CacheConfig
 }
 
-export type CollectionQueryOptionsFactory<
+export interface CollectionQueryOptionsFactory<
   TCollection,
   TListInput extends CollectionListInputBase,
   TDetailInput extends CollectionDetailInputBase,
-> = {
+> {
   getListQueryOptions: (
     input: TListInput,
     options?: {
@@ -77,15 +78,15 @@ export function createCollectionQueryOptionsFactory<
 
   return createSimpleListDetailQueryOptionsFactory(
     omitUndefined({
-      getList: service.getCollections,
-      getDetail: service.getCollection,
-      buildListParams,
       buildDetailParams,
-      queryKeys: resolvedQueryKeys,
+      buildListParams,
       cacheConfig,
       defaultCacheStrategy: "static" as const,
+      getDetail: service.getCollection,
+      getList: service.getCollections,
       missingDetailErrorMessage:
         "Collection id is required for collection queries",
+      queryKeys: resolvedQueryKeys,
     })
   )
 }

@@ -23,7 +23,7 @@ import {
   resolveLineItemThumbnail,
 } from "./herbatika-cart-item.utils"
 
-type CartItemRowProps = {
+interface CartItemRowProps {
   currencyCode: HerbatikaCurrencyCode
   isPending: boolean
   item: HttpTypes.StoreCartLineItem
@@ -109,7 +109,9 @@ export function CartItemRow({
           className="h-650 w-650 p-0 text-fg-secondary hover:text-fg-primary"
           disabled={isPending}
           icon="token-icon-trash"
-          onClick={() => onRemove(item.id)}
+          onClick={() => {
+            onRemove(item.id)
+          }}
           size="sm"
           theme="unstyled"
           variant="secondary"

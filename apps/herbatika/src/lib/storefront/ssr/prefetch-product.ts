@@ -25,8 +25,8 @@ export const prefetchProductDetailPageStorefrontData = async (
 
   if (region) {
     const detailParams: ProductDetailParams = {
-      handle,
       fields: PRODUCT_DETAIL_FIELDS,
+      handle,
       ...(region.region_id === undefined
         ? {}
         : { region_id: region.region_id }),
@@ -42,20 +42,20 @@ export const prefetchProductDetailPageStorefrontData = async (
       await Promise.all([
         prefetchProductAttributes(queryClient, product.id),
         prefetchProductReviews(queryClient, {
-          productId: product.id,
           limit: PRODUCT_REVIEWS_PAGE_SIZE,
           offset: 0,
+          productId: product.id,
         }),
       ])
     }
 
     if (relatedCategoryIds.length > 0 && product?.id) {
       const relatedProductsListParams = buildProductListParams({
-        page: 1,
-        limit: RELATED_PRODUCTS_LIMIT,
         category_id: relatedCategoryIds,
-        order: "-created_at",
         fields: PRODUCT_CARD_FIELDS,
+        limit: RELATED_PRODUCTS_LIMIT,
+        order: "-created_at",
+        page: 1,
         ...(region.region_id === undefined
           ? {}
           : { region_id: region.region_id }),
@@ -69,7 +69,7 @@ export const prefetchProductDetailPageStorefrontData = async (
   }
 
   return {
-    region,
     dehydratedState: dehydrate(queryClient),
+    region,
   }
 }

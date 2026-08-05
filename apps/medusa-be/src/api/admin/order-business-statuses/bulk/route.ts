@@ -7,19 +7,19 @@ import { clearOrderExpeditionSummaryCache } from "../../../../utils/order-expedi
 import {
   buildOrderBusinessStatusMetadata,
   ORDER_BUSINESS_STATUS_ORDER_FIELDS,
-  type OrderBusinessStatusOrder,
   parseOrderBusinessStatusOrders,
   toOrderBusinessStatusSummary,
 } from "../utils"
+import type { OrderBusinessStatusOrder } from "../utils"
 import type { PostAdminOrderBusinessStatusesBulkSchemaType } from "../validators"
 
-type SkippedOrder = {
+interface SkippedOrder {
   id: string
   order_display_id: string
   reason: string
 }
 
-type UpdateCandidate = {
+interface UpdateCandidate {
   id: string
   order_display_id: string
   metadata: Record<string, unknown>
@@ -89,10 +89,10 @@ export async function POST(
 
   res.json({
     count: updatedOrders.length,
-    skipped_count: skipped.length,
-    status,
     orders: updatedOrders.map(toOrderBusinessStatusSummary),
     skipped,
+    skipped_count: skipped.length,
+    status,
   })
 }
 
@@ -106,7 +106,7 @@ async function updateOrdersInChunks(
   for (let index = 0; index < candidates.length; index += UPDATE_CHUNK_SIZE) {
     const chunk = candidates.slice(index, index + UPDATE_CHUNK_SIZE)
     const results = await Promise.allSettled(
-      chunk.map((order) =>
+      chunk.map(async (order) =>
         orderService.updateOrders(order.id, { metadata: order.metadata })
       )
     )

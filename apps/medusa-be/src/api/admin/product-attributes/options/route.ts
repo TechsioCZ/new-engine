@@ -3,10 +3,8 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 
-import {
-  getProductAttributeService,
-  type ProductAttributeOptionRecord,
-} from "../../../../utils/product-attributes"
+import { getProductAttributeService } from "../../../../utils/product-attributes"
+import type { ProductAttributeOptionRecord } from "../../../../utils/product-attributes"
 import {
   applyProductAttributeStatusFilter,
   escapeProductAttributeLikePattern,
@@ -34,14 +32,14 @@ export async function GET(
   }
   applyProductAttributeStatusFilter(filters, status)
 
-  const [options, count] = (await getProductAttributeService(
+  const [options, count] = await getProductAttributeService(
     req.scope
   ).listAndCountProductAttributeOptions(filters, {
     order: parseProductAttributeOrder(order),
     skip: offset,
     take: limit,
     withDeleted: status !== "active",
-  })) as [ProductAttributeOptionRecord[], number]
+  })
   const usageCounts = await getOptionUsageCountMap(
     req.scope,
     options.map((option) => option.id)

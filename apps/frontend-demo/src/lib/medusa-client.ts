@@ -4,8 +4,8 @@ import { STORAGE_KEYS } from "./constants"
 
 // Environment validation
 const BACKEND_URL =
-  process.env["NEXT_PUBLIC_MEDUSA_BACKEND_URL"] || "http://localhost:9000"
-const PUBLISHABLE_KEY = process.env["NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"] || ""
+  process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
+const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 
 if (!PUBLISHABLE_KEY) {
   console.warn("⚠️ NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY is not set!")
@@ -13,11 +13,6 @@ if (!PUBLISHABLE_KEY) {
 
 // Custom storage implementation
 const customStorage = {
-  setItem: (key: string, value: string) => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(key, value)
-    }
-  },
   getItem: (key: string) => {
     if (typeof window !== "undefined") {
       return localStorage.getItem(key)
@@ -27,6 +22,11 @@ const customStorage = {
   removeItem: (key: string) => {
     if (typeof window !== "undefined") {
       localStorage.removeItem(key)
+    }
+  },
+  setItem: (key: string, value: string) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(key, value)
     }
   },
 }
@@ -45,10 +45,10 @@ const createSDK = () => {
     baseUrl: BACKEND_URL,
     publishableKey: PUBLISHABLE_KEY,
     auth: {
-      type: "jwt",
       jwtTokenStorageKey: STORAGE_KEYS.AUTH_TOKEN,
       jwtTokenStorageMethod: "custom",
       storage: customStorage,
+      type: "jwt",
     },
     // Add debug logging
     debug: process.env.NODE_ENV === "development",

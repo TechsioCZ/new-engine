@@ -11,11 +11,11 @@
  */
 import type { ReactNode, Ref } from "react"
 
-import {
-  Popover,
-  type PopoverContentProps,
-  type PopoverRootProps,
-  type PopoverTriggerProps,
+import { Popover } from "../molecules/popover"
+import type {
+  PopoverContentProps,
+  PopoverRootProps,
+  PopoverTriggerProps,
 } from "../molecules/popover"
 
 export type PopoverTemplateProps = Omit<PopoverRootProps, "children"> & {

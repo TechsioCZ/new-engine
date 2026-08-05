@@ -3,14 +3,16 @@ import fs from "node:fs"
 import path from "node:path"
 
 const THEMES = ["light", "dark"]
-const KEY_SEPARATOR = "\x00"
+const KEY_SEPARATOR = "\u0000"
 const FALLBACK_TARGET = "__violation__"
 
 function readArg(name) {
   const direct = process.argv.find((arg) => arg.startsWith(`${name}=`))
-  if (direct) return direct.slice(name.length + 1)
+  if (direct) {
+    return direct.slice(name.length + 1)
+  }
   const index = process.argv.indexOf(name)
-  return index >= 0 ? (process.argv[index + 1] ?? null) : null
+  return index !== -1 ? (process.argv[index + 1] ?? null) : null
 }
 
 function hasFlag(name) {
@@ -19,7 +21,7 @@ function hasFlag(name) {
 
 function loadJson(filePath, label) {
   try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8"))
+    return JSON.parse(fs.readFileSync(filePath, "utf-8"))
   } catch (error) {
     throw new Error(`Failed to load ${label}: ${filePath}`, { cause: error })
   }
@@ -62,7 +64,7 @@ function normalizeTarget(target) {
 
 function collectTheme(report, theme) {
   if (!Array.isArray(report)) {
-    throw new Error(`${theme} report must be an array of stories.`)
+    throw new TypeError(`${theme} report must be an array of stories.`)
   }
 
   const counts = new Map()
@@ -76,7 +78,7 @@ function collectTheme(report, theme) {
     const storyId = String(story?.storyId ?? storyName)
     const storyViolations = story?.results?.violations ?? []
     if (!Array.isArray(storyViolations)) {
-      throw new Error(
+      throw new TypeError(
         `${theme} report contains invalid violations for ${storyName}.`
       )
     }
@@ -95,11 +97,11 @@ function collectTheme(report, theme) {
         const key = [storyId, id, target].join(KEY_SEPARATOR)
         const current = counts.get(key)
         counts.set(key, {
+          count: (current?.count ?? 0) + 1,
+          id,
           story: storyName,
           storyId,
-          id,
           target,
-          count: (current?.count ?? 0) + 1,
         })
       }
     }
@@ -114,10 +116,10 @@ function collectTheme(report, theme) {
   )
 
   return {
+    entries,
     stories: storyIds.size,
     storyIds: [...storyIds].sort((left, right) => left.localeCompare(right)),
     violations,
-    entries,
   }
 }
 
@@ -135,10 +137,10 @@ function loadReports(reportRoot) {
 
 function writeBaseline(baselinePath, themes) {
   const baseline = {
-    version: 2,
     description:
       "Known Storybook accessibility violation nodes. CI rejects new node fingerprints and lost story coverage while reporting this debt.",
     themes,
+    version: 2,
   }
   // Compact on purpose: the committed baseline holds ~13k violation entries
   // and pretty-printing turns it into ~90k diff lines on every regeneration.
@@ -199,16 +201,16 @@ function compareTheme(current, baseline, theme) {
     entries.reduce((total, entry) => total + entry.count, 0)
 
   return {
-    theme,
-    currentStories: current.stories,
-    currentViolations: current.violations,
     baselineStories: Number(baseline.stories),
     baselineViolations: Number(baseline.violations),
+    currentStories: current.stories,
+    currentViolations: current.violations,
     missingStoryIds,
     newEntries,
-    resolvedEntries,
     newViolations: countEntries(newEntries),
+    resolvedEntries,
     resolvedViolations: countEntries(resolvedEntries),
+    theme,
   }
 }
 
@@ -230,21 +232,29 @@ function formatDetails(entries) {
 function buildSummary(results) {
   const lines = ["## Storybook accessibility regression gate", ""]
   for (const result of results) {
-    lines.push(`### ${result.theme[0].toUpperCase()}${result.theme.slice(1)}`)
-    lines.push(`- Current stories: ${result.currentStories}`)
     lines.push(
-      `- Current violation nodes: ${result.currentViolations} (committed baseline: ${result.baselineViolations})`
+      `### ${result.theme[0].toUpperCase()}${result.theme.slice(1)}`,
+      `- Current stories: ${result.currentStories}`
     )
-    lines.push(`- New violation nodes: ${result.newViolations}`)
-    lines.push(`- Resolved violation nodes: ${result.resolvedViolations}`)
-    lines.push(`- Missing baseline stories: ${result.missingStoryIds.length}`)
+    lines.push(
+      `- Current violation nodes: ${result.currentViolations} (committed baseline: ${result.baselineViolations})`,
+      `- New violation nodes: ${result.newViolations}`
+    )
+    lines.push(
+      `- Resolved violation nodes: ${result.resolvedViolations}`,
+      `- Missing baseline stories: ${result.missingStoryIds.length}`
+    )
     if (result.newEntries.length > 0) {
-      lines.push("- New violation node fingerprints:")
-      lines.push(...formatDetails(result.newEntries))
+      lines.push(
+        "- New violation node fingerprints:",
+        ...formatDetails(result.newEntries)
+      )
     }
     if (result.missingStoryIds.length > 0) {
-      lines.push("- Missing story IDs:")
-      lines.push(...result.missingStoryIds.map((storyId) => `  - ${storyId}`))
+      lines.push(
+        "- Missing story IDs:",
+        ...result.missingStoryIds.map((storyId) => `  - ${storyId}`)
+      )
     }
     lines.push("")
   }

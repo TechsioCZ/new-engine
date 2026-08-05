@@ -21,7 +21,7 @@ import type {
 
 type ReviewsVariant = "product" | "homepage"
 
-type ReviewsSectionProps = {
+interface ReviewsSectionProps {
   sectionClassName?: string
   variant?: ReviewsVariant
   linkHref?: string | null

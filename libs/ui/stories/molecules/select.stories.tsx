@@ -5,7 +5,8 @@ import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
 import type { IconType } from "../../src/atoms/icon"
-import { Select, type SelectItem } from "../../src/molecules/select"
+import { Select } from "../../src/molecules/select"
+import type { SelectItem } from "../../src/molecules/select"
 
 // Mock data
 const countries: SelectItem[] = [
@@ -22,7 +23,7 @@ const countries: SelectItem[] = [
   { label: "Spain", value: "es" },
   { label: "Japan", value: "jp" },
   { label: "China", value: "cn" },
-  { label: "India", value: "in", disabled: true },
+  { disabled: true, label: "India", value: "in" },
   { label: "Australia", value: "au" },
 ]
 
@@ -41,36 +42,90 @@ const languages: SelectItem[] = [
 
 const teamMembers: SelectItem[] = [
   {
-    label: "Jessica Jones",
-    value: "jessica",
     avatar: "https://i.pravatar.cc/150?u=jessica",
+    label: "Jessica Jones",
     role: "Designer",
+    value: "jessica",
   },
   {
-    label: "Kenneth Johnson",
-    value: "kenneth",
     avatar: "https://i.pravatar.cc/150?u=kenneth",
+    label: "Kenneth Johnson",
     role: "Developer",
+    value: "kenneth",
   },
   {
-    label: "Kate Wilson",
-    value: "kate",
     avatar: "https://i.pravatar.cc/150?u=kate",
+    label: "Kate Wilson",
     role: "Product Manager",
+    value: "kate",
   },
   {
-    label: "Michael Brown",
-    value: "michael",
     avatar: "https://i.pravatar.cc/150?u=michael",
+    label: "Michael Brown",
     role: "Developer",
+    value: "michael",
   },
 ]
 
 const meta: Meta<typeof Select> = {
-  title: "Molecules/Select",
+  argTypes: {
+    closeOnSelect: {
+      control: "boolean",
+      description: "Whether the dropdown closes on selection",
+      table: { defaultValue: { summary: "true" } },
+    },
+    disabled: {
+      control: "boolean",
+      description: "Whether the select is disabled",
+      table: { defaultValue: { summary: "false" } },
+    },
+    loopFocus: {
+      control: "boolean",
+      description: "Whether keyboard navigation should loop",
+      table: { defaultValue: { summary: "true" } },
+    },
+    multiple: {
+      control: "boolean",
+      description: "Whether multiple options can be selected",
+      table: { defaultValue: { summary: "false" } },
+    },
+    readOnly: {
+      control: "boolean",
+      description: "Whether the select is read-only",
+      table: { defaultValue: { summary: "false" } },
+    },
+    size: {
+      control: { type: "select" },
+      description: "Size of the select",
+      options: ["xs", "sm", "md", "lg"],
+      table: { defaultValue: { summary: "md" } },
+    },
+    validateStatus: {
+      control: { type: "select" },
+      description: "Validation status of the select",
+      options: ["default", "error", "success", "warning"],
+      table: { defaultValue: { summary: "default" } },
+    },
+  },
   component: Select,
+  decorators: [
+    (Story, context) => {
+      const { title, description } = context.parameters
+
+      return (
+        <div className="flex w-80 flex-col gap-6 p-4">
+          {title && <h3 className="font-medium text-lg">{title}</h3>}
+          {description && (
+            <p className="mb-2 text-gray-600 text-sm">{description}</p>
+          )}
+          <div className="space-y-4">
+            <Story />
+          </div>
+        </div>
+      )
+    },
+  ],
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component: `
@@ -101,64 +156,10 @@ A compound pattern Select component built with Zag.js that provides maximum flex
 				`,
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  argTypes: {
-    size: {
-      control: { type: "select" },
-      options: ["xs", "sm", "md", "lg"],
-      description: "Size of the select",
-      table: { defaultValue: { summary: "md" } },
-    },
-    validateStatus: {
-      control: { type: "select" },
-      options: ["default", "error", "success", "warning"],
-      description: "Validation status of the select",
-      table: { defaultValue: { summary: "default" } },
-    },
-    disabled: {
-      control: "boolean",
-      description: "Whether the select is disabled",
-      table: { defaultValue: { summary: "false" } },
-    },
-    readOnly: {
-      control: "boolean",
-      description: "Whether the select is read-only",
-      table: { defaultValue: { summary: "false" } },
-    },
-    multiple: {
-      control: "boolean",
-      description: "Whether multiple options can be selected",
-      table: { defaultValue: { summary: "false" } },
-    },
-    closeOnSelect: {
-      control: "boolean",
-      description: "Whether the dropdown closes on selection",
-      table: { defaultValue: { summary: "true" } },
-    },
-    loopFocus: {
-      control: "boolean",
-      description: "Whether keyboard navigation should loop",
-      table: { defaultValue: { summary: "true" } },
-    },
-  },
-  decorators: [
-    (Story, context) => {
-      const { title, description } = context.parameters
-
-      return (
-        <div className="flex w-80 flex-col gap-6 p-4">
-          {title && <h3 className="font-medium text-lg">{title}</h3>}
-          {description && (
-            <p className="mb-2 text-gray-600 text-sm">{description}</p>
-          )}
-          <div className="space-y-4">
-            <Story />
-          </div>
-        </div>
-      )
-    },
-  ],
+  title: "Molecules/Select",
 }
 
 export default meta
@@ -166,14 +167,14 @@ type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
   args: {
+    closeOnSelect: true,
+    disabled: false,
     items: countries,
+    loopFocus: true,
+    multiple: false,
+    readOnly: false,
     size: "md",
     validateStatus: "default",
-    disabled: false,
-    readOnly: false,
-    multiple: false,
-    closeOnSelect: true,
-    loopFocus: true,
   },
   render: (args) => (
     <Select {...args}>
@@ -484,10 +485,10 @@ export const WithIcons: Story = {
   name: "With Icons (Compound Benefit)",
   render: () => {
     const languagesWithIcons: SelectItem[] = [
-      { label: "English", value: "en", icon: "icon-[cif--gb]" },
-      { label: "Spanish", value: "es", icon: "icon-[cif--es]" },
-      { label: "French", value: "fr", icon: "icon-[cif--fr]" },
-      { label: "German", value: "de", icon: "icon-[cif--de]" },
+      { icon: "icon-[cif--gb]", label: "English", value: "en" },
+      { icon: "icon-[cif--es]", label: "Spanish", value: "es" },
+      { icon: "icon-[cif--fr]", label: "French", value: "fr" },
+      { icon: "icon-[cif--de]", label: "German", value: "de" },
     ]
 
     return (
@@ -498,7 +499,7 @@ export const WithIcons: Story = {
             <Select.ValueText placeholder="Choose a language">
               {(items) => (
                 <span className="flex items-center gap-2">
-                  <Icon icon={items[0]?.["icon"] as IconType} size="sm" />
+                  <Icon icon={items[0]?.icon as IconType} size="sm" />
                   {items[0]?.label}
                 </span>
               )}
@@ -510,7 +511,7 @@ export const WithIcons: Story = {
             {languagesWithIcons.map((item) => (
               <Select.Item key={item.value} item={item}>
                 <span className="flex items-center gap-2">
-                  <Icon icon={item["icon"] as IconType} size="sm" />
+                  <Icon icon={item.icon as IconType} size="sm" />
                   <Select.ItemText />
                 </span>
                 <Select.ItemIndicator />
@@ -534,7 +535,7 @@ export const WithAvatars: Story = {
             {(items) => (
               <span className="flex items-center gap-2">
                 <img
-                  src={items[0]?.["avatar"] as string}
+                  src={items[0]?.avatar as string}
                   alt={items[0]?.label as string}
                   className="rounded-full object-cover size-6"
                 />
@@ -551,14 +552,14 @@ export const WithAvatars: Story = {
             <Select.Item key={item.value} item={item}>
               <span className="flex items-center gap-2">
                 <img
-                  src={item["avatar"] as string}
+                  src={item.avatar as string}
                   alt={item.label as string}
                   className="rounded-full object-cover size-6"
                 />
                 <span className="flex flex-col">
                   <Select.ItemText />
                   <span className="text-xs text-gray-500">
-                    {item["role"] as string}
+                    {item.role as string}
                   </span>
                 </span>
               </span>
@@ -639,22 +640,22 @@ export const CustomItemContent: Story = {
   render: () => {
     const plans: SelectItem[] = [
       {
-        label: "Free",
-        value: "free",
-        price: "$0",
         features: "5 projects, 1GB storage",
+        label: "Free",
+        price: "$0",
+        value: "free",
       },
       {
-        label: "Pro",
-        value: "pro",
-        price: "$19/mo",
         features: "Unlimited projects, 100GB storage",
+        label: "Pro",
+        price: "$19/mo",
+        value: "pro",
       },
       {
-        label: "Enterprise",
-        value: "enterprise",
-        price: "$99/mo",
         features: "Custom limits, priority support",
+        label: "Enterprise",
+        price: "$99/mo",
+        value: "enterprise",
       },
     ]
 
@@ -668,7 +669,7 @@ export const CustomItemContent: Story = {
                 <span className="flex items-center justify-between w-full">
                   <span>{items[0]?.label}</span>
                   <span className="text-sm text-gray-500">
-                    {items[0]?.["price"] as string}
+                    {items[0]?.price as string}
                   </span>
                 </span>
               )}
@@ -684,12 +685,12 @@ export const CustomItemContent: Story = {
                     <Select.ItemText />
                   </span>
                   <span className="text-xs text-gray-500">
-                    {item["features"] as string}
+                    {item.features as string}
                   </span>
                 </span>
                 <span className="flex items-center gap-2">
                   <span className="text-sm font-medium">
-                    {item["price"] as string}
+                    {item.price as string}
                   </span>
                   <Select.ItemIndicator />
                 </span>
@@ -711,7 +712,9 @@ export const Controlled: Story = {
         <Select
           items={languages}
           value={value}
-          onValueChange={(details) => setValue(details.value)}
+          onValueChange={(details) => {
+            setValue(details.value)
+          }}
         >
           <Select.Label>Select a language</Select.Label>
           <Select.Control>
@@ -737,10 +740,21 @@ export const Controlled: Story = {
         </div>
 
         <div className="flex gap-2">
-          <Button size="sm" onClick={() => setValue(["en"])}>
+          <Button
+            size="sm"
+            onClick={() => {
+              setValue(["en"])
+            }}
+          >
             Set to English
           </Button>
-          <Button size="sm" variant="secondary" onClick={() => setValue([])}>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              setValue([])
+            }}
+          >
             Clear
           </Button>
         </div>
@@ -811,9 +825,9 @@ export const WithinForm: Story = {
           required
           validateStatus={formState.country.length === 0 ? "error" : "default"}
           value={formState.country}
-          onValueChange={(details) =>
+          onValueChange={(details) => {
             setFormState((prev) => ({ ...prev, country: details.value }))
-          }
+          }}
         >
           <Select.Label>Country</Select.Label>
           <Select.Control>
@@ -842,9 +856,9 @@ export const WithinForm: Story = {
           multiple
           closeOnSelect={false}
           value={formState.language}
-          onValueChange={(details) =>
+          onValueChange={(details) => {
             setFormState((prev) => ({ ...prev, language: details.value }))
-          }
+          }}
         >
           <Select.Label>Languages</Select.Label>
           <Select.Control>
@@ -929,7 +943,9 @@ export const ConditionalRendering: Story = {
           <Button
             size="sm"
             variant="secondary"
-            onClick={() => setShowPremium(!showPremium)}
+            onClick={() => {
+              setShowPremium(!showPremium)
+            }}
           >
             {showPremium ? "Hide" : "Show"} Premium Plans
           </Button>

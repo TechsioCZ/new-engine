@@ -11,12 +11,12 @@ import {
 import {
   getRuntimeProviderMeiliKeyPolicy,
   getRuntimeProviderTargetEnvVar,
-  type StackInputs,
 } from "../contracts/stack-inputs.js"
+import type { StackInputs } from "../contracts/stack-inputs.js"
 
 const trailingSlashesPattern = /\/+$/
 
-type RequestOptions = {
+interface RequestOptions {
   meiliUrl: string
   waitSeconds: number
   timeoutSeconds: number
@@ -24,21 +24,21 @@ type RequestOptions = {
   retryDelaySeconds: number
 }
 
-type PolicyDefinition = {
+interface PolicyDefinition {
   uid: string
   description: string
   actions: string[]
   indexes: string[]
 }
 
-type MeiliApiCredentialPolicies = {
+interface MeiliApiCredentialPolicies {
   backendPolicy: PolicyDefinition
   frontendPolicy: PolicyDefinition
   backendEnvVar: string
   frontendEnvVar: string
 }
 
-type RequestJsonOptions<T> = {
+interface RequestJsonOptions<T> {
   url: string
   init: RequestInit
   parse: (value: unknown) => T
@@ -59,8 +59,12 @@ async function fetchWithTimeout(
   const timeoutController = new AbortController()
   const controller = new AbortController()
   const requestSignal = init.signal
-  const abortFromRequestSignal = () => controller.abort()
-  const abortFromTimeout = () => controller.abort()
+  const abortFromRequestSignal = () => {
+    controller.abort()
+  }
+  const abortFromTimeout = () => {
+    controller.abort()
+  }
 
   if (requestSignal?.aborted) {
     controller.abort()
@@ -90,7 +94,8 @@ async function fetchWithTimeout(
       timeoutController.signal.aborted
     ) {
       throw new Error(
-        `Meilisearch request timed out after ${timeoutSeconds}s: ${url}`
+        `Meilisearch request timed out after ${timeoutSeconds}s: ${url}`,
+        { cause: error }
       )
     }
 
@@ -107,27 +112,27 @@ function resolveMeiliApiCredentialPolicies(
   providerId: string
 ): MeiliApiCredentialPolicies {
   return {
-    backendPolicy: getRuntimeProviderMeiliKeyPolicy(
-      stackInputs,
-      providerId,
-      "backend_key"
-    ),
-    frontendPolicy: getRuntimeProviderMeiliKeyPolicy(
-      stackInputs,
-      providerId,
-      "frontend_key"
-    ),
     backendEnvVar: getRuntimeProviderTargetEnvVar(
       stackInputs,
       providerId,
       "backend_key",
       "medusa-be"
     ),
+    backendPolicy: getRuntimeProviderMeiliKeyPolicy(
+      stackInputs,
+      providerId,
+      "backend_key"
+    ),
     frontendEnvVar: getRuntimeProviderTargetEnvVar(
       stackInputs,
       providerId,
       "frontend_key",
       "n1"
+    ),
+    frontendPolicy: getRuntimeProviderMeiliKeyPolicy(
+      stackInputs,
+      providerId,
+      "frontend_key"
     ),
   }
 }
@@ -150,14 +155,14 @@ function parseErrorMessage(payload: unknown, fallback: string): string {
   }
 
   const object = payload as Record<string, unknown>
-  if (typeof object["detail"] === "string" && object["detail"].trim()) {
-    return object["detail"]
+  if (typeof object.detail === "string" && object.detail.trim()) {
+    return object.detail
   }
-  if (typeof object["message"] === "string" && object["message"].trim()) {
-    return object["message"]
+  if (typeof object.message === "string" && object.message.trim()) {
+    return object.message
   }
-  if (typeof object["code"] === "string" && object["code"].trim()) {
-    return `${fallback} (${object["code"]})`
+  if (typeof object.code === "string" && object.code.trim()) {
+    return `${fallback} (${object.code})`
   }
 
   return fallback
@@ -270,9 +275,9 @@ function matchesPolicy(keyObject: unknown, policy: PolicyDefinition): boolean {
 
   const candidate = keyObject as Record<string, unknown>
   return (
-    candidate["uid"] === policy.uid &&
+    candidate.uid === policy.uid &&
     matchesPermissions(keyObject, policy) &&
-    candidate["description"] === policy.description
+    candidate.description === policy.description
   )
 }
 
@@ -280,7 +285,7 @@ function matchesDescription(
   keyObject: Record<string, unknown>,
   policy: PolicyDefinition
 ): boolean {
-  return keyObject["description"] === policy.description
+  return keyObject.description === policy.description
 }
 
 async function getKeyByUid(
@@ -290,12 +295,11 @@ async function getKeyByUid(
   }
 ): Promise<Record<string, unknown> | null> {
   const result = await requestJson({
-    url: `${normalizeBaseUrl(input.meiliUrl)}/keys/${input.uid}`,
     init: {
-      method: "GET",
       headers: {
         Authorization: `Bearer ${input.masterKey}`,
       },
+      method: "GET",
     },
     parse: (value) => {
       if (value === null) {
@@ -308,15 +312,16 @@ async function getKeyByUid(
 
       return value as Record<string, unknown>
     },
-    timeoutSeconds: input.timeoutSeconds,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
+    timeoutSeconds: input.timeoutSeconds,
+    url: `${normalizeBaseUrl(input.meiliUrl)}/keys/${input.uid}`,
   })
 
   return result
 }
 
-type ReconcileKeyInput = {
+interface ReconcileKeyInput {
   meiliUrl: string
   masterKey: string
   uid: string
@@ -332,13 +337,7 @@ async function createKey(
   input: ReconcileKeyInput
 ): Promise<Record<string, unknown>> {
   return await requestJson({
-    url: `${normalizeBaseUrl(input.meiliUrl)}/keys`,
     init: {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${input.masterKey}`,
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         uid: input.uid,
         description: input.description,
@@ -346,6 +345,11 @@ async function createKey(
         indexes: input.indexes,
         expiresAt: null,
       }),
+      headers: {
+        Authorization: `Bearer ${input.masterKey}`,
+        "Content-Type": "application/json",
+      },
+      method: "POST",
     },
     parse: (value) => {
       if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -354,9 +358,10 @@ async function createKey(
 
       return value as Record<string, unknown>
     },
-    timeoutSeconds: input.timeoutSeconds,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
+    timeoutSeconds: input.timeoutSeconds,
+    url: `${normalizeBaseUrl(input.meiliUrl)}/keys`,
   })
 }
 
@@ -364,16 +369,15 @@ async function updateKeyDescription(
   input: ReconcileKeyInput
 ): Promise<Record<string, unknown>> {
   return await requestJson({
-    url: `${normalizeBaseUrl(input.meiliUrl)}/keys/${input.uid}`,
     init: {
-      method: "PATCH",
+      body: JSON.stringify({
+        description: input.description,
+      }),
       headers: {
         Authorization: `Bearer ${input.masterKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        description: input.description,
-      }),
+      method: "PATCH",
     },
     parse: (value) => {
       if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -382,25 +386,26 @@ async function updateKeyDescription(
 
       return value as Record<string, unknown>
     },
-    timeoutSeconds: input.timeoutSeconds,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
+    timeoutSeconds: input.timeoutSeconds,
+    url: `${normalizeBaseUrl(input.meiliUrl)}/keys/${input.uid}`,
   })
 }
 
 async function deleteKey(input: ReconcileKeyInput): Promise<void> {
   await requestJson({
-    url: `${normalizeBaseUrl(input.meiliUrl)}/keys/${input.uid}`,
     init: {
-      method: "DELETE",
       headers: {
         Authorization: `Bearer ${input.masterKey}`,
       },
+      method: "DELETE",
     },
     parse: () => null,
-    timeoutSeconds: input.timeoutSeconds,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
+    timeoutSeconds: input.timeoutSeconds,
+    url: `${normalizeBaseUrl(input.meiliUrl)}/keys/${input.uid}`,
   })
 }
 
@@ -410,28 +415,28 @@ async function createOrUpdateKey(input: ReconcileKeyInput): Promise<{
   updated: boolean
 }> {
   const policy: PolicyDefinition = {
-    uid: input.uid,
-    description: input.description,
     actions: input.actions,
+    description: input.description,
     indexes: input.indexes,
+    uid: input.uid,
   }
 
   const existing = await getKeyByUid({
-    meiliUrl: input.meiliUrl,
     masterKey: input.masterKey,
-    uid: input.uid,
-    waitSeconds: 0,
-    timeoutSeconds: input.timeoutSeconds,
+    meiliUrl: input.meiliUrl,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
+    timeoutSeconds: input.timeoutSeconds,
+    uid: input.uid,
+    waitSeconds: 0,
   })
 
   if (!existing) {
     const created = await createKey(input)
 
     return {
-      keyObject: created,
       created: true,
+      keyObject: created,
       updated: false,
     }
   }
@@ -441,16 +446,16 @@ async function createOrUpdateKey(input: ReconcileKeyInput): Promise<{
     const replacement = await createKey(input)
 
     return {
-      keyObject: replacement,
       created: false,
+      keyObject: replacement,
       updated: true,
     }
   }
 
   if (matchesDescription(existing, policy)) {
     return {
-      keyObject: existing,
       created: false,
+      keyObject: existing,
       updated: false,
     }
   }
@@ -458,8 +463,8 @@ async function createOrUpdateKey(input: ReconcileKeyInput): Promise<{
   const updated = await updateKeyDescription(input)
 
   return {
-    keyObject: updated,
     created: false,
+    keyObject: updated,
     updated: true,
   }
 }
@@ -479,47 +484,47 @@ export async function provisionMeiliKeys(input: {
 
   await waitForHealth({
     meiliUrl: input.meiliUrl,
-    waitSeconds: input.waitSeconds,
-    timeoutSeconds: input.timeoutSeconds,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
+    timeoutSeconds: input.timeoutSeconds,
+    waitSeconds: input.waitSeconds,
   })
 
   const backend = await createOrUpdateKey({
-    meiliUrl: input.meiliUrl,
-    masterKey: input.masterKey,
-    uid: backendPolicy.uid,
-    description: backendPolicy.description,
     actions: backendPolicy.actions,
+    description: backendPolicy.description,
     indexes: backendPolicy.indexes,
+    masterKey: input.masterKey,
+    meiliUrl: input.meiliUrl,
     retryCount: input.retryCount,
-    timeoutSeconds: input.timeoutSeconds,
     retryDelaySeconds: input.retryDelaySeconds,
+    timeoutSeconds: input.timeoutSeconds,
+    uid: backendPolicy.uid,
   })
   const frontend = await createOrUpdateKey({
-    meiliUrl: input.meiliUrl,
-    masterKey: input.masterKey,
-    uid: frontendPolicy.uid,
-    description: frontendPolicy.description,
     actions: frontendPolicy.actions,
+    description: frontendPolicy.description,
     indexes: frontendPolicy.indexes,
+    masterKey: input.masterKey,
+    meiliUrl: input.meiliUrl,
     retryCount: input.retryCount,
-    timeoutSeconds: input.timeoutSeconds,
     retryDelaySeconds: input.retryDelaySeconds,
+    timeoutSeconds: input.timeoutSeconds,
+    uid: frontendPolicy.uid,
   })
 
   return meiliProvisionResponseSchema.parse({
-    meili_url: normalizeBaseUrl(input.meiliUrl),
-    backend_key: readString(backend.keyObject["key"], ""),
-    frontend_key: readString(frontend.keyObject["key"], ""),
-    backend_uid: readString(backend.keyObject["uid"], backendPolicy.uid),
-    frontend_uid: readString(frontend.keyObject["uid"], frontendPolicy.uid),
     backend_created: backend.created,
-    frontend_created: frontend.created,
-    backend_updated: backend.updated,
-    frontend_updated: frontend.updated,
     backend_env_var: backendEnvVar,
+    backend_key: readString(backend.keyObject.key, ""),
+    backend_uid: readString(backend.keyObject.uid, backendPolicy.uid),
+    backend_updated: backend.updated,
+    frontend_created: frontend.created,
     frontend_env_var: frontendEnvVar,
+    frontend_key: readString(frontend.keyObject.key, ""),
+    frontend_uid: readString(frontend.keyObject.uid, frontendPolicy.uid),
+    frontend_updated: frontend.updated,
+    meili_url: normalizeBaseUrl(input.meiliUrl),
   })
 }
 
@@ -560,29 +565,29 @@ export async function verifyMeiliKeys(input: {
 
   await waitForHealth({
     meiliUrl: input.meiliUrl,
-    waitSeconds: input.waitSeconds,
-    timeoutSeconds: input.timeoutSeconds,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
+    timeoutSeconds: input.timeoutSeconds,
+    waitSeconds: input.waitSeconds,
   })
 
   const backend = await getKeyByUid({
-    meiliUrl: input.meiliUrl,
     masterKey: input.masterKey,
+    meiliUrl: input.meiliUrl,
+    retryCount: input.retryCount,
+    retryDelaySeconds: input.retryDelaySeconds,
+    timeoutSeconds: input.timeoutSeconds,
     uid: backendPolicy.uid,
     waitSeconds: input.waitSeconds,
-    timeoutSeconds: input.timeoutSeconds,
-    retryCount: input.retryCount,
-    retryDelaySeconds: input.retryDelaySeconds,
   })
   const frontend = await getKeyByUid({
-    meiliUrl: input.meiliUrl,
     masterKey: input.masterKey,
-    uid: frontendPolicy.uid,
-    waitSeconds: input.waitSeconds,
-    timeoutSeconds: input.timeoutSeconds,
+    meiliUrl: input.meiliUrl,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
+    timeoutSeconds: input.timeoutSeconds,
+    uid: frontendPolicy.uid,
+    waitSeconds: input.waitSeconds,
   })
 
   if (!backend) {
@@ -609,28 +614,28 @@ export async function verifyMeiliKeys(input: {
     )
   }
 
-  if (readString(backend["key"], "") !== input.backendKey) {
+  if (readString(backend.key, "") !== input.backendKey) {
     throw new Error(
       `Provided backend key does not match key stored under uid=${backendPolicy.uid}.`
     )
   }
 
-  if (readString(frontend["key"], "") !== input.frontendKey) {
+  if (readString(frontend.key, "") !== input.frontendKey) {
     throw new Error(
       `Provided frontend key does not match key stored under uid=${frontendPolicy.uid}.`
     )
   }
 
   return meiliVerifyResponseSchema.parse({
-    meili_url: normalizeBaseUrl(input.meiliUrl),
-    backend_uid: backendPolicy.uid,
-    frontend_uid: frontendPolicy.uid,
     backend_description: backendPolicy.description,
-    frontend_description: frontendPolicy.description,
     backend_policy_actions: backendPolicy.actions,
     backend_policy_indexes: backendPolicy.indexes,
+    backend_uid: backendPolicy.uid,
+    frontend_description: frontendPolicy.description,
     frontend_policy_actions: frontendPolicy.actions,
     frontend_policy_indexes: frontendPolicy.indexes,
+    frontend_uid: frontendPolicy.uid,
+    meili_url: normalizeBaseUrl(input.meiliUrl),
     result: "ok",
   })
 }

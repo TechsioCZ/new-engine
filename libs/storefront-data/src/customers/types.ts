@@ -8,11 +8,11 @@ import type {
 import type { MutationOptions } from "../shared/hook-types"
 import type { QueryKey } from "../shared/query-keys"
 
-export type CustomerAddressListInputBase = {
+export interface CustomerAddressListInputBase {
   enabled?: boolean
 }
 
-export type CustomerAddressInputBase = {
+export interface CustomerAddressInputBase {
   first_name?: string | null
   last_name?: string | null
   company?: string | null
@@ -34,22 +34,22 @@ export type CustomerAddressUpdateInputBase = CustomerAddressInputBase & {
   addressId?: string
 }
 
-export type CustomerProfileUpdateInputBase = {
+export interface CustomerProfileUpdateInputBase {
   metadata?: Record<string, unknown>
 }
 
-export type CustomerAddressListResponse<TAddress> = {
+export interface CustomerAddressListResponse<TAddress> {
   addresses: TAddress[]
 }
 
-export type CustomerService<
+export interface CustomerService<
   TCustomer,
   TAddress,
   TListParams,
   TCreateParams,
   TUpdateParams,
   TUpdateCustomerParams,
-> = {
+> {
   getAddresses: (
     params: TListParams,
     signal?: AbortSignal
@@ -60,7 +60,7 @@ export type CustomerService<
   updateCustomer?: (params: TUpdateCustomerParams) => Promise<TCustomer>
 }
 
-export type CustomerQueryKeys<TListParams> = {
+export interface CustomerQueryKeys<TListParams> {
   all: () => QueryKey
   profile: () => QueryKey
   addresses: (params: TListParams) => QueryKey

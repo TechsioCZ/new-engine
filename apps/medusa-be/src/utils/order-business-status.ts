@@ -44,24 +44,24 @@ export type OrderBusinessStatusTone =
   | "red"
   | "purple"
 
-export type OrderBusinessStatus = {
+export interface OrderBusinessStatus {
   id: OrderBusinessStatusId
   priority: number
   tone: OrderBusinessStatusTone
   translation_key: `statuses.${OrderBusinessStatusId}`
 }
 
-type OrderBusinessStatusPaymentCollection = {
+interface OrderBusinessStatusPaymentCollection {
   status?: string | null
 }
 
-type OrderBusinessStatusFulfillment = {
+interface OrderBusinessStatusFulfillment {
   canceled_at?: Date | string | null
   delivered_at?: Date | string | null
   shipped_at?: Date | string | null
 }
 
-export type OrderBusinessStatusInput = {
+export interface OrderBusinessStatusInput {
   fulfillment_status?: string | null
   fulfillments?: OrderBusinessStatusFulfillment[] | null
   metadata?: Record<string, unknown> | null
@@ -70,7 +70,7 @@ export type OrderBusinessStatusInput = {
   status?: string | null
 }
 
-export type OrderBusinessStatusSummary = {
+export interface OrderBusinessStatusSummary {
   business_status: OrderBusinessStatus
   created_at?: string | null
   currency_code?: string | null
@@ -96,18 +96,18 @@ function createOrderBusinessStatus<const TId extends OrderBusinessStatusId>(
 }
 
 export const ORDER_BUSINESS_STATUSES = {
+  awaiting_payment: createOrderBusinessStatus("awaiting_payment", 7, "orange"),
   canceled: createOrderBusinessStatus("canceled", 1, "red"),
   delivered: createOrderBusinessStatus("delivered", 2, "green"),
+  new: createOrderBusinessStatus("new", 8, "grey"),
+  paid: createOrderBusinessStatus("paid", 6, "green"),
+  processing: createOrderBusinessStatus("processing", 5, "blue"),
   shipped: createOrderBusinessStatus("shipped", 3, "purple"),
   waiting_for_supplier: createOrderBusinessStatus(
     "waiting_for_supplier",
     4,
     "orange"
   ),
-  processing: createOrderBusinessStatus("processing", 5, "blue"),
-  paid: createOrderBusinessStatus("paid", 6, "green"),
-  awaiting_payment: createOrderBusinessStatus("awaiting_payment", 7, "orange"),
-  new: createOrderBusinessStatus("new", 8, "grey"),
 } as const satisfies Record<OrderBusinessStatusId, OrderBusinessStatus>
 
 // Failed/canceled payment attempts still need payment action; only order/manual cancellation maps to Storno.
@@ -254,7 +254,7 @@ function hasPaidPaymentSignal(order: OrderBusinessStatusInput) {
 }
 
 function formatBusinessStatus(status: OrderBusinessStatusId) {
-  return status.replace(/_/g, " ")
+  return status.replaceAll(/_/g, " ")
 }
 
 export function resolveOrderBusinessStatus(

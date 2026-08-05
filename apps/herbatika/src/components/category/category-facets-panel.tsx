@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl"
 import { AsideFilter } from "@/components/aside-filter"
 import type { AsideFilterChipItem } from "@/components/aside-filter-chip-section"
 
-type CategoryFacetsPanelProps = {
+interface CategoryFacetsPanelProps {
   activeFilterCount: number
   brandItems: AsideFilterChipItem[]
   currencyCode: string

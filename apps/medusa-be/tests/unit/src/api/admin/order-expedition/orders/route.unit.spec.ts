@@ -1,7 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("@medusajs/framework/utils", async (importOriginal) => {
+vi.mock(import("@medusajs/framework/utils"), async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@medusajs/framework/utils")>()
 
@@ -75,10 +75,10 @@ describe("GET /admin/order-expedition/orders", () => {
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
-          id: "order_1",
           display_id: 1001,
-          status: "pending",
+          id: "order_1",
           shipping_methods: [{ name: "PPL ParcelShop" }],
+          status: "pending",
         },
       ],
       metadata: {
@@ -130,8 +130,8 @@ describe("GET /admin/order-expedition/orders", () => {
           shipping_methods: [{ name: "PPL" }],
         },
         {
-          id: "order_2",
           display_id: 1002,
+          id: "order_2",
           items: [{ id: "item_2", quantity: 2, title: "Demo item" }],
           shipping_methods: [{ name: "Packeta" }],
           status: "pending",
@@ -164,7 +164,7 @@ describe("GET /admin/order-expedition/orders", () => {
         },
       })
     )
-    expect(graph).toHaveBeenCalledTimes(1)
+    expect(graph).toHaveBeenCalledOnce()
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         carrier: "packeta",
@@ -232,9 +232,9 @@ describe("GET /admin/order-expedition/orders", () => {
         count: 1,
         orders: [
           expect.objectContaining({
-            id: "order_1",
             business_status: expect.objectContaining({ id: "paid" }),
             carrier: expect.objectContaining({ value: "packeta" }),
+            id: "order_1",
           }),
         ],
       })
@@ -247,14 +247,14 @@ describe("GET /admin/order-expedition/orders", () => {
     const graph = vi.fn().mockResolvedValueOnce({
       data: [
         {
-          id: "order_1",
           display_id: 1001,
+          id: "order_1",
           shipping_methods: [{ name: "Packeta" }],
           status: "pending",
         },
         {
-          id: "order_2",
           display_id: 1002,
+          id: "order_2",
           shipping_methods: [{ name: "Packeta" }],
           status: "pending",
         },
@@ -275,7 +275,7 @@ describe("GET /admin/order-expedition/orders", () => {
 
     await GET(req, res)
 
-    expect(graph).toHaveBeenCalledTimes(1)
+    expect(graph).toHaveBeenCalledOnce()
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         count: 2,

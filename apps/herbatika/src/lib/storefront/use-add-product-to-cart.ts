@@ -13,12 +13,12 @@ import {
   resolveProductTopOffer,
 } from "./product-pricing"
 
-export type UseAddProductToCartProps = {
+export interface UseAddProductToCartProps {
   regionId?: string
   countryCode?: string
 }
 
-export type AddProductToCartInput = {
+export interface AddProductToCartInput {
   product: Pick<
     HttpTypes.StoreProduct,
     "id" | "metadata" | "title" | "variants"
@@ -106,12 +106,12 @@ const resolveLineItemVariantId = (
 ): string | null => {
   const itemRecord = asStorefrontRecord(item)
 
-  if (typeof itemRecord?.["variant_id"] === "string") {
-    return itemRecord["variant_id"]
+  if (typeof itemRecord?.variant_id === "string") {
+    return itemRecord.variant_id
   }
 
-  const variant = asStorefrontRecord(itemRecord?.["variant"])
-  return typeof variant?.["id"] === "string" ? variant["id"] : null
+  const variant = asStorefrontRecord(itemRecord?.variant)
+  return typeof variant?.id === "string" ? variant.id : null
 }
 
 const resolveExistingCartVariantQuantity = (
@@ -213,10 +213,10 @@ export function useAddProductToCart({
         cartQuery.cart,
         resolvedProductVariantId
       ),
-      translateCart,
       product,
       quantity,
-      ...(variantId === undefined ? {} : { variantId: variantId }),
+      translateCart,
+      ...(variantId === undefined ? {} : { variantId }),
     })
 
     setActiveProductId(product.id)
@@ -247,8 +247,8 @@ export function useAddProductToCart({
   }
 
   return {
-    addProductToCart,
     activeProductId,
+    addProductToCart,
     isAddPending: addLineItemMutation.isPending,
     isProductAdding: (productId: string) =>
       addLineItemMutation.isPending && activeProductId === productId,

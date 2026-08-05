@@ -6,17 +6,15 @@ import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 
 import NextLink from "@/components/app-link"
-import {
-  HerbatikaProductGrid,
-  type HerbatikaProductGridLayout,
-} from "@/components/product/herbatika-product-grid"
+import { HerbatikaProductGrid } from "@/components/product/herbatika-product-grid"
+import type { HerbatikaProductGridLayout } from "@/components/product/herbatika-product-grid"
 import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton"
 import type { ProductSortValue } from "@/lib/storefront/plp-query-state"
 import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-builder"
 
 import { CategorySortTabs } from "./category-sort-tabs"
 
-type CategoryResultsSectionProps = {
+interface CategoryResultsSectionProps {
   activeSort: ProductSortValue
   categoriesError: unknown
   catalogError: unknown

@@ -32,9 +32,9 @@ export function AccountOrdersList() {
     parseAsInteger.withDefault(1)
   )
   const ordersQuery = useOrders({
-    page: currentPage,
-    limit: ORDER_PAGE_SIZE,
     enabled: authQuery.isAuthenticated,
+    limit: ORDER_PAGE_SIZE,
+    page: currentPage,
   })
   const hasVisibleOrders = ordersQuery.orders.length > 0
   const isOrdersRefreshing =

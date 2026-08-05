@@ -28,8 +28,8 @@ export function usePrefetchProducts() {
 
     const queryParams = buildPrefetchParams({
       category_id: categoryId,
-      region_id: regionId,
       country_code: countryCode,
+      region_id: regionId,
     })
 
     const queryKey = queryKeys.products.list(queryParams)
@@ -48,8 +48,8 @@ export function usePrefetchProducts() {
       prefetchLogger.start("Categories", label)
 
       await queryClient.prefetchQuery({
+        queryFn: async ({ signal }) => getProducts(queryParams, signal),
         queryKey,
-        queryFn: ({ signal }) => getProducts(queryParams, signal),
         ...cacheConfig.semiStatic,
         ...(prefetchedBy ? { meta: { prefetchedBy } } : {}),
       })
@@ -70,8 +70,8 @@ export function usePrefetchProducts() {
 
     const queryParams = buildPrefetchParams({
       category_id: categoryId,
-      region_id: regionId,
       country_code: countryCode,
+      region_id: regionId,
     })
 
     const queryKey = queryKeys.products.list(queryParams)
@@ -90,8 +90,8 @@ export function usePrefetchProducts() {
       prefetchLogger.start("Root", label)
 
       await queryClient.prefetchQuery({
+        queryFn: async () => getProductsGlobal(queryParams),
         queryKey,
-        queryFn: () => getProductsGlobal(queryParams),
         ...cacheConfig.semiStatic,
       })
 
@@ -125,9 +125,9 @@ export function usePrefetchProducts() {
   }
 
   return {
+    cancelPrefetch,
+    delayedPrefetch,
     prefetchCategoryProducts,
     prefetchRootCategories,
-    delayedPrefetch,
-    cancelPrefetch,
   }
 }

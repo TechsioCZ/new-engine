@@ -6,7 +6,7 @@ import type { CustomerGroupInput } from "./types"
 
 type Metadata = Record<string, unknown>
 
-export type CustomerGroupLookupKeys = {
+export interface CustomerGroupLookupKeys {
   ids: Set<string>
   names: Set<string>
   codes: Set<string>
@@ -38,17 +38,17 @@ export class CustomerGroupsBatchClientMapperHelper {
       }
     }
 
-    return { ids, names, codes, erpCodes }
+    return { codes, erpCodes, ids, names }
   }
 
   buildCustomerGroupIndex(
     groups: ExistingCustomerGroup[]
   ): ExistingCustomerGroupIndex {
     const index: ExistingCustomerGroupIndex = {
-      byId: new Map(),
-      byName: new Map(),
       byCode: new Map(),
       byErpCode: new Map(),
+      byId: new Map(),
+      byName: new Map(),
     }
 
     for (const group of groups) {
@@ -64,11 +64,11 @@ export class CustomerGroupsBatchClientMapperHelper {
     groupId: string
   ): void {
     this.addCustomerGroupToIndex(index, {
-      id: groupId,
-      name: input.name,
       code: input.code ?? null,
       erp_code: input.erp_code ?? null,
+      id: groupId,
       metadata: this.buildMetadata(null, input),
+      name: input.name,
     })
   }
 
@@ -96,9 +96,9 @@ export class CustomerGroupsBatchClientMapperHelper {
 
   buildCreatePayload(group: CustomerGroupInput, createdBy?: string) {
     return {
-      name: group.name,
-      metadata: this.buildMetadata(null, group),
       created_by: createdBy,
+      metadata: this.buildMetadata(null, group),
+      name: group.name,
     }
   }
 
@@ -107,18 +107,18 @@ export class CustomerGroupsBatchClientMapperHelper {
     group: CustomerGroupInput
   ) {
     return {
-      name: group.name,
       metadata: this.buildMetadata(existing.metadata, group),
+      name: group.name,
     }
   }
 
   buildResultEcho(group: CustomerGroupInput) {
     return {
-      identifier_type: group.identifier_type,
-      customer_group_id: group.customer_group_id,
-      name: group.name,
       code: group.code,
+      customer_group_id: group.customer_group_id,
       erp_code: group.erp_code,
+      identifier_type: group.identifier_type,
+      name: group.name,
     }
   }
 
@@ -128,7 +128,7 @@ export class CustomerGroupsBatchClientMapperHelper {
   ): void {
     index.byId.set(group.id, group)
     index.byName.set(group.name, group)
-    const code = group.code
+    const { code } = group
     if (code) {
       index.byCode.set(code, group)
     }

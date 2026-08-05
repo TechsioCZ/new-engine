@@ -23,12 +23,12 @@ export function createManifestCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
     )
     .action(async (options) => {
       const input = manifestComposeServicesCommandInputSchema.parse({
-        phase: options.phase,
         defaultOnly: Boolean(options.defaultOnly),
+        phase: options.phase,
         stackManifestPath: options.stackManifestPath,
       })
       const result = await executeManifestComposeServices(input)
@@ -42,7 +42,7 @@ export function createManifestCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
     )
     .action(async (options) => {
       const input = manifestServiceSlugsCommandInputSchema.parse({

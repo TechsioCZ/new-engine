@@ -11,27 +11,41 @@
  */
 import {
   connect as connectPagination,
-  type IntlTranslations as PaginationIntlTranslations,
-  type PageUrlDetails as PaginationPageUrlDetails,
   machine as paginationMachine,
 } from "@zag-js/pagination"
+import type {
+  IntlTranslations as PaginationIntlTranslations,
+  PageUrlDetails as PaginationPageUrlDetails,
+} from "@zag-js/pagination"
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
-import {
-  type ElementType,
-  type HTMLAttributes,
-  type ReactNode,
-  useId,
-} from "react"
+import { useId } from "react"
+import type { ElementType, HTMLAttributes, ReactNode } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { Icon } from "../atoms/icon"
-import { LinkButton, type LinkButtonProps } from "../atoms/link-button"
+import { LinkButton } from "../atoms/link-button"
+import type { LinkButtonProps } from "../atoms/link-button"
 import { tv } from "../utils"
 
 export const paginationVariants = tv({
+  compoundSlots: [
+    {
+      slots: ["link", "ellipsis"],
+      className: [
+        "inline-flex items-center justify-center",
+        "transition-colors duration-200 motion-reduce:transition-none",
+        "text-pagination-fg",
+      ],
+    },
+  ],
+  defaultVariants: {
+    size: "md",
+    variant: "filled",
+  },
   slots: {
     base: "",
-    list: ["inline-flex items-center gap-pagination-list"],
+    compactText: "",
+    ellipsis: "",
     item: [
       "grid cursor-pointer",
       'has-[[data-part="ellipsis"]]:bg-pagination-bg-neutral',
@@ -47,20 +61,23 @@ export const paginationVariants = tv({
       "data-disabled:bg-pagination-bg-disabled",
       "data-disabled:cursor-not-allowed data-disabled:border-pagination-border-disabled",
     ],
-    ellipsis: "",
-    compactText: "",
+    list: ["inline-flex items-center gap-pagination-list"],
   },
-  compoundSlots: [
-    {
-      slots: ["link", "ellipsis"],
-      className: [
-        "inline-flex items-center justify-center",
-        "transition-colors duration-200 motion-reduce:transition-none",
-        "text-pagination-fg",
-      ],
-    },
-  ],
   variants: {
+    size: {
+      lg: {
+        compactText: "text-pagination-lg",
+        link: "h-pagination-lg text-pagination-lg",
+      },
+      md: {
+        compactText: "text-pagination-md",
+        link: "h-pagination-md text-pagination-md",
+      },
+      sm: {
+        compactText: "text-pagination-sm",
+        link: "h-pagination-sm text-pagination-sm",
+      },
+    },
     variant: {
       filled: {
         item: "bg-pagination-bg-base",
@@ -70,13 +87,6 @@ export const paginationVariants = tv({
           "hover:text-pagination-fg-filled-active",
         ],
       },
-      outlined: {
-        item: "bg-pagination-bg-base",
-        link: [
-          "data-selected:border-pagination-border-active data-selected:text-pagination-fg-outlined-active",
-          "hover:border-pagination-border-hover hover:text-pagination-fg-outlined-active",
-        ],
-      },
       minimal: {
         link: [
           "border-transparent",
@@ -84,25 +94,14 @@ export const paginationVariants = tv({
           "hover:text-pagination-fg-minimal-active",
         ],
       },
-    },
-    size: {
-      sm: {
-        link: "h-pagination-sm text-pagination-sm",
-        compactText: "text-pagination-sm",
-      },
-      md: {
-        link: "h-pagination-md text-pagination-md",
-        compactText: "text-pagination-md",
-      },
-      lg: {
-        link: "h-pagination-lg text-pagination-lg",
-        compactText: "text-pagination-lg",
+      outlined: {
+        item: "bg-pagination-bg-base",
+        link: [
+          "data-selected:border-pagination-border-active data-selected:text-pagination-fg-outlined-active",
+          "hover:border-pagination-border-hover hover:text-pagination-fg-outlined-active",
+        ],
       },
     },
-  },
-  defaultVariants: {
-    variant: "filled",
-    size: "md",
   },
 })
 
@@ -159,7 +158,7 @@ export type PaginationSearchParamsInput =
   | URLSearchParams
   | { toString: () => string }
 
-export type CreatePaginationGetPageUrlOptions = {
+export interface CreatePaginationGetPageUrlOptions {
   pathname: string
   searchParams?: PaginationSearchParamsInput | undefined
   pageParam?: string | undefined
@@ -215,7 +214,7 @@ export function createPaginationGetPageUrl({
 function hasHref(
   triggerProps: PaginationTriggerProps
 ): triggerProps is PaginationTriggerProps & { href: unknown } {
-  return triggerProps["href"] != null
+  return triggerProps.href != null
 }
 
 export function Pagination<T extends ElementType = "a">({
@@ -262,16 +261,14 @@ export function Pagination<T extends ElementType = "a">({
 
   const api = connectPagination(service, normalizeProps)
   const { base, list, link, item, ellipsis, compactText } = paginationVariants({
-    variant,
     size,
+    variant,
   })
   const rootProps = mergeProps(api.getRootProps(), props)
 
   const sharedLinkProps =
     linkProps && typeof linkProps === "object"
-      ? (({ href: _ignoredHref, ...rest }) => rest)(
-          linkProps as Record<string, unknown>
-        )
+      ? (({ href: _ignoredHref, ...rest }) => rest)(linkProps)
       : undefined
 
   const getTriggerButtonProps = (
@@ -330,12 +327,7 @@ export function Pagination<T extends ElementType = "a">({
               return (
                 <li className={item()} key={paginationPage.value}>
                   <LinkButton
-                    {...getTriggerButtonProps(
-                      api.getItemProps(paginationPage) as Record<
-                        string,
-                        unknown
-                      >
-                    )}
+                    {...getTriggerButtonProps(api.getItemProps(paginationPage))}
                   >
                     {paginationPage.value}
                   </LinkButton>

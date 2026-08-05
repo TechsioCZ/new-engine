@@ -10,60 +10,47 @@
  * the steps-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
-import {
-  connect as connectSteps,
-  type Props as StepsMachineProps,
-  machine as stepsMachine,
-  type Api as ZagStepsApi,
-  type ItemState as ZagStepsItemState,
+import { connect as connectSteps, machine as stepsMachine } from "@zag-js/steps"
+import type {
+  Props as StepsMachineProps,
+  Api as ZagStepsApi,
+  ItemState as ZagStepsItemState,
 } from "@zag-js/steps"
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type ReactNode,
-  type Ref,
-  useContext,
-  useId,
-} from "react"
+import { createContext, useContext, useId } from "react"
+import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
 
-import { Button, type ButtonProps } from "../atoms/button"
+import { Button } from "../atoms/button"
+import type { ButtonProps } from "../atoms/button"
 import { Icon } from "../atoms/icon"
 import { tv } from "../utils"
 
 const stepsVariants = tv({
+  defaultVariants: {
+    size: "md",
+    variant: "subtle",
+  },
   slots: {
-    root: [
-      "flex w-full flex-col gap-steps-root",
-      "data-[orientation=vertical]:flex-row data-[orientation=vertical]:items-start",
+    completedContent: [
+      "border-(length:--border-width-steps-content) w-full rounded-steps-content",
+      "border-steps-content-border bg-steps-content-bg",
+      "text-steps-content-fg",
+      "data-complete:border-steps-content-border-complete",
+      "data-complete:bg-steps-content-bg-complete",
     ],
-    list: [
-      "flex w-full gap-steps-list",
-      "data-[orientation=horizontal]:items-start",
-      "data-[orientation=vertical]:w-auto data-[orientation=vertical]:min-w-steps-list-vertical data-[orientation=vertical]:flex-col",
-    ],
-    panels: [
-      "flex w-full flex-col gap-steps-panels",
-      "data-[orientation=vertical]:min-w-0 data-[orientation=vertical]:flex-1",
-    ],
-    item: [
-      "relative flex min-w-0 gap-steps-item",
-      "data-[orientation=horizontal]:flex-1 data-[orientation=horizontal]:items-center",
-      "data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-start",
-    ],
-    trigger: [
-      "group relative flex min-w-0 items-center justify-start gap-steps-trigger",
-      "text-left",
+    content: [
+      "border-(length:--border-width-steps-content) w-full rounded-steps-content",
+      "border-steps-content-border bg-steps-content-bg",
+      "text-steps-content-fg",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-steps-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
-      "data-[orientation=vertical]:items-start",
-      "data-disabled:cursor-not-allowed",
-      "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    itemText: [
-      "inline-flex min-w-0 flex-col gap-steps-text",
-      "data-[orientation=vertical]:items-start",
+    description: [
+      "text-steps-description text-steps-description-fg",
+      "data-current:text-steps-description-fg-current",
+      "data-complete:text-steps-description-fg-complete",
+      "transition-colors duration-200 motion-reduce:transition-none",
     ],
     indicator: [
       "flex shrink-0 items-center justify-center rounded-steps-indicator",
@@ -75,28 +62,31 @@ const stepsVariants = tv({
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     indicatorIcon: "text-steps-icon",
+    item: [
+      "relative flex min-w-0 gap-steps-item",
+      "data-[orientation=horizontal]:flex-1 data-[orientation=horizontal]:items-center",
+      "data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-start",
+    ],
+    itemText: [
+      "inline-flex min-w-0 flex-col gap-steps-text",
+      "data-[orientation=vertical]:items-start",
+    ],
+    list: [
+      "flex w-full gap-steps-list",
+      "data-[orientation=horizontal]:items-start",
+      "data-[orientation=vertical]:w-auto data-[orientation=vertical]:min-w-steps-list-vertical data-[orientation=vertical]:flex-col",
+    ],
+    navigation: [
+      "flex flex-wrap items-center gap-steps-navigation",
+      "data-[orientation=vertical]:justify-start",
+    ],
+    nextTrigger: "",
     number: ["font-steps-number leading-none"],
-    title: [
-      "truncate font-steps-title text-steps-title text-steps-title-fg",
-      "data-current:text-steps-title-fg-current",
-      "data-complete:text-steps-title-fg-complete",
-      "transition-colors duration-200 motion-reduce:transition-none",
+    panels: [
+      "flex w-full flex-col gap-steps-panels",
+      "data-[orientation=vertical]:min-w-0 data-[orientation=vertical]:flex-1",
     ],
-    description: [
-      "text-steps-description text-steps-description-fg",
-      "data-current:text-steps-description-fg-current",
-      "data-complete:text-steps-description-fg-complete",
-      "transition-colors duration-200 motion-reduce:transition-none",
-    ],
-    separator: [
-      "shrink-0 rounded-steps-separator bg-steps-separator-bg",
-      "data-current:bg-steps-separator-bg-current",
-      "data-complete:bg-steps-separator-bg-complete",
-      "data-last:hidden",
-      "data-[orientation=horizontal]:h-steps-separator data-[orientation=horizontal]:flex-1",
-      "data-[orientation=vertical]:ms-steps-separator-offset data-[orientation=vertical]:min-h-steps-separator-vertical data-[orientation=vertical]:w-steps-separator data-[orientation=vertical]:flex-1",
-      "transition-colors duration-200 motion-reduce:transition-none",
-    ],
+    prevTrigger: "",
     progress: [
       "relative overflow-hidden rounded-steps-progress bg-steps-progress-bg",
       "data-[orientation=horizontal]:h-steps-progress data-[orientation=horizontal]:w-full",
@@ -108,79 +98,83 @@ const stepsVariants = tv({
       "data-[orientation=horizontal]:inset-y-0 data-[orientation=horizontal]:start-0",
       "data-[orientation=vertical]:inset-x-0 data-[orientation=vertical]:top-0",
     ],
-    content: [
-      "border-(length:--border-width-steps-content) w-full rounded-steps-content",
-      "border-steps-content-border bg-steps-content-bg",
-      "text-steps-content-fg",
+    root: [
+      "flex w-full flex-col gap-steps-root",
+      "data-[orientation=vertical]:flex-row data-[orientation=vertical]:items-start",
+    ],
+    separator: [
+      "shrink-0 rounded-steps-separator bg-steps-separator-bg",
+      "data-current:bg-steps-separator-bg-current",
+      "data-complete:bg-steps-separator-bg-complete",
+      "data-last:hidden",
+      "data-[orientation=horizontal]:h-steps-separator data-[orientation=horizontal]:flex-1",
+      "data-[orientation=vertical]:ms-steps-separator-offset data-[orientation=vertical]:min-h-steps-separator-vertical data-[orientation=vertical]:w-steps-separator data-[orientation=vertical]:flex-1",
+      "transition-colors duration-200 motion-reduce:transition-none",
+    ],
+    title: [
+      "truncate font-steps-title text-steps-title text-steps-title-fg",
+      "data-current:text-steps-title-fg-current",
+      "data-complete:text-steps-title-fg-complete",
+      "transition-colors duration-200 motion-reduce:transition-none",
+    ],
+    trigger: [
+      "group relative flex min-w-0 items-center justify-start gap-steps-trigger",
+      "text-left",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-steps-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
+      "data-[orientation=vertical]:items-start",
+      "data-disabled:cursor-not-allowed",
+      "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    completedContent: [
-      "border-(length:--border-width-steps-content) w-full rounded-steps-content",
-      "border-steps-content-border bg-steps-content-bg",
-      "text-steps-content-fg",
-      "data-complete:border-steps-content-border-complete",
-      "data-complete:bg-steps-content-bg-complete",
-    ],
-    navigation: [
-      "flex flex-wrap items-center gap-steps-navigation",
-      "data-[orientation=vertical]:justify-start",
-    ],
-    prevTrigger: "",
-    nextTrigger: "",
   },
   variants: {
+    size: {
+      lg: {
+        completedContent: "p-steps-content-padding-lg text-steps-content-lg",
+        content: "p-steps-content-padding-lg text-steps-content-lg",
+        description: "text-steps-description-lg",
+        indicator: "size-steps-indicator-lg",
+        indicatorIcon: "text-steps-icon-lg",
+        number: "text-steps-number-lg",
+        title: "text-steps-title-lg",
+      },
+      md: {
+        completedContent: "p-steps-content-padding-md text-steps-content-md",
+        content: "p-steps-content-padding-md text-steps-content-md",
+        description: "text-steps-description-md",
+        indicator: "size-steps-indicator-md",
+        indicatorIcon: "text-steps-icon-md",
+        number: "text-steps-number-md",
+        title: "text-steps-title-md",
+      },
+      sm: {
+        completedContent: "p-steps-content-padding-sm text-steps-content-sm",
+        content: "p-steps-content-padding-sm text-steps-content-sm",
+        description: "text-steps-description-sm",
+        indicator: "size-steps-indicator-sm",
+        indicatorIcon: "text-steps-icon-sm",
+        number: "text-steps-number-sm",
+        title: "text-steps-title-sm",
+      },
+    },
     variant: {
-      subtle: {},
       solid: {
-        trigger: [
-          "rounded-steps-trigger px-steps-trigger-x py-steps-trigger-y",
-          "hover:bg-steps-trigger-bg-hover",
-          "data-current:bg-steps-trigger-bg-current",
-          "data-complete:bg-steps-trigger-bg-complete",
-        ],
         indicator: [
           "border-transparent bg-steps-indicator-bg-solid text-steps-indicator-fg-solid",
           "group-hover:bg-steps-indicator-bg-solid-hover",
           "data-current:bg-steps-indicator-bg-solid-current data-current:text-steps-indicator-fg-solid-current",
           "data-complete:bg-steps-indicator-bg-solid-complete data-complete:text-steps-indicator-fg-solid-complete",
         ],
+        trigger: [
+          "rounded-steps-trigger px-steps-trigger-x py-steps-trigger-y",
+          "hover:bg-steps-trigger-bg-hover",
+          "data-current:bg-steps-trigger-bg-current",
+          "data-complete:bg-steps-trigger-bg-complete",
+        ],
       },
+      subtle: {},
     },
-    size: {
-      sm: {
-        indicator: "size-steps-indicator-sm",
-        indicatorIcon: "text-steps-icon-sm",
-        number: "text-steps-number-sm",
-        title: "text-steps-title-sm",
-        description: "text-steps-description-sm",
-        content: "p-steps-content-padding-sm text-steps-content-sm",
-        completedContent: "p-steps-content-padding-sm text-steps-content-sm",
-      },
-      md: {
-        indicator: "size-steps-indicator-md",
-        indicatorIcon: "text-steps-icon-md",
-        number: "text-steps-number-md",
-        title: "text-steps-title-md",
-        description: "text-steps-description-md",
-        content: "p-steps-content-padding-md text-steps-content-md",
-        completedContent: "p-steps-content-padding-md text-steps-content-md",
-      },
-      lg: {
-        indicator: "size-steps-indicator-lg",
-        indicatorIcon: "text-steps-icon-lg",
-        number: "text-steps-number-lg",
-        title: "text-steps-title-lg",
-        description: "text-steps-description-lg",
-        content: "p-steps-content-padding-lg text-steps-content-lg",
-        completedContent: "p-steps-content-padding-lg text-steps-content-lg",
-      },
-    },
-  },
-  defaultVariants: {
-    variant: "subtle",
-    size: "md",
   },
 })
 
@@ -189,7 +183,7 @@ type StepsOrientation = "horizontal" | "vertical"
 type StepsSize = NonNullable<VariantProps<typeof stepsVariants>["size"]>
 type StepsItemState = ZagStepsItemState
 
-type StepsContextValue = {
+interface StepsContextValue {
   api: StepsApi
   orientation: StepsOrientation
   size?: StepsSize | undefined
@@ -206,7 +200,7 @@ function useStepsContext() {
   return context
 }
 
-type StepsItemContextValue = {
+interface StepsItemContextValue {
   index: number
   state: StepsItemState
 }
@@ -555,7 +549,7 @@ Steps.Indicator = function StepsIndicator({
   )
 }
 
-type StepsStatusProps = {
+interface StepsStatusProps {
   complete: ReactNode
   current?: ReactNode | undefined
   incomplete: ReactNode

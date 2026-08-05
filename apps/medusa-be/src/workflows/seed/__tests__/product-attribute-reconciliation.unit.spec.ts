@@ -105,6 +105,7 @@ describe("Herbatica Product Attribute reconciliation", () => {
   it("cleans only matching attributes on Brands linked to imported Products", () => {
     expect(
       selectScopedLegacyBrandAttributeIds({
+        attributeTypeIds: new Set(["supplier"]),
         attributes: [
           {
             id: "herbatica-supplier",
@@ -122,10 +123,9 @@ describe("Herbatica Product Attribute reconciliation", () => {
             attributeType: { id: "supplier" },
           },
         ],
-        attributeTypeIds: new Set(["supplier"]),
         brandIds: new Set(["herbatica-brand"]),
       })
-    ).toEqual(["herbatica-supplier"])
+    ).toStrictEqual(["herbatica-supplier"])
   })
 
   it("cleans only Brands linked exclusively to imported Products", () => {
@@ -147,7 +147,7 @@ describe("Herbatica Product Attribute reconciliation", () => {
         ],
         productIds: new Set(["herbatica-product"]),
       })
-    ).toEqual(new Set(["herbatica-brand"]))
+    ).toStrictEqual(new Set(["herbatica-brand"]))
   })
 })
 
@@ -164,7 +164,7 @@ describe("Herbatica native visibility mapping", () => {
           topOffer: { visible: true },
           visibility,
         })
-      ).toEqual({
+      ).toStrictEqual({
         salesChannelNames,
         status,
         storefrontAccessible,
@@ -178,7 +178,7 @@ describe("Herbatica native visibility mapping", () => {
         topOffer: { visible: false },
         visibility: "cashDeskOnly",
       })
-    ).toEqual({
+    ).toStrictEqual({
       salesChannelNames: [],
       status: "draft",
       storefrontAccessible: false,

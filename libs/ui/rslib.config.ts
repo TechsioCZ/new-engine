@@ -20,9 +20,6 @@ const sourceEntries = Object.fromEntries(
 )
 
 export default defineConfig({
-  source: {
-    entry: sourceEntries,
-  },
   lib: [
     {
       autoExternal: {
@@ -48,4 +45,7 @@ export default defineConfig({
       },
     }),
   ],
+  source: {
+    entry: sourceEntries,
+  },
 })

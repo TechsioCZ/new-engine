@@ -8,7 +8,7 @@ import { formatLogValue } from "./format-log-value"
 type LogLevel = "info" | "success" | "warning" | "error"
 type CacheStatus = "fresh" | "stale" | "miss"
 
-type LogOptions = {
+interface LogOptions {
   level?: LogLevel
   group?: boolean
   trace?: boolean
@@ -16,22 +16,22 @@ type LogOptions = {
 
 const STATUS_INDICATORS: Record<CacheStatus, string> = {
   fresh: "🟢",
-  stale: "🟡",
   miss: "🔵",
+  stale: "🟡",
 }
 
 const LEVEL_STYLES: Record<LogLevel, string> = {
+  error: "color: #ef4444; font-weight: bold",
   info: "color: #3b82f6; font-weight: bold",
   success: "color: #10b981; font-weight: bold",
   warning: "color: #f59e0b; font-weight: bold",
-  error: "color: #ef4444; font-weight: bold",
 }
 
 class CacheLogger {
   private readonly enabled: boolean
 
   constructor() {
-    this.enabled = process.env["NODE_ENV"] === "development"
+    this.enabled = process.env.NODE_ENV === "development"
   }
 
   /**

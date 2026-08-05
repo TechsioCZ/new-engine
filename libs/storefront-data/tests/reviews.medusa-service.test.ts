@@ -1,3 +1,5 @@
+import { vi, describe, expect, it } from "vitest"
+
 import { createMedusaProductReviewService } from "../src/reviews/medusa-service"
 import type { ReviewBase } from "../src/reviews/types"
 import { createTestMedusaSdk } from "./medusa-fixtures"
@@ -37,7 +39,7 @@ const createSdkMock = () => {
   return { fetch, sdk }
 }
 
-describe("createMedusaProductReviewService", () => {
+describe(createMedusaProductReviewService, () => {
   it("repairs inconsistent summary from a complete review response", async () => {
     const { fetch, sdk } = createSdkMock()
     fetch.mockResolvedValueOnce(
@@ -49,13 +51,13 @@ describe("createMedusaProductReviewService", () => {
     const service = createMedusaProductReviewService(sdk)
 
     const result = await service.listProductReviews({
-      productId: "prod_1",
       limit: 10,
       offset: 0,
+      productId: "prod_1",
     })
 
-    expect(fetch).toHaveBeenCalledTimes(1)
-    expect(result.summary).toEqual({
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(result.summary).toStrictEqual({
       average_rating: 4.7,
       count: 9,
     })
@@ -80,9 +82,9 @@ describe("createMedusaProductReviewService", () => {
     const service = createMedusaProductReviewService(sdk)
 
     const result = await service.listProductReviews({
-      productId: "prod_1",
       limit: 3,
       offset: 0,
+      productId: "prod_1",
     })
 
     expect(fetch).toHaveBeenNthCalledWith(1, "/store/products/prod_1/reviews", {
@@ -100,7 +102,7 @@ describe("createMedusaProductReviewService", () => {
       signal: null,
     })
     expect(result.reviews).toHaveLength(3)
-    expect(result.summary).toEqual({
+    expect(result.summary).toStrictEqual({
       average_rating: 4.7,
       count: 9,
     })

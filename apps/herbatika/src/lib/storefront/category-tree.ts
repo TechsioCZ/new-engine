@@ -62,11 +62,11 @@ export const resolveRelatedCategoryIds = (
     }
   }
 
-  const leafCategoryIds = Array.from(allCategoryIds).filter(
+  const leafCategoryIds = [...allCategoryIds].filter(
     (categoryId) => !parentCategoryIds.has(categoryId)
   )
 
   return (
-    leafCategoryIds.length > 0 ? leafCategoryIds : Array.from(allCategoryIds)
+    leafCategoryIds.length > 0 ? leafCategoryIds : [...allCategoryIds]
   ).slice(0, 3)
 }

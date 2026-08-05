@@ -44,56 +44,56 @@ const useColorSelection = (
   }
 
   return {
-    selected,
+    clear,
     handleColorClick,
     isSelected,
-    clear,
+    selected,
   }
 }
 
 const meta: Meta<typeof ColorSelect> = {
-  title: "Molecules/ColorSelect",
-  component: ColorSelect,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component:
-          "ColorSelect is a component for displaying and selecting colors in a grid layout. It supports single and multiple selection modes with optional labels and counts.",
-      },
-    },
-  },
-  tags: ["autodocs"],
   argTypes: {
     colors: {
       control: { type: "object" },
       description:
         "Array of color items with color, label, count, and selected properties",
     },
-    layout: {
-      control: { type: "select" },
-      options: ["list", "grid"],
-      description: "Grid layout for color items",
-    },
-    size: {
-      control: { type: "select" },
-      options: ["sm", "md", "lg", "full"],
-      description: "Size of the color swatches",
-    },
-    radius: {
-      control: { type: "select" },
-      options: ["sm", "md", "lg", "full"],
-      description: "Border radius variant",
-    },
     disabled: {
       control: { type: "boolean" },
       description: "Whether all colors are disabled",
+    },
+    layout: {
+      control: { type: "select" },
+      description: "Grid layout for color items",
+      options: ["list", "grid"],
     },
     onColorClick: {
       action: "clicked",
       description: "Callback when a color is clicked",
     },
+    radius: {
+      control: { type: "select" },
+      description: "Border radius variant",
+      options: ["sm", "md", "lg", "full"],
+    },
+    size: {
+      control: { type: "select" },
+      description: "Size of the color swatches",
+      options: ["sm", "md", "lg", "full"],
+    },
   },
+  component: ColorSelect,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "ColorSelect is a component for displaying and selecting colors in a grid layout. It supports single and multiple selection modes with optional labels and counts.",
+      },
+    },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/ColorSelect",
 }
 
 export default meta
@@ -112,26 +112,26 @@ const basicColors = [
 ]
 
 const ecommerceColors = [
-  { color: "#000000", label: "Black", count: 45 },
-  { color: "#ffffff", label: "White", count: 38 },
-  { color: "#6b7280", label: "Gray", count: 29 },
-  { color: "#1e3a8a", label: "Navy", count: 22 },
-  { color: "#d4b896", label: "Beige", count: 18 },
-  { color: "#92400e", label: "Brown", count: 15 },
-  { color: "#dc2626", label: "Red", count: 12 },
-  { color: "#16a34a", label: "Green", count: 10 },
+  { color: "#000000", count: 45, label: "Black" },
+  { color: "#ffffff", count: 38, label: "White" },
+  { color: "#6b7280", count: 29, label: "Gray" },
+  { color: "#1e3a8a", count: 22, label: "Navy" },
+  { color: "#d4b896", count: 18, label: "Beige" },
+  { color: "#92400e", count: 15, label: "Brown" },
+  { color: "#dc2626", count: 12, label: "Red" },
+  { color: "#16a34a", count: 10, label: "Green" },
 ]
 
 export const Playground: Story = {
   args: {
     colors: basicColors,
     layout: "grid",
-    size: "md",
-    radius: "full",
-    selectionMode: "single",
     onColorClick: (color: string) => {
       console.log("Selected color:", color)
     },
+    radius: "full",
+    selectionMode: "single",
+    size: "md",
   },
   render: (args) => {
     const { handleColorClick, isSelected } = useColorSelection(
@@ -156,9 +156,9 @@ export const Playground: Story = {
 
 export const Layouts: Story = {
   render: () => {
-    const [selectedLayout, setSelectedLayout] = useState<{
-      [key: string]: string
-    }>({})
+    const [selectedLayout, setSelectedLayout] = useState<
+      Record<string, string>
+    >({})
 
     const handleLayoutClick = (layoutKey: string) => (color: string) => {
       setSelectedLayout((prev) => ({
@@ -174,7 +174,7 @@ export const Layouts: Story = {
             <ColorSelect
               colors={basicColors.slice(0, 4).map((c) => ({
                 ...c,
-                selected: selectedLayout["list"] === c.color,
+                selected: selectedLayout.list === c.color,
               }))}
               layout="list"
               size="md"
@@ -188,7 +188,7 @@ export const Layouts: Story = {
             <ColorSelect
               colors={basicColors.map((c) => ({
                 ...c,
-                selected: selectedLayout["col4"] === c.color,
+                selected: selectedLayout.col4 === c.color,
               }))}
               layout="grid"
               size="md"
@@ -203,9 +203,9 @@ export const Layouts: Story = {
 
 export const Sizes: Story = {
   render: () => {
-    const [selectedSizes, setSelectedSizes] = useState<{
-      [key: string]: string
-    }>({})
+    const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>(
+      {}
+    )
 
     const handleSizeClick = (size: string) => (color: string) => {
       setSelectedSizes((prev) => ({
@@ -220,7 +220,7 @@ export const Sizes: Story = {
           <ColorSelect
             colors={basicColors.slice(0, 4).map((c) => ({
               ...c,
-              selected: selectedSizes["sm"] === c.color,
+              selected: selectedSizes.sm === c.color,
             }))}
             size="sm"
             layout="grid"
@@ -232,7 +232,7 @@ export const Sizes: Story = {
           <ColorSelect
             colors={basicColors.slice(0, 4).map((c) => ({
               ...c,
-              selected: selectedSizes["md"] === c.color,
+              selected: selectedSizes.md === c.color,
             }))}
             size="md"
             layout="grid"
@@ -244,7 +244,7 @@ export const Sizes: Story = {
           <ColorSelect
             colors={basicColors.slice(0, 4).map((c) => ({
               ...c,
-              selected: selectedSizes["lg"] === c.color,
+              selected: selectedSizes.lg === c.color,
             }))}
             size="lg"
             layout="grid"
@@ -258,9 +258,9 @@ export const Sizes: Story = {
 
 export const Radius: Story = {
   render: () => {
-    const [selectedRadius, setSelectedRadius] = useState<{
-      [key: string]: string
-    }>({})
+    const [selectedRadius, setSelectedRadius] = useState<
+      Record<string, string>
+    >({})
 
     const handleRadiusClick = (radius: string) => (color: string) => {
       setSelectedRadius((prev) => ({
@@ -275,7 +275,7 @@ export const Radius: Story = {
           <ColorSelect
             colors={basicColors.slice(0, 4).map((c) => ({
               ...c,
-              selected: selectedRadius["sm"] === c.color,
+              selected: selectedRadius.sm === c.color,
             }))}
             radius="sm"
             size="lg"
@@ -288,7 +288,7 @@ export const Radius: Story = {
           <ColorSelect
             colors={basicColors.slice(0, 4).map((c) => ({
               ...c,
-              selected: selectedRadius["md"] === c.color,
+              selected: selectedRadius.md === c.color,
             }))}
             radius="md"
             size="lg"
@@ -301,7 +301,7 @@ export const Radius: Story = {
           <ColorSelect
             colors={basicColors.slice(0, 4).map((c) => ({
               ...c,
-              selected: selectedRadius["lg"] === c.color,
+              selected: selectedRadius.lg === c.color,
             }))}
             radius="lg"
             size="lg"
@@ -314,7 +314,7 @@ export const Radius: Story = {
           <ColorSelect
             colors={basicColors.slice(0, 4).map((c) => ({
               ...c,
-              selected: selectedRadius["full"] === c.color,
+              selected: selectedRadius.full === c.color,
             }))}
             radius="full"
             size="lg"
@@ -328,6 +328,14 @@ export const Radius: Story = {
 }
 
 export const MultipleSelection: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Multiple selection mode using the useColorSelection hook. Click to toggle colors.",
+      },
+    },
+  },
   render: () => {
     const { selected, handleColorClick, isSelected, clear } = useColorSelection(
       [],
@@ -374,17 +382,17 @@ export const MultipleSelection: Story = {
       </VariantContainer>
     )
   },
+}
+
+export const EcommerceFilter: Story = {
   parameters: {
     docs: {
       description: {
         story:
-          "Multiple selection mode using the useColorSelection hook. Click to toggle colors.",
+          "Complete e-commerce filter implementation with product counts and clear functionality.",
       },
     },
   },
-}
-
-export const EcommerceFilter: Story = {
   render: () => {
     const { selected, handleColorClick, isSelected, clear } = useColorSelection(
       [],
@@ -423,13 +431,5 @@ export const EcommerceFilter: Story = {
         )}
       </div>
     )
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          "Complete e-commerce filter implementation with product counts and clear functionality.",
-      },
-    },
   },
 }

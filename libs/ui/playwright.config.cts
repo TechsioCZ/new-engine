@@ -21,11 +21,6 @@ const testTimeout = 120_000
 const expectTimeout = 30_000
 
 export default defineConfig({
-  testDir: "./test",
-  globalSetup: "./test/docker-only.global-setup.js",
-  reporter: "html",
-  fullyParallel: true,
-  timeout: testTimeout,
   expect: {
     timeout: expectTimeout,
     toHaveScreenshot: {
@@ -35,10 +30,8 @@ export default defineConfig({
       maxDiffPixelRatio: 0.01,
     },
   },
-  workers,
-  use: {
-    baseURL: storybookUrl,
-  },
+  fullyParallel: true,
+  globalSetup: "./test/docker-only.global-setup.js",
   projects: [
     {
       name: "desktop",
@@ -53,11 +46,18 @@ export default defineConfig({
       },
     },
   ],
+  reporter: "html",
+  testDir: "./test",
+  timeout: testTimeout,
+  use: {
+    baseURL: storybookUrl,
+  },
   webServer: {
     command: `npx --no-install http-server -p ${baseUrl.port || 6006}`,
-    url: storybookUrl,
     cwd: staticDir,
     reuseExistingServer: true,
     timeout: 120_000,
+    url: storybookUrl,
   },
+  workers,
 })

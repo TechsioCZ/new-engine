@@ -6,7 +6,7 @@ import { useLogout } from "./auth"
 import { cartStorage } from "./cart-storage"
 import { resolveErrorMessage } from "./error-utils"
 
-type UseLogoutActionOptions = {
+interface UseLogoutActionOptions {
   fallbackErrorMessage?: string
   onSuccess?: () => void | Promise<void>
 }
@@ -44,8 +44,8 @@ export const useLogoutAction = (options?: UseLogoutActionOptions) => {
       setLogoutError(resolvedError)
 
       return {
-        ok: false,
         error: resolvedError,
+        ok: false,
       }
     }
   }

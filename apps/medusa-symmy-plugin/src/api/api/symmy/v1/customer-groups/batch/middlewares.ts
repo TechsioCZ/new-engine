@@ -8,8 +8,8 @@ import { UpsertCustomerGroupsBatchSchema } from "./validators"
 
 export const symmyCustomerGroupsBatchRoutes: MiddlewareRoute[] = [
   {
-    methods: ["POST"],
     matcher: "/api/symmy/v1/customer-groups/batch",
+    methods: ["POST"],
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformBody(UpsertCustomerGroupsBatchSchema),

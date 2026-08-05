@@ -1,12 +1,10 @@
-import {
-  type StorefrontOrderPaymentQrStatus as BaseStorefrontOrderPaymentQrStatus,
-  ORDER_QR_PAYMENT_PROVIDER_ID as ORDER_QR_PAYMENT_PROVIDER_ID_VALUE,
-} from "./order-payment-qr.constants"
+import { ORDER_QR_PAYMENT_PROVIDER_ID as ORDER_QR_PAYMENT_PROVIDER_ID_VALUE } from "./order-payment-qr.constants"
+import type { StorefrontOrderPaymentQrStatus as BaseStorefrontOrderPaymentQrStatus } from "./order-payment-qr.constants"
 
 const ORDER_QR_PAYMENT_PROVIDER_ID = ORDER_QR_PAYMENT_PROVIDER_ID_VALUE
 type StorefrontOrderPaymentQrStatus = BaseStorefrontOrderPaymentQrStatus
 
-export type StorefrontOrderPaymentQr = {
+export interface StorefrontOrderPaymentQr {
   amount: number | null
   currencyCode: string
   iban: string
@@ -29,7 +27,7 @@ export type StorefrontOrderPaymentQrResult =
       status: Exclude<StorefrontOrderPaymentQrStatus, "ready">
     }
 
-type StoreOrderPaymentQrResponse = {
+interface StoreOrderPaymentQrResponse {
   qr_payment?: {
     amount?: number | null
     currency_code?: string | null
@@ -45,7 +43,7 @@ type StoreOrderPaymentQrResponse = {
   status?: StorefrontOrderPaymentQrStatus | null
 }
 
-type FetchOrderPaymentQrOptions = {
+interface FetchOrderPaymentQrOptions {
   orderId: string
 }
 

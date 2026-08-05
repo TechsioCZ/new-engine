@@ -7,7 +7,7 @@ vi.hoisted(() => {
 
 vi.setConfig({ testTimeout: 60_000 })
 
-vi.mock("../client", () => ({
+vi.mock(import("../client"), () => ({
   PplClient: vi.fn().mockImplementation(() => ({
     fetchNewToken: vi.fn(),
   })),
@@ -22,9 +22,9 @@ import type { PplClientModuleService } from "../service"
 
 // Mock services for dependencies
 const mockCacheService = {
+  clear: vi.fn().mockResolvedValue(undefined),
   get: vi.fn().mockResolvedValue(null),
   set: vi.fn().mockResolvedValue(undefined),
-  clear: vi.fn().mockResolvedValue(undefined),
 }
 
 const mockLockingService = {
@@ -35,16 +35,16 @@ const mockLockingService = {
 const BASE64_PATTERN = /^[A-Za-z0-9+/]+=*$/
 
 moduleIntegrationTestRunner<PplClientModuleService>({
-  moduleName: PPL_CLIENT_MODULE,
-  moduleModels: [PplConfig],
-  resolve: "./src/modules/ppl-client",
-  moduleOptions: {
-    environment: "testing",
-  },
   injectedDependencies: {
     [Modules.CACHING]: mockCacheService,
     [Modules.LOCKING]: mockLockingService,
   },
+  moduleModels: [PplConfig],
+  moduleName: PPL_CLIENT_MODULE,
+  moduleOptions: {
+    environment: "testing",
+  },
+  resolve: "./src/modules/ppl-client",
   testSuite: ({ service }) => {
     beforeEach(() => {
       vi.clearAllMocks()

@@ -2,26 +2,22 @@ import { readFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
-import {
-  type BrowserContextOptions,
-  expect,
-  test as base,
-  type Locator,
-  type Page,
-} from "@playwright/test"
+import { expect, test as base } from "@playwright/test"
+import type { BrowserContextOptions, Locator, Page } from "@playwright/test"
+import { expect } from "vitest"
 
-type StorybookEntry = {
+interface StorybookEntry {
   id: string
   name: string
   title: string
   type: string
 }
 
-type StorybookIndex = {
+interface StorybookIndex {
   entries: Record<string, StorybookEntry>
 }
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const __dirname = import.meta.dirname
 const indexPath = path.resolve(__dirname, "../storybook-static/index.json")
 const galleryDir = path.resolve(__dirname, "../assets/gallery")
 
@@ -51,7 +47,7 @@ const placeholderPng = Buffer.from(
 function stableGalleryBuffer(url: string): Buffer {
   let hash = 0
   for (let i = 0; i < url.length; i += 1) {
-    hash = (hash * 31 + url.charCodeAt(i)) >>> 0
+    hash = (hash * 31 + url.codePointAt(i)) >>> 0
   }
   return galleryBuffers[hash % galleryBuffers.length] as Buffer
 }
@@ -66,7 +62,7 @@ const rawCaptureStories = new Set([
 ])
 
 const storybookHostname = new URL(
-  process.env["TEST_BASE_URL"] ?? "http://127.0.0.1:6006"
+  process.env.TEST_BASE_URL ?? "http://127.0.0.1:6006"
 ).hostname
 
 async function installHermeticImageRoutes(page: Page): Promise<void> {
@@ -94,7 +90,7 @@ async function installHermeticImageRoutes(page: Page): Promise<void> {
     }
   )
 }
-const resetEnv = (process.env["PLAYWRIGHT_PAGE_RESET"] ?? "").toLowerCase()
+const resetEnv = (process.env.PLAYWRIGHT_PAGE_RESET ?? "").toLowerCase()
 const shouldResetBetweenTests =
   resetEnv === ""
     ? true
@@ -107,7 +103,7 @@ function definedContextOptions(
 ): BrowserContextOptions {
   return Object.fromEntries(
     Object.entries(options).filter(([, value]) => value !== undefined)
-  ) as BrowserContextOptions
+  )
 }
 
 const test = base.extend<{}, { workerPage: Page }>({
@@ -131,7 +127,8 @@ try {
 } catch (error) {
   if ((error as NodeJS.ErrnoException).code === "ENOENT") {
     throw new Error(
-      "Storybook index.json not found. Run 'pnpm build:storybook' first."
+      "Storybook index.json not found. Run 'pnpm build:storybook' first.",
+      { cause: error }
     )
   }
   throw error
@@ -141,7 +138,7 @@ const stories = Object.values(storybookIndex.entries).filter(
   (entry) => entry.type === "story"
 )
 
-const storyFilter = (process.env["TEST_STORIES"] ?? "")
+const storyFilter = (process.env.TEST_STORIES ?? "")
   .split(",")
   .map((storyId) => storyId.trim())
   .filter(Boolean)
@@ -270,11 +267,11 @@ test.describe.parallel("storybook visual", () => {
         // chunks; capturing before every sheet applies yields unstyled layout.
         await page.waitForFunction(
           () =>
-            Array.from(
-              document.querySelectorAll<HTMLLinkElement>(
+            [
+              ...document.querySelectorAll<HTMLLinkElement>(
                 'link[rel="stylesheet"]'
-              )
-            ).every((link) => link.sheet !== null),
+              ),
+            ].every((link) => link.sheet !== null),
           { timeout: 30_000 }
         )
         await page.evaluate(async () => {
@@ -297,11 +294,15 @@ test.describe.parallel("storybook visual", () => {
         // succeed; failing loudly beats capturing a pre-load layout.
         await page.evaluate(async () => {
           const root = document.querySelector("#storybook-root")
-          if (!root) return
-          const images = Array.from(root.querySelectorAll("img"))
+          if (!root) {
+            return
+          }
+          const images = [...root.querySelectorAll("img")]
           await Promise.all(
             images.map(async (img) => {
-              if (!img.src) return
+              if (!img.src) {
+                return
+              }
               if (img.loading === "lazy") {
                 img.loading = "eager"
               }
@@ -317,10 +318,14 @@ test.describe.parallel("storybook visual", () => {
           await page.waitForFunction(
             () => {
               const root = document.querySelector("#storybook-root")
-              if (!root) return false
+              if (!root) {
+                return false
+              }
               const images = root.querySelectorAll("img")
-              if (images.length === 0) return true
-              return Array.from(images).every(
+              if (images.length === 0) {
+                return true
+              }
+              return [...images].every(
                 (img) => !img.src || (img.complete && img.naturalWidth > 0)
               )
             },
@@ -333,7 +338,9 @@ test.describe.parallel("storybook visual", () => {
         // force a relayout so every capture sees the post-load geometry.
         await page.evaluate(() => {
           const root = document.querySelector("#storybook-root")
-          if (!(root instanceof HTMLElement)) return
+          if (!(root instanceof HTMLElement)) {
+            return
+          }
           root.style.display = "none"
           void root.offsetHeight
           root.style.display = ""
@@ -356,11 +363,11 @@ test.describe.parallel("storybook visual", () => {
           }
 
           await page.evaluate(async () => {
-            const groups = Array.from(
-              document.querySelectorAll<HTMLElement>(
+            const groups = [
+              ...document.querySelectorAll<HTMLElement>(
                 '[data-scope="carousel"][data-part="item-group"]'
-              )
-            )
+              ),
+            ]
 
             for (const group of groups) {
               group.style.scrollBehavior = "auto"
@@ -370,15 +377,21 @@ test.describe.parallel("storybook visual", () => {
               let last = el.scrollLeft + el.scrollTop
               for (let i = 0; i < 10; i += 1) {
                 await new Promise<void>((resolve) =>
-                  requestAnimationFrame(() => resolve())
+                  requestAnimationFrame(() => {
+                    resolve()
+                  })
                 )
                 const current = el.scrollLeft + el.scrollTop
-                if (Math.abs(current - last) < 1) return
+                if (Math.abs(current - last) < 1) {
+                  return
+                }
                 last = current
               }
             }
 
-            await Promise.all(groups.map((group) => waitForStableScroll(group)))
+            await Promise.all(
+              groups.map(async (group) => waitForStableScroll(group))
+            )
           })
         }
 
@@ -418,9 +431,9 @@ test.describe.parallel("storybook visual", () => {
                   "[data-selected], [data-highlighted], [data-focused]"
                 )
                 .forEach((el) => {
-                  el.removeAttribute("data-selected")
-                  el.removeAttribute("data-highlighted")
-                  el.removeAttribute("data-focused")
+                  delete el.dataset.selected
+                  delete el.dataset.highlighted
+                  delete el.dataset.focused
                 })
               tree
                 .querySelectorAll("[aria-selected], [aria-current]")
@@ -437,10 +450,12 @@ test.describe.parallel("storybook visual", () => {
         }
 
         await page.evaluate(
-          () =>
+          async () =>
             new Promise<void>((resolve) =>
               requestAnimationFrame(() =>
-                requestAnimationFrame(() => resolve())
+                requestAnimationFrame(() => {
+                  resolve()
+                })
               )
             )
         )
@@ -452,7 +467,9 @@ test.describe.parallel("storybook visual", () => {
         // Park the mouse on a transparent overlay so hover styles don't leak into screenshots.
         await page.evaluate(() => {
           const id = "__playwright_hover_shield__"
-          if (document.getElementById(id)) return
+          if (document.querySelector(`#${id}`)) {
+            return
+          }
           const shield = document.createElement("div")
           shield.id = id
           shield.style.position = "fixed"
@@ -463,7 +480,7 @@ test.describe.parallel("storybook visual", () => {
           shield.style.zIndex = "2147483647"
           shield.style.pointerEvents = "auto"
           shield.style.background = "transparent"
-          document.body.appendChild(shield)
+          document.body.append(shield)
         })
         await page.mouse.move(12, 12)
 
@@ -476,9 +493,9 @@ test.describe.parallel("storybook visual", () => {
           // capture instead.
           const capture = await root.screenshot({
             animations: "disabled",
+            quality: 100,
             scale: "css",
             type: "jpeg",
-            quality: 100,
             ...(mask.length > 0 ? { mask } : {}),
           })
           expect(capture).toMatchSnapshot(`${story.id}.jpg`)

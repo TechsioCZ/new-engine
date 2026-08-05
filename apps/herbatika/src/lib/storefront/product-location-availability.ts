@@ -3,14 +3,14 @@ import type {
   ProductLocationAvailabilityResponse,
 } from "@techsio/storefront-data/product-location-availability/types"
 
-export type ProductLocationAvailabilityState = {
+export interface ProductLocationAvailabilityState {
   items: ProductLocationAvailabilityLocation[] | null
   isLoading: boolean
   error: string | null
   isInventoryManaged: boolean
 }
 
-export type ProductLocationAvailabilityQueryState = {
+export interface ProductLocationAvailabilityQueryState {
   productLocationAvailability: ProductLocationAvailabilityResponse | null
   isLoading: boolean
   error: string | null
@@ -35,13 +35,13 @@ export const resolveProductLocationAvailabilityState = (
   variantId: string | null,
   options: { isInventoryManaged?: boolean | null | undefined } = {}
 ): ProductLocationAvailabilityState => ({
+  error: availabilityQuery.error,
+  isInventoryManaged: options.isInventoryManaged !== false,
+  isLoading: availabilityQuery.isLoading,
   items: resolveSelectedVariantLocationAvailability(
     availabilityQuery.productLocationAvailability,
     variantId
   ),
-  isLoading: availabilityQuery.isLoading,
-  error: availabilityQuery.error,
-  isInventoryManaged: options.isInventoryManaged !== false,
 })
 
 export const formatLocationAvailability = (

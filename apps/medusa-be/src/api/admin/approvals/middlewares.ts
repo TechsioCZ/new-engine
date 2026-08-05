@@ -10,13 +10,13 @@ import { AdminGetApprovals, AdminUpdateApproval } from "./validators"
 
 export const adminApprovalsMiddlewares: MiddlewareRoute[] = [
   {
-    method: "ALL",
     matcher: "/admin/approvals*",
+    method: "ALL",
     middlewares: [authenticate("user", ["session", "bearer"])],
   },
   {
-    method: ["GET"],
     matcher: "/admin/approvals",
+    method: ["GET"],
     middlewares: [
       validateAndTransformQuery(
         AdminGetApprovals,
@@ -25,8 +25,8 @@ export const adminApprovalsMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    method: ["POST"],
     matcher: "/admin/approvals/:id",
+    method: ["POST"],
     middlewares: [validateAndTransformBody(AdminUpdateApproval)],
   },
 ]

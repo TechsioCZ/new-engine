@@ -1,3 +1,5 @@
+import { expect, describe, it } from "vitest"
+
 import type {
   ProductListBase,
   ProductListItemBase,
@@ -12,16 +14,18 @@ import {
 
 describe("product list utilities", () => {
   it("detects favorite lists and resolves item counts from backend counters", () => {
-    expect(isFavoriteProductList({ id: "list_1", type: "favorite" })).toBe(true)
-    expect(isFavoriteProductList({ id: "list_2", handle: "favorites" })).toBe(
-      true
-    )
+    expect(
+      isFavoriteProductList({ id: "list_1", type: "favorite" })
+    ).toBeTruthy()
+    expect(
+      isFavoriteProductList({ handle: "favorites", id: "list_2" })
+    ).toBeTruthy()
     expect(
       getProductListItemCount({
         id: "list_3",
-        items_count: 4,
         item_count: 2,
         items: [{ id: "item_1" }],
+        items_count: 4,
       })
     ).toBe(4)
     expect(
@@ -50,14 +54,16 @@ describe("product list utilities", () => {
       product_id: "prod_2",
       variant: { id: "var_2" },
     }
-    const list: ProductListBase<ProductListItemBase> = {
+    const list: ProductListBase = {
       id: "list_1",
       items: [selectedItem, embeddedItem],
     }
 
-    expect(isProductInProductList(list, "prod_1", "var_1")).toBe(true)
-    expect(isProductInProductList(list, "prod_1", "var_2")).toBe(false)
-    expect(findProductListItem(list, "prod_2", "var_2")).toEqual(embeddedItem)
+    expect(isProductInProductList(list, "prod_1", "var_1")).toBeTruthy()
+    expect(isProductInProductList(list, "prod_1", "var_2")).toBeFalsy()
+    expect(findProductListItem(list, "prod_2", "var_2")).toStrictEqual(
+      embeddedItem
+    )
   })
 
   it("normalizes display quantity to a positive integer", () => {

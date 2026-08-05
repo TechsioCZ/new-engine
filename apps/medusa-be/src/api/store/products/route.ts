@@ -15,7 +15,7 @@ import {
 } from "../../../utils/measurement-units"
 import { normalizeProductSalesChannelFilter } from "../../utils/product-filters"
 
-type ProductRecord = {
+interface ProductRecord {
   variants?: unknown[]
 }
 
@@ -48,8 +48,9 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       QueryContext(req.pricingContext as Record<string, unknown>)
   }
 
-  const { data: products, metadata } = await (query.graph as GraphWithOptions)(
+  const { data: products, metadata } = await query.graph(
     {
+      context,
       entity: "product",
       fields: productFields,
       filters: await normalizeProductSalesChannelFilter(
@@ -58,7 +59,6 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
         req.filterableFields
       ),
       pagination: req.queryConfig.pagination,
-      context,
     },
     {
       cache: {
@@ -92,9 +92,9 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   )
 
   res.json({
-    products,
     count: metadata?.count ?? products.length,
-    offset: metadata?.skip,
     limit: metadata?.take,
+    offset: metadata?.skip,
+    products,
   })
 }

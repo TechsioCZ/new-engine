@@ -1,9 +1,11 @@
 "use client"
 
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { QueryClientProvider } from "@tanstack/react-query"
+import type { QueryClient } from "@tanstack/react-query"
 import type { PropsWithChildren } from "react"
 
-import { type QueryClientConfig, getQueryClient } from "../shared/query-client"
+import { getQueryClient } from "../shared/query-client"
+import type { QueryClientConfig } from "../shared/query-client"
 
 export type StorefrontDataProviderProps = PropsWithChildren<{
   client?: QueryClient

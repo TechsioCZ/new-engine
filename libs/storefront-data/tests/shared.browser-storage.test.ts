@@ -1,3 +1,5 @@
+import { vi, describe, expect, it } from "vitest"
+
 import {
   getLocalStorageItem,
   removeLocalStorageItem,
@@ -9,33 +11,33 @@ const createMemoryStorage = (): Storage => {
   const store = new Map<string, string>()
 
   return {
-    getItem: (key) => store.get(key) ?? null,
-    setItem: (key, value) => {
-      store.set(key, value)
-    },
-    removeItem: (key) => {
-      store.delete(key)
-    },
     clear: () => {
       store.clear()
     },
+    getItem: (key) => store.get(key) ?? null,
     key: (index) => Array.from(store.keys())[index] ?? null,
     get length() {
       return store.size
     },
-  } as Storage
+    removeItem: (key) => {
+      store.delete(key)
+    },
+    setItem: (key, value) => {
+      store.set(key, value)
+    },
+  }
 }
 
-describe("createLocalStorageValueStore", () => {
+describe(createLocalStorageValueStore, () => {
   const key = "test_cart_storage_key"
 
   it("exposes safe localStorage helpers", () => {
     const storage = createMemoryStorage()
 
     expect(getLocalStorageItem(key, storage)).toBeNull()
-    expect(setLocalStorageItem(key, "cart_1", storage)).toBe(true)
+    expect(setLocalStorageItem(key, "cart_1", storage)).toBeTruthy()
     expect(getLocalStorageItem(key, storage)).toBe("cart_1")
-    expect(removeLocalStorageItem(key, storage)).toBe(true)
+    expect(removeLocalStorageItem(key, storage)).toBeTruthy()
     expect(getLocalStorageItem(key, storage)).toBeNull()
   })
 
@@ -53,7 +55,7 @@ describe("createLocalStorageValueStore", () => {
 
     storage.set("cart_1")
     expect(storage.get()).toBe("cart_1")
-    expect(listener).toHaveBeenCalledTimes(1)
+    expect(listener).toHaveBeenCalledOnce()
 
     backingStorage.setItem(key, "cart_2")
     const storageEvent = new Event("storage")
@@ -91,8 +93,8 @@ describe("createLocalStorageValueStore", () => {
   it("exposes the configured server snapshot", () => {
     const storage = createLocalStorageValueStore({
       key,
-      storage: createMemoryStorage(),
       serverSnapshot: "server_cart",
+      storage: createMemoryStorage(),
     })
 
     expect(storage.getServerSnapshot?.()).toBe("server_cart")
@@ -118,8 +120,12 @@ describe("createLocalStorageValueStore", () => {
     const unsubscribe = storage.subscribe(listener)
 
     expect(storage.get()).toBeNull()
-    expect(() => storage.set("cart_1")).not.toThrow()
-    expect(() => storage.clear()).not.toThrow()
+    expect(() => {
+      storage.set("cart_1")
+    }).not.toThrow()
+    expect(() => {
+      storage.clear()
+    }).not.toThrow()
     expect(listener).not.toHaveBeenCalled()
 
     unsubscribe()

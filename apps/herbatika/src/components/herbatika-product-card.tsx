@@ -6,10 +6,8 @@ import { useTranslations } from "next-intl"
 import NextImage from "next/image"
 
 import NextLink from "@/components/app-link"
-import {
-  type HerbatikaProductCardBaseProps,
-  useHerbatikaProductCardState,
-} from "@/components/herbatika-product-card.shared"
+import { useHerbatikaProductCardState } from "@/components/herbatika-product-card.shared"
+import type { HerbatikaProductCardBaseProps } from "@/components/herbatika-product-card.shared"
 import { resolveDescription } from "@/components/product-card/product-card.description"
 import { resolveFlags } from "@/components/product-card/product-card.flags"
 import { resolveDiscountLabel } from "@/components/product-card/product-card.pricing"

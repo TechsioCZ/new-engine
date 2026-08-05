@@ -17,9 +17,9 @@ export async function GET(request: Request) {
 
   try {
     const response = await fetchSearchAutocomplete({
-      query,
       countryCode,
       currencyCode,
+      query,
       regionId,
     })
     return NextResponse.json(response)

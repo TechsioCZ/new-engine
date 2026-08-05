@@ -10,13 +10,13 @@ import huHU from "./messages/hu-HU.json"
 import roRO from "./messages/ro-RO.json"
 import skSK from "./messages/sk-SK.json"
 
-export type StorefrontTextCatalog = {
+export interface StorefrontTextCatalog {
   [key: string]: StorefrontTextCatalog | string
 }
 
 export const STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION = 1 as const
 
-export type StorefrontTextCatalogEnvelope = {
+export interface StorefrontTextCatalogEnvelope {
   locale: StorefrontTextLocale
   market: StorefrontTextMarket
   messages: StorefrontTextCatalog
@@ -161,7 +161,7 @@ export const getFlatStorefrontTextCatalog = (
   locale: StorefrontTextLocale
 ): Record<string, string> => FLAT_CATALOGS_BY_LOCALE[locale]
 
-type PublishedStorefrontTextRecord = {
+interface PublishedStorefrontTextRecord {
   key: string
   override_value: null | string
   status: string

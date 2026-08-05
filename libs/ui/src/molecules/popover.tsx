@@ -9,36 +9,39 @@
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the popover-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import {
-  connect,
-  machine,
-  type Api as PopoverApi,
-  type Props as PopoverMachineProps,
-  type Placement as PopoverPlacement,
-  type PositioningOptions as PopoverPositioningOptions,
-  type Service as PopoverService,
+import { connect, machine } from "@zag-js/popover"
+import type {
+  Api as PopoverApi,
+  Props as PopoverMachineProps,
+  Placement as PopoverPlacement,
+  PositioningOptions as PopoverPositioningOptions,
+  Service as PopoverService,
 } from "@zag-js/popover"
 import { mergeProps, normalizeProps, Portal, useMachine } from "@zag-js/react"
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type MouseEvent,
-  type ReactNode,
-  type Ref,
-  useContext,
-  useId,
+import { createContext, useContext, useId } from "react"
+import type {
+  ComponentPropsWithoutRef,
+  MouseEvent,
+  ReactNode,
+  Ref,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { ActionIcon } from "../atoms/action-icon"
-import { Button, type ButtonProps } from "../atoms/button"
+import { Button } from "../atoms/button"
+import type { ButtonProps } from "../atoms/button"
 import { tv } from "../utils"
 
 const popoverVariants = tv({
+  defaultVariants: {
+    border: true,
+    shadow: true,
+    size: "md",
+  },
   slots: {
-    trigger: ["p-popover-trigger"],
-    indicator: ["data-[state=open]:rotate-180"],
-    positioner: ["absolute"],
+    arrow: "",
+    arrowTip: "",
+    closeTrigger: ["absolute top-2 right-2"],
     content: [
       "bg-popover-bg",
       "text-popover-fg",
@@ -47,50 +50,45 @@ const popoverVariants = tv({
       "z-50",
       "relative",
     ],
-    arrow: "",
-    arrowTip: "",
-    title: ["font-popover-title", "leading-none", "mb-popover-title"],
     description: [
       "text-popover-description text-popover-description-fg",
       "leading-normal",
     ],
-    closeTrigger: ["absolute top-2 right-2"],
+    indicator: ["data-[state=open]:rotate-180"],
+    positioner: ["absolute"],
+    title: ["font-popover-title", "leading-none", "mb-popover-title"],
+    trigger: ["p-popover-trigger"],
   },
   variants: {
+    border: {
+      true: {
+        arrowTip: "border-popover-border border-t border-l",
+        content: "border border-popover-border",
+      },
+    },
     shadow: {
       true: {
         content: "shadow-popover",
       },
     },
-    border: {
-      true: {
-        content: "border border-popover-border",
-        arrowTip: "border-popover-border border-t border-l",
-      },
-    },
     size: {
-      sm: {
-        content: "p-popover-sm text-sm",
-        title: "text-popover-title-sm",
+      lg: {
+        content: "p-popover-lg text-lg",
+        title: "text-popover-title-lg",
       },
       md: {
         content: "p-popover-md",
         title: "text-popover-title-md",
       },
-      lg: {
-        content: "p-popover-lg text-lg",
-        title: "text-popover-title-lg",
+      sm: {
+        content: "p-popover-sm text-sm",
+        title: "text-popover-title-sm",
       },
     },
   },
-  defaultVariants: {
-    size: "md",
-    shadow: true,
-    border: true,
-  },
 })
 
-type PopoverContextValue = {
+interface PopoverContextValue {
   api: PopoverApi
   placement: PopoverPlacement
   styles: ReturnType<typeof popoverVariants>
@@ -133,7 +131,7 @@ export function Popover({
   gutter = 8,
   id,
   modal = false,
-  offset = { mainAxis: 8, crossAxis: 0 },
+  offset = { crossAxis: 0, mainAxis: 8 },
   onOpenChange,
   onPointerDownOutside,
   open,
@@ -489,7 +487,7 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
   )
 }
 
-export type PopoverContextProps = {
+export interface PopoverContextProps {
   children: (api: PopoverApi) => ReactNode
 }
 

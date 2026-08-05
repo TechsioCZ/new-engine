@@ -125,10 +125,10 @@ export function HeurekaOrder({
 
       if (debug) {
         console.log("[HeurekaOrder] Sending order:", {
+          currency,
           orderId,
           products,
           totalWithVat,
-          currency,
         })
       }
 

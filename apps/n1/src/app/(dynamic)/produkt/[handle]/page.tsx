@@ -26,7 +26,7 @@ import { transformProductDetail } from "@/utils/transform/transform-product"
 export default function ProductPage() {
   const params = useParams()
   const searchParams = useSearchParams()
-  const handle = params["handle"] as string
+  const handle = params.handle as string
   const variantParam = searchParams.get("variant")
 
   const { data: rawProduct } = useSuspenseProduct({ handle })
@@ -67,12 +67,12 @@ export default function ProductPage() {
     trackedVariantId.current = selectedVariant.id
 
     analytics.trackViewContent({
-      productId: selectedVariant.id,
-      productName: detail.title,
-      value: selectedVariant.calculated_price?.calculated_amount_with_tax ?? 0,
       currency: (
         selectedVariant.calculated_price?.currency_code ?? "CZK"
       ).toUpperCase(),
+      productId: selectedVariant.id,
+      productName: detail.title,
+      value: selectedVariant.calculated_price?.calculated_amount_with_tax ?? 0,
       ...(rawProduct?.categories?.[0]?.name
         ? { category: rawProduct.categories[0].name }
         : {}),
@@ -132,16 +132,16 @@ export default function ProductPage() {
 
   const tabsData = [
     {
-      value: "tab1",
-      label: "produktové parametry",
-      headline: "produktové parametry",
       content: <ProductTable rows={productTableRows} />,
+      headline: "produktové parametry",
+      label: "produktové parametry",
+      value: "tab1",
     },
     {
-      value: "tab2",
-      label: "tabulka velikostí",
-      headline: "tabulka velikostí",
       content: <ProductSizes attributes={detail.brand?.attributes} />,
+      headline: "tabulka velikostí",
+      label: "tabulka velikostí",
+      value: "tab2",
     },
   ]
 

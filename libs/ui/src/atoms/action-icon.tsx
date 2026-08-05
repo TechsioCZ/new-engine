@@ -13,7 +13,8 @@ import type { ButtonHTMLAttributes, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { tv } from "../utils"
-import { Icon, type IconType } from "./icon"
+import { Icon } from "./icon"
+import type { IconType } from "./icon"
 
 /*
  * ActionIcon — the single icon-only "sub-button" used inside larger controls
@@ -34,26 +35,26 @@ const actionIconVariants = tv({
     "focus-visible:outline-offset-(length:--default-ring-offset) focus-visible:outline-icon-control-ring",
     "disabled:cursor-not-allowed disabled:text-icon-control-fg-disabled",
   ],
+  defaultVariants: {
+    size: "md",
+    tone: "neutral",
+  },
   variants: {
     size: {
-      sm: "size-icon-control-sm text-icon-control-sm",
-      md: "size-icon-control-md text-icon-control-md",
       lg: "size-icon-control-lg text-icon-control-lg",
+      md: "size-icon-control-md text-icon-control-md",
+      sm: "size-icon-control-sm text-icon-control-sm",
     },
     tone: {
-      neutral: [
-        "hover:bg-icon-control-bg-hover",
-        "active:bg-icon-control-bg-active",
-      ],
       danger: [
         "hover:bg-icon-control-bg-danger-hover hover:text-icon-control-fg-danger-hover",
         "active:bg-icon-control-bg-danger-active",
       ],
+      neutral: [
+        "hover:bg-icon-control-bg-hover",
+        "active:bg-icon-control-bg-active",
+      ],
     },
-  },
-  defaultVariants: {
-    size: "md",
-    tone: "neutral",
   },
 })
 
@@ -79,7 +80,7 @@ export function ActionIcon({
 }: ActionIconProps) {
   return (
     <button
-      className={actionIconVariants({ size, tone, className })}
+      className={actionIconVariants({ className, size, tone })}
       ref={ref}
       type={type}
       {...props}

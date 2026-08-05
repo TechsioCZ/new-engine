@@ -20,50 +20,50 @@ import {
 } from "./storefront-config"
 
 export const storefrontCoreDefinition = {
-  namespace: STOREFRONT_QUERY_KEY_NAMESPACE,
   cacheConfig: storefrontCacheConfig,
-  queryKeys: storefrontQueryKeys,
+  catalog: {
+    hooks: {
+      defaultPageSize: CATALOG_DEFAULT_LIMIT,
+      requireRegion: true,
+    },
+    serviceConfig: storefrontCatalogServiceConfig,
+  },
+  categories: {
+    hooks: {
+      buildDetailParams: <TInput>(input: TInput) => input,
+      buildListParams: buildCategoryListParams,
+      defaultPageSize: DEFAULT_CATEGORY_PAGE_SIZE,
+    },
+    serviceConfig: storefrontCategoryServiceConfig,
+  },
   checkout: {
     serviceConfig: storefrontCheckoutServiceConfig,
   },
-  products: {
-    serviceConfig: storefrontProductServiceConfig,
+  namespace: STOREFRONT_QUERY_KEY_NAMESPACE,
+  orders: {
     hooks: {
-      buildListParams: buildProductListParams,
-      buildPrefetchParams: buildProductListParams,
       buildDetailParams: <TInput>(input: TInput) => input,
-      defaultPageSize: DEFAULT_PRODUCT_PAGE_SIZE,
+      buildListParams: buildHerbatikaOrderListParams,
     },
-  },
-  productLists: {
-    queryKeys: storefrontQueryKeys.productLists,
+    serviceConfig: storefrontOrderServiceConfig,
   },
   productAttributes: {
     queryKeys: storefrontQueryKeys.productAttributes,
   },
+  productLists: {
+    queryKeys: storefrontQueryKeys.productLists,
+  },
+  products: {
+    hooks: {
+      buildDetailParams: <TInput>(input: TInput) => input,
+      buildListParams: buildProductListParams,
+      buildPrefetchParams: buildProductListParams,
+      defaultPageSize: DEFAULT_PRODUCT_PAGE_SIZE,
+    },
+    serviceConfig: storefrontProductServiceConfig,
+  },
+  queryKeys: storefrontQueryKeys,
   reviews: {
     queryKeys: storefrontQueryKeys.reviews,
-  },
-  orders: {
-    serviceConfig: storefrontOrderServiceConfig,
-    hooks: {
-      buildListParams: buildHerbatikaOrderListParams,
-      buildDetailParams: <TInput>(input: TInput) => input,
-    },
-  },
-  categories: {
-    serviceConfig: storefrontCategoryServiceConfig,
-    hooks: {
-      buildListParams: buildCategoryListParams,
-      buildDetailParams: <TInput>(input: TInput) => input,
-      defaultPageSize: DEFAULT_CATEGORY_PAGE_SIZE,
-    },
-  },
-  catalog: {
-    serviceConfig: storefrontCatalogServiceConfig,
-    hooks: {
-      requireRegion: true,
-      defaultPageSize: CATALOG_DEFAULT_LIMIT,
-    },
   },
 } as const

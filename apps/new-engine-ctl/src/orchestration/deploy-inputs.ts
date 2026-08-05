@@ -2,24 +2,24 @@ import { readFile } from "node:fs/promises"
 
 import { parse as parseYaml } from "yaml"
 
-import {
-  type RuntimeProviderOutputs,
-  runtimeProviderOutputKey,
-} from "../contracts/runtime-provider-outputs.js"
+import { runtimeProviderOutputKey } from "../contracts/runtime-provider-outputs.js"
+import type { RuntimeProviderOutputs } from "../contracts/runtime-provider-outputs.js"
 import {
   getPreviewForbiddenServiceEnvDefinitions,
   getPreviewRandomOnceSecretDefinitions,
   listRuntimeProviderTargetsForServiceInLane,
   previewRandomOnceSecretPersistsToZaneEnv,
-  type StackInputs,
   stackInputsSchema,
 } from "../contracts/stack-inputs.js"
+import type { StackInputs } from "../contracts/stack-inputs.js"
 import {
-  type DeployableService,
   getDeployableService,
-  type Lane,
-  type StackManifest,
   stackManifestSchema,
+} from "../contracts/stack-manifest.js"
+import type {
+  DeployableService,
+  Lane,
+  StackManifest,
 } from "../contracts/stack-manifest.js"
 import type {
   EnvOverride,
@@ -32,12 +32,12 @@ import {
   buildPreviewRequiredSharedEnvKeys,
 } from "./preview-runtime-reconciliation.js"
 
-export type DeployContracts = {
+export interface DeployContracts {
   manifest: StackManifest
   stackInputs: StackInputs
 }
 
-export type DeployEnvContext = {
+export interface DeployEnvContext {
   lane: Lane
   previewDbName: string
   previewDbUser: string
@@ -46,7 +46,7 @@ export type DeployEnvContext = {
   runtimeProviderOutputs: RuntimeProviderOutputs
 }
 
-export type RequiredSharedEnv = {
+export interface RequiredSharedEnv {
   key: string
 }
 
@@ -73,20 +73,22 @@ async function loadYamlContract<T>(
   path: string,
   parseContract: (value: unknown) => T
 ): Promise<T> {
-  const raw = await readFile(path, "utf8")
+  const raw = await readFile(path, "utf-8")
   let parsed: unknown
 
   try {
     parsed = parseYaml(raw)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`Failed to parse YAML at ${path}: ${message}`)
+    throw new Error(`Failed to parse YAML at ${path}: ${message}`, {
+      cause: error,
+    })
   }
 
   return parseContract(parsed)
 }
 
-export function loadManifest(
+export async function loadManifest(
   stackManifestPath: string
 ): Promise<StackManifest> {
   return loadYamlContract(stackManifestPath, (value) =>
@@ -94,7 +96,9 @@ export function loadManifest(
   )
 }
 
-export function loadStackInputs(stackInputsPath: string): Promise<StackInputs> {
+export async function loadStackInputs(
+  stackInputsPath: string
+): Promise<StackInputs> {
   return loadYamlContract(stackInputsPath, (value) =>
     stackInputsSchema.parse(value)
   )
@@ -171,10 +175,10 @@ function buildServiceEnvOverride(
   }
 
   appendConfiguredRuntimeProviderEnv({
-    env,
     context,
-    stackInputs: contracts.stackInputs,
+    env,
     serviceId: service.id,
+    stackInputs: contracts.stackInputs,
   })
 
   if (Object.keys(env).length === 0) {
@@ -182,9 +186,9 @@ function buildServiceEnvOverride(
   }
 
   return {
+    env,
     service_id: service.id,
     service_slug: service.serviceSlug,
-    env,
   }
 }
 
@@ -263,9 +267,9 @@ export function buildRequiredPersistedEnv(
 
     return [
       {
+        env_keys: envKeys,
         service_id: service.id,
         service_slug: service.serviceSlug,
-        env_keys: envKeys,
       },
     ]
   })
@@ -275,9 +279,9 @@ export function buildRequiredPersistedEnv(
   }
 
   const runtimeEnvRequirements = buildPreviewRequiredServiceEnvKeys({
-    stackInputs: contracts.stackInputs,
-    manifest: contracts.manifest,
     deployServiceIds,
+    manifest: contracts.manifest,
+    stackInputs: contracts.stackInputs,
   })
   const byServiceId = new Map(
     persisted.map((requirement) => [requirement.service_id, requirement])
@@ -315,8 +319,8 @@ export function buildRequiredSharedEnv(
   )
 
   for (const key of buildPreviewRequiredSharedEnvKeys({
-    stackInputs: contracts.stackInputs,
     deployServiceIds,
+    stackInputs: contracts.stackInputs,
   })) {
     addPersistedEnvKey(envKeys, seen, key)
   }
@@ -371,9 +375,9 @@ export function buildForbiddenPreviewOnlyEnv(
 
     return [
       {
+        env_keys: envKeys,
         service_id: service.id,
         service_slug: service.serviceSlug,
-        env_keys: envKeys,
       },
     ]
   })

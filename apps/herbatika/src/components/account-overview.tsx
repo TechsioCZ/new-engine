@@ -15,9 +15,9 @@ export function AccountOverview() {
   const tForm = useTranslations("form")
   const authQuery = useAuth()
   const ordersQuery = useOrders({
-    page: 1,
-    limit: 1,
     enabled: authQuery.isAuthenticated,
+    limit: 1,
+    page: 1,
   })
 
   if (authQuery.isLoading) {

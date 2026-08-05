@@ -5,8 +5,8 @@ import { PostAdminPacketaLabelsSchema } from "./validators"
 
 export const adminPacketaLabelsRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["POST"],
     matcher: "/admin/packeta-labels",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(PostAdminPacketaLabelsSchema)],
   },
 ]

@@ -19,7 +19,7 @@ export type QueryEmployee = ModuleEmployee & {
  * Deliberately wide enough to accept generated graph rows, where dates may be
  * serialized strings and the customer relation may be absent.
  */
-export type QueryGraphEmployee = {
+export interface QueryGraphEmployee {
   id: string
   spending_limit: number
   is_admin: boolean

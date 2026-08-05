@@ -3,23 +3,23 @@
 import { toaster } from "@techsio/ui-kit/molecules/toast"
 
 const DEFAULT_DURATIONS = {
-  success: 3000,
-  info: 2500,
   error: 4000,
+  info: 2500,
+  success: 3000,
   warning: 3500,
 } as const
 
 // Cart-specific toast messages
 const cartToasts = {
   addSuccess: (productName: string, quantity = 1) => ({
-    title: "Přidáno do košíku",
     description: `${quantity}x ${productName}`,
+    title: "Přidáno do košíku",
     type: "success" as const,
   }),
 
   removeSuccess: (productName: string) => ({
-    title: "Odebráno z košíku",
     description: productName,
+    title: "Odebráno z košíku",
     type: "info" as const,
   }),
 
@@ -29,111 +29,105 @@ const cartToasts = {
   }),
 
   createError: () => ({
-    title: "Chyba při vytváření košíku",
     description: "Zkuste to prosím znovu",
+    title: "Chyba při vytváření košíku",
     type: "error" as const,
   }),
 
   addError: (error?: string) => ({
-    title: "Nepodařilo se přidat do košíku",
     description: error || "Zkuste to prosím znovu",
+    title: "Nepodařilo se přidat do košíku",
     type: "error" as const,
   }),
 
   stockError: () => ({
-    title: "Nedostatečné množství",
     description: "Produkt není dostupný v požadovaném množství",
+    title: "Nedostatečné množství",
     type: "error" as const,
   }),
 
   stockErrorWithDetails: (available: number, requested: number) => ({
-    title: "Nedostatečné množství",
     description: `Na skladě je pouze ${available} ks, požadováno celkem ${requested} ks`,
+    title: "Nedostatečné množství",
     type: "error" as const,
   }),
 
   networkError: () => ({
-    title: "Chyba připojení",
     description: "Zkontrolujte internetové připojení",
+    title: "Chyba připojení",
     type: "error" as const,
   }),
 
   mergeSuccess: (itemCount: number) => ({
-    title: "Košík sloučen",
     description: `${itemCount} položek přidáno do vašeho košíku`,
+    title: "Košík sloučen",
     type: "success" as const,
   }),
 
   // Shipping-specific messages
   shippingError: () => ({
-    title: "Chyba při nastavení dopravy",
     description:
       "Nepodařilo se nastavit způsob dopravy. Zkuste to prosím znovu.",
+    title: "Chyba při nastavení dopravy",
     type: "error" as const,
   }),
 
   // Shipping address messages
   shippingAddressSuccess: () => ({
-    title: "Adresa uložena",
     description: "Dodací adresa byla aktualizována",
+    title: "Adresa uložena",
     type: "success" as const,
   }),
 
   shippingAddressError: () => ({
-    title: "Chyba při ukládání adresy",
     description: "Nepodařilo se aktualizovat dodací adresu",
+    title: "Chyba při ukládání adresy",
     type: "error" as const,
   }),
 
   shippingAddressValidation: (fields: string[]) => ({
-    title: "Zkontrolujte adresu",
     description: `Neplatné pole: ${fields.join(", ")}`,
+    title: "Zkontrolujte adresu",
     type: "warning" as const,
   }),
 
   // Payment-specific messages
   paymentInitiatedSuccess: () => ({
-    title: "Platba iniciována",
     description: "Platební session byla úspěšně vytvořena",
+    title: "Platba iniciována",
     type: "success" as const,
   }),
 
   paymentInitiatedError: () => ({
-    title: "Chyba při inicializaci platby",
     description: "Nepodařilo se vytvořit platební session",
+    title: "Chyba při inicializaci platby",
     type: "error" as const,
   }),
 
   paymentValidation: (issues: string[]) => ({
-    title: "Nelze iniciovat platbu",
     description: issues.join(", "),
+    title: "Nelze iniciovat platbu",
     type: "warning" as const,
   }),
 }
 
 // Auth-specific toast messages
 const authToasts = {
-  loginSuccess: () => ({
-    title: "Přihlášení úspěšné",
-    description: "Vítejte zpět!",
-    type: "success" as const,
-  }),
-
   loginError: (error?: string) => ({
     title: "Přihlášení se nezdařilo",
     description: error || "Zkontrolujte e-mail a heslo",
     type: "error" as const,
   }),
 
-  registerSuccess: () => ({
-    title: "Registrace úspěšná",
-    description: "Váš účet byl vytvořen",
+  loginSuccess: () => ({
+    title: "Přihlášení úspěšné",
+    description: "Vítejte zpět!",
     type: "success" as const,
   }),
 
-  registerError: (error?: string) => ({
-    title: "Registrace se nezdařila",
-    description: error || "Zkuste to prosím znovu",
+  logoutError: () => ({
+    title: "Odhlášení se nezdařilo",
+    description: "Zkuste to prosím znovu",
     type: "error" as const,
   }),
 
@@ -143,21 +137,9 @@ const authToasts = {
     type: "info" as const,
   }),
 
-  logoutError: () => ({
-    title: "Odhlášení se nezdařilo",
-    description: "Zkuste to prosím znovu",
-    type: "error" as const,
-  }),
-
-  sessionExpired: () => ({
-    title: "Relace vypršela",
-    description: "Přihlaste se prosím znovu",
-    type: "warning" as const,
-  }),
-
-  passwordResetSent: (email: string) => ({
-    title: "E-mail odeslán",
-    description: `Odkaz pro reset hesla byl odeslán na ${email}`,
+  passwordChanged: () => ({
+    title: "Heslo změněno",
+    description: "Vaše heslo bylo úspěšně změněno",
     type: "success" as const,
   }),
 
@@ -167,24 +149,33 @@ const authToasts = {
     type: "error" as const,
   }),
 
-  passwordChanged: () => ({
-    title: "Heslo změněno",
-    description: "Vaše heslo bylo úspěšně změněno",
+  passwordResetSent: (email: string) => ({
+    title: "E-mail odeslán",
+    description: `Odkaz pro reset hesla byl odeslán na ${email}`,
     type: "success" as const,
+  }),
+
+  registerError: (error?: string) => ({
+    title: "Registrace se nezdařila",
+    description: error || "Zkuste to prosím znovu",
+    type: "error" as const,
+  }),
+
+  registerSuccess: () => ({
+    title: "Registrace úspěšná",
+    description: "Váš účet byl vytvořen",
+    type: "success" as const,
+  }),
+
+  sessionExpired: () => ({
+    title: "Relace vypršela",
+    description: "Přihlaste se prosím znovu",
+    type: "warning" as const,
   }),
 }
 
 export function useAuthToast() {
   return {
-    loginSuccess: (options = {}) => {
-      const message = authToasts.loginSuccess()
-      return toaster.create({
-        ...message,
-        duration: DEFAULT_DURATIONS.success,
-        ...options,
-      })
-    },
-
     loginError: (error?: string, options = {}) => {
       const message = authToasts.loginError(error)
       return toaster.create({
@@ -194,8 +185,8 @@ export function useAuthToast() {
       })
     },
 
-    registerSuccess: (options = {}) => {
-      const message = authToasts.registerSuccess()
+    loginSuccess: (options = {}) => {
+      const message = authToasts.loginSuccess()
       return toaster.create({
         ...message,
         duration: DEFAULT_DURATIONS.success,
@@ -203,8 +194,8 @@ export function useAuthToast() {
       })
     },
 
-    registerError: (error?: string, options = {}) => {
-      const message = authToasts.registerError(error)
+    logoutError: (options = {}) => {
+      const message = authToasts.logoutError()
       return toaster.create({
         ...message,
         duration: DEFAULT_DURATIONS.error,
@@ -221,26 +212,8 @@ export function useAuthToast() {
       })
     },
 
-    logoutError: (options = {}) => {
-      const message = authToasts.logoutError()
-      return toaster.create({
-        ...message,
-        duration: DEFAULT_DURATIONS.error,
-        ...options,
-      })
-    },
-
-    sessionExpired: (options = {}) => {
-      const message = authToasts.sessionExpired()
-      return toaster.create({
-        ...message,
-        duration: DEFAULT_DURATIONS.warning,
-        ...options,
-      })
-    },
-
-    passwordResetSent: (email: string, options = {}) => {
-      const message = authToasts.passwordResetSent(email)
+    passwordChanged: (options = {}) => {
+      const message = authToasts.passwordChanged()
       return toaster.create({
         ...message,
         duration: DEFAULT_DURATIONS.success,
@@ -257,11 +230,38 @@ export function useAuthToast() {
       })
     },
 
-    passwordChanged: (options = {}) => {
-      const message = authToasts.passwordChanged()
+    passwordResetSent: (email: string, options = {}) => {
+      const message = authToasts.passwordResetSent(email)
       return toaster.create({
         ...message,
         duration: DEFAULT_DURATIONS.success,
+        ...options,
+      })
+    },
+
+    registerError: (error?: string, options = {}) => {
+      const message = authToasts.registerError(error)
+      return toaster.create({
+        ...message,
+        duration: DEFAULT_DURATIONS.error,
+        ...options,
+      })
+    },
+
+    registerSuccess: (options = {}) => {
+      const message = authToasts.registerSuccess()
+      return toaster.create({
+        ...message,
+        duration: DEFAULT_DURATIONS.success,
+        ...options,
+      })
+    },
+
+    sessionExpired: (options = {}) => {
+      const message = authToasts.sessionExpired()
+      return toaster.create({
+        ...message,
+        duration: DEFAULT_DURATIONS.warning,
         ...options,
       })
     },

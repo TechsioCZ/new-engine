@@ -1,4 +1,5 @@
-import { headersWithCors, type PayloadRequest } from "payload"
+import { headersWithCors } from "payload"
+import type { PayloadRequest } from "payload"
 
 type LocaleValue = PayloadRequest["locale"]
 
@@ -32,10 +33,10 @@ export const getLocaleFromRequest = (req: PayloadRequest): LocaleValue => {
   }
 
   if (localeParam === "all") {
-    return "all" as LocaleValue
+    return "all"
   }
 
-  const localization = req.payload.config.localization
+  const { localization } = req.payload.config
   const localeCodes = localization ? localization.localeCodes : []
   return localeCodes.includes(localeParam)
     ? (localeParam as LocaleValue)
@@ -53,7 +54,7 @@ export const buildJsonResponse = (
   })
 
   return new Response(JSON.stringify(data), {
-    status: 200,
     headers,
+    status: 200,
   })
 }

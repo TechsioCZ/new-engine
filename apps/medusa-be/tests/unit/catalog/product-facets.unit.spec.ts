@@ -5,8 +5,17 @@ import { buildProductFacetDocument } from "../../../src/modules/meilisearch/face
 describe("product facet document builder", () => {
   it("derives all primary facets from product payload", () => {
     const result = buildProductFacetDocument({
-      status: "published",
-      title: "Horčík kapsuly",
+      brand: {
+        handle: "natura-balance",
+        title: "Natura Balance",
+      },
+      categories: [
+        {
+          id: "pcat_01",
+          handle: "ucinne-zlozky-od-a-po-z-horcik",
+          name: "Horčík",
+        },
+      ],
       metadata: {
         category_paths: [
           "Doplnky výživy > Účinné zložky od A po Z > Horčík",
@@ -25,42 +34,34 @@ describe("product facet document builder", () => {
           },
         },
       },
-      brand: {
-        handle: "natura-balance",
-        title: "Natura Balance",
-      },
-      categories: [
-        {
-          id: "pcat_01",
-          handle: "ucinne-zlozky-od-a-po-z-horcik",
-          name: "Horčík",
-        },
-      ],
       sales_channels: [
         {
           id: "sc_visible",
         },
       ],
+      status: "published",
+      title: "Horčík kapsuly",
     })
 
     expect(result.facet_product_status).toBe("published")
-    expect(result.facet_sales_channel_ids).toEqual(["sc_visible"])
-    expect(result.facet_status).toEqual(
+    expect(result.facet_sales_channel_ids).toStrictEqual(["sc_visible"])
+    expect(result.facet_status).toStrictEqual(
       expect.arrayContaining(["in-stock", "action"])
     )
-    expect(result.facet_form).toEqual(expect.arrayContaining(["form-capsules"]))
-    expect(result.facet_brand).toEqual(["brand-natura-balance"])
-    expect(result.facet_ingredient).toEqual([
+    expect(result.facet_form).toStrictEqual(
+      expect.arrayContaining(["form-capsules"])
+    )
+    expect(result.facet_brand).toStrictEqual(["brand-natura-balance"])
+    expect(result.facet_ingredient).toStrictEqual([
       "ingredient-ucinne-zlozky-od-a-po-z-horcik",
     ])
-    expect(result.facet_category_ids).toEqual(["pcat_01"])
-    expect(result.facet_in_stock).toBe(true)
+    expect(result.facet_category_ids).toStrictEqual(["pcat_01"])
+    expect(result.facet_in_stock).toBeTruthy()
     expect(result.facet_price).toBe(15.9)
   })
 
   it("falls back to variant price and marks unavailable stock", () => {
     const result = buildProductFacetDocument({
-      title: "Prírodný sirup",
       metadata: {
         top_offer: {
           stock: {
@@ -68,6 +69,7 @@ describe("product facet document builder", () => {
           },
         },
       },
+      title: "Prírodný sirup",
       variants: [
         {
           prices: [
@@ -80,13 +82,12 @@ describe("product facet document builder", () => {
       ],
     })
 
-    expect(result.facet_in_stock).toBe(false)
+    expect(result.facet_in_stock).toBeFalsy()
     expect(result.facet_price).toBe(12.9)
   })
 
   it("parses localized decimal values from top offer metadata", () => {
     const result = buildProductFacetDocument({
-      title: "Bylinné kvapky",
       metadata: {
         top_offer: {
           current_price: "19,81",
@@ -95,6 +96,7 @@ describe("product facet document builder", () => {
           },
         },
       },
+      title: "Bylinné kvapky",
     })
 
     expect(result.facet_price).toBe(19.81)
@@ -102,12 +104,12 @@ describe("product facet document builder", () => {
 
   it("ignores non-positive top offer price and falls back to variant price", () => {
     const result = buildProductFacetDocument({
-      title: "Pleťový olej",
       metadata: {
         top_offer: {
           current_price: 0,
         },
       },
+      title: "Pleťový olej",
       variants: [
         {
           prices: [

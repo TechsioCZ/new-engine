@@ -6,7 +6,7 @@ import { useRegionContext } from "@techsio/storefront-data/shared/region-context
 import { HerbatikaProductCard } from "@/components/herbatika-product-card"
 import { useAddProductToCartAction } from "@/lib/storefront/use-add-product-to-cart-action"
 
-type BlogFeaturedProductCardProps = {
+interface BlogFeaturedProductCardProps {
   product: HttpTypes.StoreProduct
 }
 

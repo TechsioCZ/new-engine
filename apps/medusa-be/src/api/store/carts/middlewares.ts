@@ -14,8 +14,8 @@ import {
 
 export const storeCartsMiddlewares: MiddlewareRoute[] = [
   {
-    method: ["POST"],
     matcher: "/store/carts/:id/line-items/bulk",
+    method: ["POST"],
     middlewares: [
       validateAndTransformBody(StoreAddLineItemsBulk),
       validateAndTransformQuery(
@@ -25,16 +25,16 @@ export const storeCartsMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    method: ["POST"],
     matcher: "/store/carts/:id/customer-note",
+    method: ["POST"],
     middlewares: [
       authenticate("customer", ["bearer", "session"]),
       validateAndTransformBody(StoreSetCartCustomerNote),
     ],
   },
   {
-    method: ["POST"],
     matcher: "/store/carts/:id/approvals",
+    method: ["POST"],
     middlewares: [authenticate("customer", ["bearer", "session"])],
   },
 ]

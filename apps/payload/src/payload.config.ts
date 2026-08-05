@@ -39,8 +39,8 @@ import {
 } from "./lib/utils/env"
 import { migrations } from "./migrations"
 
-const filename = fileURLToPath(import.meta.url)
-const dirname = path.dirname(filename)
+const filename = import.meta.filename
+const dirname = import.meta.dirname
 
 const isProductionBuild = getEnv("PAYLOAD_PRODUCTION_BUILD") === "1"
 const getRuntimeEnv = (name: string, buildFallback: string): string => {
@@ -82,11 +82,11 @@ const s3SecretAccessKey = getRuntimeEnv(
 /** Payload CMS configuration for the Medusa integration. */
 export default buildConfig({
   admin: {
-    user: Users.slug,
-    theme: "dark",
     importMap: {
       baseDir: path.resolve(dirname),
     },
+    theme: "dark",
+    user: Users.slug,
     ...(isArticlesEnabled
       ? {
           components: {
@@ -95,24 +95,6 @@ export default buildConfig({
         }
       : {}),
   },
-  endpoints: [
-    healthEndpoint,
-    medusaSsoPostEndpoint,
-    ...(isPagesEnabled ? [pageCategoriesWithPagesEndpoint] : []),
-    ...(isArticlesEnabled ? [articleCategoriesWithArticlesEndpoint] : []),
-    ...(isArticlesEnabled ? [articleImportEndpoint] : []),
-  ],
-  routes: {
-    admin: "/",
-  },
-  i18n: {
-    fallbackLanguage: "en",
-    supportedLanguages: { en, cs, sk, pl, hu, ro, sl, de, fr, es },
-  },
-  localization: {
-    locales,
-    defaultLocale,
-  },
   collections: [
     Users,
     Media,
@@ -120,22 +102,32 @@ export default buildConfig({
     ...(isPagesEnabled ? [PageCategories, Pages] : []),
     ...(isHeroCarouselsEnabled ? [HeroCarousels] : []),
   ],
-  editor: lexicalEditor(),
-  secret,
-  typescript: {
-    outputFile: path.resolve(dirname, "payload-types.ts"),
-  },
   db: postgresAdapter({
     pool: {
       connectionString: databaseUrl,
     },
-    ...(process.env["PAYLOAD_SCHEMA_NAME"]
-      ? { schemaName: process.env["PAYLOAD_SCHEMA_NAME"] }
+    ...(process.env.PAYLOAD_SCHEMA_NAME
+      ? { schemaName: process.env.PAYLOAD_SCHEMA_NAME }
       : {}),
     push: false,
     prodMigrations: migrations,
   }),
-  sharp,
+  editor: lexicalEditor(),
+  endpoints: [
+    healthEndpoint,
+    medusaSsoPostEndpoint,
+    ...(isPagesEnabled ? [pageCategoriesWithPagesEndpoint] : []),
+    ...(isArticlesEnabled ? [articleCategoriesWithArticlesEndpoint] : []),
+    ...(isArticlesEnabled ? [articleImportEndpoint] : []),
+  ],
+  i18n: {
+    fallbackLanguage: "en",
+    supportedLanguages: { cs, de, en, es, fr, hu, pl, ro, sk, sl },
+  },
+  localization: {
+    defaultLocale,
+    locales,
+  },
   plugins: [
     seoPlugin({
       collections: [
@@ -188,4 +180,12 @@ export default buildConfig({
       },
     }),
   ],
+  routes: {
+    admin: "/",
+  },
+  secret,
+  sharp,
+  typescript: {
+    outputFile: path.resolve(dirname, "payload-types.ts"),
+  },
 })

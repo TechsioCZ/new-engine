@@ -61,7 +61,7 @@ const createPostalCodeValidator =
       return messages.postalCodeInvalid
     }
 
-    return normalized.replace(/\D/g, "").length < 4
+    return normalized.replaceAll(/\D/g, "").length < 4
       ? messages.postalCodeMinDigits
       : undefined
   }

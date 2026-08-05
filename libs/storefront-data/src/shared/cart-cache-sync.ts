@@ -9,7 +9,7 @@ import {
 } from "./query-key-match-utils"
 import type { QueryKey } from "./query-keys"
 
-type CartLike = {
+interface CartLike {
   id: string
   region_id?: string | null | undefined
 }
@@ -19,13 +19,13 @@ export type ActiveCartQueryKeyMatcher = (
   cartId: string
 ) => boolean
 
-export type CartCacheSyncOptions = {
+export interface CartCacheSyncOptions {
   isActiveCartQueryKey?: ActiveCartQueryKeyMatcher | undefined
 }
 
 export type CartUpdater<TCart extends CartLike> = (cart: TCart) => TCart
 
-type ActiveKeySegmentMatchInput = {
+interface ActiveKeySegmentMatchInput {
   candidate: unknown
   base: unknown
   cartVariant: unknown
@@ -74,11 +74,11 @@ const matchesActiveKeySegment = ({
       regionVariant.length === base.length &&
       base.every((_, index) =>
         matchesActiveKeySegment({
-          candidate: candidate[index],
           base: base[index],
+          candidate: candidate[index],
+          cartId,
           cartVariant: cartVariant[index],
           regionVariant: regionVariant[index],
-          cartId,
         })
       )
     )
@@ -92,21 +92,21 @@ const matchesActiveKeySegment = ({
   ) {
     return getSortedRecordKeys(base, cartVariant, regionVariant).every((key) =>
       matchesActiveKeySegment({
-        candidate: candidate[key],
         base: base[key],
+        candidate: candidate[key],
+        cartId,
         cartVariant: cartVariant[key],
         regionVariant: regionVariant[key],
-        cartId,
       })
     )
   }
 
   return matchActiveLeafSegment({
-    candidate,
     base,
+    candidate,
+    cartId,
     cartVariant,
     regionVariant,
-    cartId,
   })
 }
 
@@ -118,7 +118,7 @@ const hasCartId = <TCart extends CartLike>(
     return false
   }
 
-  const valueId = value["id"]
+  const valueId = value.id
   if (typeof valueId !== "string") {
     return false
   }
@@ -153,11 +153,11 @@ export const createDefaultActiveCartQueryMatcher = (
     }
 
     return matchesActiveKeySegment({
-      candidate: queryKey,
       base: baseActiveKey,
+      candidate: queryKey,
+      cartId,
       cartVariant: cartVariantActiveKey,
       regionVariant: regionVariantActiveKey,
-      cartId,
     })
   }
 }
@@ -192,7 +192,7 @@ export function syncCartCaches<TCart extends CartLike>(
   queryClient.setQueryData(queryKeys.detail(cart.id), cart)
 }
 
-export function invalidateCartCaches(
+export async function invalidateCartCaches(
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
   cartId: string,
@@ -205,7 +205,7 @@ export function invalidateCartCaches(
       predicate: (query) => isActiveCartQueryKey(query.queryKey, cartId),
     }),
     queryClient.invalidateQueries({ queryKey: queryKeys.detail(cartId) }),
-  ]).then(() => undefined)
+  ]).then(() => {})
 }
 
 export async function cancelCartCaches(
@@ -230,7 +230,7 @@ export async function cancelCartCaches(
   ])
 }
 
-export type PatchCartCachesParams<TCart extends CartLike> = {
+export interface PatchCartCachesParams<TCart extends CartLike> {
   patch: CartUpdater<TCart>
   options?: CartCacheSyncOptions | undefined
 }

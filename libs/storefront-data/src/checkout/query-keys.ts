@@ -7,6 +7,15 @@ export function createCheckoutQueryKeys(
 ): CheckoutQueryKeys {
   return {
     all: () => createQueryKey(namespace, "checkout"),
+    paymentProviders: (regionId) =>
+      createQueryKey(namespace, "checkout", "payment-providers", regionId),
+    shippingOptionPrice: (params) =>
+      createQueryKey(
+        namespace,
+        "checkout",
+        "shipping-option",
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+      ),
     shippingOptions: (cartId, cacheKey) =>
       cacheKey
         ? createQueryKey(
@@ -17,14 +26,5 @@ export function createCheckoutQueryKeys(
             cacheKey
           )
         : createQueryKey(namespace, "checkout", "shipping-options", cartId),
-    shippingOptionPrice: (params) =>
-      createQueryKey(
-        namespace,
-        "checkout",
-        "shipping-option",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
-      ),
-    paymentProviders: (regionId) =>
-      createQueryKey(namespace, "checkout", "payment-providers", regionId),
   }
 }

@@ -10,7 +10,7 @@ import { prefetchLogger } from "@/lib/loggers/prefetch"
 import { usePrefetchProducts } from "./use-prefetch-products"
 import { useRegion } from "./use-region"
 
-type UsePrefetchCategoryChildrenParams = {
+interface UsePrefetchCategoryChildrenParams {
   enabled?: boolean
   categoryHandle: string
 }
@@ -44,7 +44,7 @@ export function usePrefetchCategoryChildren({
         prefetchLogger.info("Children", `Phase 1: ${childHandles}`)
 
         await Promise.all(
-          children.map((child) => {
+          children.map(async (child) => {
             const categoryIds = ALL_CATEGORIES_MAP[child.handle]
             if (categoryIds?.length) {
               return prefetchCategoryProducts(categoryIds, categoryHandle)
@@ -66,10 +66,9 @@ export function usePrefetchCategoryChildren({
       // Cancel ongoing prefetch requests for this category's children
       // Uses meta scope to avoid canceling queries from other categories
       void queryClient.cancelQueries({
-        predicate: (query) => {
+        predicate: (query) =>
           // ✅ Only cancel queries prefetched by THIS categoryHandle
-          return query.meta?.["prefetchedBy"] === categoryHandle
-        },
+          query.meta?.prefetchedBy === categoryHandle,
       })
 
       prefetchLogger.info(

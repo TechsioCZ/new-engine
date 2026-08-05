@@ -14,7 +14,7 @@ import {
 
 describe("order expedition helpers", () => {
   it("keeps bulk status options aligned with Medusa order statuses", () => {
-    expect(ORDER_EXPEDITION_TARGET_STATUSES).toEqual([
+    expect(ORDER_EXPEDITION_TARGET_STATUSES).toStrictEqual([
       OrderStatus.PENDING,
       OrderStatus.COMPLETED,
       OrderStatus.DRAFT,
@@ -36,8 +36,8 @@ describe("order expedition helpers", () => {
         shipping_methods: [
           {
             data: {
-              provider: "Zasilkovna",
               pickupPoint: "123",
+              provider: "Zasilkovna",
             },
           },
         ],
@@ -58,23 +58,24 @@ describe("order expedition helpers", () => {
       shipping_methods: [{ shipping_option_id: "shipping-option-ppl-home" }],
     }
 
-    expect(orderMatchesExpeditionCarrier(order, "ppl")).toBe(true)
-    expect(orderMatchesExpeditionCarrier(order, "packeta")).toBe(false)
-    expect(orderMatchesExpeditionCarrier(order)).toBe(true)
+    expect(orderMatchesExpeditionCarrier(order, "ppl")).toBeTruthy()
+    expect(orderMatchesExpeditionCarrier(order, "packeta")).toBeFalsy()
+    expect(orderMatchesExpeditionCarrier(order)).toBeTruthy()
   })
 
   it("normalizes an order into the admin expedition DTO", () => {
     const dto = toOrderExpeditionDto({
-      id: "order_1",
-      display_id: 1001,
       custom_display_id: "#HERB-1001",
-      email: "customer@example.com",
-      status: "pending",
-      payment_status: "captured",
       customer: {
         first_name: "Jana",
         last_name: "Novakova",
       },
+      display_id: 1001,
+      email: "customer@example.com",
+      id: "order_1",
+      items: [{ id: "item_1", quantity: { value: "2" }, title: "Tea" }],
+      payment_collections: [{ payments: [{ provider_id: "stripe" }] }],
+      payment_status: "captured",
       shipping_address: {
         address_1: "Ulice 1",
         city: "Praha",
@@ -82,10 +83,9 @@ describe("order expedition helpers", () => {
         postal_code: "11000",
       },
       shipping_methods: [{ name: "Packeta Z-Point" }],
-      payment_collections: [{ payments: [{ provider_id: "stripe" }] }],
+      status: "pending",
       summary: [{ totals: { current_order_total: 47.39 }, version: 1 }],
       total: 0,
-      items: [{ id: "item_1", quantity: { value: "2" }, title: "Tea" }],
     })
 
     expect(dto).toMatchObject({
@@ -97,8 +97,8 @@ describe("order expedition helpers", () => {
       status: "pending",
       total: 47.39,
     })
-    expect(dto.delivery_address).toEqual(["Ulice 1", "11000 Praha", "CZ"])
-    expect(dto.items).toEqual([
+    expect(dto.delivery_address).toStrictEqual(["Ulice 1", "11000 Praha", "CZ"])
+    expect(dto.items).toStrictEqual([
       {
         id: "item_1",
         quantity: 2,
@@ -114,8 +114,8 @@ describe("order expedition helpers", () => {
 
   it("uses the latest summary total when query returns a zero order total", () => {
     const dto = toOrderExpeditionDto({
-      id: "order_1",
       display_id: 1001,
+      id: "order_1",
       summary: [
         {
           totals: {
@@ -140,8 +140,8 @@ describe("order expedition helpers", () => {
 
   it("uses raw summary totals when scalar summary totals are zeroed", () => {
     const dto = toOrderExpeditionDto({
-      id: "order_1",
       display_id: 1001,
+      id: "order_1",
       summary: [
         {
           current_order_total: 0,
@@ -157,8 +157,8 @@ describe("order expedition helpers", () => {
 
   it("keeps a zero order total when summary data is missing", () => {
     const dto = toOrderExpeditionDto({
-      id: "order_1",
       display_id: 1001,
+      id: "order_1",
       total: 0,
     })
 
@@ -167,8 +167,8 @@ describe("order expedition helpers", () => {
 
   it("keeps a non-zero order total over a summary total", () => {
     const dto = toOrderExpeditionDto({
-      id: "order_1",
       display_id: 1001,
+      id: "order_1",
       summary: [{ totals: { current_order_total: 47.39 }, version: 1 }],
       total: 12.34,
     })
@@ -178,8 +178,8 @@ describe("order expedition helpers", () => {
 
   it("keeps a non-zero order total when summary total is zero", () => {
     const dto = toOrderExpeditionDto({
-      id: "order_1",
       display_id: 1001,
+      id: "order_1",
       summary: [{ totals: { current_order_total: 0 }, version: 1 }],
       total: 12.34,
     })
@@ -189,8 +189,8 @@ describe("order expedition helpers", () => {
 
   it("returns zero when summary total and order total are zero", () => {
     const dto = toOrderExpeditionDto({
-      id: "order_1",
       display_id: 1001,
+      id: "order_1",
       summary: [{ totals: { current_order_total: 0 }, version: 1 }],
       total: 0,
     })
@@ -200,8 +200,8 @@ describe("order expedition helpers", () => {
 
   it("falls back to a non-zero order total when summary data is missing", () => {
     const dto = toOrderExpeditionDto({
-      id: "order_1",
       display_id: 1001,
+      id: "order_1",
       total: 12.34,
     })
 
@@ -210,8 +210,8 @@ describe("order expedition helpers", () => {
 
   it("normalizes Medusa amount objects returned by the query layer", () => {
     const dto = toOrderExpeditionDto({
-      id: "order_1",
       display_id: 1001,
+      id: "order_1",
       total: { valueOf: () => "47.390000000000000000" },
     })
 
@@ -245,18 +245,17 @@ describe("order expedition helpers", () => {
   it("preserves selected order order and reports missing IDs", () => {
     const orders = [{ id: "order_2" }, { id: "order_1" }]
 
-    expect(orderOrdersByRequestedIds(["order_1", "order_2"], orders)).toEqual([
-      { id: "order_1" },
-      { id: "order_2" },
-    ])
-    expect(findMissingOrderIds(["order_1", "order_3"], orders)).toEqual([
+    expect(
+      orderOrdersByRequestedIds(["order_1", "order_2"], orders)
+    ).toStrictEqual([{ id: "order_1" }, { id: "order_2" }])
+    expect(findMissingOrderIds(["order_1", "order_3"], orders)).toStrictEqual([
       "order_3",
     ])
   })
 
   it("falls back to stable display IDs", () => {
     expect(
-      getOrderExpeditionDisplayId({ id: "order_1", display_id: 1001 })
+      getOrderExpeditionDisplayId({ display_id: 1001, id: "order_1" })
     ).toBe("#1001")
     expect(
       getOrderExpeditionDisplayId({

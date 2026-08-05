@@ -14,27 +14,27 @@ import {
 import { ORDER_NOTE_MODULE } from "../../modules/order-note"
 import type OrderNoteModuleService from "../../modules/order-note/service"
 
-type UpsertOrderNoteWorkflowInput = {
+interface UpsertOrderNoteWorkflowInput {
   note: string
   order_id: string
 }
 
-type OrderRecord = {
+interface OrderRecord {
   id: string
   metadata?: Record<string, unknown> | null
 }
 
-type RestorableOrderNote = {
+interface RestorableOrderNote {
   note: string
   order_id: string
 }
 
-type RestoreOrderNoteCompensation = {
+interface RestoreOrderNoteCompensation {
   order_id: string
   previousNote?: RestorableOrderNote
 }
 
-type RestoreOrderMetadataCompensation = {
+interface RestoreOrderMetadataCompensation {
   order_id: string
   previousMetadata: Record<string, unknown>
 }

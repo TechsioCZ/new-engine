@@ -2,12 +2,13 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery"
-import { type MouseEvent, type PointerEvent, useRef, useState } from "react"
+import { useRef, useState } from "react"
+import type { MouseEvent, PointerEvent } from "react"
 
 import { FallbackImage } from "@/components/fallback-image"
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 
-type UseProductDetailGalleryStateProps = {
+interface UseProductDetailGalleryStateProps {
   galleryItems: GalleryItem[]
   getFallbackImageAlt: (index: number) => string
   getOpenImageAriaLabel: (index: number) => string
@@ -85,14 +86,17 @@ export function useProductDetailGalleryState({
       return {
         ...item,
         alt: imageAlt,
-        src: imageSrc,
         content: (
           <Button
             aria-label={getOpenImageAriaLabel(index)}
             className="flex h-full w-full cursor-zoom-in items-center justify-center p-0 active:cursor-grabbing"
-            onClick={(event) => handleMainImageClick(event, index)}
+            onClick={(event) => {
+              handleMainImageClick(event, index)
+            }}
             onPointerCancel={cancelPendingOpen}
-            onPointerDown={(event) => handleMainImagePointerDown(event, index)}
+            onPointerDown={(event) => {
+              handleMainImagePointerDown(event, index)
+            }}
             onPointerUp={handleMainImagePointerUp}
             size="current"
             theme="unstyled"
@@ -101,6 +105,7 @@ export function useProductDetailGalleryState({
             {imageContent}
           </Button>
         ),
+        src: imageSrc,
         thumbnailContent: item.thumbnailContent ?? (
           <span className="flex h-full w-full items-center justify-center">
             <FallbackImage

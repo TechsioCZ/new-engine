@@ -10,11 +10,11 @@ describe("doc selector utilities", () => {
   })
 
   it("getCategoryDoc extracts category data", () => {
-    const category = { id: 1, title: "News", slug: "news" }
-    expect(getCategoryDoc(category)).toEqual({
+    const category = { id: 1, slug: "news", title: "News" }
+    expect(getCategoryDoc(category)).toStrictEqual({
       id: 1,
-      title: "News",
       slug: "news",
+      title: "News",
     })
   })
 

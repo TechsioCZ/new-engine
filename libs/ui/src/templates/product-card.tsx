@@ -9,8 +9,10 @@
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the product-card-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import { Badge, type BadgeProps } from "../atoms/badge"
-import { ProductCard, type ProductCardProps } from "../molecules/product-card"
+import { Badge } from "../atoms/badge"
+import type { BadgeProps } from "../atoms/badge"
+import { ProductCard } from "../molecules/product-card"
+import type { ProductCardProps } from "../molecules/product-card"
 import { slugify } from "../utils"
 
 export interface ProductCardTemplateProps extends Pick<
@@ -109,8 +111,8 @@ export function ProductCardTemplate({
         <div className="flex items-center gap-100">
           <ProductCard.Rating
             rating={{
-              value: rating.value,
               count: rating.count,
+              value: rating.value,
             }}
           />
           {rating.reviewCount && (

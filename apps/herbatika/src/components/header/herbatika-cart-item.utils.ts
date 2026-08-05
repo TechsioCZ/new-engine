@@ -36,7 +36,7 @@ export const resolveLineItemInventory = (item: HttpTypes.StoreCartLineItem) => {
     return defaultStockInventory
   }
 
-  const metadataInventory = asFiniteNumber(metadata?.["inventory_quantity"])
+  const metadataInventory = asFiniteNumber(metadata?.inventory_quantity)
   if (metadataInventory !== null) {
     return metadataInventory
   }
@@ -46,7 +46,7 @@ export const resolveLineItemInventory = (item: HttpTypes.StoreCartLineItem) => {
     return variantInventory
   }
 
-  return asFiniteNumber(itemRecord?.["variant_inventory_quantity"])
+  return asFiniteNumber(itemRecord?.variant_inventory_quantity)
 }
 
 export const resolveLineItemThumbnail = (item: HttpTypes.StoreCartLineItem) => {

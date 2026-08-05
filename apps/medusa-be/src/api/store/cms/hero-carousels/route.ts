@@ -10,8 +10,8 @@ import {
 
 /** Query schema for fetching CMS hero carousel lists. */
 export const StoreCmsHeroCarouselsSchema = z.object({
-  locale: optionalStringParam,
   limit: optionalPositiveIntParam,
+  locale: optionalStringParam,
   page: optionalPositiveIntParam,
   sort: optionalStringParam,
 })

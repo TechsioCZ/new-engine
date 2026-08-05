@@ -6,11 +6,11 @@ import { useEffect } from "react"
 
 import { toggleSelection } from "@/components/category/category-selection-utils"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
-import {
-  type NuqsPlpQueryState,
-  type ProductSortValue,
-  type plpQueryParsers,
-  resolveCatalogQueryStatePatch,
+import { resolveCatalogQueryStatePatch } from "@/lib/storefront/plp-query-state"
+import type {
+  NuqsPlpQueryState,
+  ProductSortValue,
+  plpQueryParsers,
 } from "@/lib/storefront/plp-query-state"
 import {
   PRODUCT_DETAIL_FIELDS,
@@ -20,7 +20,7 @@ import { useAddProductToCartAction } from "@/lib/storefront/use-add-product-to-c
 
 type CatalogMultiSelectKey = "status" | "form" | "brand" | "ingredient"
 
-type UseCatalogListingInteractionsInput = {
+interface UseCatalogListingInteractionsInput {
   countryCode?: string
   productPrefetchKeyPrefix: string
   queryState: NuqsPlpQueryState
@@ -28,7 +28,7 @@ type UseCatalogListingInteractionsInput = {
   setQueryState: SetValues<typeof plpQueryParsers>
 }
 
-type UseCatalogListingPageBoundsInput = {
+interface UseCatalogListingPageBoundsInput {
   isLoading: boolean
   isQueryEnabled: boolean
   page: number
@@ -42,16 +42,21 @@ const resolveNextMultiSelectValues = (
   itemId: string
 ) => {
   switch (key) {
-    case "status":
+    case "status": {
       return { status: toggleSelection(queryState.status, itemId) }
-    case "form":
+    }
+    case "form": {
       return { form: toggleSelection(queryState.form, itemId) }
-    case "brand":
+    }
+    case "brand": {
       return { brand: toggleSelection(queryState.brand, itemId) }
-    case "ingredient":
+    }
+    case "ingredient": {
       return { ingredient: toggleSelection(queryState.ingredient, itemId) }
-    default:
+    }
+    default: {
       return {}
+    }
   }
 }
 
@@ -84,8 +89,8 @@ export function useCatalogListingInteractions({
   setQueryState,
 }: UseCatalogListingInteractionsInput) {
   const addToCart = useAddProductToCartAction({
-    ...(regionId === undefined ? {} : { regionId: regionId }),
-    ...(countryCode === undefined ? {} : { countryCode: countryCode }),
+    ...(regionId === undefined ? {} : { regionId }),
+    ...(countryCode === undefined ? {} : { countryCode }),
   })
   const prefetchProduct = usePrefetchProduct({
     defaultDelay: 180,
@@ -114,16 +119,21 @@ export function useCatalogListingInteractions({
     isProductAdding: (productId: string) =>
       addToCart.isProductAdding(productId),
     onAddToCart: handleAddToCart,
-    onBrandToggle: (itemId: string) => patchMultiSelect("brand", itemId),
-    onFormToggle: (itemId: string) => patchMultiSelect("form", itemId),
-    onIngredientToggle: (itemId: string) =>
-      patchMultiSelect("ingredient", itemId),
+    onBrandToggle: (itemId: string) => {
+      patchMultiSelect("brand", itemId)
+    },
+    onFormToggle: (itemId: string) => {
+      patchMultiSelect("form", itemId)
+    },
+    onIngredientToggle: (itemId: string) => {
+      patchMultiSelect("ingredient", itemId)
+    },
     onPriceRangeCommit: (range: { min?: number; max?: number }) => {
       runDetachedPromise(
         setQueryState(
           resolveCatalogQueryStatePatch(queryState, {
-            price_min: range.min ?? null,
             price_max: range.max ?? null,
+            price_min: range.min ?? null,
           })
         )
       )
@@ -139,7 +149,7 @@ export function useCatalogListingInteractions({
       }
 
       prefetchProduct.delayedPrefetch(
-        { handle: product.handle, fields: PRODUCT_DETAIL_FIELDS },
+        { fields: PRODUCT_DETAIL_FIELDS, handle: product.handle },
         180,
         `${productPrefetchKeyPrefix}-${product.id}`
       )
@@ -150,12 +160,12 @@ export function useCatalogListingInteractions({
           resolveCatalogQueryStatePatch(
             queryState,
             {
-              status: [],
-              form: [],
               brand: [],
+              form: [],
               ingredient: [],
-              price_min: null,
               price_max: null,
+              price_min: null,
+              status: [],
             },
             { resetPage: "always" }
           )
@@ -169,7 +179,9 @@ export function useCatalogListingInteractions({
         )
       )
     },
-    onStatusToggle: (itemId: string) => patchMultiSelect("status", itemId),
+    onStatusToggle: (itemId: string) => {
+      patchMultiSelect("status", itemId)
+    },
     page: queryState.page,
     queryState,
     selectedPriceRange: {

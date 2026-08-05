@@ -22,7 +22,6 @@ import {
 import {
   ACCOUNT_SETUP_ORDER_FIELDS,
   ACCOUNT_SETUP_TOKEN_EXPIRES_IN,
-  type AccountSetupResult,
   assertAccountSetupOrder,
   buildAccountSetupUrl,
   EMAIL_PASS_PROVIDER,
@@ -32,9 +31,10 @@ import {
   getCustomerForAccountSetup,
   isAccountSetupRequested,
 } from "../utils/account-setup"
+import type { AccountSetupResult } from "../utils/account-setup"
 import { sendNotificationStep } from "./steps/send-notification"
 
-type WorkflowInput = {
+interface WorkflowInput {
   order_id: string
 }
 
@@ -142,10 +142,10 @@ const prepareAccountSetupStep = createStep(
     })
 
     await authModuleService.updateAuthIdentities({
-      id: authIdentityId,
       app_metadata: {
         customer_id: customer.id,
       },
+      id: authIdentityId,
     })
 
     return new StepResponse<AccountSetupResult>({
@@ -203,9 +203,7 @@ export const sendAccountSetupWorkflow = createWorkflow(
 
       return [
         {
-          to: data.accountSetup.email,
           channel: "email",
-          template: "account-setup",
           data: {
             customer_id: data.accountSetup.customer_id,
             customer_name: data.accountSetup.customer_name,
@@ -214,6 +212,8 @@ export const sendAccountSetupWorkflow = createWorkflow(
           },
           resource_id: data.accountSetup.order_id,
           resource_type: "order",
+          template: "account-setup",
+          to: data.accountSetup.email,
           trigger_type: "order.account_setup_requested",
         },
       ]

@@ -1,9 +1,9 @@
 import { randomBytes, randomInt } from "node:crypto"
 
-import {
-  type StackInputs,
-  getPreviewRandomOnceSecretDefinitions,
-  type PreviewRandomOnceSecretDefinition,
+import { getPreviewRandomOnceSecretDefinitions } from "../contracts/stack-inputs.js"
+import type {
+  StackInputs,
+  PreviewRandomOnceSecretDefinition,
 } from "../contracts/stack-inputs.js"
 import type { PreviewRandomOnceSecretInput } from "../contracts/verify.js"
 
@@ -17,19 +17,21 @@ function unsupportedSecretGenerator(value: unknown): never {
 function generateSecretValue(
   definition: PreviewRandomOnceSecretDefinition
 ): string {
-  const kind = definition.generator.kind
+  const { kind } = definition.generator
 
   switch (kind) {
-    case "random_hex":
+    case "random_hex": {
       if (!definition.generator.bytes) {
         throw new Error("random_hex generator requires numeric bytes.")
       }
       return randomBytes(definition.generator.bytes).toString("hex")
-    case "random_base64url":
+    }
+    case "random_base64url": {
       if (!definition.generator.bytes) {
         throw new Error("random_base64url generator requires numeric bytes.")
       }
       return randomBytes(definition.generator.bytes).toString("base64url")
+    }
     case "random_alnum": {
       if (!definition.generator.length) {
         throw new Error("random_alnum generator requires numeric length.")
@@ -41,8 +43,9 @@ function generateSecretValue(
       }
       return value
     }
-    default:
+    default: {
       return unsupportedSecretGenerator(kind)
+    }
   }
 }
 

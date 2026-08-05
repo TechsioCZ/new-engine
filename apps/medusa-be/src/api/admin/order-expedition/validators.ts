@@ -22,8 +22,8 @@ const OptionalLimitQuerySchema = z.preprocess(
 )
 
 export const GetAdminOrderExpeditionOrdersSchema = z.object({
-  business_status_group: z.enum(ORDER_BUSINESS_STATUS_GROUP_IDS).optional(),
   business_status: z.enum(ORDER_BUSINESS_STATUS_IDS).optional(),
+  business_status_group: z.enum(ORDER_BUSINESS_STATUS_GROUP_IDS).optional(),
   carrier: z.enum(ORDER_EXPEDITION_CARRIER_KEYS).optional(),
   limit: OptionalLimitQuerySchema,
   offset: OptionalNonNegativeIntQuerySchema,

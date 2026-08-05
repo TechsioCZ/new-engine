@@ -7,7 +7,7 @@ import { useCheckoutPayment } from "@/hooks/use-checkout-payment"
 import { useSuspenseRegion } from "@/hooks/use-region"
 import type { Cart } from "@/services/cart-service"
 
-type PaymentFormSectionProps = {
+interface PaymentFormSectionProps {
   cart: Cart
 }
 
@@ -57,7 +57,9 @@ export function PaymentFormSection({ cart }: PaymentFormSectionProps) {
                       disabled={isInitiatingPayment}
                       id={providerInputId}
                       name="payment-provider"
-                      onChange={() => handleProviderSelect(provider.id)}
+                      onChange={() => {
+                        handleProviderSelect(provider.id)
+                      }}
                     />
                     <span className="flex flex-1 flex-col">
                       <span className="font-medium text-fg-primary text-sm">

@@ -1,9 +1,7 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 
-import {
-  BRAND_SEARCH_PROJECTION_CHANGED,
-  type BrandSearchProjectionChangedEventData,
-} from "../workflows/meilisearch/events"
+import { BRAND_SEARCH_PROJECTION_CHANGED } from "../workflows/meilisearch/events"
+import type { BrandSearchProjectionChangedEventData } from "../workflows/meilisearch/events"
 import { reconcileBrandSearchProjectionWorkflow } from "../workflows/meilisearch/workflows/reconcile-brand-search-projection"
 
 export default async function meilisearchBrandSearchProjectionHandler({

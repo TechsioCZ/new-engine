@@ -20,10 +20,10 @@ describe("deleted brand link lifecycle", () => {
       nextIds
     )
 
-    expect(hasActiveBrandConflict(currentIds, new Set<string>(), nextIds)).toBe(
-      false
-    )
-    expect(diffIds(replaceableCurrentIds, nextIds)).toEqual({
+    expect(
+      hasActiveBrandConflict(currentIds, new Set<string>(), nextIds)
+    ).toBeFalsy()
+    expect(diffIds(replaceableCurrentIds, nextIds)).toStrictEqual({
       add: ["brand_active"],
       remove: ["brand_deleted"],
     })
@@ -36,7 +36,7 @@ describe("deleted brand link lifecycle", () => {
       []
     )
 
-    expect(diffIds(replaceableCurrentIds, [])).toEqual({
+    expect(diffIds(replaceableCurrentIds, [])).toStrictEqual({
       add: [],
       remove: [],
     })
@@ -49,7 +49,7 @@ describe("deleted brand link lifecycle", () => {
       []
     )
 
-    expect(diffIds(replaceableCurrentIds, [])).toEqual({
+    expect(diffIds(replaceableCurrentIds, [])).toStrictEqual({
       add: [],
       remove: ["brand_active"],
     })
@@ -63,7 +63,7 @@ describe("deleted brand link lifecycle", () => {
         [],
         true
       )
-    ).toEqual(["brand_deleted"])
+    ).toStrictEqual(["brand_deleted"])
   })
 
   it("still rejects reassignment from a different active brand", () => {
@@ -71,7 +71,7 @@ describe("deleted brand link lifecycle", () => {
       hasActiveBrandConflict(["brand_current"], new Set(["brand_current"]), [
         "brand_next",
       ])
-    ).toBe(true)
+    ).toBeTruthy()
   })
 
   it("routes every desired seed assignment through reconciliation", () => {
@@ -81,7 +81,7 @@ describe("deleted brand link lifecycle", () => {
         desiredBrandHandleByProduct: new Map([["product", "brand"]]),
         products: [{ handle: "product", id: "prod_1" }] as never,
       })
-    ).toEqual([{ brandIds: ["brand_active"], productId: "prod_1" }])
+    ).toStrictEqual([{ brandIds: ["brand_active"], productId: "prod_1" }])
   })
 
   it("routes a missing source manufacturer through explicit removal", () => {
@@ -91,7 +91,7 @@ describe("deleted brand link lifecycle", () => {
         desiredBrandHandleByProduct: new Map(),
         products: [{ handle: "product", id: "prod_1" }] as never,
       })
-    ).toEqual([{ brandIds: [], productId: "prod_1" }])
+    ).toStrictEqual([{ brandIds: [], productId: "prod_1" }])
   })
 })
 
@@ -102,7 +102,7 @@ describe("Brand product deltas", () => {
         add: ["prod_current", "prod_new", "prod_new"],
         remove: ["prod_remove", "prod_missing", "prod_missing"],
       })
-    ).toEqual({
+    ).toStrictEqual({
       add: ["prod_new"],
       remove: ["prod_remove"],
     })
@@ -128,7 +128,7 @@ describe("Brand product deltas", () => {
         new Set(["brand_target", "brand_active"]),
         "brand_target"
       )
-    ).toEqual({
+    ).toStrictEqual({
       active: [{ brand_id: "brand_active", product_id: "prod_conflict" }],
       inactive: [{ brand_id: "brand_deleted", product_id: "prod_reassign" }],
     })

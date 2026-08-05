@@ -1,25 +1,25 @@
 import { normalizeCountryCode } from "../../../../../utils/country-code"
 
-export type SalesRegionProduct = {
+export interface SalesRegionProduct {
   id: string
   sales_channels?: { id: string; name?: string | null }[]
 }
 
-export type RegionCountry = {
+export interface RegionCountry {
   iso_2?: string | null
 }
 
-export type RegionWithCountries = {
+export interface RegionWithCountries {
   countries?: RegionCountry[]
 }
 
-export type TaxRateRule = {
+export interface TaxRateRule {
   reference: string
   reference_id: string
   tax_rate_id: string
 }
 
-export type SalesRegionTaxRate = {
+export interface SalesRegionTaxRate {
   id: string
   is_default?: boolean
   name?: string | null

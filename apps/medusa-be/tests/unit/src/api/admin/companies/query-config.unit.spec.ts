@@ -12,16 +12,16 @@ describe("admin company query config", () => {
       adminCompanyDisplayFields.join(",")
     )
 
-    expect(adminCompanyQueryConfig.list.defaults).toEqual(
+    expect(adminCompanyQueryConfig.list.defaults).toStrictEqual(
       adminCompanyDisplayFields
     )
-    expect(adminCompanyQueryConfig.retrieve.defaults).toEqual(
+    expect(adminCompanyQueryConfig.retrieve.defaults).toStrictEqual(
       adminCompanyDisplayFields
     )
   })
 
   it("includes relations required by the B2B admin company UI", () => {
-    expect(adminCompanyDisplayFields).toEqual(
+    expect(adminCompanyDisplayFields).toStrictEqual(
       expect.arrayContaining([
         "*employees",
         "*employees.customer",

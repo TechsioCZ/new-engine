@@ -1,7 +1,5 @@
-import {
-  normalizeSupportedCurrencyCode,
-  type HerbatikaCurrencyCode as BaseHerbatikaCurrencyCode,
-} from "./currency"
+import { normalizeSupportedCurrencyCode } from "./currency"
+import type { HerbatikaCurrencyCode as BaseHerbatikaCurrencyCode } from "./currency"
 import {
   asStorefrontBoolean,
   asStorefrontNumber,
@@ -18,7 +16,7 @@ export {
   resolveAmountWithoutTax,
 } from "./product-pricing-parsers"
 
-type StorefrontMetadataSource = {
+interface StorefrontMetadataSource {
   metadata?: unknown
 }
 
@@ -26,21 +24,21 @@ export const resolveProductTopOffer = (
   product?: StorefrontMetadataSource | null
 ) => {
   const metadata = asStorefrontRecord(product?.metadata)
-  return asStorefrontRecord(metadata?.["top_offer"])
+  return asStorefrontRecord(metadata?.top_offer)
 }
 
 const resolveTopOfferCurrentAmount = (
   topOffer: Record<string, unknown> | null
 ) =>
-  asStorefrontNumber(topOffer?.["current_price"]) ??
-  asStorefrontNumber(topOffer?.["action_price"]) ??
-  asStorefrontNumber(topOffer?.["price_vat"])
+  asStorefrontNumber(topOffer?.current_price) ??
+  asStorefrontNumber(topOffer?.action_price) ??
+  asStorefrontNumber(topOffer?.price_vat)
 
 const resolveTopOfferStockAmount = (
   topOffer: Record<string, unknown> | null
 ): number | null => {
-  const stock = asStorefrontRecord(topOffer?.["stock"])
-  return asStorefrontNumber(stock?.["amount"])
+  const stock = asStorefrontRecord(topOffer?.stock)
+  return asStorefrontNumber(stock?.amount)
 }
 
 export const resolveTopOfferInStock = (
@@ -64,17 +62,17 @@ export const resolveTopOfferOriginalAmount = (params: {
   const hasExplicitOriginalAmount = explicitCandidate !== null
   const candidate =
     explicitCandidate ??
-    asStorefrontNumber(topOffer?.["compare_at_price"]) ??
-    asStorefrontNumber(topOffer?.["standard_price"]) ??
-    asStorefrontNumber(topOffer?.["price_vat"])
+    asStorefrontNumber(topOffer?.compare_at_price) ??
+    asStorefrontNumber(topOffer?.standard_price) ??
+    asStorefrontNumber(topOffer?.price_vat)
 
   if (typeof currentAmount !== "number" || typeof candidate !== "number") {
     return null
   }
 
   const hasActiveDiscount =
-    asStorefrontBoolean(topOffer?.["has_active_discount"]) === true
-  const actionAmount = asStorefrontNumber(topOffer?.["action_price"])
+    asStorefrontBoolean(topOffer?.has_active_discount) === true
+  const actionAmount = asStorefrontNumber(topOffer?.action_price)
   const hasActionPriceDiscount =
     typeof actionAmount === "number" && candidate > actionAmount
 
@@ -90,7 +88,7 @@ export const resolveTopOfferOriginalAmount = (params: {
 
 export type StorefrontPriceSource = "calculated_price" | "top_offer"
 
-type StorefrontPriceInput = {
+interface StorefrontPriceInput {
   calculatedAmount: unknown
   calculatedCurrencyCode: unknown
   calculatedOriginalAmount?: unknown
@@ -98,7 +96,7 @@ type StorefrontPriceInput = {
   topOffer: Record<string, unknown> | null
 }
 
-export type ResolvedStorefrontPrice = {
+export interface ResolvedStorefrontPrice {
   currentAmount: number
   originalAmount: number | null
   currencyCode: HerbatikaCurrencyCode
@@ -127,7 +125,7 @@ const resolveMatchingTopOfferOriginalAmount = ({
   topOffer: Record<string, unknown> | null
 }) => {
   const topOfferCurrencyCode = normalizeSupportedCurrencyCode(
-    topOffer?.["currency"]
+    topOffer?.currency
   )
 
   if (topOfferCurrencyCode !== currencyCode) {
@@ -159,6 +157,7 @@ export const resolveStorefrontPrice = ({
     (!expectedCurrency || resolvedCalculatedCurrency === expectedCurrency)
   ) {
     return {
+      currencyCode: resolvedCalculatedCurrency,
       currentAmount: resolvedCalculatedAmount,
       originalAmount:
         resolvePositiveOriginalAmount(
@@ -170,14 +169,13 @@ export const resolveStorefrontPrice = ({
           currencyCode: resolvedCalculatedCurrency,
           topOffer,
         }),
-      currencyCode: resolvedCalculatedCurrency,
       source: "calculated_price",
     }
   }
 
   const resolvedTopOfferAmount = resolveTopOfferCurrentAmount(topOffer)
   const resolvedTopOfferCurrency = normalizeSupportedCurrencyCode(
-    topOffer?.["currency"]
+    topOffer?.currency
   )
 
   if (
@@ -186,12 +184,12 @@ export const resolveStorefrontPrice = ({
     (!expectedCurrency || resolvedTopOfferCurrency === expectedCurrency)
   ) {
     return {
+      currencyCode: resolvedTopOfferCurrency,
       currentAmount: resolvedTopOfferAmount,
       originalAmount: resolveTopOfferOriginalAmount({
         currentAmount: resolvedTopOfferAmount,
         topOffer,
       }),
-      currencyCode: resolvedTopOfferCurrency,
       source: "top_offer",
     }
   }

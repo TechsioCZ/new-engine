@@ -6,8 +6,8 @@ import {
   getRuntimeProviderReadinessPath,
   getRuntimeProviderSourceServiceId,
   listRuntimeProviderOutputTargets,
-  type StackInputs,
 } from "../contracts/stack-inputs.js"
+import type { StackInputs } from "../contracts/stack-inputs.js"
 import type { StackManifest } from "../contracts/stack-manifest.js"
 import { listDeployableServices } from "../contracts/stack-manifest.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
@@ -103,12 +103,12 @@ export function reusePersistedMeiliKeysFromTargets(input: {
       serviceIds: input.backendConsumerIds,
       envVar: backendEnvVar,
     }),
+    frontendEnvVar,
     frontendKey: resolveSharedPersistedValue({
       targets: input.targets,
       serviceIds: input.frontendConsumerIds,
       envVar: frontendEnvVar,
     }),
-    frontendEnvVar,
   }
 }
 
@@ -158,22 +158,22 @@ export async function provisionMeiliKeys(input: {
 
   if (input.dryRun) {
     return {
-      project_slug: input.projectSlug,
-      environment_name: input.environmentName,
-      service_slug: input.serviceSlug,
-      meili_url: `https://${input.serviceSlug}.dry-run.invalid`,
-      backend_key: input.needBackendKey ? "dry-run:preview:backend" : "",
-      backend_env_var: backendEnvVar,
       backend_created: input.needBackendKey,
+      backend_env_var: backendEnvVar,
+      backend_key: input.needBackendKey ? "dry-run:preview:backend" : "",
       backend_updated: false,
-      frontend_key: input.needFrontendKey ? "dry-run:preview:frontend" : "",
-      frontend_env_var: frontendEnvVar,
+      environment_name: input.environmentName,
       frontend_created: input.needFrontendKey,
+      frontend_env_var: frontendEnvVar,
+      frontend_key: input.needFrontendKey ? "dry-run:preview:frontend" : "",
       frontend_updated: false,
+      meili_url: `https://${input.serviceSlug}.dry-run.invalid`,
+      project_slug: input.projectSlug,
+      service_slug: input.serviceSlug,
     }
   }
 
-  const outputs: Array<{
+  const outputs: {
     output_id: string
     env_var: string
     policy: {
@@ -183,11 +183,11 @@ export async function provisionMeiliKeys(input: {
       actions: string[]
       indexes: string[]
     }
-  }> = []
+  }[] = []
   if (input.needBackendKey) {
     outputs.push({
-      output_id: "backend_key",
       env_var: backendEnvVar,
+      output_id: "backend_key",
       policy: {
         kind: "meilisearch_key",
         ...backendPolicy,
@@ -196,8 +196,8 @@ export async function provisionMeiliKeys(input: {
   }
   if (input.needFrontendKey) {
     outputs.push({
-      output_id: "frontend_key",
       env_var: frontendEnvVar,
+      output_id: "frontend_key",
       policy: {
         kind: "meilisearch_key",
         ...frontendPolicy,
@@ -209,12 +209,12 @@ export async function provisionMeiliKeys(input: {
     input.baseUrl,
     input.apiToken
   ).runRuntimeProvider({
-    project_slug: input.projectSlug,
     environment_name: input.environmentName,
-    provider_id: input.providerId,
-    service_slug: input.serviceSlug,
-    readiness_path: readinessPath,
     outputs,
+    project_slug: input.projectSlug,
+    provider_id: input.providerId,
+    readiness_path: readinessPath,
+    service_slug: input.serviceSlug,
   })
 
   const backendOutput = input.needBackendKey
@@ -225,18 +225,18 @@ export async function provisionMeiliKeys(input: {
     : null
 
   return {
-    project_slug: response.project_slug,
-    environment_name: response.environment_name,
-    service_slug: response.service_slug,
-    meili_url: response.source_url,
-    backend_key: backendOutput?.value ?? "",
-    backend_env_var: backendEnvVar,
     backend_created: backendOutput?.created ?? false,
+    backend_env_var: backendEnvVar,
+    backend_key: backendOutput?.value ?? "",
     backend_updated: backendOutput?.updated ?? false,
-    frontend_key: frontendOutput?.value ?? "",
-    frontend_env_var: frontendEnvVar,
+    environment_name: response.environment_name,
     frontend_created: frontendOutput?.created ?? false,
+    frontend_env_var: frontendEnvVar,
+    frontend_key: frontendOutput?.value ?? "",
     frontend_updated: frontendOutput?.updated ?? false,
+    meili_url: response.source_url,
+    project_slug: response.project_slug,
+    service_slug: response.service_slug,
   }
 }
 

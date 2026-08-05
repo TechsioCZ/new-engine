@@ -4,17 +4,18 @@ import { Rating } from "@techsio/ui-kit/atoms/rating"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea"
 import { useTranslations } from "next-intl"
-import { type FormEvent, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
+import type { FormEvent } from "react"
 
 import { buildProductReviewTitle } from "@/components/reviews/product-review-errors"
 
-export type ProductReviewFormSubmitValues = {
+export interface ProductReviewFormSubmitValues {
   content: string
   rating: number
   title: string
 }
 
-type ProductReviewFormValues = {
+interface ProductReviewFormValues {
   content: string
   rating: number | null
 }
@@ -23,7 +24,7 @@ type ProductReviewFormErrors = Partial<
   Record<keyof ProductReviewFormValues, string>
 >
 
-type ProductReviewFormProps = {
+interface ProductReviewFormProps {
   disabled?: boolean
   formId: string
   resetKey?: number
@@ -95,7 +96,7 @@ export function ProductReviewForm({
     }
 
     const content = values.content.trim()
-    const rating = values.rating
+    const { rating } = values
 
     if (typeof rating !== "number") {
       return

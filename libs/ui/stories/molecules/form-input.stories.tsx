@@ -6,12 +6,6 @@ import { Button } from "../../src/atoms/button"
 import { FormInput } from "../../src/molecules/form-input"
 
 const meta: Meta<typeof FormInput> = {
-  title: "Molecules/FormInput",
-  component: FormInput,
-  parameters: {
-    layout: "centered",
-  },
-  tags: ["autodocs"],
   argTypes: {
     // Text inputs
     label: {
@@ -70,17 +64,23 @@ const meta: Meta<typeof FormInput> = {
     },
   },
   args: {
+    disabled: false,
+    helpText: "Will be visible on your profile",
     label: "Username",
     placeholder: "Enter username",
-    helpText: "Will be visible on your profile",
-    size: "md",
-    validateStatus: "default",
-    showHelpTextIcon: false,
-    type: "text",
-    disabled: false,
-    required: false,
     readOnly: false,
+    required: false,
+    showHelpTextIcon: false,
+    size: "md",
+    type: "text",
+    validateStatus: "default",
   },
+  component: FormInput,
+  parameters: {
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/FormInput",
 }
 
 export default meta
@@ -302,9 +302,7 @@ export const Sizes: Story = {
 
 // Interactive validation example
 export const InteractiveValidation: Story = {
-  render: () => {
-    return <EmailValidationExample />
-  },
+  render: () => <EmailValidationExample />,
 }
 
 function EmailValidationExample() {
@@ -331,8 +329,12 @@ function EmailValidationExample() {
         placeholder="your@email.com"
         required
         value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        onBlur={() => setTouched(true)}
+        onChange={(e) => {
+          setEmail(e.target.value)
+        }}
+        onBlur={() => {
+          setTouched(true)
+        }}
         validateStatus={validateStatus}
         helpText={
           showError
@@ -372,19 +374,19 @@ function PasswordCheck({ passed, label }: { passed: boolean; label: string }) {
 
 function RegistrationFormExample() {
   const [form, setForm] = useState({
-    fullName: "",
     email: "",
-    username: "",
+    fullName: "",
     password: "",
     phone: "",
+    username: "",
   })
 
   const [touched, setTouched] = useState({
-    fullName: false,
     email: false,
-    username: false,
+    fullName: false,
     password: false,
     phone: false,
+    username: false,
   })
 
   const updateField = (field: keyof typeof form, value: string) => {
@@ -397,42 +399,44 @@ function RegistrationFormExample() {
 
   // Validation rules
   const validations = {
-    fullName: {
-      isValid: form.fullName.length >= 2,
-      error: "Name must be at least 2 characters",
-      success: "Looks good!",
-    },
     email: {
-      isValid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()),
       error: "Please enter a valid email address",
+      isValid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()),
       success: "Email is correct",
     },
-    username: {
-      isValid: /^[a-zA-Z0-9_]{3,}$/.test(form.username),
-      error: "Min 3 characters, only letters, numbers, underscore",
-      success: "Username is available",
+    fullName: {
+      error: "Name must be at least 2 characters",
+      isValid: form.fullName.length >= 2,
+      success: "Looks good!",
     },
     password: {
       checks: {
         length: form.password.length >= 8,
-        uppercase: /[A-Z]/.test(form.password),
         number: /\d/.test(form.password),
+        uppercase: /[A-Z]/.test(form.password),
       },
+      error: "Weak password",
       get isValid() {
         return this.checks.length && this.checks.uppercase && this.checks.number
       },
-      error: "Weak password",
       success: "Strong password!",
     },
     phone: {
-      isValid: form.phone === "" || /^\+?[\d\s()-]{7,}$/.test(form.phone),
       error: "Please enter a valid phone number",
+      isValid: form.phone === "" || /^\+?[\d\s()-]{7,}$/.test(form.phone),
       success: "Valid phone number",
+    },
+    username: {
+      error: "Min 3 characters, only letters, numbers, underscore",
+      isValid: /^[a-zA-Z0-9_]{3,}$/.test(form.username),
+      success: "Username is available",
     },
   }
 
   const getStatus = (field: keyof typeof validations) => {
-    if (!touched[field] || !form[field]) return "default"
+    if (!touched[field] || !form[field]) {
+      return "default"
+    }
     return validations[field].isValid ? "success" : "error"
   }
 
@@ -440,7 +444,9 @@ function RegistrationFormExample() {
     field: keyof typeof validations,
     defaultText: string
   ) => {
-    if (!touched[field] || !form[field]) return defaultText
+    if (!touched[field] || !form[field]) {
+      return defaultText
+    }
     return validations[field].isValid
       ? validations[field].success
       : validations[field].error
@@ -457,8 +463,12 @@ function RegistrationFormExample() {
           placeholder="John Doe"
           required
           value={form.fullName}
-          onChange={(e) => updateField("fullName", e.target.value)}
-          onBlur={() => touchField("fullName")}
+          onChange={(e) => {
+            updateField("fullName", e.target.value)
+          }}
+          onBlur={() => {
+            touchField("fullName")
+          }}
           validateStatus={getStatus("fullName")}
           helpText={getHelpText("fullName", "Enter your full name")}
         />
@@ -470,8 +480,12 @@ function RegistrationFormExample() {
           placeholder="john@example.com"
           required
           value={form.email}
-          onChange={(e) => updateField("email", e.target.value)}
-          onBlur={() => touchField("email")}
+          onChange={(e) => {
+            updateField("email", e.target.value)
+          }}
+          onBlur={() => {
+            touchField("email")
+          }}
           validateStatus={getStatus("email")}
           helpText={getHelpText(
             "email",
@@ -485,8 +499,12 @@ function RegistrationFormExample() {
           placeholder="johndoe"
           required
           value={form.username}
-          onChange={(e) => updateField("username", e.target.value)}
-          onBlur={() => touchField("username")}
+          onChange={(e) => {
+            updateField("username", e.target.value)
+          }}
+          onBlur={() => {
+            touchField("username")
+          }}
           validateStatus={getStatus("username")}
           helpText={getHelpText("username", "Visible to other users")}
         />
@@ -499,8 +517,12 @@ function RegistrationFormExample() {
             placeholder="••••••••"
             required
             value={form.password}
-            onChange={(e) => updateField("password", e.target.value)}
-            onBlur={() => touchField("password")}
+            onChange={(e) => {
+              updateField("password", e.target.value)
+            }}
+            onBlur={() => {
+              touchField("password")
+            }}
             validateStatus={
               !touched.password || !form.password
                 ? "default"
@@ -538,8 +560,12 @@ function RegistrationFormExample() {
           type="tel"
           placeholder="+1 (XXX) XXX-XXXX"
           value={form.phone}
-          onChange={(e) => updateField("phone", e.target.value)}
-          onBlur={() => touchField("phone")}
+          onChange={(e) => {
+            updateField("phone", e.target.value)
+          }}
+          onBlur={() => {
+            touchField("phone")
+          }}
           validateStatus={getStatus("phone")}
           helpText={getHelpText("phone", "Optional")}
         />

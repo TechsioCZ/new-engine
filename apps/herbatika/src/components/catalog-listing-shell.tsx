@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 
-type CatalogListingShellProps = {
+interface CatalogListingShellProps {
   facets: ReactNode
   results: ReactNode
 }

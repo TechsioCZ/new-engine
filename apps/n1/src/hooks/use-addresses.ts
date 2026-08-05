@@ -3,11 +3,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { AddressValidationError } from "@/lib/errors"
 import { queryKeys } from "@/lib/query-keys"
 import {
-  type CreateAddressData,
   createAddress,
   deleteAddress,
   updateAddress,
 } from "@/services/customer-service"
+import type { CreateAddressData } from "@/services/customer-service"
 import type { AddressFormData } from "@/utils/address-validation"
 import { validateAddressForm } from "@/utils/address-validation"
 import { cleanPhoneNumber } from "@/utils/format/format-phone-number"
@@ -20,10 +20,10 @@ import { cleanPostalCode } from "@/utils/format/format-postal-code"
 function cleanAddressData<T extends Partial<CreateAddressData>>(data: T): T {
   return {
     ...data,
+    phone: data.phone ? cleanPhoneNumber(data.phone) : data.phone,
     postal_code: data.postal_code
       ? cleanPostalCode(data.postal_code)
       : data.postal_code,
-    phone: data.phone ? cleanPhoneNumber(data.phone) : data.phone,
   }
 }
 
@@ -33,7 +33,7 @@ export function useCreateAddress() {
   return useMutation({
     mutationFn: async (data: CreateAddressData) => {
       // Safety net validation before API call (validates formatted data)
-      const errors = validateAddressForm(data as AddressFormData)
+      const errors = validateAddressForm(data)
       if (Object.keys(errors).length > 0) {
         throw new AddressValidationError(errors)
       }
@@ -97,7 +97,7 @@ export function useDeleteAddress() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (addressId: string) => deleteAddress(addressId),
+    mutationFn: async (addressId: string) => deleteAddress(addressId),
     onSuccess: async () => {
       // Invalidate addresses cache to refetch
       await queryClient.invalidateQueries({

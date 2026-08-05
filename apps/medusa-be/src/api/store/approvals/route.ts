@@ -7,12 +7,12 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { ApprovalType } from "../../../types/approval"
 import type { StoreGetApprovalsType } from "./validators"
 
-type CartWithApprovals = {
+interface CartWithApprovals {
   id: string
   approvals?: { id?: string }[]
 }
 
-type ApprovalStatusFilters = {
+interface ApprovalStatusFilters {
   cart_id: string[]
   status?: StoreGetApprovalsType["status"]
 }

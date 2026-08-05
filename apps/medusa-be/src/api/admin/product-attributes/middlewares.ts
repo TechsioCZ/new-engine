@@ -17,8 +17,8 @@ import {
 
 export const adminProductAttributeRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/admin/product-attributes/definitions",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(AdminGetProductAttributeDefinitionsSchema, {
         isList: true,
@@ -26,22 +26,22 @@ export const adminProductAttributeRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/product-attributes/definitions",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminCreateProductAttributeDefinitionSchema),
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/product-attributes/definitions/:id",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminUpdateProductAttributeDefinitionSchema),
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/admin/product-attributes/options",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(AdminGetProductAttributeOptionsSchema, {
         isList: true,
@@ -49,22 +49,22 @@ export const adminProductAttributeRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/product-attributes/definitions/:id/options",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminCreateProductAttributeOptionSchema),
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/product-attributes/options/:id",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminUpdateProductAttributeOptionSchema),
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/admin/product-attributes/options/:id/products",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(AdminGetProductAttributeOptionProductsSchema, {
         isList: true,
@@ -72,8 +72,8 @@ export const adminProductAttributeRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/admin/products/:id/product-attributes",
+    methods: ["POST"],
     middlewares: [validateAndTransformBody(AdminSetProductAttributesSchema)],
   },
 ]

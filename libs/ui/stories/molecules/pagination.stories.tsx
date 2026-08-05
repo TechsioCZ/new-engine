@@ -2,10 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react"
 import type { ComponentPropsWithoutRef } from "react"
 
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
-import {
-  Pagination,
-  type PaginationProps,
-} from "../../src/molecules/pagination"
+import { Pagination } from "../../src/molecules/pagination"
+import type { PaginationProps } from "../../src/molecules/pagination"
 
 const getStoryPageUrl = ({
   page,
@@ -30,42 +28,21 @@ function StoryLink({ replace, ...props }: StoryLinkProps) {
 }
 
 const meta: Meta<typeof Pagination> = {
-  title: "Molecules/Pagination",
-  component: Pagination,
-  parameters: {
-    layout: "centered",
-  },
-  tags: ["autodocs"],
   argTypes: {
-    page: {
-      control: { type: "number", min: 1 },
-      description: "Current active page (controlled)",
-    },
-    defaultPage: {
-      control: { type: "number", min: 1 },
-      description: "Initial active page (uncontrolled)",
+    boundaryCount: {
+      control: { min: 0, type: "number" },
       defaultValue: 1,
+      description: "Number of boundary pages to always show at each end",
     },
     count: {
-      control: { type: "number", min: 1 },
-      description: "Total number of items",
+      control: { min: 1, type: "number" },
       defaultValue: 100,
+      description: "Total number of items",
     },
-    pageSize: {
-      control: { type: "number", min: 1 },
-      description: "Number of items per page",
-      defaultValue: 10,
-    },
-    siblingCount: {
-      control: { type: "number", min: 0 },
-      description:
-        "Number of sibling pages to show on each side of current page",
+    defaultPage: {
+      control: { min: 1, type: "number" },
       defaultValue: 1,
-    },
-    boundaryCount: {
-      control: { type: "number", min: 0 },
-      description: "Number of boundary pages to always show at each end",
-      defaultValue: 1,
+      description: "Initial active page (uncontrolled)",
     },
     getPageUrl: {
       control: false,
@@ -80,27 +57,48 @@ const meta: Meta<typeof Pagination> = {
       description:
         "Optional props forwarded to the custom link component. `href` remains owned by Pagination.",
     },
-    variant: {
-      control: "select",
-      options: ["filled", "outlined", "minimal"],
-      description: "Visual style variant",
-      defaultValue: "filled",
+    page: {
+      control: { min: 1, type: "number" },
+      description: "Current active page (controlled)",
+    },
+    pageSize: {
+      control: { min: 1, type: "number" },
+      defaultValue: 10,
+      description: "Number of items per page",
     },
     showPrevNext: {
       control: "boolean",
-      description: "Show previous/next page buttons",
       defaultValue: true,
+      description: "Show previous/next page buttons",
+    },
+    siblingCount: {
+      control: { min: 0, type: "number" },
+      defaultValue: 1,
+      description:
+        "Number of sibling pages to show on each side of current page",
+    },
+    variant: {
+      control: "select",
+      defaultValue: "filled",
+      description: "Visual style variant",
+      options: ["filled", "outlined", "minimal"],
     },
   },
   args: {
-    defaultPage: 5,
     count: 100,
+    defaultPage: 5,
+    getPageUrl: getStoryPageUrl,
     pageSize: 10,
+    showPrevNext: true,
     siblingCount: 1,
     variant: "filled",
-    showPrevNext: true,
-    getPageUrl: getStoryPageUrl,
   },
+  component: Pagination,
+  parameters: {
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/Pagination",
 }
 
 export default meta

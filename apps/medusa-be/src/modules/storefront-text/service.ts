@@ -7,7 +7,7 @@ import {
 
 import StorefrontText from "./models/storefront-text"
 
-type TransactionRepository = {
+interface TransactionRepository {
   getFreshManager: (context?: Context) => unknown
   transaction: <Result>(
     task: (transactionManager: unknown) => Promise<Result>,
@@ -19,7 +19,7 @@ type TransactionRepository = {
   ) => Promise<Result>
 }
 
-type StorefrontTextModuleDependencies = {
+interface StorefrontTextModuleDependencies {
   baseRepository: TransactionRepository
 }
 

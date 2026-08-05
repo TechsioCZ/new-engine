@@ -28,8 +28,8 @@ export const updateQuotesStep = createStep(
 
     return new StepResponse(updatedQuotes, {
       dataBeforeUpdate,
-      selects,
       relations,
+      selects,
     })
   },
   async (revertInput, { container }) => {

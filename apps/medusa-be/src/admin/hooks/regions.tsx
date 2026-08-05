@@ -13,8 +13,8 @@ export function useRegions() {
       try {
         const result = await sdk.admin.region.list()
         setData(result.regions)
-      } catch (err) {
-        setError(err)
+      } catch (error) {
+        setError(error)
       } finally {
         setLoading(false)
       }
@@ -25,7 +25,7 @@ export function useRegions() {
 
   return {
     data,
-    loading,
     error,
+    loading,
   }
 }

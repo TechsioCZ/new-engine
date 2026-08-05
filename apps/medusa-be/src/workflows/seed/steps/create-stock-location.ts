@@ -10,7 +10,7 @@ import {
   updateStockLocationsWorkflow,
 } from "@medusajs/medusa/core-flows"
 
-export type CreateStockLocationStepInput = {
+export interface CreateStockLocationStepInput {
   locations: {
     name: string
     address: {

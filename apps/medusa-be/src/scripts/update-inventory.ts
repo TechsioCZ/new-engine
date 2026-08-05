@@ -15,26 +15,26 @@ type ProductWithVariants = ProductDTO & {
   variants: NonNullable<ProductDTO["variants"]>
 }
 
-type ProductService = {
+interface ProductService {
   listProducts: (
     filters: Record<string, unknown>,
     config?: Record<string, unknown>
   ) => Promise<ProductDTO[]>
 }
 
-type StockLocationService = {
+interface StockLocationService {
   listStockLocations: (
     filters: Record<string, unknown>,
     config?: Record<string, unknown>
   ) => Promise<StockLocationDTO[]>
 }
 
-type InventoryItemLink = {
+interface InventoryItemLink {
   inventory_item_id: string
   variant_id: string
 }
 
-type InventoryLevel = {
+interface InventoryLevel {
   id: string
   inventory_item_id: string
   location_id: string
@@ -42,14 +42,14 @@ type InventoryLevel = {
   stocked_quantity: number
 }
 
-type InventoryLevelUpdate = {
+interface InventoryLevelUpdate {
   id: string
   inventory_item_id: string
   location_id: string
   stocked_quantity: number
 }
 
-type QueryService = {
+interface QueryService {
   graph: <T>(config: {
     entity: string
     fields: string[]
@@ -85,7 +85,7 @@ async function findProductWithVariants(
     return
   }
 
-  return product as ProductWithVariants
+  return product
 }
 
 async function findStockLocation(

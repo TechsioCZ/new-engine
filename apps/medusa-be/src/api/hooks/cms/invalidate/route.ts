@@ -13,7 +13,7 @@ import {
 } from "../../../../utils/webhooks"
 
 /** Expected webhook payload from Payload CMS invalidation hook. */
-type PayloadWebhookBody = {
+interface PayloadWebhookBody {
   collection: string
   doc?: { id?: string; slug?: string; locale?: string }
 }
@@ -88,10 +88,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       error instanceof Error ? error : new Error(String(error))
     )
     return res.status(500).json({
-      error: "Failed to invalidate cache",
       collection: body.collection,
-      slug: body.doc?.slug ?? null,
+      error: "Failed to invalidate cache",
       locale: body.doc?.locale ?? null,
+      slug: body.doc?.slug ?? null,
     })
   }
 

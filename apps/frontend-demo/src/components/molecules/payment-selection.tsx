@@ -26,9 +26,9 @@ export function PaymentSelection({
       setCurrentStep(currentStep + 1)
     } else {
       toast.create({
-        type: "error",
-        title: "Vyberte způsob platby",
         description: "Pro pokračování je nutné vybrat způsob platby",
+        title: "Vyberte způsob platby",
+        type: "error",
       })
     }
   }
@@ -46,7 +46,9 @@ export function PaymentSelection({
             className="relative flex h-[100px] flex-col items-center justify-center rounded-lg border-2 border-border-subtle bg-surface p-2 transition-all duration-200 hover:bg-surface-hover hover:shadow-md focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-ring focus-visible:outline-offset-(length:--default-ring-offset) data-[selected=true]:border-primary data-[selected=true]:bg-surface-selected data-[selected=true]:shadow-lg sm:h-[140px] sm:p-3 lg:h-[180px] lg:p-4"
             data-selected={selected === method.id}
             key={method.id}
-            onClick={() => onSelect(method.id)}
+            onClick={() => {
+              onSelect(method.id)
+            }}
             theme="borderless"
           >
             <div
@@ -69,7 +71,12 @@ export function PaymentSelection({
         ))}
       </div>
       <div className="flex justify-between">
-        <Button onClick={() => setCurrentStep(currentStep - 1)} size="sm">
+        <Button
+          onClick={() => {
+            setCurrentStep(currentStep - 1)
+          }}
+          size="sm"
+        >
           Zpět
         </Button>
         <Button onClick={handleProgress} size="sm">

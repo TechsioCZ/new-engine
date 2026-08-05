@@ -73,7 +73,7 @@ export const parseBrandData = (
 
     const firstLink = doc.querySelector("a")
     const sizingGuideUrl = firstLink?.href || undefined
-    const paragraphs = Array.from(doc.querySelectorAll("p"))
+    const paragraphs = [...doc.querySelectorAll("p")]
     const manufacturerIndex = paragraphs.findIndex((p) =>
       p.textContent?.includes("Výrobce:")
     )
@@ -113,10 +113,10 @@ export const parseBrandData = (
     const distributor = extractDistributorAtIndex(paragraphs, distributorIndex)
 
     return {
-      sizingGuideUrl,
+      distributor,
       manufacturer,
       responsiblePerson,
-      distributor,
+      sizingGuideUrl,
     }
   } catch (error) {
     console.error("[parseBrandData] Unexpected error:", error)
@@ -173,11 +173,11 @@ function parseManufacturerSection(
   const phone = findPhone(paragraphs)
 
   return {
-    name,
     address,
-    taxId,
     email,
+    name,
     phone,
+    taxId,
   }
 }
 
@@ -202,11 +202,11 @@ function parseResponsibleSection(
   const phone = findPhone(paragraphs)
 
   return {
-    name,
     address,
-    taxId,
     email,
+    name,
     phone,
+    taxId,
   }
 }
 

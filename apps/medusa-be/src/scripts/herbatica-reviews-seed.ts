@@ -17,13 +17,13 @@ const REVIEW_SOURCE_PREFIX = "herbatica-review"
 const REVIEW_BATCH_SIZE = 100
 const VARIANT_ID_QUERY_REGEX = /[?&]variantId=([^&#]+)/
 
-type ParsedReviewProduct = {
+interface ParsedReviewProduct {
   gtins: string[]
   skus: string[]
   variantId?: string
 }
 
-type ParsedReview = {
+interface ParsedReview {
   content: string
   id: string
   rating: number
@@ -32,7 +32,7 @@ type ParsedReview = {
   products: ParsedReviewProduct[]
 }
 
-type ProductVariantRecord = {
+interface ProductVariantRecord {
   ean?: null | string
   id: string
   metadata?: null | Record<string, unknown>
@@ -42,7 +42,7 @@ type ProductVariantRecord = {
   sku?: null | string
 }
 
-type ReviewRecord = {
+interface ReviewRecord {
   customer_id: string
   id: string
   product_id: string
@@ -89,7 +89,7 @@ const getUrlVariantId = (url?: string) => {
     const parsedUrl = new URL(url)
     return normalizeInlineText(parsedUrl.searchParams.get("variantId") ?? "")
   } catch {
-    return normalizeInlineText(url.match(VARIANT_ID_QUERY_REGEX)?.[1])
+    return normalizeInlineText(VARIANT_ID_QUERY_REGEX.exec(url)?.[1])
   }
 }
 
@@ -218,7 +218,7 @@ const buildVariantProductIndexes = async (container: ExecArgs["container"]) => {
 const addMatchedProducts = (
   matches: Set<string>,
   index: Map<string, Set<string>>,
-  values: Array<string | undefined>
+  values: (string | undefined)[]
 ) => {
   for (const value of values) {
     const normalized = normalizeInlineText(value)

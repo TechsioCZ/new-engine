@@ -11,26 +11,28 @@ import {
 import {
   getMeasurementUnitActiveProductCounts,
   getMeasurementUnitService,
-  type MeasurementUnitRecord,
-  type ProductMeasurementRecord,
   toMeasurementUnitResponse,
   toProductMeasurementResponse,
   toProductVariantMeasurementResponse,
 } from "../../../utils/measurement-units"
+import type {
+  MeasurementUnitRecord,
+  ProductMeasurementRecord,
+} from "../../../utils/measurement-units"
 
-type RetrieveMeasurementUnitOptions = {
+interface RetrieveMeasurementUnitOptions {
   withDeleted?: boolean
 }
 
 type MeasurementUnitProductListStatus = "active" | "all" | "deleted"
 
-export type ProductMeasurementVariantResponse = {
+export interface ProductMeasurementVariantResponse {
   id: string
   sku?: null | string
   title?: null | string
 }
 
-export type MeasurementUnitAssignedProductResponse = {
+export interface MeasurementUnitAssignedProductResponse {
   deleted_at?: Date | string | null
   handle?: null | string
   id: string

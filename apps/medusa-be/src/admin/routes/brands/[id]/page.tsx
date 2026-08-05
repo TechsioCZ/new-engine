@@ -5,7 +5,6 @@ import {
   Button,
   Container,
   createDataTableColumnHelper,
-  type DataTableColumnDef,
   Drawer,
   Heading,
   IconButton,
@@ -17,16 +16,13 @@ import {
   toast,
   usePrompt,
 } from "@medusajs/ui"
+import type { DataTableColumnDef } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { type Dispatch, type SetStateAction, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
+import type { Dispatch, SetStateAction } from "react"
 import { useTranslation } from "react-i18next"
-import {
-  Link,
-  type LoaderFunctionArgs,
-  type UIMatch,
-  useNavigate,
-  useParams,
-} from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
+import type { LoaderFunctionArgs, UIMatch } from "react-router-dom"
 
 import { BrandDataTable } from "../../../components/brands/brand-data-table"
 import { BrandEditDrawer } from "../../../components/brands/brand-form"
@@ -37,19 +33,21 @@ import {
   toRowSelection,
 } from "../../../components/brands/brand-table-state"
 import {
-  type Brand,
-  type BrandAttributeType,
-  type BrandProductOption,
-  type BrandResponse,
   brandQueryKeys,
   listBrandAttributeTypes,
-  type ProductSummary,
   productQueryKeys,
   restoreBrand,
   retrieveBrand,
   retrieveBrandProductOptions,
   retrieveBrandProducts,
   updateBrandProducts,
+} from "../../../lib/brands"
+import type {
+  Brand,
+  BrandAttributeType,
+  BrandProductOption,
+  BrandResponse,
+  ProductSummary,
 } from "../../../lib/brands"
 import { translateBreadcrumb } from "../../../lib/breadcrumb"
 import { useDebouncedValue } from "../../../lib/use-debounced-value"
@@ -58,13 +56,13 @@ const PAGE_SIZE = 20
 const PRODUCT_SELECTOR_PAGE_SIZE = 20
 
 export async function loader({ params }: LoaderFunctionArgs) {
-  const id = params["id"]
+  const { id } = params
 
   if (!id) {
     return { brand: undefined }
   }
 
-  return retrieveBrand(id)
+  return await retrieveBrand(id)
 }
 
 export const handle = {
@@ -121,12 +119,12 @@ const ProductAssignmentDrawer = ({
   const { data, isLoading } = useQuery({
     enabled: open,
     placeholderData: (previousData) => previousData,
-    queryFn: () => retrieveBrandProductOptions(brandId, params),
+    queryFn: async () => retrieveBrandProductOptions(brandId, params),
     queryKey: brandQueryKeys.productOptions(brandId, params),
   })
 
   const mutation = useMutation({
-    mutationFn: () =>
+    mutationFn: async () =>
       updateBrandProducts(
         brandId,
         buildProductSelectionDelta(currentProductIds, selectedIds)
@@ -182,8 +180,6 @@ const ProductAssignmentDrawer = ({
     productOptionColumnHelper.accessor(
       (option) => option.product.title ?? option.product.id,
       {
-        header: t("columns.product"),
-        id: "product",
         cell: ({ row }) => {
           const assignedBrand = row.original.assigned_brand
           const label = row.original.product.title ?? row.original.product.id
@@ -201,6 +197,8 @@ const ProductAssignmentDrawer = ({
             label
           )
         },
+        header: t("columns.product"),
+        id: "product",
       }
     ),
     productOptionColumnHelper.accessor(
@@ -272,7 +270,9 @@ const ProductAssignmentDrawer = ({
           <div className="flex justify-end gap-2">
             <Button
               disabled={mutation.isPending}
-              onClick={() => handleOpenChange(false)}
+              onClick={() => {
+                handleOpenChange(false)
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -282,7 +282,9 @@ const ProductAssignmentDrawer = ({
             <Button
               disabled={mutation.isPending}
               isLoading={mutation.isPending}
-              onClick={() => mutation.mutate()}
+              onClick={() => {
+                mutation.mutate()
+              }}
               size="small"
               type="button"
             >
@@ -329,26 +331,26 @@ const BrandProductsSection = ({
   const { t } = useTranslation("brands")
   const columns: DataTableColumnDef<ProductSummary>[] = [
     productColumnHelper.accessor((product) => product.title ?? product.id, {
-      header: t("columns.product"),
-      id: "product",
       cell: ({ row }) => (
         <Link to={`/products/${row.original.id}`}>
           {row.original.title ?? row.original.id}
         </Link>
       ),
+      header: t("columns.product"),
+      id: "product",
     }),
     productColumnHelper.accessor((product) => product.handle ?? "-", {
       header: t("columns.handle"),
       id: "handle",
     }),
     productColumnHelper.accessor("status", {
-      header: t("columns.status"),
       cell: ({ row }) =>
         row.original.status ? (
           <Badge size="2xsmall">{row.original.status}</Badge>
         ) : (
           "-"
         ),
+      header: t("columns.status"),
     }),
     ...(canManage
       ? [
@@ -360,7 +362,9 @@ const BrandProductsSection = ({
                     {
                       icon: <Trash />,
                       label: t("actions.remove"),
-                      onClick: () => onRemove(row.original),
+                      onClick: () => {
+                        onRemove(row.original)
+                      },
                     },
                   ],
           }),
@@ -435,7 +439,9 @@ const BrandProductsSection = ({
         getRowId={(product) => product.id}
         isLoading={isLoading}
         onPageIndexChange={setPageIndex}
-        onRowClick={(_event, product) => onOpenProduct(product.id)}
+        onRowClick={(_event, product) => {
+          onOpenProduct(product.id)
+        }}
         pageIndex={pageIndex}
         pageSize={PAGE_SIZE}
       />
@@ -443,7 +449,7 @@ const BrandProductsSection = ({
   )
 }
 
-type BrandDetailContentProps = {
+interface BrandDetailContentProps {
   attributeTypes: BrandAttributeType[]
   brand: Brand
   count: number
@@ -533,7 +539,9 @@ const BrandDetailContent = ({
               </Button>
             ) : (
               <Button
-                onClick={() => onEditOpenChange(true)}
+                onClick={() => {
+                  onEditOpenChange(true)
+                }}
                 size="small"
                 type="button"
                 variant="secondary"
@@ -705,7 +713,7 @@ const BrandDetailPage = () => {
 
   const brandQuery = useQuery({
     enabled: !!id,
-    queryFn: () => {
+    queryFn: async () => {
       if (!id) {
         throw new Error(t("errors.brandIdRequired"))
       }
@@ -726,7 +734,7 @@ const BrandDetailPage = () => {
   const productsQuery = useQuery({
     enabled: !!id && !!brand,
     placeholderData: (previousData) => previousData,
-    queryFn: () => {
+    queryFn: async () => {
       if (!id) {
         throw new Error(t("errors.brandIdRequired"))
       }
@@ -745,7 +753,7 @@ const BrandDetailPage = () => {
     order_by: "name",
   }
   const attributeTypesQuery = useQuery({
-    queryFn: () => listBrandAttributeTypes(attributeTypesParams),
+    queryFn: async () => listBrandAttributeTypes(attributeTypesParams),
     queryKey: brandQueryKeys.attributeTypes(attributeTypesParams),
   })
   const attributeTypes = attributeTypesQuery.data?.attribute_types ?? []
@@ -771,7 +779,7 @@ const BrandDetailPage = () => {
   })
 
   const removeProductMutation = useMutation({
-    mutationFn: (productId: string) =>
+    mutationFn: async (productId: string) =>
       updateBrandProducts(id ?? "", {
         add: [],
         remove: [productId],
@@ -851,14 +859,20 @@ const BrandDetailPage = () => {
       editOpen={editOpen}
       isDeleted={isDeleted}
       onEditOpenChange={setEditOpen}
-      onManageProducts={() => setProductsOpen(true)}
-      onOpenProduct={(productId) => navigate(`/products/${productId}`)}
+      onManageProducts={() => {
+        setProductsOpen(true)
+      }}
+      onOpenProduct={(productId) => {
+        navigate(`/products/${productId}`)
+      }}
       onPageIndexChange={setPageIndex}
       onProductOrderByChange={setProductOrderBy}
       onProductQueryChange={setProductQ}
       onProductsOpenChange={setProductsOpen}
       onRemove={handleRemoveProduct}
-      onRestore={() => restoreMutation.mutate(brand.id)}
+      onRestore={() => {
+        restoreMutation.mutate(brand.id)
+      }}
       pageIndex={pageIndex}
       productIds={productIds}
       productOrderBy={productOrderBy}

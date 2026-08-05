@@ -5,8 +5,10 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
   PPL_CLIENT_MODULE,
   PPL_STATUS_MESSAGES,
-  type PplClientModuleService,
-  type PplShipmentState,
+} from "../../../../../modules/ppl-client"
+import type {
+  PplClientModuleService,
+  PplShipmentState,
 } from "../../../../../modules/ppl-client"
 
 /**
@@ -56,17 +58,17 @@ export async function GET(
       return
     }
 
-    const status = info.shipmentState as PplShipmentState
+    const status = info.shipmentState
     const statusMessage = PPL_STATUS_MESSAGES[status] || status
 
     res.json({
-      shipment_number: info.shipmentNumber,
-      status,
-      status_message: statusMessage,
-      status_date: info.stateDate,
+      cod_paid_at: info.cashOnDelivery?.codPaidDate || null,
       delivered_at: info.deliveryDate || null,
       picked_up_at: info.pickupDate || null,
-      cod_paid_at: info.cashOnDelivery?.codPaidDate || null,
+      shipment_number: info.shipmentNumber,
+      status,
+      status_date: info.stateDate,
+      status_message: statusMessage,
       tracking_url: trackingUrl,
     })
   } catch (error) {

@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest"
 
-import {
-  type BrandAttributeRecord,
-  shouldDeleteBrandAttribute,
-} from "../service"
+import { shouldDeleteBrandAttribute } from "../service"
+import type { BrandAttributeRecord } from "../service"
 
 const attribute = ({
   attributeDeletedAt,
@@ -31,22 +29,22 @@ describe("Brand attribute replacement", () => {
         attribute({ typeDeletedAt: "2026-07-20" }),
         new Set()
       )
-    ).toBe(false)
+    ).toBeFalsy()
   })
 
   it("deletes an omitted value only while its type is active", () => {
-    expect(shouldDeleteBrandAttribute(attribute(), new Set())).toBe(true)
+    expect(shouldDeleteBrandAttribute(attribute(), new Set())).toBeTruthy()
   })
 
   it("keeps requested and already-soft-deleted values", () => {
-    expect(shouldDeleteBrandAttribute(attribute(), new Set(["Country"]))).toBe(
-      false
-    )
+    expect(
+      shouldDeleteBrandAttribute(attribute(), new Set(["Country"]))
+    ).toBeFalsy()
     expect(
       shouldDeleteBrandAttribute(
         attribute({ attributeDeletedAt: "2026-07-20" }),
         new Set()
       )
-    ).toBe(false)
+    ).toBeFalsy()
   })
 })

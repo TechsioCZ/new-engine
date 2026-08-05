@@ -5,7 +5,7 @@ import type { ChangeEvent, InputHTMLAttributes } from "react"
 
 import type { AnyFieldApiCompat } from "@/types/form"
 
-type TextFieldProps = {
+interface TextFieldProps {
   field: AnyFieldApiCompat
   label: string
   type?: InputHTMLAttributes<HTMLInputElement>["type"]

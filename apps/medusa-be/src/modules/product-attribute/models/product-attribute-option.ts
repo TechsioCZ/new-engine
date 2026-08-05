@@ -5,15 +5,15 @@ import ProductAttributeDefinition from "./product-attribute-definition"
 
 const ProductAttributeOption = model
   .define("product_attribute_option", {
-    id: model.id({ prefix: "patopt" }).primaryKey(),
-    key: model.text().searchable(),
-    label: model.text().searchable().translatable(),
-    definition: model.belongsTo(() => ProductAttributeDefinition, {
-      mappedBy: "options",
-    }),
     assignments: model.hasMany(() => ProductAttribute, {
       mappedBy: "option",
     }),
+    definition: model.belongsTo(() => ProductAttributeDefinition, {
+      mappedBy: "options",
+    }),
+    id: model.id({ prefix: "patopt" }).primaryKey(),
+    key: model.text().searchable(),
+    label: model.text().searchable().translatable(),
   })
   .indexes([
     {

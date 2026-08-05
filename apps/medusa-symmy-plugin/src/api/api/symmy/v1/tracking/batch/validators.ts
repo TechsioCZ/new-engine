@@ -5,21 +5,21 @@ import { requireIdentifierField } from "../../refine-identifier"
 const TRACKING_BATCH_MAX = 500
 
 const TrackingItemSchema = z.object({
-  sku: z.string().min(1),
   quantity: z.number().int().positive(),
+  sku: z.string().min(1),
 })
 
 const ShipmentInputSchema = z
   .object({
-    identifier_type: z.enum(["display_id", "order_id", "erp_id"]),
+    carrier: z.string().min(1).optional(),
     display_id: z.string().min(1).optional(),
-    order_id: z.string().min(1).optional(),
     erp_id: z.string().min(1).optional(),
+    identifier_type: z.enum(["display_id", "order_id", "erp_id"]),
+    items: z.array(TrackingItemSchema).optional(),
+    order_id: z.string().min(1).optional(),
+    send_notification: z.boolean().default(true),
     tracking_number: z.string().min(1),
     tracking_url: z.string().url().optional(),
-    carrier: z.string().min(1).optional(),
-    send_notification: z.boolean().default(true),
-    items: z.array(TrackingItemSchema).optional(),
   })
   .superRefine(requireIdentifierField)
 

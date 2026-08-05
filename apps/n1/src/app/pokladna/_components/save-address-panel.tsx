@@ -40,7 +40,9 @@ export function SaveAddressPanel() {
       // Reset with current values to clear isDirty without losing data
       form.reset({ ...form.state.values, billingAddress: currentValues })
       setSaveStatus("success")
-      setTimeout(() => setSaveStatus("idle"), 2000)
+      setTimeout(() => {
+        setSaveStatus("idle")
+      }, 2000)
     } catch (error) {
       if (AddressValidationError.isAddressValidationError(error)) {
         setErrorMessage(error.firstError)
@@ -70,7 +72,9 @@ export function SaveAddressPanel() {
       // Reset with current values to clear isDirty without losing data
       form.reset({ ...form.state.values, billingAddress: currentValues })
       setSaveStatus("success")
-      setTimeout(() => setSaveStatus("idle"), 2000)
+      setTimeout(() => {
+        setSaveStatus("idle")
+      }, 2000)
     } catch (error) {
       if (AddressValidationError.isAddressValidationError(error)) {
         setErrorMessage(error.firstError)

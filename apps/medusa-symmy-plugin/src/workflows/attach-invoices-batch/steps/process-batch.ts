@@ -2,7 +2,8 @@ import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
-import { type ExistingOrderIndex, InvoicesBatchClient } from "../client"
+import { InvoicesBatchClient } from "../client"
+import type { ExistingOrderIndex } from "../client"
 import { invoicesBatchClientMapperHelper } from "../client-mapper-helper"
 import type {
   AttachInvoicesBatchInput,
@@ -33,10 +34,10 @@ const processInvoiceForBatch = async ({
     const order = client.findExistingOrder(invoice, orderIndex)
     if (!order) {
       return {
+        error: "Order was not found",
+        invoice_number: invoice.invoice_number,
         order_identifier: orderIdentifier,
         status: "not_found",
-        invoice_number: invoice.invoice_number,
-        error: "Order was not found",
       }
     }
 
@@ -48,11 +49,11 @@ const processInvoiceForBatch = async ({
       userId
     )
     return {
-      order_identifier: orderIdentifier,
-      status: "success",
-      order_id: order.id,
       invoice_number: invoice.invoice_number,
       invoice_url: invoiceUrl,
+      order_id: order.id,
+      order_identifier: orderIdentifier,
+      status: "success",
     }
   } catch (error) {
     const message = toErrorMessage(error)
@@ -60,10 +61,10 @@ const processInvoiceForBatch = async ({
       `[symmy-plugin] Failed to attach invoice (${invoice.identifier_type}:${orderIdentifier}): ${message}`
     )
     return {
+      error: message,
+      invoice_number: invoice.invoice_number,
       order_identifier: orderIdentifier,
       status: "failed",
-      invoice_number: invoice.invoice_number,
-      error: message,
     }
   }
 }
@@ -92,10 +93,10 @@ export const symmyProcessInvoicesBatchStep = createStep(
     const failed = results.length - processed
 
     const output: AttachInvoicesBatchOutput = {
-      success: failed === 0,
-      processed,
       failed,
+      processed,
       results,
+      success: failed === 0,
     }
     return new StepResponse(output)
   }

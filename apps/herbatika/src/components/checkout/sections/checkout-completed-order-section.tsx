@@ -8,13 +8,11 @@ import { useEffect, useState } from "react"
 
 import NextLink from "@/components/app-link"
 import { SupportingText } from "@/components/text/supporting-text"
-import {
-  fetchOrderPaymentQr,
-  type StorefrontOrderPaymentQr,
-} from "@/lib/storefront/order-payment-qr"
+import { fetchOrderPaymentQr } from "@/lib/storefront/order-payment-qr"
+import type { StorefrontOrderPaymentQr } from "@/lib/storefront/order-payment-qr"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 
-type CheckoutCompletedOrderSectionProps = {
+interface CheckoutCompletedOrderSectionProps {
   completedOrderId: string
 }
 
@@ -29,7 +27,7 @@ export function CheckoutCompletedOrderSection({
     useState(false)
   const qrPaymentQuery = useQuery({
     enabled: Boolean(completedOrderId),
-    queryFn: () =>
+    queryFn: async () =>
       fetchOrderPaymentQr({
         orderId: completedOrderId,
       }),

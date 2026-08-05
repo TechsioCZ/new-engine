@@ -11,5 +11,5 @@ export type ProductReview = ReviewBase
 
 export const PRODUCT_REVIEWS_PAGE_SIZE = REVIEWS_PAGE_SIZE
 
-export const useProductReviews = reviewHooks.useProductReviews
-export const useCreateProductReview = reviewHooks.useCreateProductReview
+export const { useProductReviews } = reviewHooks
+export const { useCreateProductReview } = reviewHooks

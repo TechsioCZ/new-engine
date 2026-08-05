@@ -11,7 +11,7 @@ export const EMAIL_PASS_PROVIDER = "emailpass"
 export const ACCOUNT_SETUP_TOKEN_EXPIRES_IN = "15m"
 const ACCOUNT_SETUP_REQUESTED_METADATA_KEY = "account_setup_requested"
 
-export type AccountSetupOrder = {
+export interface AccountSetupOrder {
   id: string
   display_id?: number | null | undefined
   email?: string | null | undefined
@@ -34,7 +34,7 @@ export type AccountSetupOrder = {
   } | null
 }
 
-export type AccountSetupCustomer = {
+export interface AccountSetupCustomer {
   id: string
   email?: string | null | undefined
   first_name?: string | null | undefined
@@ -42,7 +42,7 @@ export type AccountSetupCustomer = {
   has_account?: boolean | null | undefined
 }
 
-export type AccountSetupResult = {
+export interface AccountSetupResult {
   customer_id?: string | undefined
   email?: string | undefined
   order_id: string
@@ -57,7 +57,7 @@ export type AccountSetupResult = {
     | undefined
 }
 
-type EmailPassProviderIdentity = {
+interface EmailPassProviderIdentity {
   auth_identity_id?: string | undefined
   id: string
 }

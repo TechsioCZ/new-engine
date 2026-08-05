@@ -10,10 +10,8 @@ import {
 
 import { normalizeProductSalesChannelFilter } from "../../../../utils/product-filters"
 import type { StoreProductAttributesQuery } from "./middlewares"
-import {
-  listPublicStoreProductAttributes,
-  type StoreProductAttributeResponse,
-} from "./utils"
+import { listPublicStoreProductAttributes } from "./utils"
+import type { StoreProductAttributeResponse } from "./utils"
 
 export async function GET(
   req: MedusaStoreRequest<unknown, StoreProductAttributesQuery>,

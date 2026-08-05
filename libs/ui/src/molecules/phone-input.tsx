@@ -11,19 +11,15 @@
  */
 import {
   AsYouType,
-  type CountryCode,
   formatIncompletePhoneNumber,
   getCountryCallingCode,
   isSupportedCountry,
   parseIncompletePhoneNumber,
   parsePhoneNumberFromString,
 } from "libphonenumber-js/max"
+import type { CountryCode } from "libphonenumber-js/max"
 import {
-  type ChangeEventHandler,
-  type ComponentPropsWithoutRef,
   createContext,
-  type ReactNode,
-  type Ref,
   useCallback,
   useContext,
   useEffect,
@@ -32,11 +28,19 @@ import {
   useRef,
   useState,
 } from "react"
+import type {
+  ChangeEventHandler,
+  ComponentPropsWithoutRef,
+  ReactNode,
+  Ref,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import type { IconProps } from "../atoms/icon"
-import { Input, type InputProps } from "../atoms/input"
-import { Label, type LabelProps } from "../atoms/label"
+import { Input } from "../atoms/input"
+import type { InputProps } from "../atoms/input"
+import { Label } from "../atoms/label"
+import type { LabelProps } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 import { tv } from "../utils"
 import { Select } from "./select"
@@ -48,7 +52,7 @@ export type PhoneInputValidateStatus =
   | "success"
   | "warning"
 
-export type PhoneInputCountry = {
+export interface PhoneInputCountry {
   value: CountryCode
   label: ReactNode
   disabled?: boolean | undefined
@@ -59,7 +63,7 @@ export type PhoneInputCountry = {
   [key: string]: unknown
 }
 
-export type PhoneInputValueChangeDetails = {
+export interface PhoneInputValueChangeDetails {
   value: string
   e164: string
   country: CountryCode
@@ -73,7 +77,7 @@ export type PhoneInputCountryChangeDetails = PhoneInputValueChangeDetails & {
   countryItem: PhoneInputCountry
 }
 
-type PhoneInputValueDetailsOptions = {
+interface PhoneInputValueDetailsOptions {
   countries?: PhoneInputCountry[] | undefined
   syncCountryFromValue?: boolean | undefined
 }
@@ -81,18 +85,20 @@ type PhoneInputValueDetailsOptions = {
 const defaultNativeValidationMessage = "Enter a valid phone number."
 
 export const defaultPhoneInputCountries: PhoneInputCountry[] = [
-  { value: "SK", label: "Slovakia", name: "Slovakia" },
-  { value: "CZ", label: "Czechia", name: "Czechia" },
-  { value: "HU", label: "Hungary", name: "Hungary" },
-  { value: "RO", label: "Romania", name: "Romania" },
-  { value: "PL", label: "Poland", name: "Poland" },
-  { value: "AT", label: "Austria", name: "Austria" },
-  { value: "DE", label: "Germany", name: "Germany" },
+  { label: "Slovakia", name: "Slovakia", value: "SK" },
+  { label: "Czechia", name: "Czechia", value: "CZ" },
+  { label: "Hungary", name: "Hungary", value: "HU" },
+  { label: "Romania", name: "Romania", value: "RO" },
+  { label: "Poland", name: "Poland", value: "PL" },
+  { label: "Austria", name: "Austria", value: "AT" },
+  { label: "Germany", name: "Germany", value: "DE" },
 ]
 
 const phoneInputVariants = tv({
+  defaultVariants: {
+    size: "md",
+  },
   slots: {
-    root: ["relative flex w-full flex-col gap-phone-input"],
     control: [
       "form-control-base",
       "relative flex w-full items-center overflow-hidden",
@@ -117,8 +123,16 @@ const phoneInputVariants = tv({
       "data-[validation=warning]:outline-offset-(length:--default-ring-offset)",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    countrySelectRoot: ["contents"],
+    countryCallingCode: [
+      "font-medium text-phone-input-country-calling-code-fg",
+    ],
+    countryFlag: [
+      "inline-flex min-w-phone-input-country-flag items-center justify-center",
+      "rounded-phone-input-country-flag",
+      "font-medium text-phone-input-country-flag uppercase",
+    ],
     countrySelectControl: ["h-full w-auto shrink-0"],
+    countrySelectRoot: ["contents"],
     countryTrigger: [
       "shrink-0",
       "bg-phone-input-trigger-bg-base",
@@ -133,14 +147,6 @@ const phoneInputVariants = tv({
       "rounded-e-none",
     ],
     countryValue: ["flex items-center gap-phone-input-country-value"],
-    countryFlag: [
-      "inline-flex min-w-phone-input-country-flag items-center justify-center",
-      "rounded-phone-input-country-flag",
-      "font-medium text-phone-input-country-flag uppercase",
-    ],
-    countryCallingCode: [
-      "font-medium text-phone-input-country-calling-code-fg",
-    ],
     input: [
       "min-w-0 flex-1 border-0",
       "bg-phone-input-input-bg-base",
@@ -153,29 +159,27 @@ const phoneInputVariants = tv({
     ],
     itemContent: ["flex min-w-0 items-center gap-phone-input-item"],
     itemMeta: ["shrink-0 text-phone-input-item-meta-fg"],
+    root: ["relative flex w-full flex-col gap-phone-input"],
   },
   variants: {
     size: {
-      sm: {
-        control: "h-form-control-sm rounded-phone-input-sm text-phone-input-sm",
-        input: "text-phone-input-sm",
+      lg: {
+        control: "h-form-control-lg rounded-phone-input-lg text-phone-input-lg",
+        input: "text-phone-input-lg",
       },
       md: {
         control: "h-form-control-md rounded-phone-input-md text-phone-input-md",
         input: "text-phone-input-md",
       },
-      lg: {
-        control: "h-form-control-lg rounded-phone-input-lg text-phone-input-lg",
-        input: "text-phone-input-lg",
+      sm: {
+        control: "h-form-control-sm rounded-phone-input-sm text-phone-input-sm",
+        input: "text-phone-input-sm",
       },
     },
   },
-  defaultVariants: {
-    size: "md",
-  },
 })
 
-type PhoneInputContextValue = {
+interface PhoneInputContextValue {
   countries: PhoneInputCountry[]
   selectedCountry: CountryCode
   selectedCountryItem: PhoneInputCountry
@@ -205,7 +209,7 @@ function usePhoneInputContext() {
   return context
 }
 
-type PhoneInputItemContextValue = {
+interface PhoneInputItemContextValue {
   item: PhoneInputCountry
 }
 
@@ -387,21 +391,21 @@ export function PhoneInput({
     <PhoneInputContext.Provider
       value={{
         countries,
-        selectedCountry,
-        selectedCountryItem,
-        setCountryValue,
         countryName,
-        form,
-        size,
-        inputId: `${id}-input`,
-        inputValue,
-        setInputValue,
         details,
         disabled,
+        form,
+        inputId: `${id}-input`,
+        inputValue,
         nativeValidation,
         nativeValidationMessage,
         readOnly,
         required,
+        selectedCountry,
+        selectedCountryItem,
+        setCountryValue,
+        setInputValue,
+        size,
         validateStatus,
       }}
     >
@@ -460,7 +464,7 @@ PhoneInput.Control = function PhoneInputControl({
   const { disabled, readOnly, size, validateStatus } = usePhoneInputContext()
   const styles = phoneInputVariants({ size })
   const validationDataAttrs =
-    validateStatus !== "default" ? { "data-validation": validateStatus } : {}
+    validateStatus === "default" ? {} : { "data-validation": validateStatus }
 
   return (
     <div
@@ -476,7 +480,7 @@ PhoneInput.Control = function PhoneInputControl({
   )
 }
 
-type PhoneInputCountrySelectProps = {
+interface PhoneInputCountrySelectProps {
   children: ReactNode
   className?: string | undefined
   closeOnSelect?: boolean | undefined
@@ -522,7 +526,7 @@ PhoneInput.CountrySelect = function PhoneInputCountrySelect({
   )
 }
 
-type PhoneInputCountryPickerProps = {
+interface PhoneInputCountryPickerProps {
   className?: string | undefined
   selectProps?: Omit<PhoneInputCountrySelectProps, "children"> | undefined
   controlProps?: PhoneInputCountryControlProps | undefined
@@ -980,19 +984,19 @@ function getPhoneInputValueDetailsInternal(
     : (detailsNumber?.isValid() ?? formatter.isValid())
 
   return {
-    value: formattedValue,
+    callingCode: getPhoneCountryCallingCode(detailsCountry),
+    country: detailsCountry,
     e164: isValid
       ? (detailsNumber?.number ?? formatter.getNumberValue() ?? "")
       : "",
-    country: detailsCountry,
-    callingCode: getPhoneCountryCallingCode(detailsCountry),
+    isPossible,
+    isValid,
     nationalNumber: hasCountryMismatch
       ? ""
       : (detailsNumber?.nationalNumber.toString() ??
         formatterNumber?.nationalNumber ??
         ""),
-    isPossible,
-    isValid,
+    value: formattedValue,
   }
 }
 
@@ -1115,9 +1119,9 @@ function getCountryItem(
 ): PhoneInputCountry {
   return (
     countries.find((item) => item.value === country) ?? {
-      value: country,
       label: country,
       name: country,
+      value: country,
     }
   )
 }

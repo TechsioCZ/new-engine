@@ -1,16 +1,53 @@
 import type { Meta, StoryObj } from "@storybook/react"
 
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
-import {
-  Breadcrumb,
-  type BreadcrumbRootProps,
-} from "../../src/molecules/breadcrumb"
+import { Breadcrumb } from "../../src/molecules/breadcrumb"
+import type { BreadcrumbRootProps } from "../../src/molecules/breadcrumb"
 
 const meta: Meta<typeof Breadcrumb> = {
-  title: "Molecules/Breadcrumb",
+  argTypes: {
+    "aria-label": {
+      control: "text",
+      description: "Accessible label for the breadcrumb navigation.",
+      table: {
+        category: "Accessibility",
+        defaultValue: { summary: "breadcrumb" },
+      },
+    },
+    size: {
+      control: "select",
+      description:
+        "Controls breadcrumb sizing across root, list, links and icons.",
+      options: ["sm", "md", "lg"],
+      table: {
+        category: "Appearance",
+        defaultValue: { summary: "md" },
+      },
+    },
+    variant: {
+      control: "select",
+      description: "Controls the visual style of breadcrumb links.",
+      options: ["plain", "underline"],
+      table: {
+        category: "Appearance",
+        defaultValue: { summary: "plain" },
+      },
+    },
+  },
+  args: {
+    "aria-label": "breadcrumb",
+    size: "md",
+    variant: "plain",
+  },
   component: Breadcrumb,
+  decorators: [
+    (Story) => (
+      <div className="max-w-md bg-surface p-400">
+        <Story />
+      </div>
+    ),
+  ],
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component: `
@@ -20,49 +57,10 @@ Use BreadcrumbTemplate for the ready-to-use data-driven default.
         `,
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  decorators: [
-    (Story) => (
-      <div className="max-w-md bg-surface p-400">
-        <Story />
-      </div>
-    ),
-  ],
-  argTypes: {
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-      description:
-        "Controls breadcrumb sizing across root, list, links and icons.",
-      table: {
-        category: "Appearance",
-        defaultValue: { summary: "md" },
-      },
-    },
-    variant: {
-      control: "select",
-      options: ["plain", "underline"],
-      description: "Controls the visual style of breadcrumb links.",
-      table: {
-        category: "Appearance",
-        defaultValue: { summary: "plain" },
-      },
-    },
-    "aria-label": {
-      control: "text",
-      description: "Accessible label for the breadcrumb navigation.",
-      table: {
-        category: "Accessibility",
-        defaultValue: { summary: "breadcrumb" },
-      },
-    },
-  },
-  args: {
-    size: "md",
-    variant: "plain",
-    "aria-label": "breadcrumb",
-  },
+  title: "Molecules/Breadcrumb",
 }
 
 export default meta

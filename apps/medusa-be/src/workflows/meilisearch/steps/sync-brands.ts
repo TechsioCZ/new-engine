@@ -6,7 +6,7 @@ import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
 import { BRANDS, MEILISEARCH } from "../"
 import { isMeilisearchEnabled } from "../../../modules/meilisearch/env"
 
-export type SyncMeilisearchBrandsStepInput = {
+export interface SyncMeilisearchBrandsStepInput {
   filters?: Record<string, unknown>
 }
 
@@ -37,13 +37,13 @@ export const syncMeilisearchBrandsStep = createStep(
       const { data: batch } = await queryService.graph({
         entity: "brand",
         fields: brandFields,
-        pagination: {
-          take: dbBatchSize,
-          skip: dbOffset,
-        },
         filters: {
           deleted_at: null,
           ...filters,
+        },
+        pagination: {
+          skip: dbOffset,
+          take: dbBatchSize,
         },
       })
       allBrands.push(...batch)
@@ -60,12 +60,12 @@ export const syncMeilisearchBrandsStep = createStep(
       const batchSize = 1000
       while (true) {
         const result = await meilisearchService.search(index, "", {
-          paginationOptions: {
-            offset: searchOffset,
-            limit: batchSize,
-          },
           additionalOptions: {
             attributesToRetrieve: ["id"],
+          },
+          paginationOptions: {
+            limit: batchSize,
+            offset: searchOffset,
           },
         })
 
@@ -81,7 +81,7 @@ export const syncMeilisearchBrandsStep = createStep(
     }
 
     const currentBrandIds = new Set(allBrands.map((brand) => brand["id"]))
-    const brandsToDelete = Array.from(existingBrandIds).filter(
+    const brandsToDelete = [...existingBrandIds].filter(
       (id) => !currentBrandIds.has(id)
     )
 
@@ -94,14 +94,14 @@ export const syncMeilisearchBrandsStep = createStep(
     })
 
     await Promise.all(
-      brandIndexes.map((index) =>
+      brandIndexes.map(async (index) =>
         meilisearchService.addDocuments(index, transformedBrands, BRANDS, {
           container,
         })
       )
     )
     await Promise.all(
-      brandIndexes.map((index) =>
+      brandIndexes.map(async (index) =>
         meilisearchService.deleteDocuments(index, brandsToDelete)
       )
     )

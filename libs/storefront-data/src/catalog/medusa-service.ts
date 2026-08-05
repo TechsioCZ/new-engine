@@ -12,7 +12,7 @@ import { resolvePositiveInteger } from "./utils"
 
 type MedusaCatalogListQuery = Record<string, unknown>
 
-type MedusaCatalogListResponse = {
+interface MedusaCatalogListResponse {
   products?: HttpTypes.StoreProduct[] | undefined
   count?: number | undefined
   page?: number | undefined
@@ -23,18 +23,18 @@ type MedusaCatalogListResponse = {
 
 export type MedusaCatalogListInput = CatalogListInputBase
 
-export type MedusaCatalogTransformContext<
+export interface MedusaCatalogTransformContext<
   TListParams extends MedusaCatalogListInput,
   TFacets,
-> = {
+> {
   params: TListParams
   query: MedusaCatalogListQuery
   response: CatalogListResponse<HttpTypes.StoreProduct, TFacets>
 }
 
-type MedusaCatalogServiceConfigBase<
+interface MedusaCatalogServiceConfigBase<
   TListParams extends MedusaCatalogListInput,
-> = {
+> {
   listPath?: string
   defaultLimit?: number
   defaultSort?: string
@@ -77,14 +77,14 @@ export type MedusaCatalogServiceConfig<
   MedusaCatalogFacetTransform<TFacets>
 
 const EMPTY_FACETS: CatalogFacets = {
-  status: [],
-  form: [],
   brand: [],
+  form: [],
   ingredient: [],
   price: {
-    min: null,
     max: null,
+    min: null,
   },
+  status: [],
 }
 
 const resolveNonNegativeInteger = (
@@ -163,9 +163,9 @@ const normalizeFacetItems = (items: unknown) => {
       }
 
       const typedItem = item as Record<string, unknown>
-      const rawId = typedItem["id"]
-      const rawLabel = typedItem["label"]
-      const rawCount = typedItem["count"]
+      const rawId = typedItem.id
+      const rawLabel = typedItem.label
+      const rawCount = typedItem.count
       const id = typeof rawId === "string" ? rawId.trim() : ""
       const label = typeof rawLabel === "string" ? rawLabel.trim() : ""
       const count =
@@ -176,9 +176,9 @@ const normalizeFacetItems = (items: unknown) => {
       }
 
       return {
+        count,
         id,
         label,
-        count,
       }
     })
     .filter((item): item is CatalogFacets["status"][number] => Boolean(item))
@@ -190,27 +190,27 @@ const normalizeFacets = (value: unknown): CatalogFacets => {
   }
 
   const facetsRecord = value as Record<string, unknown>
-  const price = facetsRecord["price"]
+  const { price } = facetsRecord
   const priceRecord =
     price && typeof price === "object" && !Array.isArray(price)
       ? (price as Record<string, unknown>)
       : {}
-  const rawMin = priceRecord["min"]
-  const rawMax = priceRecord["max"]
+  const rawMin = priceRecord.min
+  const rawMax = priceRecord.max
   const min =
     typeof rawMin === "number" && Number.isFinite(rawMin) ? rawMin : null
   const max =
     typeof rawMax === "number" && Number.isFinite(rawMax) ? rawMax : null
 
   return {
-    status: normalizeFacetItems(facetsRecord["status"]),
-    form: normalizeFacetItems(facetsRecord["form"]),
-    brand: normalizeFacetItems(facetsRecord["brand"]),
-    ingredient: normalizeFacetItems(facetsRecord["ingredient"]),
+    brand: normalizeFacetItems(facetsRecord.brand),
+    form: normalizeFacetItems(facetsRecord.form),
+    ingredient: normalizeFacetItems(facetsRecord.ingredient),
     price: {
-      min,
       max,
+      min,
     },
+    status: normalizeFacetItems(facetsRecord.status),
   }
 }
 
@@ -258,20 +258,20 @@ const buildDefaultListQuery = (
   const normalizedCategoryIds = normalizeStringArray(params.category_id)
 
   return stripNullishValues({
-    q: params.q?.trim() || undefined,
-    page: normalizedPage,
-    limit: normalizedLimit,
-    sort: params.sort || defaults.defaultSort,
-    category_id: toCsv(normalizedCategoryIds),
-    status: toCsv(normalizedStatus),
-    form: toCsv(normalizedForm),
     brand: toCsv(normalizedBrand),
-    ingredient: toCsv(normalizedIngredient),
-    price_min: normalizedPriceMin,
-    price_max: normalizedPriceMax,
-    region_id: params.region_id,
+    category_id: toCsv(normalizedCategoryIds),
     country_code: params.country_code?.toLowerCase(),
     currency_code: params.currency_code?.toLowerCase(),
+    form: toCsv(normalizedForm),
+    ingredient: toCsv(normalizedIngredient),
+    limit: normalizedLimit,
+    page: normalizedPage,
+    price_max: normalizedPriceMax,
+    price_min: normalizedPriceMin,
+    q: params.q?.trim() || undefined,
+    region_id: params.region_id,
+    sort: params.sort || defaults.defaultSort,
+    status: toCsv(normalizedStatus),
   })
 }
 
@@ -364,18 +364,18 @@ export function createMedusaCatalogService<
         HttpTypes.StoreProduct,
         unknown
       > = {
-        products: rawResponse.products ?? [],
         count: rawResponse.count ?? 0,
-        page: resolvePositiveInteger(
-          rawResponse.page,
-          resolvePositiveInteger(params.page, 1)
-        ),
+        facets: mapFacets(normalizeFacets(rawResponse.facets)),
         limit: resolvePositiveInteger(
           rawResponse.limit,
           resolvePositiveInteger(params.limit, defaultLimit)
         ),
+        page: resolvePositiveInteger(
+          rawResponse.page,
+          resolvePositiveInteger(params.page, 1)
+        ),
+        products: rawResponse.products ?? [],
         totalPages: resolveNonNegativeInteger(rawResponse.totalPages, 0),
-        facets: mapFacets(normalizeFacets(rawResponse.facets)),
       }
 
       const context: MedusaCatalogTransformContext<TListParams, unknown> = {

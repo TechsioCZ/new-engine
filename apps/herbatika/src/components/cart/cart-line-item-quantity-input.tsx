@@ -4,7 +4,7 @@ import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import { useTranslations } from "next-intl"
 import { useCallback, useEffect, useRef, useState } from "react"
 
-type CartLineItemQuantityInputProps = {
+interface CartLineItemQuantityInputProps {
   className?: string
   controlClassName?: string
   inputClassName?: string

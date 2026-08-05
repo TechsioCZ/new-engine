@@ -6,14 +6,14 @@ import type { ReactNode } from "react"
 import { resolveVisibleFieldFeedback } from "@/lib/forms/core/field-errors"
 import { useFieldContext } from "@/lib/forms/core/herbatika-form-context"
 
-type RadioGroupItem = {
+interface RadioGroupItem {
   description?: ReactNode
   disabled?: boolean
   label: ReactNode
   value: string
 }
 
-type FormRadioGroupFieldProps = {
+interface FormRadioGroupFieldProps {
   id: string
   items: RadioGroupItem[]
   label: ReactNode
@@ -50,8 +50,7 @@ export function FormRadioGroupField({
     <RadioGroup
       id={id}
       name={field.name}
-      onValueChange={(nextValue) => {
-        const normalizedValue = nextValue ?? ""
+      onValueChange={(normalizedValue = "") => {
         field.handleChange(normalizedValue)
         field.handleBlur()
         onValueChange?.(normalizedValue)

@@ -7,7 +7,7 @@ import type {
 import { formatCurrencyAmount } from "./price-format"
 import type { StorefrontPriceSource } from "./product-pricing"
 
-type StorefrontPriceContext = {
+interface StorefrontPriceContext {
   currencyCode: string
   source: StorefrontPriceSource
 }

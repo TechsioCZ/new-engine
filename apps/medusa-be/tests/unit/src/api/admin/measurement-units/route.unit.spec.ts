@@ -7,14 +7,14 @@ const { createWorkflow, measurementService } = vi.hoisted(() => ({
   },
 }))
 
-vi.mock("../../../../../../src/utils/measurement-units", () => ({
+vi.mock(import("../../../../../../src/utils/measurement-units"), () => ({
   getMeasurementUnitActiveProductCounts: vi.fn(),
   getMeasurementUnitService: vi.fn(() => measurementService),
   toMeasurementUnitResponse: vi.fn((unit) => unit),
 }))
 
 vi.mock(
-  "../../../../../../src/workflows/measurement-unit/workflows/create-measurement-units",
+  import("../../../../../../src/workflows/measurement-unit/workflows/create-measurement-units"),
   () => ({
     createMeasurementUnitsWorkflow: createWorkflow,
   })

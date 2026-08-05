@@ -16,8 +16,8 @@ import { tv } from "../utils"
 
 const linkVariants = tv({
   base: [],
-  variants: {},
   defaultVariants: {},
+  variants: {},
 })
 
 export interface BaseLinkProps extends VariantProps<typeof linkVariants> {
@@ -45,15 +45,15 @@ export function Link<T extends ElementType = "a">({
   className,
   ...props
 }: LinkProps<T>) {
-  const Component = (as || "a") as ElementType
+  const Component = as || "a"
   const anchorProps: Partial<ComponentPropsWithoutRef<"a">> = props
-  const target = anchorProps.target
-  const rel = anchorProps.rel
+  const { target } = anchorProps
+  const { rel } = anchorProps
 
   const externalProps = external
     ? {
-        target: target ?? "_blank",
         rel: rel ?? "noopener noreferrer",
+        target: target ?? "_blank",
       }
     : {}
 

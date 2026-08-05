@@ -9,11 +9,10 @@ import { useEffect, useSyncExternalStore } from "react"
 
 import { assertStorefrontAddressValidation } from "../shared/address"
 import {
-  type CacheConfig,
-  type CacheStrategy,
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
+import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import {
   cancelCartCaches,
   invalidateCartCaches,
@@ -25,7 +24,8 @@ import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
-import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
+import { shouldSkipPrefetch } from "../shared/prefetch"
+import type { PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { applyRegion } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
@@ -48,7 +48,7 @@ import type {
   UseSuspenseCartResult,
 } from "./types"
 
-type CartTransientInput = {
+interface CartTransientInput {
   cartId?: string
   autoCreate?: boolean
   autoUpdateRegion?: boolean
@@ -64,7 +64,7 @@ type CartTransientInput = {
 type CartCreateTransientInput = CartTransientInput
 type CartUpdateTransientInput = CartTransientInput
 
-type AddLineItemTransientInput = {
+interface AddLineItemTransientInput {
   cartId?: string
   autoCreate?: boolean
   autoUpdateRegion?: boolean
@@ -74,7 +74,7 @@ type AddLineItemTransientInput = {
   salesChannelId?: string
 }
 
-type UpdateLineItemTransientInput = {
+interface UpdateLineItemTransientInput {
   cartId?: string
   lineItemId?: string
   enabled?: boolean
@@ -157,7 +157,7 @@ const normalizeCartCreatePayload = <TInput extends CartCreateInputBase>(
 ): NormalizedCartCreatePayload<TInput> => {
   const normalizedInput = input as TInput & CartCreateTransientInput
   const payload = omitKeys(normalizedInput, cartPayloadOmitKeys)
-  const salesChannelId = normalizedInput.salesChannelId
+  const { salesChannelId } = normalizedInput
 
   if (!salesChannelId) {
     return payload
@@ -174,7 +174,7 @@ const normalizeCartUpdatePayload = <TInput extends UpdateCartInputBase>(
 ): NormalizedCartUpdatePayload<TInput> => {
   const normalizedInput = input as TInput & CartUpdateTransientInput
   const payload = omitKeys(normalizedInput, cartPayloadOmitKeys)
-  const salesChannelId = normalizedInput.salesChannelId
+  const { salesChannelId } = normalizedInput
 
   if (!salesChannelId) {
     return payload
@@ -247,7 +247,7 @@ type BuildUpdateItemParamsOption<
   ? { buildUpdateItemParams?: (input: TUpdateItemInput) => TUpdateItemParams }
   : { buildUpdateItemParams: (input: TUpdateItemInput) => TUpdateItemParams }
 
-type CreateCartHooksBaseConfig<
+interface CreateCartHooksBaseConfig<
   TCart extends CartLike,
   TCreateParams,
   TUpdateParams,
@@ -256,7 +256,7 @@ type CreateCartHooksBaseConfig<
   TCompleteResult,
   TAddressInput,
   TAddressPayload,
-> = {
+> {
   service: CartService<
     TCart,
     TCreateParams,
@@ -445,7 +445,7 @@ export function createCartHooks<
     cartStorage?.clear()
   }
 
-  const callUpdateCart = (cartId: string, params: TUpdateParams) => {
+  const callUpdateCart = async (cartId: string, params: TUpdateParams) => {
     if (!service.updateCart) {
       throw new Error("updateCart service is not configured")
     }
@@ -475,7 +475,7 @@ export function createCartHooks<
     input: CartAddressInputBase<TAddressInput>
   ) => {
     const { shippingAddress, billingAddress, useSameAddress, ...restInput } =
-      input as AddressMutationInput<TAddressInput>
+      input
     const normalizedShipping = normalizeAddressInput(
       shippingAddress,
       "shipping"
@@ -487,9 +487,9 @@ export function createCartHooks<
     )
 
     return {
-      restInput,
       normalizedShipping,
       resolvedBillingInput,
+      restInput,
     }
   }
 
@@ -514,16 +514,16 @@ export function createCartHooks<
   ) =>
     ({
       ...(restInput as TUpdateInput),
-      shipping_address: buildAddressPayload(normalizedShipping, "shipping"),
       billing_address: resolvedBillingInput
         ? buildAddressPayload(resolvedBillingInput, "billing")
         : undefined,
+      shipping_address: buildAddressPayload(normalizedShipping, "shipping"),
     }) as TUpdateInput & {
       shipping_address?: TAddressPayload
       billing_address?: TAddressPayload
     }
 
-  const invalidateCart = (
+  const invalidateCart = async (
     queryClient: ReturnType<typeof useQueryClient>,
     cart: CartLike | null
   ): Promise<void> => {
@@ -550,7 +550,7 @@ export function createCartHooks<
     await invalidated
   }
 
-  type LoadCartOptions = {
+  interface LoadCartOptions {
     input: CartInputBase
     cartId: string | null
     canCreate: boolean
@@ -573,14 +573,14 @@ export function createCartHooks<
   }: LoadCartOptions): Promise<TCart | null> => {
     const resolvedCartId = cartId ?? resolveCartId(input.cartId)
 
-    const createIfAllowed = (): Promise<TCart | null> => {
+    const createIfAllowed = async (): Promise<TCart | null> => {
       if (!canCreate) {
         return Promise.resolve(null)
       }
       return createCartFromInput(input)
     }
 
-    const resolveRegionUpdate = (cart: TCart): Promise<TCart> => {
+    const resolveRegionUpdate = async (cart: TCart): Promise<TCart> => {
       if (
         autoUpdateRegion &&
         input.region_id &&
@@ -601,7 +601,7 @@ export function createCartHooks<
     }
 
     if (!resolvedCartId) {
-      return createIfAllowed()
+      return await createIfAllowed()
     }
 
     try {
@@ -619,7 +619,7 @@ export function createCartHooks<
       }
 
       clearCartId()
-      return createIfAllowed()
+      return await createIfAllowed()
     }
   }
 
@@ -650,7 +650,7 @@ export function createCartHooks<
         cartId: previousCartId,
         regionId: previousRegionId,
       })
-      queryClient.removeQueries({ queryKey: previousKey, exact: true })
+      queryClient.removeQueries({ exact: true, queryKey: previousKey })
     }
   }
 
@@ -670,11 +670,8 @@ export function createCartHooks<
     const enabled = resolvedInput.enabled ?? (Boolean(cartId) || canCreate)
 
     const query = useQuery({
-      queryKey: resolvedQueryKeys.active({
-        cartId,
-        regionId: resolvedInput.region_id ?? null,
-      }),
-      queryFn: ({ signal }) =>
+      enabled,
+      queryFn: async ({ signal }) =>
         loadCart({
           input: resolvedInput,
           cartId,
@@ -682,7 +679,10 @@ export function createCartHooks<
           autoUpdateRegion,
           signal,
         }),
-      enabled,
+      queryKey: resolvedQueryKeys.active({
+        cartId,
+        regionId: resolvedInput.region_id ?? null,
+      }),
       ...resolvedCacheConfig.realtime,
       ...options?.queryOptions,
     })
@@ -697,13 +697,13 @@ export function createCartHooks<
 
     return {
       cart,
-      isLoading,
-      isFetching,
-      isSuccess,
       error: toErrorMessage(error),
-      itemCount,
-      isEmpty: itemCount === 0,
       hasItems: itemCount > 0,
+      isEmpty: itemCount === 0,
+      isFetching,
+      isLoading,
+      isSuccess,
+      itemCount,
       query,
     }
   }
@@ -723,11 +723,7 @@ export function createCartHooks<
       autoCreate && (!requireRegion || Boolean(resolvedInput.region_id))
 
     const query = useSuspenseQuery({
-      queryKey: resolvedQueryKeys.active({
-        cartId,
-        regionId: resolvedInput.region_id ?? null,
-      }),
-      queryFn: ({ signal }) =>
+      queryFn: async ({ signal }) =>
         loadCart({
           input: resolvedInput,
           cartId,
@@ -735,6 +731,10 @@ export function createCartHooks<
           autoUpdateRegion,
           signal,
         }),
+      queryKey: resolvedQueryKeys.active({
+        cartId,
+        regionId: resolvedInput.region_id ?? null,
+      }),
       ...resolvedCacheConfig.realtime,
       ...options?.queryOptions,
     })
@@ -749,13 +749,13 @@ export function createCartHooks<
 
     return {
       cart,
-      isLoading: false,
-      isFetching,
-      isSuccess: true,
       error: null,
-      itemCount,
-      isEmpty: itemCount === 0,
       hasItems: itemCount > 0,
+      isEmpty: itemCount === 0,
+      isFetching,
+      isLoading: false,
+      isSuccess: true,
+      itemCount,
       query,
     }
   }
@@ -763,7 +763,7 @@ export function createCartHooks<
   function useCreateCart(options?: CartMutationOptions<TCart, TCreateInput>) {
     const queryClient = useQueryClient()
     return useMutation({
-      mutationFn: (input: TCreateInput) =>
+      mutationFn: async (input: TCreateInput) =>
         service.createCart(buildCreate(input)),
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: async (cart, variables, context) => {
@@ -783,7 +783,7 @@ export function createCartHooks<
   function useUpdateCart(options?: CartMutationOptions<TCart, TUpdateInput>) {
     const queryClient = useQueryClient()
     return useMutation({
-      mutationFn: (input: TUpdateInput) => {
+      mutationFn: async (input: TUpdateInput) => {
         if (!service.updateCart) {
           throw new Error("updateCart service is not configured")
         }
@@ -812,7 +812,7 @@ export function createCartHooks<
   ) {
     const queryClient = useQueryClient()
     return useMutation({
-      mutationFn: (input: CartAddressInputBase<TAddressInput>) => {
+      mutationFn: async (input: CartAddressInputBase<TAddressInput>) => {
         const cartId = requireCartId(input.cartId)
         const { restInput, normalizedShipping, resolvedBillingInput } =
           resolveAddressMutationInput(input)
@@ -894,7 +894,7 @@ export function createCartHooks<
   ) {
     const queryClient = useQueryClient()
     return useMutation({
-      mutationFn: (input: TUpdateItemInput) => {
+      mutationFn: async (input: TUpdateItemInput) => {
         if (!service.updateLineItem) {
           throw new Error("updateLineItem service is not configured")
         }
@@ -927,7 +927,7 @@ export function createCartHooks<
   ) {
     const queryClient = useQueryClient()
     return useMutation({
-      mutationFn: (input: RemoveLineItemInputBase) => {
+      mutationFn: async (input: RemoveLineItemInputBase) => {
         if (!service.removeLineItem) {
           throw new Error("removeLineItem service is not configured")
         }
@@ -956,7 +956,7 @@ export function createCartHooks<
   ) {
     const queryClient = useQueryClient()
     return useMutation({
-      mutationFn: (input: TransferCartInputBase) => {
+      mutationFn: async (input: TransferCartInputBase) => {
         if (!service.transferCart) {
           throw new Error("transferCart service is not configured")
         }
@@ -986,7 +986,7 @@ export function createCartHooks<
     }
   ) {
     return useMutation({
-      mutationFn: (input: { cartId?: string }) => {
+      mutationFn: async (input: { cartId?: string }) => {
         if (!service.completeCart) {
           throw new Error("completeCart service is not configured")
         }
@@ -1041,9 +1041,9 @@ export function createCartHooks<
 
       if (
         shouldSkipPrefetch({
+          cacheOptions: prefetchCacheOptions,
           queryClient,
           queryKey,
-          cacheOptions: prefetchCacheOptions,
           skipIfCached,
           skipMode,
         })
@@ -1052,8 +1052,7 @@ export function createCartHooks<
       }
 
       await queryClient.prefetchQuery({
-        queryKey,
-        queryFn: ({ signal }) =>
+        queryFn: async ({ signal }) =>
           loadCart({
             input: resolvedInput,
             cartId,
@@ -1061,6 +1060,7 @@ export function createCartHooks<
             autoUpdateRegion: resolvedInput.autoUpdateRegion ?? true,
             signal,
           }),
+        queryKey,
         ...prefetchCacheOptions,
       })
     }
@@ -1069,17 +1069,17 @@ export function createCartHooks<
   }
 
   return {
+    useAddLineItem,
     useCart,
-    useSuspenseCart,
+    useCompleteCart,
     useCreateCart,
+    usePrefetchCart,
+    useRemoveLineItem,
+    useSuspenseCart,
+    useTransferCart,
     useUpdateCart,
     useUpdateCartAddress,
-    useAddLineItem,
     useUpdateLineItem,
-    useRemoveLineItem,
-    useTransferCart,
-    useCompleteCart,
-    usePrefetchCart,
   }
 }
 

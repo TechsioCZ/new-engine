@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { queryKeys } from "@/lib/query-keys"
 import { logout } from "@/services/auth-service"
 
-export type UseLogoutOptions = {
+export interface UseLogoutOptions {
   onSuccess?: () => void
   onError?: (error: Error) => void
 }
@@ -21,6 +21,9 @@ export function useLogout(options?: UseLogoutOptions) {
 
   return useMutation({
     mutationFn: logout,
+    onError: (error: Error) => {
+      options?.onError?.(error)
+    },
     onSuccess: async () => {
       // Invalidate all user data first (triggers refetch on mounted queries)
       await Promise.all([
@@ -37,9 +40,6 @@ export function useLogout(options?: UseLogoutOptions) {
       queryClient.removeQueries({ queryKey: queryKeys.customer.all() })
 
       options?.onSuccess?.()
-    },
-    onError: (error: Error) => {
-      options?.onError?.(error)
     },
   })
 }

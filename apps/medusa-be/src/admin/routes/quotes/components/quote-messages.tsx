@@ -9,7 +9,8 @@ import {
   Textarea,
   toast,
 } from "@medusajs/ui"
-import { type Resolver, useForm } from "react-hook-form"
+import { useForm } from "react-hook-form"
+import type { Resolver } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
 
@@ -19,8 +20,8 @@ import { useCreateQuoteMessage } from "../../../hooks/api"
 import { QuoteItem } from "./quote-details"
 
 export const CreateQuoteMessageForm = z.object({
-  text: z.string().min(1),
   item_id: z.string().nullish(),
+  text: z.string().min(1),
 })
 
 type CreateQuoteMessageFormValues = z.infer<typeof CreateQuoteMessageForm>
@@ -72,10 +73,10 @@ export function QuoteMessages({
    * FORM
    */
   const form = useForm<CreateQuoteMessageFormValues>({
-    defaultValues: () =>
+    defaultValues: async () =>
       Promise.resolve({
-        text: "",
         item_id: null,
+        text: "",
       }),
     resolver: createQuoteMessageResolver,
   })
@@ -97,11 +98,11 @@ export function QuoteMessages({
         ...(data.item_id ? { item_id: data.item_id } : {}),
       },
       {
+        onError: (e) => toast.error(e.message),
         onSuccess: () => {
           form.reset()
           toast.success(t("toasts.messageSent"))
         },
-        onError: (e) => toast.error(e.message),
       }
     )
   })
@@ -192,7 +193,7 @@ export function QuoteMessages({
             />
 
             <Form.Field
-              name={"text"}
+              name="text"
               render={({ field }) => (
                 <Form.Item>
                   <Form.Control>

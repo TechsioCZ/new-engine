@@ -27,8 +27,7 @@ const ORDER_FIELDS = new Set([
 ])
 const LEADING_DASH_REGEX = /^-/
 
-const parseOrder = (input?: string) => {
-  const value = input ?? "title"
+const parseOrder = (value: string = "title") => {
   const direction = value.startsWith("-") ? "DESC" : "ASC"
   const field = value.replace(LEADING_DASH_REGEX, "")
 
@@ -146,9 +145,6 @@ export async function GET(
       attributeType,
       usageCounts.get(attributeType.id) ?? 0
     ),
-    count,
-    limit,
-    offset,
     brands: page.flatMap((attribute) => {
       const activeProductCount = attribute.brand?.id
         ? (activeProductCounts.get(attribute.brand.id) ?? 0)
@@ -160,6 +156,9 @@ export async function GET(
 
       return brand ? [brand] : []
     }),
+    count,
+    limit,
+    offset,
   })
 }
 

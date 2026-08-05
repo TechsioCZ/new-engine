@@ -25,7 +25,7 @@ const MIME_TYPES = new Map([
 
 function readArg(name) {
   const index = process.argv.indexOf(name)
-  return index >= 0 ? (process.argv[index + 1] ?? null) : null
+  return index !== -1 ? (process.argv[index + 1] ?? null) : null
 }
 
 const rootArg = readArg("--root")
@@ -39,7 +39,7 @@ if (
   !indexArg ||
   !Number.isInteger(requestedPort) ||
   requestedPort < 0 ||
-  requestedPort > 65535
+  requestedPort > 65_535
 ) {
   console.error(
     "Usage: storybook-a11y-server.mjs --root <dir> --index <index.json> --ready-file <file> [--port <port>]"
@@ -52,7 +52,9 @@ const indexPath = path.resolve(indexArg)
 let stopping = false
 
 function send(response, status, body) {
-  if (response.destroyed) return
+  if (response.destroyed) {
+    return
+  }
   response.writeHead(status, { "content-type": "text/plain; charset=utf-8" })
   response.end(body)
 }
@@ -135,7 +137,7 @@ server.listen(requestedPort, "127.0.0.1", () => {
   }
 
   const temporaryReadyFile = `${readyFile}.${process.pid}.tmp`
-  writeFileSync(temporaryReadyFile, `${address.port}\n`, "utf8")
+  writeFileSync(temporaryReadyFile, `${address.port}\n`, "utf-8")
   renameSync(temporaryReadyFile, readyFile)
   console.log(
     `Storybook static server listening on http://127.0.0.1:${address.port}`
@@ -143,7 +145,9 @@ server.listen(requestedPort, "127.0.0.1", () => {
 })
 
 function stop() {
-  if (stopping) return
+  if (stopping) {
+    return
+  }
   stopping = true
   server.closeAllConnections()
   server.close(() => process.exit(0))

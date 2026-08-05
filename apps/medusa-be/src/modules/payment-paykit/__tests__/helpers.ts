@@ -19,7 +19,37 @@ export const createMockContainer = (): PaykitInjectedDependencies => ({
 export const createMockPaykitClient = (
   overrides: MockPaykitClientOverrides = {}
 ): PaykitPaymentClient => ({
+  customers: {
+    create: vi.fn().mockResolvedValue({
+      id: "customer-1",
+      email: "customer@example.com",
+      name: "Customer",
+      phone: "",
+    }),
+    delete: vi.fn().mockResolvedValue(null),
+    retrieve: vi.fn().mockResolvedValue({
+      id: "customer-1",
+      email: "customer@example.com",
+      name: "Customer",
+      phone: "",
+    }),
+    update: vi.fn().mockResolvedValue({
+      id: "customer-1",
+      email: "updated@example.com",
+      name: "Updated",
+      phone: "",
+    }),
+    ...overrides.customers,
+  },
   payments: {
+    cancel: vi.fn().mockResolvedValue({
+      id: "provider-payment-1",
+      status: "canceled",
+    }),
+    capture: vi.fn().mockResolvedValue({
+      id: "provider-payment-1",
+      status: "succeeded",
+    }),
     create: vi.fn().mockResolvedValue({
       id: "provider-payment-1",
       status: "requires_action",
@@ -33,14 +63,6 @@ export const createMockPaykitClient = (
       id: "provider-payment-1",
       status: "requires_action",
     }),
-    capture: vi.fn().mockResolvedValue({
-      id: "provider-payment-1",
-      status: "succeeded",
-    }),
-    cancel: vi.fn().mockResolvedValue({
-      id: "provider-payment-1",
-      status: "canceled",
-    }),
     ...overrides.payments,
   },
   refunds: {
@@ -50,28 +72,6 @@ export const createMockPaykitClient = (
       amount: 250,
     }),
     ...overrides.refunds,
-  },
-  customers: {
-    create: vi.fn().mockResolvedValue({
-      id: "customer-1",
-      email: "customer@example.com",
-      name: "Customer",
-      phone: "",
-    }),
-    update: vi.fn().mockResolvedValue({
-      id: "customer-1",
-      email: "updated@example.com",
-      name: "Updated",
-      phone: "",
-    }),
-    retrieve: vi.fn().mockResolvedValue({
-      id: "customer-1",
-      email: "customer@example.com",
-      name: "Customer",
-      phone: "",
-    }),
-    delete: vi.fn().mockResolvedValue(null),
-    ...overrides.customers,
   },
   ...(overrides.handleWebhook
     ? { handleWebhook: overrides.handleWebhook }

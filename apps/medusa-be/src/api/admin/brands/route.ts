@@ -4,7 +4,8 @@ import type {
 } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 
-import { type BrandInput, createBrandsWorkflow } from "../../../workflows/brand"
+import { createBrandsWorkflow } from "../../../workflows/brand"
+import type { BrandInput } from "../../../workflows/brand"
 import {
   escapeLikePattern,
   getBrandActiveProductCounts,
@@ -19,8 +20,7 @@ import type {
 const ORDER_FIELDS = new Set(["title", "handle", "created_at", "updated_at"])
 const LEADING_DASH_REGEX = /^-/
 
-const parseOrder = (input?: string) => {
-  const value = input ?? "title"
+const parseOrder = (value: string = "title") => {
   const direction = value.startsWith("-") ? "DESC" : "ASC"
   const field = value.replace(LEADING_DASH_REGEX, "")
 
@@ -69,12 +69,12 @@ export async function GET(
   )
 
   res.json({
-    count,
-    limit,
-    offset,
     brands: brands.map((brand) =>
       toBrandResponse(brand, activeProductCounts.get(brand.id) ?? 0)
     ),
+    count,
+    limit,
+    offset,
   })
 }
 

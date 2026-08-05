@@ -33,10 +33,10 @@ export async function GET(
 
   const { data: productLinks } = await query.graph({
     entity: ProductBrandLink.entryPoint,
+    fields: ["product_id"],
     filters: {
       brand_id: brandId,
     },
-    fields: ["product_id"],
   })
   const linkedProductIds = productLinks.flatMap((link) =>
     typeof link.product_id === "string" ? [link.product_id] : []
@@ -44,10 +44,10 @@ export async function GET(
 
   if (!linkedProductIds.length) {
     res.json({
-      products: [],
       count: 0,
-      offset: req.queryConfig.pagination?.skip ?? 0,
       limit: req.queryConfig.pagination?.take,
+      offset: req.queryConfig.pagination?.skip ?? 0,
+      products: [],
     })
     return
   }
@@ -65,9 +65,9 @@ export async function GET(
   })
 
   res.json({
-    products,
     count: metadata?.count ?? products.length,
-    offset: metadata?.skip,
     limit: metadata?.take,
+    offset: metadata?.skip,
+    products,
   })
 }

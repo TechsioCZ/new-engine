@@ -92,16 +92,20 @@ type CustomFacetConfig = CreateMedusaStorefrontPresetConfig<
 // @ts-expect-error custom facet shapes must provide catalog.fallbackFacets
 export const missingCatalogFallback: CustomFacetConfig = { sdk }
 
-type ProductList = { id: string }
-type ProductListItem = { id: string }
+interface ProductList {
+  id: string
+}
+interface ProductListItem {
+  id: string
+}
 type Cart = ProductListCartLike
-type ProductListsInput = {
+interface ProductListsInput {
   page?: number
   limit?: number
   customerId?: string | null
   enabled?: boolean
 }
-type ProductListInput = {
+interface ProductListInput {
   id?: string | null
   customerId?: string | null
   enabled?: boolean
@@ -118,8 +122,8 @@ type SuspenseProductListInput = Parameters<
 >[0]
 
 export const validSuspenseProductListDetailInput: SuspenseProductListInput = {
-  id: "list_1",
   customerId: "cus_1",
+  id: "list_1",
 }
 
 // @ts-expect-error suspense product-list detail input requires id
@@ -127,14 +131,16 @@ export const missingSuspenseProductListDetailInput: SuspenseProductListInput = {
   customerId: "cus_1",
 }
 
-type Product = { id: string }
-type ProductListQueryInput = {
+interface Product {
+  id: string
+}
+interface ProductListQueryInput {
   page?: number
   limit?: number
   region_id?: string
   enabled?: boolean
 }
-type ProductDetailInput = {
+interface ProductDetailInput {
   handle: string
   region_id?: string
   enabled?: boolean
@@ -152,8 +158,8 @@ type SuspenseProductDetailInput = Parameters<
 >[0]
 
 export const validSuspenseProductListInput: SuspenseProductListQueryInput = {
-  page: 1,
   limit: 10,
+  page: 1,
   region_id: "reg_1",
 }
 export const validSuspenseProductDetailInput: SuspenseProductDetailInput = {

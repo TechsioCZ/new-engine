@@ -53,7 +53,7 @@ describe("measurement unit utilities", () => {
 
     await expect(
       listProductMeasurementsByProductIds({ resolve } as never, ["", ""])
-    ).resolves.toEqual([])
+    ).resolves.toStrictEqual([])
     expect(resolve).not.toHaveBeenCalled()
   })
 })

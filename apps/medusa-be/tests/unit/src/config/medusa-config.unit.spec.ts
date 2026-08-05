@@ -15,15 +15,15 @@ import {
 } from "../../../../src/config/providers"
 
 const baseEnv = {
-  REDIS_SESSIONS_ENABLED: "0",
-  MEILISEARCH_ENABLED: "0",
-  NOTIFICATION_PROVIDER: "local",
   CACHE_PROVIDER: "inmemory",
   EVENT_BUS_PROVIDER: "local",
-  WORKFLOW_ENGINE_PROVIDER: "inmemory",
-  LOCKING_PROVIDER: "postgres",
-  FILE_PROVIDER: "local",
   FILE_LOCAL_UPLOAD_DIR: "/tmp/medusa-uploads",
+  FILE_PROVIDER: "local",
+  LOCKING_PROVIDER: "postgres",
+  MEILISEARCH_ENABLED: "0",
+  NOTIFICATION_PROVIDER: "local",
+  REDIS_SESSIONS_ENABLED: "0",
+  WORKFLOW_ENGINE_PROVIDER: "inmemory",
 } satisfies NodeJS.ProcessEnv
 
 const originalMikroOrmSchema = process.env["MIKRO_ORM_SCHEMA"]
@@ -45,39 +45,38 @@ afterEach(() => {
   }
 })
 
-describe("readMedusaConfigEnv", () => {
+describe(readMedusaConfigEnv, () => {
   it("parses local provider defaults without requiring Redis", () => {
     const env = readMedusaConfigEnv(baseEnv)
 
     expect(env.redisUrl).toBeUndefined()
-    expect(buildNotificationProvider(env)).toEqual({
-      resolve: "@medusajs/medusa/notification-local",
+    expect(buildNotificationProvider(env)).toStrictEqual({
       id: "local",
       options: {
-        name: "Local Notification Provider",
         channels: ["email", "feed"],
+        name: "Local Notification Provider",
       },
+      resolve: "@medusajs/medusa/notification-local",
     })
-    expect(buildNotificationProviders(env)).toEqual([
+    expect(buildNotificationProviders(env)).toStrictEqual([
       {
-        resolve: "@medusajs/medusa/notification-local",
         id: "local",
         options: {
-          name: "Local Notification Provider",
           channels: ["email", "feed"],
+          name: "Local Notification Provider",
         },
+        resolve: "@medusajs/medusa/notification-local",
       },
     ])
-    expect(buildCachingModule(env)).toEqual({
-      resolve: "@medusajs/medusa/caching",
+    expect(buildCachingModule(env)).toStrictEqual({
       options: {
         in_memory: {
           enable: true,
         },
       },
+      resolve: "@medusajs/medusa/caching",
     })
-    expect(buildFileModule(env)).toEqual({
-      resolve: "@medusajs/medusa/file",
+    expect(buildFileModule(env)).toStrictEqual({
       options: {
         providers: [
           {
@@ -91,6 +90,7 @@ describe("readMedusaConfigEnv", () => {
           },
         ],
       },
+      resolve: "@medusajs/medusa/file",
     })
   })
 
@@ -120,8 +120,7 @@ describe("readMedusaConfigEnv", () => {
     })
 
     expect(requireRedisUrl(env)).toBe("redis://localhost:6379")
-    expect(buildCachingModule(env)).toEqual({
-      resolve: "@medusajs/medusa/caching",
+    expect(buildCachingModule(env)).toStrictEqual({
       options: {
         providers: [
           {
@@ -134,6 +133,7 @@ describe("readMedusaConfigEnv", () => {
           },
         ],
       },
+      resolve: "@medusajs/medusa/caching",
     })
   })
 
@@ -197,23 +197,23 @@ describe("readMedusaConfigEnv", () => {
       RESEND_FROM_EMAIL: "store@example.com",
     })
 
-    expect(buildNotificationProviders(env)).toEqual([
+    expect(buildNotificationProviders(env)).toStrictEqual([
       {
-        resolve: "./src/modules/resend",
         id: "resend",
         options: {
-          channels: ["email"],
           api_key: "re_test",
+          channels: ["email"],
           from: "store@example.com",
         },
+        resolve: "./src/modules/resend",
       },
       {
-        resolve: "@medusajs/medusa/notification-local",
         id: "local-feed",
         options: {
-          name: "Local Feed Notification Provider",
           channels: ["feed"],
+          name: "Local Feed Notification Provider",
         },
+        resolve: "@medusajs/medusa/notification-local",
       },
     ])
   })
@@ -225,7 +225,7 @@ describe("readMedusaConfigEnv", () => {
     })
 
     expect(env.meilisearchHost).toBeUndefined()
-    expect(buildPlugins(env)).not.toEqual(
+    expect(buildPlugins(env)).not.toStrictEqual(
       expect.arrayContaining([
         expect.objectContaining({
           resolve: "@rokmohar/medusa-plugin-meilisearch",
@@ -242,27 +242,27 @@ describe("readMedusaConfigEnv", () => {
       STORE_CORS: "https://store.example",
     })
 
-    expect(buildProjectConfig(env).http).toEqual({
-      storeCors: "https://store.example",
+    expect(buildProjectConfig(env).http).toStrictEqual({
       adminCors: "https://admin.example",
       authCors: "https://auth.example",
-      jwtSecret: undefined,
       cookieSecret: undefined,
+      jwtSecret: undefined,
+      storeCors: "https://store.example",
     })
   })
 
   it("includes master-added dashboard plugin and product list module", () => {
     const env = readMedusaConfigEnv(baseEnv)
 
-    expect(buildPlugins(env)).toEqual(
+    expect(buildPlugins(env)).toStrictEqual(
       expect.arrayContaining([
         {
-          resolve: "medusa-order-dashboard-plugin",
           options: {},
+          resolve: "medusa-order-dashboard-plugin",
         },
       ])
     )
-    expect(buildModules(env)).toEqual(
+    expect(buildModules(env)).toStrictEqual(
       expect.arrayContaining([
         {
           resolve: "./src/modules/product-list",

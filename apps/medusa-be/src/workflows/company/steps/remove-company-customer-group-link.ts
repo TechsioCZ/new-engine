@@ -9,18 +9,18 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import { COMPANY_MODULE } from "../../../modules/company"
 
-type EmployeeWithCustomer = {
+interface EmployeeWithCustomer {
   customer?: { id?: string } | null
 }
 
-type RemoveCompanyCustomerGroupLinkCompensation = {
+interface RemoveCompanyCustomerGroupLinkCompensation {
   company_id: string
   customer_ids: string[]
   group_id?: string
   link_removed?: boolean
 }
 
-type RemoveCompanyCustomerGroupLinkInput = {
+interface RemoveCompanyCustomerGroupLinkInput {
   company_id: string
   expected_group_id?: string
   preserve_link?: boolean
@@ -52,8 +52,8 @@ const getCustomerGroupCustomers = (
         Boolean(employee?.customer?.id)
     )
     .map((employee) => ({
-      customer_id: employee.customer.id,
       customer_group_id: groupId,
+      customer_id: employee.customer.id,
     }))
 
 export const removeCompanyCustomerGroupLinkStep = createStep(
@@ -80,13 +80,13 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
     } = await query.graph(
       {
         entity: "companies",
-        filters: { id: companyId },
         fields: [
           "id",
           "customer_group.*",
           "employees.*",
           "employees.customer.*",
         ],
+        filters: { id: companyId },
       },
       { throwIfKeyNotFound: true }
     )
@@ -160,8 +160,8 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
     if (input.customer_ids.length) {
       await customerModuleService.addCustomerToGroup(
         input.customer_ids.map((id) => ({
-          customer_id: id,
           customer_group_id: groupId,
+          customer_id: id,
         }))
       )
     }

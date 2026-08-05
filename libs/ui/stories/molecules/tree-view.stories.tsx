@@ -3,13 +3,48 @@ import { useState } from "react"
 
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
-import { TreeView, type TreeNode } from "../../src/molecules/tree-view"
+import { TreeView } from "../../src/molecules/tree-view"
+import type { TreeNode } from "../../src/molecules/tree-view"
 
 const meta: Meta<typeof TreeView> = {
-  title: "Molecules/TreeView",
+  argTypes: {
+    dir: {
+      control: "radio",
+      description: "Text direction",
+      options: ["ltr", "rtl"],
+      table: { category: "Behavior", defaultValue: { summary: "ltr" } },
+    },
+    expandOnClick: {
+      control: "boolean",
+      description: "Expand branches on click",
+      table: { category: "Behavior", defaultValue: { summary: "true" } },
+    },
+    selectionBehavior: {
+      control: "select",
+      description: "Which nodes can be selected",
+      options: ["all", "leaf-only", "custom"],
+      table: { category: "Selection", defaultValue: { summary: "all" } },
+    },
+    selectionMode: {
+      control: "select",
+      description: "Selection mode",
+      options: ["single", "multiple"],
+      table: { category: "Selection", defaultValue: { summary: "single" } },
+    },
+    size: {
+      control: "select",
+      description: "Size of the tree view",
+      options: ["sm", "md", "lg"],
+      table: { category: "Appearance", defaultValue: { summary: "md" } },
+    },
+    typeahead: {
+      control: "boolean",
+      description: "Enable typeahead navigation",
+      table: { category: "Behavior", defaultValue: { summary: "true" } },
+    },
+  },
   component: TreeView,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component: `A compound tree view component built with Zag.js. Provides flexible composition for creating file explorers, navigation menus, and hierarchical data displays.
@@ -27,44 +62,10 @@ TreeView is fully keyboard accessible following WAI-ARIA tree pattern:
 - **Ctrl+Click** (Cmd+Click on Mac) - Individual multi-select (multiple mode)`,
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  argTypes: {
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-      description: "Size of the tree view",
-      table: { defaultValue: { summary: "md" }, category: "Appearance" },
-    },
-    selectionMode: {
-      control: "select",
-      options: ["single", "multiple"],
-      description: "Selection mode",
-      table: { defaultValue: { summary: "single" }, category: "Selection" },
-    },
-    selectionBehavior: {
-      control: "select",
-      options: ["all", "leaf-only", "custom"],
-      description: "Which nodes can be selected",
-      table: { defaultValue: { summary: "all" }, category: "Selection" },
-    },
-    expandOnClick: {
-      control: "boolean",
-      description: "Expand branches on click",
-      table: { defaultValue: { summary: "true" }, category: "Behavior" },
-    },
-    typeahead: {
-      control: "boolean",
-      description: "Enable typeahead navigation",
-      table: { defaultValue: { summary: "true" }, category: "Behavior" },
-    },
-    dir: {
-      control: "radio",
-      options: ["ltr", "rtl"],
-      description: "Text direction",
-      table: { defaultValue: { summary: "ltr" }, category: "Behavior" },
-    },
-  },
+  title: "Molecules/TreeView",
 }
 
 export default meta
@@ -73,8 +74,6 @@ type Story = StoryObj<typeof TreeView>
 // Sample data
 const fileSystemData: TreeNode[] = [
   {
-    id: "src",
-    name: "src",
     children: [
       {
         id: "components",
@@ -111,14 +110,16 @@ const fileSystemData: TreeNode[] = [
       },
       { id: "index.ts", name: "index.ts" },
     ],
+    id: "src",
+    name: "src",
   },
   {
-    id: "public",
-    name: "public",
     children: [
       { id: "favicon.ico", name: "favicon.ico" },
       { id: "robots.txt", name: "robots.txt" },
     ],
+    id: "public",
+    name: "public",
   },
   {
     id: "package.json",
@@ -137,9 +138,6 @@ const navigationData: TreeNode[] = [
     selectable: false,
   },
   {
-    id: "products",
-    name: "Products",
-    selectable: false,
     children: [
       {
         id: "electronics",
@@ -162,6 +160,9 @@ const navigationData: TreeNode[] = [
         ],
       },
     ],
+    id: "products",
+    name: "Products",
+    selectable: false,
   },
   {
     id: "about",
@@ -175,12 +176,20 @@ const navigationData: TreeNode[] = [
 
 export const Playground: Story = {
   args: {
-    size: "md",
-    selectionMode: "single",
-    selectionBehavior: "all",
-    expandOnClick: true,
-    typeahead: true,
     dir: "ltr",
+    expandOnClick: true,
+    selectionBehavior: "all",
+    selectionMode: "single",
+    size: "md",
+    typeahead: true,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Interactive TreeView with all controls. Try different sizes, selection modes, and behaviors.",
+      },
+    },
   },
   render: (args) => (
     <TreeView
@@ -213,17 +222,17 @@ export const Playground: Story = {
       </TreeView.Tree>
     </TreeView>
   ),
+}
+
+export const CustomComposition: Story = {
   parameters: {
     docs: {
       description: {
         story:
-          "Interactive TreeView with all controls. Try different sizes, selection modes, and behaviors.",
+          "Full compound pattern example showing how to customize node rendering. This adds Badges for child counts and file types, demonstrating the flexibility of the compound component pattern.",
       },
     },
   },
-}
-
-export const CustomComposition: Story = {
   render: () => (
     <TreeView data={fileSystemData} className="w-md" selectionMode="multiple">
       <TreeView.Label>Project Structure</TreeView.Label>
@@ -286,17 +295,17 @@ export const CustomComposition: Story = {
       </TreeView.Tree>
     </TreeView>
   ),
+}
+
+export const Minimal: Story = {
   parameters: {
     docs: {
       description: {
         story:
-          "Full compound pattern example showing how to customize node rendering. This adds Badges for child counts and file types, demonstrating the flexibility of the compound component pattern.",
+          "Minimal TreeView without icons or indent guides, ideal for navigation menus or simple hierarchical lists.",
       },
     },
   },
-}
-
-export const Minimal: Story = {
   render: () => (
     <TreeView data={navigationData} selectionMode="single" className="w-xs">
       <TreeView.Tree>
@@ -312,17 +321,17 @@ export const Minimal: Story = {
       </TreeView.Tree>
     </TreeView>
   ),
+}
+
+export const Sizes: Story = {
   parameters: {
     docs: {
       description: {
         story:
-          "Minimal TreeView without icons or indent guides, ideal for navigation menus or simple hierarchical lists.",
+          "TreeView supports three size variants: sm, md, and lg. Choose the appropriate size based on your UI density requirements.",
       },
     },
   },
-}
-
-export const Sizes: Story = {
   render: () => (
     <div className="flex flex-col gap-300">
       <TreeView
@@ -366,17 +375,17 @@ export const Sizes: Story = {
       </TreeView>
     </div>
   ),
+}
+
+export const SelectionBehaviors: Story = {
   parameters: {
     docs: {
       description: {
         story:
-          "TreeView supports three size variants: sm, md, and lg. Choose the appropriate size based on your UI density requirements.",
+          'TreeView supports three selectionBehavior modes: "all" (both branches and leaves selectable), "leaf-only" (only leaf nodes selectable, branches just expand/collapse), and "custom" (individual nodes control selectability via selectable property).',
       },
     },
   },
-}
-
-export const SelectionBehaviors: Story = {
   render: () => (
     <div className="flex flex-col gap-300">
       <TreeView
@@ -420,17 +429,17 @@ export const SelectionBehaviors: Story = {
       </TreeView>
     </div>
   ),
+}
+
+export const Controlled: Story = {
   parameters: {
     docs: {
       description: {
         story:
-          'TreeView supports three selectionBehavior modes: "all" (both branches and leaves selectable), "leaf-only" (only leaf nodes selectable, branches just expand/collapse), and "custom" (individual nodes control selectability via selectable property).',
+          "Demonstrates controlled TreeView state with external controls. Use expandedValue/selectedValue props with callbacks to manage state externally, enabling integration with forms or other UI controls.",
       },
     },
   },
-}
-
-export const Controlled: Story = {
   render: () => {
     const ControlledExample = () => {
       const [expanded, setExpanded] = useState<string[]>(["src", "components"])
@@ -444,8 +453,12 @@ export const Controlled: Story = {
             selectionMode="multiple"
             expandedValue={expanded}
             selectedValue={selected}
-            onExpandedChange={(details) => setExpanded(details.expandedValue)}
-            onSelectionChange={(details) => setSelected(details.selectedValue)}
+            onExpandedChange={(details) => {
+              setExpanded(details.expandedValue)
+            }}
+            onSelectionChange={(details) => {
+              setSelected(details.selectedValue)
+            }}
           >
             <TreeView.Label>Controlled Tree</TreeView.Label>
             <TreeView.Tree>
@@ -482,21 +495,27 @@ export const Controlled: Story = {
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={() => setExpanded(["src", "components", "atoms"])}
+                onClick={() => {
+                  setExpanded(["src", "components", "atoms"])
+                }}
               >
                 Expand Some
               </Button>
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={() => setExpanded([])}
+                onClick={() => {
+                  setExpanded([])
+                }}
               >
                 Collapse All
               </Button>
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={() => setSelected([])}
+                onClick={() => {
+                  setSelected([])
+                }}
               >
                 Clear Selection
               </Button>
@@ -508,17 +527,17 @@ export const Controlled: Story = {
 
     return <ControlledExample />
   },
+}
+
+export const CustomStyling: Story = {
   parameters: {
     docs: {
       description: {
         story:
-          "Demonstrates controlled TreeView state with external controls. Use expandedValue/selectedValue props with callbacks to manage state externally, enabling integration with forms or other UI controls.",
+          "Advanced styling example showing how to apply custom Tailwind classes to TreeView components for theming. Use className props on any sub-component to customize appearance.",
       },
     },
   },
-}
-
-export const CustomStyling: Story = {
   render: () => (
     <TreeView
       data={fileSystemData}
@@ -577,17 +596,17 @@ export const CustomStyling: Story = {
       </TreeView.Tree>
     </TreeView>
   ),
+}
+
+export const DefaultExpanded: Story = {
   parameters: {
     docs: {
       description: {
         story:
-          "Advanced styling example showing how to apply custom Tailwind classes to TreeView components for theming. Use className props on any sub-component to customize appearance.",
+          "Shows how to use defaultExpandedValue and defaultSelectedValue props to set initial tree state without managing state yourself. Useful for uncontrolled components.",
       },
     },
   },
-}
-
-export const DefaultExpanded: Story = {
   render: () => (
     <TreeView
       data={fileSystemData}
@@ -604,17 +623,17 @@ export const DefaultExpanded: Story = {
       </TreeView.Tree>
     </TreeView>
   ),
+}
+
+export const SelectionModes: Story = {
   parameters: {
     docs: {
       description: {
         story:
-          "Shows how to use defaultExpandedValue and defaultSelectedValue props to set initial tree state without managing state yourself. Useful for uncontrolled components.",
+          "Demonstrates the difference between single and multiple selection modes. In single mode, only one item can be selected at a time. In multiple mode, use Ctrl+Click (Cmd+Click on Mac) to select multiple items.",
       },
     },
   },
-}
-
-export const SelectionModes: Story = {
   render: () => {
     const SelectionModesExample = () => {
       const [singleSelected, setSingleSelected] = useState<string[]>([
@@ -633,9 +652,9 @@ export const SelectionModes: Story = {
               data={fileSystemData}
               selectionMode="single"
               selectedValue={singleSelected}
-              onSelectionChange={(details) =>
+              onSelectionChange={(details) => {
                 setSingleSelected(details.selectedValue)
-              }
+              }}
               defaultExpandedValue={["src", "components", "atoms"]}
               className="w-full"
             >
@@ -666,9 +685,9 @@ export const SelectionModes: Story = {
               data={fileSystemData}
               selectionMode="multiple"
               selectedValue={multiSelected}
-              onSelectionChange={(details) =>
+              onSelectionChange={(details) => {
                 setMultiSelected(details.selectedValue)
-              }
+              }}
               defaultExpandedValue={["src", "components", "molecules"]}
               className="w-full"
             >
@@ -701,17 +720,17 @@ export const SelectionModes: Story = {
 
     return <SelectionModesExample />
   },
+}
+
+export const ExpandVsSelectionTest: Story = {
   parameters: {
     docs: {
       description: {
         story:
-          "Demonstrates the difference between single and multiple selection modes. In single mode, only one item can be selected at a time. In multiple mode, use Ctrl+Click (Cmd+Click on Mac) to select multiple items.",
+          "Interactive test to understand the difference between expand/collapse and selection. The chevron arrow should only expand/collapse branches, while clicking on the node text should select it. When expandOnClick is true, clicking on a branch node will also expand it.",
       },
     },
   },
-}
-
-export const ExpandVsSelectionTest: Story = {
   render: () => {
     const InteractiveTest = () => {
       const [logs, setLogs] = useState<string[]>([])
@@ -813,7 +832,12 @@ export const ExpandVsSelectionTest: Story = {
               <h4 className="text-sm font-semibold">
                 Event Log (last 15 events)
               </h4>
-              <Button size="sm" onClick={() => setLogs([])}>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setLogs([])
+                }}
+              >
                 Clear
               </Button>
             </div>
@@ -842,17 +866,17 @@ export const ExpandVsSelectionTest: Story = {
 
     return <InteractiveTest />
   },
+}
+
+export const WithHoverEvents: Story = {
   parameters: {
     docs: {
       description: {
         story:
-          "Interactive test to understand the difference between expand/collapse and selection. The chevron arrow should only expand/collapse branches, while clicking on the node text should select it. When expandOnClick is true, clicking on a branch node will also expand it.",
+          "Test story for onNodeHover and onNodeLeave callbacks. Hover over any node (branch or leaf) to see events being logged. This demonstrates that callbacks work for all levels of the tree.",
       },
     },
   },
-}
-
-export const WithHoverEvents: Story = {
   render: () => {
     const [logs, setLogs] = useState<string[]>([])
 
@@ -942,7 +966,12 @@ export const WithHoverEvents: Story = {
         <div className="flex-1">
           <div className="flex flex-col mb-200">
             <h3 className="font-semibold">Hover Events Log</h3>
-            <Button size="sm" onClick={() => setLogs([])}>
+            <Button
+              size="sm"
+              onClick={() => {
+                setLogs([])
+              }}
+            >
               Clear
             </Button>
           </div>
@@ -971,13 +1000,5 @@ export const WithHoverEvents: Story = {
         </div>
       </div>
     )
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          "Test story for onNodeHover and onNodeLeave callbacks. Hover over any node (branch or leaf) to see events being logged. This demonstrates that callbacks work for all levels of the tree.",
-      },
-    },
   },
 }

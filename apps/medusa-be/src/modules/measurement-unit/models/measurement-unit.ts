@@ -4,15 +4,15 @@ import ProductMeasurement from "./product-measurement"
 
 const MeasurementUnit = model
   .define("measurement_unit", {
-    id: model.id().primaryKey(),
     base_quantity: model.bigNumber(),
     code: model.text().searchable(),
-    name: model.text().searchable().translatable(),
-    symbol: model.text().searchable().translatable(),
     description: model.text().translatable().nullable(),
+    id: model.id().primaryKey(),
+    name: model.text().searchable().translatable(),
     product_measurements: model.hasMany(() => ProductMeasurement, {
       mappedBy: "measurement_unit",
     }),
+    symbol: model.text().searchable().translatable(),
   })
   .indexes([
     {
@@ -24,8 +24,8 @@ const MeasurementUnit = model
   ])
   .checks([
     {
-      name: "measurement_unit_base_quantity_positive",
       expression: (columns) => `${columns.base_quantity} > 0`,
+      name: "measurement_unit_base_quantity_positive",
     },
   ])
 

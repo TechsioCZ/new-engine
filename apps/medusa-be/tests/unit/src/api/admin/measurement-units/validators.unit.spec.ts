@@ -15,12 +15,12 @@ describe("measurement unit request validation", () => {
         name: "Kilogram",
         symbol: "kg",
       }).success
-    ).toBe(true)
+    ).toBeTruthy()
     expect(
       AdminSetProductVariantMeasurementSchema.safeParse({
         product_unit_quantity: 2.5,
       }).success
-    ).toBe(true)
+    ).toBeTruthy()
   })
 
   it.each(["2", true, false, null])(
@@ -33,7 +33,7 @@ describe("measurement unit request validation", () => {
           name: "Kilogram",
           symbol: "kg",
         }).success
-      ).toBe(false)
+      ).toBeFalsy()
     }
   )
 
@@ -42,12 +42,12 @@ describe("measurement unit request validation", () => {
       AdminUpdateMeasurementUnitSchema.safeParse({
         base_quantity: "3",
       }).success
-    ).toBe(false)
+    ).toBeFalsy()
     expect(
       AdminSetProductVariantMeasurementSchema.safeParse({
         product_unit_quantity: true,
       }).success
-    ).toBe(false)
+    ).toBeFalsy()
   })
 
   it.each([
@@ -62,20 +62,20 @@ describe("measurement unit request validation", () => {
         name: "Kilogram",
         symbol: "kg",
       }).success
-    ).toBe(false)
+    ).toBeFalsy()
     expect(
       AdminUpdateMeasurementUnitSchema.safeParse({
         base_quantity: quantity,
       }).success
-    ).toBe(false)
+    ).toBeFalsy()
     expect(
       AdminSetProductVariantMeasurementSchema.safeParse({
         product_unit_quantity: quantity,
       }).success
-    ).toBe(false)
+    ).toBeFalsy()
   })
 
   it("rejects an empty update", () => {
-    expect(AdminUpdateMeasurementUnitSchema.safeParse({}).success).toBe(false)
+    expect(AdminUpdateMeasurementUnitSchema.safeParse({}).success).toBeFalsy()
   })
 })

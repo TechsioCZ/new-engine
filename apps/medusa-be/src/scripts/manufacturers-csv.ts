@@ -20,7 +20,7 @@ const REQUIRED_HEADERS = [
   "inMenu",
 ] as const
 
-export type ManufacturerCsvRow = {
+export interface ManufacturerCsvRow {
   description: string | null
   gpsr_contact_email: string | null
   gpsr_european_reseller_contact_email: string | null
@@ -41,7 +41,7 @@ export type ManufacturerCsvRow = {
 
 export type ManufacturerCsvLookup = Map<string, ManufacturerCsvRow>
 
-type CsvParserState = {
+interface CsvParserState {
   afterClosingQuote: boolean
   currentField: string
   currentRow: string[]
@@ -75,11 +75,11 @@ function parseBooleanCsvValue(
 function normalizeLookupKey(value: string) {
   return value
     .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[\u0300-\u036F]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/-+/g, "-")
+    .replaceAll(/^-|-$/g, "")
 }
 
 function pushCsvField(state: CsvParserState) {
@@ -165,7 +165,7 @@ function parseCsvRows(source: string, delimiter = ";") {
     inQuotes: false,
     line: 1,
   }
-  const normalizedSource = source.replace(/\r\n?/g, "\n")
+  const normalizedSource = source.replaceAll(/\r\n?/g, "\n")
 
   for (let index = 0; index < normalizedSource.length; index += 1) {
     if (state.inQuotes) {
@@ -285,7 +285,6 @@ function buildManufacturerCsvFields(
       record["manufacturingCompanyName"] ?? ""
     ),
     gpsr_postal_address: decodeCsvValue(record["postalAddress"] ?? ""),
-    indexName: decodeCsvValue(record["indexName"] ?? ""),
     inList: parseBooleanCsvValue(
       record["inList"] ?? "",
       "inList",
@@ -296,6 +295,7 @@ function buildManufacturerCsvFields(
       "inMenu",
       manufacturerIdentity
     ),
+    indexName: decodeCsvValue(record["indexName"] ?? ""),
     metaDescription: decodeCsvValue(record["metaDescription"] ?? ""),
     metaTitle: decodeCsvValue(record["metaTitle"] ?? ""),
     webUrl: decodeCsvValue(record["webUrl"] ?? ""),
@@ -408,11 +408,13 @@ export function findManufacturerCsvRow(
 
 export async function readCsvSource(source: string): Promise<string> {
   if (!HTTP_CSV_SOURCE_PATTERN.test(source)) {
-    return readFileSync(source, "utf8")
+    return readFileSync(source, "utf-8")
   }
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30_000)
+  const timeout = setTimeout(() => {
+    controller.abort()
+  }, 30_000)
 
   try {
     const response = await fetch(source, {

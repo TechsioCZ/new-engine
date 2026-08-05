@@ -4,11 +4,12 @@ import { useEffect, useState } from "react"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Badge } from "../../src/atoms/badge"
 import { Button } from "../../src/atoms/button"
-import { Icon, type IconType } from "../../src/atoms/icon"
+import { Icon } from "../../src/atoms/icon"
+import type { IconType } from "../../src/atoms/icon"
 import { Input } from "../../src/atoms/input"
 import { Steps } from "../../src/molecules/steps"
 
-type DemoStep = {
+interface DemoStep {
   actionLabel: string
   badge: string
   content: string
@@ -51,53 +52,7 @@ const completedText =
   "All steps are complete. This content lives outside the indexed step panels."
 
 const meta: Meta<typeof Steps> = {
-  title: "Molecules/Steps",
-  component: Steps,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component:
-          "Computed/compound stepper built on Zag.js. This version keeps the machine API close to Zag while exposing composable subcomponents similar to our other computed molecules.",
-      },
-    },
-  },
-  tags: ["autodocs"],
   argTypes: {
-    linear: {
-      control: "boolean",
-      description: "Whether users must progress sequentially.",
-      table: { category: "Behavior", defaultValue: { summary: "false" } },
-    },
-    orientation: {
-      control: "radio",
-      options: ["horizontal", "vertical"],
-      description: "Stepper orientation.",
-      table: {
-        category: "Layout",
-        defaultValue: { summary: "horizontal" },
-      },
-    },
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-      description: "Visual size scale for indicators and content.",
-      table: { category: "Appearance", defaultValue: { summary: "md" } },
-    },
-    step: {
-      control: { type: "number", min: 0, max: demoSteps.length },
-      description: "Controlled active step index.",
-      table: { category: "Behavior", defaultValue: { summary: "0" } },
-    },
-    variant: {
-      control: "radio",
-      options: ["subtle", "solid"],
-      description: "Visual emphasis style.",
-      table: {
-        category: "Appearance",
-        defaultValue: { summary: "subtle" },
-      },
-    },
     children: {
       table: { disable: true },
     },
@@ -113,11 +68,45 @@ const meta: Meta<typeof Steps> = {
     id: {
       table: { disable: true },
     },
+    linear: {
+      control: "boolean",
+      description: "Whether users must progress sequentially.",
+      table: { category: "Behavior", defaultValue: { summary: "false" } },
+    },
     onStepChange: {
       table: { disable: true },
     },
     onStepComplete: {
       table: { disable: true },
+    },
+    orientation: {
+      control: "radio",
+      description: "Stepper orientation.",
+      options: ["horizontal", "vertical"],
+      table: {
+        category: "Layout",
+        defaultValue: { summary: "horizontal" },
+      },
+    },
+    size: {
+      control: "select",
+      description: "Visual size scale for indicators and content.",
+      options: ["sm", "md", "lg"],
+      table: { category: "Appearance", defaultValue: { summary: "md" } },
+    },
+    step: {
+      control: { max: demoSteps.length, min: 0, type: "number" },
+      description: "Controlled active step index.",
+      table: { category: "Behavior", defaultValue: { summary: "0" } },
+    },
+    variant: {
+      control: "radio",
+      description: "Visual emphasis style.",
+      options: ["subtle", "solid"],
+      table: {
+        category: "Appearance",
+        defaultValue: { summary: "subtle" },
+      },
     },
   },
   args: {
@@ -127,6 +116,18 @@ const meta: Meta<typeof Steps> = {
     step: 0,
     variant: "subtle",
   },
+  component: Steps,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Computed/compound stepper built on Zag.js. This version keeps the machine API close to Zag while exposing composable subcomponents similar to our other computed molecules.",
+      },
+    },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/Steps",
 }
 
 export default meta
@@ -145,7 +146,9 @@ export const Playground: Story = {
         <Steps
           count={demoSteps.length}
           linear={args.linear}
-          onStepChange={(details) => setStep(details.step)}
+          onStepChange={(details) => {
+            setStep(details.step)
+          }}
           orientation={args.orientation}
           size={args.size}
           step={step}
@@ -257,7 +260,9 @@ export const Controlled: Story = {
       <div className="w-5xl">
         <Steps
           count={demoSteps.length}
-          onStepChange={(details) => setStep(details.step)}
+          onStepChange={(details) => {
+            setStep(details.step)
+          }}
           size="md"
           step={step}
           variant="subtle"

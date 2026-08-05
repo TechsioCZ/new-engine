@@ -12,13 +12,13 @@ import type EmailLogModuleService from "../../modules/email-log/service"
 import { getResendTemplateSubject } from "../../modules/resend/templates"
 import { CHECKED_RESEND_EVENT_TYPES } from "../../utils/resend-webhook-events"
 
-type EmailLogDTO = {
+interface EmailLogDTO {
   id: string
   checked_at: Date | null
   email_id: string
 }
 
-type EmailWebhookEventDTO = {
+interface EmailWebhookEventDTO {
   id: string
   processed_at: Date | null
   received_at: Date
@@ -231,28 +231,28 @@ export const sendNotificationStep = createStep(
         },
       ]
     })
-    const customerLookupEmails = Array.from(
-      new Set(
+    const customerLookupEmails = [
+      ...new Set(
         emailLogInputs
           .filter((item) => !item.explicitCustomerId)
           .map((item) => item.input.to)
-      )
-    )
+      ),
+    ]
     const customerIdsByEmail = await getCustomerIdsByEmail(
       customerModuleService,
       customerLookupEmails
     )
     const emailLogs = emailLogInputs.map(
       ({ createdNotification, explicitCustomerId, input }) => ({
-        email_id: createdNotification.external_id ?? createdNotification.id,
+        checked_at: null,
         customer_id:
           explicitCustomerId ?? customerIdsByEmail.get(input.to) ?? null,
+        email_id: createdNotification.external_id ?? createdNotification.id,
         order_id: getOrderId(input),
-        type: createdNotification.template ?? getEmailType(input),
-        subject: getNotificationSubject(input),
-        sent_to: createdNotification.to ?? input.to,
         sent_at: new Date(),
-        checked_at: null,
+        sent_to: createdNotification.to ?? input.to,
+        subject: getNotificationSubject(input),
+        type: createdNotification.template ?? getEmailType(input),
       })
     )
 

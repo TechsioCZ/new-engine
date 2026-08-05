@@ -9,7 +9,7 @@ import {
   readXmlSource,
 } from "./herbatica-xml-utils"
 
-export type HerbaticaCategoryExport = {
+export interface HerbaticaCategoryExport {
   id: string
   guid?: string | undefined
   parentId?: string | undefined
@@ -35,7 +35,7 @@ function trimHtmlFragment(value?: string): string | undefined {
     return
   }
 
-  const trimmed = normalized.replace(/^\s+|\s+$/g, "")
+  const trimmed = normalized.replaceAll(/^\s+|\s+$/g, "")
   return trimmed === "" ? undefined : trimmed
 }
 
@@ -72,12 +72,12 @@ export function stripHtmlToPlainText(value?: string): string | undefined {
   }
 
   const text = decodeXml(value)
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<br\s*\/?>/gi, " ")
-    .replace(/<\/p\s*>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
+    .replaceAll(/<script[\s\S]*?<\/script>/gi, " ")
+    .replaceAll(/<style[\s\S]*?<\/style>/gi, " ")
+    .replaceAll(/<br\s*\/?>/gi, " ")
+    .replaceAll(/<\/p\s*>/gi, " ")
+    .replaceAll(/<[^>]+>/g, " ")
+    .replaceAll(/\s+/g, " ")
     .trim()
 
   return text === "" ? undefined : text
@@ -152,27 +152,27 @@ export function parseHerbaticaCategoriesXml(
     )
 
     categories.push({
-      id,
-      guid,
-      parentId: resolvedParentId,
-      title,
-      linkText,
-      url,
-      topDescriptionHtml,
+      access,
       bottomDescriptionHtml,
-      metaTitle,
-      metaDescription,
-      isVisible:
-        parseBoolean(extractFirstText(element.inner, "VISIBLE")) ?? true,
       expandInMenu:
         parseBoolean(extractFirstText(element.inner, "EXPAND_IN_MENU")) ??
         false,
-      access,
-      priority,
-      pageType,
-      searchPriority,
+      guid,
+      id,
       isSystem:
         parseBoolean(extractFirstText(element.inner, "IS_SYSTEM")) ?? false,
+      isVisible:
+        parseBoolean(extractFirstText(element.inner, "VISIBLE")) ?? true,
+      linkText,
+      metaDescription,
+      metaTitle,
+      pageType,
+      parentId: resolvedParentId,
+      priority,
+      searchPriority,
+      title,
+      topDescriptionHtml,
+      url,
     })
   }
 
@@ -182,7 +182,7 @@ export function parseHerbaticaCategoriesXml(
 export function parseHerbaticaCategoriesXmlFile(
   path: string
 ): HerbaticaCategoryExport[] {
-  return parseHerbaticaCategoriesXml(readFileSync(path, "utf8"))
+  return parseHerbaticaCategoriesXml(readFileSync(path, "utf-8"))
 }
 
 export async function parseHerbaticaCategoriesXmlSource(

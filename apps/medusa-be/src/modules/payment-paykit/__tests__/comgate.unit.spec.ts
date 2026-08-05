@@ -4,29 +4,29 @@ import { describe, expect, it, vi } from "vitest"
 import { PaykitComgatePaymentProvider } from "../services/comgate"
 import { createMockContainer, createMockPaykitClient } from "./helpers"
 
-describe("PaykitComgatePaymentProvider", () => {
+describe(PaykitComgatePaymentProvider, () => {
   it("validates required Comgate options", () => {
-    expect(() => PaykitComgatePaymentProvider.validateOptions({})).toThrow(
-      "PayKit Comgate missing required option(s): merchant, secret"
-    )
+    expect(() => {
+      PaykitComgatePaymentProvider.validateOptions({})
+    }).toThrow("PayKit Comgate missing required option(s): merchant, secret")
 
-    expect(() =>
+    expect(() => {
       PaykitComgatePaymentProvider.validateOptions({
         merchant: "merchant",
         secret: "secret",
       })
-    ).not.toThrow()
+    }).not.toThrow()
   })
 
   it("normalizes Medusa major-unit amounts and injects Comgate metadata", async () => {
     const client = createMockPaykitClient({
       payments: {
         create: vi.fn().mockResolvedValue({
-          id: "comgate-payment-1",
           amount: 1050,
           currency: "czk",
-          status: "pending",
+          id: "comgate-payment-1",
           payment_url: "https://payments.comgate.example/redirect",
+          status: "pending",
         }),
       },
     })
@@ -36,16 +36,16 @@ describe("PaykitComgatePaymentProvider", () => {
 
     const result = await provider.initiatePayment({
       amount: 10.5,
-      currency_code: "czk",
-      data: {
-        session_id: "payses_123",
-        item_id: "cart_123",
-      },
       context: {
         customer: {
-          id: "cus_123",
           email: "customer@example.com",
+          id: "cus_123",
         },
+      },
+      currency_code: "czk",
+      data: {
+        item_id: "cart_123",
+        session_id: "payses_123",
       },
     })
 
@@ -59,7 +59,7 @@ describe("PaykitComgatePaymentProvider", () => {
         },
       })
     )
-    expect(result.data).toEqual(
+    expect(result.data).toStrictEqual(
       expect.objectContaining({
         id: "comgate-payment-1",
         payment_url: "https://payments.comgate.example/redirect",
@@ -75,14 +75,14 @@ describe("PaykitComgatePaymentProvider", () => {
 
     await provider.initiatePayment({
       amount: 10.5,
+      context: {},
       currency_code: "czk",
       data: {
-        session_id: "payses_123",
-        item_id: "cart_123",
         customer: "cus_123",
         email: "customer@example.com",
+        item_id: "cart_123",
+        session_id: "payses_123",
       },
-      context: {},
     })
 
     expect(client.payments.create).toHaveBeenCalledWith(
@@ -103,13 +103,13 @@ describe("PaykitComgatePaymentProvider", () => {
 
     await provider.initiatePayment({
       amount: 10.5,
+      context: {},
       currency_code: "czk",
       data: {
-        session_id: "payses_123",
-        item_id: "cart_123",
         customer: { email: "customer@example.com" },
+        item_id: "cart_123",
+        session_id: "payses_123",
       },
-      context: {},
     })
 
     expect(client.payments.create).toHaveBeenCalledWith(
@@ -131,13 +131,13 @@ describe("PaykitComgatePaymentProvider", () => {
     await expect(
       provider.initiatePayment({
         amount: 10.5,
+        context: {},
         currency_code: "czk",
         data: {
-          session_id: "payses_123",
-          item_id: "cart_123",
           customer: "cus_123",
+          item_id: "cart_123",
+          session_id: "payses_123",
         },
-        context: {},
       })
     ).rejects.toThrow("PayKit Comgate requires a customer email")
   })
@@ -151,34 +151,34 @@ describe("PaykitComgatePaymentProvider", () => {
 
     await provider.initiatePayment({
       amount: 10.5,
-      currency_code: "czk",
-      data: {
-        session_id: "payses_123",
-        item_id: "cart_123",
-      },
       context: {
         customer: {
-          id: "cus_123",
           email: "customer@example.com",
+          id: "cus_123",
         },
+      },
+      currency_code: "czk",
+      data: {
+        item_id: "cart_123",
+        session_id: "payses_123",
       },
     })
 
     await provider.initiatePayment({
       amount: 10.5,
+      context: {
+        customer: {
+          email: "customer@example.com",
+          id: "cus_123",
+        },
+      },
       currency_code: "czk",
       data: {
-        session_id: "payses_456",
         item_id: "cart_456",
         provider_metadata: {
           paymentLabel: "Custom checkout label",
         },
-      },
-      context: {
-        customer: {
-          id: "cus_123",
-          email: "customer@example.com",
-        },
+        session_id: "payses_456",
       },
     })
 
@@ -208,9 +208,9 @@ describe("PaykitComgatePaymentProvider", () => {
 
     await provider.capturePayment({
       data: {
-        id: "comgate-payment-1",
         amount: 1050,
         currency: "czk",
+        id: "comgate-payment-1",
       },
     })
 
@@ -223,16 +223,16 @@ describe("PaykitComgatePaymentProvider", () => {
     const client = createMockPaykitClient()
     client.handleWebhook = vi.fn().mockResolvedValue([
       {
-        type: "payment.updated",
         data: {
-          id: "comgate-payment-1",
           amount: 1050,
           currency: "czk",
-          status: "succeeded",
+          id: "comgate-payment-1",
           metadata: {
             session_id: "payses_123",
           },
+          status: "succeeded",
         },
+        type: "payment.updated",
       },
     ])
     const provider = new PaykitComgatePaymentProvider(createMockContainer(), {
@@ -242,14 +242,14 @@ describe("PaykitComgatePaymentProvider", () => {
     await expect(
       provider.getWebhookActionAndData({
         data: {},
-        rawData: "",
         headers: {},
+        rawData: "",
       })
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       action: PaymentActions.SUCCESSFUL,
       data: {
-        session_id: "payses_123",
         amount: 10.5,
+        session_id: "payses_123",
       },
     })
   })

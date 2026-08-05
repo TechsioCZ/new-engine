@@ -3,7 +3,8 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
-import { Gallery, type GalleryItem } from "@techsio/ui-kit/organisms/gallery"
+import { Gallery } from "@techsio/ui-kit/organisms/gallery"
+import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery"
 import { useTranslations } from "next-intl"
 import NextImage from "next/image"
 
@@ -13,7 +14,7 @@ import { useProductDetailGalleryState } from "@/components/product-detail/sectio
 import { SupportingText } from "@/components/text/supporting-text"
 import { useMediaQuery } from "@/hooks/use-media-query"
 
-type ProductDetailMediaColumnProps = {
+interface ProductDetailMediaColumnProps {
   discountPercent: number | null
   galleryItems: GalleryItem[]
   mediaFacts: ProductMediaFact[]
@@ -49,19 +50,21 @@ export function ProductDetailMediaColumn({
           aspectRatio: "square",
           loop: galleryItemsWithFallback.length > 1,
           objectFit: "contain",
-          orientation: carouselOrientation,
-          size: "full",
-          width: "100%",
           onDragStatusChange: (details) => {
             if (details.type === "dragging") {
               cancelPendingOpen()
             }
           },
+          orientation: carouselOrientation,
+          size: "full",
+          width: "100%",
         }}
         className="min-w-0 md:product-detail-media-layout"
         hideThumbnailsWhenSingle={false}
         items={galleryItemsWithFallback}
-        onValueChange={({ value }) => setSelectedImageIndex(value)}
+        onValueChange={({ value }) => {
+          setSelectedImageIndex(value)
+        }}
         orientation="vertical"
         thumbnailSize={88}
         value={safeSelectedImageIndex}

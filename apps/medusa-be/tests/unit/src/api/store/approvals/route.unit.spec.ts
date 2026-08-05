@@ -41,7 +41,7 @@ describe("GET /store/approvals", () => {
     const { GET } =
       await import("../../../../../../src/api/store/approvals/route")
     const graph = vi.fn().mockResolvedValue({
-      data: [{ id: "cus_1", employee: null }],
+      data: [{ employee: null, id: "cus_1" }],
     })
     const req = createMockRequest({ graph })
     const res = createMockResponse()
@@ -52,7 +52,7 @@ describe("GET /store/approvals", () => {
       carts_with_approvals: [],
       count: 0,
     })
-    expect(graph).toHaveBeenCalledTimes(1)
+    expect(graph).toHaveBeenCalledOnce()
     expect(graph).toHaveBeenCalledWith({
       entity: "customer",
       fields: ["employee.company.id"],

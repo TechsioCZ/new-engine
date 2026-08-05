@@ -5,10 +5,8 @@ import type {
 import { ModuleProvider, Modules } from "@medusajs/framework/utils"
 
 import { PAYKIT_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
-import {
-  type PaykitInjectedDependencies,
-  PaykitPaymentProviderBase,
-} from "../core/base"
+import { PaykitPaymentProviderBase } from "../core/base"
+import type { PaykitInjectedDependencies } from "../core/base"
 import { createPaykitClient, getGopayProviderOptions } from "../runtime"
 import type {
   PaykitGopayOptions,

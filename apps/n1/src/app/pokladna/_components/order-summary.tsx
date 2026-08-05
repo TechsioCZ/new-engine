@@ -7,7 +7,7 @@ import { formatAmount } from "@/utils/format/format-product"
 import { CartItemRow } from "./cart-item-row"
 import { PriceSummaryRow } from "./price-summary-row"
 
-type OrderSummaryProps = {
+interface OrderSummaryProps {
   cart: Cart
   selectedShipping?: HttpTypes.StoreCartShippingOption | undefined
   errorMessage?: string

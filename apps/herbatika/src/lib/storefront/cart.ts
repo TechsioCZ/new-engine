@@ -14,11 +14,11 @@ const useBaseUpdateLineItem = cartFlow.useUpdateLineItem
 const useBaseRemoveLineItem = cartFlow.useRemoveLineItem
 
 export const cartReadQueryOptions = {
-  staleTime: 60 * 1000,
   gcTime: storefrontCacheConfig.realtime.gcTime,
   refetchOnMount: false,
-  refetchOnWindowFocus: false,
   refetchOnReconnect: true,
+  refetchOnWindowFocus: false,
+  staleTime: 60 * 1000,
 } as const
 
 export const { useCart, useUpdateCart, useUpdateCartAddress, useTransferCart } =

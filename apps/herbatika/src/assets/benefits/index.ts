@@ -7,7 +7,7 @@ import products from "./produkty.avif"
 import returns from "./vraceni.avif"
 import customers from "./zakaznici.avif"
 
-type BenefitDefinition = {
+interface BenefitDefinition {
   id: number
   image: StaticImageData
   translationKey: HomepageBenefitTranslationKey

@@ -7,7 +7,7 @@ import type { RegionInfo } from "./region"
 
 const RegionContext = createContext<RegionInfo | null>(null)
 
-type RegionProviderProps = {
+interface RegionProviderProps {
   children: ReactNode
   region: RegionInfo | null
 }

@@ -1,9 +1,10 @@
 "use client"
 
 import { getErrorMessage } from "@techsio/std/object"
-import { type FormEvent, useState } from "react"
+import { useState } from "react"
+import type { FormEvent } from "react"
 
-type ImportResult = {
+interface ImportResult {
   ok: boolean
   result: {
     total: number
@@ -13,7 +14,7 @@ type ImportResult = {
 }
 
 const configuredLocales = (
-  process.env["NEXT_PUBLIC_PAYLOAD_LOCALES"] ?? "cs,sk,en"
+  process.env.NEXT_PUBLIC_PAYLOAD_LOCALES ?? "cs,sk,en"
 )
   .split(",")
   .map((locale) => locale.trim())
@@ -66,8 +67,8 @@ const createFormData = ({
 
 const sendImportRequest = async (formData: FormData) => {
   const response = await fetch("/api/article-import", {
-    method: "POST",
     body: formData,
+    method: "POST",
   })
 
   if (!response.ok) {
@@ -102,9 +103,9 @@ export default function PayloadImportNav() {
     const formData = createFormData({
       file,
       locale,
+      overwrite,
       sheetName,
       status,
-      overwrite,
     })
     setIsSubmitting(true)
 
@@ -135,19 +136,21 @@ export default function PayloadImportNav() {
       <form
         onSubmit={onSubmit}
         style={{
+          background: "var(--theme-elevation-100)",
+          borderRadius: "4px",
           display: "grid",
           gap: "8px",
-          width: "100%",
           padding: "8px",
-          borderRadius: "4px",
-          background: "var(--theme-elevation-100)",
+          width: "100%",
         }}
       >
         <label style={{ display: "grid", gap: "4px" }}>
           <span>XLSX soubor</span>
           <input
             accept=".xlsx"
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            onChange={(event) => {
+              setFile(event.target.files?.[0] ?? null)
+            }}
             type="file"
           />
         </label>
@@ -155,7 +158,9 @@ export default function PayloadImportNav() {
         <label style={{ display: "grid", gap: "4px" }}>
           <span>Locale</span>
           <select
-            onChange={(event) => setLocale(event.target.value)}
+            onChange={(event) => {
+              setLocale(event.target.value)
+            }}
             value={locale}
           >
             {defaultLocales.map((localeOption) => (
@@ -169,7 +174,9 @@ export default function PayloadImportNav() {
         <label style={{ display: "grid", gap: "4px" }}>
           <span>Název listu (volitelné)</span>
           <input
-            onChange={(event) => setSheetName(event.target.value)}
+            onChange={(event) => {
+              setSheetName(event.target.value)
+            }}
             placeholder="napr. Sheet1"
             type="text"
             value={sheetName}
@@ -179,7 +186,9 @@ export default function PayloadImportNav() {
         <label style={{ display: "grid", gap: "4px" }}>
           <span>Výchozí status (nepovinné)</span>
           <select
-            onChange={(event) => setStatus(event.target.value)}
+            onChange={(event) => {
+              setStatus(event.target.value)
+            }}
             value={status}
           >
             <option value="">Nechat z Excelu</option>
@@ -193,7 +202,9 @@ export default function PayloadImportNav() {
           <span>Overwrite</span>
           <input
             checked={overwrite}
-            onChange={(event) => setOverwrite(event.target.checked)}
+            onChange={(event) => {
+              setOverwrite(event.target.checked)
+            }}
             type="checkbox"
           />
         </label>

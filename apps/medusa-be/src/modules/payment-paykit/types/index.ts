@@ -85,7 +85,7 @@ type PaykitSdkPayments = PaykitSdkClient["payments"]
 type PaykitSdkRefunds = PaykitSdkClient["refunds"]
 type PaykitSdkCustomers = PaykitSdkClient["customers"]
 
-export type PaykitPaymentClient = {
+export interface PaykitPaymentClient {
   payments: {
     create: (
       input: Parameters<PaykitSdkPayments["create"]>[0]
@@ -135,7 +135,7 @@ export type PaykitPaymentClient = {
   }
 }
 
-export type PaykitStripeCheckoutSession = {
+export interface PaykitStripeCheckoutSession {
   id: string
   amount_total?: number | null
   amount_subtotal?: number | null
@@ -149,7 +149,7 @@ export type PaykitStripeCheckoutSession = {
   url?: string | null
 }
 
-export type PaykitStripePaymentIntent = {
+export interface PaykitStripePaymentIntent {
   id?: string | null
   amount?: number | null
   currency?: string | null
@@ -167,7 +167,7 @@ export type PaykitClientFactory = () =>
   | PaykitPaymentClient
   | Promise<PaykitPaymentClient>
 
-export type PaykitAdapterOptions = {
+export interface PaykitAdapterOptions {
   debug?: boolean
   capture?: boolean
   client?: PaykitPaymentClient

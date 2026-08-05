@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { AdminGetApprovalsType } from "../../../../../../src/api/admin/approvals/validators"
 
-vi.mock("@medusajs/framework/utils", () => ({
+vi.mock(import("@medusajs/framework/utils"), () => ({
   ContainerRegistrationKeys: {
     QUERY: "query",
   },
@@ -69,10 +69,10 @@ describe("GET /admin/approvals", () => {
     const { GET } =
       await import("../../../../../../src/api/admin/approvals/route")
     const approval = {
-      id: "appr_1",
       cart_id: "cart_1",
       created_by: "user_1",
       handled_by: null,
+      id: "appr_1",
       status: "pending",
       type: "sales_manager",
     }
@@ -80,13 +80,13 @@ describe("GET /admin/approvals", () => {
       data: [
         {
           cart: {
-            id: "cart_1",
             approval_status: {
-              id: "apprstat_1",
               cart_id: "cart_1",
+              id: "apprstat_1",
               status: "pending",
             },
             approvals: [approval],
+            id: "cart_1",
           },
         },
         {
@@ -116,13 +116,13 @@ describe("GET /admin/approvals", () => {
     expect(res.json).toHaveBeenCalledWith({
       carts_with_approvals: [
         {
-          id: "cart_1",
+          approval_requests: [approval],
           approval_status: {
-            id: "apprstat_1",
             cart_id: "cart_1",
+            id: "apprstat_1",
             status: "pending",
           },
-          approval_requests: [approval],
+          id: "cart_1",
         },
       ],
       count: 1,

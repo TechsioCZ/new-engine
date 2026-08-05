@@ -15,7 +15,8 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 
-import { PPL_CLIENT_MODULE, type PplClientModuleService } from "../ppl-client"
+import { PPL_CLIENT_MODULE } from "../ppl-client"
+import type { PplClientModuleService } from "../ppl-client"
 import type {
   PplCodSettings,
   PplFulfillmentData,
@@ -29,15 +30,15 @@ type InjectedDependencies = {
   logger: Logger
 } & Record<typeof PPL_CLIENT_MODULE, PplClientModuleService>
 
-const PPL_PRODUCT_TYPES: readonly PplProductType[] = [
+const PPL_PRODUCT_TYPES: readonly PplProductType[] = new Set([
   "SMAR",
   "SMAD",
   "PRIV",
   "PRID",
-]
+])
 
 const isPplProductType = (value: unknown): value is PplProductType =>
-  typeof value === "string" && PPL_PRODUCT_TYPES.includes(value)
+  typeof value === "string" && PPL_PRODUCT_TYPES.has(value)
 
 const isPplShippingOptionData = (
   value: Record<string, unknown>
@@ -124,28 +125,28 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
       {
         id: "ppl-parcel-smart",
         name: "PPL Parcel Smart (ParcelShop/ParcelBox)",
-        product_type: "SMAR" as PplProductType,
+        product_type: "SMAR",
         requires_access_point: true,
         supports_cod: false,
       },
       {
         id: "ppl-parcel-smart-cod",
         name: "PPL Parcel Smart + COD",
-        product_type: "SMAD" as PplProductType,
+        product_type: "SMAD",
         requires_access_point: true,
         supports_cod: true,
       },
       {
         id: "ppl-private",
         name: "PPL Private (Home Delivery)",
-        product_type: "PRIV" as PplProductType,
+        product_type: "PRIV",
         requires_access_point: false,
         supports_cod: false,
       },
       {
         id: "ppl-private-cod",
         name: "PPL Private + COD (Home Delivery)",
-        product_type: "PRID" as PplProductType,
+        product_type: "PRID",
         requires_access_point: false,
         supports_cod: true,
       },
@@ -280,13 +281,13 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
     const orderId = order.display_id?.toString() || order.id || ""
 
     const shipmentRequest = this.buildShipmentRequest({
+      accessPointId,
+      codSettings,
       fulfillmentId,
+      orderId,
       productType,
       recipient,
       sender,
-      orderId,
-      accessPointId,
-      codSettings,
     })
 
     this.logger_.info(
@@ -303,12 +304,12 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
 
     return {
       data: {
-        status: "pending",
         batch_id: batchId,
         product_type: productType,
-        ...(accessPointId !== undefined
-          ? { access_point_id: accessPointId }
-          : {}),
+        status: "pending",
+        ...(accessPointId === undefined
+          ? {}
+          : { access_point_id: accessPointId }),
       } satisfies PplFulfillmentData,
       labels: [],
     }
@@ -324,11 +325,11 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
 
     if (defaultSeatAddress) {
       sender = {
+        city: defaultSeatAddress.city,
+        country: defaultSeatAddress.country,
         name: defaultSeatAddress.name,
         street: defaultSeatAddress.street,
-        city: defaultSeatAddress.city,
         zipCode: defaultSeatAddress.zipCode,
-        country: defaultSeatAddress.country,
         ...(defaultSeatAddress.phone && { phone: defaultSeatAddress.phone }),
         ...(defaultSeatAddress.email && { email: defaultSeatAddress.email }),
       }
@@ -367,11 +368,11 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
       }
 
       sender = {
+        city: sender_city,
+        country: sender_country,
         name: sender_name,
         street: sender_street,
-        city: sender_city,
         zipCode: sender_zip_code,
-        country: sender_country,
         ...(sender_phone && { phone: sender_phone }),
         ...(sender_email && { email: sender_email }),
       }
@@ -423,8 +424,8 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
         `PPL: Cannot cancel - batch ${batchId} not yet processed by PPL. Manual intervention may be needed.`
       )
       return {
-        cancelled: false,
         batch_id: batchId,
+        cancelled: false,
         note: "Batch not yet processed by PPL. Check PPL portal or retry later.",
       }
     }
@@ -439,8 +440,8 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
       )
       return {
         cancelled: false,
-        shipment_number: shipmentNumber,
         note: "Cancellation failed. Shipment may have been picked up. Contact PPL support.",
+        shipment_number: shipmentNumber,
       }
     }
 
@@ -502,9 +503,9 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
 
     if (fulfillmentData.label_url) {
       documents.push({
+        format: "png",
         type: "label",
         url: fulfillmentData.label_url,
-        format: "png",
       })
     }
 
@@ -529,16 +530,19 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
     const data = getPplFulfillmentData(fulfillmentData)
 
     switch (documentType) {
-      case "label":
+      case "label": {
         return data.label_url
           ? { type: "label", url: data.label_url, format: "png" }
           : null
-      case "tracking":
+      }
+      case "tracking": {
         return data.tracking_url
           ? { type: "tracking", url: data.tracking_url }
           : null
-      default:
+      }
+      default: {
         return null
+      }
     }
   }
 
@@ -575,16 +579,16 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
     }
 
     return {
+      city: this.truncate(shippingAddress.city || "", 50),
+      country: countryCode,
+      email: this.truncate(email || "", 50),
       name: this.truncate(
         `${shippingAddress.first_name || ""} ${shippingAddress.last_name || ""}`.trim(),
         50
       ),
-      street: this.truncate(shippingAddress.address_1 || "", 60),
-      city: this.truncate(shippingAddress.city || "", 50),
-      zipCode: shippingAddress.postal_code || "",
-      country: countryCode,
       phone: this.truncate(shippingAddress.phone || "", 30),
-      email: this.truncate(email || "", 50),
+      street: this.truncate(shippingAddress.address_1 || "", 60),
+      zipCode: shippingAddress.postal_code || "",
     }
   }
 
@@ -625,8 +629,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
       )
     }
 
-    const orderId =
-      order.display_id?.toString() || order.id?.substring(0, 10) || ""
+    const orderId = order.display_id?.toString() || order.id?.slice(0, 10) || ""
     const config = await this.getClient().getEffectiveConfig()
     if (!config) {
       throw new MedusaError(
@@ -636,23 +639,23 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
     }
 
     return {
-      codPrice: codAmount,
       codCurrency: orderCurrency,
+      codPrice: codAmount,
       codVarSym: orderId,
       ...(config.cod_iban
         ? {
             iban: config.cod_iban,
-            ...(config.cod_swift !== undefined
-              ? { swift: config.cod_swift }
-              : {}),
+            ...(config.cod_swift === undefined
+              ? {}
+              : { swift: config.cod_swift }),
           }
         : {
-            ...(config.cod_bank_account !== undefined
-              ? { bankAccount: config.cod_bank_account }
-              : {}),
-            ...(config.cod_bank_code !== undefined
-              ? { bankCode: config.cod_bank_code }
-              : {}),
+            ...(config.cod_bank_account === undefined
+              ? {}
+              : { bankAccount: config.cod_bank_account }),
+            ...(config.cod_bank_code === undefined
+              ? {}
+              : { bankCode: config.cod_bank_code }),
           }),
     }
   }

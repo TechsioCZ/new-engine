@@ -12,12 +12,13 @@ import { useInfiniteProducts } from "@/hooks/use-infinite-products"
 import { usePrefetchPages } from "@/hooks/use-prefetch-pages"
 import { useProducts } from "@/hooks/use-products"
 import { useRegions } from "@/hooks/use-region"
-import { type ExtendedSortOption, useUrlFilters } from "@/hooks/use-url-filters"
+import { useUrlFilters } from "@/hooks/use-url-filters"
+import type { ExtendedSortOption } from "@/hooks/use-url-filters"
 
-const SORT_OPTIONS: Array<{ value: ExtendedSortOption; label: string }> = [
-  { value: "newest", label: "Nejnovější" },
-  { value: "name-asc", label: "Název: A-Z" },
-  { value: "name-desc", label: "Název: Z-A" },
+const SORT_OPTIONS: { value: ExtendedSortOption; label: string }[] = [
+  { label: "Nejnovější", value: "newest" },
+  { label: "Název: A-Z", value: "name-asc" },
+  { label: "Název: Z-A", value: "name-desc" },
 ]
 
 function ProductsContent() {
@@ -28,8 +29,8 @@ function ProductsContent() {
   const urlFilters = useUrlFilters()
 
   const productFilters = {
-    categories: Array.from(urlFilters.filters.categories) as string[],
-    sizes: Array.from(urlFilters.filters.sizes) as string[],
+    categories: [...urlFilters.filters.categories] as string[],
+    sizes: [...urlFilters.filters.sizes] as string[],
   }
 
   // Use infinite products for load more functionality
@@ -42,12 +43,12 @@ function ProductsContent() {
     fetchNextPage,
     refetch: refetchInfinite,
   } = useInfiniteProducts({
-    pageRange: urlFilters.pageRange,
-    limit: pageSize,
     filters: productFilters,
-    sort: urlFilters.sortBy === "relevance" ? undefined : urlFilters.sortBy,
+    limit: pageSize,
+    pageRange: urlFilters.pageRange,
     q: urlFilters.searchQuery || undefined,
     region_id: selectedRegion?.id,
+    sort: urlFilters.sortBy === "relevance" ? undefined : urlFilters.sortBy,
   })
 
   // Fallback to regular products hook for pagination compatibility
@@ -61,13 +62,13 @@ function ProductsContent() {
     hasNextPage,
     hasPrevPage,
   } = useProducts({
-    page: urlFilters.page,
-    limit: pageSize,
+    enabled: !urlFilters.pageRange.isRange, // Disable when in range mode
     filters: productFilters,
-    sort: urlFilters.sortBy === "relevance" ? undefined : urlFilters.sortBy,
+    limit: pageSize,
+    page: urlFilters.page,
     q: urlFilters.searchQuery || undefined,
     region_id: selectedRegion?.id,
-    enabled: !urlFilters.pageRange.isRange, // Disable when in range mode
+    sort: urlFilters.sortBy === "relevance" ? undefined : urlFilters.sortBy,
   })
 
   // Detect page range change and reset infinite query when switching between single/range modes
@@ -109,15 +110,15 @@ function ProductsContent() {
   // Use prefetch hook for page prefetching
   usePrefetchPages({
     currentPage,
+    filters: productFilters,
     hasNextPage: effectiveHasNextPage,
     hasPrevPage: effectiveHasPrevPage,
-    productsLength: products.length,
     pageSize,
-    sortBy: urlFilters.sortBy,
-    totalPages: effectiveTotalPages,
+    productsLength: products.length,
     regionId: selectedRegion?.id,
     searchQuery: urlFilters.searchQuery,
-    filters: productFilters,
+    sortBy: urlFilters.sortBy,
+    totalPages: effectiveTotalPages,
   })
 
   return (
@@ -125,8 +126,8 @@ function ProductsContent() {
       <div className="mb-product-listing-header-margin">
         <BreadcrumbTemplate
           items={[
-            { label: "Domů", href: "/" },
-            { label: "Produkty", href: "/products" },
+            { href: "/", label: "Domů" },
+            { href: "/products", label: "Produkty" },
           ]}
           linkAs={Link}
         />

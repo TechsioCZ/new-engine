@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next"
 
 import { formatAmount } from "../../../utils"
 
-export type ApprovalItem = {
+export interface ApprovalItem {
   id: string
   product_title: string
   quantity: number

@@ -3,7 +3,7 @@ import type { MedusaContainer } from "@medusajs/framework/types"
 import { BRAND_MODULE } from "../../modules/brand"
 import type BrandModuleService from "../../modules/brand/service"
 
-type BrandIdRecord = {
+interface BrandIdRecord {
   id: string
 }
 

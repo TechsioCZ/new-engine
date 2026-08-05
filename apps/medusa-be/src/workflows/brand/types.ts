@@ -2,11 +2,11 @@ import type { BrandAttributeInput as ModuleBrandAttributeInput } from "../../mod
 
 export type BrandAttributeInput = ModuleBrandAttributeInput
 
-export type BrandAttributeTypeInput = {
+export interface BrandAttributeTypeInput {
   name: string
 }
 
-export type BrandInput = {
+export interface BrandInput {
   title: string
   handle?: string | undefined
   attributes?: BrandAttributeInput[] | undefined
@@ -19,11 +19,11 @@ export type BrandInput = {
   gpsr_postal_address?: string | null | undefined
 }
 
-export type CreateBrandsWorkflowInput = {
+export interface CreateBrandsWorkflowInput {
   brands: BrandInput[]
 }
 
-export type UpdateBrandsWorkflowInput = {
+export interface UpdateBrandsWorkflowInput {
   selector: {
     id: string
   }
@@ -32,35 +32,35 @@ export type UpdateBrandsWorkflowInput = {
   }
 }
 
-export type DeleteBrandsWorkflowInput = {
+export interface DeleteBrandsWorkflowInput {
   ids: string[]
 }
 
-export type RestoreBrandsWorkflowInput = {
+export interface RestoreBrandsWorkflowInput {
   ids: string[]
 }
 
-export type SetProductBrandsWorkflowInput = {
+export interface SetProductBrandsWorkflowInput {
   product_id: string
   brand_ids: string[]
   dismiss_inactive?: boolean
   fail_on_conflict?: boolean
 }
 
-export type BatchLinkProductsToBrandWorkflowInput = {
+export interface BatchLinkProductsToBrandWorkflowInput {
   add: string[]
   brand_id: string
   remove: string[]
 }
 
-export type CreateBrandAttributeTypesWorkflowInput = {
+export interface CreateBrandAttributeTypesWorkflowInput {
   attribute_types: BrandAttributeTypeInput[]
 }
 
-export type DeleteBrandAttributeTypesWorkflowInput = {
+export interface DeleteBrandAttributeTypesWorkflowInput {
   ids: string[]
 }
 
-export type RestoreBrandAttributeTypesWorkflowInput = {
+export interface RestoreBrandAttributeTypesWorkflowInput {
   ids: string[]
 }

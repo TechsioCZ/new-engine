@@ -9,8 +9,8 @@ import { ProductListItemVariantLink } from "../../../links/product-list-item-var
 import {
   PRODUCT_LIST_MODULE,
   PRODUCT_LIST_TYPES,
-  type ProductListType,
 } from "../../../modules/product-list/constants"
+import type { ProductListType } from "../../../modules/product-list/constants"
 import type ProductListModuleService from "../../../modules/product-list/service"
 import { isObjectRecord } from "../../../utils/guards"
 import {
@@ -19,12 +19,12 @@ import {
   toProductListItemVariantLinks,
 } from "../../../utils/product-list-links"
 
-type ProductRecord = {
+interface ProductRecord {
   id: string
   status?: string
 }
 
-type ProductVariantRecord = {
+interface ProductVariantRecord {
   id: string
   product?: {
     id?: string

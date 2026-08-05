@@ -27,13 +27,13 @@ import type {
 
 type TranslationFunction = ReturnType<typeof useTranslation>["t"]
 
-type OrderDashboardBlockingOrder = {
+interface OrderDashboardBlockingOrder {
   id: string
   order_display_id: string
   reason: string
 }
 
-type OrderDashboardFulfillmentPreviewOrder = {
+interface OrderDashboardFulfillmentPreviewOrder {
   id: string
   itemSummaries: Array<{
     id: string
@@ -45,7 +45,7 @@ type OrderDashboardFulfillmentPreviewOrder = {
   shippingOptionId: string
 }
 
-type OrderDashboardFulfillmentBulkResult = {
+interface OrderDashboardFulfillmentBulkResult {
   failed: OrderDashboardBlockingOrder[]
   fulfilled: Array<{
     id: string
@@ -53,7 +53,7 @@ type OrderDashboardFulfillmentBulkResult = {
   }>
 }
 
-type OrderDashboardFulfillmentPreview = {
+interface OrderDashboardFulfillmentPreview {
   fulfillable: OrderDashboardFulfillmentPreviewOrder[]
   skipped: OrderDashboardBlockingOrder[]
 }
@@ -83,7 +83,7 @@ export function OrderFulfillmentModal({
 
   const fulfillmentOrdersQuery = useQuery({
     enabled: open && selectedOrderIds.length > 0,
-    queryFn: () => listOrderDashboardFulfillmentOrders(selectedOrderIds),
+    queryFn: async () => listOrderDashboardFulfillmentOrders(selectedOrderIds),
     queryKey: ["order-dashboard-fulfillment-orders", selectedOrderIds],
   })
   const stockLocationsQuery = useQuery({
@@ -93,7 +93,7 @@ export function OrderFulfillmentModal({
   })
   const shippingOptionsQuery = useQuery({
     enabled: open && !!locationId,
-    queryFn: () => listOrderDashboardShippingOptions(locationId),
+    queryFn: async () => listOrderDashboardShippingOptions(locationId),
     queryKey: ["order-dashboard-shipping-options", locationId],
   })
 

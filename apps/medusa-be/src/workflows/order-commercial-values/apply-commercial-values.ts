@@ -24,11 +24,6 @@ import {
 } from "@medusajs/medusa/core-flows"
 
 import {
-  type CommercialAdjustmentInput,
-  type CommercialValuesCalculationInput,
-  type CommercialValuesConfirmRequest,
-  type CommercialValuesConfirmResponse,
-  type CommercialValuesPreview,
   calculateCommercialValuesPreview,
   encodeCommercialDiscountDescription,
   isManualDiscountAdjustment,
@@ -36,20 +31,27 @@ import {
   MANUAL_ORDER_DISCOUNT_CODE,
   MANUAL_SHIPPING_DISCOUNT_CODE,
 } from "../../utils/order-commercial-values"
+import type {
+  CommercialAdjustmentInput,
+  CommercialValuesCalculationInput,
+  CommercialValuesConfirmRequest,
+  CommercialValuesConfirmResponse,
+  CommercialValuesPreview,
+} from "../../utils/order-commercial-values"
 
-type ApplyCommercialValuesOrderItem = {
+interface ApplyCommercialValuesOrderItem {
   id: string
   adjustments?: CommercialAdjustmentInput[] | null | undefined
   quantity?: number | string | null | undefined
   unit_price?: number | string | null | undefined
 }
 
-type ApplyCommercialValuesShippingMethod = {
+interface ApplyCommercialValuesShippingMethod {
   id: string
   adjustments?: CommercialAdjustmentInput[] | null | undefined
 }
 
-type ReplacementAdjustment = {
+interface ReplacementAdjustment {
   amount: number
   code?: string | undefined
   description?: string | undefined
@@ -60,19 +62,19 @@ type ReplacementAdjustment = {
   shipping_method_id?: string | undefined
 }
 
-export type ApplyCommercialValuesOrder = {
+export interface ApplyCommercialValuesOrder {
   id: string
   items?: ApplyCommercialValuesOrderItem[] | null | undefined
   shipping_methods?: ApplyCommercialValuesShippingMethod[] | null | undefined
 }
 
-type ActiveOrderChange = {
+interface ActiveOrderChange {
   change_type?: string | null | undefined
   id: string
   version: number
 }
 
-type ActiveOrderChangeRecord = {
+interface ActiveOrderChangeRecord {
   change_type?: string | null | undefined
   id: string
   status?: string | null | undefined
@@ -83,7 +85,7 @@ type CommercialValuesPreviewItem = CommercialValuesPreview["items"][number]
 type CommercialValuesPreviewShippingMethod =
   CommercialValuesPreview["shipping_methods"][number]
 
-type ApplyCommercialValuesInput = {
+interface ApplyCommercialValuesInput {
   actor_id?: string | undefined
   calculation_input: CommercialValuesCalculationInput
   container: MedusaContainer
@@ -96,11 +98,11 @@ type ApplyCommercialValuesWorkflowInput = Omit<
   "container"
 >
 
-type CommercialValuesOrderEditDependency = {
+interface CommercialValuesOrderEditDependency {
   order_change_id: string
 }
 
-type CommercialValuesOrderEditReadiness = {
+interface CommercialValuesOrderEditReadiness {
   active_order_change?: ActiveOrderChange | undefined
   order_id: string
 }
@@ -641,9 +643,7 @@ async function fetchOrderVersion(query: Query, orderId: string) {
     filters: { id: orderId },
   })
 
-  const order = (
-    data as Array<{ id: string; version?: number | string | null }>
-  )[0]
+  const order = (data as { id: string; version?: number | string | null }[])[0]
 
   if (!order) {
     throw new MedusaError(
@@ -927,8 +927,8 @@ export const applyOrderCommercialValuesWorkflow = createWorkflow(
           replacements: currentReplacements,
           workflowInput: currentWorkflowInput,
         }) => ({
-          actor_id: currentWorkflowInput.actor_id,
           active_order_change: currentOrderChange,
+          actor_id: currentWorkflowInput.actor_id,
           confirmation_mode:
             currentWorkflowInput.request.confirmation_mode ?? "confirm",
           order_id: currentWorkflowInput.order.id,
@@ -955,7 +955,7 @@ export async function applyOrderCommercialValues({
 }: ApplyCommercialValuesInput): Promise<CommercialValuesConfirmResponse> {
   const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
 
-  return lockingModule.execute(
+  return await lockingModule.execute(
     getCommercialValuesLockKey(order.id),
     async () => {
       const { result } = await applyOrderCommercialValuesWorkflow(

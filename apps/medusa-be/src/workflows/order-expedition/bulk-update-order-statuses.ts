@@ -17,7 +17,7 @@ export const ORDER_EXPEDITION_DIRECT_UPDATE_STATUSES = [
 export type OrderExpeditionDirectUpdateStatus =
   (typeof ORDER_EXPEDITION_DIRECT_UPDATE_STATUSES)[number]
 
-type BulkUpdateOrderStatusesWorkflowInput = {
+interface BulkUpdateOrderStatusesWorkflowInput {
   order_ids: string[]
   target_status: OrderExpeditionDirectUpdateStatus
 }

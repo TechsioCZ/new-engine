@@ -15,31 +15,31 @@ const envOverridesEnvelopeSchema = z.object({
 })
 
 const appliedChangeSchema = z.looseObject({
+  change_type: z.enum(["ADD", "UPDATE", "SKIP"]),
+  key: z.string().min(1),
   service_id: z.string().min(1),
   service_slug: z.string().min(1),
-  key: z.string().min(1),
-  change_type: z.enum(["ADD", "UPDATE", "SKIP"]),
 })
 
 export const applyEnvOverridesCommandInputSchema = z
   .object({
-    projectSlug: z.string().min(1, "Zane canonical project slug is required."),
-    environmentName: z.string().min(1, "Environment name is required."),
-    targetsJsonPath: z.string().min(1),
-    envOverridesJsonPath: z.string().min(1),
-    outputJson: z.string().min(1).optional(),
-    baseUrl: z.string().default(""),
     apiToken: z.string().default(""),
+    baseUrl: z.string().default(""),
     dryRun: z.boolean().default(false),
+    envOverridesJsonPath: z.string().min(1),
+    environmentName: z.string().min(1, "Environment name is required."),
+    outputJson: z.string().min(1).optional(),
+    projectSlug: z.string().min(1, "Zane canonical project slug is required."),
+    targetsJsonPath: z.string().min(1),
   })
   .superRefine(requireLiveZaneCredentials)
 
 export const applyEnvOverridesResponseSchema = z.object({
-  project_slug: z.string().min(1),
+  applied_changes: z.array(appliedChangeSchema).default([]),
+  applied_service_ids: z.array(z.string()),
   environment_name: z.string().min(1),
   noop: z.boolean(),
-  applied_service_ids: z.array(z.string()),
-  applied_changes: z.array(appliedChangeSchema).default([]),
+  project_slug: z.string().min(1),
 })
 
 export type ApplyEnvOverridesCommandInput = z.infer<
@@ -57,18 +57,18 @@ export async function resolveApplyEnvOverridesInputs(
   envOverrides: z.infer<typeof envOverridesEnvelopeSchema>["services"]
 }> {
   const [targetsRaw, envOverridesRaw] = await Promise.all([
-    readFile(targetsJsonPath, "utf8"),
-    readFile(envOverridesJsonPath, "utf8"),
+    readFile(targetsJsonPath, "utf-8"),
+    readFile(envOverridesJsonPath, "utf-8"),
   ])
 
   return {
-    targets: targetsEnvelopeSchema.parse(JSON.parse(targetsRaw)).services,
     envOverrides: envOverridesEnvelopeSchema.parse(JSON.parse(envOverridesRaw))
       .services,
+    targets: targetsEnvelopeSchema.parse(JSON.parse(targetsRaw)).services,
   }
 }
 
-export type ApplyEnvOverridesPayload = {
+export interface ApplyEnvOverridesPayload {
   project_slug: string
   environment_name: string
   targets: z.infer<typeof targetsEnvelopeSchema>["services"]

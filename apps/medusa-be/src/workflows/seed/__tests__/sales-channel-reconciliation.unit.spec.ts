@@ -10,14 +10,14 @@ describe("sales-channel seed reconciliation", () => {
   it("requires unique names and exactly one default", () => {
     expect(() =>
       validateSalesChannelSeedInput([
-        { name: "Default", default: true },
-        { name: "Default", default: false },
+        { default: true, name: "Default" },
+        { default: false, name: "Default" },
       ])
     ).toThrow(UNIQUE_NAME_PATTERN)
     expect(() =>
       validateSalesChannelSeedInput([
-        { name: "Default", default: true },
-        { name: "POS", default: true },
+        { default: true, name: "Default" },
+        { default: true, name: "POS" },
       ])
     ).toThrow(EXACTLY_ONE_DEFAULT_PATTERN)
   })
@@ -25,10 +25,10 @@ describe("sales-channel seed reconciliation", () => {
   it("returns the trimmed names used by channel reconciliation", () => {
     expect(
       validateSalesChannelSeedInput([
-        { name: " Default ", default: true },
-        { name: " POS ", default: false },
+        { default: true, name: " Default " },
+        { default: false, name: " POS " },
       ])
-    ).toEqual(["Default", "POS"])
+    ).toStrictEqual(["Default", "POS"])
   })
 
   it("plans exact publishable-key membership, including undesired removals", () => {
@@ -37,6 +37,6 @@ describe("sales-channel seed reconciliation", () => {
         desiredIds: ["default"],
         existingIds: ["default", "pos"],
       })
-    ).toEqual({ add: [], remove: ["pos"] })
+    ).toStrictEqual({ add: [], remove: ["pos"] })
   })
 })

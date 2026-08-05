@@ -6,7 +6,7 @@ import { getOrders } from "@/services/order-service"
 
 import { useSuspenseAuth } from "./use-auth"
 
-export type UseOrdersOptions = {
+export interface UseOrdersOptions {
   limit?: number
   offset?: number
 }
@@ -21,8 +21,8 @@ export function useSuspenseOrders(options?: UseOrdersOptions) {
   }
 
   return useSuspenseQuery({
+    queryFn: async () => getOrders({ limit, offset }),
     queryKey: queryKeys.orders.list({ limit, offset }),
-    queryFn: () => getOrders({ limit, offset }),
     ...cacheConfig.userData,
   })
 }

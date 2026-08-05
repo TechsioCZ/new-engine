@@ -1,4 +1,4 @@
-export type MeasurementUnitAdminI18nNamespace = {
+export interface MeasurementUnitAdminI18nNamespace {
   actions: Record<
     | "add"
     | "cancel"
@@ -154,6 +154,11 @@ export const measurementUnitAdminI18n = {
         "Měrná jednotka s tímto názvem nebo kódem neexistuje. Vytvořit ji a přiřadit k produktu?",
       title: "Vytvořit novou měrnou jednotku?",
     },
+    deletePrompt: {
+      assignedDescription:
+        "Tato měrná jednotka je přiřazena k {{count}} aktivním produktům. Smazáním se označí jako smazaná, ale existující přiřazení zůstanou viditelná jako smazaná jednotka.",
+      description: "Měrná jednotka bude označena jako smazaná.",
+    },
     detail: {
       assignedProducts: "Přiřazené produkty",
       assignedProductsDescription:
@@ -161,11 +166,6 @@ export const measurementUnitAdminI18n = {
       backToUnits: "Zpět na měrné jednotky",
       details: "Detail",
       removeAssignmentDescription: "Odebrat měrnou jednotku z tohoto produktu?",
-    },
-    deletePrompt: {
-      assignedDescription:
-        "Tato měrná jednotka je přiřazena k {{count}} aktivním produktům. Smazáním se označí jako smazaná, ale existující přiřazení zůstanou viditelná jako smazaná jednotka.",
-      description: "Měrná jednotka bude označena jako smazaná.",
     },
     errors: {
       clearFailed: "Množství varianty se nepodařilo vymazat",
@@ -291,6 +291,11 @@ export const measurementUnitAdminI18n = {
         "No measurement unit exists for this name or code. Create it and assign it to the product?",
       title: "Create new measurement unit?",
     },
+    deletePrompt: {
+      assignedDescription:
+        "This measurement unit is assigned to {{count}} active products. Deleting it will mark the unit as deleted, but existing assignments will remain visible as a deleted unit.",
+      description: "This measurement unit will be marked as deleted.",
+    },
     detail: {
       assignedProducts: "Assigned products",
       assignedProductsDescription:
@@ -299,11 +304,6 @@ export const measurementUnitAdminI18n = {
       details: "Details",
       removeAssignmentDescription:
         "Remove the measurement unit from this product?",
-    },
-    deletePrompt: {
-      assignedDescription:
-        "This measurement unit is assigned to {{count}} active products. Deleting it will mark the unit as deleted, but existing assignments will remain visible as a deleted unit.",
-      description: "This measurement unit will be marked as deleted.",
     },
     errors: {
       clearFailed: "Failed to clear variant quantity",

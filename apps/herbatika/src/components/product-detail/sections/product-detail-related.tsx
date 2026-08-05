@@ -9,7 +9,7 @@ import type {
 import { ProductCollectionSection } from "@/components/product/product-collection-section"
 import { SupportingText } from "@/components/text/supporting-text"
 
-type ProductDetailRelatedProps = {
+interface ProductDetailRelatedProps {
   isProductAdding: (productId: string) => boolean
   onAddToCart: (product: Product) => void
   onProductHoverEnd: (sectionId: string, product: Product) => void

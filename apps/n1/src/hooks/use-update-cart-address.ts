@@ -8,12 +8,12 @@ import type { Cart } from "@/services/cart-service"
 import type { AddressErrors, AddressFormData } from "@/utils/address-validation"
 import { validateAddressForm } from "@/utils/address-validation"
 
-type UpdateCartAddressOptions = {
+interface UpdateCartAddressOptions {
   onSuccess?: (cart: Cart) => void
   onError?: (error: Error) => void
 }
 
-type MutationContext = {
+interface MutationContext {
   previousCart: Cart | undefined
 }
 
@@ -22,12 +22,12 @@ function cleanAddress(
   address: AddressFormData
 ): HttpTypes.StoreUpdateCart["shipping_address"] {
   const cleaned: HttpTypes.StoreUpdateCart["shipping_address"] = {
-    first_name: address.first_name,
-    last_name: address.last_name,
     address_1: address.address_1,
     city: address.city,
-    postal_code: address.postal_code,
     country_code: address.country_code,
+    first_name: address.first_name,
+    last_name: address.last_name,
+    postal_code: address.postal_code,
   }
 
   if (address.address_2?.trim()) {
@@ -111,6 +111,14 @@ export function useUpdateCartAddress(options?: UpdateCartAddressOptions) {
 
       return response.cart
     },
+    onError: (error, _variables, context) => {
+      // Rollback to previous cart on error
+      if (context?.previousCart) {
+        queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
+      }
+
+      options?.onError?.(error)
+    },
     onMutate: async () => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: queryKeys.cart.active() })
@@ -123,25 +131,17 @@ export function useUpdateCartAddress(options?: UpdateCartAddressOptions) {
       // Return context with previous cart for rollback
       return { previousCart }
     },
-    onSuccess: (cart) => {
-      // Update cache with new cart data
-      queryClient.setQueryData(queryKeys.cart.active(), cart)
-
-      options?.onSuccess?.(cart)
-    },
-    onError: (error, _variables, context) => {
-      // Rollback to previous cart on error
-      if (context?.previousCart) {
-        queryClient.setQueryData(queryKeys.cart.active(), context.previousCart)
-      }
-
-      options?.onError?.(error)
-    },
     onSettled: async () => {
       // Always refetch to ensure consistency
       await queryClient.invalidateQueries({
         queryKey: queryKeys.cart.active(),
       })
+    },
+    onSuccess: (cart) => {
+      // Update cache with new cart data
+      queryClient.setQueryData(queryKeys.cart.active(), cart)
+
+      options?.onSuccess?.(cart)
     },
   })
 }

@@ -7,16 +7,14 @@ import { useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
 
 import NextLink from "@/components/app-link"
-import {
-  createForgotPasswordValidators,
-  type ForgotPasswordFormValues,
-} from "@/lib/auth/auth-form-validators"
+import { createForgotPasswordValidators } from "@/lib/auth/auth-form-validators"
+import type { ForgotPasswordFormValues } from "@/lib/auth/auth-form-validators"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
 import { AuthFooter } from "./auth-footer"
 
-type ForgotPasswordFormProps = {
+interface ForgotPasswordFormProps {
   isBusy: boolean
   defaultValues: ForgotPasswordFormValues
   loginHref: string
@@ -100,7 +98,9 @@ export const ForgotPasswordForm = ({
             autoComplete="email"
             id="auth-forgot-password-email"
             label={tForm("email")}
-            onValueChange={() => setSubmitError(null)}
+            onValueChange={() => {
+              setSubmitError(null)
+            }}
             required
             type="email"
             validationMode="blur"

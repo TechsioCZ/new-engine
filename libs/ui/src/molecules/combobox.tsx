@@ -20,13 +20,32 @@ import type { VariantProps } from "tailwind-variants"
 
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
-import { Icon, type IconProps, type IconType } from "../atoms/icon"
+import { Icon } from "../atoms/icon"
+import type { IconProps, IconType } from "../atoms/icon"
 import { Input } from "../atoms/input"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 import { tv } from "../utils"
 
 const comboboxVariants = tv({
+  compoundSlots: [
+    {
+      slots: ["trigger"],
+      class: [
+        "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+        "focus-visible:outline-combobox-ring",
+        "focus-visible:outline-offset-(length:--default-ring-offset)",
+        "text-combobox-trigger text-combobox-trigger-fg-base",
+        "hover:text-combobox-trigger-fg-hover",
+        "motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none",
+        "hover:bg-combobox-trigger-bg-hover",
+        "active:bg-combobox-trigger-bg-active",
+      ],
+    },
+  ],
+  defaultVariants: {
+    size: "md",
+  },
   slots: {
     root: ["relative flex w-full flex-col"],
     label: ["block font-label text-label-md"],
@@ -97,58 +116,40 @@ const comboboxVariants = tv({
     ],
     multiple: [],
   },
-  compoundSlots: [
-    {
-      slots: ["trigger"],
-      class: [
-        "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-        "focus-visible:outline-combobox-ring",
-        "focus-visible:outline-offset-(length:--default-ring-offset)",
-        "text-combobox-trigger text-combobox-trigger-fg-base",
-        "hover:text-combobox-trigger-fg-hover",
-        "motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none",
-        "hover:bg-combobox-trigger-bg-hover",
-        "active:bg-combobox-trigger-bg-active",
-      ],
-    },
-  ],
   variants: {
     size: {
-      sm: {
-        root: "gap-combobox-sm",
-        control: "h-form-control-sm rounded-combobox-sm text-input-sm",
-        item: "p-combobox-item-sm text-combobox-item-sm",
-        emptyState: "p-combobox-item-sm text-combobox-item-sm",
-        input: "p-input-sm",
-        content: "text-combobox-sm",
-        triggerIndicator: "text-icon-control-sm",
-      },
-      md: {
-        root: "gap-combobox-md",
-        control: "h-form-control-md rounded-combobox-md text-input-md",
-        item: "p-combobox-item-md text-combobox-item-md",
-        emptyState: "p-combobox-item-md text-combobox-item-md",
-        input: "p-input-md",
-        content: "text-combobox-md",
-        triggerIndicator: "text-icon-control-md",
-      },
       lg: {
-        root: "gap-combobox-lg",
+        content: "text-combobox-lg",
         control: "rounded-combobox text-input-lg",
-        item: "p-combobox-item-lg text-combobox-item-lg",
         emptyState: "p-combobox-item-lg text-combobox-item-lg",
         input: "p-input-lg",
-        content: "text-combobox-lg",
+        item: "p-combobox-item-lg text-combobox-item-lg",
+        root: "gap-combobox-lg",
         triggerIndicator: "text-icon-control-lg",
       },
+      md: {
+        content: "text-combobox-md",
+        control: "h-form-control-md rounded-combobox-md text-input-md",
+        emptyState: "p-combobox-item-md text-combobox-item-md",
+        input: "p-input-md",
+        item: "p-combobox-item-md text-combobox-item-md",
+        root: "gap-combobox-md",
+        triggerIndicator: "text-icon-control-md",
+      },
+      sm: {
+        content: "text-combobox-sm",
+        control: "h-form-control-sm rounded-combobox-sm text-input-sm",
+        emptyState: "p-combobox-item-sm text-combobox-item-sm",
+        input: "p-input-sm",
+        item: "p-combobox-item-sm text-combobox-item-sm",
+        root: "gap-combobox-sm",
+        triggerIndicator: "text-icon-control-sm",
+      },
     },
-  },
-  defaultVariants: {
-    size: "md",
   },
 })
 
-export type ComboboxItem<T = unknown> = {
+export interface ComboboxItem<T = unknown> {
   id?: string | undefined
   label: string
   value: string
@@ -230,10 +231,10 @@ export function Combobox<T = unknown>({
     setOptions(items)
   }, [items])
   const collection = createComboboxCollection({
-    items: options,
+    isItemDisabled: (item) => !!item.disabled,
     itemToString: (item) => item.label,
     itemToValue: (item) => item.value,
-    isItemDisabled: (item) => !!item.disabled,
+    items: options,
   })
 
   const service = useMachine(comboboxMachine, {
@@ -249,9 +250,9 @@ export function Combobox<T = unknown>({
     inputBehavior,
     loopFocus,
     ids: {
-      label: `${uniqueId}-label`,
-      input: `${uniqueId}-input`,
       control: `${uniqueId}-control`,
+      input: `${uniqueId}-input`,
+      label: `${uniqueId}-label`,
     },
     multiple,
     ...(value !== undefined && { value: value as string[] }),

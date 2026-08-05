@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("@medusajs/framework/utils", () => ({
+vi.mock(import("@medusajs/framework/utils"), () => ({
   ContainerRegistrationKeys: {
     QUERY: "query",
   },
@@ -9,10 +9,7 @@ vi.mock("@medusajs/framework/utils", () => ({
   },
 }))
 
-vi.mock("@medusajs/framework/workflows-sdk", () => ({
-  createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
-  ),
+vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: class StepResponse<
     TPayload = unknown,
     TCompensationInput = unknown,
@@ -25,11 +22,14 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
       this.compensateInput = compensateInput
     }
   },
+  createStep: vi.fn((_name, invoke, compensate) =>
+    Object.assign(invoke, { compensate })
+  ),
 }))
 
 type MockContainer = ReturnType<typeof makeContainer>
 
-type MockStep = {
+interface MockStep {
   (
     input: {
       customer_id?: string
@@ -132,7 +132,7 @@ describe("removeAdminRoleStep", () => {
       },
     })
     expect(updateProviderIdentities).not.toHaveBeenCalled()
-    expect(result.compensateInput).toEqual([])
+    expect(result.compensateInput).toStrictEqual([])
   })
 
   it("clears the company admin role when a provider identity exists", async () => {
@@ -157,7 +157,7 @@ describe("removeAdminRoleStep", () => {
       .mockResolvedValueOnce({
         data: [{ id: "authpi_1" }],
       })
-    const updateProviderIdentities = vi.fn().mockResolvedValue(undefined)
+    const updateProviderIdentities = vi.fn().mockResolvedValue()
     const container = makeContainer({ graph, updateProviderIdentities })
 
     const result = await asMockStep(removeAdminRoleStep)(
@@ -177,7 +177,7 @@ describe("removeAdminRoleStep", () => {
         },
       },
     ])
-    expect(result.compensateInput).toEqual(["authpi_1"])
+    expect(result.compensateInput).toStrictEqual(["authpi_1"])
   })
 
   it("keeps the company admin role when another active admin employee remains", async () => {
@@ -209,7 +209,7 @@ describe("removeAdminRoleStep", () => {
           },
         ],
       })
-    const updateProviderIdentities = vi.fn().mockResolvedValue(undefined)
+    const updateProviderIdentities = vi.fn().mockResolvedValue()
     const container = makeContainer({ graph, updateProviderIdentities })
 
     const result = await asMockStep(removeAdminRoleStep)(
@@ -222,6 +222,6 @@ describe("removeAdminRoleStep", () => {
     )
 
     expect(updateProviderIdentities).not.toHaveBeenCalled()
-    expect(result.compensateInput).toEqual([])
+    expect(result.compensateInput).toStrictEqual([])
   })
 })

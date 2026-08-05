@@ -6,21 +6,19 @@ import { executePreviewCommitState } from "../orchestration/preview-commit-state
 
 function buildPreviewCommitStateInput(options: Record<string, unknown>) {
   const parsedPrNumber =
-    typeof options["prNumber"] === "string" && options["prNumber"].trim()
-      ? Number(options["prNumber"])
+    typeof options.prNumber === "string" && options.prNumber.trim()
+      ? Number(options.prNumber)
       : undefined
 
   return previewCommitStateCommandInputSchema.parse({
-    projectSlug:
-      options["projectSlug"] ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
+    apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
+    baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
+    dryRun: Boolean(options.dryRun),
+    environmentName: options.environmentName,
+    outputJson: options.outputJson,
     prNumber: parsedPrNumber,
-    environmentName: options["environmentName"],
-    outputJson: options["outputJson"],
-    baseUrl: options["baseUrl"] ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
-    apiToken:
-      options["apiToken"] ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
-    dryRun: Boolean(options["dryRun"]),
-    previewEnvPrefix: process.env["ZANE_PREVIEW_ENV_PREFIX"] ?? "pr-",
+    previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
+    projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
   })
 }
 

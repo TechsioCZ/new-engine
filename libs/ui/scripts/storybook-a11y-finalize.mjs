@@ -5,12 +5,12 @@ import path from "node:path"
 
 function readArg(name) {
   const index = process.argv.indexOf(name)
-  return index >= 0 ? (process.argv[index + 1] ?? null) : null
+  return index !== -1 ? (process.argv[index + 1] ?? null) : null
 }
 
 function loadJson(filePath, label) {
   try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8"))
+    return JSON.parse(fs.readFileSync(filePath, "utf-8"))
   } catch (error) {
     throw new Error(`Failed to load ${label}: ${filePath}`, { cause: error })
   }
@@ -18,17 +18,17 @@ function loadJson(filePath, label) {
 
 function writeAtomic(filePath, contents) {
   const temporaryPath = `${filePath}.tmp-${process.pid}`
-  fs.writeFileSync(temporaryPath, contents, "utf8")
+  fs.writeFileSync(temporaryPath, contents, "utf-8")
   fs.renameSync(temporaryPath, filePath)
 }
 
 function escapeXml(value) {
   return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;")
+    .replaceAll(/&/g, "&amp;")
+    .replaceAll(/</g, "&lt;")
+    .replaceAll(/>/g, "&gt;")
+    .replaceAll(/"/g, "&quot;")
+    .replaceAll(/'/g, "&apos;")
 }
 
 function formatJUnit(entries) {
@@ -139,11 +139,11 @@ try {
     violations: fingerprints,
   })
   const fingerprint = {
-    version: 1,
-    theme,
-    stories: sortedReport.length,
-    violations: fingerprints.length,
     sha256: createHash("sha256").update(canonicalFingerprint).digest("hex"),
+    stories: sortedReport.length,
+    theme,
+    version: 1,
+    violations: fingerprints.length,
   }
 
   writeAtomic(
@@ -159,7 +159,7 @@ try {
     path.join(reportDir, "fingerprint.json"),
     `${JSON.stringify(fingerprint, null, 2)}\n`
   )
-  fs.rmSync(entriesDir, { recursive: true, force: true })
+  fs.rmSync(entriesDir, { force: true, recursive: true })
   console.log(
     `${theme}: ${fingerprint.stories} stories, ${fingerprint.violations} violations, ${fingerprint.sha256}`
   )

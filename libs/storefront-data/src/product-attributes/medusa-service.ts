@@ -8,12 +8,12 @@ import type {
 
 export const MEDUSA_PRODUCT_ATTRIBUTES_PAGE_SIZE = 100
 
-export type MedusaProductAttributesInput = {
+export interface MedusaProductAttributesInput {
   productId?: null | string
   enabled?: boolean
 }
 
-export type MedusaProductAttributeServiceConfig = {
+export interface MedusaProductAttributeServiceConfig {
   productsPath?: string
   pageSize?: number
 }

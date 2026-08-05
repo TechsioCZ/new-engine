@@ -1,9 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 
-import {
-  CHECKOUT_ADDRESS_FIELDS,
-  type CheckoutAddressValues,
-} from "@/lib/forms/checkout/address.form"
+import { CHECKOUT_ADDRESS_FIELDS } from "@/lib/forms/checkout/address.form"
+import type { CheckoutAddressValues } from "@/lib/forms/checkout/address.form"
 
 export type CheckoutAddressScope = "billing" | "shipping"
 
@@ -21,7 +19,7 @@ const ADDRESS_COMPARISON_FIELDS = [
   "postalCode",
   "countryCode",
   "customerNote",
-] as const satisfies ReadonlyArray<keyof CheckoutAddressValues>
+] as const satisfies readonly (keyof CheckoutAddressValues)[]
 
 type CheckoutAddressFieldPath<
   TScope extends CheckoutAddressScope,
@@ -42,7 +40,7 @@ export const resolveCheckoutAddressFieldName = <
 
 const createCheckoutAddressFieldPaths = <TScope extends CheckoutAddressScope>(
   scope: TScope,
-  fields: ReadonlyArray<keyof CheckoutAddressValues>
+  fields: readonly (keyof CheckoutAddressValues)[]
 ) => fields.map((field) => resolveCheckoutAddressFieldName(scope, field))
 
 const CHECKOUT_COMPANY_FIELD_NAMES = [
@@ -50,7 +48,7 @@ const CHECKOUT_COMPANY_FIELD_NAMES = [
   "companyId",
   "taxId",
   "vatId",
-] as const satisfies ReadonlyArray<keyof CheckoutAddressValues>
+] as const satisfies readonly (keyof CheckoutAddressValues)[]
 
 const CHECKOUT_BILLING_ACTIVE_FIELDS = CHECKOUT_ADDRESS_FIELDS.filter(
   (field) =>

@@ -22,4 +22,5 @@ export default defineConfig({
     "libs/ui/a11y-baseline.json",
   ],
   semi: false,
+  trailingComma: "es5",
 })

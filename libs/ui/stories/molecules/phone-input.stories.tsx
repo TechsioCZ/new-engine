@@ -8,53 +8,55 @@ import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
 import {
   PhoneInput,
-  type PhoneInputCountry,
-  type PhoneInputValueChangeDetails,
   usePhoneInputContext,
+} from "../../src/molecules/phone-input"
+import type {
+  PhoneInputCountry,
+  PhoneInputValueChangeDetails,
 } from "../../src/molecules/phone-input"
 
 const countries: PhoneInputCountry[] = [
   {
-    value: "SK",
+    flag: <Icon icon="icon-[twemoji--flag-slovakia]" size="md" />,
     label: "Slovakia",
     name: "Slovakia",
-    flag: <Icon icon="icon-[twemoji--flag-slovakia]" size="md" />,
+    value: "SK",
   },
   {
-    value: "CZ",
+    flag: <Icon icon="icon-[twemoji--flag-czechia]" size="md" />,
     label: "Czechia",
     name: "Czechia",
-    flag: <Icon icon="icon-[twemoji--flag-czechia]" size="md" />,
+    value: "CZ",
   },
   {
-    value: "HU",
+    flag: <Icon icon="icon-[twemoji--flag-hungary]" size="md" />,
     label: "Hungary",
     name: "Hungary",
-    flag: <Icon icon="icon-[twemoji--flag-hungary]" size="md" />,
+    value: "HU",
   },
   {
-    value: "RO",
+    flag: <Icon icon="icon-[twemoji--flag-romania]" size="md" />,
     label: "Romania",
     name: "Romania",
-    flag: <Icon icon="icon-[twemoji--flag-romania]" size="md" />,
+    value: "RO",
   },
   {
-    value: "PL",
+    flag: <Icon icon="icon-[twemoji--flag-poland]" size="md" />,
     label: "Poland",
     name: "Poland",
-    flag: <Icon icon="icon-[twemoji--flag-poland]" size="md" />,
+    value: "PL",
   },
   {
-    value: "AT",
+    flag: <Icon icon="icon-[twemoji--flag-austria]" size="md" />,
     label: "Austria",
     name: "Austria",
-    flag: <Icon icon="icon-[twemoji--flag-austria]" size="md" />,
+    value: "AT",
   },
   {
-    value: "DE",
+    flag: <Icon icon="icon-[twemoji--flag-germany]" size="md" />,
     label: "Germany",
     name: "Germany",
-    flag: <Icon icon="icon-[twemoji--flag-germany]" size="md" />,
+    value: "DE",
   },
 ]
 
@@ -67,10 +69,52 @@ const trackPhoneValueChange = fn()
 const trackNativeFormSubmit = fn()
 
 const meta: Meta<typeof PhoneInput> = {
-  title: "Molecules/PhoneInput",
+  argTypes: {
+    disabled: {
+      control: "boolean",
+      description: "Disable country selection and text entry",
+    },
+    nativeValidation: {
+      control: "boolean",
+      description: "Use native form validation for invalid non-empty numbers",
+    },
+    nativeValidationMessage: {
+      control: "text",
+      description: "Message shown by native validation for invalid numbers",
+    },
+    readOnly: {
+      control: "boolean",
+      description: "Make the phone input read-only",
+    },
+    required: {
+      control: "boolean",
+      description: "Mark the field as required",
+    },
+    size: {
+      control: { type: "select" },
+      description: "Size of the phone input",
+      options: ["sm", "md", "lg"],
+      table: { defaultValue: { summary: "md" } },
+    },
+    validateStatus: {
+      control: { type: "select" },
+      description: "Validation status",
+      options: ["default", "error", "success", "warning"],
+      table: { defaultValue: { summary: "default" } },
+    },
+  },
+  args: {
+    countries,
+    defaultCountry: "SK",
+    disabled: false,
+    onValueChange: trackPhoneValueChange,
+    readOnly: false,
+    required: false,
+    size: "md",
+    validateStatus: "default",
+  },
   component: PhoneInput,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component: `
@@ -93,52 +137,10 @@ It keeps the visible input ergonomic for users, emits formatted phone details th
         `,
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  argTypes: {
-    size: {
-      control: { type: "select" },
-      options: ["sm", "md", "lg"],
-      description: "Size of the phone input",
-      table: { defaultValue: { summary: "md" } },
-    },
-    validateStatus: {
-      control: { type: "select" },
-      options: ["default", "error", "success", "warning"],
-      description: "Validation status",
-      table: { defaultValue: { summary: "default" } },
-    },
-    disabled: {
-      control: "boolean",
-      description: "Disable country selection and text entry",
-    },
-    readOnly: {
-      control: "boolean",
-      description: "Make the phone input read-only",
-    },
-    required: {
-      control: "boolean",
-      description: "Mark the field as required",
-    },
-    nativeValidation: {
-      control: "boolean",
-      description: "Use native form validation for invalid non-empty numbers",
-    },
-    nativeValidationMessage: {
-      control: "text",
-      description: "Message shown by native validation for invalid numbers",
-    },
-  },
-  args: {
-    countries,
-    defaultCountry: "SK",
-    size: "md",
-    validateStatus: "default",
-    disabled: false,
-    readOnly: false,
-    required: false,
-    onValueChange: trackPhoneValueChange,
-  },
+  title: "Molecules/PhoneInput",
 }
 
 export default meta
@@ -166,7 +168,7 @@ function PhoneInputExample({
   )
 }
 
-type PhoneInputCountryItemsProps = {
+interface PhoneInputCountryItemsProps {
   showFlags?: boolean
 }
 
@@ -425,7 +427,12 @@ export const AsyncControlledValue: Story = {
             setValue(nextDetails.value)
           }}
         />
-        <Button onClick={() => setValue("+420777123456")} type="button">
+        <Button
+          onClick={() => {
+            setValue("+420777123456")
+          }}
+          type="button"
+        >
           Load profile phone
         </Button>
       </div>
@@ -450,7 +457,12 @@ export const PasteInternationalNumber: Story = {
             setValue(nextDetails.value)
           }}
         />
-        <Button onClick={() => setValue("+420777123456")} type="button">
+        <Button
+          onClick={() => {
+            setValue("+420777123456")
+          }}
+          type="button"
+        >
           Paste Czech number
         </Button>
       </div>

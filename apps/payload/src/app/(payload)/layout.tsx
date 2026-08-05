@@ -9,13 +9,13 @@ import type React from "react"
 import { importMap } from "./importMap.js"
 import "./custom.scss"
 
-type Args = {
+interface Args {
   children: React.ReactNode
 }
 
 const serverFunction: ServerFunctionClient = async (args) => {
   "use server"
-  return handleServerFunctions({
+  return await handleServerFunctions({
     ...args,
     config,
     importMap,

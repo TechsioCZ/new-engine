@@ -7,12 +7,12 @@ import {
   serverError,
 } from "../_lib"
 
-type ResetPasswordBody = {
+interface ResetPasswordBody {
   password?: string
   token?: string
 }
 
-type ResetPasswordResponse = {
+interface ResetPasswordResponse {
   success: true
 }
 
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     return badRequest("Telo požiadavky musí byť platné JSON.")
   }
 
-  const password = body.password
+  const { password } = body
   const token = body.token?.trim()
 
   if (!token) {
@@ -40,16 +40,16 @@ export async function POST(request: Request) {
     const medusaResponse = await fetch(
       buildMedusaUrl("/auth/customer/emailpass/update"),
       {
-        method: "POST",
+        body: JSON.stringify({
+          password,
+        }),
+        cache: "no-store",
         headers: {
           accept: "text/plain",
           authorization: `Bearer ${token}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({
-          password,
-        }),
-        cache: "no-store",
+        method: "POST",
       }
     )
 

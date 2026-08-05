@@ -11,7 +11,8 @@
  */
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import * as toast from "@zag-js/toast"
-import { type ReactNode, useId } from "react"
+import { useId } from "react"
+import type { ReactNode } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { ActionIcon } from "../atoms/action-icon"
@@ -123,9 +124,9 @@ export interface ToastContainerProps extends VariantProps<
 
 // Create the global toast store
 export const toaster = toast.createStore({
-  placement: "bottom-end",
   gap: 16,
   offsets: "24px",
+  placement: "bottom-end",
 })
 
 export function Toaster() {

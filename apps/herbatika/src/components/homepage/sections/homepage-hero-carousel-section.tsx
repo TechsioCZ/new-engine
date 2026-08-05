@@ -1,8 +1,6 @@
 import { buttonVariants } from "@techsio/ui-kit/atoms/button"
-import {
-  Carousel,
-  type CarouselSlide,
-} from "@techsio/ui-kit/molecules/carousel"
+import { Carousel } from "@techsio/ui-kit/molecules/carousel"
+import type { CarouselSlide } from "@techsio/ui-kit/molecules/carousel"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
 import type { MouseEventHandler, PointerEventHandler } from "react"
@@ -13,13 +11,13 @@ import type { HeroBannerItem } from "@/components/homepage/homepage.data"
 
 const HERO_SLIDE_SPACING = "var(--spacing-400)"
 const HERO_SLIDES_PER_PAGE = {
-  xs: 1,
-  sm: 2,
-  md: 3.1,
   lg: 4.1,
+  md: 3.1,
+  sm: 2,
+  xs: 1,
 } as const
 
-type HeroBannerCardProps = {
+interface HeroBannerCardProps {
   banner: HeroBannerItem
   onClickCapture: MouseEventHandler<HTMLAnchorElement>
   onPointerDownCapture: PointerEventHandler<HTMLAnchorElement>
@@ -87,7 +85,6 @@ const buildHeroSlides = (
   onPointerDownCapture: PointerEventHandler<HTMLAnchorElement>
 ): CarouselSlide[] =>
   banners.map((banner) => ({
-    id: banner.id,
     content: (
       <HeroBannerCard
         banner={banner}
@@ -95,13 +92,14 @@ const buildHeroSlides = (
         onPointerDownCapture={onPointerDownCapture}
       />
     ),
+    id: banner.id,
   }))
 
-type HomepageHeroCarouselSectionProps = {
+interface HomepageHeroCarouselSectionProps {
   banners: HeroBannerItem[]
 }
 
-type HeroCarouselProps = {
+interface HeroCarouselProps {
   banners: HeroBannerItem[]
   restoreKey: number
   slidesClassName?: string

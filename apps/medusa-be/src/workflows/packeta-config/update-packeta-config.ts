@@ -5,10 +5,8 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 
-import {
-  PACKETA_CLIENT_MODULE,
-  type PacketaClientModuleService,
-} from "../../modules/packeta-client"
+import { PACKETA_CLIENT_MODULE } from "../../modules/packeta-client"
+import type { PacketaClientModuleService } from "../../modules/packeta-client"
 import type { UpdatePacketaConfigInput } from "../../modules/packeta-client/types"
 
 const updatePacketaConfigStep = createStep(

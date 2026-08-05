@@ -5,10 +5,8 @@ import {
   bootstrapZaneProjectPlanResponseSchema,
 } from "../../contracts/bootstrap-zane-project.js"
 import type { PreviewSharedEnvVariableInput } from "../../contracts/preview-shared-env.js"
-import {
-  getBootstrapZaneProjectSharedEnvDefinitions,
-  type StackInputs,
-} from "../../contracts/stack-inputs.js"
+import { getBootstrapZaneProjectSharedEnvDefinitions } from "../../contracts/stack-inputs.js"
+import type { StackInputs } from "../../contracts/stack-inputs.js"
 import { getZaneService } from "../../contracts/stack-manifest.js"
 import { loadDeployContracts } from "../deploy-inputs.js"
 import type { BootstrapValueSource } from "./shared.js"
@@ -28,17 +26,17 @@ import {
   servicePublicOriginSource,
 } from "./shared.js"
 
-type PlannedSharedEnvVariable = {
+interface PlannedSharedEnvVariable {
   key: string
   source: BootstrapValueSource
 }
 
-type PlannedServiceEnvVariable = {
+interface PlannedServiceEnvVariable {
   envVar: string
   source: BootstrapValueSource
 }
 
-type PlannedBootstrapService = {
+interface PlannedBootstrapService {
   dockerfilePath: string
   buildContextDir: string
   command: string | null
@@ -72,7 +70,7 @@ type PlannedBootstrapService = {
   cleanupEnvKeys: string[]
 }
 
-type ZaneProjectContext = {
+interface ZaneProjectContext {
   projectSlug: string
   projectDescription: string
   environmentName: string
@@ -92,7 +90,7 @@ type ZaneProjectContext = {
   operatorUpstreamPassword: string
 }
 
-type InspectedServiceState = {
+interface InspectedServiceState {
   exists: boolean
   details: BootstrapInspectServiceDetails | null
 }
@@ -451,7 +449,7 @@ function buildSharedEnvVariables(
   return getBootstrapZaneProjectSharedEnvDefinitions(stackInputs).map(
     (definition) => {
       switch (definition.source.kind) {
-        case "service_global_network_alias":
+        case "service_global_network_alias": {
           return {
             key: definition.key,
             source: serviceGlobalNetworkAliasSource(
@@ -461,7 +459,8 @@ function buildSharedEnvVariables(
               )
             ),
           }
-        case "service_network_alias":
+        }
+        case "service_network_alias": {
           return {
             key: definition.key,
             source: serviceNetworkAliasSource(
@@ -471,7 +470,8 @@ function buildSharedEnvVariables(
               )
             ),
           }
-        case "local_env":
+        }
+        case "local_env": {
           return {
             key: definition.key,
             source: literalSource(
@@ -480,10 +480,12 @@ function buildSharedEnvVariables(
                 ""
             ),
           }
-        default:
+        }
+        default: {
           throw new Error(
             `Unsupported bootstrap shared env source: ${JSON.stringify(definition.source)}`
           )
+        }
       }
     }
   )
@@ -512,7 +514,7 @@ function applySharedEnvServiceTargets(input: {
         (envVar) => envVar.envVar === target.env_var
       )
 
-      if (existingIndex >= 0) {
+      if (existingIndex !== -1) {
         servicePlan.env[existingIndex] = nextEnv
       } else {
         servicePlan.env.push(nextEnv)
@@ -527,7 +529,7 @@ function buildZaneProjectServices(
   serviceSlugs: Record<string, string>
 ): Record<string, PlannedBootstrapService> {
   const protectedNamesBase =
-    process.env["DC_ZANE_OPERATOR_DB_PROTECTED_NAMES"] ??
+    process.env.DC_ZANE_OPERATOR_DB_PROTECTED_NAMES ??
     "postgres,template0,template1"
   const protectedNames = protectedNamesBase.includes("template_medusa")
     ? protectedNamesBase
@@ -535,7 +537,7 @@ function buildZaneProjectServices(
   const medusaBeSlug = requiredServiceSlug(serviceSlugs, "medusa-be")
   const payloadSlug = requiredServiceSlug(serviceSlugs, "payload")
   const herbatikaSlug = requiredServiceSlug(serviceSlugs, "herbatika")
-  const n1Slug = serviceSlugs["n1"]
+  const n1Slug = serviceSlugs.n1
   const meilisearchSlug = requiredServiceSlug(
     serviceSlugs,
     "medusa-meilisearch"
@@ -543,12 +545,12 @@ function buildZaneProjectServices(
   const minioSlug = requiredServiceSlug(serviceSlugs, "medusa-minio")
   const medusaBePublicDomain = publicServiceDomain({
     projectSlug: context.projectSlug,
-    serviceSlug: medusaBeSlug,
-    publicUrlAffix: context.publicUrlAffix,
     publicDomain: context.publicDomain,
+    publicUrlAffix: context.publicUrlAffix,
+    serviceSlug: medusaBeSlug,
   })
   const configuredGoPayWebhookUrl =
-    process.env["DC_GOPAY_WEBHOOK_URL"]?.trim() ?? ""
+    process.env.DC_GOPAY_WEBHOOK_URL?.trim() ?? ""
   const generatedGoPayWebhookUrl = medusaBePublicDomain
     ? `https://${medusaBePublicDomain}/hooks/payment/paykit_gopay`
     : ""
@@ -558,40 +560,22 @@ function buildZaneProjectServices(
       : generatedGoPayWebhookUrl
 
   const servicePublicOrigins = {
-    medusaBe: servicePublicOriginSource(medusaBeSlug),
-    payload: servicePublicOriginSource(payloadSlug),
     herbatika: servicePublicOriginSource(herbatikaSlug),
+    medusaBe: servicePublicOriginSource(medusaBeSlug),
     meilisearch: servicePublicOriginSource(meilisearchSlug),
+    payload: servicePublicOriginSource(payloadSlug),
   }
   const minioFileSource = context.minioFileUrlOverride
     ? literalSource(context.minioFileUrlOverride)
     : serviceInternalBucketUrlSource({
-        serviceSlug: minioSlug,
-        port: 9004,
         bucketSharedEnvKey: "MEDUSA_MINIO_BUCKET",
+        port: 9004,
+        serviceSlug: minioSlug,
       })
 
   return {
     "medusa-db": {
-      dockerfilePath: "./docker/development/postgres/Dockerfile",
       buildContextDir: "./docker/development/postgres",
-      command: "sh -lc 'exec /usr/local/bin/run-postgres-with-bootstrap.sh'",
-      volumes: [
-        {
-          name: "pgdata",
-          container_path: "/var/lib/postgresql",
-          host_path: null,
-          mode: "READ_WRITE",
-        },
-      ],
-      urls: [],
-      healthcheck: {
-        type: "COMMAND",
-        value: "sh -lc 'exec /usr/local/bin/postgres-ready-with-bootstrap.sh'",
-        timeout_seconds: 60,
-        interval_seconds: 30,
-      },
-      resourceLimits: { cpus: 0.5, memory: { unit: "MEGABYTES", value: 768 } },
       cleanupEnvKeys: [
         "DC_POSTGRES_SUPERUSER",
         "DC_POSTGRES_SUPERUSER_PASSWORD",
@@ -608,15 +592,17 @@ function buildZaneProjectServices(
         "DC_PAYLOAD_DATABASE_PASSWORD",
         "DC_PAYLOAD_DATABASE_SCHEMA_NAME",
       ],
+      command: "sh -lc 'exec /usr/local/bin/run-postgres-with-bootstrap.sh'",
+      dockerfilePath: "./docker/development/postgres/Dockerfile",
       env: [
         {
           envVar: "POSTGRES_USER",
-          source: literalSource(process.env["DC_POSTGRES_SUPERUSER"] ?? "root"),
+          source: literalSource(process.env.DC_POSTGRES_SUPERUSER ?? "root"),
         },
         {
           envVar: "POSTGRES_PASSWORD",
           source: literalSource(
-            process.env["DC_POSTGRES_SUPERUSER_PASSWORD"] ?? "root"
+            process.env.DC_POSTGRES_SUPERUSER_PASSWORD ?? "root"
           ),
         },
         {
@@ -626,63 +612,63 @@ function buildZaneProjectServices(
         {
           envVar: "MEDUSA_DEV_DB_USER",
           source: literalSource(
-            process.env["DC_MEDUSA_DEV_DB_USER"] ?? "medusa_dev"
+            process.env.DC_MEDUSA_DEV_DB_USER ?? "medusa_dev"
           ),
         },
         {
           envVar: "MEDUSA_DEV_DB_PASSWORD",
-          source: literalSource(process.env["DC_MEDUSA_DEV_DB_PASSWORD"] ?? ""),
+          source: literalSource(process.env.DC_MEDUSA_DEV_DB_PASSWORD ?? ""),
         },
         {
           envVar: "MEDUSA_DB_ZANE_OPERATOR_USER",
           source: literalSource(
-            process.env["DC_ZANE_OPERATOR_PGUSER"] ?? "zane_operator"
+            process.env.DC_ZANE_OPERATOR_PGUSER ?? "zane_operator"
           ),
         },
         {
           envVar: "MEDUSA_DB_ZANE_OPERATOR_PASSWORD",
-          source: literalSource(
-            process.env["DC_ZANE_OPERATOR_PGPASSWORD"] ?? ""
-          ),
+          source: literalSource(process.env.DC_ZANE_OPERATOR_PGPASSWORD ?? ""),
         },
         {
           envVar: "MEDUSA_DB_ZANE_OPERATOR_DB_TEMPLATE_NAME",
           source: literalSource(
-            process.env["DC_ZANE_OPERATOR_DB_TEMPLATE_NAME"] ??
-              "template_medusa"
+            process.env.DC_ZANE_OPERATOR_DB_TEMPLATE_NAME ?? "template_medusa"
           ),
+        },
+      ],
+      healthcheck: {
+        interval_seconds: 30,
+        timeout_seconds: 60,
+        type: "COMMAND",
+        value: "sh -lc 'exec /usr/local/bin/postgres-ready-with-bootstrap.sh'",
+      },
+      resourceLimits: { cpus: 0.5, memory: { unit: "MEGABYTES", value: 768 } },
+      urls: [],
+      volumes: [
+        {
+          name: "pgdata",
+          container_path: "/var/lib/postgresql",
+          host_path: null,
+          mode: "READ_WRITE",
         },
       ],
     },
     "medusa-valkey": {
-      dockerfilePath: "./docker/development/medusa-valkey/Dockerfile",
       buildContextDir: "./docker/development/medusa-valkey",
+      cleanupEnvKeys: ["DC_VALKEY_PASSWORD"],
       command:
         "sh -lc 'exec valkey-server --requirepass \"$VALKEY_PASSWORD\" --appendonly yes'",
-      volumes: [
-        {
-          name: "data",
-          container_path: "/data",
-          host_path: null,
-          mode: "READ_WRITE",
-        },
-      ],
-      urls: [],
+      dockerfilePath: "./docker/development/medusa-valkey/Dockerfile",
+      env: [],
       healthcheck: {
+        interval_seconds: 5,
+        timeout_seconds: 60,
         type: "COMMAND",
         value:
           "sh -lc 'valkey-cli -a \"$VALKEY_PASSWORD\" --no-auth-warning ping | grep -q PONG'",
-        timeout_seconds: 60,
-        interval_seconds: 5,
       },
       resourceLimits: { cpus: 0.25, memory: { unit: "MEGABYTES", value: 256 } },
-      cleanupEnvKeys: ["DC_VALKEY_PASSWORD"],
-      env: [],
-    },
-    "medusa-minio": {
-      dockerfilePath: "./docker/development/medusa-minio/Dockerfile",
-      buildContextDir: "./docker/development/medusa-minio",
-      command: null,
+      urls: [],
       volumes: [
         {
           name: "data",
@@ -691,15 +677,9 @@ function buildZaneProjectServices(
           mode: "READ_WRITE",
         },
       ],
-      urls: [],
-      healthcheck: {
-        type: "PATH",
-        value: "/minio/health/live",
-        timeout_seconds: 60,
-        interval_seconds: 10,
-        associated_port: 9004,
-      },
-      resourceLimits: { cpus: 0.25, memory: { unit: "MEGABYTES", value: 512 } },
+    },
+    "medusa-minio": {
+      buildContextDir: "./docker/development/medusa-minio",
       cleanupEnvKeys: [
         "DC_MINIO_ROOT_USER",
         "DC_MINIO_ROOT_PASSWORD",
@@ -707,29 +687,50 @@ function buildZaneProjectServices(
         "DC_MINIO_SECRET_KEY",
         "DC_MINIO_BUCKET",
       ],
+      command: null,
+      dockerfilePath: "./docker/development/medusa-minio/Dockerfile",
       env: [
         {
           envVar: "MINIO_ROOT_USER",
-          source: literalSource(process.env["DC_MINIO_ROOT_USER"] ?? ""),
+          source: literalSource(process.env.DC_MINIO_ROOT_USER ?? ""),
         },
         {
           envVar: "MINIO_ROOT_PASSWORD",
-          source: literalSource(process.env["DC_MINIO_ROOT_PASSWORD"] ?? ""),
+          source: literalSource(process.env.DC_MINIO_ROOT_PASSWORD ?? ""),
         },
       ],
-    },
-    "medusa-meilisearch": {
-      dockerfilePath: "./docker/development/medusa-meilisearch/Dockerfile",
-      buildContextDir: "./docker/development/medusa-meilisearch",
-      command: null,
+      healthcheck: {
+        associated_port: 9004,
+        interval_seconds: 10,
+        timeout_seconds: 60,
+        type: "PATH",
+        value: "/minio/health/live",
+      },
+      resourceLimits: { cpus: 0.25, memory: { unit: "MEGABYTES", value: 512 } },
+      urls: [],
       volumes: [
         {
           name: "data",
-          container_path: "/meili_data",
+          container_path: "/data",
           host_path: null,
           mode: "READ_WRITE",
         },
       ],
+    },
+    "medusa-meilisearch": {
+      buildContextDir: "./docker/development/medusa-meilisearch",
+      cleanupEnvKeys: ["DC_MEILISEARCH_MASTER_KEY"],
+      command: null,
+      dockerfilePath: "./docker/development/medusa-meilisearch/Dockerfile",
+      env: [{ envVar: "MEILI_NO_ANALYTICS", source: literalSource("true") }],
+      healthcheck: {
+        associated_port: 7700,
+        interval_seconds: 10,
+        timeout_seconds: 60,
+        type: "PATH",
+        value: "/health",
+      },
+      resourceLimits: { cpus: 0.5, memory: { unit: "MEGABYTES", value: 1024 } },
       urls: [
         {
           domain:
@@ -744,38 +745,17 @@ function buildZaneProjectServices(
           associated_port: 7700,
         },
       ].filter((url) => url.domain),
-      healthcheck: {
-        type: "PATH",
-        value: "/health",
-        timeout_seconds: 60,
-        interval_seconds: 10,
-        associated_port: 7700,
-      },
-      resourceLimits: { cpus: 0.5, memory: { unit: "MEGABYTES", value: 1024 } },
-      cleanupEnvKeys: ["DC_MEILISEARCH_MASTER_KEY"],
-      env: [{ envVar: "MEILI_NO_ANALYTICS", source: literalSource("true") }],
+      volumes: [
+        {
+          name: "data",
+          container_path: "/meili_data",
+          host_path: null,
+          mode: "READ_WRITE",
+        },
+      ],
     },
     "medusa-be": {
-      dockerfilePath: "./docker/development/medusa-be/Dockerfile",
       buildContextDir: "./",
-      command: null,
-      volumes: [],
-      urls: [
-        {
-          domain: medusaBePublicDomain ?? "",
-          base_path: "/",
-          strip_prefix: true,
-          associated_port: 9000,
-        },
-      ].filter((url) => url.domain),
-      healthcheck: {
-        type: "PATH",
-        value: "/app",
-        timeout_seconds: 120,
-        interval_seconds: 10,
-        associated_port: 9000,
-      },
-      resourceLimits: { cpus: 1, memory: { unit: "MEGABYTES", value: 2048 } },
       cleanupEnvKeys: [
         "LEGACY_DATABASE_URL",
         "DC_NODE_ENV",
@@ -871,29 +851,29 @@ function buildZaneProjectServices(
         "DC_N1_MEDUSA_RESEND_FROM_EMAIL",
         "DC_N1_MEDUSA_RESEND_WEBHOOK_SECRET",
       ],
+      command: null,
+      dockerfilePath: "./docker/development/medusa-be/Dockerfile",
       env: [
         {
           envVar: "JWT_SECRET",
-          source: literalSource(process.env["DC_JWT_SECRET"] ?? ""),
+          source: literalSource(process.env.DC_JWT_SECRET ?? ""),
         },
         {
           envVar: "COOKIE_SECRET",
-          source: literalSource(process.env["DC_COOKIE_SECRET"] ?? ""),
+          source: literalSource(process.env.DC_COOKIE_SECRET ?? ""),
         },
         {
           envVar: "MEDUSA_COOKIE_SECURE",
-          source: literalSource(process.env["DC_MEDUSA_COOKIE_SECURE"] ?? ""),
+          source: literalSource(process.env.DC_MEDUSA_COOKIE_SECURE ?? ""),
         },
         {
           envVar: "MEDUSA_COOKIE_SAME_SITE",
-          source: literalSource(
-            process.env["DC_MEDUSA_COOKIE_SAME_SITE"] ?? ""
-          ),
+          source: literalSource(process.env.DC_MEDUSA_COOKIE_SAME_SITE ?? ""),
         },
         {
           envVar: "MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD",
           source: literalSource(
-            process.env["DC_MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD"] ?? "0"
+            process.env.DC_MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD ?? "0"
           ),
         },
         { envVar: "MEDUSA_BACKEND_URL", source: servicePublicOrigins.medusaBe },
@@ -902,177 +882,171 @@ function buildZaneProjectServices(
         { envVar: "AUTH_CORS", source: literalSource(context.authCors) },
         {
           envVar: "SUPERADMIN_EMAIL",
-          source: literalSource(process.env["DC_SUPERADMIN_EMAIL"] ?? ""),
+          source: literalSource(process.env.DC_SUPERADMIN_EMAIL ?? ""),
         },
         {
           envVar: "SUPERADMIN_PASSWORD",
-          source: literalSource(process.env["DC_SUPERADMIN_PASSWORD"] ?? ""),
+          source: literalSource(process.env.DC_SUPERADMIN_PASSWORD ?? ""),
         },
         {
           envVar: "INITIAL_PUBLISHABLE_KEY_NAME",
           source: literalSource(
-            process.env["DC_INITIAL_PUBLISHABLE_KEY_NAME"] ??
+            process.env.DC_INITIAL_PUBLISHABLE_KEY_NAME ??
               "Storefront Publishable Key"
           ),
         },
         {
           envVar: "SETTINGS_ENCRYPTION_KEY",
-          source: literalSource(
-            process.env["DC_SETTINGS_ENCRYPTION_KEY"] ?? ""
-          ),
+          source: literalSource(process.env.DC_SETTINGS_ENCRYPTION_KEY ?? ""),
         },
         {
           envVar: "SENTRY_NAME",
-          source: literalSource(process.env["DC_SENTRY_NAME"] ?? ""),
+          source: literalSource(process.env.DC_SENTRY_NAME ?? ""),
         },
         {
           envVar: "SENTRY_DSN",
-          source: literalSource(process.env["DC_SENTRY_DSN"] ?? ""),
+          source: literalSource(process.env.DC_SENTRY_DSN ?? ""),
         },
         {
           envVar: "SENTRY_TRACES_SAMPLE_RATE",
           source: literalSource(
-            process.env["DC_SENTRY_TRACES_SAMPLE_RATE"] ?? "0.1"
+            process.env.DC_SENTRY_TRACES_SAMPLE_RATE ?? "0.1"
           ),
         },
         {
           envVar: "STOREFRONT_URL",
-          source: process.env["DC_STOREFRONT_URL"]?.trim()
-            ? literalSource(process.env["DC_STOREFRONT_URL"].trim())
+          source: process.env.DC_STOREFRONT_URL?.trim()
+            ? literalSource(process.env.DC_STOREFRONT_URL.trim())
             : servicePublicOrigins.herbatika,
         },
         {
           envVar: "STORE_NAME",
-          source: literalSource(process.env["DC_STORE_NAME"] ?? "Herbatika"),
+          source: literalSource(process.env.DC_STORE_NAME ?? "Herbatika"),
         },
         {
           envVar: "PRODUCT_REVIEW_REQUEST_MESSAGE",
           source: literalSource(
-            process.env["DC_PRODUCT_REVIEW_REQUEST_MESSAGE"] ??
+            process.env.DC_PRODUCT_REVIEW_REQUEST_MESSAGE ??
               "Napiš recenzi produktu"
           ),
         },
         {
           envVar: "PRODUCT_REVIEW_REQUEST_DELAY_MINUTES",
           source: literalSource(
-            process.env["DC_PRODUCT_REVIEW_REQUEST_DELAY_MINUTES"] ?? "10080"
+            process.env.DC_PRODUCT_REVIEW_REQUEST_DELAY_MINUTES ?? "10080"
           ),
         },
         {
           envVar: "PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS",
           source: literalSource(
-            process.env["DC_PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS"] ?? "90"
+            process.env.DC_PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS ?? "90"
           ),
         },
         {
           envVar: "WORKFLOW_QUEUE_RUNNER_BATCH_SIZE",
           source: literalSource(
-            process.env["DC_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE"] ?? "500"
+            process.env.DC_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE ?? "500"
           ),
         },
         {
           envVar: "WORKFLOW_QUEUE_RUNNER_SCHEDULE",
           source: literalSource(
-            process.env["DC_WORKFLOW_QUEUE_RUNNER_SCHEDULE"] ?? "0 * * * *"
+            process.env.DC_WORKFLOW_QUEUE_RUNNER_SCHEDULE ?? "0 * * * *"
           ),
         },
         {
           envVar: "HERBATICA_XML_PATH",
-          source: literalSource(process.env["DC_HERBATICA_XML_PATH"] ?? ""),
+          source: literalSource(process.env.DC_HERBATICA_XML_PATH ?? ""),
         },
         {
           envVar: "HERBATICA_CATEGORIES_XML_PATH",
           source: literalSource(
-            process.env["DC_HERBATICA_CATEGORIES_XML_PATH"] ?? ""
+            process.env.DC_HERBATICA_CATEGORIES_XML_PATH ?? ""
           ),
         },
         {
           envVar: "HERBATICA_MANUFACTURERS_CSV_PATH",
           source: literalSource(
-            process.env["DC_HERBATICA_MANUFACTURERS_CSV_PATH"] ?? ""
+            process.env.DC_HERBATICA_MANUFACTURERS_CSV_PATH ?? ""
           ),
         },
         {
           envVar: "HERBATICA_REVIEWS_XML_PATH",
           source: literalSource(
-            process.env["DC_HERBATICA_REVIEWS_XML_PATH"] ?? ""
+            process.env.DC_HERBATICA_REVIEWS_XML_PATH ?? ""
           ),
         },
         {
           envVar: "FEATURE_PPL_ENABLED",
-          source: literalSource(process.env["DC_FEATURE_PPL_ENABLED"] ?? "0"),
+          source: literalSource(process.env.DC_FEATURE_PPL_ENABLED ?? "0"),
         },
         {
           envVar: "PPL_ENVIRONMENT",
-          source: literalSource(process.env["DC_PPL_ENVIRONMENT"] ?? "testing"),
+          source: literalSource(process.env.DC_PPL_ENVIRONMENT ?? "testing"),
         },
         {
           envVar: "FEATURE_PACKETA_ENABLED",
-          source: literalSource(
-            process.env["DC_FEATURE_PACKETA_ENABLED"] ?? "0"
-          ),
+          source: literalSource(process.env.DC_FEATURE_PACKETA_ENABLED ?? "0"),
         },
         {
           envVar: "PACKETA_ENVIRONMENT",
           source: literalSource(
-            process.env["DC_PACKETA_ENVIRONMENT"] ?? "testing"
+            process.env.DC_PACKETA_ENVIRONMENT ?? "testing"
           ),
         },
         {
           envVar: "PACKETA_PICKUP_POINTS_API_KEY",
           source: literalSource(
-            process.env["DC_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY"] ?? ""
+            process.env.DC_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY ?? ""
           ),
         },
         {
           envVar: "FEATURE_PAYMENT_QR_ENABLED",
           source: literalSource(
-            process.env["DC_FEATURE_PAYMENT_QR_ENABLED"] ?? "0"
+            process.env.DC_FEATURE_PAYMENT_QR_ENABLED ?? "0"
           ),
         },
         {
           envVar: "FEATURE_PAYKIT_ENABLED",
-          source: literalSource(
-            process.env["DC_FEATURE_PAYKIT_ENABLED"] ?? "0"
-          ),
+          source: literalSource(process.env.DC_FEATURE_PAYKIT_ENABLED ?? "0"),
         },
         {
           envVar: "FEATURE_PAYKIT_GOPAY_ENABLED",
           source: literalSource(
-            process.env["DC_FEATURE_PAYKIT_GOPAY_ENABLED"] ?? ""
+            process.env.DC_FEATURE_PAYKIT_GOPAY_ENABLED ?? ""
           ),
         },
         {
           envVar: "FEATURE_PAYKIT_STRIPE_ENABLED",
           source: literalSource(
-            process.env["DC_FEATURE_PAYKIT_STRIPE_ENABLED"] ?? ""
+            process.env.DC_FEATURE_PAYKIT_STRIPE_ENABLED ?? ""
           ),
         },
         {
           envVar: "FEATURE_PAYKIT_COMGATE_ENABLED",
           source: literalSource(
-            process.env["DC_FEATURE_PAYKIT_COMGATE_ENABLED"] ?? ""
+            process.env.DC_FEATURE_PAYKIT_COMGATE_ENABLED ?? ""
           ),
         },
         {
           envVar: "PAYKIT_DEBUG",
-          source: literalSource(process.env["DC_PAYKIT_DEBUG"] ?? "0"),
+          source: literalSource(process.env.DC_PAYKIT_DEBUG ?? "0"),
         },
         {
           envVar: "GOPAY_CLIENT_ID",
-          source: literalSource(process.env["DC_GOPAY_CLIENT_ID"] ?? ""),
+          source: literalSource(process.env.DC_GOPAY_CLIENT_ID ?? ""),
         },
         {
           envVar: "GOPAY_CLIENT_SECRET",
-          source: literalSource(process.env["DC_GOPAY_CLIENT_SECRET"] ?? ""),
+          source: literalSource(process.env.DC_GOPAY_CLIENT_SECRET ?? ""),
         },
         {
           envVar: "GOPAY_GO_ID",
-          source: literalSource(process.env["DC_GOPAY_GO_ID"] ?? ""),
+          source: literalSource(process.env.DC_GOPAY_GO_ID ?? ""),
         },
         {
           envVar: "GOPAY_SANDBOX",
-          source: literalSource(process.env["DC_GOPAY_SANDBOX"] ?? "true"),
+          source: literalSource(process.env.DC_GOPAY_SANDBOX ?? "true"),
         },
         {
           envVar: "GOPAY_WEBHOOK_URL",
@@ -1080,37 +1054,35 @@ function buildZaneProjectServices(
         },
         {
           envVar: "STRIPE_API_KEY",
-          source: literalSource(process.env["DC_STRIPE_API_KEY"] ?? ""),
+          source: literalSource(process.env.DC_STRIPE_API_KEY ?? ""),
         },
         {
           envVar: "STRIPE_WEBHOOK_SECRET",
-          source: literalSource(process.env["DC_STRIPE_WEBHOOK_SECRET"] ?? ""),
+          source: literalSource(process.env.DC_STRIPE_WEBHOOK_SECRET ?? ""),
         },
         {
           envVar: "COMGATE_MERCHANT",
-          source: literalSource(process.env["DC_COMGATE_MERCHANT"] ?? ""),
+          source: literalSource(process.env.DC_COMGATE_MERCHANT ?? ""),
         },
         {
           envVar: "COMGATE_SECRET",
-          source: literalSource(process.env["DC_COMGATE_SECRET"] ?? ""),
+          source: literalSource(process.env.DC_COMGATE_SECRET ?? ""),
         },
         {
           envVar: "COMGATE_SANDBOX",
-          source: literalSource(process.env["DC_COMGATE_SANDBOX"] ?? "true"),
+          source: literalSource(process.env.DC_COMGATE_SANDBOX ?? "true"),
         },
         {
           envVar: "COMGATE_PAYMENT_LABEL",
-          source: literalSource(process.env["DC_COMGATE_PAYMENT_LABEL"] ?? ""),
+          source: literalSource(process.env.DC_COMGATE_PAYMENT_LABEL ?? ""),
         },
         {
           envVar: "FEATURE_PAYLOAD_ENABLED",
-          source: literalSource(
-            process.env["DC_FEATURE_PAYLOAD_ENABLED"] ?? "0"
-          ),
+          source: literalSource(process.env.DC_FEATURE_PAYLOAD_ENABLED ?? "0"),
         },
         {
           envVar: "IS_IFRAME_PAYLOAD",
-          source: literalSource(process.env["DC_IS_IFRAME_PAYLOAD"] ?? "true"),
+          source: literalSource(process.env.DC_IS_IFRAME_PAYLOAD ?? "true"),
         },
         {
           envVar: "PAYLOAD_BASE_URL",
@@ -1122,17 +1094,15 @@ function buildZaneProjectServices(
         { envVar: "PAYLOAD_IFRAME_URL", source: servicePublicOrigins.payload },
         {
           envVar: "CMS_CACHE_TTL",
-          source: literalSource(process.env["DC_CMS_CACHE_TTL"] ?? "3600"),
+          source: literalSource(process.env.DC_CMS_CACHE_TTL ?? "3600"),
         },
         {
           envVar: "CMS_LIST_CACHE_TTL",
-          source: literalSource(process.env["DC_CMS_LIST_CACHE_TTL"] ?? "600"),
+          source: literalSource(process.env.DC_CMS_LIST_CACHE_TTL ?? "600"),
         },
         {
           envVar: "PAYLOAD_SSO_TOKEN_TTL",
-          source: literalSource(
-            process.env["DC_PAYLOAD_SSO_TOKEN_TTL"] ?? "60"
-          ),
+          source: literalSource(process.env.DC_PAYLOAD_SSO_TOKEN_TTL ?? "60"),
         },
         { envVar: "DATABASE_TYPE", source: literalSource("postgres") },
         {
@@ -1163,15 +1133,15 @@ function buildZaneProjectServices(
         {
           envVar: "NOTIFICATION_PROVIDER",
           source: literalSource(
-            process.env["DC_MEDUSA_BE_NOTIFICATION_PROVIDER"] ?? "resend"
+            process.env.DC_MEDUSA_BE_NOTIFICATION_PROVIDER ?? "resend"
           ),
         },
         {
           envVar: "RESEND_API_KEY",
           source: literalSource(
             firstNonEmpty(
-              process.env["DC_MEDUSA_BE_RESEND_API_KEY"],
-              process.env["DC_RESEND_API_KEY"]
+              process.env.DC_MEDUSA_BE_RESEND_API_KEY,
+              process.env.DC_RESEND_API_KEY
             ) ?? ""
           ),
         },
@@ -1179,8 +1149,8 @@ function buildZaneProjectServices(
           envVar: "RESEND_FROM_EMAIL",
           source: literalSource(
             firstNonEmpty(
-              process.env["DC_MEDUSA_BE_RESEND_FROM_EMAIL"],
-              process.env["DC_RESEND_FROM_EMAIL"]
+              process.env.DC_MEDUSA_BE_RESEND_FROM_EMAIL,
+              process.env.DC_RESEND_FROM_EMAIL
             ) ?? ""
           ),
         },
@@ -1188,43 +1158,32 @@ function buildZaneProjectServices(
           envVar: "RESEND_WEBHOOK_SECRET",
           source: literalSource(
             firstNonEmpty(
-              process.env["DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET"],
-              process.env["DC_RESEND_WEBHOOK_SECRET"]
+              process.env.DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET,
+              process.env.DC_RESEND_WEBHOOK_SECRET
             ) ?? ""
           ),
         },
       ],
-    },
-    payload: {
-      dockerfilePath: "./docker/development/payload/Dockerfile",
-      buildContextDir: "./",
-      command: null,
-      volumes: [],
+      healthcheck: {
+        associated_port: 9000,
+        interval_seconds: 10,
+        timeout_seconds: 120,
+        type: "PATH",
+        value: "/app",
+      },
+      resourceLimits: { cpus: 1, memory: { unit: "MEGABYTES", value: 2048 } },
       urls: [
         {
-          domain:
-            publicServiceDomain({
-              projectSlug: context.projectSlug,
-              serviceSlug: payloadSlug,
-              publicUrlAffix: context.publicUrlAffix,
-              publicDomain: context.publicDomain,
-            }) ?? "",
+          domain: medusaBePublicDomain ?? "",
           base_path: "/",
           strip_prefix: true,
-          associated_port: 8083,
+          associated_port: 9000,
         },
       ].filter((url) => url.domain),
-      healthcheck: {
-        type: "PATH",
-        value: "/api/health",
-        timeout_seconds: 120,
-        interval_seconds: 30,
-        associated_port: 8083,
-      },
-      resourceLimits: {
-        cpus: 0.75,
-        memory: { unit: "MEGABYTES", value: 1536 },
-      },
+      volumes: [],
+    },
+    payload: {
+      buildContextDir: "./",
       cleanupEnvKeys: [
         "DC_NODE_ENV",
         "DC_PAYLOAD_API_KEY",
@@ -1254,6 +1213,8 @@ function buildZaneProjectServices(
         "DC_PAYLOAD_SSO_USER_EMAIL",
         "DC_OPENAI_API_KEY",
       ],
+      command: null,
+      dockerfilePath: "./docker/development/payload/Dockerfile",
       env: [
         {
           envVar: "DATABASE_URL",
@@ -1264,7 +1225,7 @@ function buildZaneProjectServices(
         {
           envVar: "PAYLOAD_SECRET",
           source: literalSource(
-            process.env["DC_PAYLOAD_SECRET"] ?? "payload_secret_change_me"
+            process.env.DC_PAYLOAD_SECRET ?? "payload_secret_change_me"
           ),
         },
         { envVar: "PAYLOAD_BASE_URL", source: servicePublicOrigins.payload },
@@ -1278,30 +1239,28 @@ function buildZaneProjectServices(
         {
           envVar: "FEATURE_PAYLOAD_ARTICLES_ENABLED",
           source: literalSource(
-            process.env["DC_FEATURE_PAYLOAD_ARTICLES_ENABLED"] ?? "1"
+            process.env.DC_FEATURE_PAYLOAD_ARTICLES_ENABLED ?? "1"
           ),
         },
         {
           envVar: "FEATURE_PAYLOAD_PAGES_ENABLED",
           source: literalSource(
-            process.env["DC_FEATURE_PAYLOAD_PAGES_ENABLED"] ?? "1"
+            process.env.DC_FEATURE_PAYLOAD_PAGES_ENABLED ?? "1"
           ),
         },
         {
           envVar: "FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED",
           source: literalSource(
-            process.env["DC_FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED"] ?? "1"
+            process.env.DC_FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED ?? "1"
           ),
         },
         {
           envVar: "PAYLOAD_LOCALES",
-          source: literalSource(
-            process.env["DC_PAYLOAD_LOCALES"] ?? "cs,sk,en"
-          ),
+          source: literalSource(process.env.DC_PAYLOAD_LOCALES ?? "cs,sk,en"),
         },
         {
           envVar: "PAYLOAD_SSO_PUBLIC_KEY",
-          source: literalSource(process.env["DC_PAYLOAD_SSO_PUBLIC_KEY"] ?? ""),
+          source: literalSource(process.env.DC_PAYLOAD_SSO_PUBLIC_KEY ?? ""),
         },
         {
           envVar: "PAYLOAD_SSO_ALLOWED_ORIGINS",
@@ -1309,7 +1268,7 @@ function buildZaneProjectServices(
         },
         {
           envVar: "OPENAI_API_KEY",
-          source: literalSource(process.env["DC_OPENAI_API_KEY"] ?? ""),
+          source: literalSource(process.env.DC_OPENAI_API_KEY ?? ""),
         },
         {
           envVar: "S3_ENDPOINT",
@@ -1319,37 +1278,35 @@ function buildZaneProjectServices(
           }),
         },
       ],
-    },
-    herbatika: {
-      dockerfilePath: "./docker/development/herbatika/Dockerfile",
-      buildContextDir: "./",
-      command: null,
-      volumes: [],
-      urls: [
-        {
-          domain:
-            publicServiceDomain({
-              projectSlug: context.projectSlug,
-              serviceSlug: herbatikaSlug,
-              publicUrlAffix: context.publicUrlAffix,
-              publicDomain: context.publicDomain,
-            }) ?? "",
-          base_path: "/",
-          strip_prefix: true,
-          associated_port: 3000,
-        },
-      ].filter((url) => url.domain),
       healthcheck: {
-        type: "PATH",
-        value: "/",
-        timeout_seconds: 120,
+        associated_port: 8083,
         interval_seconds: 30,
-        associated_port: 3000,
+        timeout_seconds: 120,
+        type: "PATH",
+        value: "/api/health",
       },
       resourceLimits: {
         cpus: 0.75,
         memory: { unit: "MEGABYTES", value: 1536 },
       },
+      urls: [
+        {
+          domain:
+            publicServiceDomain({
+              projectSlug: context.projectSlug,
+              serviceSlug: payloadSlug,
+              publicUrlAffix: context.publicUrlAffix,
+              publicDomain: context.publicDomain,
+            }) ?? "",
+          base_path: "/",
+          strip_prefix: true,
+          associated_port: 8083,
+        },
+      ].filter((url) => url.domain),
+      volumes: [],
+    },
+    herbatika: {
+      buildContextDir: "./",
       cleanupEnvKeys: [
         "MEILISEARCH_HOST",
         "MEILISEARCH_SEARCH_API_KEY",
@@ -1366,6 +1323,8 @@ function buildZaneProjectServices(
         "DC_HERBATIKA_NEXT_PUBLIC_PAYLOAD_BASE_URL",
         "DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
       ],
+      command: null,
+      dockerfilePath: "./docker/development/herbatika/Dockerfile",
       env: [
         {
           envVar: "MEDUSA_BACKEND_URL_INTERNAL",
@@ -1381,27 +1340,27 @@ function buildZaneProjectServices(
         {
           envVar: "NEXT_PUBLIC_STOREFRONT_AUTH_MODE",
           source: literalSource(
-            process.env["DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE"] ??
+            process.env.DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE ??
               "session_proxy"
           ),
         },
         {
           envVar: "NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES",
           source: literalSource(
-            process.env["DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES"] ??
+            process.env.DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES ??
               "sk"
           ),
         },
         {
           envVar: "NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
           source: literalSource(
-            process.env["DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY"] ?? ""
+            process.env.DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY ?? ""
           ),
         },
         {
           envVar: "NEXT_PUBLIC_PPL_WIDGET_API_KEY",
           source: literalSource(
-            process.env["DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY"] ?? ""
+            process.env.DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY ?? ""
           ),
         },
         {
@@ -1409,39 +1368,37 @@ function buildZaneProjectServices(
           source: servicePublicOrigins.payload,
         },
       ],
+      healthcheck: {
+        associated_port: 3000,
+        interval_seconds: 30,
+        timeout_seconds: 120,
+        type: "PATH",
+        value: "/",
+      },
+      resourceLimits: {
+        cpus: 0.75,
+        memory: { unit: "MEGABYTES", value: 1536 },
+      },
+      urls: [
+        {
+          domain:
+            publicServiceDomain({
+              projectSlug: context.projectSlug,
+              serviceSlug: herbatikaSlug,
+              publicUrlAffix: context.publicUrlAffix,
+              publicDomain: context.publicDomain,
+            }) ?? "",
+          base_path: "/",
+          strip_prefix: true,
+          associated_port: 3000,
+        },
+      ].filter((url) => url.domain),
+      volumes: [],
     },
     ...(n1Slug
       ? {
           n1: {
-            dockerfilePath: "./docker/development/n1/Dockerfile",
             buildContextDir: "./",
-            command: null,
-            volumes: [],
-            urls: [
-              {
-                domain:
-                  publicServiceDomain({
-                    projectSlug: context.projectSlug,
-                    serviceSlug: n1Slug,
-                    publicUrlAffix: context.publicUrlAffix,
-                    publicDomain: context.publicDomain,
-                  }) ?? "",
-                base_path: "/",
-                strip_prefix: true,
-                associated_port: 3000,
-              },
-            ].filter((url) => url.domain),
-            healthcheck: {
-              type: "PATH",
-              value: "/api/health",
-              timeout_seconds: 120,
-              interval_seconds: 30,
-              associated_port: 3000,
-            },
-            resourceLimits: {
-              cpus: 0.75,
-              memory: { unit: "MEGABYTES", value: 1536 },
-            },
             cleanupEnvKeys: [
               "NEXT_PUBLIC_META_PIXEL_ID",
               "NEXT_PUBLIC_GOOGLE_ADS_ID",
@@ -1467,6 +1424,8 @@ function buildZaneProjectServices(
               "DC_N1_MEDUSA_CONTACT_EMAIL",
               "DC_N1_MEDUSA_RESEND_FROM_EMAIL",
             ],
+            command: null,
+            dockerfilePath: "./docker/development/n1/Dockerfile",
             env: [
               {
                 envVar: "MEDUSA_BACKEND_URL_INTERNAL",
@@ -1490,33 +1449,33 @@ function buildZaneProjectServices(
               {
                 envVar: "NEXT_PUBLIC_META_PIXEL_ID",
                 source: literalSource(
-                  process.env["DC_N1_NEXT_PUBLIC_META_PIXEL_ID"] ?? ""
+                  process.env.DC_N1_NEXT_PUBLIC_META_PIXEL_ID ?? ""
                 ),
               },
               {
                 envVar: "NEXT_PUBLIC_GOOGLE_ADS_ID",
                 source: literalSource(
-                  process.env["DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID"] ?? ""
+                  process.env.DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID ?? ""
                 ),
               },
               {
                 envVar: "NEXT_PUBLIC_HEUREKA_API_KEY",
                 source: literalSource(
-                  process.env["DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY"] ?? ""
+                  process.env.DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY ?? ""
                 ),
               },
               {
                 envVar: "NEXT_PUBLIC_LEADHUB_TRACKING_ID",
                 source: literalSource(
-                  process.env["DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID"] ?? ""
+                  process.env.DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID ?? ""
                 ),
               },
               {
                 envVar: "RESEND_API_KEY",
                 source: literalSource(
                   firstNonEmpty(
-                    process.env["DC_N1_RESEND_API_KEY"],
-                    process.env["DC_RESEND_API_KEY"]
+                    process.env.DC_N1_RESEND_API_KEY,
+                    process.env.DC_RESEND_API_KEY
                   ) ?? ""
                 ),
               },
@@ -1524,8 +1483,8 @@ function buildZaneProjectServices(
                 envVar: "CONTACT_EMAIL",
                 source: literalSource(
                   firstNonEmpty(
-                    process.env["DC_N1_CONTACT_EMAIL"],
-                    process.env["DC_CONTACT_EMAIL"]
+                    process.env.DC_N1_CONTACT_EMAIL,
+                    process.env.DC_CONTACT_EMAIL
                   ) ?? ""
                 ),
               },
@@ -1533,42 +1492,43 @@ function buildZaneProjectServices(
                 envVar: "RESEND_FROM_EMAIL",
                 source: literalSource(
                   firstNonEmpty(
-                    process.env["DC_N1_RESEND_FROM_EMAIL"],
-                    process.env["DC_RESEND_FROM_EMAIL"]
+                    process.env.DC_N1_RESEND_FROM_EMAIL,
+                    process.env.DC_RESEND_FROM_EMAIL
                   ) ?? ""
                 ),
               },
             ],
+            healthcheck: {
+              associated_port: 3000,
+              interval_seconds: 30,
+              timeout_seconds: 120,
+              type: "PATH",
+              value: "/api/health",
+            },
+            resourceLimits: {
+              cpus: 0.75,
+              memory: { unit: "MEGABYTES", value: 1536 },
+            },
+            urls: [
+              {
+                domain:
+                  publicServiceDomain({
+                    projectSlug: context.projectSlug,
+                    serviceSlug: n1Slug,
+                    publicUrlAffix: context.publicUrlAffix,
+                    publicDomain: context.publicDomain,
+                  }) ?? "",
+                base_path: "/",
+                strip_prefix: true,
+                associated_port: 3000,
+              },
+            ].filter((url) => url.domain),
+            volumes: [],
           },
         }
       : {}),
     "zane-operator": {
-      dockerfilePath: "./docker/development/zane-operator/Dockerfile",
       buildContextDir: "./",
-      command: null,
-      volumes: [],
-      urls: [
-        {
-          domain:
-            publicServiceDomain({
-              projectSlug: context.projectSlug,
-              serviceSlug: "zane-operator",
-              publicUrlAffix: context.publicUrlAffix,
-              publicDomain: context.publicDomain,
-            }) ?? "",
-          base_path: "/",
-          strip_prefix: true,
-          associated_port: 8080,
-        },
-      ].filter((url) => url.domain),
-      healthcheck: {
-        type: "PATH",
-        value: "/healthz",
-        timeout_seconds: 60,
-        interval_seconds: 30,
-        associated_port: 8080,
-      },
-      resourceLimits: { cpus: 0.25, memory: { unit: "MEGABYTES", value: 256 } },
       cleanupEnvKeys: [
         "DC_ZANE_OPERATOR_PORT",
         "DC_NODE_ENV",
@@ -1590,59 +1550,58 @@ function buildZaneProjectServices(
         "DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET",
         "DC_ZANE_OPERATOR_DB_PROTECTED_NAMES",
       ],
+      command: null,
+      dockerfilePath: "./docker/development/zane-operator/Dockerfile",
       env: [
         { envVar: "PORT", source: literalSource("8080") },
         {
           envVar: "API_AUTH_TOKEN",
           source: literalSource(
-            process.env["DC_ZANE_OPERATOR_API_AUTH_TOKEN"] ?? ""
+            process.env.DC_ZANE_OPERATOR_API_AUTH_TOKEN ?? ""
           ),
         },
         { envVar: "PGPORT", source: literalSource("5432") },
         {
           envVar: "PGUSER",
           source: literalSource(
-            process.env["DC_ZANE_OPERATOR_PGUSER"] ?? "zane_operator"
+            process.env.DC_ZANE_OPERATOR_PGUSER ?? "zane_operator"
           ),
         },
         {
           envVar: "PGPASSWORD",
-          source: literalSource(
-            process.env["DC_ZANE_OPERATOR_PGPASSWORD"] ?? ""
-          ),
+          source: literalSource(process.env.DC_ZANE_OPERATOR_PGPASSWORD ?? ""),
         },
         { envVar: "PGDATABASE", source: literalSource("postgres") },
         { envVar: "PGSSLMODE", source: literalSource("disable") },
         {
           envVar: "DB_TEMPLATE_NAME",
           source: literalSource(
-            process.env["DC_ZANE_OPERATOR_DB_TEMPLATE_NAME"] ??
-              "template_medusa"
+            process.env.DC_ZANE_OPERATOR_DB_TEMPLATE_NAME ?? "template_medusa"
           ),
         },
         {
           envVar: "DB_PREVIEW_PREFIX",
           source: literalSource(
-            process.env["DC_ZANE_OPERATOR_DB_PREVIEW_PREFIX"] ?? "medusa_pr_"
+            process.env.DC_ZANE_OPERATOR_DB_PREVIEW_PREFIX ?? "medusa_pr_"
           ),
         },
         {
           envVar: "DB_PREVIEW_APP_USER_PREFIX",
           source: literalSource(
-            process.env["DC_ZANE_OPERATOR_DB_PREVIEW_APP_USER_PREFIX"] ??
+            process.env.DC_ZANE_OPERATOR_DB_PREVIEW_APP_USER_PREFIX ??
               "medusa_pr_app_"
           ),
         },
         {
           envVar: "DB_PREVIEW_DEV_ROLE",
           source: literalSource(
-            process.env["DC_MEDUSA_DEV_DB_USER"] ?? "medusa_dev"
+            process.env.DC_MEDUSA_DEV_DB_USER ?? "medusa_dev"
           ),
         },
         {
           envVar: "DB_PREVIEW_APP_PASSWORD_SECRET",
           source: literalSource(
-            process.env["DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET"] ?? ""
+            process.env.DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET ?? ""
           ),
         },
         { envVar: "DB_PROTECTED_NAMES", source: literalSource(protectedNames) },
@@ -1669,6 +1628,29 @@ function buildZaneProjectServices(
           source: literalSource(context.operatorUpstreamPassword),
         },
       ],
+      healthcheck: {
+        associated_port: 8080,
+        interval_seconds: 30,
+        timeout_seconds: 60,
+        type: "PATH",
+        value: "/healthz",
+      },
+      resourceLimits: { cpus: 0.25, memory: { unit: "MEGABYTES", value: 256 } },
+      urls: [
+        {
+          domain:
+            publicServiceDomain({
+              projectSlug: context.projectSlug,
+              serviceSlug: "zane-operator",
+              publicUrlAffix: context.publicUrlAffix,
+              publicDomain: context.publicDomain,
+            }) ?? "",
+          base_path: "/",
+          strip_prefix: true,
+          associated_port: 8080,
+        },
+      ].filter((url) => url.domain),
+      volumes: [],
     },
   }
 }
@@ -1698,17 +1680,17 @@ function buildContext(input: {
   const operatorUpstreamBaseUrlCandidate = normalizeOriginUrl(
     firstNonEmpty(
       input.planInput.operatorUpstreamZaneBaseUrl,
-      process.env["DC_ZANE_OPERATOR_ZANE_BASE_URL"]
+      process.env.DC_ZANE_OPERATOR_ZANE_BASE_URL
     )
   )
   const operatorUpstreamBaseUrl = resolveOperatorUpstreamBaseUrl({
-    candidate: operatorUpstreamBaseUrlCandidate,
     appDomain: input.settings.app_domain,
+    candidate: operatorUpstreamBaseUrlCandidate,
   })
   const connectBaseUrl = normalizeOriginUrl(
     firstNonEmpty(
       input.planInput.operatorUpstreamZaneConnectBaseUrl,
-      process.env["DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL"],
+      process.env.DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL,
       input.settings.root_domain === "127-0-0-1.sslip.io"
         ? "http://zane-app"
         : undefined
@@ -1717,58 +1699,58 @@ function buildContext(input: {
   const connectHostHeader =
     firstNonEmpty(
       input.planInput.operatorUpstreamZaneConnectHostHeader,
-      process.env["DC_ZANE_OPERATOR_ZANE_CONNECT_HOST_HEADER"]
+      process.env.DC_ZANE_OPERATOR_ZANE_CONNECT_HOST_HEADER
     ) ??
     (connectBaseUrl && input.settings.app_domain
       ? input.settings.app_domain
       : null)
 
   return {
-    projectSlug: input.planInput.projectSlug,
-    projectDescription: input.planInput.projectDescription,
-    environmentName: input.planInput.environmentName,
-    repositoryUrl: input.repositoryUrl,
-    branchName: input.branchName,
-    gitAppId: input.planInput.gitAppId?.trim() || null,
-    publicDomain,
-    publicUrlAffix: input.planInput.publicUrlAffix,
-    minioFileUrlOverride: input.planInput.minioFileUrlOverride?.trim() || null,
-    storeCors: preferExplicitOrMergeCsv({
-      explicitValue: input.planInput.storeCorsOverride,
-      envValue: process.env["DC_STORE_CORS"],
-      fallbackValue: publicDomain
-        ? `https://${input.planInput.projectSlug}-${"herbatika"}${input.planInput.publicUrlAffix}.${publicDomain}`
-        : "https://pending-public-domain.invalid",
-    }),
     adminCors: preferExplicitOrMergeCsv({
       explicitValue: input.planInput.adminCorsOverride,
-      envValue: process.env["DC_ADMIN_CORS"],
+      envValue: process.env.DC_ADMIN_CORS,
       fallbackValue: publicDomain
-        ? `https://${input.planInput.projectSlug}-${"medusa-be"}${input.planInput.publicUrlAffix}.${publicDomain}`
+        ? `https://${input.planInput.projectSlug}-medusa-be${input.planInput.publicUrlAffix}.${publicDomain}`
         : "https://pending-public-domain.invalid",
     }),
     authCors: preferExplicitOrMergeCsv({
       explicitValue: input.planInput.authCorsOverride,
-      envValue: process.env["DC_AUTH_CORS"],
+      envValue: process.env.DC_AUTH_CORS,
       fallbackValue: publicDomain
-        ? `https://${input.planInput.projectSlug}-${"medusa-be"}${input.planInput.publicUrlAffix}.${publicDomain}`
+        ? `https://${input.planInput.projectSlug}-medusa-be${input.planInput.publicUrlAffix}.${publicDomain}`
         : "https://pending-public-domain.invalid",
     }),
+    branchName: input.branchName,
+    environmentName: input.planInput.environmentName,
+    gitAppId: input.planInput.gitAppId?.trim() || null,
+    minioFileUrlOverride: input.planInput.minioFileUrlOverride?.trim() || null,
     operatorUpstreamBaseUrl,
     operatorUpstreamConnectBaseUrl: connectBaseUrl ?? null,
     operatorUpstreamConnectHostHeader: connectHostHeader,
-    operatorUpstreamUsername:
-      input.planInput.operatorUpstreamZaneUsername ??
-      process.env["DC_ZANE_OPERATOR_ZANE_USERNAME"] ??
-      "",
     operatorUpstreamPassword:
       input.planInput.operatorUpstreamZanePassword ??
-      process.env["DC_ZANE_OPERATOR_ZANE_PASSWORD"] ??
+      process.env.DC_ZANE_OPERATOR_ZANE_PASSWORD ??
       "",
+    operatorUpstreamUsername:
+      input.planInput.operatorUpstreamZaneUsername ??
+      process.env.DC_ZANE_OPERATOR_ZANE_USERNAME ??
+      "",
+    projectDescription: input.planInput.projectDescription,
+    projectSlug: input.planInput.projectSlug,
+    publicDomain,
+    publicUrlAffix: input.planInput.publicUrlAffix,
+    repositoryUrl: input.repositoryUrl,
+    storeCors: preferExplicitOrMergeCsv({
+      explicitValue: input.planInput.storeCorsOverride,
+      envValue: process.env.DC_STORE_CORS,
+      fallbackValue: publicDomain
+        ? `https://${input.planInput.projectSlug}-herbatika${input.planInput.publicUrlAffix}.${publicDomain}`
+        : "https://pending-public-domain.invalid",
+    }),
   }
 }
 
-type BootstrapRequiredValueCheck = {
+interface BootstrapRequiredValueCheck {
   label: string
   value: string | null | undefined
   placeholderValues?: string[] | undefined
@@ -1852,33 +1834,33 @@ function buildBlockingReasons(input: {
         },
         {
           label: "DC_ZANE_OPERATOR_API_AUTH_TOKEN",
-          value: process.env["DC_ZANE_OPERATOR_API_AUTH_TOKEN"],
+          value: process.env.DC_ZANE_OPERATOR_API_AUTH_TOKEN,
         },
         {
           label: "DC_ZANE_OPERATOR_PGPASSWORD",
-          value: process.env["DC_ZANE_OPERATOR_PGPASSWORD"],
+          value: process.env.DC_ZANE_OPERATOR_PGPASSWORD,
         },
         {
           label: "DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET",
-          value: process.env["DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET"],
+          value: process.env.DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET,
         },
       ],
+      missingMessage: "could not be resolved for bootstrap.",
       placeholderMessage:
         "is still set to a placeholder value and must be replaced before bootstrap.",
-      missingMessage: "could not be resolved for bootstrap.",
     })
   )
 
-  const aliasChecks: Array<{
+  const aliasChecks: {
     serviceId: string
     field: "network_alias" | "global_network_alias"
-  }> = [
-    { serviceId: "medusa-db", field: "global_network_alias" },
-    { serviceId: "medusa-valkey", field: "network_alias" },
-    { serviceId: "medusa-meilisearch", field: "network_alias" },
-    { serviceId: "medusa-minio", field: "network_alias" },
-    { serviceId: "medusa-be", field: "network_alias" },
-    { serviceId: "payload", field: "network_alias" },
+  }[] = [
+    { field: "global_network_alias", serviceId: "medusa-db" },
+    { field: "network_alias", serviceId: "medusa-valkey" },
+    { field: "network_alias", serviceId: "medusa-meilisearch" },
+    { field: "network_alias", serviceId: "medusa-minio" },
+    { field: "network_alias", serviceId: "medusa-be" },
+    { field: "network_alias", serviceId: "payload" },
   ]
   for (const aliasCheck of aliasChecks) {
     const details = input.inspectedServices[aliasCheck.serviceId]?.details
@@ -1897,102 +1879,102 @@ function buildWarningReasons(): string[] {
     checks: [
       {
         label: "DC_MEDUSA_APP_DB_PASSWORD",
-        value: process.env["DC_MEDUSA_APP_DB_PASSWORD"],
+        value: process.env.DC_MEDUSA_APP_DB_PASSWORD,
         placeholderValues: ["medusa_app_change_me"],
       },
       {
         label: "DC_VALKEY_PASSWORD",
-        value: process.env["DC_VALKEY_PASSWORD"],
+        value: process.env.DC_VALKEY_PASSWORD,
         placeholderValues: ["valkey_dev_change_me"],
       },
       {
         label: "DC_MINIO_ACCESS_KEY",
-        value: process.env["DC_MINIO_ACCESS_KEY"],
+        value: process.env.DC_MINIO_ACCESS_KEY,
         placeholderValues: ["medusaappkey"],
       },
       {
         label: "DC_MINIO_SECRET_KEY",
-        value: process.env["DC_MINIO_SECRET_KEY"],
+        value: process.env.DC_MINIO_SECRET_KEY,
         placeholderValues: ["medusaappsecret_change_me"],
       },
       {
         label: "DC_MEILISEARCH_MASTER_KEY",
-        value: process.env["DC_MEILISEARCH_MASTER_KEY"],
+        value: process.env.DC_MEILISEARCH_MASTER_KEY,
       },
       {
         label: "DC_MEDUSA_DEV_DB_PASSWORD",
-        value: process.env["DC_MEDUSA_DEV_DB_PASSWORD"],
+        value: process.env.DC_MEDUSA_DEV_DB_PASSWORD,
         placeholderValues: ["medusa_dev_change_me"],
       },
       {
         label: "DC_MINIO_ROOT_USER",
-        value: process.env["DC_MINIO_ROOT_USER"],
+        value: process.env.DC_MINIO_ROOT_USER,
         placeholderValues: ["minioadmin"],
       },
       {
         label: "DC_MINIO_ROOT_PASSWORD",
-        value: process.env["DC_MINIO_ROOT_PASSWORD"],
+        value: process.env.DC_MINIO_ROOT_PASSWORD,
         placeholderValues: ["minioadmin"],
       },
       {
         label: "DC_JWT_SECRET",
-        value: process.env["DC_JWT_SECRET"],
+        value: process.env.DC_JWT_SECRET,
         placeholderValues: ["supersecret"],
       },
       {
         label: "DC_COOKIE_SECRET",
-        value: process.env["DC_COOKIE_SECRET"],
+        value: process.env.DC_COOKIE_SECRET,
         placeholderValues: ["supersecret"],
       },
       {
         label: "DC_SUPERADMIN_EMAIL",
-        value: process.env["DC_SUPERADMIN_EMAIL"],
+        value: process.env.DC_SUPERADMIN_EMAIL,
       },
       {
         label: "DC_SUPERADMIN_PASSWORD",
-        value: process.env["DC_SUPERADMIN_PASSWORD"],
+        value: process.env.DC_SUPERADMIN_PASSWORD,
       },
       {
         label: "DC_SETTINGS_ENCRYPTION_KEY",
-        value: process.env["DC_SETTINGS_ENCRYPTION_KEY"],
+        value: process.env.DC_SETTINGS_ENCRYPTION_KEY,
       },
       {
         label: "DC_PAYLOAD_API_KEY",
-        value: process.env["DC_PAYLOAD_API_KEY"],
+        value: process.env.DC_PAYLOAD_API_KEY,
         placeholderValues: ["payload_dev_api_key_change_me"],
       },
       {
         label: "DC_PAYLOAD_WEBHOOK_SECRET",
-        value: process.env["DC_PAYLOAD_WEBHOOK_SECRET"],
+        value: process.env.DC_PAYLOAD_WEBHOOK_SECRET,
         placeholderValues: ["payload_webhook_secret_change_me"],
       },
       {
         label: "DC_PAYLOAD_SECRET",
-        value: process.env["DC_PAYLOAD_SECRET"],
+        value: process.env.DC_PAYLOAD_SECRET,
         placeholderValues: ["payload_secret_change_me"],
       },
       {
         label: "DC_PAYLOAD_DATABASE_PASSWORD",
-        value: process.env["DC_PAYLOAD_DATABASE_PASSWORD"],
+        value: process.env.DC_PAYLOAD_DATABASE_PASSWORD,
         placeholderValues: ["payload"],
       },
       {
         label: "DC_PAYLOAD_SSO_PRIVATE_KEY",
-        value: process.env["DC_PAYLOAD_SSO_PRIVATE_KEY"],
+        value: process.env.DC_PAYLOAD_SSO_PRIVATE_KEY,
       },
       {
         label: "DC_PAYLOAD_SSO_PUBLIC_KEY",
-        value: process.env["DC_PAYLOAD_SSO_PUBLIC_KEY"],
+        value: process.env.DC_PAYLOAD_SSO_PUBLIC_KEY,
       },
       {
         label: "DC_PAYLOAD_SSO_USER_EMAIL",
-        value: process.env["DC_PAYLOAD_SSO_USER_EMAIL"],
+        value: process.env.DC_PAYLOAD_SSO_USER_EMAIL,
       },
     ],
-    placeholderMessage:
-      "is still set to a placeholder value; bootstrap will continue, but the value should be replaced.",
     missingMessage:
       "is empty; bootstrap will continue, but the value should be filled before relying on the deployed service.",
+    placeholderMessage:
+      "is still set to a placeholder value; bootstrap will continue, but the value should be replaced.",
   })
 }
 
@@ -2000,7 +1982,7 @@ function interpolateSharedValues(
   value: string,
   sharedEnv: Record<string, string>
 ): string {
-  return value.replace(
+  return value.replaceAll(
     /\{\{env\.([A-Z0-9_]+)\}\}/g,
     (_match, key) => sharedEnv[key] ?? ""
   )
@@ -2027,16 +2009,18 @@ function resolveSharedSourceValue(input: {
   }
 
   switch (source.kind) {
-    case "service_network_alias":
+    case "service_network_alias": {
       return serviceDetails.network_alias ?? ""
-    case "service_global_network_alias":
+    }
+    case "service_global_network_alias": {
       return serviceDetails.global_network_alias ?? ""
+    }
     case "service_public_origin": {
       const domain = publicServiceDomain({
         projectSlug: context.projectSlug,
-        serviceSlug: source.service_slug ?? "",
-        publicUrlAffix: context.publicUrlAffix,
         publicDomain: context.publicDomain,
+        publicUrlAffix: context.publicUrlAffix,
+        serviceSlug: source.service_slug ?? "",
       })
       return domain ? `https://${domain}` : ""
     }
@@ -2056,8 +2040,9 @@ function resolveSharedSourceValue(input: {
         ? `http://${alias}:${source.port}/${bucket}`
         : ""
     }
-    default:
+    default: {
       return ""
+    }
   }
 }
 
@@ -2085,16 +2070,18 @@ function resolveServiceSourceValue(input: {
   }
 
   switch (source.kind) {
-    case "service_network_alias":
+    case "service_network_alias": {
       return serviceDetails.network_alias ?? ""
-    case "service_global_network_alias":
+    }
+    case "service_global_network_alias": {
       return serviceDetails.global_network_alias ?? ""
+    }
     case "service_public_origin": {
       const domain = publicServiceDomain({
         projectSlug: context.projectSlug,
-        serviceSlug: source.service_slug ?? "",
-        publicUrlAffix: context.publicUrlAffix,
         publicDomain: context.publicDomain,
+        publicUrlAffix: context.publicUrlAffix,
+        serviceSlug: source.service_slug ?? "",
       })
       return domain ? `https://${domain}` : ""
     }
@@ -2114,8 +2101,9 @@ function resolveServiceSourceValue(input: {
         ? `http://${alias}:${source.port}/${bucketReference}`
         : ""
     }
-    default:
+    default: {
       return ""
+    }
   }
 }
 
@@ -2127,10 +2115,10 @@ function resolveSharedEnv(
   const sharedEnv: Record<string, string> = {}
   for (const variable of variables) {
     sharedEnv[variable.key] = resolveSharedSourceValue({
-      source: variable.source,
       context,
       inspectedServices,
       sharedEnv,
+      source: variable.source,
     })
   }
   return sharedEnv
@@ -2144,9 +2132,9 @@ function resolveServiceEnv(
   const result: Record<string, string> = {}
   for (const envVar of env) {
     result[envVar.envVar] = resolveServiceSourceValue({
-      source: envVar.source,
       context,
       inspectedServices,
+      source: envVar.source,
     })
   }
   return result
@@ -2173,10 +2161,10 @@ export async function executeBootstrapZaneProjectPlan(
       : []
   )
   const context = buildContext({
-    planInput: input,
-    settings: inspectResponse.settings,
-    repositoryUrl,
     branchName,
+    planInput: input,
+    repositoryUrl,
+    settings: inspectResponse.settings,
   })
   const serviceSlugById = Object.fromEntries(
     bootstrapServices.map((service) => [service.id, service.serviceSlug])
@@ -2192,18 +2180,18 @@ export async function executeBootstrapZaneProjectPlan(
       return [
         service.id,
         {
-          exists: inspected?.exists ?? false,
           details: inspected?.details ?? null,
+          exists: inspected?.exists ?? false,
         },
       ]
     })
   ) as Record<string, InspectedServiceState>
   const blockingReasons = buildBlockingReasons({
     context,
-    phase: input.phase,
-    projectExists: inspectResponse.project_exists,
     environmentExists: inspectResponse.environment_exists,
     inspectedServices,
+    phase: input.phase,
+    projectExists: inspectResponse.project_exists,
   })
   const warnings = buildWarningReasons()
   const sharedEnvVariables = buildSharedEnvVariables(
@@ -2216,27 +2204,24 @@ export async function executeBootstrapZaneProjectPlan(
       : resolveSharedEnv(sharedEnvVariables, context, inspectedServices)
 
   return bootstrapZaneProjectPlanResponseSchema.parse({
-    project_slug: context.projectSlug,
-    project_description: context.projectDescription,
-    environment_name: context.environmentName,
-    phase: input.phase,
-    status: blockingReasons.length === 0 ? "ready" : "blocked",
     blocking_reasons: blockingReasons,
-    warnings,
-    ensure_project: !inspectResponse.project_exists,
-    project_exists: inspectResponse.project_exists,
-    environment_exists: inspectResponse.environment_exists,
-    repository_url: context.repositoryUrl,
     branch_name: context.branchName,
+    ensure_project: !inspectResponse.project_exists,
+    environment_exists: inspectResponse.environment_exists,
+    environment_name: context.environmentName,
     git_app_id: context.gitAppId,
-    public_domain: context.publicDomain,
-    public_url_affix: context.publicUrlAffix,
-    settings: inspectResponse.settings,
     operator_upstream: {
       base_url: context.operatorUpstreamBaseUrl,
       connect_base_url: context.operatorUpstreamConnectBaseUrl,
       connect_host_header: context.operatorUpstreamConnectHostHeader,
     },
+    phase: input.phase,
+    project_description: context.projectDescription,
+    project_exists: inspectResponse.project_exists,
+    project_slug: context.projectSlug,
+    public_domain: context.publicDomain,
+    public_url_affix: context.publicUrlAffix,
+    repository_url: context.repositoryUrl,
     services: bootstrapServices.map((service) => {
       const servicePlan = plannedServices[service.id]
       const serviceState = inspectedServices[service.id]
@@ -2297,10 +2282,13 @@ export async function executeBootstrapZaneProjectPlan(
         },
       }
     }),
+    settings: inspectResponse.settings,
+    shared_env: resolvedSharedEnv,
+    shared_env_cleanup_keys: [...sharedEnvCleanupKeys],
     shared_env_variables: sharedEnvVariables.map((variable) =>
       summarizeSource({ key: variable.key, source: variable.source })
     ),
-    shared_env: resolvedSharedEnv,
-    shared_env_cleanup_keys: [...sharedEnvCleanupKeys],
+    status: blockingReasons.length === 0 ? "ready" : "blocked",
+    warnings,
   })
 }

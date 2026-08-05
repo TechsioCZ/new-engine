@@ -74,7 +74,7 @@ export const prefetchProductList = async (
 export const prefetchProductDetail = async (
   queryClient: QueryClient,
   detailParams: ProductDetailParams
-) => fetchServerProduct(queryClient, detailParams)
+) => await fetchServerProduct(queryClient, detailParams)
 
 export const prefetchProductReviews = async (
   queryClient: QueryClient,

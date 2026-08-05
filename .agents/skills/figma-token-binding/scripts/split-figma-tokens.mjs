@@ -28,7 +28,7 @@ import { readFileSync, writeFileSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const __dirname = import.meta.dirname
 // scripts/ → figma-token-binding/ → skills/ → .agents/ → repo root
 const REPO_ROOT = resolve(__dirname, "..", "..", "..", "..")
 const LIGHT_INPUT = join(
@@ -206,8 +206,8 @@ function main() {
     process.exit(1)
   }
 
-  const lightCss = readFileSync(LIGHT_INPUT, "utf8")
-  const darkCss = readFileSync(DARK_INPUT, "utf8")
+  const lightCss = readFileSync(LIGHT_INPUT, "utf-8")
+  const darkCss = readFileSync(DARK_INPUT, "utf-8")
   const lightDecls = parseDecls(lightCss)
   const darkDecls = parseDecls(darkCss)
 

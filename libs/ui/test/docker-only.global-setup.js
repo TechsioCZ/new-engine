@@ -4,7 +4,7 @@ const containerMarkers = ["docker", "containerd", "kubepods", "podman"]
 
 const hasContainerMarkers = (filePath) => {
   try {
-    const content = fs.readFileSync(filePath, "utf8").toLowerCase()
+    const content = fs.readFileSync(filePath, "utf-8").toLowerCase()
     return containerMarkers.some((marker) => content.includes(marker))
   } catch {
     return false

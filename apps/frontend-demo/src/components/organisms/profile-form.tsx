@@ -19,19 +19,19 @@ export function ProfileForm({ initialAddress, user }: ProfileFormProps) {
   const { saveAddress, isSaving, updateProfile, isUpdating } = useCustomer()
 
   const [formAddressData, setFormAddressData] = useState<FormAddressData>({
-    street: initialAddress?.street || "",
     city: initialAddress?.city || "",
-    postalCode: initialAddress?.postalCode || "",
     country: initialAddress?.country || "cz",
+    postalCode: initialAddress?.postalCode || "",
+    street: initialAddress?.street || "",
   })
 
   const [formUserData, setFormUserData] = useState<FormUserData>({
-    id: user.id,
-    first_name: user.first_name || "",
-    last_name: user.last_name || "",
-    email: user.email || "",
-    phone: user.phone || "",
     company_name: user.company_name || "",
+    email: user.email || "",
+    first_name: user.first_name || "",
+    id: user.id,
+    last_name: user.last_name || "",
+    phone: user.phone || "",
   })
 
   const hasProfileChanges =
@@ -85,12 +85,12 @@ export function ProfileForm({ initialAddress, user }: ProfileFormProps) {
             <FormInput
               id="address-firstName"
               label="Jméno"
-              onChange={(e) =>
+              onChange={(e) => {
                 setFormUserData({
                   ...formUserData,
                   first_name: e.target.value,
                 })
-              }
+              }}
               placeholder="Jan"
               size="sm"
               value={formUserData.first_name}
@@ -99,9 +99,9 @@ export function ProfileForm({ initialAddress, user }: ProfileFormProps) {
             <FormInput
               id="address-lastName"
               label="Příjmení"
-              onChange={(e) =>
+              onChange={(e) => {
                 setFormUserData({ ...formUserData, last_name: e.target.value })
-              }
+              }}
               placeholder="Novák"
               size="sm"
               value={formUserData.last_name}
@@ -125,9 +125,9 @@ export function ProfileForm({ initialAddress, user }: ProfileFormProps) {
                 <span className="text-fg-secondary text-sm">(nepovinné)</span>
               </span>
             }
-            onChange={(e) =>
+            onChange={(e) => {
               setFormUserData({ ...formUserData, company_name: e.target.value })
-            }
+            }}
             size="sm"
             value={formUserData.company_name || ""}
           />
@@ -153,9 +153,9 @@ export function ProfileForm({ initialAddress, user }: ProfileFormProps) {
           <FormInput
             id="address-street"
             label="Ulice a číslo popisné"
-            onChange={(e) =>
+            onChange={(e) => {
               setFormAddressData({ ...formAddressData, street: e.target.value })
-            }
+            }}
             placeholder="Hlavní 123"
             size="sm"
             value={formAddressData.street}
@@ -165,9 +165,9 @@ export function ProfileForm({ initialAddress, user }: ProfileFormProps) {
             <FormInput
               id="address-city"
               label="Město"
-              onChange={(e) =>
+              onChange={(e) => {
                 setFormAddressData({ ...formAddressData, city: e.target.value })
-              }
+              }}
               placeholder="Praha"
               size="sm"
               value={formAddressData.city}

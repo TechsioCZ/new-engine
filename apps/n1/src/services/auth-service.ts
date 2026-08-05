@@ -5,12 +5,12 @@ import { logError } from "@/lib/errors"
 import { sdk } from "@/lib/medusa-client"
 import { clearToken } from "@/lib/token-utils"
 
-export type LoginCredentials = {
+export interface LoginCredentials {
   email: string
   password: string
 }
 
-export type RegisterData = {
+export interface RegisterData {
   email: string
   password: string
   first_name: string
@@ -28,13 +28,13 @@ export async function login(
 
     // Handle multi-step auth (OAuth providers)
     if (typeof token !== "string") {
-      throw new Error("Multi-step authentication not supported")
+      throw new TypeError("Multi-step authentication not supported")
     }
 
     return token
-  } catch (err) {
-    logError("AuthService.login", err)
-    throw new Error(mapAuthError(err))
+  } catch (error) {
+    logError("AuthService.login", error)
+    throw new Error(mapAuthError(error), { cause: err })
   }
 }
 
@@ -50,7 +50,7 @@ export async function register(
 
     // Handle multi-step auth
     if (typeof token !== "string") {
-      throw new Error("Multi-step authentication not supported")
+      throw new TypeError("Multi-step authentication not supported")
     }
 
     // Step 2: Login to establish proper session (REQUIRED!)
@@ -70,22 +70,22 @@ export async function register(
     await sdk.auth.refresh()
 
     return token
-  } catch (err) {
-    logError("AuthService.register", err)
+  } catch (error) {
+    logError("AuthService.register", error)
 
     // CRITICAL: Clean up orphaned token if customer.create() failed
     // If register() succeeded but create() failed, we have token without customer
     clearToken()
 
-    throw new Error(mapAuthError(err))
+    throw new Error(mapAuthError(error), { cause: err })
   }
 }
 
 export async function logout(): Promise<void> {
   try {
     await sdk.auth.logout()
-  } catch (err) {
-    logError("AuthService.logout", err)
+  } catch (error) {
+    logError("AuthService.logout", error)
     // Don't throw on logout errors - best effort
   }
 }
@@ -93,7 +93,7 @@ export async function logout(): Promise<void> {
 export async function getCustomer(): Promise<StoreCustomer | null> {
   try {
     const response = await sdk.store.customer.retrieve()
-    const customer = response.customer
+    const { customer } = response
 
     if (!customer) {
       return null

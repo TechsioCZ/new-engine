@@ -9,8 +9,7 @@ const { mockImportPKCS8, mockSignJWTConstructor } = vi.hoisted(() => ({
   mockSignJWTConstructor: vi.fn(),
 }))
 
-vi.mock("jose", () => ({
-  importPKCS8: (...args: unknown[]) => mockImportPKCS8(...args),
+vi.mock(import("jose"), () => ({
   SignJWT: class {
     constructor(payload: unknown) {
       mockSignJWTConstructor(payload)
@@ -24,6 +23,7 @@ vi.mock("jose", () => ({
     setSubject = vi.fn().mockReturnThis()
     sign = vi.fn().mockResolvedValue("signed-sso-token")
   },
+  importPKCS8: (...args: unknown[]) => mockImportPKCS8(...args),
 }))
 
 const ORIGINAL_ENV = { ...process.env }
@@ -99,11 +99,11 @@ const createMockRequest = (
   headers: Record<string, string> = {}
 ): MockRequest => {
   const candidate: unknown = {
-    headers,
     auth_context: {
       actor_id: "user_123",
       actor_type: "user",
     },
+    headers,
     validatedQuery: {
       returnTo: "/admin",
     },
@@ -116,7 +116,7 @@ const createMockRequest = (
 describe("GET /admin/payload/sso", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockImportPKCS8.mockResolvedValue({} as CryptoKey)
+    mockImportPKCS8.mockResolvedValue({})
     process.env["PAYLOAD_SSO_PRIVATE_KEY"] = "private-key"
     process.env["PAYLOAD_IFRAME_URL"] = "http://localhost:8083"
     process.env["PAYLOAD_SSO_USER_EMAIL"] = "admin@example.com"

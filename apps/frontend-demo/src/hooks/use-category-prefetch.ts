@@ -6,7 +6,7 @@ import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
 import { getProducts } from "@/services/product-service"
 
-type UseCategoryPrefetchOptions = {
+interface UseCategoryPrefetchOptions {
   enabled?: boolean
   cacheStrategy?: keyof typeof cacheConfig
   prefetchLimit?: number // Custom limit for prefetch vs normal queries
@@ -28,9 +28,9 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
 
     // Check if data is already in cache
     const queryKey = queryKeys.products.list({
-      page: 1,
-      limit: prefetchLimit,
       filters: { categories: categoryIds, sizes: [] },
+      limit: prefetchLimit,
+      page: 1,
       region_id: selectedRegion.id,
       sort: "newest",
     })
@@ -43,8 +43,7 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
       //  console.log(`[Prefetch] Executing prefetch for ${categoryIds.length} categories`)
 
       await queryClient.prefetchQuery({
-        queryKey,
-        queryFn: () =>
+        queryFn: async () =>
           getProducts({
             filters: { categories: categoryIds, sizes: [] },
             limit: prefetchLimit,
@@ -52,6 +51,7 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
             region_id: selectedRegion.id,
             sort: "newest",
           }),
+        queryKey,
         ...cacheConfig[cacheStrategy],
       })
     } /* else {
@@ -98,7 +98,7 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
 
   // Cancel all pending prefetches
   const cancelAllPrefetches = () => {
-    const timeouts = Array.from(timeoutsRef.current.values())
+    const timeouts = [...timeoutsRef.current.values()]
     for (const timeout of timeouts) {
       clearTimeout(timeout)
     }
@@ -106,9 +106,9 @@ export function useCategoryPrefetch(options?: UseCategoryPrefetchOptions) {
   }
 
   return {
-    prefetchCategoryProducts,
-    delayedPrefetch,
-    cancelPrefetch,
     cancelAllPrefetches,
+    cancelPrefetch,
+    delayedPrefetch,
+    prefetchCategoryProducts,
   }
 }

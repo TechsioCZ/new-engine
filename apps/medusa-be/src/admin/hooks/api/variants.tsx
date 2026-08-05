@@ -1,9 +1,6 @@
 import type { FetchError } from "@medusajs/js-sdk"
-import {
-  type QueryKey,
-  type UseQueryOptions,
-  useQuery,
-} from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
+import type { QueryKey, UseQueryOptions } from "@tanstack/react-query"
 
 import { queryKeysFactory } from "../../lib/query-key-factory"
 import { sdk } from "../../lib/sdk"
@@ -27,14 +24,13 @@ export const useVariants = (
     UseQueryOptions<
       ProductVariantListResponse,
       FetchError,
-      ProductVariantListResponse,
-      QueryKey
+      ProductVariantListResponse
     >,
     "queryFn" | "queryKey"
   >
 ) => {
   const { data, ...rest } = useQuery({
-    queryFn: () => sdk.admin.productVariant.list(query),
+    queryFn: async () => sdk.admin.productVariant.list(query),
     queryKey: productVariantQueryKeys.list(query),
     ...options,
   })

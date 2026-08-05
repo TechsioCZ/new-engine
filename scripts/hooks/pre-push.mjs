@@ -77,7 +77,9 @@ function runPreviousHook(stdin) {
       `pre-push-chained-${process.pid}-${Date.now()}`
     )
     copyFileSync(previousHook, runnable)
-    process.once("exit", () => rmSync(runnable, { force: true }))
+    process.once("exit", () => {
+      rmSync(runnable, { force: true })
+    })
     runNodeHook(runnable, process.argv.slice(2), stdin)
     return
   }
@@ -99,7 +101,9 @@ function runUiGate(stdin) {
 // lint rules resolve imports and tsconfigs from unchanged files.
 function materializePushedTree(sha) {
   const workdir = mkdtempSync(path.join(os.tmpdir(), "pre-push-checks-"))
-  process.once("exit", () => rmSync(workdir, { force: true, recursive: true }))
+  process.once("exit", () => {
+    rmSync(workdir, { force: true, recursive: true })
+  })
 
   const archive = spawnSync("git", ["archive", "--format=tar", sha], {
     maxBuffer: 1024 * 1024 * 1024,

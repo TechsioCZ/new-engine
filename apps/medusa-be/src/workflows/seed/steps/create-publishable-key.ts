@@ -8,7 +8,7 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import { provisionPublishableKey } from "../../../utils/publishable-key"
 
-export type CreatePublishableKeyStepInput = {
+export interface CreatePublishableKeyStepInput {
   salesChannelNames?: string[]
   title: string
 }

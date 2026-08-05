@@ -13,7 +13,7 @@ const testRunnerRequire = createRequire(
 const playwrightPackage = testRunnerRequire.resolve("playwright/package.json")
 const playwrightCli = path.join(path.dirname(playwrightPackage), "cli.js")
 const timeoutMilliseconds = Number(
-  process.env["PLAYWRIGHT_INSTALL_TIMEOUT_MS"] ?? "420000"
+  process.env.PLAYWRIGHT_INSTALL_TIMEOUT_MS ?? "420000"
 )
 
 if (!Number.isSafeInteger(timeoutMilliseconds) || timeoutMilliseconds <= 0) {

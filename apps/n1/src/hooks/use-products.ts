@@ -11,13 +11,13 @@ import { getProducts } from "@/services/product-service"
 
 import { useRegion, useSuspenseRegion } from "./use-region"
 
-type UseProductsProps = {
+interface UseProductsProps {
   category_id?: string[]
   page?: number
   limit?: number
 }
 
-type UseProductsReturn = {
+interface UseProductsReturn {
   products: StoreProduct[]
   isLoading: boolean
   isFetching: boolean
@@ -30,7 +30,7 @@ type UseProductsReturn = {
   hasPrevPage: boolean
 }
 
-type UseSuspenseProductsReturn = {
+interface UseSuspenseProductsReturn {
   products: StoreProduct[]
   isFetching: boolean
   totalCount: number
@@ -57,33 +57,33 @@ export function useProducts({
 
   const { data, isLoading, error, dataUpdatedAt, isFetching, isSuccess } =
     useQuery({
-      queryKey: queryKeys.products.list(queryParams),
+      enabled: !!regionId,
       queryFn: async ({ signal }) => {
         const start = performance.now()
         const result = await getProducts(queryParams, signal)
         const duration = performance.now() - start
 
-        if (process.env["NODE_ENV"] === "development") {
+        if (process.env.NODE_ENV === "development") {
           const categoryLabel = category_id?.[0]?.slice(-6) || "all"
           fetchLogger.current(categoryLabel, duration)
         }
 
         return result
       },
-      enabled: !!regionId,
+      queryKey: queryKeys.products.list(queryParams),
       ...cacheConfig.semiStatic,
     })
 
   // Enhanced dev logging with cache-logger
-  if (process.env["NODE_ENV"] === "development" && data) {
+  if (process.env.NODE_ENV === "development" && data) {
     const categoryName = category_id?.[0]?.slice(-6) || "all"
     const operation = `useProducts(${categoryName} p${page})`
 
     logQuery(operation, queryKeys.products.list(queryParams), {
-      isLoading,
-      isFetching,
-      isSuccess,
       dataUpdatedAt,
+      isFetching,
+      isLoading,
+      isSuccess,
     })
   }
 
@@ -97,16 +97,16 @@ export function useProducts({
   }
 
   return {
-    products: data?.products || [],
-    isLoading,
-    isFetching,
-    isSuccess,
-    error: errorMessage,
-    totalCount,
     currentPage: page,
-    totalPages,
+    error: errorMessage,
     hasNextPage: page < totalPages,
     hasPrevPage: page > 1,
+    isFetching,
+    isLoading,
+    isSuccess,
+    products: data?.products || [],
+    totalCount,
+    totalPages,
   }
 }
 
@@ -123,37 +123,37 @@ export function useSuspenseProducts({
 
   const queryParams = buildProductQueryParams({
     category_id,
-    region_id: regionId,
     country_code: countryCode,
-    page,
     limit,
+    page,
+    region_id: regionId,
   })
 
   const { data, isFetching, dataUpdatedAt } = useSuspenseQuery({
-    queryKey: queryKeys.products.list(queryParams),
     queryFn: async ({ signal }) => {
       const start = performance.now()
       const result = await getProducts(queryParams, signal)
       const duration = performance.now() - start
 
-      if (process.env["NODE_ENV"] === "development") {
+      if (process.env.NODE_ENV === "development") {
         const categoryLabel = category_id?.[0]?.slice(-6) || "all"
         fetchLogger.current(categoryLabel, duration)
       }
 
       return result
     },
+    queryKey: queryKeys.products.list(queryParams),
     ...cacheConfig.semiStatic,
   })
 
-  if (process.env["NODE_ENV"] === "development" && data) {
+  if (process.env.NODE_ENV === "development" && data) {
     const categoryName = category_id?.[0]?.slice(-6) || "all"
     const operation = `useSuspenseProducts(${categoryName} p${page})`
 
     logQuery(operation, queryKeys.products.list(queryParams), {
+      dataUpdatedAt,
       isFetching,
       isSuccess: true,
-      dataUpdatedAt,
     })
   }
 
@@ -161,12 +161,12 @@ export function useSuspenseProducts({
   const totalPages = Math.ceil(totalCount / limit)
 
   return {
-    products: data?.products || [],
-    isFetching,
-    totalCount,
     currentPage: page,
-    totalPages,
     hasNextPage: page < totalPages,
     hasPrevPage: page > 1,
+    isFetching,
+    products: data?.products || [],
+    totalCount,
+    totalPages,
   }
 }

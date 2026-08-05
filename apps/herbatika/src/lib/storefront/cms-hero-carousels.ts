@@ -7,7 +7,7 @@ import type { CmsHeroCarousel } from "./cms-types"
 const CMS_HERO_CAROUSEL_LIMIT = 8
 const SAFE_ABSOLUTE_HREF_PROTOCOLS = new Set(["http:", "https:"])
 
-type CmsHeroCarouselsResponse = {
+interface CmsHeroCarouselsResponse {
   heroCarousels?: CmsHeroCarousel[] | null
 }
 

@@ -11,7 +11,7 @@ import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 import { normalizeCsvToArray } from "./deploy-inputs.js"
 import { executeVerify } from "./verify.js"
 
-export type DeploymentLike = {
+export interface DeploymentLike {
   service_id: string
   service_slug: string
   service_type?: string | null | undefined
@@ -19,7 +19,7 @@ export type DeploymentLike = {
   status: string
 }
 
-type SkippedService = {
+interface SkippedService {
   service_id: string
   service_slug: string
   reason: string
@@ -27,14 +27,14 @@ type SkippedService = {
   commit_sha: string | null
 }
 
-type FilteredTargets = {
+interface FilteredTargets {
   services: ResolveTargetsResponse["services"]
   skippedServices: SkippedService[]
   adoptedDeployments: DeploymentLike[]
   filteredEnvOverrides: RenderEnvOverridesResponse["services"]
 }
 
-type WaitForDeploymentsInput = {
+interface WaitForDeploymentsInput {
   lane: "preview" | "main"
   projectSlug: string
   environmentName: string
@@ -219,10 +219,10 @@ export function filterTargetsForGitCommit(
 ): FilteredTargets {
   if (!desiredCommitSha) {
     return {
-      services: targets,
-      skippedServices: [],
       adoptedDeployments: [],
       filteredEnvOverrides: envOverrides,
+      services: targets,
+      skippedServices: [],
     }
   }
 
@@ -239,22 +239,22 @@ export function filterTargetsForGitCommit(
 
     if (skipReason === "already_current_commit") {
       skippedServices.push({
-        service_id: target.service_id,
-        service_slug: target.service_slug,
-        reason: skipReason,
+        commit_sha: target.current_production_deployment?.commit_sha ?? null,
         deployment_hash:
           target.current_production_deployment?.deployment_hash ?? null,
-        commit_sha: target.current_production_deployment?.commit_sha ?? null,
+        reason: skipReason,
+        service_id: target.service_id,
+        service_slug: target.service_slug,
       })
       continue
     }
 
     if (skipReason === "reuse_in_progress_deployment") {
       adoptedDeployments.push({
+        deployment_hash: target.active_deployment?.deployment_hash ?? "",
         service_id: target.service_id,
         service_slug: target.service_slug,
         service_type: null,
-        deployment_hash: target.active_deployment?.deployment_hash ?? "",
         status: target.active_deployment?.status ?? "",
       })
       continue
@@ -271,12 +271,12 @@ export function filterTargetsForGitCommit(
   )
 
   return {
-    services: filteredTargets,
-    skippedServices,
     adoptedDeployments: adoptedDeployments.filter(
       (deployment) => deployment.deployment_hash && deployment.status
     ),
     filteredEnvOverrides,
+    services: filteredTargets,
+    skippedServices,
   }
 }
 
@@ -335,29 +335,29 @@ function checkedDeploymentSummary(response: VerifyResponse): string {
     .join("; ")
 }
 
-function verifyDeploymentsOnce(
+async function verifyDeploymentsOnce(
   input: WaitForDeploymentsInput
 ): Promise<VerifyResponse> {
   return executeVerify({
-    lane: input.lane,
-    projectSlug: input.projectSlug,
-    environmentName: input.environmentName,
-    requestedServicesCsv: input.requestedServicesCsv,
-    deployServicesCsv: input.deployServicesCsv,
-    triggeredServicesCsv: input.triggeredServicesCsv,
-    previewClonedServiceIdsCsv: input.previewClonedServiceIdsCsv,
-    previewExcludedServiceIdsCsv: input.previewExcludedServiceIdsCsv,
-    previewDbName: input.previewDbName,
-    previewDbUser: input.previewDbUser,
-    previewDbPassword: input.previewDbPassword,
-    previewRandomOnceSecrets: input.previewRandomOnceSecrets,
-    runtimeProviderOutputs: input.runtimeProviderOutputs,
-    deployments: input.deployments,
-    baseUrl: input.baseUrl,
     apiToken: input.apiToken,
+    baseUrl: input.baseUrl,
+    deployServicesCsv: input.deployServicesCsv,
+    deployments: input.deployments,
     dryRun: input.dryRun,
-    stackManifestPath: input.stackManifestPath,
+    environmentName: input.environmentName,
+    lane: input.lane,
+    previewClonedServiceIdsCsv: input.previewClonedServiceIdsCsv,
+    previewDbName: input.previewDbName,
+    previewDbPassword: input.previewDbPassword,
+    previewDbUser: input.previewDbUser,
+    previewExcludedServiceIdsCsv: input.previewExcludedServiceIdsCsv,
+    previewRandomOnceSecrets: input.previewRandomOnceSecrets,
+    projectSlug: input.projectSlug,
+    requestedServicesCsv: input.requestedServicesCsv,
+    runtimeProviderOutputs: input.runtimeProviderOutputs,
     stackInputsPath: input.stackInputsPath,
+    stackManifestPath: input.stackManifestPath,
+    triggeredServicesCsv: input.triggeredServicesCsv,
   })
 }
 
@@ -393,10 +393,10 @@ async function cancelTriggeredDeployments(
   for (const deployment of deploymentsToCancel) {
     try {
       await client.cancelDeployment({
-        project_slug: input.projectSlug,
-        environment_name: input.environmentName,
-        service_slug: deployment.service_slug,
         deployment_hash: deployment.deployment_hash,
+        environment_name: input.environmentName,
+        project_slug: input.projectSlug,
+        service_slug: deployment.service_slug,
       })
     } catch (error) {
       errors.push(

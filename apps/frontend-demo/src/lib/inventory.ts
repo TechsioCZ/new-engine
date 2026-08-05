@@ -19,9 +19,9 @@ export function getVariantInventory(
 ): InventoryInfo {
   if (!variant) {
     return {
-      status: "out-of-stock",
-      quantity: 0,
       message: "Varianta není dostupná",
+      quantity: 0,
+      status: "out-of-stock",
     }
   }
 
@@ -29,9 +29,9 @@ export function getVariantInventory(
   // If inventory is not managed, always return in stock
   if (!variant.manage_inventory) {
     return {
-      status: "in-stock",
-      quantity: 999, // Unlimited stock
       message: "Skladem",
+      quantity: 999, // Unlimited stock
+      status: "in-stock",
     }
   }
 
@@ -44,22 +44,22 @@ export function getVariantInventory(
 
     if (quantity <= 0) {
       return {
-        status: "out-of-stock",
-        quantity: 0,
         message: "Vyprodáno",
+        quantity: 0,
+        status: "out-of-stock",
       }
     }
     if (quantity <= 5) {
       return {
-        status: "low-stock",
-        quantity,
         message: `Zbývá pouze ${quantity} kusů`,
+        quantity,
+        status: "low-stock",
       }
     }
     return {
-      status: "in-stock",
-      quantity,
       message: "Skladem",
+      quantity,
+      status: "in-stock",
     }
   }
 
@@ -67,18 +67,18 @@ export function getVariantInventory(
   // Check allow_backorder flag
   if (variant.allow_backorder) {
     return {
-      status: "in-stock",
-      quantity: 999, // Can order even if out of stock
       message: "Skladem (na objednávku)",
+      quantity: 999, // Can order even if out of stock
+      status: "in-stock",
     }
   }
 
   // Conservative approach: if manage_inventory is true and allow_backorder is false,
   // we assume it's in stock to avoid blocking purchases
   return {
-    status: "in-stock",
-    quantity: 10, // Reasonable default
     message: "Skladem",
+    quantity: 10, // Reasonable default
+    status: "in-stock",
   }
 }
 

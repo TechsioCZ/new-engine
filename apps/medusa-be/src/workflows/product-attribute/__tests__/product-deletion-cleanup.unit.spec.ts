@@ -2,10 +2,12 @@ import { describe, expect, it, vi } from "vitest"
 
 import {
   cleanupDeletedProductAttributes,
-  type ProductAttributeDeletionLock,
-  type ProductAttributeDeletionRecord,
-  type ProductAttributeDeletionService,
   restoreDeletedProductAttributes,
+} from "../product-deletion-cleanup"
+import type {
+  ProductAttributeDeletionLock,
+  ProductAttributeDeletionRecord,
+  ProductAttributeDeletionService,
 } from "../product-deletion-cleanup"
 
 const createLockingModule = () => {
@@ -31,7 +33,7 @@ const createListMock = () =>
 
 const createWriteMock = () =>
   vi.fn<ProductAttributeDeletionService["restoreProductAttributes"]>(
-    async () => undefined
+    async () => {}
   )
 
 const createService = (
@@ -77,7 +79,7 @@ describe("Product Attribute Product deletion cleanup", () => {
         productIds: ["prod_b", "prod_a", "prod_a"],
         service,
       })
-    ).resolves.toEqual({
+    ).resolves.toStrictEqual({
       assignment_ids: ["pat_active"],
       product_ids: ["prod_b", "prod_a", "prod_a"],
     })

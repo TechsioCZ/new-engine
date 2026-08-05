@@ -36,18 +36,18 @@ const ALIAS_COLLISION_ERROR = /alias collision/
 
 function csvRow(overrides: Partial<Record<string, string>> = {}) {
   const values: Record<string, string> = {
-    id: "manufacturer-1",
-    name: "Herbatika",
-    indexName: "",
     contactEmail: "manufacturer@example.com",
+    description: "Description",
     europeanResellerContactEmail: "",
     europeanResellerManufacturingCompanyName: "",
     europeanResellerPostalAddress: "",
-    manufacturingCompanyName: "Herbatika s.r.o.",
-    postalAddress: "Bratislava",
+    id: "manufacturer-1",
     inList: "true",
     inMenu: "false",
-    description: "Description",
+    indexName: "",
+    manufacturingCompanyName: "Herbatika s.r.o.",
+    name: "Herbatika",
+    postalAddress: "Bratislava",
     ...overrides,
   }
 
@@ -67,7 +67,7 @@ function csvRow(overrides: Partial<Record<string, string>> = {}) {
   ].join(";")
 }
 
-describe("parseManufacturersCsv", () => {
+describe(parseManufacturersCsv, () => {
   it("parses BOM, CRLF, quoted delimiters, escaped quotes, and no trailing newline", () => {
     const source = `\uFEFF${HEADERS}\r\n${csvRow({
       description: '"Quoted; value with ""escaped"" text"',
@@ -105,7 +105,7 @@ describe("parseManufacturersCsv", () => {
         throw new Error("expected row")
       }
 
-      expect(row.inList).toBe(true)
+      expect(row.inList).toBeTruthy()
     }
   )
 
@@ -119,7 +119,7 @@ describe("parseManufacturersCsv", () => {
         throw new Error("expected row")
       }
 
-      expect(row.inList).toBe(false)
+      expect(row.inList).toBeFalsy()
     }
   )
 
@@ -135,7 +135,7 @@ describe("parseManufacturersCsv", () => {
       throw new Error("expected row")
     }
 
-    expect(row.gpsr_manufactured_outside_eu).toBe(true)
+    expect(row.gpsr_manufactured_outside_eu).toBeTruthy()
   })
 
   it.each([
@@ -181,7 +181,7 @@ describe("parseManufacturersCsv", () => {
     ["id;title\n1;Brand", MISSING_NAME_HEADER_ERROR],
     ["id;name;name\n1;Brand;Alias", DUPLICATE_HEADER_ERROR],
     ["id;;name\n1;x;Brand", EMPTY_HEADER_ERROR],
-    [`${HEADERS}`, NO_DATA_ROWS_ERROR],
+    [HEADERS, NO_DATA_ROWS_ERROR],
     [`${HEADERS}\nmanufacturer-1;Brand`, COLUMN_COUNT_ERROR],
     [`${HEADERS}\n"manufacturer-1;Brand`, UNCLOSED_QUOTE_ERROR],
     [`${HEADERS}\nmanufacturer"1;Brand`, MISPLACED_QUOTE_ERROR],
@@ -190,7 +190,7 @@ describe("parseManufacturersCsv", () => {
   })
 })
 
-describe("buildManufacturersLookup", () => {
+describe(buildManufacturersLookup, () => {
   it("resolves normalized name and indexName aliases", () => {
     const rows = parseManufacturersCsv(
       `${HEADERS}\n${csvRow({ indexName: "Herbátika Labs" })}`

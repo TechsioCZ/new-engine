@@ -9,7 +9,7 @@ import { SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH } from "@/lib/search-autocomplete/
 import { SearchAutocompletePanel } from "./search-autocomplete-panel"
 import { useSearchAutocompleteController } from "./use-search-autocomplete-controller"
 
-type SearchAutocompleteProps = {
+interface SearchAutocompleteProps {
   countryCode?: string
   currencyCode: string
   onSubmit: (event: FormEvent<HTMLFormElement>) => void

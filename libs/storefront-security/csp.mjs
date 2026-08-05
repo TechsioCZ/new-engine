@@ -136,10 +136,19 @@ export function createBaseStorefrontCsp(options) {
   } = options
 
   return {
-    defaultSrc: ["'self'"],
     baseUri: ["'self'"],
+    connectSrc: uniquePolicySources([
+      "'self'",
+      publicBackendOrigin,
+      ...buildDevHmrOrigins({ isProduction, allowedDevOrigins, devPort }),
+    ]),
+    defaultSrc: ["'self'"],
+    fontSrc: ["'self'", "data:"],
     formAction: ["'self'"],
     frameAncestors: ["'none'"],
+    frameSrc: ["'self'"],
+    imgSrc: ["'self'", "data:", "blob:", "https:"],
+    manifestSrc: ["'self'"],
     objectSrc: ["'none'"],
     scriptSrc: uniquePolicySources([
       "'self'",
@@ -147,17 +156,8 @@ export function createBaseStorefrontCsp(options) {
       ...(isProduction ? [] : ["'unsafe-eval'"]),
     ]),
     styleSrc: ["'self'", "'unsafe-inline'"],
-    imgSrc: ["'self'", "data:", "blob:", "https:"],
-    fontSrc: ["'self'", "data:"],
-    connectSrc: uniquePolicySources([
-      "'self'",
-      publicBackendOrigin,
-      ...buildDevHmrOrigins({ isProduction, allowedDevOrigins, devPort }),
-    ]),
-    frameSrc: ["'self'"],
-    workerSrc: ["'self'", "blob:"],
-    manifestSrc: ["'self'"],
     upgradeInsecureRequests: isProduction,
+    workerSrc: ["'self'", "blob:"],
   }
 }
 

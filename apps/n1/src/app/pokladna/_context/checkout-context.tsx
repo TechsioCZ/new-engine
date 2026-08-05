@@ -2,14 +2,8 @@
 
 import { useForm } from "@tanstack/react-form"
 import { useRouter } from "next/navigation"
-import {
-  createContext,
-  type ReactNode,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react"
+import { createContext, useContext, useEffect, useRef, useState } from "react"
+import type { ReactNode } from "react"
 
 import { useSuspenseAuth } from "@/hooks/use-auth"
 import { useCompleteCart, useSuspenseCart } from "@/hooks/use-cart"
@@ -17,11 +11,10 @@ import { useCheckoutPayment } from "@/hooks/use-checkout-payment"
 import { useCheckoutShipping } from "@/hooks/use-checkout-shipping"
 import { useSuspenseRegion } from "@/hooks/use-region"
 import { useUpdateCartAddress } from "@/hooks/use-update-cart-address"
-import {
-  CartAddressUpdateError,
-  type CartAddressUpdateErrorCode,
-  CartServiceError,
-  type CartServiceErrorCode,
+import { CartAddressUpdateError, CartServiceError } from "@/lib/errors"
+import type {
+  CartAddressUpdateErrorCode,
+  CartServiceErrorCode,
 } from "@/lib/errors"
 import {
   accessPointToAddress,
@@ -29,8 +22,8 @@ import {
   DEFAULT_ADDRESS,
   getDefaultAddress,
   isPPLParcelOption,
-  type PplAccessPointData,
 } from "@/utils/address-helpers"
+import type { PplAccessPointData } from "@/utils/address-helpers"
 import type { AddressFormData } from "@/utils/address-validation"
 
 /**
@@ -40,8 +33,8 @@ import type { AddressFormData } from "@/utils/address-validation"
  */
 const DEFAULT_ADDRESS_ERROR_PREFIX = "Nepodařilo se uložit adresu"
 const ADDRESS_ERROR_PREFIX: Record<CartAddressUpdateErrorCode, string> = {
-  BILLING_ADDRESS_INVALID: "Neplatná adresa",
   ADDRESS_UPDATE_REJECTED: DEFAULT_ADDRESS_ERROR_PREFIX,
+  BILLING_ADDRESS_INVALID: "Neplatná adresa",
 }
 
 /**
@@ -70,7 +63,7 @@ const COMPLETION_RESULT_ERROR_PREFIX: Record<string, string> = {
   payment_requires_more_error: "Platba vyžaduje dodatečné potvrzení",
 }
 
-export type CheckoutFormData = {
+export interface CheckoutFormData {
   email?: string
   billingAddress: AddressFormData
 }
@@ -81,7 +74,7 @@ const _formTypeHelper = (d: CheckoutFormData) => useForm({ defaultValues: d })
 /** Form type for checkout - inferred from useForm return type */
 type CheckoutForm = ReturnType<typeof _formTypeHelper>
 
-type InitialCheckoutState = {
+interface InitialCheckoutState {
   defaultValues: CheckoutFormData
   selectedAddressId: string | null
 }
@@ -91,14 +84,12 @@ const resolveInitialCheckoutState = (
   customer: ReturnType<typeof useSuspenseAuth>["customer"]
 ): InitialCheckoutState => {
   if (cart?.billing_address?.first_name) {
-    const addressData = addressToFormData(
-      cart.billing_address
-    ) as AddressFormData
+    const addressData = addressToFormData(cart.billing_address)
 
     return {
       defaultValues: {
-        email: cart.email ?? customer?.email ?? "",
         billingAddress: addressData,
+        email: cart.email ?? customer?.email ?? "",
       },
       selectedAddressId: null,
     }
@@ -107,11 +98,11 @@ const resolveInitialCheckoutState = (
   if (customer?.addresses && customer.addresses.length > 0) {
     const defaultAddress = getDefaultAddress(customer.addresses)
     if (defaultAddress) {
-      const addressData = addressToFormData(defaultAddress) as AddressFormData
+      const addressData = addressToFormData(defaultAddress)
       return {
         defaultValues: {
-          email: customer?.email ?? "",
           billingAddress: addressData,
+          email: customer?.email ?? "",
         },
         selectedAddressId: defaultAddress.id,
       }
@@ -120,14 +111,14 @@ const resolveInitialCheckoutState = (
 
   return {
     defaultValues: {
-      email: customer?.email ?? "",
       billingAddress: DEFAULT_ADDRESS,
+      email: customer?.email ?? "",
     },
     selectedAddressId: null,
   }
 }
 
-type CheckoutContextValue = {
+interface CheckoutContextValue {
   form: CheckoutForm
   cart: ReturnType<typeof useSuspenseCart>["cart"]
   hasItems: boolean
@@ -238,16 +229,16 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
       try {
         const cartEmail = customer?.email || email
         await updateCartAddressAsync({
-          cartId: cart.id,
           billingAddress,
+          cartId: cart.id,
           shippingAddress,
           ...(cartEmail ? { email: cartEmail } : {}),
         })
-      } catch (err) {
-        if (CartAddressUpdateError.isCartAddressUpdateError(err)) {
-          setError(`${ADDRESS_ERROR_PREFIX[err.code]}: ${err.message}`)
-        } else if (err instanceof Error) {
-          setError(`${DEFAULT_ADDRESS_ERROR_PREFIX}: ${err.message}`)
+      } catch (error) {
+        if (CartAddressUpdateError.isCartAddressUpdateError(error)) {
+          setError(`${ADDRESS_ERROR_PREFIX[error.code]}: ${error.message}`)
+        } else if (error instanceof Error) {
+          setError(`${DEFAULT_ADDRESS_ERROR_PREFIX}: ${error.message}`)
         } else {
           setError(DEFAULT_ADDRESS_ERROR_PREFIX)
         }
@@ -257,13 +248,13 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
       // Complete the cart
       try {
         await completeCartAsync({ cartId: cart.id })
-      } catch (err) {
-        if (CartServiceError.isCartServiceError(err)) {
+      } catch (error) {
+        if (CartServiceError.isCartServiceError(error)) {
           setError(
-            `${COMPLETION_ERROR_PREFIX[err.code] ?? DEFAULT_COMPLETION_ERROR_PREFIX}: ${err.message}`
+            `${COMPLETION_ERROR_PREFIX[error.code] ?? DEFAULT_COMPLETION_ERROR_PREFIX}: ${error.message}`
           )
-        } else if (err instanceof Error) {
-          setError(`${DEFAULT_COMPLETION_ERROR_PREFIX}: ${err.message}`)
+        } else if (error instanceof Error) {
+          setError(`${DEFAULT_COMPLETION_ERROR_PREFIX}: ${error.message}`)
         } else {
           setError(DEFAULT_COMPLETION_ERROR_PREFIX)
         }

@@ -13,15 +13,13 @@ export function CartPrefetch() {
   const { selectedRegion } = useRegions()
 
   useEffect(() => {
-    if (!selectedRegion) return
+    if (!selectedRegion) {
+      return
+    }
 
     // Prefetch cart data
     void queryClient.prefetchQuery({
-      queryKey: queryKeys.cart(
-        typeof window !== "undefined"
-          ? localStorage.getItem(STORAGE_KEYS.CART_ID) || undefined
-          : undefined
-      ),
+      gcTime: 10 * 60 * 1000, // 10 minutes
       queryFn: async () => {
         const cartId =
           typeof window !== "undefined"
@@ -47,8 +45,12 @@ export function CartPrefetch() {
         localStorage.setItem(STORAGE_KEYS.CART_ID, newCart.id)
         return newCart
       },
+      queryKey: queryKeys.cart(
+        typeof window !== "undefined"
+          ? localStorage.getItem(STORAGE_KEYS.CART_ID) || undefined
+          : undefined
+      ),
       staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes
     })
   }, [queryClient, selectedRegion])
 

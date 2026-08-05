@@ -6,13 +6,13 @@ import { createMedusaProductAttributeService } from "../src/product-attributes/m
 import { createProductAttributeQueryKeys } from "../src/product-attributes/query-keys"
 
 const supplierAttribute = {
-  id: "pattr_1",
   definition: {
     id: "pattrdef_1",
+    input_type: "select" as const,
     key: "supplier",
     label: "Supplier",
-    input_type: "select" as const,
   },
+  id: "pattr_1",
   option: {
     id: "pattropt_1",
     key: "bioherba",
@@ -22,13 +22,13 @@ const supplierAttribute = {
 }
 
 const warrantyAttribute = {
-  id: "pattr_2",
   definition: {
     id: "pattrdef_2",
+    input_type: "select" as const,
     key: "warranty",
     label: "Warranty",
-    input_type: "select" as const,
   },
+  id: "pattr_2",
   option: {
     id: "pattropt_2",
     key: "24-mesiacov",
@@ -43,10 +43,15 @@ describe("product attributes", () => {
 
     expect(
       queryKeys.detail({
-        productId: "prod_1",
         enabled: false,
+        productId: "prod_1",
       })
-    ).toEqual(["shop", "product-attributes", "detail", { productId: "prod_1" }])
+    ).toStrictEqual([
+      "shop",
+      "product-attributes",
+      "detail",
+      { productId: "prod_1" },
+    ])
   })
 
   it("reads every Store API page and forwards cancellation", async () => {
@@ -69,14 +74,14 @@ describe("product attributes", () => {
         fetch,
       },
     } as unknown as Medusa
-    const signal = new AbortController().signal
+    const { signal } = new AbortController()
     const service = createMedusaProductAttributeService(sdk, {
       pageSize: 1,
     })
 
     await expect(
       service.getProductAttributes({ productId: "prod 1" }, signal)
-    ).resolves.toEqual([supplierAttribute, warrantyAttribute])
+    ).resolves.toStrictEqual([supplierAttribute, warrantyAttribute])
     expect(fetch).toHaveBeenNthCalledWith(
       1,
       "/store/products/prod%201/product-attributes",
@@ -114,20 +119,30 @@ describe("product attributes", () => {
       },
     } as unknown as Medusa
     const preset = createMedusaStorefrontPreset({
-      sdk,
       queryKeyNamespace: "shop",
+      sdk,
     })
 
     expect(
       preset.queryKeys.productAttributes.detail({
         productId: "prod_1",
       })
-    ).toEqual(["shop", "product-attributes", "detail", { productId: "prod_1" }])
+    ).toStrictEqual([
+      "shop",
+      "product-attributes",
+      "detail",
+      { productId: "prod_1" },
+    ])
     expect(
       preset.hooks.productAttributes.getDetailQueryOptions({
         productId: "prod_1",
       }).queryKey
-    ).toEqual(["shop", "product-attributes", "detail", { productId: "prod_1" }])
+    ).toStrictEqual([
+      "shop",
+      "product-attributes",
+      "detail",
+      { productId: "prod_1" },
+    ])
     expect(preset.services.productAttributes.getProductAttributes).toBeDefined()
   })
 })

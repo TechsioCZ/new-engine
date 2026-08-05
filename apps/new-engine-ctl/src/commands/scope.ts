@@ -11,12 +11,15 @@ function parseBooleanOption(value: string | boolean | undefined): boolean {
   }
 
   switch ((value ?? "").trim().toLowerCase()) {
-    case "true":
+    case "true": {
       return true
-    case "false":
+    }
+    case "false": {
       return false
-    default:
+    }
+    default: {
       throw new Error("Boolean option must be true or false.")
+    }
   }
 }
 
@@ -34,31 +37,31 @@ export function createScopeCommand(): Command {
     .option(
       "--nx-isolate-plugins <true|false>",
       "",
-      process.env["NX_RESOLVE_AFFECTED_ISOLATE_PLUGINS"] ?? "true"
+      process.env.NX_RESOLVE_AFFECTED_ISOLATE_PLUGINS ?? "true"
     )
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
     )
     .action(async (options) => {
       const input = scopeCommandInputSchema.parse({
-        lane: options.lane,
-        servicesCsv: options.servicesCsv,
         baseSha: options.baseSha,
         headSha: options.headSha,
+        lane: options.lane,
+        nxIsolatePlugins: parseBooleanOption(options.nxIsolatePlugins),
+        outputJson: options.outputJson,
         previewBaselineComplete: parseBooleanOption(
           options.previewBaselineComplete
         ),
-        outputJson: options.outputJson,
-        stackManifestPath: options.stackManifestPath,
+        servicesCsv: options.servicesCsv,
         stackInputsPath: options.stackInputsPath,
-        nxIsolatePlugins: parseBooleanOption(options.nxIsolatePlugins),
+        stackManifestPath: options.stackManifestPath,
       })
       const result = await executeScope(input)
       await appendGitHubOutput("projects_csv", result.projects_csv)

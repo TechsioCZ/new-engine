@@ -121,7 +121,7 @@ describe("order payment QR", () => {
 
     expect(commands.length).toBeGreaterThan(1)
     expect(commands[0]).toBe("q 1 1 1 rg 445.00 684.00 86.00 86.00 re f Q")
-    expect(commands.some((command) => command.endsWith(" re f Q"))).toBe(true)
+    expect(commands.some((command) => command.endsWith(" re f Q"))).toBeTruthy()
   })
 
   it("returns no PDF commands when QR generation fails", () => {
@@ -135,6 +135,6 @@ describe("order payment QR", () => {
         x: 445,
         y: 684,
       })
-    ).toEqual([])
+    ).toStrictEqual([])
   })
 })

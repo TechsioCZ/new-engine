@@ -1,5 +1,6 @@
 "use client"
-import { Badge, type BadgeProps } from "@techsio/ui-kit/atoms/badge"
+import { Badge } from "@techsio/ui-kit/atoms/badge"
+import type { BadgeProps } from "@techsio/ui-kit/atoms/badge"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Label } from "@techsio/ui-kit/atoms/label"
 import { Rating } from "@techsio/ui-kit/atoms/rating"
@@ -37,9 +38,9 @@ export function ProductInfo({
   const handleAddToCart = () => {
     if (!selectedVariant) {
       toast.create({
-        title: "Vyberte prosím možnosti",
         description:
           "Před přidáním do košíku vyberte prosím všechny možnosti produktu.",
+        title: "Vyberte prosím možnosti",
         type: "error",
       })
       return
@@ -98,7 +99,9 @@ export function ProductInfo({
                   <Button
                     className="roundend-product-btn border"
                     key={variant.id}
-                    onClick={() => onVariantChange(variant)}
+                    onClick={() => {
+                      onVariantChange(variant)
+                    }}
                     size="sm"
                     theme={isSelected ? "solid" : "borderless"}
                   >

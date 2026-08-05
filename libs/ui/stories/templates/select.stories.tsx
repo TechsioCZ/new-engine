@@ -4,31 +4,21 @@ import type { SelectItem } from "../../src/molecules/select"
 import { SelectTemplate } from "../../src/templates/select"
 
 const defaultItems: SelectItem[] = [
-  { value: "cz", label: "Czech Republic" },
-  { value: "de", label: "Germany" },
-  { value: "fr", label: "France" },
-  { value: "pl", label: "Poland" },
+  { label: "Czech Republic", value: "cz" },
+  { label: "Germany", value: "de" },
+  { label: "France", value: "fr" },
+  { label: "Poland", value: "pl" },
 ]
 
 const meta: Meta<typeof SelectTemplate> = {
-  title: "Templates/SelectTemplate",
-  component: SelectTemplate,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component: `
-          A ready-to-use select template with props-based API.
-          This template provides a simplified interface for the Select compound component,
-          making it ideal for Storybook controls and rapid prototyping.
-
-          Part of the templates layer in atomic design architecture.
-        `,
+  argTypes: {
+    disabled: {
+      control: "boolean",
+      description: "Disable the select",
+      table: {
+        category: "State",
       },
     },
-  },
-  tags: ["autodocs"],
-  argTypes: {
     items: {
       control: "object",
       description: "Array of select items",
@@ -43,34 +33,17 @@ const meta: Meta<typeof SelectTemplate> = {
         category: "Content",
       },
     },
+    onValueChange: {
+      action: "value-changed",
+      table: {
+        category: "Events",
+      },
+    },
     placeholder: {
       control: "text",
       description: "Placeholder text when no value is selected",
       table: {
         category: "Content",
-      },
-    },
-    size: {
-      control: "select",
-      options: ["xs", "sm", "md", "lg"],
-      description: "Size variant",
-      table: {
-        category: "Appearance",
-      },
-    },
-    validateStatus: {
-      control: "select",
-      options: ["default", "error", "success", "warning"],
-      description: "Validation status styling",
-      table: {
-        category: "State",
-      },
-    },
-    disabled: {
-      control: "boolean",
-      description: "Disable the select",
-      table: {
-        category: "State",
       },
     },
     required: {
@@ -87,35 +60,62 @@ const meta: Meta<typeof SelectTemplate> = {
         category: "Appearance",
       },
     },
-    onValueChange: {
-      action: "value-changed",
+    size: {
+      control: "select",
+      description: "Size variant",
+      options: ["xs", "sm", "md", "lg"],
       table: {
-        category: "Events",
+        category: "Appearance",
+      },
+    },
+    validateStatus: {
+      control: "select",
+      description: "Validation status styling",
+      options: ["default", "error", "success", "warning"],
+      table: {
+        category: "State",
       },
     },
   },
+  component: SelectTemplate,
+  parameters: {
+    docs: {
+      description: {
+        component: `
+          A ready-to-use select template with props-based API.
+          This template provides a simplified interface for the Select compound component,
+          making it ideal for Storybook controls and rapid prototyping.
+
+          Part of the templates layer in atomic design architecture.
+        `,
+      },
+    },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Templates/SelectTemplate",
 }
 
 export default meta
 type Story = StoryObj<typeof SelectTemplate>
 
 export const Playground: Story = {
-  name: "🎮 Interactive Playground",
   args: {
     items: [...defaultItems, { value: "es", label: "Spain", disabled: true }],
     label: "Country",
     placeholder: "Select a country",
     size: "md",
   },
+  name: "🎮 Interactive Playground",
 }
 
 export const Default: Story = {
   args: {
+    defaultValue: ["cz"],
     items: defaultItems,
     label: "Country",
     placeholder: "Select a country",
     size: "md",
-    defaultValue: ["cz"],
   },
 }
 

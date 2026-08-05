@@ -62,28 +62,27 @@ export function CompanyCustomerGroupDrawer({
 
   const handleAdd = async (groupId: string) => {
     await addMutate(groupId, {
-      onSuccess: async () => {
-        toast.success(t("toasts.companyAddedToCustomerGroup"))
-      },
       onError: (_error) => {
         toast.error(t("errors.updateCustomerGroupFailed"))
+      },
+      onSuccess: async () => {
+        toast.success(t("toasts.companyAddedToCustomerGroup"))
       },
     })
   }
 
   const handleRemove = async (groupId: string) => {
     await removeMutate(groupId, {
-      onSuccess: async () => {
-        toast.success(t("toasts.companyRemovedFromCustomerGroup"))
-      },
       onError: () => {
         toast.error(t("errors.removeCustomerGroupFailed"))
+      },
+      onSuccess: async () => {
+        toast.success(t("toasts.companyRemovedFromCustomerGroup"))
       },
     })
   }
 
-  const customerGroups =
-    (data?.customer_groups as HttpTypes.AdminCustomerGroup[] | undefined) ?? []
+  const customerGroups = data?.customer_groups ?? []
   const count = data?.count ?? 0
   const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
   const customerGroupIds = customerGroups.map((group) => group.id)
@@ -138,7 +137,7 @@ export function CompanyCustomerGroupDrawer({
       return (
         <Button
           isLoading={removeLoading}
-          onClick={() => handleRemove(group.id)}
+          onClick={async () => handleRemove(group.id)}
           variant="danger"
         >
           {t("customerGroup.remove")}
@@ -151,7 +150,7 @@ export function CompanyCustomerGroupDrawer({
       <Button
         disabled={addDisabled}
         isLoading={addLoading}
-        onClick={() => handleAdd(group.id)}
+        onClick={async () => handleAdd(group.id)}
       >
         {t("customerGroup.set")}
       </Button>
@@ -260,13 +259,15 @@ export function CompanyCustomerGroupDrawer({
               canNextPage={pageIndex + 1 < pageCount}
               canPreviousPage={pageIndex > 0}
               count={count}
-              nextPage={() => setPageIndex((current) => current + 1)}
+              nextPage={() => {
+                setPageIndex((current) => current + 1)
+              }}
               pageCount={pageCount}
               pageIndex={pageIndex}
               pageSize={PAGE_SIZE}
-              previousPage={() =>
+              previousPage={() => {
                 setPageIndex((current) => Math.max(current - 1, 0))
-              }
+              }}
               translations={getPaginationTranslations(t)}
             />
           </div>

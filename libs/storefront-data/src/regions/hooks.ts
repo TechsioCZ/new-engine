@@ -1,8 +1,5 @@
-import {
-  type CacheConfig,
-  type CacheStrategy,
-  createCacheConfig,
-} from "../shared/cache-config"
+import { createCacheConfig } from "../shared/cache-config"
+import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
@@ -24,13 +21,13 @@ import type {
   UseSuspenseRegionsResult,
 } from "./types"
 
-export type CreateRegionHooksConfig<
+export interface CreateRegionHooksConfig<
   TRegion,
   TListInput extends RegionListInputBase,
   TListParams,
   TDetailInput extends RegionDetailInputBase,
   TDetailParams,
-> = {
+> {
   service: RegionService<TRegion, TListParams, TDetailParams>
   buildListParams?: (input: TListInput) => TListParams
   buildDetailParams?: (input: TDetailInput) => TDetailParams
@@ -73,25 +70,25 @@ export function createRegionHooks<
     ((input: TDetailInput) => ({ ...input }) as TDetailInput & TDetailParams)
   const { getListQueryOptions, getDetailQueryOptions } =
     createRegionQueryOptionsFactory({
-      service,
-      buildListParams: buildList,
       buildDetailParams: buildDetail,
-      queryKeys: resolvedQueryKeys,
+      buildListParams: buildList,
       cacheConfig: resolvedCacheConfig,
+      queryKeys: resolvedQueryKeys,
+      service,
     })
   const simpleHooks = createSimpleListDetailHooks({
-    buildList,
     buildDetail,
+    buildList,
+    defaultCacheStrategy: "static",
+    defaultPageSize,
+    getDetail: service.getRegion,
+    getDetailQueryOptions,
+    getList: service.getRegions,
     getListItems: (data: RegionListResponse<TRegion> | undefined) =>
       data?.regions ?? [],
-    getList: service.getRegions,
-    getDetail: service.getRegion,
     getListQueryOptions,
-    getDetailQueryOptions,
     resolvedCacheConfig,
     resolvedQueryKeys,
-    defaultPageSize,
-    defaultCacheStrategy: "static",
   })
 
   function useRegions(
@@ -169,14 +166,14 @@ export function createRegionHooks<
   }
 
   return {
-    getListQueryOptions,
     getDetailQueryOptions,
-    useRegions,
-    useSuspenseRegions,
-    useRegion,
-    useSuspenseRegion,
-    usePrefetchRegions,
+    getListQueryOptions,
     usePrefetchRegion,
+    usePrefetchRegions,
+    useRegion,
+    useRegions,
+    useSuspenseRegion,
+    useSuspenseRegions,
   }
 }
 

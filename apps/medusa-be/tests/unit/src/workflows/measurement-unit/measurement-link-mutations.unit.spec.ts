@@ -7,10 +7,7 @@ const { link } = vi.hoisted(() => ({
   },
 }))
 
-vi.mock("@medusajs/framework/workflows-sdk", () => ({
-  createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
-  ),
+vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: class StepResponse<
     TPayload = unknown,
     TCompensationInput = unknown,
@@ -23,32 +20,38 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
       this.compensateInput = compensateInput
     }
   },
+  createStep: vi.fn((_name, invoke, compensate) =>
+    Object.assign(invoke, { compensate })
+  ),
 }))
 
-vi.mock("../../../../../src/modules/measurement-unit", () => ({
+vi.mock(import("../../../../../src/modules/measurement-unit"), () => ({
   MEASUREMENT_UNIT_MODULE: "measurement_unit",
 }))
 
-vi.mock("../../../../../src/workflows/measurement-unit/steps/helpers", () => ({
-  productMeasurementLink: (
-    productId: string,
-    productMeasurementId: string
-  ) => ({
-    measurement_unit: { product_measurement_id: productMeasurementId },
-    product: { product_id: productId },
-  }),
-  productVariantMeasurementLink: (
-    productVariantId: string,
-    productVariantMeasurementId: string
-  ) => ({
-    measurement_unit: {
-      product_variant_measurement_id: productVariantMeasurementId,
-    },
-    product: { product_variant_id: productVariantId },
-  }),
-}))
+vi.mock(
+  import("../../../../../src/workflows/measurement-unit/steps/helpers"),
+  () => ({
+    productMeasurementLink: (
+      productId: string,
+      productMeasurementId: string
+    ) => ({
+      measurement_unit: { product_measurement_id: productMeasurementId },
+      product: { product_id: productId },
+    }),
+    productVariantMeasurementLink: (
+      productVariantId: string,
+      productVariantMeasurementId: string
+    ) => ({
+      measurement_unit: {
+        product_variant_measurement_id: productVariantMeasurementId,
+      },
+      product: { product_variant_id: productVariantId },
+    }),
+  })
+)
 
-type MockStep = {
+interface MockStep {
   (
     input: unknown,
     context: { container: { resolve: ReturnType<typeof vi.fn> } }

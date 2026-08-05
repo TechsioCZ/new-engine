@@ -1,9 +1,9 @@
-export type StorefrontMarket = {
+export interface StorefrontMarket {
   code: string
   locale: string
 }
 
-export type ResolveStorefrontMarketInput = {
+export interface ResolveStorefrontMarketInput {
   acceptLanguage?: string | null
   host?: string | null
 }
@@ -53,9 +53,9 @@ const getAcceptedLanguages = (acceptLanguage?: string | null) => {
 
 type MarketCode<TMarkets> = Extract<keyof TMarkets, string>
 
-type DefineStorefrontMarketsOptions<
+interface DefineStorefrontMarketsOptions<
   TMarkets extends Record<string, StorefrontMarket>,
-> = {
+> {
   defaultMarketCode: MarketCode<TMarkets>
   hostMarketMap?: Readonly<Record<string, MarketCode<TMarkets>>>
   languageMarketMap?: Readonly<Record<string, MarketCode<TMarkets>>>

@@ -1,6 +1,6 @@
 import { Table } from "@techsio/ui-kit/organisms/table"
 
-export type ProductTableRowProps = {
+export interface ProductTableRowProps {
   key: string
   value?: string | number | null | undefined
 }

@@ -11,13 +11,15 @@ import type {
   StorefrontCustomerUpdateAddressContext,
 } from "../shared/address"
 import { assertStorefrontAddressValidation } from "../shared/address"
-import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
+import { createCacheConfig } from "../shared/cache-config"
+import type { CacheConfig } from "../shared/cache-config"
 import { toErrorMessage } from "../shared/error-utils"
 import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
-import { type QueryNamespace, createQueryKey } from "../shared/query-keys"
+import { createQueryKey } from "../shared/query-keys"
+import type { QueryNamespace } from "../shared/query-keys"
 import { createCustomerQueryKeys } from "./query-keys"
 import type {
   CustomerAddressAdapter,
@@ -33,7 +35,7 @@ import type {
   UseSuspenseCustomerAddressesResult,
 } from "./types"
 
-export type CreateCustomerHooksConfig<
+export interface CreateCustomerHooksConfig<
   TCustomer,
   TAddress,
   TListInput extends CustomerAddressListInputBase,
@@ -44,7 +46,7 @@ export type CreateCustomerHooksConfig<
   TUpdateParams,
   TUpdateCustomerInput extends CustomerProfileUpdateInputBase,
   TUpdateCustomerParams,
-> = {
+> {
   service: CustomerService<
     TCustomer,
     TAddress,
@@ -159,9 +161,9 @@ export function createCustomerHooks<
     const enabled = inputEnabled ?? true
 
     const query = useQuery({
-      queryKey,
-      queryFn: ({ signal }) => service.getAddresses(listParams, signal),
       enabled,
+      queryFn: async ({ signal }) => service.getAddresses(listParams, signal),
+      queryKey,
       ...resolvedCacheConfig.userData,
       ...options?.queryOptions,
     })
@@ -169,10 +171,10 @@ export function createCustomerHooks<
 
     return {
       addresses: data?.addresses ?? [],
-      isLoading,
-      isFetching,
-      isSuccess,
       error: toErrorMessage(error),
+      isFetching,
+      isLoading,
+      isSuccess,
       query,
     }
   }
@@ -188,8 +190,8 @@ export function createCustomerHooks<
     }
     const listParams = buildList(listInput as TListInput)
     const query = useSuspenseQuery({
+      queryFn: async ({ signal }) => service.getAddresses(listParams, signal),
       queryKey: resolvedQueryKeys.addresses(listParams),
-      queryFn: ({ signal }) => service.getAddresses(listParams, signal),
       ...resolvedCacheConfig.userData,
       ...options?.queryOptions,
     })
@@ -197,10 +199,10 @@ export function createCustomerHooks<
 
     return {
       addresses: data?.addresses ?? [],
-      isLoading: false,
-      isFetching,
-      isSuccess: true,
       error: null,
+      isFetching,
+      isLoading: false,
+      isSuccess: true,
       query,
     }
   }
@@ -210,7 +212,7 @@ export function createCustomerHooks<
   ) {
     const queryClient = useQueryClient()
     return useMutation<TAddress, unknown, TCreateInput, TContext>({
-      mutationFn: (input: TCreateInput) => {
+      mutationFn: async (input: TCreateInput) => {
         const normalized = addressAdapter?.normalizeCreate
           ? addressAdapter.normalizeCreate(input, { mode: "create" })
           : input
@@ -245,8 +247,8 @@ export function createCustomerHooks<
   ) {
     const queryClient = useQueryClient()
     return useMutation<TAddress, unknown, TUpdateInput, TContext>({
-      mutationFn: (input: TUpdateInput) => {
-        const addressId = input.addressId
+      mutationFn: async (input: TUpdateInput) => {
+        const { addressId } = input
         if (!addressId) {
           throw new Error("Address id is required")
         }
@@ -291,7 +293,7 @@ export function createCustomerHooks<
   ) {
     const queryClient = useQueryClient()
     return useMutation<void, unknown, { addressId: string }, TContext>({
-      mutationFn: ({ addressId }) => {
+      mutationFn: async ({ addressId }) => {
         if (!addressId) {
           throw new Error("Address id is required")
         }
@@ -321,7 +323,7 @@ export function createCustomerHooks<
   ) {
     const queryClient = useQueryClient()
     return useMutation<TCustomer, unknown, TUpdateCustomerInput, TContext>({
-      mutationFn: (input: TUpdateCustomerInput) => {
+      mutationFn: async (input: TUpdateCustomerInput) => {
         if (!service.updateCustomer) {
           throw new Error("updateCustomer service is not configured")
         }
@@ -347,12 +349,12 @@ export function createCustomerHooks<
   }
 
   return {
-    useCustomerAddresses,
-    useSuspenseCustomerAddresses,
     useCreateCustomerAddress,
-    useUpdateCustomerAddress,
+    useCustomerAddresses,
     useDeleteCustomerAddress,
+    useSuspenseCustomerAddresses,
     useUpdateCustomer,
+    useUpdateCustomerAddress,
   }
 }
 

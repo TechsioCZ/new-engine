@@ -1,12 +1,13 @@
 import type { HttpTypes } from "@medusajs/types"
+import { vi, describe, expect, it } from "vitest"
 
-import {
-  type MedusaCategoryDetailInput,
-  type MedusaCategoryListInput,
-  createMedusaCategoryService,
+import { createMedusaCategoryService } from "../src/categories/medusa-service"
+import type {
+  MedusaCategoryDetailInput,
+  MedusaCategoryListInput,
 } from "../src/categories/medusa-service"
 
-type SdkLike = {
+interface SdkLike {
   client: {
     fetch: ReturnType<typeof vi.fn>
   }
@@ -17,7 +18,7 @@ const createCategory = (
   name = "Category",
   handle = id
 ): HttpTypes.StoreProductCategory =>
-  ({ id, name, handle }) as HttpTypes.StoreProductCategory
+  ({ handle, id, name }) as HttpTypes.StoreProductCategory
 
 function createSdkMock(
   response?: Partial<HttpTypes.StoreProductCategoryListResponse>
@@ -25,21 +26,21 @@ function createSdkMock(
   return {
     client: {
       fetch: vi.fn().mockResolvedValue({
-        product_categories: [],
         count: 0,
         limit: 0,
         offset: 0,
+        product_categories: [],
         ...response,
       }),
     },
   }
 }
 
-describe("createMedusaCategoryService", () => {
+describe(createMedusaCategoryService, () => {
   it("applies default list fields and forwards signal", async () => {
     const sdk = createSdkMock({
-      product_categories: [createCategory("pcat_1", "T-Shirts", "t-shirts")],
       count: 1,
+      product_categories: [createCategory("pcat_1", "T-Shirts", "t-shirts")],
     })
     const service = createMedusaCategoryService(sdk as never, {
       defaultListFields: "id,name,handle,parent_category_id",
@@ -47,15 +48,15 @@ describe("createMedusaCategoryService", () => {
     const controller = new AbortController()
 
     await service.getCategories(
-      { limit: 12, offset: 0, enabled: true },
+      { enabled: true, limit: 12, offset: 0 },
       controller.signal
     )
 
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/product-categories", {
       query: {
+        fields: "id,name,handle,parent_category_id",
         limit: 12,
         offset: 0,
-        fields: "id,name,handle,parent_category_id",
       },
       signal: controller.signal,
     })
@@ -63,8 +64,8 @@ describe("createMedusaCategoryService", () => {
 
   it("supports custom list query normalization and list transforms", async () => {
     const sdk = createSdkMock({
-      product_categories: [createCategory("pcat_2", "Hoodies", "hoodies")],
       count: 1,
+      product_categories: [createCategory("pcat_2", "Hoodies", "hoodies")],
     })
     const service = createMedusaCategoryService<
       { id: string; label: string },
@@ -74,11 +75,11 @@ describe("createMedusaCategoryService", () => {
         ...params,
         ...(parent ? { parent_category_id: parent } : {}),
       }),
-      transformListCategory: (category) => ({
+      transformDetailCategory: (category) => ({
         id: category.id,
         label: category.name,
       }),
-      transformDetailCategory: (category) => ({
+      transformListCategory: (category) => ({
         id: category.id,
         label: category.name,
       }),
@@ -98,7 +99,9 @@ describe("createMedusaCategoryService", () => {
       },
       signal: null,
     })
-    expect(result.categories).toEqual([{ id: "pcat_2", label: "Hoodies" }])
+    expect(result.categories).toStrictEqual([
+      { id: "pcat_2", label: "Hoodies" },
+    ])
     expect(result.count).toBe(1)
   })
 
@@ -120,21 +123,20 @@ describe("createMedusaCategoryService", () => {
 
     const service = createMedusaCategoryService<
       { slug: string; title: string },
-      MedusaCategoryListInput,
-      MedusaCategoryDetailInput
+      MedusaCategoryListInput
     >(sdk as never, {
       defaultDetailFields: "id,name,handle,parent_category_id",
-      transformListCategory: (category) => ({
+      transformDetailCategory: (category) => ({
         slug: category.handle,
         title: category.name,
       }),
-      transformDetailCategory: (category) => ({
+      transformListCategory: (category) => ({
         slug: category.handle,
         title: category.name,
       }),
     })
 
-    const result = await service.getCategory({ id: "pcat_3", enabled: true })
+    const result = await service.getCategory({ enabled: true, id: "pcat_3" })
 
     expect(sdk.client.fetch).toHaveBeenCalledWith(
       "/store/product-categories/pcat_3",
@@ -145,6 +147,6 @@ describe("createMedusaCategoryService", () => {
         signal: null,
       }
     )
-    expect(result).toEqual({ slug: "jackets", title: "Jackets" })
+    expect(result).toStrictEqual({ slug: "jackets", title: "Jackets" })
   })
 })

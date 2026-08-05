@@ -6,10 +6,10 @@ import ProductVariantMeasurement from "./product-variant-measurement"
 const ProductMeasurement = model
   .define("product_measurement", {
     id: model.id().primaryKey(),
-    product_id: model.text().searchable(),
     measurement_unit: model.belongsTo(() => MeasurementUnit, {
       mappedBy: "product_measurements",
     }),
+    product_id: model.text().searchable(),
     variant_measurements: model.hasMany(() => ProductVariantMeasurement, {
       mappedBy: "product_measurement",
     }),

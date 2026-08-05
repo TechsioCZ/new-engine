@@ -13,18 +13,18 @@ import {
 } from "@medusajs/framework/utils"
 
 import { normalizeProductSalesChannelFilter } from "../../../../utils/product-filters"
-import {
-  buildProductLocationAvailability,
-  type InventoryLevel,
-  type ProductLocationAvailability,
-  type StockLocationRecord,
-  type VariantInventoryItemLink,
+import { buildProductLocationAvailability } from "./availability"
+import type {
+  InventoryLevel,
+  ProductLocationAvailability,
+  StockLocationRecord,
+  VariantInventoryItemLink,
 } from "./availability"
 import type { StoreProductLocationAvailabilityQuery } from "./middlewares"
 
 const QUERY_FILTER_CHUNK_SIZE = 100
 
-type QueryResult<T> = {
+interface QueryResult<T> {
   data: T[]
 }
 
@@ -32,7 +32,7 @@ type ProductRecord = Pick<ProductDTO, "id"> & {
   variants: Pick<ProductVariantDTO, "id">[]
 }
 
-type StockLocationLinkRecord = {
+interface StockLocationLinkRecord {
   stock_location_id: string
 }
 
@@ -76,7 +76,7 @@ async function queryStockLocationsForSalesChannels(
     }
   }
 
-  const uniqueStockLocationIds = Array.from(new Set(stockLocationIds))
+  const uniqueStockLocationIds = [...new Set(stockLocationIds)]
 
   if (uniqueStockLocationIds.length === 0) {
     return []

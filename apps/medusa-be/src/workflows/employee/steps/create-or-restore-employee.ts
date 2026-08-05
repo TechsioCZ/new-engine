@@ -15,13 +15,13 @@ import type {
 } from "../../../types"
 import { definedProperties } from "../../../utils/defined-properties"
 
-type EmployeeCustomerLinkRow = {
+interface EmployeeCustomerLinkRow {
   customer_id?: string
   deleted_at?: Date | string | null
   employee_id?: string
 }
 
-type RestorableEmployee = {
+interface RestorableEmployee {
   company?: {
     deleted_at?: Date | string | null
     id?: string
@@ -173,8 +173,8 @@ export const createOrRestoreEmployeeStep = createStep(
     } = await query.graph(
       {
         entity: "employee",
-        filters: { id: createdEmployee.id },
         fields: ["id", "company.*"],
+        filters: { id: createdEmployee.id },
       },
       { throwIfKeyNotFound: true }
     )

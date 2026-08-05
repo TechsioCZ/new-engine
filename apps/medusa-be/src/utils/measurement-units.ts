@@ -19,7 +19,7 @@ export type ProductVariantMeasurementRecord = InferEntityType<
   typeof ProductVariantMeasurement
 >
 
-export type MeasurementUnitResponse = {
+export interface MeasurementUnitResponse {
   active_product_count?: number | undefined
   base_quantity: number
   code: string
@@ -32,7 +32,7 @@ export type MeasurementUnitResponse = {
   updated_at?: Date | string | undefined
 }
 
-export type ProductMeasurementResponse = {
+export interface ProductMeasurementResponse {
   created_at?: Date | string
   id: string
   product_id: string
@@ -41,7 +41,7 @@ export type ProductMeasurementResponse = {
   variant_measurements: ProductVariantMeasurementResponse[]
 }
 
-export type ProductVariantMeasurementResponse = {
+export interface ProductVariantMeasurementResponse {
   created_at?: Date | string
   id: string
   product_unit_quantity: number
@@ -55,7 +55,7 @@ type CalculatedPriceLike = NonNullable<
   price_per_unit?: Record<string, unknown>
 }
 
-type ProductLike = {
+interface ProductLike {
   id?: unknown
   measurement?: ProductMeasurementResponse | null
   variants?: Array<{
@@ -65,7 +65,7 @@ type ProductLike = {
   }> | null
 }
 
-export type MeasurementDecorationOptions = {
+export interface MeasurementDecorationOptions {
   includePricePerUnit: boolean
   includeProductMeasurement: boolean
   includeVariantMeasurement: boolean
@@ -142,7 +142,7 @@ export const getMeasurementDecorationQueryFields = (
     queryFields.push(...PRICE_PER_UNIT_QUERY_FIELDS)
   }
 
-  return Array.from(new Set(queryFields))
+  return [...new Set(queryFields)]
 }
 
 export const getMeasurementUnitService = (scope: MedusaContainer) =>

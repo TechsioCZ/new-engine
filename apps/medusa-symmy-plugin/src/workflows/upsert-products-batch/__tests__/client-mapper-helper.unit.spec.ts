@@ -7,15 +7,15 @@ import type { ProductInput } from "../types"
 const helper = new ProductBatchClientMapperHelper()
 
 const existingProduct = {
-  id: "prod_1",
   external_id: null,
+  id: "prod_1",
   metadata: null,
   variants: [],
 } satisfies ExistingProduct
 
 const baseProduct = {
-  identifier_type: "erp_id",
   erp_id: "erp_1",
+  identifier_type: "erp_id",
   title: "Product",
 } satisfies ProductInput
 
@@ -39,7 +39,7 @@ describe("ProductBatchClientMapperHelper category updates", () => {
       categories: [],
     })
 
-    expect(payload.category_ids).toEqual([])
+    expect(payload.category_ids).toStrictEqual([])
   })
 
   it("maps populated categories to their resolved IDs", () => {
@@ -48,7 +48,7 @@ describe("ProductBatchClientMapperHelper category updates", () => {
       categories: [{ handle: "first-category" }, { name: "Second category" }],
     })
 
-    expect(payload.category_ids).toEqual(["pcat_1", "pcat_2"])
+    expect(payload.category_ids).toStrictEqual(["pcat_1", "pcat_2"])
   })
 
   it("leaves category_ids undefined when categories are omitted", () => {

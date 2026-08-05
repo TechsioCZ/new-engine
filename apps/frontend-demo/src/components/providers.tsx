@@ -11,8 +11,11 @@ import { CartPrefetch } from "./cart-prefetch"
 function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
+      mutations: {
+        retry: 1,
+        retryDelay: 1000,
+      },
       queries: {
-        staleTime: 60 * 1000, // 1 minute
         gcTime: 5 * 60 * 1000, // 5 minutes
         retry: (failureCount, error: unknown) => {
           const status =
@@ -28,10 +31,7 @@ function makeQueryClient() {
         },
         retryDelay: (attemptIndex) =>
           Math.min(1000 * 2 ** attemptIndex, 30_000),
-      },
-      mutations: {
-        retry: 1,
-        retryDelay: 1000,
+        staleTime: 60 * 1000, // 1 minute,
       },
     },
   })
@@ -45,7 +45,9 @@ function getQueryClient() {
     return makeQueryClient()
   }
   // Browser: make client if we don't already have one
-  if (!browserQueryClient) browserQueryClient = makeQueryClient()
+  if (!browserQueryClient) {
+    browserQueryClient = makeQueryClient()
+  }
   return browserQueryClient
 }
 

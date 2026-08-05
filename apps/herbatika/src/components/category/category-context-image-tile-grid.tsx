@@ -1,7 +1,8 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import type { StaticImageData } from "next/image"
 import NextImage from "next/image"
@@ -9,14 +10,14 @@ import NextImage from "next/image"
 import NextLink from "@/components/app-link"
 import { resolveCategoryImage } from "@/lib/category-images"
 
-export type CategoryContextImageTile = {
+export interface CategoryContextImageTile {
   href: string
   id: string
   label: string
   src?: StaticImageData
 }
 
-type CategoryContextImageTileSource = {
+interface CategoryContextImageTileSource {
   handle?: string | null
   href: string
   id: string
@@ -24,12 +25,12 @@ type CategoryContextImageTileSource = {
   parentCategoryId?: string | null
 }
 
-type BuildCategoryContextImageTilesInput = {
+interface BuildCategoryContextImageTilesInput {
   categories: CategoryContextImageTileSource[]
   categoryById?: Map<string, HttpTypes.StoreProductCategory>
 }
 
-type CategoryContextImageTileGridProps = {
+interface CategoryContextImageTileGridProps {
   tiles: CategoryContextImageTile[]
 }
 

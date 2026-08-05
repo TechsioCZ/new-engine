@@ -1,6 +1,7 @@
 "use client"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import Image, { type StaticImageData } from "next/image"
+import Image from "next/image"
+import type { StaticImageData } from "next/image"
 import Link from "next/link"
 
 interface HeroProps {

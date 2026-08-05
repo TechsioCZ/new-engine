@@ -9,15 +9,15 @@ export type ProductAttributeInputType =
 
 const ProductAttributeDefinition = model
   .define("product_attribute_definition", {
-    id: model.id({ prefix: "patdef" }).primaryKey(),
-    key: model.text().searchable(),
-    label: model.text().searchable().translatable(),
-    input_type: model.enum([...PRODUCT_ATTRIBUTE_INPUT_TYPES]),
-    is_public: model.boolean().default(false),
-    options: model.hasMany(() => ProductAttributeOption, {
+    assignments: model.hasMany(() => ProductAttribute, {
       mappedBy: "definition",
     }),
-    assignments: model.hasMany(() => ProductAttribute, {
+    id: model.id({ prefix: "patdef" }).primaryKey(),
+    input_type: model.enum([...PRODUCT_ATTRIBUTE_INPUT_TYPES]),
+    is_public: model.boolean().default(false),
+    key: model.text().searchable(),
+    label: model.text().searchable().translatable(),
+    options: model.hasMany(() => ProductAttributeOption, {
       mappedBy: "definition",
     }),
   })

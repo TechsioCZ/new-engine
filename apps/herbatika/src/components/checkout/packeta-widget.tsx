@@ -1,6 +1,7 @@
 "use client"
 
-import { type RefObject, useCallback, useImperativeHandle, useRef } from "react"
+import { useCallback, useImperativeHandle, useRef } from "react"
+import type { RefObject } from "react"
 
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
@@ -14,7 +15,7 @@ import type {
 
 export type { PacketaWidgetHandle } from "./packeta-widget.types"
 
-type PacketaPickupWidgetProps = {
+interface PacketaPickupWidgetProps {
   apiKey: string
   options?: PacketaWidgetOptions
   onClose?: () => void

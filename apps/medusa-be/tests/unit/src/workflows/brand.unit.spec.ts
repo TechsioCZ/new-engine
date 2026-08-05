@@ -11,18 +11,17 @@ import { getProductBrandIdsToReplace } from "../../../../src/workflows/brand/ste
 describe("brand workflow helpers", () => {
   describe("product brand lock keys", () => {
     it("uses one stable product-level lock namespace for both relation workflows", () => {
-      expect(getProductBrandLockKeys(["prod_2", "prod_1", "prod_2"])).toEqual([
-        "product-brand:prod_1",
-        "product-brand:prod_2",
-      ])
-      expect(getBrandProductsLockKeys("brand_1", ["prod_2"])).toEqual([
+      expect(
+        getProductBrandLockKeys(["prod_2", "prod_1", "prod_2"])
+      ).toStrictEqual(["product-brand:prod_1", "product-brand:prod_2"])
+      expect(getBrandProductsLockKeys("brand_1", ["prod_2"])).toStrictEqual([
         "brand-products:brand_1",
         "product-brand:prod_2",
       ])
     })
   })
 
-  describe("getProductBrandIdsToReplace", () => {
+  describe(getProductBrandIdsToReplace, () => {
     it("dismisses inactive retained links only when creating a new active assignment", () => {
       const activeBrandIds = new Set(["brand_active"])
 
@@ -32,15 +31,15 @@ describe("brand workflow helpers", () => {
           activeBrandIds,
           ["brand_next"]
         )
-      ).toEqual(["brand_deleted", "brand_active"])
+      ).toStrictEqual(["brand_deleted", "brand_active"])
 
       expect(
         getProductBrandIdsToReplace(["brand_deleted"], activeBrandIds, [])
-      ).toEqual([])
+      ).toStrictEqual([])
     })
   })
 
-  describe("ensureProductsAssignableToBrand", () => {
+  describe(ensureProductsAssignableToBrand, () => {
     it("allows products that are unassigned or already linked to the brand", async () => {
       const scope = createScope({
         links: [

@@ -1,10 +1,10 @@
 import {
   createWorkflow,
   transform,
-  type WorkflowData,
   WorkflowResponse,
   when,
 } from "@medusajs/framework/workflows-sdk"
+import type { WorkflowData } from "@medusajs/framework/workflows-sdk"
 
 import type { ModuleUpdateEmployee, QueryGraphEmployee } from "../../../types"
 import { validateCompanyActiveStep } from "../../company/steps"

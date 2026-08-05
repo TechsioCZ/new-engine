@@ -2,7 +2,7 @@ import type { SQL } from "drizzle-orm"
 import { sql } from "drizzle-orm"
 
 /** Product result from complex database query with JSON fields */
-export type ProductRaw = {
+export interface ProductRaw {
   title: string
   handle: string
   description?: string

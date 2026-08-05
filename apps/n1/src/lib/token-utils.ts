@@ -1,4 +1,4 @@
-type JWTPayload = {
+interface JWTPayload {
   exp?: number
   [key: string]: unknown
 }

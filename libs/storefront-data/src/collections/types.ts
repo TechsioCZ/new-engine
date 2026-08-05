@@ -6,24 +6,24 @@ import type {
 } from "../shared/hook-result-types"
 import type { QueryKey } from "../shared/query-keys"
 
-export type CollectionListInputBase = {
+export interface CollectionListInputBase {
   page?: number
   limit?: number
   offset?: number
   enabled?: boolean
 }
 
-export type CollectionDetailInputBase = {
+export interface CollectionDetailInputBase {
   id?: string
   enabled?: boolean
 }
 
-export type CollectionListResponse<TCollection> = {
+export interface CollectionListResponse<TCollection> {
   collections: TCollection[]
   count?: number
 }
 
-export type CollectionService<TCollection, TListParams, TDetailParams> = {
+export interface CollectionService<TCollection, TListParams, TDetailParams> {
   getCollections: (
     params: TListParams,
     signal?: AbortSignal
@@ -34,7 +34,7 @@ export type CollectionService<TCollection, TListParams, TDetailParams> = {
   ) => Promise<TCollection | null>
 }
 
-export type CollectionQueryKeys<TListParams, TDetailParams> = {
+export interface CollectionQueryKeys<TListParams, TDetailParams> {
   all: () => QueryKey
   list: (params: TListParams) => QueryKey
   detail: (params: TDetailParams) => QueryKey

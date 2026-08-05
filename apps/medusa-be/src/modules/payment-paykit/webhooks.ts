@@ -8,7 +8,7 @@ import {
 } from "@medusajs/framework/utils"
 import { isRecord } from "@techsio/std/object"
 
-type EmitPaykitPaymentWebhookEventInput = {
+interface EmitPaykitPaymentWebhookEventInput {
   data: Record<string, unknown>
   provider: string
   rawData?: string | Buffer
@@ -25,9 +25,7 @@ const getPaymentModuleOptions = (
     )
   }
 
-  return isRecord(paymentModule["options"])
-    ? (paymentModule["options"] as PaymentModuleOptions)
-    : {}
+  return isRecord(paymentModule["options"]) ? paymentModule["options"] : {}
 }
 
 const logWebhookEmitError = (
@@ -62,19 +60,19 @@ export const emitPaykitPaymentWebhookEvent = async ({
 
     await eventBus.emit(
       {
-        name: PaymentWebhookEvents.WebhookReceived,
         data: {
-          provider,
           payload: {
             data,
-            rawData,
             headers: req.headers,
+            rawData,
           },
+          provider,
         },
+        name: PaymentWebhookEvents.WebhookReceived,
       },
       {
-        delay: options.webhook_delay ?? 5000,
         attempts: options.webhook_retries ?? 3,
+        delay: options.webhook_delay ?? 5000,
       }
     )
   } catch (error) {

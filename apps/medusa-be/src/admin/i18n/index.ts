@@ -1,37 +1,23 @@
-import {
-  type ApprovalAdminI18nNamespace,
-  approvalAdminI18n,
-} from "../../modules/approval/admin/i18n"
-import {
-  type BrandAdminI18nNamespace,
-  brandAdminI18n,
-} from "../../modules/brand/admin/i18n"
-import {
-  type CompanyAdminI18nNamespace,
-  companyAdminI18n,
-} from "../../modules/company/admin/i18n"
-import {
-  type MeasurementUnitAdminI18nNamespace,
-  measurementUnitAdminI18n,
-} from "../../modules/measurement-unit/admin/i18n"
-import {
-  type ProductAttributeAdminI18nNamespace,
-  productAttributeAdminI18n,
-} from "../../modules/product-attribute/admin/i18n"
-import {
-  type QuoteAdminI18nNamespace,
-  quoteAdminI18n,
-} from "../../modules/quote/admin/i18n"
-import {
-  type StorefrontTextAdminI18nNamespace,
-  storefrontTextAdminI18n,
-} from "../../modules/storefront-text/admin/i18n"
+import { approvalAdminI18n } from "../../modules/approval/admin/i18n"
+import type { ApprovalAdminI18nNamespace } from "../../modules/approval/admin/i18n"
+import { brandAdminI18n } from "../../modules/brand/admin/i18n"
+import type { BrandAdminI18nNamespace } from "../../modules/brand/admin/i18n"
+import { companyAdminI18n } from "../../modules/company/admin/i18n"
+import type { CompanyAdminI18nNamespace } from "../../modules/company/admin/i18n"
+import { measurementUnitAdminI18n } from "../../modules/measurement-unit/admin/i18n"
+import type { MeasurementUnitAdminI18nNamespace } from "../../modules/measurement-unit/admin/i18n"
+import { productAttributeAdminI18n } from "../../modules/product-attribute/admin/i18n"
+import type { ProductAttributeAdminI18nNamespace } from "../../modules/product-attribute/admin/i18n"
+import { quoteAdminI18n } from "../../modules/quote/admin/i18n"
+import type { QuoteAdminI18nNamespace } from "../../modules/quote/admin/i18n"
+import { storefrontTextAdminI18n } from "../../modules/storefront-text/admin/i18n"
+import type { StorefrontTextAdminI18nNamespace } from "../../modules/storefront-text/admin/i18n"
 import type { OrderBusinessStatusId } from "../../utils/order-business-status"
 import type { ProductContentSectionKey } from "../lib/product-content-sections"
 
 type AdminLocale = "cs" | "en"
 
-type OrderCommercialValuesNamespace = {
+interface OrderCommercialValuesNamespace {
   actions: Record<"cancel" | "confirm" | "edit", string>
   blockers: Record<
     "activeOrderChangeExists" | "orderStatusNotEditable" | "unknown",
@@ -58,7 +44,7 @@ type OrderCommercialValuesNamespace = {
   totals: Record<"delta" | "new" | "orderDiscount" | "original", string>
 }
 
-type ProductContentSectionsNamespace = {
+interface ProductContentSectionsNamespace {
   actions: Record<"save", string>
   errors: Record<"saveFailed", string>
   sections: Record<
@@ -69,7 +55,7 @@ type ProductContentSectionsNamespace = {
   toasts: Record<"saved", string>
 }
 
-type AdminDefaultTranslationNamespace = {
+interface AdminDefaultTranslationNamespace {
   fields: Record<"date" | "product", string>
   filters: {
     addFilter: string
@@ -108,7 +94,7 @@ type AdminDefaultTranslationNamespace = {
   >
 }
 
-type OrderBusinessStatusesNamespace = {
+interface OrderBusinessStatusesNamespace {
   columns: Record<
     | "businessStatus"
     | "created"
@@ -127,7 +113,7 @@ type OrderBusinessStatusesNamespace = {
   toast: Record<"saveError" | "saveSuccess", string>
 }
 
-type ProductSalesRegionsNamespace = {
+interface ProductSalesRegionsNamespace {
   badge: Record<"channel_few" | "channel_one" | "channel_other", string>
   description: string
   empty: string
@@ -453,7 +439,6 @@ const defaultTranslation = {
     filters: {
       addFilter: "Přidat filtr",
       clearAll: "Vymazat vše",
-      search: "Hledat",
       compare: {
         andLabel: "a",
         exact: "Přesná hodnota",
@@ -463,6 +448,7 @@ const defaultTranslation = {
         lessThanLabel: "méně než {{value}}",
         range: "Rozsah",
       },
+      search: "Hledat",
     },
     general: {
       countSelected: "{{count}} vybráno",
@@ -495,7 +481,6 @@ const defaultTranslation = {
     filters: {
       addFilter: "Add filter",
       clearAll: "Clear all",
-      search: "Search",
       compare: {
         andLabel: "and",
         exact: "Exact",
@@ -505,6 +490,7 @@ const defaultTranslation = {
         lessThanLabel: "less than {{value}}",
         range: "Range",
       },
+      search: "Search",
     },
     general: {
       countSelected: "{{count}} selected",
@@ -534,24 +520,24 @@ const defaultTranslation = {
 const resources = {
   cs: {
     approvals: approvalAdminI18n.cs,
+    brands: brandAdminI18n.cs,
     companies: companyAdminI18n.cs,
     measurementUnits: measurementUnitAdminI18n.cs,
     orderBusinessStatuses: orderBusinessStatuses.cs,
-    productSalesRegions: productSalesRegions.cs,
     productAttributes: productAttributeAdminI18n.cs,
-    brands: brandAdminI18n.cs,
+    productSalesRegions: productSalesRegions.cs,
     quotes: quoteAdminI18n.cs,
     storefrontTexts: storefrontTextAdminI18n.cs,
     translation: defaultTranslation.cs,
   },
   en: {
     approvals: approvalAdminI18n.en,
+    brands: brandAdminI18n.en,
     companies: companyAdminI18n.en,
     measurementUnits: measurementUnitAdminI18n.en,
     orderBusinessStatuses: orderBusinessStatuses.en,
-    productSalesRegions: productSalesRegions.en,
     productAttributes: productAttributeAdminI18n.en,
-    brands: brandAdminI18n.en,
+    productSalesRegions: productSalesRegions.en,
     quotes: quoteAdminI18n.en,
     storefrontTexts: storefrontTextAdminI18n.en,
     translation: defaultTranslation.en,

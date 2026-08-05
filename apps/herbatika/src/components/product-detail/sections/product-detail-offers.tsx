@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl"
 
 import type { VolumeDiscountOption } from "@/components/product-detail/product-detail.types"
 
-type ProductDetailOffersProps = {
+interface ProductDetailOffersProps {
   isAdding: boolean
   onAddToCart: () => void
   onSelectOption: (optionId: string) => void

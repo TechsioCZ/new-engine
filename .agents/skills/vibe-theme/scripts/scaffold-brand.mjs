@@ -31,7 +31,7 @@ import { copyFileSync, existsSync, mkdirSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const __dirname = import.meta.dirname
 const REPO_ROOT = resolve(__dirname, "..", "..", "..", "..")
 const FIGMA_DIR = join(REPO_ROOT, "libs/ui/src/tokens/figma")
 

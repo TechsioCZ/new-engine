@@ -16,7 +16,7 @@ import { ProductDetailReviews } from "@/components/product-detail/sections/produ
 const getAccordionSectionId = (value: string) =>
   `product-detail-information-${value}`
 
-type ProductDetailTabsProps = {
+interface ProductDetailTabsProps {
   activeSectionValue?: string
   defaultSectionValue: string
   onSectionValueChange: (value: string | undefined) => void
@@ -32,7 +32,7 @@ function ProductDetailReviewsSlot({
   return (
     <Suspense fallback={null}>
       <ProductDetailReviews
-        {...(productId === undefined ? {} : { productId: productId })}
+        {...(productId === undefined ? {} : { productId })}
       />
     </Suspense>
   )
@@ -51,9 +51,9 @@ export function ProductDetailTabs({
     ? [
         ...sections,
         {
+          html: "",
           key: PRODUCT_DETAIL_REVIEWS_TAB_VALUE,
           title: tCatalog("reviews.tab_label"),
-          html: "",
         },
       ]
     : sections
@@ -110,7 +110,7 @@ export function ProductDetailTabs({
             >
               {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
                 <ProductDetailReviewsSlot
-                  {...(productId === undefined ? {} : { productId: productId })}
+                  {...(productId === undefined ? {} : { productId })}
                 />
               ) : (
                 <ProductDetailHtmlContent html={section.html} />
@@ -140,9 +140,7 @@ export function ProductDetailTabs({
               <Accordion.Content>
                 {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
                   <ProductDetailReviewsSlot
-                    {...(productId === undefined
-                      ? {}
-                      : { productId: productId })}
+                    {...(productId === undefined ? {} : { productId })}
                   />
                 ) : (
                   <ProductDetailHtmlContent html={section.html} />

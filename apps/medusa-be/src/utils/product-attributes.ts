@@ -101,7 +101,7 @@ export const withProductAttributeTransaction = async <T>(
 ) => await service.runInTransaction(task, sharedContext)
 
 export const toUsageCountMap = (
-  rows: Array<{ count: number | string; id: string }>
+  rows: { count: number | string; id: string }[]
 ) =>
   new Map(
     rows.map((row) => {

@@ -21,19 +21,19 @@ const {
   productListItemVariantLinkEntryPoint: "product_list_item_variant",
 }))
 
-vi.mock("../../../../../src/links/customer-product-list", () => ({
+vi.mock(import("../../../../../src/links/customer-product-list"), () => ({
   CustomerProductListLink: {
     entryPoint: customerProductListLinkEntryPoint,
   },
 }))
 
-vi.mock("../../../../../src/links/product-list-item-product", () => ({
+vi.mock(import("../../../../../src/links/product-list-item-product"), () => ({
   ProductListItemProductLink: {
     entryPoint: productListItemProductLinkEntryPoint,
   },
 }))
 
-vi.mock("../../../../../src/links/product-list-item-variant", () => ({
+vi.mock(import("../../../../../src/links/product-list-item-variant"), () => ({
   ProductListItemVariantLink: {
     entryPoint: productListItemVariantLinkEntryPoint,
   },
@@ -70,7 +70,7 @@ const makeContainer = ({
     }),
   })
 
-describe("assertProductSelectionExists", () => {
+describe(assertProductSelectionExists, () => {
   it("accepts published products without requiring a variant", async () => {
     const query = {
       graph: vi.fn().mockResolvedValue({
@@ -134,7 +134,7 @@ describe("assertProductSelectionExists", () => {
   })
 })
 
-describe("findProductListItemForSelection", () => {
+describe(findProductListItemForSelection, () => {
   it("returns the product item that has no variant link for variantless selections", async () => {
     const query = {
       graph: vi
@@ -162,7 +162,7 @@ describe("findProductListItemForSelection", () => {
         "plist_1",
         "prod_1"
       )
-    ).resolves.toEqual({ id: "item_plain", quantity: 1 })
+    ).resolves.toStrictEqual({ id: "item_plain", quantity: 1 })
   })
 
   it("returns the product item with the matching variant link for variant selections", async () => {
@@ -193,7 +193,7 @@ describe("findProductListItemForSelection", () => {
         "prod_1",
         "var_1"
       )
-    ).resolves.toEqual({ id: "item_variant", quantity: 2 })
+    ).resolves.toStrictEqual({ id: "item_variant", quantity: 2 })
   })
 
   it("continues through paginated item batches until it finds a match", async () => {
@@ -234,6 +234,6 @@ describe("findProductListItemForSelection", () => {
         "plist_1",
         "prod_1"
       )
-    ).resolves.toEqual({ id: "item_target", quantity: 1 })
+    ).resolves.toStrictEqual({ id: "item_target", quantity: 1 })
   })
 })

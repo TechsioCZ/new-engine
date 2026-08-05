@@ -11,11 +11,11 @@ import type {
 /* Admin */
 export type AdminApprovalSettings = QueryApprovalSettings
 
-export type AdminApprovalSettingsResponse = {
+export interface AdminApprovalSettingsResponse {
   approvalSettings: AdminApprovalSettings[]
 }
 
-export type AdminUpdateApprovalSettings = {
+export interface AdminUpdateApprovalSettings {
   id?: string
   requires_admin_approval: boolean
   requires_sales_manager_approval: boolean
@@ -23,7 +23,7 @@ export type AdminUpdateApprovalSettings = {
 
 export type AdminApproval = QueryApproval
 
-export type AdminApprovalsResponse = {
+export interface AdminApprovalsResponse {
   carts_with_approvals: AdminCartWithApprovals[]
   count: number
 }
@@ -34,6 +34,6 @@ export type AdminCartWithApprovals = HttpTypes.StoreCart & {
   approval_requests: QueryApproval[]
 }
 
-export type AdminUpdateApproval = {
+export interface AdminUpdateApproval {
   status: ApprovalStatusType
 }

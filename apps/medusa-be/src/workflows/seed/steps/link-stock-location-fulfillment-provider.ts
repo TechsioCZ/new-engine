@@ -3,7 +3,7 @@ import type { Logger, StockLocationDTO } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
-export type LinkStockLocationFulfillmentProviderStepInput = {
+export interface LinkStockLocationFulfillmentProviderStepInput {
   stockLocations: StockLocationDTO[]
   fulfillmentProviderIds?: Array<string | null | undefined>
 }
@@ -12,7 +12,7 @@ const LinkStockLocationFulfillmentProviderStepId =
   "link-stock-location-fulfillment-provider-seed-step"
 
 function normalizeFulfillmentProviderIds(
-  ids?: Array<string | null | undefined>
+  ids?: (string | null | undefined)[]
 ): string[] {
   return [
     ...new Set(

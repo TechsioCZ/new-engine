@@ -8,23 +8,23 @@ import {
   suffix,
 } from "./helpers/promotions"
 
-type RuleAttribute = {
+interface RuleAttribute {
   id: string
   label: string
   operators?: Array<{ label: string; value: string }>
   value: string
 }
 
-type RuleAttributesResponse = {
+interface RuleAttributesResponse {
   attributes: RuleAttribute[]
 }
 
-type RuleValueOption = {
+interface RuleValueOption {
   label: string
   value: string
 }
 
-type RuleValuesResponse = {
+interface RuleValuesResponse {
   count: number
   limit: number
   offset: number
@@ -45,7 +45,7 @@ describe("Custom promotion rule routes HTTP E2E", () => {
       (attribute) => attribute.id === "brand"
     )
 
-    expect(itemTargetIds).toEqual(
+    expect(itemTargetIds).toStrictEqual(
       expect.arrayContaining([
         "product",
         "product_category",
@@ -55,15 +55,15 @@ describe("Custom promotion rule routes HTTP E2E", () => {
         "item_quantity",
       ])
     )
-    expect(brandAttribute).toEqual(
+    expect(brandAttribute).toStrictEqual(
       expect.objectContaining({
-        value: "items.brand_ids",
         operators: expect.arrayContaining([
           expect.objectContaining({ label: "Not In", value: "ne" }),
         ]),
+        value: "items.brand_ids",
       })
     )
-    expect(brandAttribute?.operators).not.toEqual(
+    expect(brandAttribute?.operators).not.toStrictEqual(
       expect.arrayContaining([expect.objectContaining({ value: "nin" })])
     )
 
@@ -81,7 +81,7 @@ describe("Custom promotion rule routes HTTP E2E", () => {
         "/admin/promotions/rule-attribute-options/buy-rules?promotion_type=buyget&application_method_target_type=items"
       )
 
-    expect(buyRuleAttributes.map((attribute) => attribute.id)).toEqual(
+    expect(buyRuleAttributes.map((attribute) => attribute.id)).toStrictEqual(
       expect.arrayContaining([
         "buy_rules_min_quantity",
         "brand",
@@ -96,7 +96,9 @@ describe("Custom promotion rule routes HTTP E2E", () => {
         "/admin/promotions/rule-attribute-options/target-rules?promotion_type=buyget&application_method_target_type=items"
       )
 
-    expect(buyGetTargetAttributes.map((attribute) => attribute.id)).toEqual(
+    expect(
+      buyGetTargetAttributes.map((attribute) => attribute.id)
+    ).toStrictEqual(
       expect.arrayContaining([
         "apply_to_quantity",
         "brand",
@@ -115,7 +117,7 @@ describe("Custom promotion rule routes HTTP E2E", () => {
     )
 
     expect(shippingTargetIds).toContain("shipping_option_type")
-    expect(shippingTargetIds).not.toEqual(
+    expect(shippingTargetIds).not.toStrictEqual(
       expect.arrayContaining([
         "brand",
         "product_variant",
@@ -129,7 +131,7 @@ describe("Custom promotion rule routes HTTP E2E", () => {
     }>("/admin/promotions/rule-attribute-options/not-a-rule-type")
 
     expect(invalidResponse.status).toBe(400)
-    expect(invalidResponse.data).toEqual(
+    expect(invalidResponse.data).toStrictEqual(
       expect.objectContaining({ type: "invalid_data" })
     )
   })
@@ -158,9 +160,13 @@ describe("Custom promotion rule routes HTTP E2E", () => {
         `/admin/promotions/rule-value-options/target-rules/product_variant?value=${variant.id}`
       )
 
-    expect(targetBrandValues).toEqual([{ label: brand.title, value: brand.id }])
-    expect(buyBrandValues).toEqual([{ label: brand.title, value: brand.id }])
-    expect(variantValues).toEqual([
+    expect(targetBrandValues).toStrictEqual([
+      { label: brand.title, value: brand.id },
+    ])
+    expect(buyBrandValues).toStrictEqual([
+      { label: brand.title, value: brand.id },
+    ])
+    expect(variantValues).toStrictEqual([
       {
         label: `${product.title} - ${variant.title} (${variant.sku})`,
         value: variant.id,

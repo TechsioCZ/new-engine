@@ -9,10 +9,8 @@ import {
   useAdminFindCustomerByEmail,
   useCreateEmployee,
 } from "../../../../hooks/api"
-import {
-  type EmployeeCreateSubmitData,
-  EmployeesCreateForm,
-} from "./employees-create-form"
+import { EmployeesCreateForm } from "./employees-create-form"
+import type { EmployeeCreateSubmitData } from "./employees-create-form"
 
 export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
   const { t } = useTranslation("companies")
@@ -107,9 +105,9 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
 
     try {
       const employee = await createEmployee({
-        spending_limit,
-        is_admin,
         customer_id: customerId,
+        is_admin,
+        spending_limit,
       })
 
       if (!employee) {

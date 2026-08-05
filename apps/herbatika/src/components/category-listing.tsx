@@ -12,7 +12,7 @@ import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
 
-type CategoryListingProps = {
+interface CategoryListingProps {
   slug: string
 }
 

@@ -2,13 +2,13 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Tooltip } from "@techsio/ui-kit/atoms/tooltip"
 import { Steps } from "@techsio/ui-kit/molecules/steps"
 
-export type HerbatikaCheckoutStepItem = {
+export interface HerbatikaCheckoutStepItem {
   disabled: boolean
   id: string
   title: string
 }
 
-type HerbatikaCheckoutStepsProps = {
+interface HerbatikaCheckoutStepsProps {
   completedAriaLabel: string
   onStepChange: (step: number) => void
   step: number
@@ -27,7 +27,9 @@ export function HerbatikaCheckoutSteps({
   return (
     <Steps
       count={visualStepCount}
-      onStepChange={({ step: nextStep }) => onStepChange(nextStep)}
+      onStepChange={({ step: nextStep }) => {
+        onStepChange(nextStep)
+      }}
       size="sm"
       step={step}
     >

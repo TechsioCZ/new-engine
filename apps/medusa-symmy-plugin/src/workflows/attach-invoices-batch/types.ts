@@ -1,6 +1,6 @@
 export type InvoiceIdentifierType = "display_id" | "order_id" | "erp_id"
 
-export type InvoiceInput = {
+export interface InvoiceInput {
   identifier_type: InvoiceIdentifierType
   display_id?: string | undefined
   order_id?: string | undefined
@@ -11,12 +11,12 @@ export type InvoiceInput = {
   data?: string | undefined
 }
 
-export type AttachInvoicesBatchInput = {
+export interface AttachInvoicesBatchInput {
   user_id?: string | undefined
   invoices: InvoiceInput[]
 }
 
-export type AttachInvoicesBatchResult = {
+export interface AttachInvoicesBatchResult {
   order_identifier: string
   status: "success" | "failed" | "not_found"
   order_id?: string
@@ -25,7 +25,7 @@ export type AttachInvoicesBatchResult = {
   error?: string
 }
 
-export type AttachInvoicesBatchOutput = {
+export interface AttachInvoicesBatchOutput {
   success: boolean
   processed: number
   failed: number

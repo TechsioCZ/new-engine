@@ -15,21 +15,21 @@ import type { VariantProps } from "tailwind-variants"
 import { tv } from "../utils"
 
 const imageVariants = tv({
-  variants: {
-    size: {
-      sm: "size-image-sm",
-      md: "size-image-md",
-      lg: "size-image-lg",
-      full: "w-full",
-      custom: "",
-    },
-  },
   defaultVariants: {
     size: "full",
   },
+  variants: {
+    size: {
+      custom: "",
+      full: "w-full",
+      lg: "size-image-lg",
+      md: "size-image-md",
+      sm: "size-image-sm",
+    },
+  },
 })
 
-export type BaseImageProps = {
+export interface BaseImageProps {
   src: string
   alt: string
   className?: string | undefined
@@ -75,7 +75,7 @@ export function Image<T extends ElementType = "img">({
   return (
     <Component
       alt={alt}
-      className={imageVariants({ size, className })}
+      className={imageVariants({ className, size })}
       src={src}
       {...props}
     />

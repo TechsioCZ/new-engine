@@ -9,16 +9,18 @@ import {
   CHECKOUT_BILLING_ACTIVE_FIELD_NAMES,
   CHECKOUT_BILLING_COMPANY_FIELD_NAMES,
   CHECKOUT_SHIPPING_COMPANY_FIELD_NAMES,
-  type CheckoutScopedFieldName,
   resolveAddressFormsMatch,
 } from "@/components/checkout/checkout-address.utils"
+import type { CheckoutScopedFieldName } from "@/components/checkout/checkout-address.utils"
 import {
   CHECKOUT_ADDRESS_FIELDS,
-  type CheckoutAddressDetailsValues,
-  type CheckoutAddressValues,
-  type CheckoutDetailsValues,
   DEFAULT_CHECKOUT_ADDRESS_VALUES,
   resolveEffectiveCheckoutAddressDetails,
+} from "@/lib/forms/checkout/address.form"
+import type {
+  CheckoutAddressDetailsValues,
+  CheckoutAddressValues,
+  CheckoutDetailsValues,
 } from "@/lib/forms/checkout/address.form"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { mapHerbatikaAddressFormStateFromMedusaAddress } from "@/lib/storefront/cart/address-adapter"
@@ -29,7 +31,7 @@ import type { CarrierPickupAddress } from "./carrier-pickup-address.utils"
 import { resolveCarrierPickupAddress } from "./carrier-pickup-address.utils"
 import { readStoredCarrierPickupSelection } from "./carrier-pickup-selection-storage"
 
-type UseCheckoutDetailsFormProps = {
+interface UseCheckoutDetailsFormProps {
   cart: HttpTypes.StoreCart | null | undefined
   customer: HttpTypes.StoreCustomer | null | undefined
   isCartLoading: boolean
@@ -49,7 +51,7 @@ type CarrierPickupSyncField =
   | "shipping.postalCode"
   | "useSameAddress"
 
-type CheckoutFormFieldSetter = {
+interface CheckoutFormFieldSetter {
   setFieldValue(field: CarrierPickupSyncField, value: string | boolean): void
 }
 
@@ -63,7 +65,7 @@ const LOCAL_ONLY_ADDRESS_FIELDS = [
   "customerNote",
   "taxId",
   "vatId",
-] as const satisfies ReadonlyArray<keyof CheckoutAddressValues>
+] as const satisfies readonly (keyof CheckoutAddressValues)[]
 
 type LocalOnlyAddressField = (typeof LOCAL_ONLY_ADDRESS_FIELDS)[number]
 type CheckoutLocalOnlyAddressValues = Record<LocalOnlyAddressField, string>
@@ -159,7 +161,7 @@ const syncCarrierPickupBillingFields = (
 }
 
 const mergeCheckoutAddressValues = (
-  ...sources: Array<Partial<CheckoutAddressValues> | null | undefined>
+  ...sources: (Partial<CheckoutAddressValues> | null | undefined)[]
 ): CheckoutAddressValues => {
   const nextValues = { ...DEFAULT_CHECKOUT_ADDRESS_VALUES }
 
@@ -342,21 +344,21 @@ const resolveCheckoutHydratedValues = ({
   const billingAddressValues = {
     ...mergeCheckoutAddressValues(
       {
+        countryCode: shippingAddressValues.countryCode,
         firstName: shippingAddressValues.firstName,
         lastName: shippingAddressValues.lastName,
         phone: shippingAddressValues.phone,
-        countryCode: shippingAddressValues.countryCode,
         ...(hasCarrierPickupAddress
           ? {}
           : {
-              company: shippingAddressValues.company,
-              companyId: shippingAddressValues.companyId,
-              taxId: shippingAddressValues.taxId,
-              vatId: shippingAddressValues.vatId,
               address1: shippingAddressValues.address1,
               address2: shippingAddressValues.address2,
               city: shippingAddressValues.city,
+              company: shippingAddressValues.company,
+              companyId: shippingAddressValues.companyId,
               postalCode: shippingAddressValues.postalCode,
+              taxId: shippingAddressValues.taxId,
+              vatId: shippingAddressValues.vatId,
             }),
       },
       resolvedBillingAddressValues
@@ -375,16 +377,16 @@ const resolveCheckoutHydratedValues = ({
   }
 
   return {
-    shipping: shippingAddressValues,
+    accountSetupRequested: readAccountSetupRequested(cart?.metadata),
     billing: billingAddressValues,
-    useSameAddress,
+    heurekaConsent: false,
     isCompanyPurchase: Boolean(
       billingAddress?.company ??
       (hasCarrierPickupAddress ? undefined : shippingAddress?.company)
     ),
-    accountSetupRequested: readAccountSetupRequested(cart?.metadata),
     marketingConsent: false,
-    heurekaConsent: false,
+    shipping: shippingAddressValues,
+    useSameAddress,
   }
 }
 
@@ -574,10 +576,7 @@ export function useCheckoutDetailsForm({
     },
   })
 
-  const values = useStore(
-    form.store,
-    (state) => state.values as CheckoutDetailsValues
-  )
+  const values = useStore(form.store, (state) => state.values)
   const isDirty = useStore(form.store, (state) => state.isDirty)
   const effectiveValues = useMemo(
     () => resolveEffectiveCheckoutAddressDetails(values),

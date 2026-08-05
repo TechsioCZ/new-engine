@@ -44,8 +44,8 @@ export function EmployeesUpdateForm({
     spending_limit: string
     is_admin: boolean
   }>({
-    spending_limit: employee?.spending_limit?.toString() || "0",
     is_admin: employee?.is_admin,
+    spending_limit: employee?.spending_limit?.toString() || "0",
   })
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -131,12 +131,12 @@ export function EmployeesUpdateForm({
               <CurrencyInput
                 code={currencyCode}
                 name="spending_limit"
-                onChange={(e) =>
+                onChange={(e) => {
                   setFormData({
                     ...formData,
-                    spending_limit: e.target.value.replace(/[^0-9.]/g, ""),
+                    spending_limit: e.target.value.replaceAll(/[^0-9.]/g, ""),
                   })
-                }
+                }}
                 placeholder={t("placeholders.spendingLimit")}
                 symbol={getCurrencySymbol(currencyCode)}
                 value={formData.spending_limit}
@@ -151,9 +151,9 @@ export function EmployeesUpdateForm({
                 description={t("employees.adminDescription")}
                 fieldName="is_admin"
                 label={t("employees.adminBadge")}
-                onChange={(checked) =>
+                onChange={(checked) => {
                   setFormData({ ...formData, is_admin: checked })
-                }
+                }}
                 tooltip={t("employees.adminTooltip")}
               />
             </div>

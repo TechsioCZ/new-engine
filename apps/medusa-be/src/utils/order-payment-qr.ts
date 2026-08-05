@@ -1,6 +1,6 @@
 import QRCode from "qrcode"
 
-export type OrderPaymentQrOrder = {
+export interface OrderPaymentQrOrder {
   currency_code?: string | null
   custom_display_id?: string | null
   display_id?: number | string | null
@@ -12,7 +12,7 @@ export type OrderPaymentQrOrder = {
   total?: number | string | { valueOf(): unknown } | null
 }
 
-export type PaymentQrPaymentData = {
+export interface PaymentQrPaymentData {
   amount: number | string | { valueOf(): unknown }
   currency_code?: string | null
   iban: string | null | undefined
@@ -24,7 +24,7 @@ const VARIABLE_SYMBOL_REGEX = /^\d{1,10}$/
 const PAYMENT_QR_QUIET_ZONE_MODULES = 4
 const SPAYD_RESERVED_CHARS_REGEX = /[*:]/g
 
-export type PaymentQrPdfCommandOptions = {
+export interface PaymentQrPdfCommandOptions {
   moduleSize?: number
   size?: number
   top?: number
@@ -48,7 +48,7 @@ export class OrderPaymentQr {
     const fields = [
       "SPD",
       "1.0",
-      `ACC:${iban.replace(/\s+/g, "").toUpperCase()}`,
+      `ACC:${iban.replaceAll(/\s+/g, "").toUpperCase()}`,
       `AM:${amount}`,
       `CC:${getOrderCurrencyCode(order)}`,
       `MSG:${escapeSpaydValue(getOrderPaymentMessage(order))}`,
@@ -75,7 +75,7 @@ export class OrderPaymentQr {
     const fields = [
       "SPD",
       "1.0",
-      `ACC:${payment.iban.replace(/\s+/g, "").toUpperCase()}`,
+      `ACC:${payment.iban.replaceAll(/\s+/g, "").toUpperCase()}`,
       `AM:${amount}`,
       `CC:${(payment.currency_code || "CZK").toUpperCase()}`,
       `MSG:${escapeSpaydValue(payment.message ?? payment.reference ?? "OBJEDNAVKA")}`,
@@ -209,14 +209,14 @@ function ascii(value: boolean | number | string | null | undefined) {
   const text = value === null || value === undefined ? "" : String(value)
 
   return text
-    .replace(/\u00a0/g, " ")
+    .replaceAll(/\u00A0/g, " ")
     .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\x20-\x7E]/g, "")
+    .replaceAll(/[\u0300-\u036F]/g, "")
+    .replaceAll(/[^\u0020-\u007E]/g, "")
 }
 
 function normalizeVariableSymbol(value: string | null | undefined) {
-  const normalized = value?.replace(/\D/g, "") ?? ""
+  const normalized = value?.replaceAll(/\D/g, "") ?? ""
 
   return VARIABLE_SYMBOL_REGEX.test(normalized) ? normalized : null
 }

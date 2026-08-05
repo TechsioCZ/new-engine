@@ -5,9 +5,10 @@ import {
   SSR_FETCH_OPTIONS,
 } from "@/lib/storefront/ssr/constants"
 
-import { normalizeStorefrontBrand, type StorefrontBrand } from "./brands"
+import { normalizeStorefrontBrand } from "./brands"
+import type { StorefrontBrand } from "./brands"
 
-type StoreBrandsResponse = {
+interface StoreBrandsResponse {
   brands?: Array<{
     id?: string | null
     title?: string | null
@@ -47,5 +48,5 @@ export const fetchStorefrontBrands = async (): Promise<StorefrontBrand[]> => {
     }
   }
 
-  return Array.from(brandsBySlug.values())
+  return [...brandsBySlug.values()]
 }

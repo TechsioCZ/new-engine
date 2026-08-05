@@ -13,7 +13,7 @@ import {
   useProductReviews,
 } from "@/lib/storefront/reviews"
 
-type ProductDetailMetricsProps = {
+interface ProductDetailMetricsProps {
   onShowAllReviews?: () => void
   productId?: string | null
 }

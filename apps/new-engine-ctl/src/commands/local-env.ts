@@ -19,15 +19,15 @@ export function createLocalEnvCommand(): Command {
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
     )
     .action(async (options) => {
       const input =
         localEnvRuntimeProviderOutputTargetsCommandInputSchema.parse({
-          providerId: options.providerId,
-          outputId: options.outputId,
-          serviceIdsCsv: options.serviceIdsCsv,
           format: options.format,
+          outputId: options.outputId,
+          providerId: options.providerId,
+          serviceIdsCsv: options.serviceIdsCsv,
           stackInputsPath: options.stackInputsPath,
         })
 

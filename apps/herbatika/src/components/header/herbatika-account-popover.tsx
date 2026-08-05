@@ -42,7 +42,9 @@ export function HerbatikaAccountPopover() {
     <Popover.Root
       gutter={12}
       id="herbatika-login-popover"
-      onOpenChange={({ open }) => setIsPopoverOpen(open)}
+      onOpenChange={({ open }) => {
+        setIsPopoverOpen(open)
+      }}
       open={isPopoverOpen}
       placement="bottom-end"
       shadow={false}

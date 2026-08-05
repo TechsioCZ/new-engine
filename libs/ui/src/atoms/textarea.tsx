@@ -32,8 +32,34 @@ const textareaVariants = tv({
     "focus-visible:outline-offset-(length:--default-ring-offset)",
     "disabled:pointer-events-none disabled:border-textarea-border-disabled disabled:bg-textarea-bg-disabled disabled:text-textarea-fg-disabled",
   ],
+  defaultVariants: {
+    resize: "y",
+    size: "md",
+    variant: "default",
+  },
   variants: {
+    readonly: {
+      true: "cursor-default border-textarea-border-disabled bg-textarea-bg-disabled text-textarea-fg-disabled",
+    },
+    resize: {
+      auto: "field-sizing-content resize-none",
+      both: "resize",
+      none: "resize-none",
+      x: "resize-x",
+      y: "resize-y",
+    },
+    size: {
+      lg: "p-textarea-lg text-textarea-lg",
+      md: "rounded-textarea-md p-textarea-md text-textarea-md",
+      sm: "rounded-textarea-sm p-textarea-sm text-textarea-sm",
+    },
     variant: {
+      borderless: [
+        "border-transparent",
+        "bg-textarea-bg-borderless",
+        "hover:bg-textarea-bg-borderless-hover",
+        "focus:bg-textarea-bg-borderless-focus",
+      ],
       default: "",
       error: [
         "border-(length:--border-width-validation)",
@@ -54,33 +80,7 @@ const textareaVariants = tv({
         "hover:border-textarea-border-warning-hover",
         "focus:border-textarea-border-warning-focus",
       ],
-      borderless: [
-        "border-transparent",
-        "bg-textarea-bg-borderless",
-        "hover:bg-textarea-bg-borderless-hover",
-        "focus:bg-textarea-bg-borderless-focus",
-      ],
     },
-    size: {
-      sm: "rounded-textarea-sm p-textarea-sm text-textarea-sm",
-      md: "rounded-textarea-md p-textarea-md text-textarea-md",
-      lg: "p-textarea-lg text-textarea-lg",
-    },
-    resize: {
-      none: "resize-none",
-      y: "resize-y",
-      x: "resize-x",
-      both: "resize",
-      auto: "field-sizing-content resize-none",
-    },
-    readonly: {
-      true: "cursor-default border-textarea-border-disabled bg-textarea-bg-disabled text-textarea-fg-disabled",
-    },
-  },
-  defaultVariants: {
-    size: "md",
-    resize: "y",
-    variant: "default",
   },
 })
 
@@ -103,11 +103,11 @@ export function Textarea({
   return (
     <textarea
       className={textareaVariants({
-        size,
-        resize,
-        variant,
-        readonly,
         className,
+        readonly,
+        resize,
+        size,
+        variant,
       })}
       readOnly={readonly}
       ref={ref}

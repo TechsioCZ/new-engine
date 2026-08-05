@@ -52,16 +52,16 @@ const createProductSuggestion = (
   const price = resolveProductPrice(hit, currencyCode)
 
   return {
-    id,
-    type: "product",
-    title,
     href: `/p/${handle}`,
-    subtitle: [brandTitle, categoryName].filter(Boolean).join(" | "),
+    id,
     imageUrl: normalizeString(hit.thumbnail) || undefined,
+    inStock: resolveProductInStock(hit),
     priceLabel: price
       ? formatCurrencyAmount(price.currentAmount, price.currencyCode)
       : undefined,
-    inStock: resolveProductInStock(hit),
+    subtitle: [brandTitle, categoryName].filter(Boolean).join(" | "),
+    title,
+    type: "product",
   }
 }
 

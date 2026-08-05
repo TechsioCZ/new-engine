@@ -1,6 +1,6 @@
 import { Photo } from "@medusajs/icons"
 
-type ThumbnailProps = {
+interface ThumbnailProps {
   src?: string | null
   alt?: string
 }

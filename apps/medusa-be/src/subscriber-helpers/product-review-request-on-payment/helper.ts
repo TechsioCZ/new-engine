@@ -2,7 +2,7 @@ import type { SubscriberArgs } from "@medusajs/framework"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
-export type PaymentPaidEvent = {
+export interface PaymentPaidEvent {
   entity?: string
   id?: string
   order?: {
@@ -24,11 +24,11 @@ export type PaymentPaidEvent = {
   type?: string
 }
 
-type PaymentQueryResult = {
+interface PaymentQueryResult {
   payment_collection_id?: string
 }
 
-type OrderPaymentCollectionQueryResult = {
+interface OrderPaymentCollectionQueryResult {
   order?: {
     id?: string
   } | null
@@ -167,7 +167,7 @@ async function getOrderIdFromPayment(query: Query, paymentId: string) {
     return
   }
 
-  return getOrderIdFromPaymentCollection(query, paymentCollectionId)
+  return await getOrderIdFromPaymentCollection(query, paymentCollectionId)
 }
 
 export async function resolveOrderIdFromPaymentEvent(
@@ -197,7 +197,7 @@ export async function resolveOrderIdFromPaymentEvent(
   const paymentId = getPaymentIdFromEventData(data)
 
   if (paymentId) {
-    return getOrderIdFromPayment(query, paymentId)
+    return await getOrderIdFromPayment(query, paymentId)
   }
 
   return

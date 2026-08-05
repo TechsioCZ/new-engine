@@ -1,6 +1,6 @@
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 
-type CheckoutFeedbackSectionProps = {
+interface CheckoutFeedbackSectionProps {
   cartError: string | null
   checkoutError: string | null
 }

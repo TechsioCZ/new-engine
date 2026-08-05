@@ -5,7 +5,7 @@ import {
 import { isRecord } from "@techsio/std/object"
 
 type ProductFilters = Record<string, unknown>
-type QueryLike = {
+interface QueryLike {
   graph: (config: {
     entity: string
     fields: string[]
@@ -47,7 +47,7 @@ export const normalizeProductSalesChannelFilter = async (
         return []
       }
 
-      const variant = priceSet["variant"]
+      const { variant } = priceSet
       if (!isRecord(variant) || typeof variant["id"] !== "string") {
         return []
       }
@@ -57,7 +57,7 @@ export const normalizeProductSalesChannelFilter = async (
 
     filters["variants"] = {
       ...(isRecord(filters["variants"]) ? filters["variants"] : {}),
-      id: Array.from(new Set(variantIds)),
+      id: [...new Set(variantIds)],
     }
   }
 

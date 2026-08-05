@@ -20,7 +20,7 @@ export type InfiniteQueryResult<
   TError = DefaultError,
 > = UseInfiniteQueryResult<TData, TError>
 
-export type ReadResultBase<TQueryResult> = {
+export interface ReadResultBase<TQueryResult> {
   isLoading: boolean
   isFetching: boolean
   isSuccess: boolean
@@ -28,7 +28,7 @@ export type ReadResultBase<TQueryResult> = {
   query: TQueryResult
 }
 
-export type SuspenseResultBase<TQueryResult> = {
+export interface SuspenseResultBase<TQueryResult> {
   isLoading: false
   isFetching: boolean
   isSuccess: true

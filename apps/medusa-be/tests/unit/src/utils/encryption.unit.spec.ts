@@ -11,7 +11,7 @@ const encryptValue = (value: string): string => {
   const result = encryptFields({ value }, ["value"])
   const encrypted = result.value
   if (typeof encrypted !== "string") {
-    throw new Error(`Expected string, got ${typeof encrypted}`)
+    throw new TypeError(`Expected string, got ${typeof encrypted}`)
   }
   return encrypted
 }
@@ -20,7 +20,7 @@ const decryptValue = (value: string): string => {
   const result = decryptFields({ value }, ["value"])
   const decrypted = result.value
   if (typeof decrypted !== "string") {
-    throw new Error(`Expected string, got ${typeof decrypted}`)
+    throw new TypeError(`Expected string, got ${typeof decrypted}`)
   }
   return decrypted
 }
@@ -40,21 +40,21 @@ describe("encryption utilities", () => {
   describe("key validation", () => {
     it.each([
       {
-        scenario: "key is missing",
-        key: undefined,
         expectedError: "SETTINGS_ENCRYPTION_KEY is required",
+        key: undefined,
+        scenario: "key is missing",
       },
       {
-        scenario: "key is too short",
-        key: "abc123",
         expectedError:
           "SETTINGS_ENCRYPTION_KEY must be a 64-character hex string (got length: 6)",
+        key: "abc123",
+        scenario: "key is too short",
       },
       {
-        scenario: "key is too long",
-        key: `${VALID_KEY}extra`,
         expectedError:
           "SETTINGS_ENCRYPTION_KEY must be a 64-character hex string (got length: 69)",
+        key: `${VALID_KEY}extra`,
+        scenario: "key is too long",
       },
     ])("throws error when $scenario", ({ key, expectedError }) => {
       if (key === undefined) {
@@ -152,7 +152,7 @@ describe("encryption utilities", () => {
 
       expect(decrypted.client_id).toBe("public-id")
       expect(decrypted.client_secret).toBe("secret-value")
-      expect(decrypted.is_enabled).toBe(true)
+      expect(decrypted.is_enabled).toBeTruthy()
     })
 
     it("skips null values", () => {
@@ -182,16 +182,16 @@ describe("encryption utilities", () => {
     })
 
     it("skips non-string values", () => {
-      type MixedData = {
+      interface MixedData {
         name: string
         count: number
         active: boolean
       }
 
       const data: MixedData = {
-        name: "test",
-        count: 42,
         active: true,
+        count: 42,
+        name: "test",
       }
 
       const fields: (keyof MixedData)[] = ["name", "count", "active"]
@@ -200,7 +200,7 @@ describe("encryption utilities", () => {
 
       expect(decrypted.name).toBe("test")
       expect(decrypted.count).toBe(42)
-      expect(decrypted.active).toBe(true)
+      expect(decrypted.active).toBeTruthy()
     })
 
     it("does not mutate original object", () => {

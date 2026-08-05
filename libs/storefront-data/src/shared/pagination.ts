@@ -1,10 +1,10 @@
-export type PaginationInput = {
+export interface PaginationInput {
   page?: number
   limit?: number
   offset?: number
 }
 
-export type PaginationState = {
+export interface PaginationState {
   page: number
   limit: number
   offset: number
@@ -16,7 +16,7 @@ export function resolvePagination(
 ): PaginationState {
   const limit = input.limit ?? defaultLimit
   const offset =
-    input.offset ?? (input.page != null ? (input.page - 1) * limit : 0)
+    input.offset ?? (input.page == null ? 0 : (input.page - 1) * limit)
   let page = input.page ?? 1
   if (input.offset != null) {
     page = limit > 0 ? Math.floor(offset / limit) + 1 : 1
@@ -24,5 +24,5 @@ export function resolvePagination(
     page = limit > 0 ? Math.floor(offset / limit) + 1 : 1
   }
 
-  return { page, limit, offset }
+  return { limit, offset, page }
 }

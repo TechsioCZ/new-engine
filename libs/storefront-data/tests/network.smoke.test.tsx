@@ -2,6 +2,7 @@ import { QueryClient } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import type { ReactNode } from "react"
+import { beforeEach, afterEach, describe, expect, it } from "vitest"
 
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createProductHooks } from "../src/products/hooks"
@@ -11,18 +12,18 @@ import type {
 } from "../src/products/types"
 import { server } from "./msw-server"
 
-type TestProduct = {
+interface TestProduct {
   id: string
   title: string
 }
 
-type ProductListParams = {
+interface ProductListParams {
   limit: number
   offset: number
   region_id?: string
 }
 
-type ProductDetailParams = {
+interface ProductDetailParams {
   handle: string
   region_id?: string
 }
@@ -72,15 +73,15 @@ describe("storefront-data network smoke", () => {
         const regionId = url.searchParams.get("region_id") ?? ""
 
         const payload = {
+          count: 1,
+          limit,
+          offset,
           products: [
             {
               id: `prod_${regionId || "default"}`,
               title: "Network Product",
             },
           ],
-          count: 1,
-          limit,
-          offset,
         }
 
         return HttpResponse.json(payload)
@@ -94,6 +95,7 @@ describe("storefront-data network smoke", () => {
       ProductListParams,
       ProductDetailParams
     > = {
+      getProductByHandle: async () => null,
       getProducts: async (params) => {
         const query = new URLSearchParams({
           limit: String(params.limit),
@@ -101,20 +103,19 @@ describe("storefront-data network smoke", () => {
           region_id: params.region_id ?? "",
         })
         const response = await fetch(`${baseUrl}/products?${query}`)
-        return response.json() as Promise<{
+        return await (response.json() as Promise<{
           products: TestProduct[]
           count: number
           limit: number
           offset: number
-        }>
+        }>)
       },
-      getProductByHandle: async () => null,
     }
 
     const { useProducts } = createProductHooks({
-      service,
       buildListParams,
       queryKeyNamespace: "smoke-network",
+      service,
     })
 
     const queryClient = createTestClient({
@@ -134,15 +135,15 @@ describe("storefront-data network smoke", () => {
     const { result } = renderHook(
       () =>
         useProducts({
-          page: 1,
           limit: 2,
+          page: 1,
           region_id: "reg_test",
         }),
       { wrapper }
     )
 
     await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true)
+      expect(result.current.isSuccess).toBeTruthy()
     })
 
     expect(result.current.products).toHaveLength(1)

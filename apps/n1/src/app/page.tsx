@@ -75,7 +75,7 @@ function HomeProductGrid() {
   return <FeaturedHomeProductGrid featuredCategoryIds={featuredCategoryIds} />
 }
 
-type FeaturedHomeProductGridProps = {
+interface FeaturedHomeProductGridProps {
   featuredCategoryIds: string[]
 }
 

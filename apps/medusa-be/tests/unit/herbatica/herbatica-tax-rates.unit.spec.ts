@@ -10,7 +10,7 @@ import {
 } from "../../../src/workflows/seed/steps/create-tax-rates"
 
 function mapEntries<Value>(map: Map<string, Value>) {
-  return Array.from(map.entries())
+  return [...map.entries()]
 }
 
 describe("Herbatica tax-rate seed policy", () => {
@@ -21,13 +21,13 @@ describe("Herbatica tax-rate seed policy", () => {
           id: "prod_23",
           metadata: {
             top_offer: {
-              vat: 23,
               oss_tax_rates: [
                 {
                   country: "hu",
                   level: "high",
                 },
               ],
+              vat: 23,
             },
           },
         },
@@ -41,15 +41,15 @@ describe("Herbatica tax-rate seed policy", () => {
         countryCode,
         rate,
       ])
-    ).toEqual([
+    ).toStrictEqual([
       ["sk", 23],
       ["cz", 19],
     ])
-    expect(mapEntries(targets.defaultRatesByCountry)).toEqual([
+    expect(mapEntries(targets.defaultRatesByCountry)).toStrictEqual([
       ["sk", 23],
       ["cz", 19],
     ])
-    expect(mapEntries(targets.productRateGroupsByCountry)).toEqual([])
+    expect(mapEntries(targets.productRateGroupsByCountry)).toStrictEqual([])
   })
 
   it("groups Slovakia product overrides by VAT rate when product VAT differs from Slovak default", () => {
@@ -106,7 +106,7 @@ describe("Herbatica tax-rate seed policy", () => {
       HERBATICA_TAX_RATE_CONFIG
     )
 
-    expect(mapEntries(targets.productRateGroupsByCountry)).toEqual([
+    expect(mapEntries(targets.productRateGroupsByCountry)).toStrictEqual([
       [
         "sk",
         new Map([
@@ -116,19 +116,19 @@ describe("Herbatica tax-rate seed policy", () => {
         ]),
       ],
     ])
-    expect(targets.productRateGroupsByCountry.has("cz")).toBe(false)
+    expect(targets.productRateGroupsByCountry.has("cz")).toBeFalsy()
   })
 
   it("names grouped product override rates by country and VAT rate", () => {
     expect(
       buildProductTaxRateIdentity("sk", 19, HERBATICA_TAX_RATE_CONFIG)
-    ).toEqual({
+    ).toStrictEqual({
       code: "vat_sk_product_19",
       name: "VAT SK Product 19%",
     })
     expect(
       buildProductTaxRateIdentity("sk", 5, HERBATICA_TAX_RATE_CONFIG)
-    ).toEqual({
+    ).toStrictEqual({
       code: "vat_sk_product_5",
       name: "VAT SK Product 5%",
     })
@@ -150,7 +150,9 @@ describe("Herbatica tax-rate seed policy", () => {
       HERBATICA_TAX_RATE_CONFIG
     )
 
-    expect(mapEntries(targets.defaultRatesByCountry)).toEqual([["cz", 19]])
-    expect(mapEntries(targets.productRateGroupsByCountry)).toEqual([])
+    expect(mapEntries(targets.defaultRatesByCountry)).toStrictEqual([
+      ["cz", 19],
+    ])
+    expect(mapEntries(targets.productRateGroupsByCountry)).toStrictEqual([])
   })
 })

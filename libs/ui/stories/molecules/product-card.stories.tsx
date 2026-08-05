@@ -14,35 +14,35 @@ const localProductImages = {
 
 // Sample product images for different scenarios
 const productImages = {
-  tshirt: new URL("../../assets/gallery/shoes-2.jpg", import.meta.url).href,
-  shoes: localProductImages.shoes,
-  watch: localProductImages.watch,
-  headphones: new URL("../../assets/gallery/watch-2.jpg", import.meta.url).href,
-  camera: new URL("../../assets/gallery/watch-3.jpg", import.meta.url).href,
   backpack: new URL("../../assets/gallery/shoes-3.jpg", import.meta.url).href,
+  camera: new URL("../../assets/gallery/watch-3.jpg", import.meta.url).href,
+  headphones: new URL("../../assets/gallery/watch-2.jpg", import.meta.url).href,
+  shoes: localProductImages.shoes,
+  tshirt: new URL("../../assets/gallery/shoes-2.jpg", import.meta.url).href,
+  watch: localProductImages.watch,
 }
 
 const meta: Meta<typeof ProductCard> = {
-  title: "Molecules/ProductCard",
+  argTypes: {
+    layout: {
+      control: { type: "select" },
+      description: "Card layout orientation",
+      options: ["column", "row"],
+      table: { defaultValue: { summary: "column" } },
+    },
+  },
   component: ProductCard,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "A flexible e-commerce product display component using compound component pattern. Supports custom composition with images, pricing, badges, ratings, and actions.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  argTypes: {
-    layout: {
-      control: { type: "select" },
-      options: ["column", "row"],
-      description: "Card layout orientation",
-      table: { defaultValue: { summary: "column" } },
-    },
-  },
+  title: "Molecules/ProductCard",
 }
 
 export default meta
@@ -75,9 +75,9 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     // Layout
     layout: {
       control: "select",
-      options: ["column", "row"],
       description: "Card layout orientation",
-      table: { defaultValue: { summary: "column" }, category: "Layout" },
+      options: ["column", "row"],
+      table: { category: "Layout", defaultValue: { summary: "column" } },
     },
 
     // Content
@@ -93,8 +93,8 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     },
     imageSrc: {
       control: "select",
-      options: imageOptions,
       description: "Product image",
+      options: imageOptions,
       table: { category: "Content" },
     },
 
@@ -102,28 +102,28 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     showRating: {
       control: "boolean",
       description: "Show rating stars",
-      table: { defaultValue: { summary: "true" }, category: "Visibility" },
+      table: { category: "Visibility", defaultValue: { summary: "true" } },
     },
     showStock: {
       control: "boolean",
       description: "Show stock status",
-      table: { defaultValue: { summary: "true" }, category: "Visibility" },
+      table: { category: "Visibility", defaultValue: { summary: "true" } },
     },
     showBadges: {
       control: "boolean",
       description: "Show product badges",
-      table: { defaultValue: { summary: "false" }, category: "Visibility" },
+      table: { category: "Visibility", defaultValue: { summary: "false" } },
     },
     rating: {
-      control: { type: "number", min: 0, max: 5, step: 0.5 },
+      control: { max: 5, min: 0, step: 0.5, type: "number" },
       description: "Rating value (0-5)",
-      table: { defaultValue: { summary: "4" }, category: "Rating" },
+      table: { category: "Rating", defaultValue: { summary: "4" } },
     },
     stockStatus: {
       control: "select",
-      options: ["in-stock", "limited-stock", "out-of-stock"],
       description: "Stock availability status",
-      table: { defaultValue: { summary: "in-stock" }, category: "Stock" },
+      options: ["in-stock", "limited-stock", "out-of-stock"],
+      table: { category: "Stock", defaultValue: { summary: "in-stock" } },
     },
     stockText: {
       control: "text",
@@ -132,9 +132,9 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     },
     buttonVariant: {
       control: "select",
-      options: ["cart", "detail", "wishlist"],
       description: "Primary button variant",
-      table: { defaultValue: { summary: "cart" }, category: "Button" },
+      options: ["cart", "detail", "wishlist"],
+      table: { category: "Button", defaultValue: { summary: "cart" } },
     },
     buttonText: {
       control: "text",
@@ -143,18 +143,18 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     },
   },
   args: {
-    layout: "column",
-    productName: "Premium Cotton T-Shirt",
-    price: "$29.99",
+    buttonText: "Add to Cart",
+    buttonVariant: "cart",
     imageSrc: "tshirt",
+    layout: "column",
+    price: "$29.99",
+    productName: "Premium Cotton T-Shirt",
+    rating: 4,
+    showBadges: false,
     showRating: true,
     showStock: true,
-    showBadges: false,
-    rating: 4,
     stockStatus: "in-stock",
     stockText: "In Stock",
-    buttonVariant: "cart",
-    buttonText: "Add to Cart",
   },
   render: (args) => {
     const buttonIcons = {
@@ -182,7 +182,7 @@ export const Playground: StoryObj<PlaygroundArgs> = {
         )}
         <ProductCard.Name>{args.productName}</ProductCard.Name>
         {args.showRating && (
-          <ProductCard.Rating rating={{ value: args.rating, readOnly: true }} />
+          <ProductCard.Rating rating={{ readOnly: true, value: args.rating }} />
         )}
         {args.showStock && (
           <ProductCard.Stock status={args.stockStatus}>
@@ -206,10 +206,10 @@ export const Playground: StoryObj<PlaygroundArgs> = {
 export const Badges: Story = {
   render: () => {
     const badges = [
-      { variant: "success" as const, label: "New" },
-      { variant: "warning" as const, label: "Limited Stock" },
-      { variant: "danger" as const, label: "Sale" },
-      { variant: "info" as const, label: "Eco friendly" },
+      { label: "New", variant: "success" as const },
+      { label: "Limited Stock", variant: "warning" as const },
+      { label: "Sale", variant: "danger" as const },
+      { label: "Eco friendly", variant: "info" as const },
     ]
     return (
       <ProductCard>
@@ -242,59 +242,52 @@ export const Badges: Story = {
 
 export const BadgesWithCustomColors: Story = {
   name: "Badges - Custom Colors",
-  render: () => {
-    return (
-      <ProductCard>
-        <ProductCard.Image
-          as="img"
-          src={productImages.shoes}
-          alt="Running Shoes"
-        />
-        <ProductCard.Name>Limited Edition Running Shoes</ProductCard.Name>
-        <ProductCard.Badges>
-          <Badge variant="success">New Arrival</Badge>
-          <Badge
-            variant="dynamic"
-            bgColor="#fff"
-            fgColor="#000"
-            borderColor="#eee"
-          >
-            50% OFF
-          </Badge>
+  render: () => (
+    <ProductCard>
+      <ProductCard.Image
+        as="img"
+        src={productImages.shoes}
+        alt="Running Shoes"
+      />
+      <ProductCard.Name>Limited Edition Running Shoes</ProductCard.Name>
+      <ProductCard.Badges>
+        <Badge variant="success">New Arrival</Badge>
+        <Badge
+          variant="dynamic"
+          bgColor="#fff"
+          fgColor="#000"
+          borderColor="#eee"
+        >
+          50% OFF
+        </Badge>
 
-          <Badge
-            variant="dynamic"
-            bgColor="#7f22fe"
-            fgColor="#fff"
-            borderColor="#9810fa"
-          >
-            Premium
-          </Badge>
+        <Badge
+          variant="dynamic"
+          bgColor="#7f22fe"
+          fgColor="#fff"
+          borderColor="#9810fa"
+        >
+          Premium
+        </Badge>
 
-          <Badge
-            variant="dynamic"
-            bgColor="transparent"
-            fgColor="#fff"
-            borderColor="#fff"
-          >
-            Exclusive
-          </Badge>
-        </ProductCard.Badges>
-        <ProductCard.Price>$89.99</ProductCard.Price>
-        <ProductCard.Stock status="limited-stock">
-          Only 3 left!
-        </ProductCard.Stock>
-        <ProductCard.Actions>
-          <ProductCard.Button
-            buttonVariant="cart"
-            icon="token-icon-cart-button"
-          >
-            Add to Cart
-          </ProductCard.Button>
-        </ProductCard.Actions>
-      </ProductCard>
-    )
-  },
+        <Badge
+          variant="dynamic"
+          bgColor="transparent"
+          fgColor="#fff"
+          borderColor="#fff"
+        >
+          Exclusive
+        </Badge>
+      </ProductCard.Badges>
+      <ProductCard.Price>$89.99</ProductCard.Price>
+      <ProductCard.Stock status="limited-stock">Only 3 left!</ProductCard.Stock>
+      <ProductCard.Actions>
+        <ProductCard.Button buttonVariant="cart" icon="token-icon-cart-button">
+          Add to Cart
+        </ProductCard.Button>
+      </ProductCard.Actions>
+    </ProductCard>
+  ),
 }
 
 export const StockStates: Story = {
@@ -829,6 +822,14 @@ export const ActionLayouts: Story = {
 
 export const CustomRowSpan: Story = {
   name: "Custom Row Span Override",
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Demonstrates simple className override - changing row-span-6 to row-span-3 and aspect-auto to aspect-video.",
+      },
+    },
+  },
   render: () => (
     <ProductCard layout="row" className="w-lg grid-rows-[auto_auto_auto]">
       <div className="row-span-3">
@@ -854,18 +855,18 @@ export const CustomRowSpan: Story = {
       </div>
     </ProductCard>
   ),
-  parameters: {
-    docs: {
-      description: {
-        story:
-          "Demonstrates simple className override - changing row-span-6 to row-span-3 and aspect-auto to aspect-video.",
-      },
-    },
-  },
 }
 
 export const CustomGridLayout: Story = {
   name: "Custom Grid Structure",
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Demonstrates complex layout override - custom grid with Title + Image in first column, all other content in second column. Uses grid-cols-[400px_1fr] to create asymmetric layout.",
+      },
+    },
+  },
   render: () => (
     <ProductCard layout="row" className="w-xl grid-cols-[auto_1fr]">
       <div className="flex flex-col gap-200">
@@ -904,12 +905,4 @@ export const CustomGridLayout: Story = {
       </div>
     </ProductCard>
   ),
-  parameters: {
-    docs: {
-      description: {
-        story:
-          "Demonstrates complex layout override - custom grid with Title + Image in first column, all other content in second column. Uses grid-cols-[400px_1fr] to create asymmetric layout.",
-      },
-    },
-  },
 }

@@ -9,8 +9,8 @@ import { HeaderWrapper } from "@/components/header-wrapper"
 import { Providers } from "@/components/providers"
 
 export const metadata: Metadata = {
-  title: "Frontend Demo",
   description: "Demo application using the UI library",
+  title: "Frontend Demo",
 }
 
 const brandThemeScript = `(function(){try{var k=localStorage.getItem("ui-brand");var e=document.documentElement;if(k==="neo"){e.setAttribute("data-theme","neo");}else{e.removeAttribute("data-theme");}}catch(e){}})();`
@@ -26,7 +26,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: brandThemeScript }} />
         <Providers>
           <HeaderWrapper
-            logo={{ text: "Demo Store", icon: "icon-[mdi--store]" }}
+            logo={{ icon: "icon-[mdi--store]", text: "Demo Store" }}
           />
           <main className="flex-1">
             <DisclaimerWrapper />

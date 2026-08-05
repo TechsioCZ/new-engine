@@ -14,10 +14,7 @@ const { helpers, service } = vi.hoisted(() => ({
   },
 }))
 
-vi.mock("@medusajs/framework/workflows-sdk", () => ({
-  createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
-  ),
+vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: class StepResponse<
     TPayload = unknown,
     TCompensationInput = unknown,
@@ -30,14 +27,17 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
       this.compensateInput = compensateInput
     }
   },
+  createStep: vi.fn((_name, invoke, compensate) =>
+    Object.assign(invoke, { compensate })
+  ),
 }))
 
-vi.mock("../../../../../src/utils/measurement-units", () => ({
+vi.mock(import("../../../../../src/utils/measurement-units"), () => ({
   getMeasurementUnitService: vi.fn(() => service),
 }))
 
 vi.mock(
-  "../../../../../src/workflows/measurement-unit/steps/helpers",
+  import("../../../../../src/workflows/measurement-unit/steps/helpers"),
   async () => {
     const actual = await vi.importActual<
       typeof import("../../../../../src/workflows/measurement-unit/steps/helpers")
@@ -50,7 +50,7 @@ vi.mock(
   }
 )
 
-type MockStep = {
+interface MockStep {
   (
     input: unknown,
     stepContext: { container: Record<string, never> }
@@ -139,7 +139,7 @@ describe("measurement unit lifecycle steps", () => {
         symbol: "pc",
       },
     ])
-    expect(result.compensateInput).toEqual(["unit_kg", "unit_piece"])
+    expect(result.compensateInput).toStrictEqual(["unit_kg", "unit_piece"])
   })
 
   it("soft-deletes an active unit and snapshots only the changed ID", async () => {
@@ -158,7 +158,7 @@ describe("measurement unit lifecycle steps", () => {
     )
 
     expect(service.softDeleteMeasurementUnits).toHaveBeenCalledWith(["unit_1"])
-    expect(result.compensateInput).toEqual(["unit_1"])
+    expect(result.compensateInput).toStrictEqual(["unit_1"])
   })
 
   it("does not restore a unit that was already deleted before delete rollback", async () => {
@@ -176,7 +176,7 @@ describe("measurement unit lifecycle steps", () => {
 
     await step.compensate(result.compensateInput, context)
 
-    expect(result.compensateInput).toEqual([])
+    expect(result.compensateInput).toStrictEqual([])
     expect(service.softDeleteMeasurementUnits).not.toHaveBeenCalled()
     expect(service.restoreMeasurementUnits).not.toHaveBeenCalled()
   })
@@ -196,7 +196,7 @@ describe("measurement unit lifecycle steps", () => {
 
     await step.compensate(result.compensateInput, context)
 
-    expect(result.compensateInput).toEqual([])
+    expect(result.compensateInput).toStrictEqual([])
     expect(service.restoreMeasurementUnits).not.toHaveBeenCalled()
     expect(service.softDeleteMeasurementUnits).not.toHaveBeenCalled()
   })

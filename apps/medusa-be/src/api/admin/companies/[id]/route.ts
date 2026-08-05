@@ -81,8 +81,8 @@ export const DELETE = async (
   })
 
   res.status(200).json({
+    deleted: true,
     id,
     object: "company",
-    deleted: true,
   })
 }

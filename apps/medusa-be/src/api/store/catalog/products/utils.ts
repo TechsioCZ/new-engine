@@ -20,13 +20,13 @@ export type CatalogSortValue = (typeof CATALOG_SORT_VALUES)[number]
 
 type MultiValueParam = string | string[] | undefined
 
-export type FacetCountItem = {
+export interface FacetCountItem {
   id: string
   label: string
   count: number
 }
 
-type CatalogFilterInput = {
+interface CatalogFilterInput {
   categoryIds: string[]
   statusIds: string[]
   formIds: string[]
@@ -151,22 +151,30 @@ export const resolveCatalogSort = (
   sort: CatalogSortValue
 ): string[] | undefined => {
   switch (sort) {
-    case "best-selling":
+    case "best-selling": {
       return
-    case "newest":
+    }
+    case "newest": {
       return ["created_at:desc"]
-    case "oldest":
+    }
+    case "oldest": {
       return ["created_at:asc"]
-    case "price-asc":
+    }
+    case "price-asc": {
       return ["facet_price:asc"]
-    case "price-desc":
+    }
+    case "price-desc": {
       return ["facet_price:desc"]
-    case "title-asc":
+    }
+    case "title-asc": {
       return ["title:asc"]
-    case "title-desc":
+    }
+    case "title-desc": {
       return ["title:desc"]
-    default:
+    }
+    default: {
       return
+    }
   }
 }
 
@@ -281,8 +289,8 @@ export const getNumericFacetStats = (
   const max = typeof maxValue === "number" ? maxValue : undefined
 
   return {
-    ...(min !== undefined ? { min } : {}),
-    ...(max !== undefined ? { max } : {}),
+    ...(min === undefined ? {} : { min }),
+    ...(max === undefined ? {} : { max }),
   }
 }
 

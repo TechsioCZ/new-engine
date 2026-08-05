@@ -48,8 +48,8 @@ export default async function createInitialSuperadmin({
   const [existingAuthIdentity] = await authService.listAuthIdentities(
     {
       provider_identities: {
-        provider: EMAIL_PASS_PROVIDER,
         entity_id: email,
+        provider: EMAIL_PASS_PROVIDER,
       },
     },
     {
@@ -91,11 +91,11 @@ export default async function createInitialSuperadmin({
 
   if (linkedUserId !== user.id) {
     await authService.updateAuthIdentities({
-      id: authIdentity.id,
       app_metadata: {
         ...authIdentity.app_metadata,
         user_id: user.id,
       },
+      id: authIdentity.id,
     })
   }
 

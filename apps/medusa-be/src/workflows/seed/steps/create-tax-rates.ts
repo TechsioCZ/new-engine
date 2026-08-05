@@ -14,7 +14,7 @@ import {
 
 type TaxRateMetadata = Record<string, unknown>
 
-type CreateTaxRatePayload = {
+interface CreateTaxRatePayload {
   tax_region_id: string
   rate: number
   code: string
@@ -24,7 +24,7 @@ type CreateTaxRatePayload = {
   rules?: { reference: string; reference_id: string }[]
 }
 
-type UpdateTaxRatePayload = {
+interface UpdateTaxRatePayload {
   selector: { id: string }
   update: {
     rate: number
@@ -36,32 +36,35 @@ type UpdateTaxRatePayload = {
   }
 }
 
-type CreateTaxRatesStepOutput = {
+interface CreateTaxRatesStepOutput {
   created: TaxRateDTO[]
   updated: TaxRateDTO[]
 }
 
-type ProductTaxSource = {
+interface ProductTaxSource {
   id: string
   metadata?: Record<string, unknown> | null
 }
 
-type TaxRateRule = { reference: string; reference_id: string }
+interface TaxRateRule {
+  reference: string
+  reference_id: string
+}
 
-type ExistingTaxRateIndexes = {
+interface ExistingTaxRateIndexes {
   existingDefaultByRegionId: Map<string, TaxRateDTO>
   existingProductByKey: Map<string, TaxRateDTO>
   rulesByRateId: Map<string, TaxRateRule[]>
 }
 
-type TaxRateSeedPlan = {
+interface TaxRateSeedPlan {
   createPayloads: CreateTaxRatePayload[]
   updatePayloads: UpdateTaxRatePayload[]
 }
 
 type WorkflowContainer = Parameters<typeof createTaxRatesWorkflow>[0]
 
-export type TaxRateSeedConfig = {
+export interface TaxRateSeedConfig {
   metadataSource: string
   defaultRates: { countryCode: string; rate: number }[]
   productOverrides?: {
@@ -75,12 +78,12 @@ export type TaxRateSeedConfig = {
   productRateCodeTemplate?: string
 }
 
-export type TaxRateSeedTargets = {
+export interface TaxRateSeedTargets {
   defaultRatesByCountry: Map<string, number>
   productRateGroupsByCountry: Map<string, Map<number, string[]>>
 }
 
-export type CreateTaxRatesStepInput = {
+export interface CreateTaxRatesStepInput {
   productIds: string[]
   enabled?: boolean
   countries?: string[]
@@ -95,12 +98,12 @@ const DEFAULT_PRODUCT_TAX_RATE_NAME_TEMPLATE = "VAT {COUNTRY} Product {rate}%"
 const DEFAULT_PRODUCT_TAX_RATE_CODE_TEMPLATE =
   "vat_{country}_product_{rate_code}"
 const DEFAULT_TAX_RATE_SEED_CONFIG: TaxRateSeedConfig = {
-  metadataSource: "seed-tax-rates",
-  defaultRates: [],
-  defaultRateNameTemplate: DEFAULT_TAX_RATE_NAME_TEMPLATE,
   defaultRateCodeTemplate: DEFAULT_TAX_RATE_CODE_TEMPLATE,
-  productRateNameTemplate: DEFAULT_PRODUCT_TAX_RATE_NAME_TEMPLATE,
+  defaultRateNameTemplate: DEFAULT_TAX_RATE_NAME_TEMPLATE,
+  defaultRates: [],
+  metadataSource: "seed-tax-rates",
   productRateCodeTemplate: DEFAULT_PRODUCT_TAX_RATE_CODE_TEMPLATE,
+  productRateNameTemplate: DEFAULT_PRODUCT_TAX_RATE_NAME_TEMPLATE,
 }
 
 function asObject(value: unknown): Record<string, unknown> | undefined {
@@ -173,9 +176,9 @@ function buildDefaultRateMetadata(
   config: TaxRateSeedConfig
 ): TaxRateMetadata {
   return {
-    seed_source: config.metadataSource,
-    seed_scope: "default",
     seed_country_code: countryCode,
+    seed_scope: "default",
+    seed_source: config.metadataSource,
   }
 }
 
@@ -185,10 +188,10 @@ function buildProductRateMetadata(
   config: TaxRateSeedConfig
 ): TaxRateMetadata {
   return {
-    seed_source: config.metadataSource,
-    seed_scope: "product_rate",
     seed_country_code: countryCode,
     seed_rate: formatRateValue(rate),
+    seed_scope: "product_rate",
+    seed_source: config.metadataSource,
   }
 }
 
@@ -314,12 +317,12 @@ function formatTemplate(
   rate?: number
 ): string {
   const rateValue = rate === undefined ? "" : formatRateValue(rate)
-  const rateCode = rateValue.replace(/[^0-9]+/g, "_")
+  const rateCode = rateValue.replaceAll(/[^0-9]+/g, "_")
   return template
-    .replace(/\{country\}/g, countryCode.toLowerCase())
-    .replace(/\{COUNTRY\}/g, countryCode.toUpperCase())
-    .replace(/\{rate\}/g, rateValue)
-    .replace(/\{rate_code\}/g, rateCode)
+    .replaceAll(/\{country\}/g, countryCode.toLowerCase())
+    .replaceAll(/\{COUNTRY\}/g, countryCode.toUpperCase())
+    .replaceAll(/\{rate\}/g, rateValue)
+    .replaceAll(/\{rate_code\}/g, rateCode)
 }
 
 function buildDefaultRateCode(countryCode: string, config: TaxRateSeedConfig) {
@@ -543,9 +546,9 @@ function addLegacyProductRateIndexes(params: {
     const rules = params.rulesByRateId.get(taxRate.id) ?? []
     if (
       shouldIndexLegacyProductRate({
-        taxRate,
-        rules,
         metadataSource: params.config.metadataSource,
+        rules,
+        taxRate,
       })
     ) {
       params.existingProductByKey.set(key, taxRate)
@@ -575,11 +578,11 @@ async function buildExistingTaxRateIndexes(params: {
   )
 
   addLegacyProductRateIndexes({
-    nonDefaultRates,
-    countryToRegion: params.countryToRegion,
-    rulesByRateId,
-    existingProductByKey,
     config: params.config,
+    countryToRegion: params.countryToRegion,
+    existingProductByKey,
+    nonDefaultRates,
+    rulesByRateId,
   })
 
   return {
@@ -609,12 +612,12 @@ function addDefaultRatePlan(params: {
 
   if (!existingDefault) {
     params.plan.createPayloads.push({
-      tax_region_id: params.taxRegion.id,
-      rate: params.defaultRate,
       code: defaultCode,
-      name: defaultName,
       is_default: true,
       metadata: defaultMetadata,
+      name: defaultName,
+      rate: params.defaultRate,
+      tax_region_id: params.taxRegion.id,
     })
     return
   }
@@ -627,11 +630,11 @@ function addDefaultRatePlan(params: {
     params.plan.updatePayloads.push({
       selector: { id: existingDefault.id },
       update: {
-        rate: params.defaultRate,
         code: defaultCode,
-        name: defaultName,
         is_default: true,
         metadata: defaultMetadata,
+        name: defaultName,
+        rate: params.defaultRate,
       },
     })
   }
@@ -673,12 +676,12 @@ function addProductRatePlan(params: {
 
   if (!existingProductRate) {
     params.plan.createPayloads.push({
-      tax_region_id: params.taxRegion.id,
-      rate: params.rate,
       code,
-      name,
       metadata,
+      name,
+      rate: params.rate,
       rules,
+      tax_region_id: params.taxRegion.id,
     })
     return
   }
@@ -692,10 +695,10 @@ function addProductRatePlan(params: {
     params.plan.updatePayloads.push({
       selector: { id: existingProductRate.id },
       update: {
-        rate: params.rate,
         code,
-        name,
         metadata,
+        name,
+        rate: params.rate,
         rules,
       },
     })
@@ -721,12 +724,12 @@ function buildTaxRateSeedPlan(params: {
     }
 
     addDefaultRatePlan({
-      plan,
-      taxRegion,
+      config: params.config,
       countryCode,
       defaultRate,
       existingDefaultByRegionId: params.indexes.existingDefaultByRegionId,
-      config: params.config,
+      plan,
+      taxRegion,
     })
 
     const productRateGroups =
@@ -737,14 +740,14 @@ function buildTaxRateSeedPlan(params: {
       }
 
       addProductRatePlan({
-        plan,
-        taxRegion,
-        countryCode,
-        rate,
-        productIds,
-        existingProductByKey: params.indexes.existingProductByKey,
-        rulesByRateId: params.indexes.rulesByRateId,
         config: params.config,
+        countryCode,
+        existingProductByKey: params.indexes.existingProductByKey,
+        plan,
+        productIds,
+        rate,
+        rulesByRateId: params.indexes.rulesByRateId,
+        taxRegion,
       })
     }
   }
@@ -856,16 +859,16 @@ export const createTaxRatesStep = createStep(
       tax_region_id: regionIds,
     })
     const indexes = await buildExistingTaxRateIndexes({
-      taxService,
+      config,
       countryToRegion,
       existingRates,
-      config,
+      taxService,
     })
     const { createPayloads, updatePayloads } = buildTaxRateSeedPlan({
-      targets: taxRateTargets,
+      config,
       countryToRegion,
       indexes,
-      config,
+      targets: taxRateTargets,
     })
 
     const created: TaxRateDTO[] = []

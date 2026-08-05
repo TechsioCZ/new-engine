@@ -14,7 +14,7 @@ import {
   formatPhoneNumber,
 } from "@/utils/format/format-phone-number"
 
-type ProfileFormData = {
+interface ProfileFormData {
   first_name: string
   last_name: string
   phone: string
@@ -39,18 +39,18 @@ export function ProfileForm() {
       }
 
       updateCustomer.mutate(cleanedData, {
-        onSuccess: () => {
-          toaster.create({
-            title: "Profil aktualizován",
-            description: "Vaše údaje byly úspěšně uloženy.",
-            type: "success",
-          })
-        },
         onError: () => {
           toaster.create({
             title: "Chyba",
             description: "Nepodařilo se aktualizovat profil.",
             type: "error",
+          })
+        },
+        onSuccess: () => {
+          toaster.create({
+            title: "Profil aktualizován",
+            description: "Vaše údaje byly úspěšně uloženy.",
+            type: "success",
           })
         },
       })

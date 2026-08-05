@@ -4,7 +4,8 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
 
 import { queryKeys } from "@/lib/query-keys"
-import { getProducts, type ProductFilters } from "@/services/product-service"
+import { getProducts } from "@/services/product-service"
+import type { ProductFilters } from "@/services/product-service"
 
 interface UsePrefetchPagesParams {
   currentPage: number
@@ -73,15 +74,7 @@ export function usePrefetchPages({
       for (const page of pagesToPrefetch) {
         const offset = (page - 1) * pageSize
         void queryClient.prefetchQuery({
-          queryKey: queryKeys.products.list({
-            page,
-            limit: pageSize,
-            filters,
-            sort: sortBy === "relevance" ? undefined : sortBy,
-            q: searchQuery || undefined,
-            region_id: regionId,
-          }),
-          queryFn: () =>
+          queryFn: async () =>
             getProducts({
               limit: pageSize,
               offset,
@@ -90,6 +83,14 @@ export function usePrefetchPages({
               q: searchQuery || undefined,
               region_id: regionId,
             }),
+          queryKey: queryKeys.products.list({
+            page,
+            limit: pageSize,
+            filters,
+            sort: sortBy === "relevance" ? undefined : sortBy,
+            q: searchQuery || undefined,
+            region_id: regionId,
+          }),
         })
       }
     }

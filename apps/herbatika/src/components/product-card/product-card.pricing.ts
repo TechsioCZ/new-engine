@@ -29,14 +29,14 @@ export const resolvePriceState = (
 
   if (!price) {
     return {
-      currentLabel: priceUnavailableLabel,
-      originalLabel: null,
-      currentAmount: null,
-      originalAmount: null,
       currencyCode: resolveSupportedCurrencyCode(
         expectedCurrencyCode,
         DEFAULT_CURRENCY_CODE
       ),
+      currentAmount: null,
+      currentLabel: priceUnavailableLabel,
+      originalAmount: null,
+      originalLabel: null,
     }
   }
 
@@ -51,11 +51,11 @@ export const resolvePriceState = (
       : null
 
   return {
-    currentLabel,
-    originalLabel,
-    currentAmount: price.currentAmount,
-    originalAmount: price.originalAmount,
     currencyCode: price.currencyCode,
+    currentAmount: price.currentAmount,
+    currentLabel,
+    originalAmount: price.originalAmount,
+    originalLabel,
   }
 }
 

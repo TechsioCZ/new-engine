@@ -18,28 +18,28 @@ export type IconType = `token-icon-${string}` | `icon-[${string}]`
 
 const iconVariants = tv({
   base: ["inline-block flex-shrink-0 self-center align-middle leading-none"],
+  defaultVariants: {
+    color: "current",
+    size: "current",
+  },
   variants: {
-    size: {
-      current: "",
-      xs: "text-icon-xs",
-      sm: "text-icon-sm",
-      md: "text-icon-md",
-      lg: "text-icon-lg",
-      xl: "text-icon-xl",
-      "2xl": "text-icon-2xl",
-    },
     color: {
       current: "text-current",
+      danger: "text-danger",
       primary: "text-primary",
       secondary: "text-secondary",
-      danger: "text-danger",
       success: "text-success",
       warning: "text-warning",
     },
-  },
-  defaultVariants: {
-    size: "current",
-    color: "current",
+    size: {
+      "2xl": "text-icon-2xl",
+      current: "",
+      lg: "text-icon-lg",
+      md: "text-icon-md",
+      sm: "text-icon-sm",
+      xl: "text-icon-xl",
+      xs: "text-icon-xs",
+    },
   },
 })
 
@@ -55,7 +55,7 @@ export function Icon({ icon, size, color, className, ...props }: IconProps) {
   return (
     <span
       aria-hidden="true"
-      className={`${iconVariants({ size, color, className })} ${icon}`}
+      className={`${iconVariants({ className, color, size })} ${icon}`}
       {...props}
     />
   )

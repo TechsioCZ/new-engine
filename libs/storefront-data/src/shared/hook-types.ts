@@ -49,7 +49,7 @@ export type QueryFactoryOptions<
   queryFn: QueryFunction<TQueryFnData, TQueryKey>
 } & ReadQueryOptions<TQueryFnData, TError, TData, TQueryKey>
 
-export type MutationOptions<TData, TVariables, TContext = unknown> = {
+export interface MutationOptions<TData, TVariables, TContext = unknown> {
   onMutate?: (variables: TVariables) => Promise<TContext> | TContext
   onSuccess?: (
     data: TData,

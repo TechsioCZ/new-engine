@@ -10,14 +10,14 @@ import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { CheckoutCarrierPickupDetails } from "./checkout-carrier-pickup-details"
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
 
-type ShippingOption = {
+interface ShippingOption {
   data?: Record<string, unknown> | null
   id: string
   name?: string | null
   provider_id?: string | null
 }
 
-type CheckoutShippingSectionProps = {
+interface CheckoutShippingSectionProps {
   currencyCode: string
   isBusy: boolean
   onSelectShipping: (optionId: string, data?: Record<string, unknown>) => void

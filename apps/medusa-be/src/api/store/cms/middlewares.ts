@@ -10,22 +10,22 @@ import { StoreCmsPageSchema } from "./pages/[slug]/route"
 /** Middleware definitions for store CMS routes (query validation). */
 export const storeCmsRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/store/cms/pages/:slug",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(StoreCmsPageSchema, { isList: false }),
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/store/cms/articles/:slug",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(StoreCmsArticleSchema, { isList: false }),
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/store/cms/article-categories",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(StoreCmsArticleCategoriesSchema, {
         isList: true,
@@ -33,15 +33,15 @@ export const storeCmsRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/store/cms/page-categories",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(StoreCmsPageCategoriesSchema, { isList: true }),
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/store/cms/hero-carousels",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(StoreCmsHeroCarouselsSchema, { isList: true }),
     ],

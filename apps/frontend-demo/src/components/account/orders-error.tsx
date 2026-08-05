@@ -7,7 +7,9 @@ export function OrdersError() {
         Chyba při načítání objednávek
       </p>
       <Button
-        onClick={() => window.location.reload()}
+        onClick={() => {
+          window.location.reload()
+        }}
         size="sm"
         theme="solid"
         variant="secondary"

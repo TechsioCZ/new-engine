@@ -12,16 +12,16 @@ import type { ICompanyModuleService } from "../../../types"
 
 const COMPANY_CUSTOMER_GROUP_LINK_ENTRY_POINT = "company_customer_group"
 
-type EmployeeWithCustomer = {
+interface EmployeeWithCustomer {
   customer?: { id?: string } | null
 }
 
-type SetCompanyCustomerGroupInput = {
+interface SetCompanyCustomerGroupInput {
   company_id: string
   group_id: string
 }
 
-type SetCompanyCustomerGroupCompensation = {
+interface SetCompanyCustomerGroupCompensation {
   company_id: string
   customer_ids: string[]
   dismissed_deleted_owner_links: Array<{
@@ -41,7 +41,7 @@ const getCompanyCustomerGroupLink = (companyId: string, groupId: string) => ({
   },
 })
 
-type CompanyCustomerGroupLinkRow = {
+interface CompanyCustomerGroupLinkRow {
   company_id?: string
   customer_group_id?: string
 }
@@ -58,8 +58,8 @@ const getCustomerGroupCustomers = (
         Boolean(employee?.customer?.id)
     )
     .map((employee) => ({
-      customer_id: employee.customer.id,
       customer_group_id: groupId,
+      customer_id: employee.customer.id,
     }))
 
 export const setCompanyCustomerGroupStep = createStep(
@@ -86,13 +86,13 @@ export const setCompanyCustomerGroupStep = createStep(
     } = await query.graph(
       {
         entity: "companies",
-        filters: { id: input.company_id },
         fields: [
           "id",
           "customer_group.*",
           "employees.*",
           "employees.customer.*",
         ],
+        filters: { id: input.company_id },
       },
       { throwIfKeyNotFound: true }
     )
@@ -216,8 +216,8 @@ export const setCompanyCustomerGroupStep = createStep(
     if (input.customer_ids.length) {
       await customerModuleService.removeCustomerFromGroup(
         input.customer_ids.map((id) => ({
-          customer_id: id,
           customer_group_id: input.new_group_id,
+          customer_id: id,
         }))
       )
     }
@@ -236,8 +236,8 @@ export const setCompanyCustomerGroupStep = createStep(
       if (input.customer_ids.length) {
         await customerModuleService.addCustomerToGroup(
           input.customer_ids.map((id) => ({
-            customer_id: id,
             customer_group_id: previousGroupId,
+            customer_id: id,
           }))
         )
       }

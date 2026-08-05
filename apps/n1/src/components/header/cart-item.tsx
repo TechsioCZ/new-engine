@@ -9,7 +9,7 @@ import { useDebounce } from "@/hooks/use-debounce"
 import type { CartLineItem } from "@/services/cart-service"
 import { formatToTaxIncluded } from "@/utils/format/format-product"
 
-type CartItemProps = {
+interface CartItemProps {
   item: CartLineItem
   onUpdateQuantity: (quantity: number) => void
   onRemove: () => void
@@ -27,9 +27,9 @@ export const CartItem = ({
   const [localQuantity, setLocalQuantity] = useState(item.quantity)
   const title = item.product_title || item.title || "Unknown Product"
   const variantTitle = item.variant_title
-  const thumbnail = item.thumbnail
+  const { thumbnail } = item
   const effectiveMax =
-    (item.metadata?.["inventory_quantity"] as number | undefined) ?? 10
+    (item.metadata?.inventory_quantity as number | undefined) ?? 10
 
   useEffect(() => {
     setLocalQuantity(item.quantity)

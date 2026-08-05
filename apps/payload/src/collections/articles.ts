@@ -28,18 +28,16 @@ const invalidateArticlesCache = createMedusaCacheHook(COLLECTION_SLUG)
 
 /** Payload collection config for articles. */
 export const Articles: CollectionConfig = {
-  slug: COLLECTION_SLUG,
-  labels: collectionLabels.articles,
+  access: {
+    create: requireAuth,
+    delete: requireAuth,
+    read: requireAuth,
+    update: requireAuth,
+  },
   admin: {
-    useAsTitle: "title",
     defaultColumns: ["title", "category", "publishedDate", "status"],
     group: adminGroups.content,
-  },
-  access: {
-    read: requireAuth,
-    create: requireAuth,
-    update: requireAuth,
-    delete: requireAuth,
+    useAsTitle: "title",
   },
   fields: [
     createTitleField({
@@ -159,6 +157,25 @@ export const Articles: CollectionConfig = {
     },
   ],
   hooks: {
+    afterChange: [invalidateArticlesCache],
+    afterDelete: [invalidateArticlesCache],
+    afterRead: [
+      ({ doc, req }) => {
+        if (!shouldReturnHtmlForRequest(req)) {
+          return doc
+        }
+
+        if (doc.contentHTML !== undefined) {
+          const { contentHTML, ...rest } = doc
+          return {
+            ...rest,
+            content: contentHTML,
+          }
+        }
+
+        return doc
+      },
+    ],
     beforeChange: [
       ({ data, req }: any) => {
         // Auto-generate slug from title if not provided
@@ -182,25 +199,8 @@ export const Articles: CollectionConfig = {
         return data
       },
     ],
-    afterChange: [invalidateArticlesCache],
-    afterDelete: [invalidateArticlesCache],
-    afterRead: [
-      ({ doc, req }) => {
-        if (!shouldReturnHtmlForRequest(req)) {
-          return doc
-        }
-
-        if (doc.contentHTML !== undefined) {
-          const { contentHTML, ...rest } = doc
-          return {
-            ...rest,
-            content: contentHTML,
-          }
-        }
-
-        return doc
-      },
-    ],
   },
+  labels: collectionLabels.articles,
+  slug: COLLECTION_SLUG,
   timestamps: true,
 }

@@ -3,7 +3,7 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import type { ProductListItemRecord } from "../types"
 
-export type AssertProductListItemBelongsToListStepInput = {
+export interface AssertProductListItemBelongsToListStepInput {
   expected_list_id?: string
   item: ProductListItemRecord
 }

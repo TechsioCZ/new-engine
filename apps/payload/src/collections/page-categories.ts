@@ -14,17 +14,15 @@ const invalidatePageCategoriesCache = createMedusaCacheHook(COLLECTION_SLUG)
 
 /** Payload collection config for page categories. */
 export const PageCategories: CollectionConfig = {
-  slug: COLLECTION_SLUG,
-  labels: collectionLabels.pageCategories,
-  admin: {
-    useAsTitle: "title",
-    group: adminGroups.library,
-  },
   access: {
-    read: requireAuth,
     create: requireAuth,
-    update: requireAuth,
     delete: requireAuth,
+    read: requireAuth,
+    update: requireAuth,
+  },
+  admin: {
+    group: adminGroups.library,
+    useAsTitle: "title",
   },
   fields: [
     createTitleField(),
@@ -33,22 +31,24 @@ export const PageCategories: CollectionConfig = {
     }),
   ],
   hooks: {
+    afterChange: [invalidatePageCategoriesCache],
+    afterDelete: [invalidatePageCategoriesCache],
     beforeValidate: [
       ({ data, req }) => {
-        if (data?.["title"] && !data?.["slug"]) {
+        if (data?.title && !data?.slug) {
           const slug = generateSlugFromTitle(
-            data["title"],
+            data.title,
             req?.locale ? { locale: req.locale } : {}
           )
           if (slug) {
-            data["slug"] = slug
+            data.slug = slug
           }
         }
 
         return data
       },
     ],
-    afterChange: [invalidatePageCategoriesCache],
-    afterDelete: [invalidatePageCategoriesCache],
   },
+  labels: collectionLabels.pageCategories,
+  slug: COLLECTION_SLUG,
 }

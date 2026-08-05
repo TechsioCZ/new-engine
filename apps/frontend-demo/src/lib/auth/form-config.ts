@@ -9,6 +9,16 @@ type FormInputProps = ComponentProps<typeof FormInput>
  * Common form field configurations
  */
 export const authFormFields = {
+  confirmPassword: (props?: Partial<FormInputProps>): FormInputProps => ({
+    id: props?.id || "confirmPassword",
+    label: "Potvrdit heslo",
+    type: "password",
+    placeholder: AUTH_FORM_CONFIG.PASSWORD_PLACEHOLDER,
+    required: true,
+    autoComplete: "new-password",
+    ...props,
+  }),
+
   email: (props?: Partial<FormInputProps>): FormInputProps => ({
     id: props?.id || "email",
     label: "E-mail",
@@ -17,37 +27,6 @@ export const authFormFields = {
     required: true,
     autoComplete: "email",
     //extraText: AUTH_FORM_CONFIG.EMAIL_HELP_TEXT,
-    ...props,
-  }),
-
-  password: (props?: Partial<FormInputProps>): FormInputProps => ({
-    id: props?.id || "password",
-    label: "Heslo",
-    type: "password",
-    placeholder: AUTH_FORM_CONFIG.PASSWORD_PLACEHOLDER,
-    required: true,
-    autoComplete: "current-password",
-    ...props,
-  }),
-
-  newPassword: (props?: Partial<FormInputProps>): FormInputProps => ({
-    id: props?.id || "password",
-    label: "Heslo",
-    type: "password",
-    placeholder: AUTH_FORM_CONFIG.PASSWORD_PLACEHOLDER,
-    required: true,
-    autoComplete: "new-password",
-    //extraText: AUTH_FORM_CONFIG.PASSWORD_HELP_TEXT,
-    ...props,
-  }),
-
-  confirmPassword: (props?: Partial<FormInputProps>): FormInputProps => ({
-    id: props?.id || "confirmPassword",
-    label: "Potvrdit heslo",
-    type: "password",
-    placeholder: AUTH_FORM_CONFIG.PASSWORD_PLACEHOLDER,
-    required: true,
-    autoComplete: "new-password",
     ...props,
   }),
 
@@ -64,6 +43,27 @@ export const authFormFields = {
     label: "Příjmení",
     type: "text",
     placeholder: "Novák",
+    ...props,
+  }),
+
+  newPassword: (props?: Partial<FormInputProps>): FormInputProps => ({
+    id: props?.id || "password",
+    label: "Heslo",
+    type: "password",
+    placeholder: AUTH_FORM_CONFIG.PASSWORD_PLACEHOLDER,
+    required: true,
+    autoComplete: "new-password",
+    //extraText: AUTH_FORM_CONFIG.PASSWORD_HELP_TEXT,
+    ...props,
+  }),
+
+  password: (props?: Partial<FormInputProps>): FormInputProps => ({
+    id: props?.id || "password",
+    label: "Heslo",
+    type: "password",
+    placeholder: AUTH_FORM_CONFIG.PASSWORD_PLACEHOLDER,
+    required: true,
+    autoComplete: "current-password",
     ...props,
   }),
 }

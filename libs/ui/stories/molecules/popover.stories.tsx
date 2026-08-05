@@ -5,10 +5,8 @@ import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
 import { Input } from "../../src/atoms/input"
 import { Label } from "../../src/atoms/label"
-import {
-  PopoverTemplate,
-  type PopoverTemplateProps,
-} from "../../src/templates/popover"
+import { PopoverTemplate } from "../../src/templates/popover"
+import type { PopoverTemplateProps } from "../../src/templates/popover"
 
 type PopoverStoryArgs = PopoverTemplateProps
 
@@ -17,15 +15,35 @@ function PopoverStory(args: PopoverStoryArgs) {
 }
 
 const meta = {
-  title: "Molecules/Popover",
-  component: PopoverStory,
-  parameters: {
-    layout: "centered",
-  },
-  tags: ["autodocs"],
   argTypes: {
+    border: {
+      control: "boolean",
+      description: "Whether to show border on the popover",
+      table: { defaultValue: { summary: "true" } },
+    },
+    children: {
+      table: { disable: true },
+    },
+    description: {
+      control: "text",
+      description: "Optional description text",
+    },
+    disabled: {
+      control: "boolean",
+      description: "Whether the trigger is disabled",
+      table: { defaultValue: { summary: "false" } },
+    },
+    id: {
+      table: { disable: true },
+    },
+    modal: {
+      control: "boolean",
+      description: "Whether the popover behaves as a modal (traps focus)",
+      table: { defaultValue: { summary: "false" } },
+    },
     placement: {
       control: "select",
+      description: "Position of the popover relative to the trigger",
       options: [
         "top",
         "bottom",
@@ -40,23 +58,11 @@ const meta = {
         "right-start",
         "right-end",
       ],
-      description: "Position of the popover relative to the trigger",
       table: { defaultValue: { summary: "bottom" } },
-    },
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-      description: "Size of the popover content area",
-      table: { defaultValue: { summary: "md" } },
     },
     shadow: {
       control: "boolean",
       description: "Whether to show shadow on the popover",
-      table: { defaultValue: { summary: "true" } },
-    },
-    border: {
-      control: "boolean",
-      description: "Whether to show border on the popover",
       table: { defaultValue: { summary: "true" } },
     },
     showArrow: {
@@ -69,52 +75,44 @@ const meta = {
       description: "Whether to show the close button in the popover",
       table: { defaultValue: { summary: "false" } },
     },
-    modal: {
-      control: "boolean",
-      description: "Whether the popover behaves as a modal (traps focus)",
-      table: { defaultValue: { summary: "false" } },
-    },
-    disabled: {
-      control: "boolean",
-      description: "Whether the trigger is disabled",
-      table: { defaultValue: { summary: "false" } },
+    size: {
+      control: "select",
+      description: "Size of the popover content area",
+      options: ["sm", "md", "lg"],
+      table: { defaultValue: { summary: "md" } },
     },
     title: {
       control: "text",
       description: "Optional title for the popover",
     },
-    description: {
-      control: "text",
-      description: "Optional description text",
-    },
     trigger: {
       control: "text",
       description: "Content of the trigger button",
     },
-    id: {
-      table: { disable: true },
-    },
-    children: {
-      table: { disable: true },
-    },
   },
   args: {
-    placement: "bottom",
-    size: "md",
-    shadow: true,
     border: true,
-    showArrow: true,
-    modal: false,
-    disabled: false,
-    trigger: "Open Popover",
-    title: "Popover Title",
-    description: "This is a popover description.",
     children: (
       <div className="mt-200">
         <p>This is the popover content area.</p>
       </div>
     ),
+    description: "This is a popover description.",
+    disabled: false,
+    modal: false,
+    placement: "bottom",
+    shadow: true,
+    showArrow: true,
+    size: "md",
+    title: "Popover Title",
+    trigger: "Open Popover",
   },
+  component: PopoverStory,
+  parameters: {
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/Popover",
 } satisfies Meta<typeof PopoverStory>
 
 export default meta
@@ -128,30 +126,30 @@ export const Playground: Story = {
 
 export const WithTitleAndDescription: Story = {
   args: {
-    id: "title-description-popover",
-    trigger: "Open popover",
-    title: "Popover Title",
-    description: "This is a helpful description that provides more context.",
     children: (
       <div className="mt-200">
         <p>Additional content can go here.</p>
       </div>
     ),
+    description: "This is a helpful description that provides more context.",
+    id: "title-description-popover",
+    title: "Popover Title",
+    trigger: "Open popover",
   },
 }
 
 export const Disabled: Story = {
   args: {
-    id: "disabled-popover",
-    trigger: "Disabled Popover",
-    disabled: true,
-    title: "Disabled State",
-    description: "This popover trigger is disabled and cannot be opened.",
     children: (
       <div className="mt-200">
         <p>This content should not be accessible.</p>
       </div>
     ),
+    description: "This popover trigger is disabled and cannot be opened.",
+    disabled: true,
+    id: "disabled-popover",
+    title: "Disabled State",
+    trigger: "Disabled Popover",
   },
 }
 
@@ -263,10 +261,22 @@ export const Controlled: Story = {
     return (
       <div className="flex flex-col items-center gap-200">
         <div className="flex gap-100">
-          <Button onClick={() => setOpen(true)} size="sm" variant="secondary">
+          <Button
+            onClick={() => {
+              setOpen(true)
+            }}
+            size="sm"
+            variant="secondary"
+          >
             Open Popover
           </Button>
-          <Button onClick={() => setOpen(false)} size="sm" variant="secondary">
+          <Button
+            onClick={() => {
+              setOpen(false)
+            }}
+            size="sm"
+            variant="secondary"
+          >
             Close Popover
           </Button>
         </div>
@@ -274,7 +284,9 @@ export const Controlled: Story = {
         <PopoverTemplate
           description="This popover is controlled by external state"
           id="controlled-popover"
-          onOpenChange={(details) => setOpen(details.open)}
+          onOpenChange={(details) => {
+            setOpen(details.open)
+          }}
           open={open}
           title="Controlled Popover"
           trigger="Controlled Popover"
@@ -283,7 +295,9 @@ export const Controlled: Story = {
             <p>The popover is {open ? "open" : "closed"}.</p>
             <Button
               className="mt-100"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false)
+              }}
               size="sm"
               variant="secondary"
             >
@@ -298,9 +312,6 @@ export const Controlled: Story = {
 
 export const WithForm: Story = {
   args: {
-    id: "form-popover",
-    trigger: "Edit Profile",
-    title: "Edit Profile",
     children: (
       <form className="mt-200 space-y-200">
         <div>
@@ -323,6 +334,9 @@ export const WithForm: Story = {
         </div>
       </form>
     ),
+    id: "form-popover",
+    title: "Edit Profile",
+    trigger: "Edit Profile",
   },
 }
 
@@ -364,14 +378,6 @@ export const CustomTrigger: Story = {
 
 export const Modal: Story = {
   args: {
-    id: "modal-popover",
-    trigger: "Open Modal Popover",
-    modal: true,
-    showCloseButton: true,
-    title: "Modal Popover",
-    description:
-      "This popover acts as a modal - it traps focus and blocks interactions outside.",
-    closeOnInteractOutside: false,
     children: (
       <div className="mt-200">
         <p>Try clicking outside - it won't close!</p>
@@ -380,6 +386,14 @@ export const Modal: Story = {
         </p>
       </div>
     ),
+    closeOnInteractOutside: false,
+    description:
+      "This popover acts as a modal - it traps focus and blocks interactions outside.",
+    id: "modal-popover",
+    modal: true,
+    showCloseButton: true,
+    title: "Modal Popover",
+    trigger: "Open Modal Popover",
   },
 }
 

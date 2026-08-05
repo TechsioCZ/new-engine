@@ -1,25 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react"
 
 import { Button } from "../../src/atoms/button"
-import {
-  PopoverTemplate,
-  type PopoverTemplateProps,
-} from "../../src/templates/popover"
+import { PopoverTemplate } from "../../src/templates/popover"
+import type { PopoverTemplateProps } from "../../src/templates/popover"
 
 const meta = {
-  title: "Templates/Popover",
-  component: PopoverTemplate,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component:
-          "Convenience template that composes the compound Popover molecule into the common trigger/content/title/description shape.",
-      },
-    },
-  },
-  tags: ["autodocs"],
   argTypes: {
+    border: {
+      control: "boolean",
+    },
     placement: {
       control: "select",
       options: [
@@ -37,13 +26,6 @@ const meta = {
         "right-end",
       ],
     },
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-    },
-    border: {
-      control: "boolean",
-    },
     shadow: {
       control: "boolean",
     },
@@ -52,6 +34,10 @@ const meta = {
     },
     showCloseButton: {
       control: "boolean",
+    },
+    size: {
+      control: "select",
+      options: ["sm", "md", "lg"],
     },
   },
   args: {
@@ -66,6 +52,18 @@ const meta = {
     title: "Popover title",
     trigger: "Open popover",
   },
+  component: PopoverTemplate,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Convenience template that composes the compound Popover molecule into the common trigger/content/title/description shape.",
+      },
+    },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Templates/Popover",
 } satisfies Meta<PopoverTemplateProps>
 
 export default meta

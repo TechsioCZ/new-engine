@@ -4,7 +4,7 @@ import DOMPurify from "dompurify"
 
 type SanitizerConfig = NonNullable<Parameters<typeof DOMPurify.sanitize>[1]>
 
-type SafeHtmlContentProps = {
+interface SafeHtmlContentProps {
   content: string | null | undefined
   className?: string
   /** Custom DOMPurify config for allowed tags and attributes */
@@ -41,7 +41,7 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
     relTokens.add(token)
   }
 
-  node.setAttribute("rel", Array.from(relTokens).join(" "))
+  node.setAttribute("rel", [...relTokens].join(" "))
 })
 
 function processSafeHtmlContent(
@@ -49,7 +49,7 @@ function processSafeHtmlContent(
   config?: SanitizerConfig
 ) {
   if (!content) {
-    return { isHtml: false, content: "" }
+    return { content: "", isHtml: false }
   }
 
   // Check if content contains HTML tags or HTML entities
@@ -60,6 +60,7 @@ function processSafeHtmlContent(
   if (isHtml) {
     // Default safe config for product descriptions
     const defaultConfig = {
+      ALLOWED_ATTR: ["class", "style", "href", "target", "rel"],
       ALLOWED_TAGS: [
         "p",
         "br",
@@ -94,20 +95,19 @@ function processSafeHtmlContent(
         "span",
         "div",
       ],
-      ALLOWED_ATTR: ["class", "style", "href", "target", "rel"],
       ALLOW_DATA_ATTR: false,
-      FORBID_TAGS: ["script", "iframe", "form", "input"],
       FORBID_ATTR: ["onerror", "onclick", "onload"],
+      FORBID_TAGS: ["script", "iframe", "form", "input"],
     }
 
     // Custom config shallow-overrides defaults; array fields are replaced.
     const finalConfig = { ...defaultConfig, ...config }
     const sanitized = DOMPurify.sanitize(content, finalConfig)
 
-    return { isHtml: true, content: String(sanitized) }
+    return { content: String(sanitized), isHtml: true }
   }
 
-  return { isHtml: false, content }
+  return { content, isHtml: false }
 }
 
 /**

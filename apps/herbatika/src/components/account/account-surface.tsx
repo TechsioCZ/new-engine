@@ -1,7 +1,7 @@
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import type { ReactNode } from "react"
 
-type AccountSurfaceProps = {
+interface AccountSurfaceProps {
   children: ReactNode
   className?: string
 }
@@ -23,7 +23,7 @@ export function AccountSurface({ children, className }: AccountSurfaceProps) {
   )
 }
 
-type AccountSkeletonSurfaceProps = {
+interface AccountSkeletonSurfaceProps {
   lines?: number
 }
 

@@ -1,6 +1,6 @@
 import type { CatalogFacetItem } from "@techsio/storefront-data/catalog/types"
 
-export type CategoryFacetChipItem = {
+export interface CategoryFacetChipItem {
   id: string
   label: string
   count: number
@@ -72,11 +72,11 @@ export const buildFacetChipItems = (
     }
 
     return {
+      checked,
+      count,
+      disabled: count === 0 && !checked,
       id,
       label,
-      count,
-      checked,
-      disabled: count === 0 && !checked,
     }
   })
 }

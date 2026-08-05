@@ -13,7 +13,7 @@ import { RecentlyVisitedProductsSection } from "@/components/recently-visited-pr
 import { BenefitsSection } from "./homepage/sections/benefits-section"
 import { PurposeCarousel } from "./homepage/sections/purpose-carousel"
 
-type HerbatikaHomepageProps = {
+interface HerbatikaHomepageProps {
   heroBanners?: HeroBannerItem[]
 }
 

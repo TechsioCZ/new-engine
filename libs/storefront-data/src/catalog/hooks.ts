@@ -7,17 +7,17 @@ import {
 import { omitUndefined } from "@techsio/std/object"
 
 import {
-  type CacheConfig,
-  type CacheStrategy,
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
+import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import { toErrorMessage } from "../shared/error-utils"
 import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
-import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
+import { shouldSkipPrefetch } from "../shared/prefetch"
+import type { PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { applyRegion } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
@@ -35,12 +35,12 @@ import type {
 } from "./types"
 import { resolvePositiveInteger } from "./utils"
 
-export type CreateCatalogHooksConfig<
+export interface CreateCatalogHooksConfig<
   TProduct,
   TListInput extends CatalogListInputBase,
   TListParams,
   TFacets,
-> = {
+> {
   service: CatalogService<TProduct, TListParams, TFacets>
   buildListParams?: (input: TListInput) => TListParams
   queryKeys?: CatalogQueryKeys<TListParams>
@@ -73,10 +73,10 @@ export function createCatalogHooks<
     buildListParams ??
     ((input: TListInput) => ({ ...input }) as TListInput & TListParams)
   const { getListQueryOptions } = createCatalogQueryOptionsFactory({
-    service,
     buildListParams: buildList,
-    queryKeys: resolvedQueryKeys,
     cacheConfig: resolvedCacheConfig,
+    queryKeys: resolvedQueryKeys,
+    service,
   })
 
   function useCatalogProducts(
@@ -124,18 +124,18 @@ export function createCatalogHooks<
       (responseLimit > 0 ? Math.ceil(totalCount / responseLimit) : 0)
 
     return {
-      products: data?.products ?? [],
-      facets: data?.facets ?? fallbackFacets,
-      isLoading,
-      isFetching,
-      isSuccess,
-      error: toErrorMessage(error),
-      totalCount,
       currentPage,
-      totalPages,
+      error: toErrorMessage(error),
+      facets: data?.facets ?? fallbackFacets,
       hasNextPage: currentPage < totalPages,
       hasPrevPage: currentPage > 1,
+      isFetching,
+      isLoading,
+      isSuccess,
+      products: data?.products ?? [],
       query,
+      totalCount,
+      totalPages,
     }
   }
 
@@ -186,18 +186,18 @@ export function createCatalogHooks<
       (responseLimit > 0 ? Math.ceil(totalCount / responseLimit) : 0)
 
     return {
-      products: data?.products ?? [],
-      facets: data?.facets ?? fallbackFacets,
-      isLoading: false,
-      isFetching,
-      isSuccess: true,
-      error: null,
-      totalCount,
       currentPage,
-      totalPages,
+      error: null,
+      facets: data?.facets ?? fallbackFacets,
       hasNextPage: currentPage < totalPages,
       hasPrevPage: currentPage > 1,
+      isFetching,
+      isLoading: false,
+      isSuccess: true,
+      products: data?.products ?? [],
       query,
+      totalCount,
+      totalPages,
     }
   }
 
@@ -238,9 +238,9 @@ export function createCatalogHooks<
       const queryKey = resolvedQueryKeys.list(listParams)
       if (
         shouldSkipPrefetch({
+          cacheOptions: prefetchCacheOptions,
           queryClient,
           queryKey,
-          cacheOptions: prefetchCacheOptions,
           skipIfCached,
           skipMode,
         })
@@ -249,8 +249,9 @@ export function createCatalogHooks<
       }
 
       await queryClient.prefetchQuery({
+        queryFn: async ({ signal }) =>
+          service.getCatalogProducts(listParams, signal),
         queryKey,
-        queryFn: ({ signal }) => service.getCatalogProducts(listParams, signal),
         ...prefetchCacheOptions,
       })
     }
@@ -271,18 +272,16 @@ export function createCatalogHooks<
       const queryKey = resolvedQueryKeys.list(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
       return schedulePrefetch(
-        () => {
-          return prefetchCatalogProducts(input)
-        },
+        async () => prefetchCatalogProducts(input),
         id,
         delay
       )
     }
 
     return {
-      prefetchCatalogProducts,
-      delayedPrefetch,
       cancelPrefetch,
+      delayedPrefetch,
+      prefetchCatalogProducts,
     }
   }
 
@@ -316,10 +315,10 @@ export function createCatalogHooks<
 
   return {
     getListQueryOptions,
-    useCatalogProducts,
-    useSuspenseCatalogProducts,
-    usePrefetchCatalogProducts,
     prefetchCatalogProducts,
+    useCatalogProducts,
+    usePrefetchCatalogProducts,
+    useSuspenseCatalogProducts,
   }
 }
 

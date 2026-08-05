@@ -20,7 +20,7 @@ function buildPreviewEnvironmentName(
 
 async function writeJsonFile(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
+  await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
 export async function executePreviewCommitState(
@@ -30,19 +30,19 @@ export async function executePreviewCommitState(
 
   const response = input.dryRun
     ? previewCommitStateResponseSchema.parse({
-        project_slug: input.projectSlug,
-        environment_name: environmentName,
-        environment_exists: false,
         baseline_complete: false,
-        target_commit_sha: null,
+        environment_exists: false,
+        environment_name: environmentName,
         last_deployed_commit_sha: null,
+        project_slug: input.projectSlug,
+        target_commit_sha: null,
       })
     : await new ZaneOperatorClient(
         input.baseUrl,
         input.apiToken
       ).readPreviewCommitState({
-        project_slug: input.projectSlug,
         environment_name: environmentName,
+        project_slug: input.projectSlug,
       })
 
   if (input.outputJson) {

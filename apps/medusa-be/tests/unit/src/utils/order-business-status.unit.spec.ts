@@ -6,9 +6,9 @@ import {
   isPendingUnpaidOrder,
   ORDER_BUSINESS_STATUS_METADATA_KEY,
   ORDER_BUSINESS_STATUSES,
-  type OrderBusinessStatusInput,
   resolveOrderBusinessStatus,
 } from "../../../../src/utils/order-business-status"
+import type { OrderBusinessStatusInput } from "../../../../src/utils/order-business-status"
 
 const createOrder = (
   overrides: Partial<OrderBusinessStatusInput> = {}
@@ -23,7 +23,7 @@ describe("order business status", () => {
         status.id,
         status.translation_key,
       ])
-    ).toEqual([
+    ).toStrictEqual([
       ["canceled", "statuses.canceled"],
       ["delivered", "statuses.delivered"],
       ["shipped", "statuses.shipped"],
@@ -36,11 +36,11 @@ describe("order business status", () => {
   })
 
   it("accepts only the approved manual statuses", () => {
-    expect(isManualOrderBusinessStatusId("processing")).toBe(true)
-    expect(isManualOrderBusinessStatusId("waiting_for_supplier")).toBe(true)
-    expect(isManualOrderBusinessStatusId("canceled")).toBe(true)
-    expect(isManualOrderBusinessStatusId("paid")).toBe(false)
-    expect(isManualOrderBusinessStatusId("delivered")).toBe(false)
+    expect(isManualOrderBusinessStatusId("processing")).toBeTruthy()
+    expect(isManualOrderBusinessStatusId("waiting_for_supplier")).toBeTruthy()
+    expect(isManualOrderBusinessStatusId("canceled")).toBeTruthy()
+    expect(isManualOrderBusinessStatusId("paid")).toBeFalsy()
+    expect(isManualOrderBusinessStatusId("delivered")).toBeFalsy()
   })
 
   it("falls back to Nová when there is no reliable signal", () => {
@@ -139,7 +139,7 @@ describe("order business status", () => {
   }[])("counts pending unpaid orders when $name", ({ overrides }) => {
     expect(
       isPendingUnpaidOrder(createOrder({ status: "pending", ...overrides }))
-    ).toBe(true)
+    ).toBeTruthy()
   })
 
   it.each([
@@ -163,7 +163,7 @@ describe("order business status", () => {
     name: string
     overrides: Partial<OrderBusinessStatusInput>
   }[])("does not count pending unpaid orders when $name", ({ overrides }) => {
-    expect(isPendingUnpaidOrder(createOrder(overrides))).toBe(false)
+    expect(isPendingUnpaidOrder(createOrder(overrides))).toBeFalsy()
   })
 
   it("lets manual processing states override paid orders", () => {

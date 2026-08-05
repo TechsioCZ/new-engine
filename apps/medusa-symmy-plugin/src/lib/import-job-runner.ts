@@ -5,26 +5,26 @@ import type {
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
-import {
-  SYMMY_IMPORT_JOB_MODULE,
-  type SymmyImportJobDTO,
-  type SymmyImportJobModuleService,
+import { SYMMY_IMPORT_JOB_MODULE } from "../modules/import-job"
+import type {
+  SymmyImportJobDTO,
+  SymmyImportJobModuleService,
 } from "../modules/import-job"
-import {
-  SYMMY_WEBHOOK_CONFIG_MODULE,
-  type SymmyWebhookConfigModuleService,
-  type SymmyWebhookJobPayload,
+import { SYMMY_WEBHOOK_CONFIG_MODULE } from "../modules/webhook-config"
+import type {
+  SymmyWebhookConfigModuleService,
+  SymmyWebhookJobPayload,
 } from "../modules/webhook-config"
 
 // Medusa's locking module expects timeout values in seconds.
 const LOCK_ACQUIRE_TIMEOUT_SECONDS = 60 * 60
 
-type CompletionStats = {
+interface CompletionStats {
   processed: number
   failed: number
 }
 
-type RunImportJobInput<TInput, TOutput extends Record<string, unknown>> = {
+interface RunImportJobInput<TInput, TOutput extends Record<string, unknown>> {
   container: MedusaContainer
   jobId: string
   jobLabel: string
@@ -58,19 +58,19 @@ const buildJobFinishedWebhookPayload = (
       ? "symmy.import_job.failed"
       : "symmy.import_job.completed",
   job: {
+    attempts: job.attempts,
+    created_at: job.created_at,
+    error: job.error,
+    failed: job.failed,
+    finished_at: job.finished_at,
     id: job.id,
-    type: job.type,
+    processed: job.processed,
+    result: job.result,
+    started_at: job.started_at,
     status: job.status,
     total: job.total,
-    processed: job.processed,
-    failed: job.failed,
-    attempts: job.attempts,
-    result: job.result,
-    error: job.error,
-    created_at: job.created_at,
+    type: job.type,
     updated_at: job.updated_at,
-    started_at: job.started_at,
-    finished_at: job.finished_at,
   },
 })
 
@@ -174,9 +174,9 @@ export const runImportJob = async <
           const stats = getCompletionStats(output)
 
           const completedJob = await importJobService.markCompleted(job.id, {
-            result: output,
-            processed: stats.processed,
             failed: stats.failed,
+            processed: stats.processed,
+            result: output,
           })
           await deliverJobFinishedWebhook(
             webhookConfigService,

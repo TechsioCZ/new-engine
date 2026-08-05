@@ -1,5 +1,6 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import { useTranslations } from "next-intl"
@@ -16,7 +17,7 @@ import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 
-type CheckoutCompleteSectionProps = {
+interface CheckoutCompleteSectionProps {
   canCompleteOrder: boolean
   cartTotalAmount: number
   cartTaxAmount: number
@@ -52,7 +53,7 @@ const hasTextValue = (value: string) => value.trim().length > 0
 const resolveStreetValue = (form: AddressFormState) =>
   [form.address1.trim(), form.address2.trim()].filter(Boolean).join(", ")
 
-type AddressRowLabels = {
+interface AddressRowLabels {
   address: string
   city: string
   companyId: string

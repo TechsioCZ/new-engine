@@ -65,12 +65,12 @@ function OrderListContent() {
   const startIndex = (page - 1) * PAGE_SIZE
   const paginatedOrders = orders.slice(startIndex, startIndex + PAGE_SIZE)
   const getPageUrl = createPaginationGetPageUrl({
-    pathname: "/ucet/profil",
-    searchParams: searchParams.toString(),
     pageParam: "ordersPage",
+    pathname: "/ucet/profil",
     searchParamOverrides: {
       tab: "orders",
     },
+    searchParams: searchParams.toString(),
   })
 
   return (

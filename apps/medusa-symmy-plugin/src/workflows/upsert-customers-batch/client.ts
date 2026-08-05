@@ -11,24 +11,20 @@ import {
   updateCustomersWorkflow,
 } from "@medusajs/medusa/core-flows"
 
-import {
-  SYMMY_CUSTOMER_GROUP_CODE_MODULE,
-  type SymmyCustomerGroupCodeModuleService,
-} from "../../modules/customer-group-code"
-import {
-  type CustomerLookupKeys,
-  customerBatchClientMapperHelper,
-} from "./client-mapper-helper"
+import { SYMMY_CUSTOMER_GROUP_CODE_MODULE } from "../../modules/customer-group-code"
+import type { SymmyCustomerGroupCodeModuleService } from "../../modules/customer-group-code"
+import { customerBatchClientMapperHelper } from "./client-mapper-helper"
+import type { CustomerLookupKeys } from "./client-mapper-helper"
 import type { CustomerAddressInput, CustomerInput } from "./types"
 
 type Metadata = Record<string, unknown>
 
-export type ExistingAddress = {
+export interface ExistingAddress {
   id: string
   customer_id: string
 }
 
-export type ExistingGroup = {
+export interface ExistingGroup {
   id: string
   name: string
   code?: string | null
@@ -36,7 +32,7 @@ export type ExistingGroup = {
   metadata: Metadata | null
 }
 
-export type ExistingCustomer = {
+export interface ExistingCustomer {
   id: string
   email: string | null
   metadata: Metadata | null
@@ -44,7 +40,7 @@ export type ExistingCustomer = {
   addresses: ExistingAddress[]
 }
 
-export type ExistingCustomerIndex = {
+export interface ExistingCustomerIndex {
   byId: Map<string, ExistingCustomer>
   byEmail: Map<string, ExistingCustomer>
   byErpId: Map<string, ExistingCustomer>
@@ -52,7 +48,7 @@ export type ExistingCustomerIndex = {
   byCompanyRegistrationNumber: Map<string, ExistingCustomer>
 }
 
-export type CustomerGroupIndex = {
+export interface CustomerGroupIndex {
   byCode: Map<string, ExistingGroup>
 }
 
@@ -94,9 +90,9 @@ export class CustomerBatchClient {
       await this.queryCustomerIdsByMetadata(metadataIdentifiers)
     const [byIdCustomers, byEmailCustomers, byMetadataCustomers] =
       await Promise.all([
-        this.queryCustomers({ id: Array.from(ids) }),
-        this.queryCustomers({ email: Array.from(emails) }),
-        this.queryCustomers({ id: Array.from(metadataCustomerIds) }),
+        this.queryCustomers({ id: [...ids] }),
+        this.queryCustomers({ email: [...emails] }),
+        this.queryCustomers({ id: [...metadataCustomerIds] }),
       ])
 
     return this.mapper.buildCustomerIndex([
@@ -113,7 +109,7 @@ export class CustomerBatchClient {
     }
 
     const [nameGroups, codeMappings] = await Promise.all([
-      this.queryGroups({ name: Array.from(codes) }),
+      this.queryGroups({ name: [...codes] }),
       this.customerGroupCodeService.listByCodes(codes),
     ])
     const codeGroups = await this.queryGroups({
@@ -216,7 +212,7 @@ export class CustomerBatchClient {
         }
         await updateCustomerAddressesWorkflow(this.container).run({
           input: {
-            selector: { id: address.address_id, customer_id: customerId },
+            selector: { customer_id: customerId, id: address.address_id },
             update: this.mapper.buildAddressPayload(address),
           },
         })
@@ -261,8 +257,8 @@ export class CustomerBatchClient {
     const currentIds = new Set(
       (existing?.groups ?? []).map((group) => group.id)
     )
-    const add = Array.from(targetIds).filter((id) => !currentIds.has(id))
-    const remove = Array.from(currentIds).filter((id) => !targetIds.has(id))
+    const add = [...targetIds].filter((id) => !currentIds.has(id))
+    const remove = [...currentIds].filter((id) => !targetIds.has(id))
 
     if (!(add.length || remove.length)) {
       return
@@ -270,8 +266,8 @@ export class CustomerBatchClient {
 
     await linkCustomerGroupsToCustomerWorkflow(this.container).run({
       input: {
-        id: customerId,
         add,
+        id: customerId,
         remove,
       },
     })
@@ -285,7 +281,7 @@ export class CustomerBatchClient {
     }
     const { data } = await this.query.graph({
       entity: "customer",
-      fields: Array.from(CUSTOMER_FIELDS),
+      fields: [...CUSTOMER_FIELDS],
       filters,
     })
     return (data ?? []) as ExistingCustomer[]
@@ -304,7 +300,7 @@ export class CustomerBatchClient {
         fields: ["id"],
         filters: {
           metadata: {
-            [key]: Array.from(values),
+            [key]: [...values],
           },
         },
       })

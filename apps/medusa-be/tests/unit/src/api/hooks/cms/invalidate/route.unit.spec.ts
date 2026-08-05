@@ -14,17 +14,17 @@ const WEBHOOK_SECRET = "test-webhook-secret"
 
 const mockInvalidateCache = vi.fn()
 const mockLogger = {
+  debug: vi.fn(),
+  error: vi.fn(),
   info: vi.fn(),
   warn: vi.fn(),
-  error: vi.fn(),
-  debug: vi.fn(),
 }
 
-vi.mock("../../../../../../../src/modules/payload", () => ({
+vi.mock(import("../../../../../../../src/modules/payload"), () => ({
   PAYLOAD_MODULE: "payloadModuleService",
 }))
 
-vi.mock("../../../../../../../src/utils/webhooks", () => ({
+vi.mock(import("../../../../../../../src/utils/webhooks"), () => ({
   getHeaderValue: vi.fn(
     (req: { headers: Record<string, string> }, name: string) =>
       req.headers[name]
@@ -42,11 +42,11 @@ beforeAll(() => {
 })
 
 afterAll(() => {
-  if (originalEnv !== undefined) {
-    process.env["PAYLOAD_WEBHOOK_SECRET"] = originalEnv
-  } else {
+  if (originalEnv === undefined) {
     // delete required to unset env vars in Node.js
     delete process.env["PAYLOAD_WEBHOOK_SECRET"]
+  } else {
+    process.env["PAYLOAD_WEBHOOK_SECRET"] = originalEnv
   }
 })
 
@@ -57,8 +57,8 @@ const createMockRequest = (
   const bodyStr = JSON.stringify(body)
   return {
     body,
-    rawBody: bodyStr,
     headers,
+    rawBody: bodyStr,
     scope: {
       resolve: vi.fn((key: string) => {
         if (key === "payloadModuleService") {
@@ -75,8 +75,8 @@ const createMockRequest = (
 
 const createMockResponse = () => {
   const res = {
-    status: vi.fn().mockReturnThis(),
     json: vi.fn().mockReturnThis(),
+    status: vi.fn().mockReturnThis(),
   }
   return res as any
 }
@@ -139,12 +139,12 @@ describe("POST /hooks/cms/invalidate", () => {
   })
 
   it("returns 200 and invalidates cache on valid request", async () => {
-    const body = { collection: "pages", doc: { slug: "home", locale: "en" } }
+    const body = { collection: "pages", doc: { locale: "en", slug: "home" } }
     const signature = generateSignature(body)
     const req = createMockRequest(body, { "x-payload-signature": signature })
     const res = createMockResponse()
 
-    mockInvalidateCache.mockResolvedValue(undefined)
+    mockInvalidateCache.mockResolvedValue()
 
     await POST(req, res)
 
@@ -159,7 +159,7 @@ describe("POST /hooks/cms/invalidate", () => {
     const req = createMockRequest(body, { "x-payload-signature": signature })
     const res = createMockResponse()
 
-    mockInvalidateCache.mockResolvedValue(undefined)
+    mockInvalidateCache.mockResolvedValue()
 
     await POST(req, res)
 
@@ -172,7 +172,7 @@ describe("POST /hooks/cms/invalidate", () => {
   })
 
   it("returns 500 when cache invalidation fails", async () => {
-    const body = { collection: "articles", doc: { slug: "news", locale: "cs" } }
+    const body = { collection: "articles", doc: { locale: "cs", slug: "news" } }
     const signature = generateSignature(body)
     const req = createMockRequest(body, { "x-payload-signature": signature })
     const res = createMockResponse()
@@ -183,13 +183,13 @@ describe("POST /hooks/cms/invalidate", () => {
 
     await POST(req, res)
 
-    expect(mockLogger.error).toHaveBeenCalled()
+    expect(mockLogger.error).toHaveBeenCalledWith()
     expect(res.status).toHaveBeenCalledWith(500)
     expect(res.json).toHaveBeenCalledWith({
-      error: "Failed to invalidate cache",
       collection: "articles",
-      slug: "news",
+      error: "Failed to invalidate cache",
       locale: "cs",
+      slug: "news",
     })
   })
 
@@ -205,10 +205,10 @@ describe("POST /hooks/cms/invalidate", () => {
 
     expect(res.status).toHaveBeenCalledWith(500)
     expect(res.json).toHaveBeenCalledWith({
-      error: "Failed to invalidate cache",
       collection: "pages",
-      slug: null,
+      error: "Failed to invalidate cache",
       locale: null,
+      slug: null,
     })
   })
 

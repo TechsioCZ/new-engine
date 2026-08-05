@@ -7,9 +7,6 @@ import {
   createDataTableColumnHelper,
   createDataTableFilterHelper,
   DataTable,
-  type DataTableFilteringState,
-  type DataTablePaginationState,
-  type DataTableRowSelectionState,
   Heading,
   Prompt,
   Select,
@@ -20,8 +17,14 @@ import {
   toast,
   useDataTable,
 } from "@medusajs/ui"
+import type {
+  DataTableFilteringState,
+  DataTablePaginationState,
+  DataTableRowSelectionState,
+} from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { type ReactNode, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 
@@ -61,15 +64,17 @@ import {
   ORDER_DASHBOARD_PAGE_SIZE,
   ORDER_DASHBOARD_QUEUE_IDS,
   ORDER_DASHBOARD_TARGET_STATUSES,
-  type OrderDashboardBlockingOrder,
-  type OrderDashboardBusinessStatusGroupId,
-  type OrderDashboardBusinessStatusId,
-  type OrderDashboardLabelFormat,
-  type OrderDashboardManualStatusId,
-  type OrderDashboardOrder,
-  type OrderDashboardQueueId,
-  type OrderDashboardSummaryResponse,
-  type OrderDashboardTargetStatus,
+} from "./types"
+import type {
+  OrderDashboardBlockingOrder,
+  OrderDashboardBusinessStatusGroupId,
+  OrderDashboardBusinessStatusId,
+  OrderDashboardLabelFormat,
+  OrderDashboardManualStatusId,
+  OrderDashboardOrder,
+  OrderDashboardQueueId,
+  OrderDashboardSummaryResponse,
+  OrderDashboardTargetStatus,
 } from "./types"
 
 const ORDER_DASHBOARD_QUERY_KEY = "order-dashboard-orders"
@@ -84,7 +89,7 @@ const filterHelper = createDataTableFilterHelper<OrderDashboardOrder>()
 
 type ManualStatusValue = OrderDashboardManualStatusId | "clear"
 type ManualStatusTarget = OrderDashboardManualStatusId | null
-type TargetStatusOption = {
+interface TargetStatusOption {
   blockedOrders: OrderDashboardBlockingOrder[]
   label: string
   value: OrderDashboardTargetStatus
@@ -96,7 +101,7 @@ const labelFormats: OrderDashboardLabelFormat[] = ["A6", "A7"]
 const packetaLabelStartPositions = [1, 2, 3, 4] as const
 
 type PacketaLabelStartPosition = (typeof packetaLabelStartPositions)[number]
-type PendingPacketaLabelsDownload = {
+interface PendingPacketaLabelsDownload {
   labelFormat: OrderDashboardLabelFormat
   orderIds: string[]
 }
@@ -165,7 +170,7 @@ const OrderDashboardPage = () => {
   const offset = pagination.pageIndex * limit
 
   const ordersQuery = useQuery({
-    queryFn: () =>
+    queryFn: async () =>
       listOrderDashboardOrders({
         ...(businessStatusGroupFilter === undefined
           ? {}
@@ -195,8 +200,8 @@ const OrderDashboardPage = () => {
     () => ordersQuery.data?.orders ?? [],
     [ordersQuery.data?.orders]
   )
-  const selectedOrders = Array.from(selectedOrdersById.values())
-  const selectedOrderIds = Array.from(selectedOrdersById.keys())
+  const selectedOrders = [...selectedOrdersById.values()]
+  const selectedOrderIds = [...selectedOrdersById.keys()]
   const selectedOrderIdSet = useMemo(
     () => new Set(selectedOrdersById.keys()),
     [selectedOrdersById]
@@ -205,7 +210,7 @@ const OrderDashboardPage = () => {
     getPacketaCarrierOrderIds(selectedOrders)
   const packetaEligibilityQuery = useQuery({
     enabled: selectedPacketaCarrierOrderIds.length > 0,
-    queryFn: () =>
+    queryFn: async () =>
       listOrderDashboardPacketaEligibility(selectedPacketaCarrierOrderIds),
     queryKey: [PACKETA_ELIGIBILITY_QUERY_KEY, selectedPacketaCarrierOrderIds],
   })
@@ -393,11 +398,11 @@ const OrderDashboardPage = () => {
     columnHelper.display({
       cell: ({ row }) => (
         <Button
-          onClick={() =>
+          onClick={() => {
             setDetailOrderId((currentOrderId) =>
               currentOrderId === row.original.id ? null : row.original.id
             )
-          }
+          }}
           size="small"
           type="button"
           variant="transparent"
@@ -449,13 +454,12 @@ const OrderDashboardPage = () => {
   }
 
   const table = useDataTable({
-    columns,
     columnVisibility: {
       onColumnVisibilityChange: setColumnVisibility,
       state: columnVisibility,
     },
+    columns,
     data: orders,
-    filters,
     filtering: {
       onFilteringChange: (nextFiltering) => {
         setFiltering(normalizeFiltering(nextFiltering))
@@ -468,6 +472,7 @@ const OrderDashboardPage = () => {
       },
       state: filtering,
     },
+    filters,
     getRowId: (order) => order.id,
     isLoading: ordersQuery.isLoading,
     pagination: {
@@ -936,11 +941,11 @@ const OrderDashboardPage = () => {
               })}
             </Text>
             <Select
-              onValueChange={(value) =>
+              onValueChange={(value) => {
                 setPacketaLabelStartPosition(
                   Number(value) as PacketaLabelStartPosition
                 )
-              }
+              }}
               value={String(packetaLabelStartPosition)}
             >
               <Select.Trigger>
@@ -1032,9 +1037,9 @@ const OrderDashboardPage = () => {
               {t("actions.expeditionPdf")}
             </Button>
             <Select
-              onValueChange={(value) =>
+              onValueChange={(value) => {
                 setLabelFormat(value as OrderDashboardLabelFormat)
-              }
+              }}
               value={labelFormat}
             >
               <Select.Trigger
@@ -1183,7 +1188,9 @@ const OrderDashboardPage = () => {
 
       {detailOrder ? (
         <OrderDashboardDetailPanel
-          onClose={() => setDetailOrderId(null)}
+          onClose={() => {
+            setDetailOrderId(null)
+          }}
           order={detailOrder}
         />
       ) : null}
@@ -1236,7 +1243,7 @@ function ManualStatusControl({
   const { t } = useTranslation("orderDashboard")
   const queryClient = useQueryClient()
   const mutation = useMutation({
-    mutationFn: (value: ManualStatusValue) =>
+    mutationFn: async (value: ManualStatusValue) =>
       updateOrderDashboardManualStatus({
         orderIds: [orderId],
         status: value === "clear" ? null : value,

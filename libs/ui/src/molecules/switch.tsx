@@ -11,7 +11,8 @@
  */
 import { normalizeProps, useMachine } from "@zag-js/react"
 import * as zagSwitch from "@zag-js/switch"
-import { type ReactNode, useId } from "react"
+import { useId } from "react"
+import type { ReactNode } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { Label } from "../atoms/label"
@@ -20,11 +21,6 @@ import { tv } from "../utils"
 
 const switchVariants = tv({
   slots: {
-    root: [
-      "cursor-pointer",
-      "data-[disabled]:cursor-not-allowed",
-      "flex items-center",
-    ],
     control: [
       "me-switch p-switch-control",
       "relative inline-flex shrink-0 items-center justify-start",
@@ -45,18 +41,23 @@ const switchVariants = tv({
       "data-[invalid]:outline-(style:--default-ring-style) data-[invalid]:outline-(length:--default-ring-width)",
       "data-[invalid]:outline-offset-(length:--default-ring-offset)",
     ],
+    hiddenInput: "sr-only",
+    label: [
+      "select-none",
+      "text-switch-label-fg",
+      "data-[disabled]:text-switch-label-fg-disabled",
+    ],
+    root: [
+      "cursor-pointer",
+      "data-[disabled]:cursor-not-allowed",
+      "flex items-center",
+    ],
     thumb: [
       "block aspect-square h-switch-thumb-height rounded-full bg-switch-thumb-bg",
       "transform transition-transform duration-200 motion-reduce:transition-none",
       "data-[disabled]:bg-switch-thumb-bg-disabled",
       "data-[state=checked]:translate-x-switch-translate-track",
     ],
-    label: [
-      "select-none",
-      "text-switch-label-fg",
-      "data-[disabled]:text-switch-label-fg-disabled",
-    ],
-    hiddenInput: "sr-only",
   },
 })
 

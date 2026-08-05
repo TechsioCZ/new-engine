@@ -24,12 +24,12 @@ const REST_API_URL = "https://www.zasilkovna.cz/api/rest"
 const BRANCH_FEED_URL =
   "https://pickup-point.api.packeta.com/v5/{apiKey}/branch.json?lang=cs"
 
-type RequestOptions = {
+interface RequestOptions {
   /** Body fields placed inside the method element alongside apiPassword */
   params?: Record<string, unknown>
 }
 
-type PacketaResponseEnvelope<T> = {
+interface PacketaResponseEnvelope<T> {
   status: "ok" | "fault"
   result?: T
   fault?: string
@@ -127,19 +127,19 @@ export class PacketaClient {
    */
   async packetStatus(packetId: number): Promise<PacketaPacketStatusRecord[]> {
     const raw = await this.request<{
-      record?: Array<{
+      record?: {
         dateTime: string
         statusCode: string | number
         statusName?: string
-      }>
+      }[]
     }>("packetTracking", { params: { packetId } })
 
     const records = raw?.record ?? []
     return records.map((r) => ({
       dateTime: r.dateTime,
+      state: mapPacketaStatusCode(r.statusCode),
       statusCode: r.statusCode,
       statusName: r.statusName ?? String(r.statusCode),
-      state: mapPacketaStatusCode(r.statusCode),
     }))
   }
 
@@ -156,7 +156,7 @@ export class PacketaClient {
   ): Promise<Buffer> {
     const apiFormat = format === "A6" ? "A6 on A6" : "A7 on A4"
     const result = await this.request<string>("packetLabelPdf", {
-      params: { packetId, format: apiFormat, offset },
+      params: { format: apiFormat, offset, packetId },
     })
 
     if (!result || typeof result !== "string") {
@@ -186,7 +186,7 @@ export class PacketaClient {
     )
 
     const payload = await this.withRetry(
-      () => this.fetchWithTimeout(url, { method: "GET" }),
+      async () => this.fetchWithTimeout(url, { method: "GET" }),
       async (response) => {
         if (!response.ok) {
           throw new MedusaError(
@@ -238,15 +238,15 @@ export class PacketaClient {
       },
     })
 
-    return this.withRetry(
-      () =>
+    return await this.withRetry(
+      async () =>
         this.fetchWithTimeout(REST_API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "text/xml; charset=utf-8",
-            Accept: "text/xml",
-          },
           body: xmlBody,
+          headers: {
+            Accept: "text/xml",
+            "Content-Type": "text/xml; charset=utf-8",
+          },
+          method: "POST",
         }),
       async (response) => {
         if (!response.ok) {
@@ -310,7 +310,7 @@ export class PacketaClient {
     return status === 429 || status >= 500
   }
 
-  private sleep(ms: number): Promise<void> {
+  private async sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
@@ -322,8 +322,12 @@ export class PacketaClient {
     const timeoutController = new AbortController()
     const controller = new AbortController()
     const requestSignal = init.signal
-    const abortFromRequestSignal = () => controller.abort()
-    const abortFromTimeout = () => controller.abort()
+    const abortFromRequestSignal = () => {
+      controller.abort()
+    }
+    const abortFromTimeout = () => {
+      controller.abort()
+    }
 
     if (requestSignal?.aborted) {
       controller.abort()
@@ -337,7 +341,9 @@ export class PacketaClient {
       once: true,
     })
 
-    const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs)
+    const timeoutId = setTimeout(() => {
+      timeoutController.abort()
+    }, timeoutMs)
 
     try {
       return await fetch(url, { ...init, signal: controller.signal })
@@ -412,8 +418,8 @@ export class PacketaClient {
 
     if (this.isRetryable(response.status) && attempt < this.MAX_RETRIES) {
       return {
-        retry: true,
         error: new Error(`${response.status} - ${await response.text()}`),
+        retry: true,
       }
     }
 

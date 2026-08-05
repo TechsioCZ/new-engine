@@ -3,7 +3,7 @@ import { MedusaError } from "@medusajs/framework/utils"
 
 import { sendForgotPasswordWorkflow } from "../workflows/send-forgot-password"
 
-type ResetPasswordEvent = {
+interface ResetPasswordEvent {
   entity_id: string
   token: string
   actor_type: string

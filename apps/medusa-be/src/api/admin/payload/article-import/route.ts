@@ -133,19 +133,21 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   }
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), getUpstreamTimeoutMs())
+  const timeout = setTimeout(() => {
+    controller.abort()
+  }, getUpstreamTimeoutMs())
 
   try {
     const response = await fetch(
       `${resolvePayloadBaseUrl()}/api/article-import`,
       {
-        method: "POST",
+        body: createLimitedUploadStream(req, maxUploadBytes),
+        duplex: "half",
         headers: {
           "content-type": contentType,
           "x-payload-api-key": payloadApiKey,
         },
-        body: createLimitedUploadStream(req, maxUploadBytes),
-        duplex: "half",
+        method: "POST",
         signal: controller.signal,
       }
     )

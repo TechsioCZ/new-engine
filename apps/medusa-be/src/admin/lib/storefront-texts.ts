@@ -7,7 +7,7 @@ import type {
 import { queryKeysFactory } from "./query-key-factory"
 import { sdk } from "./sdk"
 
-export type StorefrontText = {
+export interface StorefrontText {
   country: string
   created_at?: string
   default_value: string
@@ -25,14 +25,14 @@ export type StorefrontText = {
   updated_at?: string
 }
 
-export type StorefrontTextsResponse = {
+export interface StorefrontTextsResponse {
   count: number
   limit: number
   offset: number
   storefront_texts: StorefrontText[]
 }
 
-export type StorefrontTextListParams = {
+export interface StorefrontTextListParams {
   limit: number
   locale?: string
   market?: string
@@ -45,19 +45,19 @@ export type StorefrontTextListParams = {
 
 export type StorefrontTextSearchScope = "all" | "value"
 
-export type StorefrontTextInput = {
+export interface StorefrontTextInput {
   override_value?: null | string
   status?: RegistryStorefrontTextStatus
 }
 
 export type StorefrontTextCatalogResponse = StorefrontTextCatalogEnvelope
 
-export type StorefrontTextCatalogImportInput = {
+export interface StorefrontTextCatalogImportInput {
   catalog: unknown
   market: RegistryStorefrontTextMarket
 }
 
-export type StorefrontTextCatalogImportResponse = {
+export interface StorefrontTextCatalogImportResponse {
   locale: string
   market: string
   result: {
@@ -66,11 +66,11 @@ export type StorefrontTextCatalogImportResponse = {
   }
 }
 
-export type StorefrontTextResponse = {
+export interface StorefrontTextResponse {
   storefront_text: StorefrontText
 }
 
-export type StorefrontTextSyncResponse = {
+export interface StorefrontTextSyncResponse {
   result: {
     created_count: number
     updated_count: number
@@ -82,7 +82,7 @@ export const storefrontTextQueryKeys = queryKeysFactory<
   StorefrontTextListParams
 >("storefront-texts")
 
-export const listStorefrontTexts = (params: StorefrontTextListParams) =>
+export const listStorefrontTexts = async (params: StorefrontTextListParams) =>
   sdk.client.fetch<StorefrontTextsResponse>("/admin/storefront-texts", {
     query: {
       ...params,
@@ -90,7 +90,10 @@ export const listStorefrontTexts = (params: StorefrontTextListParams) =>
     },
   })
 
-export const updateStorefrontText = (id: string, input: StorefrontTextInput) =>
+export const updateStorefrontText = async (
+  id: string,
+  input: StorefrontTextInput
+) =>
   sdk.client.fetch<StorefrontTextResponse>(
     `/admin/storefront-texts/${id}/update`,
     {
@@ -99,12 +102,12 @@ export const updateStorefrontText = (id: string, input: StorefrontTextInput) =>
     }
   )
 
-export const syncStorefrontTexts = () =>
+export const syncStorefrontTexts = async () =>
   sdk.client.fetch<StorefrontTextSyncResponse>("/admin/storefront-texts/sync", {
     method: "POST",
   })
 
-export const getStorefrontTextCatalog = (
+export const getStorefrontTextCatalog = async (
   market: RegistryStorefrontTextMarket
 ) =>
   sdk.client.fetch<StorefrontTextCatalogResponse>(
@@ -112,7 +115,7 @@ export const getStorefrontTextCatalog = (
     { query: { market } }
   )
 
-export const importStorefrontTextCatalog = (
+export const importStorefrontTextCatalog = async (
   input: StorefrontTextCatalogImportInput
 ) =>
   sdk.client.fetch<StorefrontTextCatalogImportResponse>(

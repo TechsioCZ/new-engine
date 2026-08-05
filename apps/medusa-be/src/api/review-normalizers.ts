@@ -1,14 +1,14 @@
 import { escapeLikePattern } from "../utils/sql"
 import type { AdminGetReviewsSchemaType } from "./admin/reviews/validators"
 
-export type ProductRecord = {
+export interface ProductRecord {
   handle?: string
   id: string
   thumbnail?: null | string
   title?: string
 }
 
-export type ReviewRecord = {
+export interface ReviewRecord {
   content: string
   created_at?: Date | string
   customer_id: string
@@ -44,8 +44,7 @@ const LEADING_DASH_REGEX = /^-/
 const serializeDate = (date: Date | string | undefined) =>
   date instanceof Date ? date.toISOString() : date
 
-export const normalizeReviewOrder = (input?: string) => {
-  const value = input ?? "-created_at"
+export const normalizeReviewOrder = (value: string = "-created_at") => {
   const direction = value.startsWith("-") ? "DESC" : "ASC"
   const field = value.replace(LEADING_DASH_REGEX, "")
 

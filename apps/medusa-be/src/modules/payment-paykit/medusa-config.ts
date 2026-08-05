@@ -7,14 +7,14 @@ import {
 type PaykitConfigEnv = NodeJS.ProcessEnv
 
 const PAYKIT_PROVIDER_FEATURE_FLAGS = {
+  COMGATE: "FEATURE_PAYKIT_COMGATE_ENABLED",
   GOPAY: "FEATURE_PAYKIT_GOPAY_ENABLED",
   STRIPE: "FEATURE_PAYKIT_STRIPE_ENABLED",
-  COMGATE: "FEATURE_PAYKIT_COMGATE_ENABLED",
 } as const
 
 type PaykitProviderFeature = keyof typeof PAYKIT_PROVIDER_FEATURE_FLAGS
 
-export type PaykitPaymentProviderConfig = {
+export interface PaykitPaymentProviderConfig {
   id: string
   options: Record<string, unknown>
   resolve: string
@@ -77,16 +77,16 @@ export const buildPaykitPaymentProviders = (
     ])
 
     providers.push({
-      resolve: "./src/modules/payment-paykit/services/gopay",
       id: PAYKIT_GOPAY_PROVIDER_ID,
       options: {
         clientId: env["GOPAY_CLIENT_ID"],
         clientSecret: env["GOPAY_CLIENT_SECRET"],
+        debug,
         goId: env["GOPAY_GO_ID"],
         isSandbox: parseBooleanEnv(env["GOPAY_SANDBOX"], true),
         webhookUrl: env["GOPAY_WEBHOOK_URL"],
-        debug,
       },
+      resolve: "./src/modules/payment-paykit/services/gopay",
     })
   }
 
@@ -97,13 +97,13 @@ export const buildPaykitPaymentProviders = (
     ])
 
     providers.push({
-      resolve: "./src/modules/payment-paykit/services/stripe",
       id: PAYKIT_STRIPE_PROVIDER_ID,
       options: {
         apiKey: env["STRIPE_API_KEY"],
-        webhookSecret: env["STRIPE_WEBHOOK_SECRET"],
         debug,
+        webhookSecret: env["STRIPE_WEBHOOK_SECRET"],
       },
+      resolve: "./src/modules/payment-paykit/services/stripe",
     })
   }
 
@@ -114,15 +114,15 @@ export const buildPaykitPaymentProviders = (
     ])
 
     providers.push({
-      resolve: "./src/modules/payment-paykit/services/comgate",
       id: PAYKIT_COMGATE_PROVIDER_ID,
       options: {
-        merchant: env["COMGATE_MERCHANT"],
-        secret: env["COMGATE_SECRET"],
-        isSandbox: parseBooleanEnv(env["COMGATE_SANDBOX"], true),
-        paymentLabel: env["COMGATE_PAYMENT_LABEL"],
         debug,
+        isSandbox: parseBooleanEnv(env["COMGATE_SANDBOX"], true),
+        merchant: env["COMGATE_MERCHANT"],
+        paymentLabel: env["COMGATE_PAYMENT_LABEL"],
+        secret: env["COMGATE_SECRET"],
       },
+      resolve: "./src/modules/payment-paykit/services/comgate",
     })
   }
 

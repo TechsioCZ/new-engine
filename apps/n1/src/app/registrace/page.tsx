@@ -8,7 +8,11 @@ export default function RegisterPage() {
 
   return (
     <div className="mx-auto w-md max-w-full py-600">
-      <RegisterForm onSuccess={() => router.push("/ucet/profil")} />
+      <RegisterForm
+        onSuccess={() => {
+          router.push("/ucet/profil")
+        }}
+      />
     </div>
   )
 }

@@ -20,12 +20,12 @@ describe("order business status admin translations", () => {
     for (const locale of ["cs", "en"] as const) {
       expect(
         Object.keys(resources[locale].orderBusinessStatuses.statuses).sort()
-      ).toEqual([...ORDER_BUSINESS_STATUS_IDS].sort())
+      ).toStrictEqual([...ORDER_BUSINESS_STATUS_IDS].sort())
     }
   })
 
   it("keeps the Czech business labels in the Medusa admin i18n resource", () => {
-    expect(resources.cs.orderBusinessStatuses.statuses).toEqual({
+    expect(resources.cs.orderBusinessStatuses.statuses).toStrictEqual({
       awaiting_payment: "Čeká na platbu",
       canceled: "Storno",
       delivered: "Doručená",
@@ -54,7 +54,7 @@ describe("B2B admin translations", () => {
       "quotes",
       "translation",
     ] as const) {
-      expect(collectLeafPaths(resources.cs[namespace])).toEqual(
+      expect(collectLeafPaths(resources.cs[namespace])).toStrictEqual(
         collectLeafPaths(resources.en[namespace])
       )
     }
@@ -75,7 +75,7 @@ describe("storefront text admin translations", () => {
   it("registers matching Czech and English resources", () => {
     expect(resources.cs.storefrontTexts.menuItem).toBe("Jazyky")
     expect(resources.en.storefrontTexts.menuItem).toBe("Languages")
-    expect(collectLeafPaths(resources.cs.storefrontTexts)).toEqual(
+    expect(collectLeafPaths(resources.cs.storefrontTexts)).toStrictEqual(
       collectLeafPaths(resources.en.storefrontTexts)
     )
   })

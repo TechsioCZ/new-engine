@@ -58,17 +58,17 @@ export function validateAddToCart({
   // Check if total quantity exceeds available stock
   if (requestedTotal > availableQuantity) {
     return {
-      valid: false,
-      error: "insufficient_stock",
-      currentQuantity,
       availableQuantity,
+      currentQuantity,
+      error: "insufficient_stock",
       requestedTotal,
+      valid: false,
     }
   }
 
   return {
-    valid: true,
-    currentQuantity,
     availableQuantity,
+    currentQuantity,
+    valid: true,
   }
 }

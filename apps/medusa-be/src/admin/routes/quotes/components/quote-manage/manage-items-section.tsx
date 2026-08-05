@@ -11,7 +11,7 @@ import { useAddItemsToQuote } from "../../../../hooks/api"
 import { ManageItem } from "./manage-item"
 import { ManageItemsTable } from "./manage-items-table"
 
-type ManageItemsSectionProps = {
+interface ManageItemsSectionProps {
   order: AdminOrder
   preview: AdminOrderPreview
 }
@@ -41,12 +41,12 @@ export const ManageItemsSection = ({
     try {
       await addItems({
         items: addedVariants.map((i) => ({
-          variant_id: i,
           quantity: 1,
+          variant_id: i,
         })),
       })
-    } catch (e) {
-      toast.error(getErrorMessage(e))
+    } catch (error) {
+      toast.error(getErrorMessage(error))
     }
 
     setIsOpen("inbound-items", false)
@@ -69,7 +69,9 @@ export const ManageItemsSection = ({
         <div className="flex gap-2">
           <Input
             autoComplete="off"
-            onChange={(e) => setFilterTerm(e.target.value)}
+            onChange={(e) => {
+              setFilterTerm(e.target.value)
+            }}
             placeholder={t("fields.search")}
             type="search"
             value={filterTerm}
@@ -103,7 +105,9 @@ export const ManageItemsSection = ({
                     <Button
                       disabled={isPending}
                       key="submit-button"
-                      onClick={async () => await onItemsSelected()}
+                      onClick={async () => {
+                        await onItemsSelected()
+                      }}
                       role="button"
                       size="small"
                       type="submit"

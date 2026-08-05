@@ -6,12 +6,12 @@ import { toComparableTimestamp } from "../shared/date-utils"
 import { isAuthError } from "../shared/medusa-errors"
 import type { AuthService } from "./types"
 
-export type MedusaAuthCredentials = {
+export interface MedusaAuthCredentials {
   email: string
   password: string
 }
 
-export type MedusaRegisterData = {
+export interface MedusaRegisterData {
   email: string
   password: string
   first_name?: string
@@ -44,7 +44,7 @@ export type MedusaLogoutErrorContext =
   | "register-cleanup"
   | "register-signin-recovery"
 
-export type MedusaAuthServiceConfig = {
+export interface MedusaAuthServiceConfig {
   onLogoutError?: (error: unknown, context: MedusaLogoutErrorContext) => void
 }
 
@@ -137,7 +137,7 @@ export function createMedusaAuthService(
     })
 
     if (typeof sessionToken !== "string") {
-      throw new Error("Multi-step authentication not supported")
+      throw new TypeError("Multi-step authentication not supported")
     }
 
     return sessionToken
@@ -178,7 +178,7 @@ export function createMedusaAuthService(
 
       // Handle OAuth redirects
       if (typeof token !== "string") {
-        throw new Error("Multi-step authentication not supported")
+        throw new TypeError("Multi-step authentication not supported")
       }
 
       return token
@@ -213,7 +213,7 @@ export function createMedusaAuthService(
         // This guard lives inside the cleanup scope so we always attempt logout
         // when register created an auth identity but we cannot continue.
         if (typeof registrationToken !== "string") {
-          throw new Error("Multi-step authentication not supported")
+          throw new TypeError("Multi-step authentication not supported")
         }
 
         // Step 2: Login to establish the standard customer auth state before
@@ -224,7 +224,7 @@ export function createMedusaAuthService(
           password: data.password,
         })
         if (typeof loginToken !== "string") {
-          throw new Error("Multi-step authentication not supported")
+          throw new TypeError("Multi-step authentication not supported")
         }
 
         // Step 3: CREATE customer profile (not update!)
@@ -242,7 +242,7 @@ export function createMedusaAuthService(
         // does not keep a bearer token around, so we forward the login token
         // explicitly to the refresh endpoint.
         return await refreshRegisterSession(loginToken)
-      } catch (err) {
+      } catch (error) {
         const logoutContext: MedusaLogoutErrorContext = customerCreated
           ? "register-signin-recovery"
           : "register-cleanup"
@@ -250,10 +250,10 @@ export function createMedusaAuthService(
         await cleanupRegisterSession(logoutContext)
 
         if (customerCreated) {
-          throw new MedusaRegistrationSignInError(data.email, err)
+          throw new MedusaRegistrationSignInError(data.email, error)
         }
 
-        throw err
+        throw error
       }
     },
 

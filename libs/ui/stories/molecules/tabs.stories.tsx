@@ -6,66 +6,66 @@ import { Badge } from "../../src/atoms/badge"
 import { Tabs } from "../../src/molecules/tabs"
 
 const meta: Meta<typeof Tabs> = {
-  title: "Molecules/Tabs",
+  argTypes: {
+    activationMode: {
+      control: "radio",
+      description: "Tab activation behavior",
+      options: ["automatic", "manual"],
+      table: { category: "Behavior", defaultValue: { summary: "automatic" } },
+    },
+    dir: {
+      control: "radio",
+      description: "Text direction",
+      options: ["ltr", "rtl"],
+      table: { category: "Behavior", defaultValue: { summary: "ltr" } },
+    },
+    fitted: {
+      control: "boolean",
+      description: "Tabs fill full width",
+      table: { category: "Layout", defaultValue: { summary: "false" } },
+    },
+    justify: {
+      control: "select",
+      description: "Tab list justification",
+      options: ["start", "center", "end"],
+      table: { category: "Layout", defaultValue: { summary: "start" } },
+    },
+    loopFocus: {
+      control: "boolean",
+      description: "Loop keyboard focus",
+      table: { category: "Behavior", defaultValue: { summary: "true" } },
+    },
+    orientation: {
+      control: "radio",
+      description: "Tabs orientation",
+      options: ["horizontal", "vertical"],
+      table: { category: "Layout", defaultValue: { summary: "horizontal" } },
+    },
+    size: {
+      control: "select",
+      description: "Size of the tabs",
+      options: ["sm", "md", "lg"],
+      table: { category: "Appearance", defaultValue: { summary: "md" } },
+    },
+    variant: {
+      control: "select",
+      description: "Visual style variant",
+      options: ["default", "line", "solid", "outline"],
+      table: { category: "Appearance", defaultValue: { summary: "default" } },
+    },
+  },
   component: Tabs,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component:
           "A flexible tabs component using compound pattern. Allows full control over tab structure and content with composition.",
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  argTypes: {
-    variant: {
-      control: "select",
-      options: ["default", "line", "solid", "outline"],
-      description: "Visual style variant",
-      table: { defaultValue: { summary: "default" }, category: "Appearance" },
-    },
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-      description: "Size of the tabs",
-      table: { defaultValue: { summary: "md" }, category: "Appearance" },
-    },
-    orientation: {
-      control: "radio",
-      options: ["horizontal", "vertical"],
-      description: "Tabs orientation",
-      table: { defaultValue: { summary: "horizontal" }, category: "Layout" },
-    },
-    fitted: {
-      control: "boolean",
-      description: "Tabs fill full width",
-      table: { defaultValue: { summary: "false" }, category: "Layout" },
-    },
-    justify: {
-      control: "select",
-      options: ["start", "center", "end"],
-      description: "Tab list justification",
-      table: { defaultValue: { summary: "start" }, category: "Layout" },
-    },
-    dir: {
-      control: "radio",
-      options: ["ltr", "rtl"],
-      description: "Text direction",
-      table: { defaultValue: { summary: "ltr" }, category: "Behavior" },
-    },
-    activationMode: {
-      control: "radio",
-      options: ["automatic", "manual"],
-      description: "Tab activation behavior",
-      table: { defaultValue: { summary: "automatic" }, category: "Behavior" },
-    },
-    loopFocus: {
-      control: "boolean",
-      description: "Loop keyboard focus",
-      table: { defaultValue: { summary: "true" }, category: "Behavior" },
-    },
-  },
+  title: "Molecules/Tabs",
 }
 
 export default meta
@@ -74,15 +74,15 @@ type Story = StoryObj<typeof Tabs>
 // Playground with interactive controls
 export const Playground: Story = {
   args: {
-    variant: "line",
-    size: "md",
-    orientation: "horizontal",
+    activationMode: "automatic",
+    defaultValue: "tab1",
+    dir: "ltr",
     fitted: false,
     justify: "start",
-    dir: "ltr",
-    activationMode: "automatic",
     loopFocus: true,
-    defaultValue: "tab1",
+    orientation: "horizontal",
+    size: "md",
+    variant: "line",
   },
   render: (args) => (
     <Tabs {...args} className="w-md">

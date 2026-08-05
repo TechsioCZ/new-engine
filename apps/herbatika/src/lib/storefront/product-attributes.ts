@@ -44,9 +44,9 @@ export const mergeWarrantyIntoProductContentSections = (
     return [
       ...sections,
       {
+        html: warrantyHtml,
         key: OTHER_SECTION_KEY,
         title: otherSectionTitle,
-        html: warrantyHtml,
       },
     ]
   }

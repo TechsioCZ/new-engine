@@ -8,9 +8,9 @@ import {
 
 const variantOneLocations = [
   {
+    available_quantity: 4,
     location_id: "sloc_store",
     location_name: "Prodejna",
-    available_quantity: 4,
   },
 ]
 
@@ -18,17 +18,17 @@ const availability = {
   product_id: "prod_1",
   variants: [
     {
-      variant_id: "variant_1",
       location_availability: variantOneLocations,
+      variant_id: "variant_1",
     },
     {
-      variant_id: "variant_empty",
       location_availability: [],
+      variant_id: "variant_empty",
     },
   ],
 }
 
-describe("formatLocationAvailability", () => {
+describe(formatLocationAvailability, () => {
   it.each([
     [Number.NaN, "0 ks"],
     [-2, "0 ks"],
@@ -48,51 +48,51 @@ describe("formatLocationAvailability", () => {
   })
 })
 
-describe("resolveSelectedVariantLocationAvailability", () => {
+describe(resolveSelectedVariantLocationAvailability, () => {
   it("returns the selected variant locations", () => {
     expect(
       resolveSelectedVariantLocationAvailability(availability, "variant_1")
-    ).toEqual(variantOneLocations)
+    ).toStrictEqual(variantOneLocations)
   })
 
   it("returns an empty array when the selected variant has no locations", () => {
     expect(
       resolveSelectedVariantLocationAvailability(availability, "variant_empty")
-    ).toEqual([])
+    ).toStrictEqual([])
   })
 
   it("returns null without availability or selected variant", () => {
-    expect(resolveSelectedVariantLocationAvailability(null, "variant_1")).toBe(
-      null
-    )
-    expect(resolveSelectedVariantLocationAvailability(availability, null)).toBe(
-      null
-    )
+    expect(
+      resolveSelectedVariantLocationAvailability(null, "variant_1")
+    ).toBeNull()
+    expect(
+      resolveSelectedVariantLocationAvailability(availability, null)
+    ).toBeNull()
   })
 
   it("returns null when the selected variant is missing", () => {
     expect(
       resolveSelectedVariantLocationAvailability(availability, "variant_2")
-    ).toBe(null)
+    ).toBeNull()
   })
 })
 
-describe("resolveProductLocationAvailabilityState", () => {
+describe(resolveProductLocationAvailabilityState, () => {
   it("projects query state into selected variant availability state", () => {
     expect(
       resolveProductLocationAvailabilityState(
         {
-          productLocationAvailability: availability,
-          isLoading: false,
           error: null,
+          isLoading: false,
+          productLocationAvailability: availability,
         },
         "variant_1"
       )
-    ).toEqual({
-      items: variantOneLocations,
-      isLoading: false,
+    ).toStrictEqual({
       error: null,
       isInventoryManaged: true,
+      isLoading: false,
+      items: variantOneLocations,
     })
   })
 
@@ -100,9 +100,9 @@ describe("resolveProductLocationAvailabilityState", () => {
     expect(
       resolveProductLocationAvailabilityState(
         {
-          productLocationAvailability: availability,
-          isLoading: false,
           error: null,
+          isLoading: false,
+          productLocationAvailability: availability,
         },
         "variant_1",
         { isInventoryManaged: false }

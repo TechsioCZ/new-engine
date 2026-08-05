@@ -1,8 +1,5 @@
-import {
-  type CacheConfig,
-  type CacheStrategy,
-  createCacheConfig,
-} from "../shared/cache-config"
+import { createCacheConfig } from "../shared/cache-config"
+import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
@@ -24,13 +21,13 @@ import type {
   UseSuspenseCategoryResult,
 } from "./types"
 
-export type CreateCategoryHooksConfig<
+export interface CreateCategoryHooksConfig<
   TCategory,
   TListInput extends CategoryListInputBase,
   TListParams,
   TDetailInput extends CategoryDetailInputBase,
   TDetailParams,
-> = {
+> {
   service: CategoryService<TCategory, TListParams, TDetailParams>
   buildListParams?: (input: TListInput) => TListParams
   buildDetailParams?: (input: TDetailInput) => TDetailParams
@@ -73,25 +70,25 @@ export function createCategoryHooks<
     ((input: TDetailInput) => ({ ...input }) as TDetailInput & TDetailParams)
   const { getListQueryOptions, getDetailQueryOptions } =
     createCategoryQueryOptionsFactory({
-      service,
-      buildListParams: buildList,
       buildDetailParams: buildDetail,
-      queryKeys: resolvedQueryKeys,
+      buildListParams: buildList,
       cacheConfig: resolvedCacheConfig,
+      queryKeys: resolvedQueryKeys,
+      service,
     })
   const simpleHooks = createSimpleListDetailHooks({
-    buildList,
     buildDetail,
+    buildList,
+    defaultCacheStrategy: "static",
+    defaultPageSize,
+    getDetail: service.getCategory,
+    getDetailQueryOptions,
+    getList: service.getCategories,
     getListItems: (data: CategoryListResponse<TCategory> | undefined) =>
       data?.categories ?? [],
-    getList: service.getCategories,
-    getDetail: service.getCategory,
     getListQueryOptions,
-    getDetailQueryOptions,
     resolvedCacheConfig,
     resolvedQueryKeys,
-    defaultPageSize,
-    defaultCacheStrategy: "static",
   })
 
   function useCategories(
@@ -171,14 +168,14 @@ export function createCategoryHooks<
   }
 
   return {
-    getListQueryOptions,
     getDetailQueryOptions,
+    getListQueryOptions,
     useCategories,
-    useSuspenseCategories,
     useCategory,
-    useSuspenseCategory,
     usePrefetchCategories,
     usePrefetchCategory,
+    useSuspenseCategories,
+    useSuspenseCategory,
   }
 }
 

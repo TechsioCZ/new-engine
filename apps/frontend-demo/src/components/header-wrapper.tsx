@@ -16,12 +16,6 @@ interface HeaderWrapperProps {
 export function HeaderWrapper({ logo }: HeaderWrapperProps) {
   const headerCategories = {
     Město: getCategoryIdsByHandles(["kosile", "svetry", "street"]),
-    Zimní: getCategoryIdsByHandles([
-      "zimni",
-      "kalhoty-category-469",
-      "rukavice",
-      "kulichy",
-    ]),
     Obuv: getCategoryIdsByHandles(["street-category-22", "zabky"]),
     Sport: getCategoryIdsByHandles([
       "plavky",
@@ -30,26 +24,32 @@ export function HeaderWrapper({ logo }: HeaderWrapperProps) {
       "longboardy-category-463",
       "prilby-category-475",
     ]),
+    Zimní: getCategoryIdsByHandles([
+      "zimni",
+      "kalhoty-category-469",
+      "rukavice",
+      "kulichy",
+    ]),
   }
 
   const categoryItems: NavItem[] = Object.entries(headerCategories).map(
     ([title, categoryIds]) => ({
-      title,
       href: `/products?categories=${categoryIds.join(",")}`,
+      title,
     })
   )
 
   const navigationItems: NavItem[] = [
-    { title: "Domů", href: "/", prefetch: false },
-    { title: "Produkty", href: "/products", prefetch: true },
+    { href: "/", prefetch: false, title: "Domů" },
+    { href: "/products", prefetch: true, title: "Produkty" },
     {
-      title: "Oblíbené",
-      role: "submenu" as const,
       children: categoryItems,
       prefetch: true,
+      role: "submenu" as const,
+      title: "Oblíbené",
     },
-    { title: "O nás", href: "/about", prefetch: false },
-    { title: "Kontakt", href: "/contact", prefetch: false },
+    { href: "/about", prefetch: false, title: "O nás" },
+    { href: "/contact", prefetch: false, title: "Kontakt" },
   ]
 
   return <Header logo={logo} navigationItems={navigationItems} />

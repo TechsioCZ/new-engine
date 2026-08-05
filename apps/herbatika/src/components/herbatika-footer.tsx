@@ -24,7 +24,7 @@ type FooterNavigationLink =
       external: true
     }
 
-type FooterColumn = {
+interface FooterColumn {
   titleKey: string
   links: readonly FooterNavigationLink[]
 }
@@ -36,7 +36,6 @@ const formatMarketDomain = (domain: string) =>
 
 const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
-    titleKey: "footer.columns.information.title",
     links: [
       { href: "/blog", labelKey: "footer.columns.information.blog" },
       { href: "/o-nas", labelKey: "footer.columns.information.about" },
@@ -55,9 +54,9 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
         external: true,
       },
     ],
+    titleKey: "footer.columns.information.title",
   },
   {
-    titleKey: "footer.columns.important.title",
     links: [
       {
         href: "/#doprava-a-platby",
@@ -80,9 +79,9 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
         labelKey: "footer.columns.important.cookies",
       },
     ],
+    titleKey: "footer.columns.important.title",
   },
   {
-    titleKey: "footer.columns.partners.title",
     links: [
       {
         href: "/#affiliate",
@@ -101,6 +100,7 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
         labelKey: "footer.columns.partners.private_label",
       },
     ],
+    titleKey: "footer.columns.partners.title",
   },
 ]
 
@@ -133,7 +133,7 @@ const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
 ]
 
 const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
-  { code: "SK", icon: "token-icon-sk", active: true },
+  { active: true, code: "SK", icon: "token-icon-sk" },
   { code: "CZ", icon: "token-icon-cz" },
   { code: "HU", icon: "token-icon-hu" },
   { code: "RO", icon: "token-icon-ro" },

@@ -39,7 +39,9 @@ export const QuoteDetailsHeader = ({
                   "merchant_rejected",
                 ].includes(quote.status)
               }
-              onClick={() => navigate("manage")}
+              onClick={() => {
+                navigate("manage")
+              }}
             >
               <PencilSquare />
               {t("actions.manage")}

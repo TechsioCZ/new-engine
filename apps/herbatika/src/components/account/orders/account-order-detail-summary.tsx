@@ -15,7 +15,6 @@ import {
 import {
   formatOrderAmount,
   formatOrderDate,
-  type OrderStatusTranslator,
   resolveOrderDisplayId,
   resolveOrderFulfillmentStatusLabel,
   resolveOrderInvoiceUrl,
@@ -25,13 +24,14 @@ import {
   resolveOrderProgressState,
   resolveOrderTotalAmount,
 } from "@/lib/storefront/order-format"
+import type { OrderStatusTranslator } from "@/lib/storefront/order-format"
 
-type AccountOrderDetailSummaryProps = {
+interface AccountOrderDetailSummaryProps {
   order: HttpTypes.StoreOrder
   customerEmail?: string | null
 }
 
-type OrderAmountSummary = {
+interface OrderAmountSummary {
   itemSubtotal: number
   shippingSubtotal: number
   taxTotal: number

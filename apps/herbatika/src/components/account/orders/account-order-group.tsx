@@ -8,7 +8,6 @@ import NextLink from "@/components/app-link"
 import {
   formatOrderAmount,
   formatOrderDate,
-  type OrderStatusTranslator,
   resolveOrderDisplayId,
   resolveOrderInvoiceUrl,
   resolveOrderItemQuantity,
@@ -16,8 +15,9 @@ import {
   resolveOrderProgressState,
   resolveOrderTotalAmount,
 } from "@/lib/storefront/order-format"
+import type { OrderStatusTranslator } from "@/lib/storefront/order-format"
 
-type AccountOrderGroupProps = {
+interface AccountOrderGroupProps {
   order: HttpTypes.StoreOrder
   onPrefetchOrderDetail: (orderId: string) => void
 }

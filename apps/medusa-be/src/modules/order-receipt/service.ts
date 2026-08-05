@@ -17,16 +17,18 @@ import {
   getSubtotal,
   getTaxTotal,
   getTotal,
-  type OrderReceiptAddress,
-  type OrderReceiptAttachment,
-  type OrderReceiptOrder,
   PDF_CZECH_ENCODING_DIFFERENCES,
-  type PdfCommand,
-  type PdfFont,
   pdfLine,
   pdfText,
   truncate,
   wrapToEstimatedWidth,
+} from "./helpers"
+import type {
+  OrderReceiptAddress,
+  OrderReceiptAttachment,
+  OrderReceiptOrder,
+  PdfCommand,
+  PdfFont,
 } from "./helpers"
 
 export type {
@@ -67,7 +69,7 @@ const FIRST_PAGE_ROWS_WITHOUT_SUMMARY = 15
 const CONTINUATION_PAGE_ROWS_WITH_SUMMARY = 21
 const CONTINUATION_PAGE_ROWS_WITHOUT_SUMMARY = 28
 
-type ReceiptTableRow = {
+interface ReceiptTableRow {
   quantity: number
   taxLabel: string
   title: string
@@ -75,7 +77,7 @@ type ReceiptTableRow = {
   unitPriceNet: number
 }
 
-type ReceiptTablePage = {
+interface ReceiptTablePage {
   includeSummary: boolean
   isFirstPage: boolean
   rows: ReceiptTableRow[]
@@ -84,8 +86,8 @@ type ReceiptTablePage = {
 
 function normalizeCustomerLine(value?: string | null) {
   return String(value ?? "")
-    .replace(/\u00a0/g, " ")
-    .replace(/\s+/g, " ")
+    .replaceAll(/\u00A0/g, " ")
+    .replaceAll(/\s+/g, " ")
     .trim()
 }
 
@@ -100,7 +102,7 @@ function customerBlock(
   return lines.length ? lines : ["Zákazník"]
 }
 
-type CustomerTextRow = {
+interface CustomerTextRow {
   font: PdfFont
   size: number
   value: string
@@ -116,7 +118,7 @@ function markCustomerOverflow(row: CustomerTextRow): CustomerTextRow {
     return { ...row, value: `${row.value}${marker}` }
   }
 
-  let value = row.value
+  let { value } = row
   while (
     value &&
     estimateTextWidth(`${value}${marker}`, row.size, row.font) >
@@ -169,10 +171,12 @@ function buildTableRows(order: OrderReceiptOrder): ReceiptTableRow[] {
 }
 
 function renderTableHeader(commands: PdfCommand[], tableTop: number) {
-  commands.push(pdfText("ks", LEFT, tableTop + 14, { size: 9 }))
-  commands.push(pdfText("Položka", LEFT + 32, tableTop + 14, { size: 9 }))
-  commands.push(pdfText("DPH", 335, tableTop + 14, { align: "right", size: 9 }))
   commands.push(
+    pdfText("ks", LEFT, tableTop + 14, { size: 9 }),
+    pdfText("Položka", LEFT + 32, tableTop + 14, { size: 9 })
+  )
+  commands.push(
+    pdfText("DPH", 335, tableTop + 14, { align: "right", size: 9 }),
     pdfText("Cena za MJ bez DPH", 430, tableTop + 14, {
       align: "right",
       size: 8,
@@ -182,9 +186,9 @@ function renderTableHeader(commands: PdfCommand[], tableTop: number) {
     pdfText("Celkem bez DPH", RIGHT, tableTop + 14, {
       align: "right",
       size: 9,
-    })
+    }),
+    pdfLine({ x1: LEFT, x2: RIGHT, y1: tableTop, y2: tableTop })
   )
-  commands.push(pdfLine({ x1: LEFT, x2: RIGHT, y1: tableTop, y2: tableTop }))
 }
 
 function renderTableRows(
@@ -196,10 +200,12 @@ function renderTableRows(
   tableRows.forEach((row, index) => {
     const y = tableTop - TABLE_ROW_TOP_OFFSET - index * TABLE_ROW_HEIGHT
 
-    commands.push(pdfText(row.quantity, LEFT, y, { size: 9 }))
-    commands.push(pdfText(truncate(row.title, 36), LEFT + 32, y, { size: 9 }))
-    commands.push(pdfText(row.taxLabel, 335, y, { align: "right", size: 9 }))
     commands.push(
+      pdfText(row.quantity, LEFT, y, { size: 9 }),
+      pdfText(truncate(row.title, 36), LEFT + 32, y, { size: 9 })
+    )
+    commands.push(
+      pdfText(row.taxLabel, 335, y, { align: "right", size: 9 }),
       pdfText(formatMoney(row.unitPriceNet, currency), 430, y, {
         align: "right",
         size: 8,
@@ -236,17 +242,15 @@ function renderSummary(
 ) {
   const summaryLabelX = 336
   commands.push(
-    pdfText("Cena bez DPH (zboží)", summaryLabelX, summaryY, { size: 10 })
-  )
-  commands.push(
+    pdfText("Cena bez DPH (zboží)", summaryLabelX, summaryY, { size: 10 }),
     pdfText(formatMoney(subtotal, currency), RIGHT, summaryY, {
       align: "right",
       size: 10,
     })
   )
   if (discountTotal > 0) {
-    commands.push(pdfText("Sleva", summaryLabelX, summaryY - 16, { size: 10 }))
     commands.push(
+      pdfText("Sleva", summaryLabelX, summaryY - 16, { size: 10 }),
       pdfText(
         `-${formatMoney(discountTotal, currency)}`,
         RIGHT,
@@ -260,17 +264,15 @@ function renderSummary(
   }
   if (shippingTotal > 0) {
     commands.push(
-      pdfText("Doprava", summaryLabelX, summaryY - 32, { size: 10 })
-    )
-    commands.push(
+      pdfText("Doprava", summaryLabelX, summaryY - 32, { size: 10 }),
       pdfText(formatMoney(shippingTotal, currency), RIGHT, summaryY - 32, {
         align: "right",
         size: 10,
       })
     )
   }
-  commands.push(pdfText("DPH", summaryLabelX, summaryY - 48, { size: 10 }))
   commands.push(
+    pdfText("DPH", summaryLabelX, summaryY - 48, { size: 10 }),
     pdfText(formatMoney(taxTotal, currency), RIGHT, summaryY - 48, {
       align: "right",
       size: 10,
@@ -282,9 +284,7 @@ function renderSummary(
       x2: RIGHT,
       y1: summaryY - 58,
       y2: summaryY - 58,
-    })
-  )
-  commands.push(
+    }),
     pdfText(formatMoney(total, currency), RIGHT, summaryY - 86, {
       align: "right",
       font: FONT_BOLD,
@@ -294,8 +294,8 @@ function renderSummary(
 }
 
 function renderFooter(commands: PdfCommand[]) {
-  commands.push(pdfText("Děkujeme za objednávku.", LEFT, 66, { size: 8 }))
   commands.push(
+    pdfText("Děkujeme za objednávku.", LEFT, 66, { size: 8 }),
     pdfText("Doklad byl vygenerován automaticky.", LEFT, 53, {
       size: 8,
     })
@@ -320,35 +320,34 @@ function renderFirstPageHeader(
     supplierY: number
   }
 ) {
-  commands.push(pdfText("Faktura", 330, TOP, { font: FONT_BOLD, size: 24 }))
   commands.push(
+    pdfText("Faktura", 330, TOP, { font: FONT_BOLD, size: 24 }),
     pdfText(orderNumber, 330, TOP - 28, { font: FONT_NORMAL, size: 22 })
   )
-  commands.push(pdfText("Daňový doklad", 330, TOP - 58, { size: 10 }))
-  commands.push(...paymentQrCommands)
-  commands.push(pdfText("Datum vystavení", 330, TOP - 104, { size: 10 }))
   commands.push(
+    pdfText("Daňový doklad", 330, TOP - 58, { size: 10 }),
+    ...paymentQrCommands
+  )
+  commands.push(
+    pdfText("Datum vystavení", 330, TOP - 104, { size: 10 }),
     pdfText(formatDate(order.created_at), RIGHT, TOP - 104, {
       align: "right",
       size: 10,
     })
   )
 
-  commands.push(pdfText("Dodavatel", LEFT, supplierY, { size: 11 }))
   commands.push(
+    pdfText("Dodavatel", LEFT, supplierY, { size: 11 }),
     pdfText(supplierName, LEFT, supplierY - 23, { font: FONT_BOLD, size: 12 })
   )
   commands.push(
     pdfText("Faktura vystavena automaticky.", LEFT, supplierY - 40, {
       size: 10,
-    })
+    }),
+    pdfText("Objednávka", LEFT, supplierY - 81, { size: 10 })
   )
-  commands.push(pdfText("Objednávka", LEFT, supplierY - 81, { size: 10 }))
   commands.push(
-    pdfText(orderNumber, 205, supplierY - 81, { align: "right", size: 10 })
-  )
-
-  commands.push(
+    pdfText(orderNumber, 205, supplierY - 81, { align: "right", size: 10 }),
     pdfText("Odběratel", CUSTOMER_X, CUSTOMER_LABEL_Y, { size: 11 })
   )
   customerTextRows(billingAddress, order.email).forEach((row, index) => {
@@ -367,8 +366,10 @@ function renderFirstPageHeader(
 }
 
 function renderContinuationHeader(commands: PdfCommand[], orderNumber: string) {
-  commands.push(pdfText("Faktura", LEFT, TOP, { font: FONT_BOLD, size: 16 }))
-  commands.push(pdfText(orderNumber, RIGHT, TOP, { align: "right", size: 12 }))
+  commands.push(
+    pdfText("Faktura", LEFT, TOP, { font: FONT_BOLD, size: 16 }),
+    pdfText(orderNumber, RIGHT, TOP, { align: "right", size: 12 })
+  )
 }
 
 function paginateTableRows(tableRows: ReceiptTableRow[]): ReceiptTablePage[] {
@@ -444,7 +445,7 @@ function buildPdfBuffer(pageCommands: PdfCommand[][]) {
       (page) =>
         `${page.contentObjectId} 0 obj\n<< /Length ${Buffer.byteLength(
           page.stream,
-          "utf8"
+          "utf-8"
         )} >>\nstream\n${page.stream}endstream\nendobj\n`
     ),
   ]
@@ -453,11 +454,11 @@ function buildPdfBuffer(pageCommands: PdfCommand[][]) {
   const offsets = [0]
 
   for (const object of objects) {
-    offsets.push(Buffer.byteLength(pdf, "utf8"))
+    offsets.push(Buffer.byteLength(pdf, "utf-8"))
     pdf += object
   }
 
-  const xrefOffset = Buffer.byteLength(pdf, "utf8")
+  const xrefOffset = Buffer.byteLength(pdf, "utf-8")
   pdf += `xref\n0 ${objects.length + 1}\n`
   pdf += "0000000000 65535 f \n"
   for (const offset of offsets.slice(1)) {
@@ -465,7 +466,7 @@ function buildPdfBuffer(pageCommands: PdfCommand[][]) {
   }
   pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`
 
-  return Buffer.from(pdf, "utf8")
+  return Buffer.from(pdf, "utf-8")
 }
 
 function buildPaginatedPdf(
@@ -488,7 +489,7 @@ function buildPaginatedPdf(
 
     if (page.isFirstPage) {
       renderFirstPageHeader(commands, {
-        ...(billingAddress !== undefined ? { billingAddress } : {}),
+        ...(billingAddress === undefined ? {} : { billingAddress }),
         order,
         orderNumber,
         paymentQrCommands,
@@ -525,7 +526,7 @@ function buildPaginatedPdf(
 
     if (page.includeSummary) {
       renderSummary(commands, {
-        ...(currency !== undefined ? { currency } : {}),
+        ...(currency === undefined ? {} : { currency }),
         discountTotal,
         shippingTotal,
         subtotal,
@@ -564,35 +565,34 @@ function buildPdf(order: OrderReceiptOrder) {
 
   const commands: PdfCommand[] = []
 
-  commands.push(pdfText("Faktura", 330, TOP, { font: FONT_BOLD, size: 24 }))
   commands.push(
+    pdfText("Faktura", 330, TOP, { font: FONT_BOLD, size: 24 }),
     pdfText(orderNumber, 330, TOP - 28, { font: FONT_NORMAL, size: 22 })
   )
-  commands.push(pdfText("Daňový doklad", 330, TOP - 58, { size: 10 }))
-  commands.push(...paymentQrCommands)
-  commands.push(pdfText("Datum vystavení", 330, TOP - 104, { size: 10 }))
   commands.push(
+    pdfText("Daňový doklad", 330, TOP - 58, { size: 10 }),
+    ...paymentQrCommands
+  )
+  commands.push(
+    pdfText("Datum vystavení", 330, TOP - 104, { size: 10 }),
     pdfText(formatDate(order.created_at), RIGHT, TOP - 104, {
       align: "right",
       size: 10,
     })
   )
 
-  commands.push(pdfText("Dodavatel", LEFT, supplierY, { size: 11 }))
   commands.push(
+    pdfText("Dodavatel", LEFT, supplierY, { size: 11 }),
     pdfText(supplierName, LEFT, supplierY - 23, { font: FONT_BOLD, size: 12 })
   )
   commands.push(
     pdfText("Faktura vystavena automaticky.", LEFT, supplierY - 40, {
       size: 10,
-    })
+    }),
+    pdfText("Objednávka", LEFT, supplierY - 81, { size: 10 })
   )
-  commands.push(pdfText("Objednávka", LEFT, supplierY - 81, { size: 10 }))
   commands.push(
-    pdfText(orderNumber, 205, supplierY - 81, { align: "right", size: 10 })
-  )
-
-  commands.push(
+    pdfText(orderNumber, 205, supplierY - 81, { align: "right", size: 10 }),
     pdfText("Odběratel", CUSTOMER_X, CUSTOMER_LABEL_Y, { size: 11 })
   )
   customerTextRows(billingAddress, order.email).forEach((row, index) => {
@@ -610,10 +610,12 @@ function buildPdf(order: OrderReceiptOrder) {
   })
 
   const tableTop = FIRST_PAGE_TABLE_TOP
-  commands.push(pdfText("ks", LEFT, tableTop + 14, { size: 9 }))
-  commands.push(pdfText("Položka", LEFT + 32, tableTop + 14, { size: 9 }))
-  commands.push(pdfText("DPH", 335, tableTop + 14, { align: "right", size: 9 }))
   commands.push(
+    pdfText("ks", LEFT, tableTop + 14, { size: 9 }),
+    pdfText("Položka", LEFT + 32, tableTop + 14, { size: 9 })
+  )
+  commands.push(
+    pdfText("DPH", 335, tableTop + 14, { align: "right", size: 9 }),
     pdfText("Cena za MJ bez DPH", 430, tableTop + 14, {
       align: "right",
       size: 8,
@@ -623,9 +625,9 @@ function buildPdf(order: OrderReceiptOrder) {
     pdfText("Celkem bez DPH", RIGHT, tableTop + 14, {
       align: "right",
       size: 9,
-    })
+    }),
+    pdfLine({ x1: LEFT, x2: RIGHT, y1: tableTop, y2: tableTop })
   )
-  commands.push(pdfLine({ x1: LEFT, x2: RIGHT, y1: tableTop, y2: tableTop }))
 
   if (!tableRows.length) {
     commands.push(
@@ -636,10 +638,12 @@ function buildPdf(order: OrderReceiptOrder) {
   tableRows.forEach((row, index) => {
     const y = tableTop - 24 - index * 22
 
-    commands.push(pdfText(row.quantity, LEFT, y, { size: 9 }))
-    commands.push(pdfText(truncate(row.title, 36), LEFT + 32, y, { size: 9 }))
-    commands.push(pdfText(row.taxLabel, 335, y, { align: "right", size: 9 }))
     commands.push(
+      pdfText(row.quantity, LEFT, y, { size: 9 }),
+      pdfText(truncate(row.title, 36), LEFT + 32, y, { size: 9 })
+    )
+    commands.push(
+      pdfText(row.taxLabel, 335, y, { align: "right", size: 9 }),
       pdfText(formatMoney(row.unitPriceNet, currency), 430, y, {
         align: "right",
         size: 8,
@@ -661,17 +665,15 @@ function buildPdf(order: OrderReceiptOrder) {
   const summaryY = tableBottom - 38
   const summaryLabelX = 336
   commands.push(
-    pdfText("Cena bez DPH (zboží)", summaryLabelX, summaryY, { size: 10 })
-  )
-  commands.push(
+    pdfText("Cena bez DPH (zboží)", summaryLabelX, summaryY, { size: 10 }),
     pdfText(formatMoney(subtotal, currency), RIGHT, summaryY, {
       align: "right",
       size: 10,
     })
   )
   if (discountTotal > 0) {
-    commands.push(pdfText("Sleva", summaryLabelX, summaryY - 16, { size: 10 }))
     commands.push(
+      pdfText("Sleva", summaryLabelX, summaryY - 16, { size: 10 }),
       pdfText(
         `-${formatMoney(discountTotal, currency)}`,
         RIGHT,
@@ -685,17 +687,15 @@ function buildPdf(order: OrderReceiptOrder) {
   }
   if (shippingTotal > 0) {
     commands.push(
-      pdfText("Doprava", summaryLabelX, summaryY - 32, { size: 10 })
-    )
-    commands.push(
+      pdfText("Doprava", summaryLabelX, summaryY - 32, { size: 10 }),
       pdfText(formatMoney(shippingTotal, currency), RIGHT, summaryY - 32, {
         align: "right",
         size: 10,
       })
     )
   }
-  commands.push(pdfText("DPH", summaryLabelX, summaryY - 48, { size: 10 }))
   commands.push(
+    pdfText("DPH", summaryLabelX, summaryY - 48, { size: 10 }),
     pdfText(formatMoney(taxTotal, currency), RIGHT, summaryY - 48, {
       align: "right",
       size: 10,
@@ -707,9 +707,7 @@ function buildPdf(order: OrderReceiptOrder) {
       x2: RIGHT,
       y1: summaryY - 58,
       y2: summaryY - 58,
-    })
-  )
-  commands.push(
+    }),
     pdfText(formatMoney(total, currency), RIGHT, summaryY - 86, {
       align: "right",
       font: FONT_BOLD,
@@ -717,8 +715,8 @@ function buildPdf(order: OrderReceiptOrder) {
     })
   )
 
-  commands.push(pdfText("Děkujeme za objednávku.", LEFT, 66, { size: 8 }))
   commands.push(
+    pdfText("Děkujeme za objednávku.", LEFT, 66, { size: 8 }),
     pdfText("Doklad byl vygenerován automaticky.", LEFT, 53, {
       size: 8,
     })

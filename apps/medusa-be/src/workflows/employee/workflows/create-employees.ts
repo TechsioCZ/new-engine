@@ -13,7 +13,7 @@ import {
 } from "../steps"
 import { addEmployeeToCustomerGroupStep } from "../steps/add-employee-to-customer-group"
 
-type WorkflowInput = {
+interface WorkflowInput {
   employeeData: ModuleCreateEmployee
   customerId: string
 }
@@ -33,8 +33,8 @@ export const createEmployeesWorkflow = createWorkflow(
       Boolean(employeeData.is_admin)
     ).then(() => {
       setAdminRoleStep({
-        employeeId: employee.id,
         customerId: input.customerId,
+        employeeId: employee.id,
       })
     })
 

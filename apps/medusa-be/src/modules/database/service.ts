@@ -1,5 +1,6 @@
 import { MedusaError } from "@medusajs/framework/utils"
-import { drizzle, type MySql2Database } from "drizzle-orm/mysql2"
+import { drizzle } from "drizzle-orm/mysql2"
+import type { MySql2Database } from "drizzle-orm/mysql2"
 import type { SQL } from "drizzle-orm/sql/sql"
 import mysql from "mysql2/promise"
 
@@ -14,7 +15,7 @@ class DatabaseModuleService {
     }
     // Prevent concurrent init races - return existing promise if in-flight
     if (this.dbInitPromise_) {
-      return this.dbInitPromise_
+      return await this.dbInitPromise_
     }
 
     this.dbInitPromise_ = (async () => {
@@ -30,7 +31,7 @@ class DatabaseModuleService {
       return this.db_
     })()
 
-    return this.dbInitPromise_
+    return await this.dbInitPromise_
   }
 
   /**

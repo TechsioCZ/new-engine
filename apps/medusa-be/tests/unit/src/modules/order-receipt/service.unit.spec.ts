@@ -52,7 +52,7 @@ const CUSTOMER_TEXT_ROW_REGEX =
   /BT \/F[12] (?:10|12) Tf 322\.00 (\d+\.\d{2}) Td \(([^)]*)\) Tj ET/g
 
 function getPdfPageCount(pdf: string) {
-  const match = pdf.match(PDF_PAGE_COUNT_REGEX)
+  const match = PDF_PAGE_COUNT_REGEX.exec(pdf)
 
   return match ? Number(match[1]) : 0
 }
@@ -89,14 +89,14 @@ describe("order receipt service", () => {
   it("uses detail quantity when line subtotal is missing", () => {
     const item = {
       detail: {
-        raw_quantity: { value: "2", precision: 20 },
-        raw_unit_price: { value: "1652.06612", precision: 20 },
+        raw_quantity: { precision: 20, value: "2" },
+        raw_unit_price: { precision: 20, value: "1652.06612" },
       },
       title: "Pánská mikina Capita SKULL HOODIE",
     }
 
     expect(getItemQuantity(item)).toBe(2)
-    expect(getItemSubtotal(item)).toBeCloseTo(3304.132_24)
+    expect(getItemSubtotal(item)).toBeCloseTo(3304.13224)
   })
 
   it("keeps explicit line subtotal when it differs from unit price", () => {
@@ -619,7 +619,7 @@ describe("order receipt service", () => {
       const order = buildPaginationOrder(itemCount)
 
       const attachment = await service.generateOrderReceiptAttachment(order)
-      const pdf = attachment.content.toString("utf8")
+      const pdf = attachment.content.toString("utf-8")
 
       expect(getPdfPageCount(pdf)).toBe(expectedPageCount)
       for (const item of order.items) {
@@ -662,7 +662,7 @@ describe("order receipt service", () => {
         current_order_total: 121,
       },
     })
-    const pdf = receipt.content.toString("utf8")
+    const pdf = receipt.content.toString("utf-8")
     const customerRows = Array.from(
       pdf.matchAll(CUSTOMER_TEXT_ROW_REGEX),
       (match) => ({
@@ -674,7 +674,7 @@ describe("order receipt service", () => {
     expect(customerRows.length).toBeGreaterThan(6)
     expect(customerRows.length).toBeLessThanOrEqual(9)
     expect(Math.min(...customerRows.map((row) => row.y))).toBeGreaterThan(450)
-    expect(customerRows.at(-1)?.text.endsWith(".")).toBe(true)
+    expect(customerRows.at(-1)?.text.endsWith(".")).toBeTruthy()
     expect(pdf).toContain("Screenshot proof item")
   })
 
@@ -683,7 +683,7 @@ describe("order receipt service", () => {
     const receipt = await service.generateOrderReceiptAttachment({
       ...baseOrder,
       billing_address: {
-        address_1: " \u00a0 ",
+        address_1: " \u00A0 ",
         address_2: " ",
         city: " ",
         company: " ",
@@ -692,10 +692,10 @@ describe("order receipt service", () => {
         last_name: " ",
         postal_code: " ",
       },
-      email: " \u00a0 ",
+      email: " \u00A0 ",
       id: "order_blank_customer_pdf",
     })
-    const pdf = receipt.content.toString("utf8")
+    const pdf = receipt.content.toString("utf-8")
 
     expect(pdf).toContain(`(${escapePdfText("Zákazník")})`)
   })
@@ -721,7 +721,7 @@ describe("order receipt service", () => {
         current_order_total: 100,
       },
     })
-    const pdf = receipt.content.toString("utf8")
+    const pdf = receipt.content.toString("utf-8")
 
     expect(pdf).not.toContain("Sleva")
     expect(pdf).not.toContain("-100")
@@ -737,8 +737,8 @@ describe("order receipt service", () => {
     })
 
     expect(withQr.content.length).toBeGreaterThan(withoutQr.content.length)
-    expect(withQr.content.toString("utf8")).toContain("64.00 606.00")
-    expect(withQr.content.toString("utf8")).toContain(" re f Q")
+    expect(withQr.content.toString("utf-8")).toContain("64.00 606.00")
+    expect(withQr.content.toString("utf-8")).toContain(" re f Q")
   })
 
   it("does not render payment QR commands for a non-QR payment", async () => {
@@ -762,8 +762,8 @@ describe("order receipt service", () => {
       ],
     })
 
-    expect(withNonQrPayment.content.length).toBe(withoutQr.content.length)
-    expect(withNonQrPayment.content.toString("utf8")).not.toContain(
+    expect(withNonQrPayment.content).toHaveLength(withoutQr.content.length)
+    expect(withNonQrPayment.content.toString("utf-8")).not.toContain(
       "64.00 606.00"
     )
   })
@@ -789,8 +789,8 @@ describe("order receipt service", () => {
       ],
     })
 
-    expect(withSystemPayment.content.length).toBe(withoutQr.content.length)
-    expect(withSystemPayment.content.toString("utf8")).not.toContain(
+    expect(withSystemPayment.content).toHaveLength(withoutQr.content.length)
+    expect(withSystemPayment.content.toString("utf-8")).not.toContain(
       "64.00 606.00"
     )
   })

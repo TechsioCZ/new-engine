@@ -19,25 +19,25 @@ describe("invoice batch client mapper", () => {
     const keys = helper.collectOrderLookupKeys([
       invoice(),
       invoice({
-        identifier_type: "display_id",
         display_id: "42",
-        order_id: undefined,
-      }),
-      invoice({
         identifier_type: "display_id",
-        display_id: "4.2",
         order_id: undefined,
       }),
       invoice({
-        identifier_type: "erp_id",
+        display_id: "4.2",
+        identifier_type: "display_id",
+        order_id: undefined,
+      }),
+      invoice({
         erp_id: "ERP-1",
+        identifier_type: "erp_id",
         order_id: undefined,
       }),
     ])
 
-    expect([...keys.orderIds]).toEqual(["order_1"])
-    expect([...keys.displayIds]).toEqual([42])
-    expect([...keys.erpIds]).toEqual(["ERP-1"])
+    expect([...keys.orderIds]).toStrictEqual(["order_1"])
+    expect([...keys.displayIds]).toStrictEqual([42])
+    expect([...keys.erpIds]).toStrictEqual(["ERP-1"])
   })
 
   it("indexes and resolves orders by every supported identifier", () => {
@@ -52,8 +52,8 @@ describe("invoice batch client mapper", () => {
     expect(
       helper.findExistingOrder(
         invoice({
-          identifier_type: "display_id",
           display_id: "42",
+          identifier_type: "display_id",
           order_id: undefined,
         }),
         index
@@ -62,8 +62,8 @@ describe("invoice batch client mapper", () => {
     expect(
       helper.findExistingOrder(
         invoice({
-          identifier_type: "erp_id",
           erp_id: "ERP-1",
+          identifier_type: "erp_id",
           order_id: undefined,
         }),
         index

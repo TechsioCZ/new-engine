@@ -27,17 +27,15 @@ const invalidatePagesCache = createMedusaCacheHook(COLLECTION_SLUG)
 
 /** Payload collection config for pages. */
 export const Pages: CollectionConfig = {
-  slug: COLLECTION_SLUG,
-  labels: collectionLabels.pages,
-  admin: {
-    useAsTitle: "title",
-    group: adminGroups.content,
-  },
   access: {
-    read: requireAuth,
     create: requireAuth,
-    update: requireAuth,
     delete: requireAuth,
+    read: requireAuth,
+    update: requireAuth,
+  },
+  admin: {
+    group: adminGroups.content,
+    useAsTitle: "title",
   },
   fields: [
     createTitleField(),
@@ -77,21 +75,6 @@ export const Pages: CollectionConfig = {
     createPublishedDateField(),
   ],
   hooks: {
-    beforeValidate: [
-      ({ data, req }) => {
-        if (data?.["title"] && !data?.["slug"]) {
-          const slug = generateSlugFromTitle(
-            data["title"],
-            req?.locale ? { locale: req.locale } : {}
-          )
-          if (slug) {
-            data["slug"] = slug
-          }
-        }
-
-        return data
-      },
-    ],
     afterChange: [invalidatePagesCache],
     afterDelete: [invalidatePagesCache],
     afterRead: [
@@ -111,5 +94,22 @@ export const Pages: CollectionConfig = {
         return doc
       },
     ],
+    beforeValidate: [
+      ({ data, req }) => {
+        if (data?.title && !data?.slug) {
+          const slug = generateSlugFromTitle(
+            data.title,
+            req?.locale ? { locale: req.locale } : {}
+          )
+          if (slug) {
+            data.slug = slug
+          }
+        }
+
+        return data
+      },
+    ],
   },
+  labels: collectionLabels.pages,
+  slug: COLLECTION_SLUG,
 }

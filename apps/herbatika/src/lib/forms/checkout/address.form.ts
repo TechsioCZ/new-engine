@@ -1,4 +1,4 @@
-export type CheckoutAddressValues = {
+export interface CheckoutAddressValues {
   email: string
   firstName: string
   lastName: string
@@ -15,7 +15,7 @@ export type CheckoutAddressValues = {
   customerNote: string
 }
 
-export type CheckoutDetailsValues = {
+export interface CheckoutDetailsValues {
   shipping: CheckoutAddressValues
   billing: CheckoutAddressValues
   useSameAddress: boolean
@@ -45,23 +45,23 @@ export const CHECKOUT_ADDRESS_FIELDS = [
   "postalCode",
   "countryCode",
   "customerNote",
-] as const satisfies ReadonlyArray<keyof CheckoutAddressValues>
+] as const satisfies readonly (keyof CheckoutAddressValues)[]
 
 export const DEFAULT_CHECKOUT_ADDRESS_VALUES: CheckoutAddressValues = {
+  address1: "",
+  address2: "",
+  city: "",
+  company: "",
+  companyId: "",
+  countryCode: "",
+  customerNote: "",
   email: "",
   firstName: "",
   lastName: "",
   phone: "",
-  company: "",
-  companyId: "",
+  postalCode: "",
   taxId: "",
   vatId: "",
-  address1: "",
-  address2: "",
-  city: "",
-  postalCode: "",
-  countryCode: "",
-  customerNote: "",
 }
 
 const clearCheckoutCompanyFields = (

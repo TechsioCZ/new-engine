@@ -5,7 +5,6 @@ import {
   Button,
   Container,
   createDataTableColumnHelper,
-  type DataTableColumnDef,
   Heading,
   Input,
   Select,
@@ -14,6 +13,7 @@ import {
   toast,
   usePrompt,
 } from "@medusajs/ui"
+import type { DataTableColumnDef } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -25,8 +25,6 @@ import {
   BrandEditDrawer,
 } from "../../components/brands/brand-form"
 import {
-  type Brand,
-  type BrandAttributeType,
   brandQueryKeys,
   createBrandAttributeType,
   deleteBrand,
@@ -37,6 +35,7 @@ import {
   restoreBrandAttributeType,
   retrieveBrand,
 } from "../../lib/brands"
+import type { Brand, BrandAttributeType } from "../../lib/brands"
 import { translateBreadcrumb } from "../../lib/breadcrumb"
 import { formatLocaleCode } from "../../lib/format-locale-code"
 import { useDebouncedValue } from "../../lib/use-debounced-value"
@@ -91,7 +90,7 @@ const AttributeTypesSection = () => {
   }
 
   const { data, isLoading } = useQuery({
-    queryFn: () => listBrandAttributeTypes(params),
+    queryFn: async () => listBrandAttributeTypes(params),
     queryKey: brandQueryKeys.attributeTypes(params),
   })
 
@@ -254,20 +253,20 @@ const AttributeTypesSection = () => {
 
   const columns: DataTableColumnDef<BrandAttributeType>[] = [
     attributeTypeColumnHelper.accessor("name", {
-      header: t("columns.name"),
       cell: ({ row }) => (
         <Link to={`/brands/attributes/${row.original.id}`}>
           {row.original.name}
         </Link>
       ),
+      header: t("columns.name"),
     }),
     attributeTypeColumnHelper.accessor("deleted_at", {
-      header: t("columns.status"),
       cell: ({ row }) => (
         <StatusBadge color={row.original.deleted_at ? "red" : "green"}>
           {row.original.deleted_at ? t("status.deleted") : t("status.active")}
         </StatusBadge>
       ),
+      header: t("columns.status"),
     }),
     attributeTypeColumnHelper.accessor("usage_count", {
       header: t("columns.usedBy"),
@@ -288,14 +287,16 @@ const AttributeTypesSection = () => {
           ? [
               {
                 label: t("actions.restore"),
-                onClick: () => restoreMutation.mutate(row.original.id),
+                onClick: () => {
+                  restoreMutation.mutate(row.original.id)
+                },
               },
             ]
           : [
               {
                 icon: <Trash />,
                 label: t("actions.delete"),
-                onClick: () => handleDelete(row.original),
+                onClick: async () => handleDelete(row.original),
               },
             ]
       },
@@ -314,7 +315,9 @@ const AttributeTypesSection = () => {
           </div>
           <div className="flex items-center gap-2">
             <Input
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) => {
+                setName(event.target.value)
+              }}
               placeholder={t("attributes.newPlaceholder")}
               value={name}
             />
@@ -379,9 +382,9 @@ const AttributeTypesSection = () => {
         getRowId={(attributeType) => attributeType.id}
         isLoading={isLoading}
         onPageIndexChange={setPageIndex}
-        onRowClick={(_event, attributeType) =>
+        onRowClick={(_event, attributeType) => {
           navigate(`/brands/attributes/${attributeType.id}`)
-        }
+        }}
         pageIndex={pageIndex}
         pageSize={PAGE_SIZE}
       />
@@ -415,7 +418,7 @@ const BrandsPage = () => {
     error: listError,
     isLoading,
   } = useQuery({
-    queryFn: () => listBrands(params),
+    queryFn: async () => listBrands(params),
     queryKey: brandQueryKeys.list(params),
   })
 
@@ -472,13 +475,13 @@ const BrandsPage = () => {
     order_by: "name",
   }
   const attributeTypesQuery = useQuery({
-    queryFn: () => listBrandAttributeTypes(attributeTypesParams),
+    queryFn: async () => listBrandAttributeTypes(attributeTypesParams),
     queryKey: brandQueryKeys.attributeTypes(attributeTypesParams),
   })
   const attributeTypes = attributeTypesQuery.data?.attribute_types ?? []
   const editingBrandQuery = useQuery({
     enabled: !!editingBrandId,
-    queryFn: () => {
+    queryFn: async () => {
       if (!editingBrandId) {
         throw new Error(t("errors.brandIdRequired"))
       }
@@ -515,10 +518,10 @@ const BrandsPage = () => {
   }
   const columns: DataTableColumnDef<Brand>[] = [
     brandColumnHelper.accessor("title", {
-      header: t("columns.title"),
       cell: ({ row }) => (
         <Link to={`/brands/${row.original.id}`}>{row.original.title}</Link>
       ),
+      header: t("columns.title"),
     }),
     brandColumnHelper.accessor("handle", {
       header: t("columns.handle"),
@@ -531,16 +534,16 @@ const BrandsPage = () => {
       header: t("columns.products"),
     }),
     brandColumnHelper.accessor("deleted_at", {
-      header: t("columns.status"),
       cell: ({ row }) => (
         <StatusBadge color={row.original.deleted_at ? "red" : "green"}>
           {row.original.deleted_at ? t("status.deleted") : t("status.active")}
         </StatusBadge>
       ),
+      header: t("columns.status"),
     }),
     brandColumnHelper.accessor("updated_at", {
-      header: t("columns.updated"),
       cell: ({ row }) => formatDate(row.original.updated_at, locale),
+      header: t("columns.updated"),
     }),
     brandColumnHelper.action({
       actions: ({ row }) => {
@@ -558,19 +561,23 @@ const BrandsPage = () => {
           ? [
               {
                 label: t("actions.restore"),
-                onClick: () => handleRestore(row.original),
+                onClick: () => {
+                  handleRestore(row.original)
+                },
               },
             ]
           : [
               {
                 icon: <PencilSquare />,
                 label: t("actions.edit"),
-                onClick: () => setEditingBrandId(row.original.id),
+                onClick: () => {
+                  setEditingBrandId(row.original.id)
+                },
               },
               {
                 icon: <Trash />,
                 label: t("actions.delete"),
-                onClick: () => handleDelete(row.original),
+                onClick: async () => handleDelete(row.original),
               },
             ]
       },
@@ -590,7 +597,9 @@ const BrandsPage = () => {
                 </Text>
               </div>
               <Button
-                onClick={() => setCreateOpen(true)}
+                onClick={() => {
+                  setCreateOpen(true)
+                }}
                 size="small"
                 type="button"
                 variant="secondary"
@@ -669,7 +678,9 @@ const BrandsPage = () => {
               getRowId={(brand) => brand.id}
               isLoading={isLoading}
               onPageIndexChange={setPageIndex}
-              onRowClick={(_event, brand) => navigate(`/brands/${brand.id}`)}
+              onRowClick={(_event, brand) => {
+                navigate(`/brands/${brand.id}`)
+              }}
               pageIndex={pageIndex}
               pageSize={PAGE_SIZE}
             />

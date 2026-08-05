@@ -1,4 +1,5 @@
-import { Drawer, type toast as toastType } from "@medusajs/ui"
+import { Drawer } from "@medusajs/ui"
+import type { toast as toastType } from "@medusajs/ui"
 import { getErrorMessage } from "@techsio/std/object"
 import { useTranslation } from "react-i18next"
 

@@ -20,26 +20,26 @@ export type MedusaCategoryDetailInput = SelectParams & {
   enabled?: boolean
 }
 
-export type MedusaCategoryTransformListContext<
+export interface MedusaCategoryTransformListContext<
   TListParams extends MedusaCategoryListInput,
-> = {
+> {
   params: TListParams
   query: MedusaCategoryListQuery
   response: HttpTypes.StoreProductCategoryListResponse
 }
 
-export type MedusaCategoryTransformDetailContext<
+export interface MedusaCategoryTransformDetailContext<
   TDetailParams extends MedusaCategoryDetailInput,
-> = {
+> {
   params: TDetailParams
   query: MedusaCategoryDetailQuery
   response: HttpTypes.StoreProductCategoryResponse
 }
 
-type MedusaCategoryServiceConfigBase<
+interface MedusaCategoryServiceConfigBase<
   TListParams extends MedusaCategoryListInput,
   TDetailParams extends MedusaCategoryDetailInput,
-> = {
+> {
   listPath?: string
   defaultListFields?: string
   defaultDetailFields?: string
@@ -165,7 +165,7 @@ export function createMedusaCategoryService<
             : {}),
         } as MedusaCategoryListQuery)
 
-    return stripEnabled(query) as MedusaCategoryListQuery
+    return stripEnabled(query)
   }
 
   const buildDetailQuery = (
@@ -183,7 +183,7 @@ export function createMedusaCategoryService<
     const { id: _id, ...withoutId } = query as MedusaCategoryDetailQuery & {
       id?: string
     }
-    return stripEnabled(withoutId) as MedusaCategoryDetailQuery
+    return stripEnabled(withoutId)
   }
 
   return {

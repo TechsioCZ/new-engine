@@ -16,14 +16,14 @@ import { useAnalytics } from "@/providers/analytics-provider"
 import { ErrorBanner } from "../atoms/error-banner"
 import { PasswordValidator } from "./password-validator"
 
-type RegisterFormProps = {
+interface RegisterFormProps {
   onSuccess?: () => void
   toggle?: () => void
   showLoginLink?: boolean
   className?: string
 }
 
-type RegisterFormData = {
+interface RegisterFormData {
   first_name: string
   last_name: string
   email: string
@@ -42,6 +42,9 @@ export function RegisterForm({
   const analytics = useAnalytics()
 
   const register = useRegister({
+    onError: (error) => {
+      console.error("Registration failed:", error.message)
+    },
     onSuccess: () => {
       // Track customer identification in Leadhub
       const values = form.state.values
@@ -56,27 +59,24 @@ export function RegisterForm({
       form.reset()
       onSuccess?.()
     },
-    onError: (error) => {
-      console.error("Registration failed:", error.message)
-    },
   })
 
   const defaultValues: RegisterFormData = {
+    acceptTerms: false,
+    confirmPassword: "",
+    email: "",
     first_name: "",
     last_name: "",
-    email: "",
     password: "",
-    confirmPassword: "",
-    acceptTerms: false,
   }
   const form = useForm({
     defaultValues,
     onSubmit: ({ value }) => {
       register.mutate({
         email: value.email,
-        password: value.password,
         first_name: value.first_name,
         last_name: value.last_name,
+        password: value.password,
       })
     },
   })
@@ -208,7 +208,9 @@ export function RegisterForm({
             id="accept-terms"
             label="Souhlasím s podmínkami"
             name="accept-terms"
-            onCheckedChange={(checked) => field.handleChange(checked)}
+            onCheckedChange={(checked) => {
+              field.handleChange(checked)
+            }}
             size="sm"
           />
         )}

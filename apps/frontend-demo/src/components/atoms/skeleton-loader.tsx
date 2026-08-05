@@ -18,24 +18,6 @@ const skeletonVariants = tv({
     "before:via-skeleton-shimmer",
     "before:to-transparent",
   ],
-  variants: {
-    variant: {
-      text: "rounded-skeleton-text",
-      box: "rounded-skeleton-box",
-      circle: "aspect-square rounded-skeleton-circle",
-    },
-    size: {
-      sm: "h-skeleton-sm",
-      md: "h-skeleton-md",
-      lg: "h-skeleton-lg",
-      xl: "h-skeleton-xl",
-      fit: "h-fit",
-      full: "h-full",
-    },
-    block: {
-      true: "w-full",
-    },
-  },
   compoundVariants: [
     {
       variant: "text",
@@ -64,8 +46,26 @@ const skeletonVariants = tv({
     },
   ],
   defaultVariants: {
-    variant: "text",
     size: "fit",
+    variant: "text",
+  },
+  variants: {
+    block: {
+      true: "w-full",
+    },
+    size: {
+      fit: "h-fit",
+      full: "h-full",
+      lg: "h-skeleton-lg",
+      md: "h-skeleton-md",
+      sm: "h-skeleton-sm",
+      xl: "h-skeleton-xl",
+    },
+    variant: {
+      box: "rounded-skeleton-box",
+      circle: "aspect-square rounded-skeleton-circle",
+      text: "rounded-skeleton-text",
+    },
   },
 })
 
@@ -92,7 +92,7 @@ export function SkeletonLoader({
       <div className={containerClassName}>
         {Array.from({ length: count }).map((_, index) => (
           <div
-            className={skeletonVariants({ variant, size, block, className })}
+            className={skeletonVariants({ block, className, size, variant })}
             key={`skeleton-${index}`}
             style={style}
             {...props}
@@ -104,7 +104,7 @@ export function SkeletonLoader({
 
   return (
     <div
-      className={skeletonVariants({ variant, size, block, className })}
+      className={skeletonVariants({ block, className, size, variant })}
       style={style}
       {...props}
     />

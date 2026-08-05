@@ -2,17 +2,15 @@
 
 import { HerbatikaProductCardSkeleton } from "@/components/herbatika-product-card-skeleton"
 
-import {
-  HERBATIKA_PRODUCT_GRID_LAYOUT_CLASSNAME,
-  type HerbatikaProductGridLayout,
-} from "./herbatika-product-grid"
+import { HERBATIKA_PRODUCT_GRID_LAYOUT_CLASSNAME } from "./herbatika-product-grid"
+import type { HerbatikaProductGridLayout } from "./herbatika-product-grid"
 
 const SKELETON_LAYOUT_COUNT: Record<HerbatikaProductGridLayout, number> = {
   catalog: 8,
   collection: 4,
 }
 
-type HerbatikaProductGridSkeletonProps = {
+interface HerbatikaProductGridSkeletonProps {
   layout: HerbatikaProductGridLayout
 }
 

@@ -1,10 +1,8 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 
-import {
-  QR_PAYMENT_MODULE,
-  type QrPaymentModuleService,
-} from "../../../modules/payment-qr"
+import { QR_PAYMENT_MODULE } from "../../../modules/payment-qr"
+import type { QrPaymentModuleService } from "../../../modules/payment-qr"
 import type {
   QrPaymentConfigDTO,
   QrPaymentConfigResponse,
@@ -16,8 +14,8 @@ import type { PostAdminQrPaymentConfigSchemaType } from "./validators"
 const toConfigResponse = (
   config: QrPaymentConfigDTO
 ): QrPaymentConfigResponse => ({
-  id: config.id,
   iban: config.iban ?? null,
+  id: config.id,
 })
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {

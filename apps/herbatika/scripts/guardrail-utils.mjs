@@ -38,7 +38,7 @@ export function globToRegExp(globPattern) {
     .replaceAll("**", "__DOUBLE_STAR__")
     .replaceAll("*", "__SINGLE_STAR__")
   const escaped = withMarkers
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replaceAll(/[.+^${}()|[\]\\]/g, "\\$&")
     .replaceAll("__DOUBLE_STAR__", ".*")
     .replaceAll("__SINGLE_STAR__", "[^/]*")
 

@@ -1,31 +1,25 @@
 import { CommandBar, clx, Table } from "@medusajs/ui"
-import {
-  type Cell,
-  type ColumnDef,
-  flexRender,
-  type Table as ReactTable,
-  type Row,
+import { flexRender } from "@tanstack/react-table"
+import type {
+  Cell,
+  ColumnDef,
+  Table as ReactTable,
+  Row,
 } from "@tanstack/react-table"
-import {
-  type ComponentPropsWithoutRef,
-  Fragment,
-  type UIEvent,
-  useEffect,
-  useRef,
-  useState,
-} from "react"
+import { Fragment, useEffect, useRef, useState } from "react"
+import type { ComponentPropsWithoutRef, UIEvent } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 
 import { NoResults } from "../empty-state"
 
-type BulkCommand = {
+interface BulkCommand {
   label: string
   shortcut: string
   action: (selection: Record<string, boolean>) => Promise<void>
 }
 
-type BodyCellProps<TData> = {
+interface BodyCellProps<TData> {
   cell: Cell<TData, unknown>
   cells: Cell<TData, unknown>[]
   hasSelect: boolean
@@ -37,7 +31,7 @@ type BodyCellProps<TData> = {
   to?: string
 }
 
-export type DataTableRootProps<TData> = {
+export interface DataTableRootProps<TData> {
   /**
    * The table instance to render
    */
@@ -125,15 +119,15 @@ const BodyCell = <TData,>({
   return (
     <Table.Cell
       className={clx({
+        "!bg-ui-bg-disabled !hover:bg-ui-bg-disabled": isRowDisabled,
         "!pl-0 !pr-0": shouldRenderAsLink,
-        "sticky left-0 bg-ui-bg-base transition-fg after:absolute after:inset-y-0 after:right-0 after:h-full after:w-px after:bg-transparent after:content-[''] group-hover/row:bg-ui-bg-base-hover group-has-[[data-row-link]:focus-visible]:bg-ui-bg-base-hover group-data-[selected=true]/row:bg-ui-bg-highlight group-data-[selected=true]/row:group-hover/row:bg-ui-bg-highlight-hover":
-          isStickyCell,
+        "after:bg-ui-border-base":
+          showStickyBorder && isStickyCell && !isSelectCell,
         "bg-ui-bg-subtle group-hover/row:bg-ui-bg-subtle-hover":
           isOdd && isStickyCell,
         "left-[68px]": hasLeftOffset,
-        "after:bg-ui-border-base":
-          showStickyBorder && isStickyCell && !isSelectCell,
-        "!bg-ui-bg-disabled !hover:bg-ui-bg-disabled": isRowDisabled,
+        "sticky left-0 bg-ui-bg-base transition-fg after:absolute after:inset-y-0 after:right-0 after:h-full after:w-px after:bg-transparent after:content-[''] group-hover/row:bg-ui-bg-base-hover group-has-[[data-row-link]:focus-visible]:bg-ui-bg-base-hover group-data-[selected=true]/row:bg-ui-bg-highlight group-data-[selected=true]/row:group-hover/row:bg-ui-bg-highlight-hover":
+          isStickyCell,
       })}
       style={{
         paddingLeft: depthOffset ? `${depthOffset}px` : undefined,
@@ -195,14 +189,14 @@ export const DataTableRoot = <TData,>({
   const hasActions = columns.find((c) => c.id === "actions")
   const hasCommandBar = commands && commands.length > 0
 
-  const rowSelection = table.getState().rowSelection
+  const { rowSelection } = table.getState()
   const { pageIndex, pageSize } = table.getState().pagination
 
   const colCount = columns.length - (hasSelect ? 1 : 0) - (hasActions ? 1 : 0)
   const colWidth = 100 / colCount
 
   const handleHorizontalScroll = (e: UIEvent<HTMLDivElement>) => {
-    const scrollLeft = e.currentTarget.scrollLeft
+    const { scrollLeft } = e.currentTarget
 
     if (scrollLeft > 0) {
       setShowStickyBorder(true)
@@ -219,7 +213,7 @@ export const DataTableRoot = <TData,>({
 
   useEffect(() => {
     if (pageIndex >= 0) {
-      scrollableRef.current?.scroll({ top: 0, left: 0 })
+      scrollableRef.current?.scroll({ left: 0, top: 0 })
     }
   }, [pageIndex])
 
@@ -248,10 +242,10 @@ export const DataTableRoot = <TData,>({
                 {table.getHeaderGroups().map((headerGroup) => (
                   <Table.Row
                     className={clx({
-                      "relative border-b-0 [&_th:last-of-type]:w-[1%] [&_th:last-of-type]:whitespace-nowrap":
-                        hasActions,
                       "[&_th:first-of-type]:w-[1%] [&_th:first-of-type]:whitespace-nowrap":
                         hasSelect,
+                      "relative border-b-0 [&_th:last-of-type]:w-[1%] [&_th:last-of-type]:whitespace-nowrap":
+                        hasActions,
                     })}
                     key={headerGroup.id}
                   >
@@ -264,23 +258,23 @@ export const DataTableRoot = <TData,>({
                         (h) => h.id !== "select"
                       )
                       const isFirstHeader =
-                        firstHeader !== -1
-                          ? header.id === headerGroup.headers[firstHeader]?.id
-                          : index === 0
+                        firstHeader === -1
+                          ? index === 0
+                          : header.id === headerGroup.headers[firstHeader]?.id
 
                       const isStickyHeader = isSelectHeader || isFirstHeader
 
                       return (
                         <Table.HeaderCell
                           className={clx({
-                            "sticky left-0 bg-ui-bg-base after:absolute after:inset-y-0 after:right-0 after:h-full after:w-px after:bg-transparent after:content-['']":
-                              isStickyHeader,
-                            "left-[68px]":
-                              isStickyHeader && hasSelect && !isSelectHeader,
                             "after:bg-ui-border-base":
                               showStickyBorder &&
                               isStickyHeader &&
                               !isSpecialHeader,
+                            "left-[68px]":
+                              isStickyHeader && hasSelect && !isSelectHeader,
+                            "sticky left-0 bg-ui-bg-base after:absolute after:inset-y-0 after:right-0 after:h-full after:w-px after:bg-transparent after:content-['']":
+                              isStickyHeader,
                           })}
                           data-table-header-id={header.id}
                           key={header.id}
@@ -314,12 +308,12 @@ export const DataTableRoot = <TData,>({
                       "group/row group relative transition-fg [&_td:last-of-type]:w-[1%] [&_td:last-of-type]:whitespace-nowrap",
                       "has-[[data-row-link]:focus-visible]:bg-ui-bg-base-hover",
                       {
-                        "bg-ui-bg-subtle hover:bg-ui-bg-subtle-hover": isOdd,
-                        "cursor-pointer": !!to,
-                        "bg-ui-bg-highlight hover:bg-ui-bg-highlight-hover":
-                          row.getIsSelected(),
                         "!bg-ui-bg-disabled !hover:bg-ui-bg-disabled":
                           isRowDisabled,
+                        "bg-ui-bg-highlight hover:bg-ui-bg-highlight-hover":
+                          row.getIsSelected(),
+                        "bg-ui-bg-subtle hover:bg-ui-bg-subtle-hover": isOdd,
+                        "cursor-pointer": !!to,
                       }
                     )}
                     data-selected={row.getIsSelected()}
@@ -372,7 +366,7 @@ export const DataTableRoot = <TData,>({
             {commands?.map((command, index) => (
               <Fragment key={`${command.label}-${command.shortcut}`}>
                 <CommandBar.Command
-                  action={() => handleAction(command.action)}
+                  action={async () => handleAction(command.action)}
                   label={command.label}
                   shortcut={command.shortcut}
                 />
@@ -395,11 +389,11 @@ const Pagination = (props: PaginationProps) => {
   const { t } = useTranslation()
 
   const translations = {
+    next: t("general.next"),
     of: t("general.of"),
-    results: t("general.results"),
     pages: t("general.pages"),
     prev: t("general.prev"),
-    next: t("general.next"),
+    results: t("general.results"),
   }
 
   return (

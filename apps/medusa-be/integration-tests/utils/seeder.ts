@@ -1,16 +1,18 @@
 import type { MedusaSuiteOptions } from "@medusajs/test-utils"
 
 type TestApi = MedusaSuiteOptions["api"]
-type TestHeaders = { headers: Record<string, string> }
+interface TestHeaders {
+  headers: Record<string, string>
+}
 type SeederData = Record<string, unknown>
 
-type AdminSeederInput = {
+interface AdminSeederInput {
   api: TestApi
   adminHeaders: TestHeaders
   data: SeederData
 }
 
-type StoreSeederInput = {
+interface StoreSeederInput {
   api: TestApi
   storeHeaders: TestHeaders
   data: SeederData
@@ -24,7 +26,7 @@ export async function regionSeeder({
   return (
     await api.post(
       "/admin/regions",
-      { name: "Test region", currency_code: "usd", ...data },
+      { currency_code: "usd", name: "Test region", ...data },
       adminHeaders
     )
   ).data.region
@@ -53,13 +55,13 @@ export async function productSeeder({
     await api.post(
       "/admin/products",
       {
-        title: "Test Product",
         handle: "test-product",
-        status: "published",
         options: [
           { title: "size", values: ["large", "small"] },
           { title: "color", values: ["green"] },
         ],
+        status: "published",
+        title: "Test Product",
         variants: [
           {
             title: "Test variant",
@@ -100,8 +102,8 @@ export async function cartSeeder({
           address_2: "test address 2",
           city: "ny",
           country_code: "us",
-          province: "ny",
           postal_code: "94016",
+          province: "ny",
         },
         ...data,
       },

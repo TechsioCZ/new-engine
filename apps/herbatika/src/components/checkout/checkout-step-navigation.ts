@@ -1,4 +1,4 @@
-type CheckoutStepNavigationParams = {
+interface CheckoutStepNavigationParams {
   highestAccessibleStepIndex: number
   isCheckoutComplete: boolean
   stepCount: number

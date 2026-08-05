@@ -24,10 +24,10 @@ export const ApprovalsTable = () => {
   const filters = useApprovalsTableFilters()
 
   const { table } = useDataTable({
-    data: data?.carts_with_approvals,
     columns,
-    enablePagination: true,
     count: data?.count,
+    data: data?.carts_with_approvals,
+    enablePagination: true,
     pageSize: PAGE_SIZE,
   })
 
@@ -39,8 +39,8 @@ export const ApprovalsTable = () => {
         filters={filters}
         isLoading={isPending}
         noRecords={{
-          title: t("noRecords.title"),
           message: t("noRecords.message"),
+          title: t("noRecords.title"),
         }}
         orderBy={["id", "created_at"]}
         pageSize={PAGE_SIZE}

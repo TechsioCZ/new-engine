@@ -19,10 +19,10 @@ export function useAuth() {
 
   // Use React Query for initial auth check
   const { data: currentUser } = useQuery({
-    queryKey: queryKeys.auth.customer(),
     queryFn: authHelpers.fetchUser,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    queryKey: queryKeys.auth.customer(),
     retry: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes,
   })
 
   // Update store when query data changes
@@ -30,9 +30,9 @@ export function useAuth() {
     if (currentUser !== undefined) {
       authStore.setState((state) => ({
         ...state,
-        user: currentUser,
         isInitialized: true,
         isLoading: false,
+        user: currentUser,
       }))
     }
   }, [currentUser])
@@ -49,7 +49,14 @@ export function useAuth() {
       password: string
       firstName?: string
       lastName?: string
-    }) => authHelpers.login(email, password, firstName, lastName),
+    }) => await authHelpers.login(email, password, firstName, lastName),
+    onError: (error: Error) => {
+      toast.create({
+        ...AUTH_MESSAGES.LOGIN_ERROR,
+        description: error.message,
+        type: "error",
+      })
+    },
     onSuccess: async () => {
       // Invalidate auth queries to refetch user
       await queryClient.invalidateQueries({
@@ -66,13 +73,6 @@ export function useAuth() {
         type: "success",
       })
     },
-    onError: (error: Error) => {
-      toast.create({
-        ...AUTH_MESSAGES.LOGIN_ERROR,
-        description: error.message,
-        type: "error",
-      })
-    },
   })
 
   // Register mutation
@@ -87,7 +87,14 @@ export function useAuth() {
       password: string
       firstName?: string
       lastName?: string
-    }) => authHelpers.register(email, password, firstName, lastName),
+    }) => await authHelpers.register(email, password, firstName, lastName),
+    onError: (error: Error) => {
+      toast.create({
+        ...AUTH_MESSAGES.REGISTER_ERROR,
+        description: error.message,
+        type: "error",
+      })
+    },
     onSuccess: async () => {
       // Invalidate auth queries to refetch user
       await queryClient.invalidateQueries({
@@ -102,13 +109,6 @@ export function useAuth() {
       toast.create({
         ...AUTH_MESSAGES.REGISTER_SUCCESS,
         type: "success",
-      })
-    },
-    onError: (error: Error) => {
-      toast.create({
-        ...AUTH_MESSAGES.REGISTER_ERROR,
-        description: error.message,
-        type: "error",
       })
     },
   })
@@ -130,8 +130,15 @@ export function useAuth() {
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: (data: Partial<HttpTypes.StoreCustomer>) =>
+    mutationFn: async (data: Partial<HttpTypes.StoreCustomer>) =>
       authHelpers.updateProfile(data),
+    onError: (error: Error) => {
+      toast.create({
+        ...AUTH_MESSAGES.UPDATE_ERROR,
+        description: error.message,
+        type: "error",
+      })
+    },
     onSuccess: async () => {
       // Invalidate auth queries to refetch updated user
       await queryClient.invalidateQueries({
@@ -141,13 +148,6 @@ export function useAuth() {
       toast.create({
         ...AUTH_MESSAGES.UPDATE_SUCCESS,
         type: "success",
-      })
-    },
-    onError: (error: Error) => {
-      toast.create({
-        ...AUTH_MESSAGES.UPDATE_ERROR,
-        description: error.message,
-        type: "error",
       })
     },
   })
@@ -173,29 +173,34 @@ export function useAuth() {
       password: string,
       firstName?: string,
       lastName?: string
-    ) =>
+    ) => {
       loginMutation.mutate({
         email,
         password,
         ...(firstName !== undefined && { firstName }),
         ...(lastName !== undefined && { lastName }),
-      }),
+      })
+    },
     register: (
       email: string,
       password: string,
       firstName?: string,
       lastName?: string
-    ) =>
+    ) => {
       registerMutation.mutate({
         email,
         password,
         ...(firstName !== undefined && { firstName }),
         ...(lastName !== undefined && { lastName }),
-      }),
-    logout: () => logoutMutation.mutate(),
-    updateProfile: (data: Partial<HttpTypes.StoreCustomer>) =>
-      updateProfileMutation.mutate(data),
-    refetch: () =>
+      })
+    },
+    logout: () => {
+      logoutMutation.mutate()
+    },
+    updateProfile: (data: Partial<HttpTypes.StoreCustomer>) => {
+      updateProfileMutation.mutate(data)
+    },
+    refetch: async () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.customer() }),
 
     // Mutation states

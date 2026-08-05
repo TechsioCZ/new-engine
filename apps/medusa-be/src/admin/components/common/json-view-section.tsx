@@ -14,9 +14,10 @@ import {
   Kbd,
 } from "@medusajs/ui"
 import Primitive from "@uiw/react-json-view"
-import { type CSSProperties, type MouseEvent, Suspense, useState } from "react"
+import { Suspense, useState } from "react"
+import type { CSSProperties, MouseEvent } from "react"
 
-type JsonViewSectionProps = {
+interface JsonViewSectionProps {
   data: object
   title?: string
 }
@@ -77,26 +78,26 @@ export const JsonViewSection = ({ data }: JsonViewSectionProps) => {
                   displayDataTypes={false}
                   style={
                     {
-                      "--w-rjv-font-family": "Roboto Mono, monospace",
-                      "--w-rjv-line-color": "var(--contrast-border-base)",
-                      "--w-rjv-curlybraces-color":
-                        "var(--contrast-fg-secondary)",
-                      "--w-rjv-brackets-color": "var(--contrast-fg-secondary)",
-                      "--w-rjv-key-string": "var(--contrast-fg-primary)",
-                      "--w-rjv-info-color": "var(--contrast-fg-secondary)",
-                      "--w-rjv-type-string-color": "var(--tag-green-icon)",
-                      "--w-rjv-quotes-string-color": "var(--tag-green-icon)",
-                      "--w-rjv-type-boolean-color": "var(--tag-orange-icon)",
-                      "--w-rjv-type-int-color": "var(--tag-orange-icon)",
-                      "--w-rjv-type-float-color": "var(--tag-orange-icon)",
-                      "--w-rjv-type-bigint-color": "var(--tag-orange-icon)",
-                      "--w-rjv-key-number": "var(--contrast-fg-secondary)",
                       "--w-rjv-arrow-color": "var(--contrast-fg-secondary)",
+                      "--w-rjv-brackets-color": "var(--contrast-fg-secondary)",
+                      "--w-rjv-colon-color": "var(--contrast-fg-primary)",
                       "--w-rjv-copied-color": "var(--contrast-fg-secondary)",
                       "--w-rjv-copied-success-color":
                         "var(--contrast-fg-primary)",
-                      "--w-rjv-colon-color": "var(--contrast-fg-primary)",
+                      "--w-rjv-curlybraces-color":
+                        "var(--contrast-fg-secondary)",
                       "--w-rjv-ellipsis-color": "var(--contrast-fg-secondary)",
+                      "--w-rjv-font-family": "Roboto Mono, monospace",
+                      "--w-rjv-info-color": "var(--contrast-fg-secondary)",
+                      "--w-rjv-key-number": "var(--contrast-fg-secondary)",
+                      "--w-rjv-key-string": "var(--contrast-fg-primary)",
+                      "--w-rjv-line-color": "var(--contrast-border-base)",
+                      "--w-rjv-quotes-string-color": "var(--tag-green-icon)",
+                      "--w-rjv-type-bigint-color": "var(--tag-orange-icon)",
+                      "--w-rjv-type-boolean-color": "var(--tag-orange-icon)",
+                      "--w-rjv-type-float-color": "var(--tag-orange-icon)",
+                      "--w-rjv-type-int-color": "var(--tag-orange-icon)",
+                      "--w-rjv-type-string-color": "var(--tag-green-icon)",
                     } as CSSProperties
                   }
                   value={data}
@@ -140,7 +141,7 @@ export const JsonViewSection = ({ data }: JsonViewSectionProps) => {
   )
 }
 
-type CopiedProps = {
+interface CopiedProps {
   style?: CSSProperties
   value: object | undefined
 }

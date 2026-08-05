@@ -11,7 +11,7 @@ const CMS_REVALIDATE_SECONDS = 600
 const CMS_MEDUSA_BASE_URL = resolveMedusaBackendUrl()
 const CMS_MEDIA_BASE_URL = resolvePublicPayloadBaseUrl()
 
-const trimSlashes = (value: string) => value.replace(/^\/+|\/+$/g, "")
+const trimSlashes = (value: string) => value.replaceAll(/^\/+|\/+$/g, "")
 
 const buildCmsUrl = (
   path: string,
@@ -92,7 +92,7 @@ export const rewriteCmsHtmlMediaUrls = (html: string) => {
     return html
   }
 
-  return html.replace(
+  return html.replaceAll(
     /\b(src|href)=["'](\/api\/media\/file\/[^"']+)["']/g,
     (_match, attribute: string, url: string) =>
       `${attribute}="${new URL(url, CMS_MEDIA_BASE_URL).toString()}"`
@@ -105,10 +105,10 @@ export const stripCmsHtml = (value: string | null | undefined) => {
   }
 
   return value
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/\s+/g, " ")
+    .replaceAll(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replaceAll(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replaceAll(/<[^>]+>/g, " ")
+    .replaceAll(/&nbsp;/gi, " ")
+    .replaceAll(/\s+/g, " ")
     .trim()
 }

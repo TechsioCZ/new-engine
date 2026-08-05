@@ -13,13 +13,13 @@ import type { StorefrontTextRecord } from "../../../modules/storefront-text/mode
 import {
   findStorefrontTextDefault,
   STOREFRONT_TEXT_DEFINITIONS,
-  type StorefrontTextKey,
 } from "../../../modules/storefront-text/registry"
+import type { StorefrontTextKey } from "../../../modules/storefront-text/registry"
 import type StorefrontTextModuleService from "../../../modules/storefront-text/service"
 import { escapeLikePattern } from "../../../utils/sql"
 import type { AdminGetStorefrontTextsSchemaType } from "./validators"
 
-type StorefrontTextFilters = {
+interface StorefrontTextFilters {
   $or?: StorefrontTextFilters[]
   default_value?: { $ilike: string }
   description?: { $ilike: string }
@@ -152,10 +152,10 @@ export async function GET(
     filters,
     {
       order: {
-        namespace: "ASC",
         key: "ASC",
-        market: "ASC",
         locale: "ASC",
+        market: "ASC",
+        namespace: "ASC",
       },
       skip: offset,
       take: limit,

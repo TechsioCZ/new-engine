@@ -1,7 +1,7 @@
 import { queryKeysFactory } from "./query-key-factory"
 import { sdk } from "./sdk"
 
-export type BrandAttribute = {
+export interface BrandAttribute {
   attribute_type_deleted_at?: string | null
   attribute_type_id?: string
   id?: string
@@ -9,7 +9,7 @@ export type BrandAttribute = {
   value: string
 }
 
-export type BrandAttributeType = {
+export interface BrandAttributeType {
   deleted_at?: string | null
   id: string
   name: string
@@ -20,7 +20,7 @@ export type BrandAttributeTypeBrand = Brand & {
   attribute_value: string
 }
 
-export type Brand = {
+export interface Brand {
   active_product_count: number
   id: string
   title: string
@@ -38,7 +38,7 @@ export type Brand = {
   updated_at?: string
 }
 
-export type BrandInput = {
+export interface BrandInput {
   title: string
   handle?: string | undefined
   attributes: BrandAttribute[]
@@ -53,7 +53,7 @@ export type BrandInput = {
 
 export type BrandUpdateInput = Partial<BrandInput>
 
-export type ProductSummary = {
+export interface ProductSummary {
   id: string
   title?: string
   handle?: string
@@ -62,23 +62,23 @@ export type ProductSummary = {
   created_at?: string
 }
 
-export type BrandProductOption = {
+export interface BrandProductOption {
   assigned_brand?: Brand | null
   product: ProductSummary
 }
 
-export type BrandsResponse = {
+export interface BrandsResponse {
   brands: Brand[]
   count: number
   limit: number
   offset: number
 }
 
-export type BrandResponse = {
+export interface BrandResponse {
   brand: Brand
 }
 
-export type BrandProductsResponse = {
+export interface BrandProductsResponse {
   products: ProductSummary[]
   product_ids: string[]
   count: number
@@ -86,34 +86,34 @@ export type BrandProductsResponse = {
   offset?: number
 }
 
-export type UpdateBrandProductsResponse = {
+export interface UpdateBrandProductsResponse {
   added: string[]
   removed: string[]
 }
 
-export type UpdateBrandProductsInput = {
+export interface UpdateBrandProductsInput {
   add: string[]
   remove: string[]
 }
 
-export type ProductBrandsResponse = {
+export interface ProductBrandsResponse {
   brands: Brand[]
   brand_ids: string[]
 }
 
-export type BrandAttributeTypesResponse = {
+export interface BrandAttributeTypesResponse {
   attribute_types: BrandAttributeType[]
   count: number
   limit: number
   offset: number
 }
 
-export type BrandAttributeTypeResponse = {
+export interface BrandAttributeTypeResponse {
   action?: "created" | "existing" | "restored"
   attribute_type: BrandAttributeType
 }
 
-export type BrandAttributeTypeDetailResponse = {
+export interface BrandAttributeTypeDetailResponse {
   attribute_type: BrandAttributeType
   brands: BrandAttributeTypeBrand[]
   count: number
@@ -121,14 +121,14 @@ export type BrandAttributeTypeDetailResponse = {
   offset: number
 }
 
-export type ProductsResponse = {
+export interface ProductsResponse {
   products: ProductSummary[]
   count: number
   limit: number
   offset: number
 }
 
-export type BrandProductOptionsResponse = {
+export interface BrandProductOptionsResponse {
   products: BrandProductOption[]
   count: number
   limit: number
@@ -204,7 +204,7 @@ export const productQueryKeys = {
   lists: () => ["products", "list"] as const,
 }
 
-export const listBrands = (params: {
+export const listBrands = async (params: {
   handle?: string
   include_deleted?: boolean
   limit: number
@@ -213,32 +213,32 @@ export const listBrands = (params: {
   q?: string
 }) => sdk.client.fetch<BrandsResponse>(`/admin/brands?${toSearch(params)}`)
 
-export const retrieveBrand = (id: string) =>
+export const retrieveBrand = async (id: string) =>
   sdk.client.fetch<BrandResponse>(`/admin/brands/${id}`)
 
-export const createBrand = (input: BrandInput) =>
+export const createBrand = async (input: BrandInput) =>
   sdk.client.fetch<BrandResponse>("/admin/brands", {
     body: input,
     method: "POST",
   })
 
-export const updateBrand = (id: string, input: BrandUpdateInput) =>
+export const updateBrand = async (id: string, input: BrandUpdateInput) =>
   sdk.client.fetch<BrandResponse>(`/admin/brands/${id}`, {
     body: input,
     method: "POST",
   })
 
-export const deleteBrand = (id: string) =>
+export const deleteBrand = async (id: string) =>
   sdk.client.fetch(`/admin/brands/${id}`, {
     method: "DELETE",
   })
 
-export const restoreBrand = (id: string) =>
+export const restoreBrand = async (id: string) =>
   sdk.client.fetch<BrandResponse>(`/admin/brands/${id}/restore`, {
     method: "POST",
   })
 
-export const listBrandAttributeTypes = (params: {
+export const listBrandAttributeTypes = async (params: {
   include_deleted?: boolean
   limit: number
   name?: string
@@ -250,7 +250,7 @@ export const listBrandAttributeTypes = (params: {
     `/admin/brands/attribute-types?${toSearch(params)}`
   )
 
-export const retrieveBrandAttributeType = (
+export const retrieveBrandAttributeType = async (
   id: string,
   params: {
     include_deleted?: boolean
@@ -264,7 +264,7 @@ export const retrieveBrandAttributeType = (
     `/admin/brands/attribute-types/${id}?${toSearch(params)}`
   )
 
-export const createBrandAttributeType = (input: { name: string }) =>
+export const createBrandAttributeType = async (input: { name: string }) =>
   sdk.client.fetch<BrandAttributeTypeResponse>(
     "/admin/brands/attribute-types",
     {
@@ -273,7 +273,7 @@ export const createBrandAttributeType = (input: { name: string }) =>
     }
   )
 
-export const deleteBrandAttributeType = (id: string) =>
+export const deleteBrandAttributeType = async (id: string) =>
   sdk.client.fetch<BrandAttributeTypeResponse>(
     `/admin/brands/attribute-types/${id}`,
     {
@@ -281,7 +281,7 @@ export const deleteBrandAttributeType = (id: string) =>
     }
   )
 
-export const restoreBrandAttributeType = (id: string) =>
+export const restoreBrandAttributeType = async (id: string) =>
   sdk.client.fetch<BrandAttributeTypeResponse>(
     `/admin/brands/attribute-types/${id}`,
     {
@@ -289,10 +289,13 @@ export const restoreBrandAttributeType = (id: string) =>
     }
   )
 
-export const retrieveProductBrands = (productId: string) =>
+export const retrieveProductBrands = async (productId: string) =>
   sdk.client.fetch<ProductBrandsResponse>(`/admin/products/${productId}/brands`)
 
-export const setProductBrands = (productId: string, brandId?: null | string) =>
+export const setProductBrands = async (
+  productId: string,
+  brandId?: null | string
+) =>
   sdk.client.fetch<ProductBrandsResponse>(
     `/admin/products/${productId}/brands`,
     {
@@ -304,7 +307,7 @@ export const setProductBrands = (productId: string, brandId?: null | string) =>
     }
   )
 
-export const retrieveBrandProducts = (
+export const retrieveBrandProducts = async (
   brandId: string,
   params: { limit: number; offset: number; order_by?: string; q?: string }
 ) =>
@@ -312,7 +315,7 @@ export const retrieveBrandProducts = (
     `/admin/brands/${brandId}/products?${toSearch(params)}`
   )
 
-export const retrieveBrandProductOptions = (
+export const retrieveBrandProductOptions = async (
   brandId: string,
   params: { limit: number; offset: number; q?: string }
 ) =>
@@ -320,7 +323,7 @@ export const retrieveBrandProductOptions = (
     `/admin/brands/${brandId}/product-options?${toSearch(params)}`
   )
 
-export const updateBrandProducts = (
+export const updateBrandProducts = async (
   brandId: string,
   input: UpdateBrandProductsInput
 ) =>
@@ -332,7 +335,7 @@ export const updateBrandProducts = (
     }
   )
 
-export const listProducts = (params: {
+export const listProducts = async (params: {
   fields?: string
   limit: number
   offset: number

@@ -41,7 +41,7 @@ function encrypt(plaintext: string): string {
   })
 
   const ciphertext = Buffer.concat([
-    cipher.update(plaintext, "utf8"),
+    cipher.update(plaintext, "utf-8"),
     cipher.final(),
   ])
 
@@ -77,7 +77,7 @@ function decrypt(ciphertext: string): string {
   return Buffer.concat([
     decipher.update(encryptedData),
     decipher.final(),
-  ]).toString("utf8")
+  ]).toString("utf-8")
 }
 
 /**

@@ -1,8 +1,6 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
-import {
-  Pagination,
-  type PaginationProps as UIPaginationProps,
-} from "@techsio/ui-kit/molecules/pagination"
+import { Pagination } from "@techsio/ui-kit/molecules/pagination"
+import type { PaginationProps as UIPaginationProps } from "@techsio/ui-kit/molecules/pagination"
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
 import Image from "next/image"
 import Link from "next/link"
@@ -14,7 +12,7 @@ import type { Product } from "@/types/product"
 import { ProductCardSkeleton } from "../skeletons/product-card-skeleton"
 import { VariantsBox } from "./variants-box"
 
-type ProductGridProps = {
+interface ProductGridProps {
   products: Product[]
   totalCount?: number
   currentPage?: number

@@ -10,7 +10,7 @@ export const ALLOWED_ORDER_EMAIL_TEMPLATES = [
 export type OrderEmailTemplateName =
   (typeof ALLOWED_ORDER_EMAIL_TEMPLATES)[number]
 
-export type OrderEmailTemplate = {
+export interface OrderEmailTemplate {
   label: string
   subject: string | undefined
   template: OrderEmailTemplateName

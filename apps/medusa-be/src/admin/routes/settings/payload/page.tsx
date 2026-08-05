@@ -7,7 +7,7 @@ export const handle = {
 }
 
 /** Runtime config returned by the Payload admin config endpoint. */
-type PayloadRuntimeConfig = {
+interface PayloadRuntimeConfig {
   iframeUrl?: string
   isIframeEnabled?: boolean
 }
@@ -17,11 +17,11 @@ const payloadFrameForeground = "#f9fafb"
 const trailingSlashRegex = /\/$/
 
 const darkStatusStyle: CSSProperties = {
-  minHeight: "100vh",
-  padding: "1.5rem",
   backgroundColor: payloadFrameBackground,
   color: payloadFrameForeground,
   colorScheme: "dark",
+  minHeight: "100vh",
+  padding: "1.5rem",
 }
 
 const getAdminUrl = (backendUrl: string | undefined, path: string) =>
@@ -155,22 +155,22 @@ const PayloadRedirectPage = () => {
     <div
       ref={containerRef}
       style={{
-        width: "100%",
-        height: height !== null ? `${height}px` : iframeHeight,
         backgroundColor: payloadFrameBackground,
         colorScheme: "dark",
+        height: height !== null ? `${height}px` : iframeHeight,
         overflow: "hidden",
+        width: "100%",
       }}
     >
       <iframe
         src={iframeSrc}
         style={{
-          width: "100%",
-          height: "100%",
-          display: "block",
           backgroundColor: payloadFrameBackground,
-          colorScheme: "dark",
           border: "0",
+          colorScheme: "dark",
+          display: "block",
+          height: "100%",
+          width: "100%",
         }}
         title="Payload Admin"
       />

@@ -9,7 +9,7 @@ import { findNodeById } from "@/utils/transform/find-node-by-id"
 import { getCategoryPath } from "@/utils/transform/get-category-path"
 import { transformToTree } from "@/utils/transform/transform-to-tree"
 
-type N1AsideProps = {
+interface N1AsideProps {
   categories: CategoryTreeNode[]
   categoryMap: Record<string, Category>
   label?: string | undefined
@@ -58,10 +58,12 @@ export function N1Aside({
               indexPath={[index]}
               key={node.id}
               node={node}
-              onNodeHover={(hoveredNode) =>
+              onNodeHover={(hoveredNode) => {
                 prefetchOnHover(hoveredNode["handle"] as string)
-              }
-              onNodeLeave={() => cancelHover()}
+              }}
+              onNodeLeave={() => {
+                cancelHover()
+              }}
               showNodeIcons={false}
             />
           ))}

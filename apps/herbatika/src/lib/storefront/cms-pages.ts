@@ -1,7 +1,7 @@
 import { fetchCmsJson, rewriteCmsHtmlMediaUrls } from "./cms-client"
 import type { CmsPage } from "./cms-types"
 
-type CmsPageResponse = {
+interface CmsPageResponse {
   page?: CmsPage | null
 }
 

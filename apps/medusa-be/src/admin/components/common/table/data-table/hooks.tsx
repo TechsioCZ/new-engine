@@ -45,7 +45,7 @@ export const useSelectedParams = ({
     const deleteMultipleValues = (prev: URLSearchParams) => {
       const existingValues = prev.get(identifier)?.split(",") || []
       const index = existingValues.indexOf(value || "")
-      if (index > -1) {
+      if (index !== -1) {
         existingValues.splice(index, 1)
         prev.set(identifier, existingValues.join(","))
       }

@@ -5,7 +5,7 @@ const PACKETA_WIDGET_LIBRARY_URL =
 
 let loaderPromise: Promise<PacketaWidgetGlobal> | null = null
 
-export function loadPacketaWidget() {
+export async function loadPacketaWidget() {
   if (typeof window === "undefined") {
     return Promise.reject(new Error("Packeta widget requires a browser."))
   }
@@ -55,7 +55,7 @@ export function loadPacketaWidget() {
       reject(new Error("Packeta widget library failed to load."))
     }
 
-    document.head.appendChild(script)
+    document.head.append(script)
   })
 
   return loaderPromise

@@ -19,17 +19,14 @@ const mocks = vi.hoisted(() => {
   return { MockMedusaError }
 })
 
-vi.mock("@medusajs/framework/utils", () => ({
+vi.mock(import("@medusajs/framework/utils"), () => ({
   ContainerRegistrationKeys: {
     QUERY: "query",
   },
   MedusaError: mocks.MockMedusaError,
 }))
 
-vi.mock("@medusajs/framework/workflows-sdk", () => ({
-  createStep: vi.fn((_name, invoke, compensate) =>
-    Object.assign(invoke, { compensate })
-  ),
+vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: class StepResponse<
     TPayload = unknown,
     TCompensationInput = unknown,
@@ -42,13 +39,16 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
       this.compensateInput = compensateInput
     }
   },
+  createStep: vi.fn((_name, invoke, compensate) =>
+    Object.assign(invoke, { compensate })
+  ),
 }))
 
-vi.mock("../../../../../src/modules/company", () => ({
+vi.mock(import("../../../../../src/modules/company"), () => ({
   COMPANY_MODULE: "company",
 }))
 
-type CompanyService = {
+interface CompanyService {
   updateEmployees: ReturnType<typeof vi.fn>
 }
 
@@ -168,13 +168,16 @@ describe("updateEmployeesStep", () => {
       { throwIfKeyNotFound: true }
     )
     expect(graph).toHaveBeenCalledTimes(2)
-    expect(result.payload).toEqual({
+    expect(result.payload).toStrictEqual({
       company: { id: "comp_1" },
       customer: { id: "cus_1" },
       id: "emp_1",
       is_admin: true,
     })
-    expect(result.compensateInput).toEqual({ id: "emp_1", is_admin: false })
+    expect(result.compensateInput).toStrictEqual({
+      id: "emp_1",
+      is_admin: false,
+    })
   })
 
   it("throws when the employee does not belong to the requested company", async () => {

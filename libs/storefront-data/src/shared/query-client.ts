@@ -12,8 +12,16 @@ export type QueryClientConfig = NonNullable<
 
 const defaultQueryClientConfig: QueryClientConfig = {
   defaultOptions: {
+    dehydrate: {
+      shouldDehydrateQuery: (query) =>
+        defaultShouldDehydrateQuery(query) || query.state.status === "pending",
+      shouldRedactErrors: () => true,
+    },
+    mutations: {
+      retry: 1,
+      retryDelay: 1000,
+    },
     queries: {
-      staleTime: 60 * 1000,
       gcTime: 5 * 60 * 1000,
       retry: (failureCount, error: unknown) => {
         const status = getErrorStatus(error)
@@ -23,15 +31,7 @@ const defaultQueryClientConfig: QueryClientConfig = {
         return failureCount < 3
       },
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30_000),
-    },
-    mutations: {
-      retry: 1,
-      retryDelay: 1000,
-    },
-    dehydrate: {
-      shouldDehydrateQuery: (query) =>
-        defaultShouldDehydrateQuery(query) || query.state.status === "pending",
-      shouldRedactErrors: () => true,
+      staleTime: 60 * 1000,
     },
   },
 }
@@ -55,14 +55,6 @@ const mergeQueryClientConfig = (
     defaultOptions: {
       ...baseConfig.defaultOptions,
       ...overrides.defaultOptions,
-      queries: {
-        ...baseConfig.defaultOptions?.queries,
-        ...overrides.defaultOptions?.queries,
-      },
-      mutations: {
-        ...baseConfig.defaultOptions?.mutations,
-        ...overrides.defaultOptions?.mutations,
-      },
       dehydrate: {
         ...baseConfig.defaultOptions?.dehydrate,
         ...overrides.defaultOptions?.dehydrate,
@@ -70,6 +62,14 @@ const mergeQueryClientConfig = (
       hydrate: {
         ...baseConfig.defaultOptions?.hydrate,
         ...overrides.defaultOptions?.hydrate,
+      },
+      mutations: {
+        ...baseConfig.defaultOptions?.mutations,
+        ...overrides.defaultOptions?.mutations,
+      },
+      queries: {
+        ...baseConfig.defaultOptions?.queries,
+        ...overrides.defaultOptions?.queries,
       },
     },
   }
@@ -95,7 +95,7 @@ export function getQueryClient(overrides?: QueryClientConfig): QueryClient {
     browserQueryClient &&
     overrides &&
     typeof process !== "undefined" &&
-    process.env?.["NODE_ENV"] !== "production"
+    process.env?.NODE_ENV !== "production"
   ) {
     console.warn(
       "[getQueryClient] Browser QueryClient already exists; overrides will be ignored. " +

@@ -11,14 +11,8 @@
  */
 import * as numberInput from "@zag-js/number-input"
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type ReactNode,
-  type Ref,
-  useContext,
-  useId,
-} from "react"
+import { createContext, useContext, useId } from "react"
+import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react"
 
 import { tv } from "../utils"
 import { Button } from "./button"
@@ -26,6 +20,9 @@ import type { IconType } from "./icon"
 import { Input } from "./input"
 
 const numericInputVariants = tv({
+  defaultVariants: {
+    size: "md",
+  },
   slots: {
     root: ["relative flex"],
     container: [
@@ -80,33 +77,30 @@ const numericInputVariants = tv({
   },
   variants: {
     size: {
-      sm: {
-        root: "gap-numeric-input-sm text-numeric-input-sm",
-        container: "h-form-control-sm rounded-numeric-input-sm",
-        trigger: "text-numeric-input-sm",
-        input: "pl-numeric-input-input-sm text-numeric-input-sm",
+      lg: {
+        container: "h-form-control-lg rounded-numeric-input-lg",
+        input: "pl-numeric-input-input-lg text-numeric-input-lg",
+        root: "gap-numeric-input-lg text-numeric-input-lg",
+        trigger: "text-numeric-input-lg",
       },
       md: {
-        root: "gap-numeric-input-md text-numeric-input-md",
         container: "h-form-control-md rounded-numeric-input-md",
-        trigger: "text-numeric-input-md",
         input: "pl-numeric-input-input-md text-numeric-input-md",
+        root: "gap-numeric-input-md text-numeric-input-md",
+        trigger: "text-numeric-input-md",
       },
-      lg: {
-        root: "gap-numeric-input-lg text-numeric-input-lg",
-        container: "h-form-control-lg rounded-numeric-input-lg",
-        trigger: "text-numeric-input-lg",
-        input: "pl-numeric-input-input-lg text-numeric-input-lg",
+      sm: {
+        container: "h-form-control-sm rounded-numeric-input-sm",
+        input: "pl-numeric-input-input-sm text-numeric-input-sm",
+        root: "gap-numeric-input-sm text-numeric-input-sm",
+        trigger: "text-numeric-input-sm",
       },
     },
-  },
-  defaultVariants: {
-    size: "md",
   },
 })
 
 // Context for sharing state between sub-components
-type NumericInputContextValue = {
+interface NumericInputContextValue {
   api: ReturnType<typeof numberInput.connect>
   size?: "sm" | "md" | "lg" | undefined
   styles: ReturnType<typeof numericInputVariants>
@@ -189,9 +183,9 @@ export function NumericInput({
     )
   }
 
-  const stringValue = value !== undefined ? formatValue(value) : undefined
+  const stringValue = value === undefined ? undefined : formatValue(value)
   const stringDefaultValue =
-    defaultValue !== undefined ? formatValue(defaultValue) : undefined
+    defaultValue === undefined ? undefined : formatValue(defaultValue)
 
   const service = useMachine(numberInput.machine, {
     id: uniqueId,
@@ -229,7 +223,7 @@ export function NumericInput({
 
   return (
     <NumericInputContext.Provider
-      value={{ api, size, styles, invalid, describedBy }}
+      value={{ api, describedBy, invalid, size, styles }}
     >
       <div
         className={styles.root({ className })}

@@ -180,7 +180,7 @@ describe("Product Attribute set/remove reconciliation", () => {
       operations,
     })
 
-    expect(mutations).toEqual([
+    expect(mutations).toStrictEqual([
       {
         definition_id: selectDefinition.id,
         existing: previous,
@@ -191,7 +191,9 @@ describe("Product Attribute set/remove reconciliation", () => {
         },
       },
     ])
-    expect(prepareProductAttributeAssignmentCompensation(mutations)).toEqual({
+    expect(
+      prepareProductAttributeAssignmentCompensation(mutations)
+    ).toStrictEqual({
       created_ids: [],
       previous: [previous],
     })
@@ -222,7 +224,9 @@ describe("Product Attribute set/remove reconciliation", () => {
       operations,
     })
 
-    expect(prepareProductAttributeAssignmentCompensation(mutations)).toEqual({
+    expect(
+      prepareProductAttributeAssignmentCompensation(mutations)
+    ).toStrictEqual({
       created_ids: [],
       previous: [],
     })

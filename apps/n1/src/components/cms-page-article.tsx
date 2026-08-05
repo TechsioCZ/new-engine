@@ -1,7 +1,7 @@
 import { Heading } from "@/components/heading"
 import type { CmsPage } from "@/services/cms-service"
 
-type CmsPageArticleProps = {
+interface CmsPageArticleProps {
   page: CmsPage
 }
 

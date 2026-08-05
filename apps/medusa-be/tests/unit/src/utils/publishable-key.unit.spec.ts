@@ -14,7 +14,7 @@ import {
   resolvePublishableKeyTitle,
 } from "../../../../src/utils/publishable-key"
 
-type ApiKeyServiceStub = {
+interface ApiKeyServiceStub {
   createApiKeys: (
     data: CreateApiKeyDTO,
     sharedContext?: Context
@@ -24,8 +24,8 @@ type ApiKeyServiceStub = {
 type LockingModuleStub = Pick<ILockingModule, "execute">
 
 const createApiKeyService = (): Mocked<ApiKeyServiceStub> => ({
-  listApiKeys: vi.fn<IApiKeyModuleService["listApiKeys"]>(),
   createApiKeys: vi.fn(),
+  listApiKeys: vi.fn<IApiKeyModuleService["listApiKeys"]>(),
 })
 
 /**
@@ -73,7 +73,7 @@ describe("publishable-key utils", () => {
       originalInitialPublishableKeyName
   })
 
-  describe("resolvePublishableKeyTitle", () => {
+  describe(resolvePublishableKeyTitle, () => {
     it("prefers an explicit title after trimming", () => {
       process.env["INITIAL_PUBLISHABLE_KEY_NAME"] = "Env Title"
 
@@ -93,14 +93,14 @@ describe("publishable-key utils", () => {
     })
   })
 
-  describe("getActivePublishableKey", () => {
+  describe(getActivePublishableKey, () => {
     it("returns the first non-revoked publishable key", async () => {
       const apiKeyService = createApiKeyService()
       apiKeyService.listApiKeys.mockResolvedValue([
         createApiKey({
           id: "key_revoked",
-          token: "pk_revoked",
           revoked_at: new Date(),
+          token: "pk_revoked",
         }),
         createApiKey({
           id: "key_active",
@@ -117,7 +117,7 @@ describe("publishable-key utils", () => {
         title: "CI Key",
         type: "publishable",
       })
-      expect(result).toEqual({
+      expect(result).toStrictEqual({
         apiKey: expect.objectContaining({
           id: "key_active",
           token: "pk_active",
@@ -132,8 +132,8 @@ describe("publishable-key utils", () => {
       apiKeyService.listApiKeys.mockResolvedValue([
         createApiKey({
           id: "key_revoked",
-          token: "pk_revoked",
           revoked_at: new Date(),
+          token: "pk_revoked",
         }),
       ])
 
@@ -144,7 +144,7 @@ describe("publishable-key utils", () => {
     })
   })
 
-  describe("provisionPublishableKey", () => {
+  describe(provisionPublishableKey, () => {
     it("returns an existing active key without creating a new one", async () => {
       const apiKeyService = createApiKeyService()
       apiKeyService.listApiKeys.mockResolvedValue([
@@ -156,12 +156,12 @@ describe("publishable-key utils", () => {
 
       const result = await provisionPublishableKey({
         apiKeyService,
-        title: "CI Key",
         createdBy: "user_123",
+        title: "CI Key",
       })
 
       expect(apiKeyService.createApiKeys).not.toHaveBeenCalled()
-      expect(result).toEqual({
+      expect(result).toStrictEqual({
         apiKey: expect.objectContaining({
           id: "key_existing",
           token: "pk_existing",
@@ -176,8 +176,8 @@ describe("publishable-key utils", () => {
       apiKeyService.listApiKeys.mockResolvedValue([
         createApiKey({
           id: "key_revoked",
-          token: "pk_revoked",
           revoked_at: new Date(),
+          token: "pk_revoked",
         }),
       ])
       apiKeyService.createApiKeys.mockResolvedValue(
@@ -186,16 +186,16 @@ describe("publishable-key utils", () => {
 
       const result = await provisionPublishableKey({
         apiKeyService,
-        title: "CI Key",
         createdBy: "user_123",
+        title: "CI Key",
       })
 
       expect(apiKeyService.createApiKeys).toHaveBeenCalledWith({
+        created_by: "user_123",
         title: "CI Key",
         type: "publishable",
-        created_by: "user_123",
       })
-      expect(result).toEqual({
+      expect(result).toStrictEqual({
         apiKey: expect.objectContaining({
           id: "key_created",
           token: "pk_created",
@@ -215,9 +215,9 @@ describe("publishable-key utils", () => {
 
       await provisionPublishableKey({
         apiKeyService,
-        title: "CI Key",
         createdBy: "user_123",
         lockingModule,
+        title: "CI Key",
       })
 
       expect(lockingModule.execute).toHaveBeenCalledWith(

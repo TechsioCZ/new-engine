@@ -3,10 +3,12 @@ import { fn } from "storybook/test"
 
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Badge } from "../../src/atoms/badge"
-import { Icon, type IconType } from "../../src/atoms/icon"
-import { RadioCard, type RadioCardProps } from "../../src/molecules/radio-card"
+import { Icon } from "../../src/atoms/icon"
+import type { IconType } from "../../src/atoms/icon"
+import { RadioCard } from "../../src/molecules/radio-card"
+import type { RadioCardProps } from "../../src/molecules/radio-card"
 
-type RadioCardOption = {
+interface RadioCardOption {
   value: string
   title: string
   description?: string
@@ -18,50 +20,50 @@ type RadioCardOption = {
 
 const frameworkOptions: RadioCardOption[] = [
   {
-    value: "next",
-    title: "Next.js",
-    description: "SSR, routing and server actions in one stack.",
     addon: "Recommended for full-stack apps",
-    icon: "token-icon-check",
     badge: "Full stack",
+    description: "SSR, routing and server actions in one stack.",
+    icon: "token-icon-check",
+    title: "Next.js",
+    value: "next",
   },
   {
-    value: "vite",
-    title: "Vite",
-    description: "Fast local iteration for app shells and dashboards.",
     addon: "Great for SPAs",
-    icon: "token-icon-save",
     badge: "Fast",
+    description: "Fast local iteration for app shells and dashboards.",
+    icon: "token-icon-save",
+    title: "Vite",
+    value: "vite",
   },
   {
-    value: "astro",
-    title: "Astro",
-    description: "Lean output for mostly static and content-led pages.",
     addon: "Best for content sites",
-    icon: "token-icon-folder",
     badge: "Content",
+    description: "Lean output for mostly static and content-led pages.",
     disabled: true,
+    icon: "token-icon-folder",
+    title: "Astro",
+    value: "astro",
   },
 ]
 
 const paymentOptions: RadioCardOption[] = [
   {
-    value: "paypal",
-    title: "Approval flow",
     description: "Manual review before deploy.",
     icon: "token-icon-info",
+    title: "Approval flow",
+    value: "paypal",
   },
   {
-    value: "card",
-    title: "Instant publish",
     description: "Push immediately after validation.",
     icon: "token-icon-success",
+    title: "Instant publish",
+    value: "card",
   },
   {
-    value: "bank",
-    title: "Copy assets",
     description: "Reuse a previous configuration.",
     icon: "token-icon-copy",
+    title: "Copy assets",
+    value: "bank",
   },
 ]
 
@@ -125,65 +127,43 @@ function BasicRadioCard({
 }
 
 const meta: Meta<typeof RadioCard> = {
-  title: "Molecules/RadioCard",
-  component: RadioCard,
-  parameters: {
-    layout: "centered",
-    docs: {
-      description: {
-        component:
-          "A compound radio-card component built on Zag radio-group semantics. It preserves form participation and accessibility, while exposing card-first slots for richer content and optional add-ons.",
-      },
-    },
-  },
-  tags: ["autodocs"],
   argTypes: {
-    size: {
-      control: { type: "select" },
-      options: ["sm", "md", "lg"],
-      description: "Size of the card content and spacing.",
-      table: { defaultValue: { summary: "md" } },
-    },
-    variant: {
-      control: { type: "select" },
-      options: ["outline", "subtle", "solid"],
-      description: "Visual treatment of the selected card state.",
-      table: { defaultValue: { summary: "outline" } },
-    },
-    orientation: {
-      control: { type: "inline-radio" },
-      options: ["horizontal", "vertical"],
-      description: "Keyboard and navigation orientation for the radio group.",
-      table: { defaultValue: { summary: "horizontal" } },
-    },
-    itemOrientation: {
-      control: { type: "inline-radio" },
-      options: ["horizontal", "vertical"],
-      description: "Content flow inside each card.",
-      table: { defaultValue: { summary: "horizontal" } },
-    },
     align: {
       control: { type: "select" },
-      options: ["start", "center", "end"],
       description: "Cross-axis alignment for card content.",
+      options: ["start", "center", "end"],
       table: { defaultValue: { summary: "start" } },
     },
-    justify: {
+    defaultValue: {
       control: { type: "select" },
-      options: ["start", "center", "end", "between"],
-      description: "Main-axis distribution inside each card.",
-      table: { defaultValue: { summary: "between" } },
-    },
-    validateStatus: {
-      control: { type: "select" },
-      options: ["default", "error", "success", "warning"],
-      description: "Validation state reflected in helper text and a11y.",
-      table: { defaultValue: { summary: "default" } },
+      description: "Initial selected value for uncontrolled usage.",
+      options: ["next", "vite", "astro", null],
     },
     disabled: {
       control: "boolean",
       description: "Disable the entire radio-card group.",
       table: { defaultValue: { summary: "false" } },
+    },
+    itemOrientation: {
+      control: { type: "inline-radio" },
+      description: "Content flow inside each card.",
+      options: ["horizontal", "vertical"],
+      table: { defaultValue: { summary: "horizontal" } },
+    },
+    justify: {
+      control: { type: "select" },
+      description: "Main-axis distribution inside each card.",
+      options: ["start", "center", "end", "between"],
+      table: { defaultValue: { summary: "between" } },
+    },
+    onValueChange: {
+      description: "Called when the selected value changes.",
+    },
+    orientation: {
+      control: { type: "inline-radio" },
+      description: "Keyboard and navigation orientation for the radio group.",
+      options: ["horizontal", "vertical"],
+      table: { defaultValue: { summary: "horizontal" } },
     },
     readOnly: {
       control: "boolean",
@@ -195,29 +175,51 @@ const meta: Meta<typeof RadioCard> = {
       description: "Mark the field as required.",
       table: { defaultValue: { summary: "false" } },
     },
-    defaultValue: {
+    size: {
       control: { type: "select" },
-      options: ["next", "vite", "astro", null],
-      description: "Initial selected value for uncontrolled usage.",
+      description: "Size of the card content and spacing.",
+      options: ["sm", "md", "lg"],
+      table: { defaultValue: { summary: "md" } },
     },
-    onValueChange: {
-      description: "Called when the selected value changes.",
+    validateStatus: {
+      control: { type: "select" },
+      description: "Validation state reflected in helper text and a11y.",
+      options: ["default", "error", "success", "warning"],
+      table: { defaultValue: { summary: "default" } },
+    },
+    variant: {
+      control: { type: "select" },
+      description: "Visual treatment of the selected card state.",
+      options: ["outline", "subtle", "solid"],
+      table: { defaultValue: { summary: "outline" } },
     },
   },
   args: {
-    size: "md",
-    variant: "outline",
-    orientation: "horizontal",
-    itemOrientation: "horizontal",
     align: "start",
-    justify: "between",
-    validateStatus: "default",
+    defaultValue: "next",
     disabled: false,
+    itemOrientation: "horizontal",
+    justify: "between",
+    onValueChange: fn(),
+    orientation: "horizontal",
     readOnly: false,
     required: false,
-    defaultValue: "next",
-    onValueChange: fn(),
+    size: "md",
+    validateStatus: "default",
+    variant: "outline",
   },
+  component: RadioCard,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "A compound radio-card component built on Zag radio-group semantics. It preserves form participation and accessibility, while exposing card-first slots for richer content and optional add-ons.",
+      },
+    },
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/RadioCard",
 }
 
 export default meta

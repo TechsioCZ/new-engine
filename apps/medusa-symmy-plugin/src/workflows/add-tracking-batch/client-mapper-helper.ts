@@ -10,7 +10,7 @@ import type { TrackingItemInput, TrackingShipmentInput } from "./types"
 
 type Metadata = Record<string, unknown>
 
-export type TrackingOrderLookupKeys = {
+export interface TrackingOrderLookupKeys {
   orderIds: Set<string>
   displayIds: Set<number>
   erpIds: Set<string>
@@ -39,14 +39,14 @@ export class TrackingBatchClientMapperHelper {
       }
     }
 
-    return { orderIds, displayIds, erpIds }
+    return { displayIds, erpIds, orderIds }
   }
 
   buildOrderIndex(orders: ExistingOrder[]): TrackingOrderIndex {
     const index: TrackingOrderIndex = {
-      byId: new Map(),
       byDisplayId: new Map(),
       byErpId: new Map(),
+      byId: new Map(),
     }
 
     for (const order of orders) {
@@ -116,11 +116,11 @@ export class TrackingBatchClientMapperHelper {
 
   buildShipmentMetadata(shipment: TrackingShipmentInput) {
     return {
-      ...(shipment.carrier !== undefined ? { carrier: shipment.carrier } : {}),
+      ...(shipment.carrier === undefined ? {} : { carrier: shipment.carrier }),
       tracking_number: shipment.tracking_number,
-      ...(shipment.tracking_url !== undefined
-        ? { tracking_url: shipment.tracking_url }
-        : {}),
+      ...(shipment.tracking_url === undefined
+        ? {}
+        : { tracking_url: shipment.tracking_url }),
     }
   }
 

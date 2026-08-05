@@ -24,15 +24,15 @@ const createInitialAddress = (
   user: ReturnType<typeof useAuth>["user"],
   address: ReturnType<typeof useCustomer>["address"]
 ): AddressData => ({
+  city: address?.city || "",
+  company: user?.company_name || "",
+  country: address?.country || "cz",
+  email: user?.email || "",
   firstName: user?.first_name || "",
   lastName: user?.last_name || "",
-  email: user?.email || "",
   phone: user?.phone || "",
-  street: address?.street || "",
-  city: address?.city || "",
   postalCode: address?.postalCode || "",
-  country: address?.country || "cz",
-  company: user?.company_name || "",
+  street: address?.street || "",
 })
 
 export function AddressForm({
@@ -53,10 +53,10 @@ export function AddressForm({
     if (address) {
       setShippingAddress((prev) => ({
         ...prev,
-        street: address.street || prev.street,
         city: address.city || prev.city,
-        postalCode: address.postalCode || prev.postalCode,
         country: address.country || prev.country,
+        postalCode: address.postalCode || prev.postalCode,
+        street: address.street || prev.street,
       }))
     }
   }, [address?.street, address?.city, address?.postalCode, address?.country])
@@ -69,18 +69,18 @@ export function AddressForm({
 
     // Validate shipping address (with email and phone required)
     const shippingErrors = validateAddress(shippingAddress, {
+      prefix: "shipping",
       requireEmail: true,
       requirePhone: true,
-      prefix: "shipping",
     })
     newErrors = { ...newErrors, ...shippingErrors }
 
     // Validate billing address if different (without email and phone)
     if (!useSameAddress) {
       const billingErrors = validateAddress(billingAddress, {
+        prefix: "billing",
         requireEmail: false,
         requirePhone: false,
-        prefix: "billing",
       })
       newErrors = { ...newErrors, ...billingErrors }
     }
@@ -93,8 +93,8 @@ export function AddressForm({
     e.preventDefault()
     if (validateForm()) {
       void onComplete({
-        shipping: shippingAddress,
         billing: useSameAddress ? shippingAddress : billingAddress,
+        shipping: shippingAddress,
         useSameAddress,
       })
     }
@@ -115,43 +115,43 @@ export function AddressForm({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           <FormInput
             helpText={
-              errors["shippingFirstName"] && (
+              errors.shippingFirstName && (
                 <StatusText showIcon size="sm" status="error">
-                  {errors["shippingFirstName"]}
+                  {errors.shippingFirstName}
                 </StatusText>
               )
             }
             id="shipping-first-name"
             label="Jméno"
-            onChange={(e) =>
+            onChange={(e) => {
               setShippingAddress({
                 ...shippingAddress,
                 firstName: e.target.value,
               })
-            }
+            }}
             required
-            validateStatus={errors["shippingFirstName"] ? "error" : "default"}
+            validateStatus={errors.shippingFirstName ? "error" : "default"}
             value={shippingAddress.firstName}
           />
 
           <FormInput
             helpText={
-              errors["shippingLastName"] && (
+              errors.shippingLastName && (
                 <StatusText showIcon size="sm" status="error">
-                  {errors["shippingLastName"]}
+                  {errors.shippingLastName}
                 </StatusText>
               )
             }
             id="shipping-last-name"
             label="Příjmení"
-            onChange={(e) =>
+            onChange={(e) => {
               setShippingAddress({
                 ...shippingAddress,
                 lastName: e.target.value,
               })
-            }
+            }}
             required
-            validateStatus={errors["shippingLastName"] ? "error" : "default"}
+            validateStatus={errors.shippingLastName ? "error" : "default"}
             value={shippingAddress.lastName}
           />
         </div>
@@ -164,17 +164,17 @@ export function AddressForm({
               <span className="text-fg-secondary text-sm">(nepovinné)</span>
             </span>
           }
-          onChange={(e) =>
+          onChange={(e) => {
             setShippingAddress({ ...shippingAddress, company: e.target.value })
-          }
+          }}
           value={shippingAddress.company}
         />
         <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
           <FormInput
             helpText={
-              errors["shippingEmail"] && (
+              errors.shippingEmail && (
                 <StatusText showIcon size="sm" status="error">
-                  {errors["shippingEmail"]}
+                  {errors.shippingEmail}
                 </StatusText>
               )
             }
@@ -191,20 +191,20 @@ export function AddressForm({
                 setErrors({ ...errors, shippingEmail: "" })
               }
             }}
-            onChange={(e) =>
+            onChange={(e) => {
               setShippingAddress({ ...shippingAddress, email: e.target.value })
-            }
+            }}
             required
             type="email"
-            validateStatus={errors["shippingEmail"] ? "error" : "default"}
+            validateStatus={errors.shippingEmail ? "error" : "default"}
             value={shippingAddress.email}
           />
 
           <FormInput
             helpText={
-              errors["shippingPhone"] && (
+              errors.shippingPhone && (
                 <StatusText showIcon size="sm" status="error">
-                  {errors["shippingPhone"]}
+                  {errors.shippingPhone}
                 </StatusText>
               )
             }
@@ -217,53 +217,53 @@ export function AddressForm({
             placeholder="123 456 789"
             required
             type="tel"
-            validateStatus={errors["shippingPhone"] ? "error" : "default"}
+            validateStatus={errors.shippingPhone ? "error" : "default"}
             value={shippingAddress.phone}
           />
         </div>
 
         <FormInput
           helpText={
-            errors["shippingStreet"] && (
+            errors.shippingStreet && (
               <StatusText showIcon size="sm" status="error">
-                {errors["shippingStreet"]}
+                {errors.shippingStreet}
               </StatusText>
             )
           }
           id="shipping-street"
           label="Ulice a číslo popisné"
-          onChange={(e) =>
+          onChange={(e) => {
             setShippingAddress({ ...shippingAddress, street: e.target.value })
-          }
+          }}
           required
-          validateStatus={errors["shippingStreet"] ? "error" : "default"}
+          validateStatus={errors.shippingStreet ? "error" : "default"}
           value={shippingAddress.street}
         />
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           <FormInput
             helpText={
-              errors["shippingCity"] && (
+              errors.shippingCity && (
                 <StatusText showIcon size="sm" status="error">
-                  {errors["shippingCity"]}
+                  {errors.shippingCity}
                 </StatusText>
               )
             }
             id="shipping-city"
             label="Město"
-            onChange={(e) =>
+            onChange={(e) => {
               setShippingAddress({ ...shippingAddress, city: e.target.value })
-            }
+            }}
             required
-            validateStatus={errors["shippingCity"] ? "error" : "default"}
+            validateStatus={errors.shippingCity ? "error" : "default"}
             value={shippingAddress.city}
           />
 
           <FormInput
             helpText={
-              errors["shippingPostalCode"] && (
+              errors.shippingPostalCode && (
                 <StatusText showIcon size="sm" status="error">
-                  {errors["shippingPostalCode"]}
+                  {errors.shippingPostalCode}
                 </StatusText>
               )
             }
@@ -275,7 +275,7 @@ export function AddressForm({
             }}
             placeholder="123 45"
             required
-            validateStatus={errors["shippingPostalCode"] ? "error" : "default"}
+            validateStatus={errors.shippingPostalCode ? "error" : "default"}
             value={shippingAddress.postalCode}
           />
         </div>
@@ -317,43 +317,43 @@ export function AddressForm({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
             <FormInput
               helpText={
-                errors["billingFirstName"] && (
+                errors.billingFirstName && (
                   <StatusText showIcon size="sm" status="error">
-                    {errors["billingFirstName"]}
+                    {errors.billingFirstName}
                   </StatusText>
                 )
               }
               id="billing-first-name"
               label="Jméno"
-              onChange={(e) =>
+              onChange={(e) => {
                 setBillingAddress({
                   ...billingAddress,
                   firstName: e.target.value,
                 })
-              }
+              }}
               required
-              validateStatus={errors["billingFirstName"] ? "error" : "default"}
+              validateStatus={errors.billingFirstName ? "error" : "default"}
               value={billingAddress.firstName}
             />
 
             <FormInput
               helpText={
-                errors["billingLastName"] && (
+                errors.billingLastName && (
                   <StatusText showIcon size="sm" status="error">
-                    {errors["billingLastName"]}
+                    {errors.billingLastName}
                   </StatusText>
                 )
               }
               id="billing-last-name"
               label="Příjmení"
-              onChange={(e) =>
+              onChange={(e) => {
                 setBillingAddress({
                   ...billingAddress,
                   lastName: e.target.value,
                 })
-              }
+              }}
               required
-              validateStatus={errors["billingLastName"] ? "error" : "default"}
+              validateStatus={errors.billingLastName ? "error" : "default"}
               value={billingAddress.lastName}
             />
           </div>
@@ -361,67 +361,67 @@ export function AddressForm({
           <FormInput
             id="billing-company"
             label="Firma (nepovinné)"
-            onChange={(e) =>
+            onChange={(e) => {
               setBillingAddress({ ...billingAddress, company: e.target.value })
-            }
+            }}
             value={billingAddress.company}
           />
 
           <FormInput
             helpText={
-              errors["billingStreet"] && (
+              errors.billingStreet && (
                 <StatusText showIcon size="sm" status="error">
-                  {errors["billingStreet"]}
+                  {errors.billingStreet}
                 </StatusText>
               )
             }
             id="billing-street"
             label="Ulice a číslo popisné"
-            onChange={(e) =>
+            onChange={(e) => {
               setBillingAddress({ ...billingAddress, street: e.target.value })
-            }
+            }}
             required
-            validateStatus={errors["billingStreet"] ? "error" : "default"}
+            validateStatus={errors.billingStreet ? "error" : "default"}
             value={billingAddress.street}
           />
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
             <FormInput
               helpText={
-                errors["billingCity"] && (
+                errors.billingCity && (
                   <StatusText showIcon size="sm" status="error">
-                    {errors["billingCity"]}
+                    {errors.billingCity}
                   </StatusText>
                 )
               }
               id="billing-city"
               label="Město"
-              onChange={(e) =>
+              onChange={(e) => {
                 setBillingAddress({ ...billingAddress, city: e.target.value })
-              }
+              }}
               required
-              validateStatus={errors["billingCity"] ? "error" : "default"}
+              validateStatus={errors.billingCity ? "error" : "default"}
               value={billingAddress.city}
             />
 
             <FormInput
               helpText={
-                errors["billingPostalCode"] && (
+                errors.billingPostalCode && (
                   <StatusText showIcon size="sm" status="error">
-                    {errors["billingPostalCode"]}
+                    {errors.billingPostalCode}
                   </StatusText>
                 )
               }
               id="billing-postal-code"
               label="PSČ"
-              onChange={(e) =>
+              onChange={(e) => {
                 setBillingAddress({
                   ...billingAddress,
                   postalCode: e.target.value,
                 })
-              }
+              }}
               required
-              validateStatus={errors["billingPostalCode"] ? "error" : "default"}
+              validateStatus={errors.billingPostalCode ? "error" : "default"}
               value={billingAddress.postalCode}
             />
           </div>

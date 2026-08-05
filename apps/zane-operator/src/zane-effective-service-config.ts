@@ -4,20 +4,20 @@ import type {
   ZaneServiceResourceLimits,
 } from "./zane-contract"
 
-type PendingFieldChange = {
+interface PendingFieldChange {
   field?: string
   type?: string
   new_value?: Record<string, unknown> | null
 }
 
-export type EffectiveGitSource = {
+export interface EffectiveGitSource {
   repository_url: string | null
   branch_name: string | null
   commit_sha: string | null
   git_app_id: string | null
 }
 
-export type EffectiveBuilder = {
+export interface EffectiveBuilder {
   builder: string | null
   dockerfile_path: string | null
   build_context_dir: string | null
@@ -32,7 +32,7 @@ function getLastPendingFieldChange(
     (change) => change.field === field
   )
 
-  return matchingChanges[matchingChanges.length - 1] ?? null
+  return matchingChanges.at(-1) ?? null
 }
 
 function normalizeString(value: unknown): string | null {
@@ -45,30 +45,26 @@ function normalizeHealthcheck(value: unknown): ZaneServiceHealthcheck | null {
   }
 
   const record = value as Record<string, unknown>
-  const type = normalizeString(record["type"])
-  const path = normalizeString(record["value"])
+  const type = normalizeString(record.type)
+  const path = normalizeString(record.value)
   const timeoutSeconds =
-    typeof record["timeout_seconds"] === "number"
-      ? record["timeout_seconds"]
-      : null
+    typeof record.timeout_seconds === "number" ? record.timeout_seconds : null
   const intervalSeconds =
-    typeof record["interval_seconds"] === "number"
-      ? record["interval_seconds"]
-      : null
+    typeof record.interval_seconds === "number" ? record.interval_seconds : null
 
   if (!type || !path || timeoutSeconds === null || intervalSeconds === null) {
     return null
   }
 
   return {
+    associated_port:
+      typeof record.associated_port === "number"
+        ? record.associated_port
+        : null,
+    interval_seconds: intervalSeconds,
+    timeout_seconds: timeoutSeconds,
     type,
     value: path,
-    timeout_seconds: timeoutSeconds,
-    interval_seconds: intervalSeconds,
-    associated_port:
-      typeof record["associated_port"] === "number"
-        ? record["associated_port"]
-        : null,
   }
 }
 
@@ -81,16 +77,16 @@ function normalizeResourceLimits(
 
   const record = value as Record<string, unknown>
   const memory =
-    record["memory"] &&
-    typeof record["memory"] === "object" &&
-    !Array.isArray(record["memory"])
-      ? (record["memory"] as { unit?: string; value?: number | string | null })
+    record.memory &&
+    typeof record.memory === "object" &&
+    !Array.isArray(record.memory)
+      ? (record.memory as { unit?: string; value?: number | string | null })
       : null
 
   return {
     cpus:
-      typeof record["cpus"] === "number" || typeof record["cpus"] === "string"
-        ? record["cpus"]
+      typeof record.cpus === "number" || typeof record.cpus === "string"
+        ? record.cpus
         : null,
     memory: memory
       ? {
@@ -119,18 +115,18 @@ export function computeEffectiveGitSource(
 
   if (pendingValue) {
     return {
-      repository_url: normalizeString(pendingValue["repository_url"]),
-      branch_name: normalizeString(pendingValue["branch_name"]),
-      commit_sha: normalizeString(pendingValue["commit_sha"]),
-      git_app_id: normalizeString(pendingValue["git_app_id"]),
+      branch_name: normalizeString(pendingValue.branch_name),
+      commit_sha: normalizeString(pendingValue.commit_sha),
+      git_app_id: normalizeString(pendingValue.git_app_id),
+      repository_url: normalizeString(pendingValue.repository_url),
     }
   }
 
   return {
-    repository_url: normalizeString(serviceDetails.repository_url),
     branch_name: normalizeString(serviceDetails.branch_name),
     commit_sha: normalizeString(serviceDetails.commit_sha) ?? "HEAD",
     git_app_id: normalizeString(serviceDetails.git_app?.id),
+    repository_url: normalizeString(serviceDetails.repository_url),
   }
 }
 
@@ -145,23 +141,23 @@ export function computeEffectiveBuilder(
 
   if (pendingValue) {
     return {
-      builder: normalizeString(pendingValue["builder"]),
-      dockerfile_path: normalizeString(pendingValue["dockerfile_path"]),
-      build_context_dir: normalizeString(pendingValue["build_context_dir"]),
-      build_stage_target: normalizeString(pendingValue["build_stage_target"]),
+      build_context_dir: normalizeString(pendingValue.build_context_dir),
+      build_stage_target: normalizeString(pendingValue.build_stage_target),
+      builder: normalizeString(pendingValue.builder),
+      dockerfile_path: normalizeString(pendingValue.dockerfile_path),
     }
   }
 
   return {
-    builder: normalizeString(serviceDetails.builder),
-    dockerfile_path: normalizeString(
-      serviceDetails.dockerfile_builder_options?.dockerfile_path
-    ),
     build_context_dir: normalizeString(
       serviceDetails.dockerfile_builder_options?.build_context_dir
     ),
     build_stage_target: normalizeString(
       serviceDetails.dockerfile_builder_options?.build_stage_target
+    ),
+    builder: normalizeString(serviceDetails.builder),
+    dockerfile_path: normalizeString(
+      serviceDetails.dockerfile_builder_options?.dockerfile_path
     ),
   }
 }

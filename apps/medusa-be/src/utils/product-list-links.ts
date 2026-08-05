@@ -7,17 +7,17 @@ import {
 import { CustomerProductListLink } from "../links/customer-product-list"
 import { isObjectRecord } from "./guards"
 
-export type CustomerProductListLinkRecord = {
+export interface CustomerProductListLinkRecord {
   customer_id?: string
   product_list_id?: string
 }
 
-export type ProductListItemProductLinkRecord = {
+export interface ProductListItemProductLinkRecord {
   product_id?: string
   product_list_item_id?: string
 }
 
-export type ProductListItemVariantLinkRecord = {
+export interface ProductListItemVariantLinkRecord {
   product_variant_id?: string
   product_list_item_id?: string
 }

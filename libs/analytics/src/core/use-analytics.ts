@@ -136,18 +136,18 @@ export function useAnalytics({
         console.log(`[Analytics] ${label} results:`, results)
       }
 
-      return { success: allSuccess, results }
+      return { results, success: allSuccess }
     }
 
     analyticsRef.current = {
-      trackViewContent: (params) =>
-        executeAcrossAdapters("trackViewContent", (adapter) =>
-          adapter.trackViewContent?.(params)
-        ),
-
       trackAddToCart: (params) =>
         executeAcrossAdapters("trackAddToCart", (adapter) =>
           adapter.trackAddToCart?.(params)
+        ),
+
+      trackCustom: (eventName, params) =>
+        executeAcrossAdapters(`trackCustom(${eventName})`, (adapter) =>
+          adapter.trackCustom?.(eventName, params)
         ),
 
       trackInitiateCheckout: (params) =>
@@ -160,9 +160,9 @@ export function useAnalytics({
           adapter.trackPurchase?.(params)
         ),
 
-      trackCustom: (eventName, params) =>
-        executeAcrossAdapters(`trackCustom(${eventName})`, (adapter) =>
-          adapter.trackCustom?.(eventName, params)
+      trackViewContent: (params) =>
+        executeAcrossAdapters("trackViewContent", (adapter) =>
+          adapter.trackViewContent?.(params)
         ),
     }
   }

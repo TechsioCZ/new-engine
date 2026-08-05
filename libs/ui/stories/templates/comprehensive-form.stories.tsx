@@ -13,26 +13,26 @@ import { Slider } from "../../src/molecules/slider"
 import { Switch } from "../../src/molecules/switch"
 
 const meta: Meta = {
-  title: "Templates/Comprehensive Form",
-  parameters: {
-    layout: "centered",
-  },
   argTypes: {
     size: {
       control: "select",
-      options: ["sm", "md", "lg"],
       description: "Size that propagates to all form components",
+      options: ["sm", "md", "lg"],
     },
     validateStatus: {
       control: "select",
-      options: ["default", "error", "success", "warning"],
       description: "Validation state that affects all form inputs",
+      options: ["default", "error", "success", "warning"],
     },
   },
   args: {
     size: "md",
     validateStatus: "default",
   },
+  parameters: {
+    layout: "centered",
+  },
+  title: "Templates/Comprehensive Form",
 }
 
 export default meta
@@ -58,16 +58,16 @@ const comboboxOptions = [
 export const AllFormInputs: Story = {
   render: ({ size, validateStatus }) => {
     const [formData, setFormData] = useState({
-      textInput: "",
-      email: "",
-      password: "",
-      textarea: "",
-      select: "",
-      combobox: "",
-      number: 0,
       checkbox: false,
-      switch: false,
+      combobox: "",
+      email: "",
+      number: 0,
+      password: "",
       range: [25],
+      select: "",
+      switch: false,
+      textInput: "",
+      textarea: "",
     })
 
     const helpText =
@@ -96,12 +96,12 @@ export const AllFormInputs: Story = {
                 validateStatus={validateStatus}
                 helpText={helpText}
                 value={formData.textInput}
-                onChange={(e) =>
+                onChange={(e) => {
                   setFormData((prev) => ({
                     ...prev,
                     textInput: e.target.value,
                   }))
-                }
+                }}
               />
 
               <FormInput
@@ -113,9 +113,9 @@ export const AllFormInputs: Story = {
                 validateStatus={validateStatus}
                 helpText={helpText}
                 value={formData.email}
-                onChange={(e) =>
+                onChange={(e) => {
                   setFormData((prev) => ({ ...prev, email: e.target.value }))
-                }
+                }}
               />
 
               <FormInput
@@ -127,9 +127,9 @@ export const AllFormInputs: Story = {
                 validateStatus={validateStatus}
                 helpText={helpText}
                 value={formData.password}
-                onChange={(e) =>
+                onChange={(e) => {
                   setFormData((prev) => ({ ...prev, password: e.target.value }))
-                }
+                }}
               />
 
               <FormTextarea
@@ -140,12 +140,12 @@ export const AllFormInputs: Story = {
                 validateStatus={validateStatus}
                 helpText={helpText}
                 value={formData.textarea}
-                onChange={(e) =>
+                onChange={(e) => {
                   setFormData((prev) => ({
                     ...prev,
                     textarea: e.target.value,
                   }))
-                }
+                }}
               />
             </div>
           </VariantGroup>
@@ -214,16 +214,16 @@ export const AllFormInputs: Story = {
                   validateStatus={validateStatus}
                   helpText={helpText}
                   checked={formData.checkbox}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked) => {
                     setFormData((prev) => ({ ...prev, checkbox: checked }))
-                  }
+                  }}
                 />
 
                 <Switch
                   checked={formData.switch}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked) => {
                     setFormData((prev) => ({ ...prev, switch: checked }))
-                  }
+                  }}
                   validateStatus={validateStatus}
                   helpText={helpText}
                 >

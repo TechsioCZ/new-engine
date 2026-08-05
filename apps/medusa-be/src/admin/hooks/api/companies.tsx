@@ -1,11 +1,9 @@
 import type { FetchError } from "@medusajs/js-sdk"
-import {
-  type QueryKey,
-  type UseMutationOptions,
-  type UseQueryOptions,
-  useMutation,
-  useQuery,
-  useQueryClient,
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type {
+  QueryKey,
+  UseMutationOptions,
+  UseQueryOptions,
 } from "@tanstack/react-query"
 
 import type {
@@ -22,7 +20,7 @@ import { customerQueryKey } from "./customers"
 export const companyQueryKey = queryKeysFactory("company")
 
 type QueryOptions<TData> = Omit<
-  UseQueryOptions<TData, FetchError, TData, QueryKey>,
+  UseQueryOptions<TData, FetchError, TData>,
   "queryFn" | "queryKey"
 >
 
@@ -33,7 +31,7 @@ export const useCompanies = (
   const filterQuery = new URLSearchParams(query).toString()
 
   const fetchCompanies = async () =>
-    sdk.client.fetch<AdminCompaniesResponse>(
+    await sdk.client.fetch<AdminCompaniesResponse>(
       `/admin/companies${filterQuery ? `?${filterQuery}` : ""}`,
       {
         method: "GET",
@@ -41,8 +39,8 @@ export const useCompanies = (
     )
 
   return useQuery({
-    queryKey: companyQueryKey.list(query),
     queryFn: fetchCompanies,
+    queryKey: companyQueryKey.list(query),
     ...options,
   })
 }
@@ -55,7 +53,7 @@ export const useCompany = (
   const filterQuery = new URLSearchParams(query).toString()
 
   const fetchCompany = async () =>
-    sdk.client.fetch<AdminCompanyResponse>(
+    await sdk.client.fetch<AdminCompanyResponse>(
       `/admin/companies/${companyId}${filterQuery ? `?${filterQuery}` : ""}`,
       {
         method: "GET",
@@ -63,8 +61,8 @@ export const useCompany = (
     )
 
   return useQuery({
-    queryKey: companyQueryKey.detail(companyId, query),
     queryFn: fetchCompany,
+    queryKey: companyQueryKey.detail(companyId, query),
     ...options,
   })
 }
@@ -79,13 +77,13 @@ export const useCreateCompany = (
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (company: AdminCreateCompany) =>
+    mutationFn: async (company: AdminCreateCompany) =>
       sdk.client.fetch<AdminCreateCompaniesResponse>("/admin/companies", {
-        method: "POST",
+        body: company,
         headers: {
           "Content-Type": "application/json",
         },
-        body: company,
+        method: "POST",
       }),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
@@ -113,13 +111,13 @@ export const useUpdateCompany = (
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (company: AdminUpdateCompany) =>
+    mutationFn: async (company: AdminUpdateCompany) =>
       sdk.client.fetch<AdminCompanyResponse>(`/admin/companies/${companyId}`, {
-        method: "POST",
+        body: company,
         headers: {
           "Content-Type": "application/json",
         },
-        body: company,
+        method: "POST",
       }),
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries({
@@ -143,7 +141,7 @@ export const useDeleteCompany = (
 ) => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: () =>
+    mutationFn: async () =>
       sdk.client.fetch<void>(`/admin/companies/${companyId}`, {
         method: "DELETE",
       }),
@@ -170,7 +168,7 @@ export const useRestoreCompany = (
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () =>
+    mutationFn: async () =>
       sdk.client.fetch<AdminCompanyResponse>(
         `/admin/companies/${companyId}/restore`,
         {
@@ -202,11 +200,11 @@ export const useAddCompanyToCustomerGroup = (
   return useMutation({
     mutationFn: async (groupId: string) => {
       await sdk.client.fetch(`/admin/companies/${companyId}/customer-group`, {
-        method: "POST",
+        body: { group_id: groupId },
         headers: {
           "Content-Type": "application/json",
         },
-        body: { group_id: groupId },
+        method: "POST",
       })
     },
     onSuccess: async (data, variables, context) => {
@@ -236,10 +234,10 @@ export const useRemoveCompanyFromCustomerGroup = (
       await sdk.client.fetch(
         `/admin/companies/${companyId}/customer-group/${groupId}`,
         {
-          method: "DELETE",
           headers: {
             Accept: "text/plain",
           },
+          method: "DELETE",
         }
       )
     },

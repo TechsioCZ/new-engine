@@ -9,7 +9,7 @@ import type {
 import type { Mocked } from "vitest"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("../../../../../src/modules/packeta-client", () => ({
+vi.mock(import("../../../../../src/modules/packeta-client"), () => ({
   PACKETA_CLIENT_MODULE: "packeta_client",
 }))
 
@@ -29,13 +29,13 @@ type PacketaClientStub = Pick<
   | "getEffectiveConfig"
   | "getPacketStatus"
 >
-type FileServiceStub = {
+interface FileServiceStub {
   createFiles: (
     data: CreateFileDTO[],
     sharedContext?: Context
   ) => Promise<FileDTO[]>
 }
-type QueryStub = {
+interface QueryStub {
   graph: (input: {
     entity: string
     fields: string[]
@@ -44,12 +44,12 @@ type QueryStub = {
 }
 
 const mockPacketaClient: Mocked<PacketaClientStub> = {
-  getEffectiveConfig: vi.fn(),
-  createPacket: vi.fn(),
   cancelPacket: vi.fn(),
-  getPacketStatus: vi.fn(),
+  createPacket: vi.fn(),
   downloadLabelPdf: vi.fn(),
   getBranches: vi.fn(),
+  getEffectiveConfig: vi.fn(),
+  getPacketStatus: vi.fn(),
 }
 
 const mockFileService: Mocked<FileServiceStub> = {
@@ -89,9 +89,9 @@ type InjectedDependencies = ServiceConstructorArgs[0]
 
 const defaultOptions: PacketaOptions = {
   api_password: "test-pwd",
-  environment: "testing",
   default_label_format: "A6",
   default_label_offset: 0,
+  environment: "testing",
   sender_label: "Test Eshop",
 }
 
@@ -109,52 +109,52 @@ const createService = (options: Partial<PacketaOptions> = {}) =>
   })
 
 const baseShippingAddress = {
-  id: "addr_123",
-  created_at: new Date(),
-  updated_at: new Date(),
-  first_name: "John",
-  last_name: "Doe",
   address_1: "123 Main Street",
   city: "Prague",
-  postal_code: "11000",
   country_code: "cz",
+  created_at: new Date(),
+  first_name: "John",
+  id: "addr_123",
+  last_name: "Doe",
   phone: "+420123456789",
+  postal_code: "11000",
+  updated_at: new Date(),
 }
 
 const createOrder = (
   overrides: Partial<FulfillmentOrderDTO> = {}
 ): Partial<FulfillmentOrderDTO> => ({
-  id: "order_123",
+  currency_code: "CZK",
   display_id: 1001,
   email: "customer@example.com",
-  total: 1500,
-  currency_code: "CZK",
+  id: "order_123",
   shipping_address: baseShippingAddress,
+  total: 1500,
   ...overrides,
 })
 
 const createShippingData = (overrides = {}) => ({
+  access_point_id: 4242,
   code: "z_point",
   requires_access_point: true,
   supports_cod: false,
-  access_point_id: 4242,
   ...overrides,
 })
 
-describe("PacketaFulfillmentProviderService", () => {
+describe(PacketaFulfillmentProviderService, () => {
   beforeEach(() => {
     vi.resetAllMocks()
     mockPacketaClient.getEffectiveConfig.mockResolvedValue({
       api_password: "test-pwd",
-      environment: "testing",
       default_label_format: "A6",
       default_label_offset: 0,
+      environment: "testing",
       sender_label: "Test Eshop",
     })
     mockPacketaClient.createPacket.mockResolvedValue({
-      id: 987_654_321,
       barcode: "Z987654321",
       barcodeText: "Z 987 654 321",
+      id: 987_654_321,
     })
     mockPacketaClient.downloadLabelPdf.mockResolvedValue(Buffer.from("PDF"))
     mockFileService.createFiles.mockResolvedValue([
@@ -170,13 +170,13 @@ describe("PacketaFulfillmentProviderService", () => {
     it("returns empty array when Packeta is disabled", async () => {
       mockPacketaClient.getEffectiveConfig.mockResolvedValueOnce(null)
       const options = await createService().getFulfillmentOptions()
-      expect(options).toEqual([])
+      expect(options).toStrictEqual([])
     })
 
     it("returns both z_point options when enabled", async () => {
       const options = await createService().getFulfillmentOptions()
       expect(options).toHaveLength(2)
-      expect(options.map((o: any) => o.code)).toEqual([
+      expect(options.map((o: any) => o.code)).toStrictEqual([
         "z_point",
         "z_point_cod",
       ])
@@ -190,7 +190,9 @@ describe("PacketaFulfillmentProviderService", () => {
       ["home_delivery", false],
       [undefined, false],
     ])("validates code=%s -> %s", async (code, expected) => {
-      expect(await createService().validateOption({ code })).toBe(expected)
+      await expect(createService().validateOption({ code })).resolves.toBe(
+        expected
+      )
     })
   })
 
@@ -222,10 +224,10 @@ describe("PacketaFulfillmentProviderService", () => {
         validationContext
       )
       expect(data).toMatchObject({
-        code: "z_point_cod",
         access_point_id: 4242,
-        supports_cod: true,
         access_point_name: "Praha 1",
+        code: "z_point_cod",
+        supports_cod: true,
       })
     })
   })
@@ -259,28 +261,28 @@ describe("PacketaFulfillmentProviderService", () => {
 
       expect(mockPacketaClient.createPacket).toHaveBeenCalledWith(
         expect.objectContaining({
-          number: "1001",
-          name: "John",
-          surname: "Doe",
           addressId: 4242,
           currency: "CZK",
           eshop: "Test Eshop",
+          name: "John",
+          number: "1001",
+          surname: "Doe",
           weight: 0.5,
         })
       )
       expect(mockPacketaClient.downloadLabelPdf).toHaveBeenCalledWith(
         987_654_321
       )
-      expect(mockFileService.createFiles).toHaveBeenCalled()
+      expect(mockFileService.createFiles).toHaveBeenCalledWith()
       expect(result.data).toMatchObject({
-        status: "completed",
-        packet_id: 987_654_321,
-        barcode: "Z987654321",
         access_point_id: 4242,
+        barcode: "Z987654321",
         label_url: "https://files.example/packeta-label-Z987654321.pdf",
+        packet_id: 987_654_321,
+        status: "completed",
         tracking_url: "https://tracking.packeta.com/Z987654321",
       })
-      expect(result.labels).toEqual([
+      expect(result.labels).toStrictEqual([
         expect.objectContaining({
           tracking_number: "Z987654321",
           tracking_url: "https://tracking.packeta.com/Z987654321",
@@ -394,7 +396,7 @@ describe("PacketaFulfillmentProviderService", () => {
       )
       expect(result.data["status"]).toBe("completed")
       expect(result.data["label_url"]).toBeUndefined()
-      expect(result.labels).toEqual([])
+      expect(result.labels).toStrictEqual([])
     })
   })
 
@@ -407,8 +409,8 @@ describe("PacketaFulfillmentProviderService", () => {
     it("calls packeta client cancel when packet_id present", async () => {
       mockPacketaClient.cancelPacket.mockResolvedValue(true)
       const result = await createService().cancelFulfillment({
-        packet_id: 123,
         barcode: "Z123",
+        packet_id: 123,
       })
       expect(mockPacketaClient.cancelPacket).toHaveBeenCalledWith(123)
       expect(result).toMatchObject({ cancelled: true, packet_id: 123 })

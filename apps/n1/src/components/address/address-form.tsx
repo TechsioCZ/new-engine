@@ -12,7 +12,7 @@ import type { AddressFormData } from "@/utils/address-validation"
 
 import { AddressFormFields } from "./address-form-fields"
 
-type AddressFormProps = {
+interface AddressFormProps {
   address?: StoreCustomerAddress
   onCancel: () => void
   onSuccess: () => void

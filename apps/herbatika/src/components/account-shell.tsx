@@ -1,7 +1,8 @@
 "use client"
 
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
@@ -16,7 +17,7 @@ import { OrderSkeleton } from "@/components/loading/order-skeleton"
 import { useAuth } from "@/lib/storefront/auth"
 import { useLogoutAction } from "@/lib/storefront/use-logout-action"
 
-type AccountNavItemType = {
+interface AccountNavItemType {
   href: string
   labelKey:
     | "account.navigation.lists"
@@ -29,23 +30,23 @@ type AccountNavItemType = {
 const ACCOUNT_NAV_ITEMS: AccountNavItemType[] = [
   {
     href: "/account",
-    labelKey: "account.navigation.overview",
     icon: "token-icon-user",
+    labelKey: "account.navigation.overview",
   },
   {
     href: "/account/orders",
-    labelKey: "account.navigation.orders",
     icon: "token-icon-order",
+    labelKey: "account.navigation.orders",
   },
   {
     href: "/account/lists",
-    labelKey: "account.navigation.lists",
     icon: "token-icon-heart",
+    labelKey: "account.navigation.lists",
   },
   {
     href: "/account/settings",
-    labelKey: "account.navigation.settings",
     icon: "token-icon-settings",
+    labelKey: "account.navigation.settings",
   },
 ] as const
 
@@ -61,7 +62,7 @@ const isNavItemActive = (pathname: string, href: string) => {
   return pathname.startsWith(`${href}/`)
 }
 
-type AccountShellProps = {
+interface AccountShellProps {
   children: ReactNode
 }
 
@@ -194,10 +195,10 @@ export function AccountShell({ children }: AccountShellProps) {
           <Button
             block
             className="justify-start px-200 text-lg hover:text-danger"
-            icon={"token-icon-logout"}
+            icon="token-icon-logout"
             iconSize="2xl"
             isLoading={logoutMutation.isPending}
-            onClick={() => handleLogout()}
+            onClick={async () => handleLogout()}
             size="current"
             theme="unstyled"
           >

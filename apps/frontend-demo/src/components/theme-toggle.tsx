@@ -27,7 +27,9 @@ export function ThemeToggle() {
         {brands.map((key) => (
           <Button
             key={key}
-            onClick={() => setBrand(key)}
+            onClick={() => {
+              setBrand(key)
+            }}
             size="sm"
             theme={mounted && key === brand ? "solid" : "outlined"}
             variant="primary"

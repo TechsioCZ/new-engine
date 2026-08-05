@@ -9,12 +9,12 @@ import {
   productVariantMeasurementLink,
 } from "./helpers"
 
-export type ProductMeasurementLinkIds = {
+export interface ProductMeasurementLinkIds {
   product_id: string
   product_measurement_id: string
 }
 
-export type ProductVariantMeasurementLinkIds = {
+export interface ProductVariantMeasurementLinkIds {
   product_variant_id: string
   product_variant_measurement_id: string
 }

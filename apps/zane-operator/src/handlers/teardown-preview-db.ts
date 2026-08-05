@@ -21,27 +21,27 @@ export async function handleTeardownPreviewDb(
 
     console.info(
       JSON.stringify({
-        event: "preview-db.teardown",
-        pr_number: prNumber,
+        active_connections_at_drop: result.activeConnectionsAtDrop,
+        app_user: result.appUser,
         db_name: result.dbName,
         deleted: result.deleted,
-        app_user: result.appUser,
-        role_deleted: result.roleDeleted,
         dev_grants_cleaned: result.devGrantsCleaned,
+        event: "preview-db.teardown",
         noop: result.noop,
         noop_reason: result.noopReason,
-        active_connections_at_drop: result.activeConnectionsAtDrop,
+        pr_number: prNumber,
+        role_deleted: result.roleDeleted,
       })
     )
 
     return jsonResponse(200, {
+      app_user: result.appUser,
       db_name: result.dbName,
       deleted: result.deleted,
-      app_user: result.appUser,
-      role_deleted: result.roleDeleted,
       dev_grants_cleaned: result.devGrantsCleaned,
       noop: result.noop,
       noop_reason: result.noopReason,
+      role_deleted: result.roleDeleted,
     })
   } catch (error: unknown) {
     return mapHandlerError(error, "teardown-preview-db")

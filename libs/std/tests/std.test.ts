@@ -21,30 +21,30 @@ import {
 
 describe("array utilities", () => {
   it("deduplicates while preserving order", () => {
-    expect(unique([2, 1, 2, 3])).toEqual([2, 1, 3])
+    expect(unique([2, 1, 2, 3])).toStrictEqual([2, 1, 3])
   })
 
   it("chunks values and rejects invalid sizes", () => {
-    expect(chunk([1, 2, 3], 2)).toEqual([[1, 2], [3]])
+    expect(chunk([1, 2, 3], 2)).toStrictEqual([[1, 2], [3]])
     expect(() => chunk([1], 0)).toThrow(RangeError)
   })
 })
 
 describe("object utilities", () => {
   it("accepts non-array objects only", () => {
-    expect(isRecord({ value: 1 })).toBe(true)
-    expect(isRecord([])).toBe(false)
-    expect(isRecord(null)).toBe(false)
+    expect(isRecord({ value: 1 })).toBeTruthy()
+    expect(isRecord([])).toBeFalsy()
+    expect(isRecord(null)).toBeFalsy()
     expect(toPlainRecord("value")).toBeUndefined()
   })
 
   it("compacts undefined values and omits selected keys", () => {
-    expect(compactRecord({ a: 1, b: undefined, c: null })).toEqual({
+    expect(compactRecord({ a: 1, b: undefined, c: null })).toStrictEqual({
       a: 1,
       c: null,
     })
-    expect(omitKeys({ a: 1, b: 2 }, ["b"])).toEqual({ a: 1 })
-    expect(omitUndefined({ a: 1, b: undefined, c: null })).toEqual({
+    expect(omitKeys({ a: 1, b: 2 }, ["b"])).toStrictEqual({ a: 1 })
+    expect(omitUndefined({ a: 1, b: undefined, c: null })).toStrictEqual({
       a: 1,
       c: null,
     })
@@ -58,7 +58,7 @@ describe("object utilities", () => {
 
 describe("string utilities", () => {
   it("normalizes present and non-empty strings", () => {
-    expect(hasTrimmedString(" value ")).toBe(true)
+    expect(hasTrimmedString(" value ")).toBeTruthy()
     expect(normalizeTrimmedString(" value ")).toBe("value")
     expect(normalizeTrimmedString("  ")).toBeUndefined()
     expect(normalizePresentTrimmedString("  ")).toBe("")

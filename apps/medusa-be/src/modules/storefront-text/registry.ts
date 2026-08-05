@@ -5,18 +5,20 @@ import {
   flattenStorefrontTextCatalog,
   getFlatStorefrontTextCatalog,
   STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
-  type StorefrontTextCatalogEnvelope,
 } from "./catalog"
+import type { StorefrontTextCatalogEnvelope } from "./catalog"
 import {
   isStorefrontTextLocale,
   isStorefrontTextMarket,
   isStorefrontTextMarketLocalePair,
   STOREFRONT_TEXT_MARKETS,
-  type StorefrontTextDefinition,
-  type StorefrontTextLocale,
-  type StorefrontTextMarket,
-  type StorefrontTextNamespace,
-  type StorefrontTextStatus,
+} from "./configuration"
+import type {
+  StorefrontTextDefinition,
+  StorefrontTextLocale,
+  StorefrontTextMarket,
+  StorefrontTextNamespace,
+  StorefrontTextStatus,
 } from "./configuration"
 import { STOREFRONT_ACCOUNT_ORDERS_TEXT_DEFINITIONS } from "./definitions/account-orders"
 import { STOREFRONT_AUTH_TEXT_DEFINITIONS } from "./definitions/auth"
@@ -402,7 +404,7 @@ const validateCatalogKeys = (
     )
   }
 
-  return messages as Record<StorefrontTextKey, string>
+  return messages
 }
 
 const STOREFRONT_TEXT_DEFAULT_MESSAGES = Object.fromEntries(
@@ -496,7 +498,7 @@ export const parseStorefrontTextCatalogEnvelope = ({
   }
 }
 
-export type StorefrontTextSeedRow = {
+export interface StorefrontTextSeedRow {
   country: string
   default_value: string
   description: string

@@ -5,10 +5,10 @@ import "../../src/tokens/_semantic.css"
 import { ColorSelect } from "../../src/molecules/color-select"
 
 const meta: Meta = {
-  title: "Overview/Color Palette",
   parameters: {
     layout: "fullscreen",
   },
+  title: "Overview/Color Palette",
 }
 
 export default meta
@@ -25,15 +25,15 @@ const semanticColors = [
 ] as const
 
 const colorVariants = [
-  { suffix: "", label: "Default" },
-  { suffix: "-light", label: "Light" },
+  { label: "Default", suffix: "" },
+  { label: "Light", suffix: "-light" },
 ] as const
 
 const stateVariants = [
-  { state: "", label: "Default" },
-  { state: "hover", label: "Hover" },
-  { state: "active", label: "Active" },
-  { state: "disabled", label: "Disabled" },
+  { label: "Default", state: "" },
+  { label: "Hover", state: "hover" },
+  { label: "Active", state: "active" },
+  { label: "Disabled", state: "disabled" },
 ] as const
 
 export const Default: Story = {

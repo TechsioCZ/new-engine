@@ -1,12 +1,10 @@
 import { Command } from "commander"
 
-import {
-  checkWorkflowInputsCommandInputSchema,
-  type WorkflowInputMode,
-} from "../contracts/check-workflow-inputs.js"
+import { checkWorkflowInputsCommandInputSchema } from "../contracts/check-workflow-inputs.js"
+import type { WorkflowInputMode } from "../contracts/check-workflow-inputs.js"
 import { maskGitHubValue } from "../github-actions.js"
 
-type EnvRequirement = {
+interface EnvRequirement {
   name: string
   description: string
 }
@@ -26,16 +24,16 @@ function maskEnv(name: string): void {
 
 function requireAndMaskZaneProjectSlug(): void {
   requireEnv({
-    name: "ZANE_PROJECT_SLUG",
     description: "Zane project slug",
+    name: "ZANE_PROJECT_SLUG",
   })
   maskEnv("ZANE_PROJECT_SLUG")
 }
 
 function validateMode(mode: WorkflowInputMode): void {
   switch (mode) {
-    case "preview-prepare":
-      if (process.env["REQUIRES_PREVIEW_DB"] === "true") {
+    case "preview-prepare": {
+      if (process.env.REQUIRES_PREVIEW_DB === "true") {
         requireEnv({
           name: "ZANE_OPERATOR_BASE_URL",
           description: "preview DB operator base URL",
@@ -48,8 +46,9 @@ function validateMode(mode: WorkflowInputMode): void {
         maskEnv("ZANE_OPERATOR_API_TOKEN")
       }
       return
+    }
     case "preview-deploy":
-    case "preview-verify":
+    case "preview-verify": {
       requireEnv({
         name: "ZANE_OPERATOR_BASE_URL",
         description: "Zane operator base URL",
@@ -72,8 +71,9 @@ function validateMode(mode: WorkflowInputMode): void {
       maskEnv("PREVIEW_RANDOM_ONCE_SECRETS_JSON")
       maskEnv("RUNTIME_PROVIDER_OUTPUTS_JSON")
       return
+    }
     case "main-deploy":
-    case "main-verify":
+    case "main-verify": {
       requireEnv({
         name: "ZANE_OPERATOR_BASE_URL",
         description: "Zane operator base URL",
@@ -92,7 +92,8 @@ function validateMode(mode: WorkflowInputMode): void {
       maskEnv("ZANE_PRODUCTION_ENVIRONMENT_NAME")
       maskEnv("RUNTIME_PROVIDER_OUTPUTS_JSON")
       return
-    case "preview-teardown":
+    }
+    case "preview-teardown": {
       requireEnv({
         name: "ZANE_OPERATOR_BASE_URL",
         description: "preview DB operator base URL",
@@ -105,6 +106,7 @@ function validateMode(mode: WorkflowInputMode): void {
       maskEnv("ZANE_OPERATOR_BASE_URL")
       maskEnv("ZANE_OPERATOR_API_TOKEN")
       return
+    }
     default: {
       const exhaustive: never = mode
       throw new Error(

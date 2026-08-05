@@ -7,12 +7,6 @@ import { FormInput } from "../../src/molecules/form-input"
 import { FormTextarea } from "../../src/molecules/form-textarea"
 
 const meta: Meta<typeof FormTextarea> = {
-  title: "Molecules/FormTextarea",
-  component: FormTextarea,
-  parameters: {
-    layout: "centered",
-  },
-  tags: ["autodocs"],
   argTypes: {
     // Text inputs
     label: {
@@ -92,19 +86,25 @@ const meta: Meta<typeof FormTextarea> = {
     },
   },
   args: {
+    autoFocus: false,
+    disabled: false,
+    helpText: "Provide a detailed description",
     label: "Description",
     placeholder: "Enter description...",
-    helpText: "Provide a detailed description",
-    size: "md",
-    validateStatus: "default",
-    showHelpTextIcon: false,
+    readOnly: false,
+    required: false,
     resize: "y",
     rows: 4,
-    disabled: false,
-    required: false,
-    readOnly: false,
-    autoFocus: false,
+    showHelpTextIcon: false,
+    size: "md",
+    validateStatus: "default",
   },
+  component: FormTextarea,
+  parameters: {
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/FormTextarea",
 }
 
 export default meta
@@ -391,9 +391,7 @@ export const Sizes: Story = {
 
 // Interactive character count example
 export const InteractiveCharacterCount: Story = {
-  render: () => {
-    return <CharacterCountExample />
-  },
+  render: () => <CharacterCountExample />,
 }
 
 function CharacterCountExample() {
@@ -424,7 +422,9 @@ function CharacterCountExample() {
         placeholder="What's happening?"
         required
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => {
+          setText(e.target.value)
+        }}
         validateStatus={validateStatus}
         helpText={helpText}
         rows={4}
@@ -448,10 +448,10 @@ export const ContactForm: Story = {
 
 function ContactFormExample() {
   const [formData, setFormData] = useState({
-    name: "",
     email: "",
-    subject: "",
     message: "",
+    name: "",
+    subject: "",
   })
 
   return (
@@ -465,7 +465,9 @@ function ContactFormExample() {
             label="Name"
             placeholder="John Doe"
             value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            onChange={(e) => {
+              setFormData({ ...formData, name: e.target.value })
+            }}
           />
           <FormInput
             id="contact-email"
@@ -473,9 +475,9 @@ function ContactFormExample() {
             type="email"
             placeholder="john@example.com"
             value={formData.email}
-            onChange={(e) =>
+            onChange={(e) => {
               setFormData({ ...formData, email: e.target.value })
-            }
+            }}
           />
         </div>
 
@@ -484,9 +486,9 @@ function ContactFormExample() {
           label="Subject"
           placeholder="How can we help?"
           value={formData.subject}
-          onChange={(e) =>
+          onChange={(e) => {
             setFormData({ ...formData, subject: e.target.value })
-          }
+          }}
         />
 
         <FormTextarea
@@ -495,9 +497,9 @@ function ContactFormExample() {
           placeholder="Tell us more about your inquiry..."
           required
           value={formData.message}
-          onChange={(e) =>
+          onChange={(e) => {
             setFormData({ ...formData, message: e.target.value })
-          }
+          }}
           rows={6}
           helpText="Please provide as much detail as possible"
         />

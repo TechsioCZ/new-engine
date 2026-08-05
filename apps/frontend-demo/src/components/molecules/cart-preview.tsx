@@ -107,7 +107,9 @@ export function CartPreview() {
                   aria-label="Odebrat z košíku"
                   className="px-0 py-0 text-cart-preview-fg-secondary hover:text-cart-preview-fg"
                   icon="token-icon-close"
-                  onClick={() => removeItem(item.id)}
+                  onClick={() => {
+                    removeItem(item.id)
+                  }}
                   theme="borderless"
                   type="button"
                 />

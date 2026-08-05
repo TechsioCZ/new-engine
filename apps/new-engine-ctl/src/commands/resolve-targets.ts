@@ -1,9 +1,7 @@
 import { Command } from "commander"
 
-import {
-  type ResolveTargetsResponse,
-  resolveTargetsCommandInputSchema,
-} from "../contracts/resolve-targets.js"
+import { resolveTargetsCommandInputSchema } from "../contracts/resolve-targets.js"
+import type { ResolveTargetsResponse } from "../contracts/resolve-targets.js"
 import { appendGitHubOutput } from "../github-actions.js"
 import { executeResolveTargets } from "../orchestration/resolve-targets.js"
 
@@ -42,16 +40,14 @@ export function createResolveTargetsCommand(): Command {
     .option("--dry-run", "", false)
     .action(async (options) => {
       const input = resolveTargetsCommandInputSchema.parse({
-        lane: options.lane,
-        projectSlug:
-          options.projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
-        environmentName: options.environmentName,
-        planJsonPath: options.planJson,
-        outputJson: options.outputJson,
-        baseUrl: options.baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
-        apiToken:
-          options.apiToken ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
+        apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
+        baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
         dryRun: Boolean(options.dryRun),
+        environmentName: options.environmentName,
+        lane: options.lane,
+        outputJson: options.outputJson,
+        planJsonPath: options.planJson,
+        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
       })
       const result = await executeResolveTargets(input)
       const serviceIdsCsv = result.services

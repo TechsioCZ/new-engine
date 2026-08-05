@@ -9,24 +9,15 @@
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the tree-view-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import {
-  mergeProps,
-  normalizeProps,
-  type PropTypes,
-  useMachine,
-} from "@zag-js/react"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
+import type { PropTypes } from "@zag-js/react"
 import * as tree from "@zag-js/tree-view"
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type MouseEvent,
-  type ReactNode,
-  useContext,
-  useId,
-} from "react"
+import { createContext, useContext, useId } from "react"
+import type { ComponentPropsWithoutRef, MouseEvent, ReactNode } from "react"
 import type { VariantProps } from "tailwind-variants"
 
-import { Icon, type IconType } from "../atoms/icon"
+import { Icon } from "../atoms/icon"
+import type { IconType } from "../atoms/icon"
 import { tv } from "../utils"
 
 export interface TreeNode {
@@ -44,57 +35,6 @@ export interface TreeNode {
 }
 
 const treeViewVariants = tv({
-  slots: {
-    root: "relative rounded-tree-view bg-tree-view-root-bg",
-    label: ["font-tree-view-label text-tree-view-label-fg"],
-    tree: [
-      "bg-tree-view-bg",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-      "focus-visible:outline-tree-view-ring",
-      "focus-visible:outline-offset-(length:--default-ring-offset)",
-    ],
-    branch: [
-      "data-disabled:cursor-not-allowed",
-      "data-disabled:text-tree-view-fg-disabled",
-      "data-disabled:*:pointer-events-none",
-    ],
-    branchTrigger: [
-      "group flex items-center justify-between",
-      "hover:bg-tree-view-node-bg-hover",
-      "cursor-pointer",
-      "has-focus-visible:outline-(style:--default-ring-style) has-focus-visible:outline-(length:--default-ring-width)",
-      "has-focus-visible:outline-tree-view-ring",
-      "has-focus-visible:outline-offset-(length:--default-ring-offset)",
-      "transition-colors duration-200 motion-reduce:transition-none",
-    ],
-    branchControl: ["flex-1"],
-    branchText: ["flex-1"],
-    branchIndicator: [
-      "group-hover:text-tree-view-fg-hover",
-      "data-[state=open]:token-icon-tree-indicator-open cursor-pointer hover:scale-125",
-      "transition-all duration-200 motion-reduce:transition-none",
-    ],
-    branchContent: ["relative", "data-[state=closed]:hidden"],
-    indentGuide: [
-      "absolute start-1 inset-y-0",
-      "w-tree-view-indent-width bg-tree-view-indent-bg",
-      "opacity-tree-view-indent",
-    ],
-    item: [
-      "hover:bg-tree-view-node-bg-hover hover:text-tree-view-fg-hover",
-      "data-selected:hover:bg-tree-view-node-bg-hover",
-      "data-selected:hover:text-tree-view-fg-hover",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-      "focus-visible:outline-tree-view-ring",
-      "focus-visible:outline-offset-(length:--default-ring-offset)",
-      "transition-colors duration-200 motion-reduce:transition-none",
-    ],
-    itemText: ["flex-1"],
-    nodeIcon: [
-      "hover:text-tree-view-icon-hover",
-      "transition-colors duration-200 motion-reduce:transition-none",
-    ],
-  },
   compoundSlots: [
     {
       // leaf has a common style with branch
@@ -117,33 +57,84 @@ const treeViewVariants = tv({
       ],
     },
   ],
-  variants: {
-    size: {
-      sm: {
-        nodeIcon: "text-tree-view-icon-sm",
-        branchText: "text-tree-view-sm",
-        itemText: "text-tree-view-sm",
-        branchIndicator: "text-icon-control-sm",
-        label: "text-tree-view-sm",
-      },
-      md: {
-        nodeIcon: "text-tree-view-icon-md",
-        branchText: "text-tree-view-md",
-        itemText: "text-tree-view-md",
-        branchIndicator: "text-icon-control-md",
-        label: "text-tree-view-md",
-      },
-      lg: {
-        nodeIcon: "text-tree-view-icon-lg",
-        branchText: "text-tree-view-lg",
-        itemText: "text-tree-view-lg",
-        branchIndicator: "text-icon-control-lg",
-        label: "text-tree-view-lg",
-      },
-    },
-  },
   defaultVariants: {
     size: "md",
+  },
+  slots: {
+    branch: [
+      "data-disabled:cursor-not-allowed",
+      "data-disabled:text-tree-view-fg-disabled",
+      "data-disabled:*:pointer-events-none",
+    ],
+    branchContent: ["relative", "data-[state=closed]:hidden"],
+    branchControl: ["flex-1"],
+    branchIndicator: [
+      "group-hover:text-tree-view-fg-hover",
+      "data-[state=open]:token-icon-tree-indicator-open cursor-pointer hover:scale-125",
+      "transition-all duration-200 motion-reduce:transition-none",
+    ],
+    branchText: ["flex-1"],
+    branchTrigger: [
+      "group flex items-center justify-between",
+      "hover:bg-tree-view-node-bg-hover",
+      "cursor-pointer",
+      "has-focus-visible:outline-(style:--default-ring-style) has-focus-visible:outline-(length:--default-ring-width)",
+      "has-focus-visible:outline-tree-view-ring",
+      "has-focus-visible:outline-offset-(length:--default-ring-offset)",
+      "transition-colors duration-200 motion-reduce:transition-none",
+    ],
+    indentGuide: [
+      "absolute start-1 inset-y-0",
+      "w-tree-view-indent-width bg-tree-view-indent-bg",
+      "opacity-tree-view-indent",
+    ],
+    item: [
+      "hover:bg-tree-view-node-bg-hover hover:text-tree-view-fg-hover",
+      "data-selected:hover:bg-tree-view-node-bg-hover",
+      "data-selected:hover:text-tree-view-fg-hover",
+      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-tree-view-ring",
+      "focus-visible:outline-offset-(length:--default-ring-offset)",
+      "transition-colors duration-200 motion-reduce:transition-none",
+    ],
+    itemText: ["flex-1"],
+    label: ["font-tree-view-label text-tree-view-label-fg"],
+    nodeIcon: [
+      "hover:text-tree-view-icon-hover",
+      "transition-colors duration-200 motion-reduce:transition-none",
+    ],
+    root: "relative rounded-tree-view bg-tree-view-root-bg",
+    tree: [
+      "bg-tree-view-bg",
+      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-tree-view-ring",
+      "focus-visible:outline-offset-(length:--default-ring-offset)",
+    ],
+  },
+  variants: {
+    size: {
+      lg: {
+        branchIndicator: "text-icon-control-lg",
+        branchText: "text-tree-view-lg",
+        itemText: "text-tree-view-lg",
+        label: "text-tree-view-lg",
+        nodeIcon: "text-tree-view-icon-lg",
+      },
+      md: {
+        branchIndicator: "text-icon-control-md",
+        branchText: "text-tree-view-md",
+        itemText: "text-tree-view-md",
+        label: "text-tree-view-md",
+        nodeIcon: "text-tree-view-icon-md",
+      },
+      sm: {
+        branchIndicator: "text-icon-control-sm",
+        branchText: "text-tree-view-sm",
+        itemText: "text-tree-view-sm",
+        label: "text-tree-view-sm",
+        nodeIcon: "text-tree-view-icon-sm",
+      },
+    },
   },
 })
 
@@ -220,17 +211,17 @@ export function TreeView({
   const uniqueId = id || generatedId
 
   const collection = tree.collection<TreeNode>({
-    nodeToValue: (node) => node.id,
     nodeToString: (node) => node.name,
-    rootNode: { id: "ROOT", name: "", children: data },
+    nodeToValue: (node) => node.id,
+    rootNode: { children: data, id: "ROOT", name: "" },
   })
 
   const service = useMachine(tree.machine, {
-    id: uniqueId,
     collection,
     dir,
-    selectionMode,
     expandOnClick,
+    id: uniqueId,
+    selectionMode,
     typeahead,
     ...(expandedValue !== undefined && { expandedValue }),
     ...(selectedValue !== undefined && { selectedValue }),
@@ -246,7 +237,7 @@ export function TreeView({
   const styles = treeViewVariants({ size })
 
   return (
-    <TreeViewContext.Provider value={{ api, size, styles, selectionBehavior }}>
+    <TreeViewContext.Provider value={{ api, selectionBehavior, size, styles }}>
       <div
         className={styles.root({ className })}
         {...mergeProps(api.getRootProps(), props)}
@@ -307,12 +298,12 @@ TreeView.NodeProvider = function TreeViewNodeProvider({
   children,
 }: TreeViewNodeProviderProps) {
   const { api } = useTreeViewContext()
-  const nodeProps = { node, indexPath }
+  const nodeProps = { indexPath, node }
   const nodeState = api.getNodeState(nodeProps)
 
   return (
     <TreeViewNodeContext.Provider
-      value={{ node, indexPath, nodeProps, nodeState }}
+      value={{ indexPath, node, nodeProps, nodeState }}
     >
       {children}
     </TreeViewNodeContext.Provider>
@@ -367,14 +358,18 @@ TreeView.BranchControl = function TreeViewBranchControl({
 
   const isSelectable = (() => {
     switch (selectionBehavior) {
-      case "all":
+      case "all": {
         return true
-      case "leaf-only":
+      }
+      case "leaf-only": {
         return false
-      case "custom":
+      }
+      case "custom": {
         return node.selectable !== false
-      default:
+      }
+      default: {
         return true
+      }
     }
   })()
 
@@ -384,6 +379,8 @@ TreeView.BranchControl = function TreeViewBranchControl({
     ? controlProps
     : {
         ...controlProps,
+        "aria-selected": undefined,
+        "data-disabled": !isSelectable || nodeState.disabled || undefined,
         onClick: (e: MouseEvent<HTMLDivElement>) => {
           e.preventDefault()
           e.stopPropagation()
@@ -396,8 +393,6 @@ TreeView.BranchControl = function TreeViewBranchControl({
             }
           }
         },
-        "aria-selected": undefined,
-        "data-disabled": !isSelectable || nodeState.disabled || undefined,
       }
 
   return (
@@ -519,12 +514,15 @@ TreeView.Item = function TreeViewItem({
   const isSelectable = (() => {
     switch (selectionBehavior) {
       case "all":
-      case "leaf-only":
+      case "leaf-only": {
         return true
-      case "custom":
+      }
+      case "custom": {
         return node.selectable !== false
-      default:
+      }
+      default: {
         return true
+      }
     }
   })()
 
@@ -534,12 +532,12 @@ TreeView.Item = function TreeViewItem({
     ? itemProps
     : {
         ...itemProps,
+        "aria-selected": undefined,
+        "data-disabled": !isSelectable || nodeState.disabled || undefined,
         onClick: (e: MouseEvent<HTMLDivElement>) => {
           e.preventDefault()
           e.stopPropagation()
         },
-        "aria-selected": undefined,
-        "data-disabled": !isSelectable || nodeState.disabled || undefined,
       }
 
   return (
@@ -627,7 +625,7 @@ TreeView.Node = function TreeViewNode({
   onNodeLeave,
 }: TreeViewNodeProps) {
   const { api } = useTreeViewContext()
-  const nodeProps = { node, indexPath }
+  const nodeProps = { indexPath, node }
   const nodeState = api.getNodeState(nodeProps)
 
   return (

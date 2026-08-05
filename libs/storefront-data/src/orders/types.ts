@@ -6,24 +6,24 @@ import type {
 } from "../shared/hook-result-types"
 import type { QueryKey } from "../shared/query-keys"
 
-export type OrderListInputBase = {
+export interface OrderListInputBase {
   page?: number
   limit?: number
   offset?: number
   enabled?: boolean
 }
 
-export type OrderDetailInputBase = {
+export interface OrderDetailInputBase {
   id?: string
   enabled?: boolean
 }
 
-export type OrderListResponse<TOrder> = {
+export interface OrderListResponse<TOrder> {
   orders: TOrder[]
   count?: number
 }
 
-export type OrderService<TOrder, TListParams, TDetailParams> = {
+export interface OrderService<TOrder, TListParams, TDetailParams> {
   getOrders: (
     params: TListParams,
     signal?: AbortSignal
@@ -34,7 +34,7 @@ export type OrderService<TOrder, TListParams, TDetailParams> = {
   ) => Promise<TOrder | null>
 }
 
-export type OrderQueryKeys<TListParams, TDetailParams> = {
+export interface OrderQueryKeys<TListParams, TDetailParams> {
   all: () => QueryKey
   list: (params: TListParams) => QueryKey
   detail: (params: TDetailParams) => QueryKey

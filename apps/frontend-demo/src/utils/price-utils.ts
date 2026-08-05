@@ -3,13 +3,13 @@
  */
 const currencySymbols: Record<string, string> = {
   CZK: "Kč",
-  EUR: "€",
-  USD: "$",
-  GBP: "£",
-  SEK: "kr",
   DKK: "kr",
+  EUR: "€",
+  GBP: "£",
   NOK: "kr",
   PLN: "zł",
+  SEK: "kr",
+  USD: "$",
 }
 
 /**

@@ -1,10 +1,6 @@
 import type { StorybookConfig } from "storybook-react-rsbuild"
 
 const config: StorybookConfig = {
-  stories: [
-    "../stories/**/*.mdx",
-    "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
-  ],
   addons: [
     "@storybook/addon-themes",
     "@techsio/storybook-better-a11y",
@@ -14,9 +10,13 @@ const config: StorybookConfig = {
     name: "storybook-react-rsbuild",
     options: {},
   },
+  stories: [
+    "../stories/**/*.mdx",
+    "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
+  ],
   typescript: {
-    reactDocgen: "react-docgen",
     check: false,
+    reactDocgen: "react-docgen",
   },
 }
 

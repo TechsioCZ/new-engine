@@ -2,13 +2,14 @@ import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { DocumentText } from "@medusajs/icons"
 import { Button, Container, Heading, Input, Select, Text } from "@medusajs/ui"
 import { getErrorMessage } from "@techsio/std/object"
-import { type FormEvent, useState } from "react"
+import { useState } from "react"
+import type { FormEvent } from "react"
 
 export const handle = {
   breadcrumb: () => "Payload import",
 }
 
-type ImportResult = {
+interface ImportResult {
   ok: boolean
   result: {
     total: number
@@ -78,8 +79,8 @@ const PayloadImportPage = () => {
     setIsSubmitting(true)
     try {
       const response = await fetch("/admin/payload/article-import", {
-        method: "POST",
         body: formData,
+        method: "POST",
       })
 
       if (!response.ok) {
@@ -114,7 +115,9 @@ const PayloadImportPage = () => {
           </Text>
           <Input
             accept=".xlsx"
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            onChange={(event) => {
+              setFile(event.target.files?.[0] ?? null)
+            }}
             type="file"
           />
         </div>
@@ -142,7 +145,9 @@ const PayloadImportPage = () => {
             Název listu (volitelné)
           </Text>
           <Input
-            onChange={(event) => setSheetName(event.target.value)}
+            onChange={(event) => {
+              setSheetName(event.target.value)
+            }}
             placeholder="napr. Sheet1"
             value={sheetName}
           />
@@ -167,7 +172,9 @@ const PayloadImportPage = () => {
         <label className="flex items-center gap-2">
           <input
             checked={overwrite}
-            onChange={(event) => setOverwrite(event.target.checked)}
+            onChange={(event) => {
+              setOverwrite(event.target.checked)
+            }}
             type="checkbox"
           />
           <Text size="small">Overwrite</Text>

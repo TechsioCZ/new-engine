@@ -14,7 +14,7 @@ import { useCartLineItemActions } from "@/lib/storefront/use-cart-line-item-acti
 import { useCartProductsByHandle } from "../use-cart-products-by-handle"
 import { CheckoutCartItemRow } from "./checkout-cart-item-row"
 
-type CheckoutCartStepSectionProps = {
+interface CheckoutCartStepSectionProps {
   cartId?: string
   cartItems: HttpTypes.StoreCartLineItem[]
   cartItemsTotalAmount: number
@@ -61,12 +61,12 @@ export function CheckoutCartStepSection({
       : formatCurrencyAmount(
           freeShippingThresholdAmount,
           supportedCurrencyCode,
-          { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+          { maximumFractionDigits: 0, minimumFractionDigits: 0 }
         )
 
   return (
     <section className="space-y-300">
-      {freeShippingThresholdAmount !== null ? (
+      {freeShippingThresholdAmount === null ? null : (
         <div className="min-h-900 rounded-sm border border-border-primary bg-surface px-400 pt-400 pb-650 md:px-550">
           <p className="text-center font-light text-fg-primary text-sm leading-relaxed">
             {missingAmount > 0
@@ -108,7 +108,7 @@ export function CheckoutCartStepSection({
             </div>
           </div>
         </div>
-      ) : null}
+      )}
 
       <div className="overflow-hidden rounded-sm border border-border-primary bg-surface p-400 md:px-550 md:pt-550 md:pb-500">
         {cartItems.map((item, index) => {

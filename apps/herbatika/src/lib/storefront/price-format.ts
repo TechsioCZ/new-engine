@@ -23,7 +23,7 @@ const resolveLocaleFromCurrency = (currencyCode: string) => {
   return localeByCurrency[currencyCode] ?? "sk-SK"
 }
 
-type FormatCurrencyAmountOptions = {
+interface FormatCurrencyAmountOptions {
   minimumFractionDigits?: number
   maximumFractionDigits?: number
   fallbackPrecision?: number
@@ -51,10 +51,10 @@ export const formatCurrencyAmount = (
 
   try {
     return new Intl.NumberFormat(resolveLocaleFromCurrency(safeCurrencyCode), {
-      style: "currency",
       currency: safeCurrencyCode,
-      minimumFractionDigits,
       maximumFractionDigits,
+      minimumFractionDigits,
+      style: "currency",
     }).format(safeAmount)
   } catch {
     return `${safeAmount.toFixed(fallbackPrecision)} ${safeCurrencyCode}`
@@ -66,7 +66,7 @@ export const formatWholeCurrencyAmount = (
   currencyCode?: string | null
 ): string =>
   formatCurrencyAmount(amount, currencyCode, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
     fallbackPrecision: 0,
+    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
   })

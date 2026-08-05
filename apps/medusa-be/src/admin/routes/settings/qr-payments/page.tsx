@@ -18,12 +18,12 @@ export const handle = {
   breadcrumb: () => "QR platby",
 }
 
-type QrPaymentConfigResponse = {
+interface QrPaymentConfigResponse {
   id: string
   iban: string | null
 }
 
-type QrPaymentConfigInput = {
+interface QrPaymentConfigInput {
   iban?: string | null
 }
 
@@ -32,7 +32,7 @@ const QrPaymentsSettingsPage = () => {
   const [iban, setIban] = useState("")
 
   const { data, error, isLoading } = useQuery({
-    queryFn: () =>
+    queryFn: async () =>
       sdk.client.fetch<{ config: QrPaymentConfigResponse }>(
         "/admin/qr-payment-config"
       ),
@@ -40,17 +40,17 @@ const QrPaymentsSettingsPage = () => {
   })
 
   const { mutate, isPending } = useMutation({
-    mutationFn: (payload: QrPaymentConfigInput) =>
+    mutationFn: async (payload: QrPaymentConfigInput) =>
       sdk.client.fetch("/admin/qr-payment-config", {
         method: "POST",
         body: payload,
       }),
+    onError: (err) => {
+      toast.error(`Failed to save configuration: ${err.message}`)
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["qr-payment-config"] })
       toast.success("QR payment configuration saved")
-    },
-    onError: (err) => {
-      toast.error(`Failed to save configuration: ${err.message}`)
     },
   })
 
@@ -108,7 +108,9 @@ const QrPaymentsSettingsPage = () => {
             <Label htmlFor="qr-payment-iban">IBAN</Label>
             <Input
               id="qr-payment-iban"
-              onChange={(event) => setIban(event.target.value)}
+              onChange={(event) => {
+                setIban(event.target.value)
+              }}
               placeholder="CZ3301000000000002970297"
               value={iban}
             />

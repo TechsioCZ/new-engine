@@ -1,6 +1,6 @@
 import { createContext } from "react"
 
-type StackedModalState = {
+interface StackedModalState {
   getIsOpen: (id: string) => boolean
   setIsOpen: (id: string, open: boolean) => void
   register: (id: string) => void

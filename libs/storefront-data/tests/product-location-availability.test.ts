@@ -16,10 +16,10 @@ describe("product location availability", () => {
 
     expect(
       queryKeys.detail({
-        productId: "prod_1",
         enabled: false,
+        productId: "prod_1",
       })
-    ).toEqual([
+    ).toStrictEqual([
       "shop",
       "product-location-availability",
       "detail",
@@ -34,12 +34,12 @@ describe("product location availability", () => {
         fetch,
       },
     } as unknown as Medusa
-    const signal = new AbortController().signal
+    const { signal } = new AbortController()
     const service = createMedusaProductLocationAvailabilityService(sdk)
 
     await expect(
       service.getProductLocationAvailability({ productId: "prod 1" }, signal)
-    ).resolves.toEqual(availabilityResponse)
+    ).resolves.toStrictEqual(availabilityResponse)
     expect(fetch).toHaveBeenCalledWith(
       "/store/products/prod%201/location-availability",
       { signal }
@@ -54,15 +54,15 @@ describe("product location availability", () => {
       },
     } as unknown as Medusa
     const preset = createMedusaStorefrontPreset({
-      sdk,
       queryKeyNamespace: "shop",
+      sdk,
     })
 
     expect(
       preset.queryKeys.productLocationAvailability.detail({
         productId: "prod_1",
       })
-    ).toEqual([
+    ).toStrictEqual([
       "shop",
       "product-location-availability",
       "detail",

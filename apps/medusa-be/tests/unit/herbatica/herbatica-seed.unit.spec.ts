@@ -4,10 +4,8 @@ import { resolve } from "node:path"
 import { ProductStatus } from "@medusajs/framework/utils"
 import { describe, expect, it } from "vitest"
 
-import {
-  type HerbaticaCategoryExport,
-  parseHerbaticaCategoriesXmlFile,
-} from "../../../src/scripts/herbatica-category-export"
+import { parseHerbaticaCategoriesXmlFile } from "../../../src/scripts/herbatica-category-export"
+import type { HerbaticaCategoryExport } from "../../../src/scripts/herbatica-category-export"
 import {
   buildHerbaticaSeedWorkflowInput,
   buildSeedInputFromXml,
@@ -87,7 +85,7 @@ describe("Herbatica measurement-unit mapping", () => {
       </SHOP>
     `)
 
-    expect(result.products[0]?.measurement).toEqual({
+    expect(result.products[0]?.measurement).toStrictEqual({
       unit: {
         base_quantity: 100,
         code: "pcs_100",
@@ -95,7 +93,7 @@ describe("Herbatica measurement-unit mapping", () => {
         symbol: "pcs",
       },
     })
-    expect(result.products[0]?.variants?.[0]?.measurement).toEqual({
+    expect(result.products[0]?.variants?.[0]?.measurement).toStrictEqual({
       product_unit_quantity: 100,
     })
   })
@@ -138,7 +136,7 @@ describe("Herbatica measurement-unit mapping", () => {
     })
     expect(
       result.products[0]?.variants?.map((variant) => variant.measurement)
-    ).toEqual([{ product_unit_quantity: 500 }, null])
+    ).toStrictEqual([{ product_unit_quantity: 500 }, null])
   })
 })
 
@@ -165,50 +163,50 @@ describe("Herbatica seed category mapping", () => {
 
     const categoryExports: HerbaticaCategoryExport[] = [
       {
+        expandInMenu: false,
         id: "758",
+        isSystem: false,
+        isVisible: true,
         title: "Trápi ma",
         url: "trapi-ma",
-        isVisible: true,
-        expandInMenu: false,
-        isSystem: false,
       },
       {
+        expandInMenu: false,
         id: "900",
+        isSystem: false,
+        isVisible: true,
         parentId: "758",
         title: "Srdce a cievy",
-        isVisible: true,
-        expandInMenu: false,
-        isSystem: false,
       },
       {
+        expandInMenu: false,
         id: "901",
+        isSystem: false,
+        isVisible: true,
         parentId: "900",
         title: "Kŕčové žily",
-        isVisible: true,
-        expandInMenu: false,
-        isSystem: false,
       },
     ]
 
     const result = buildSeedInputFromXml(xml, categoryExports)
 
-    expect(result.categories.map((category) => category.handle)).toEqual([
+    expect(result.categories.map((category) => category.handle)).toStrictEqual([
       "trapi-ma",
       "trapi-ma-srdce-a-cievy",
       "trapi-ma-srdce-a-cievy-krcove-zily",
     ])
     expect(
       result.categories.some((category) => category.handle?.endsWith("-2"))
-    ).toBe(false)
-    expect(result.products[0]?.categories).toEqual([
+    ).toBeFalsy()
+    expect(result.products[0]?.categories).toStrictEqual([
       {
         handle: "trapi-ma-srdce-a-cievy-krcove-zily",
       },
     ])
     expect(result.products[0]?.metadata).toMatchObject({
+      category_paths: ["Trápi ma > Srdce a cievy > Kŕčové žily"],
       source_category_ids: ["901"],
       source_default_category_id: "901",
-      category_paths: ["Trápi ma > Srdce a cievy > Kŕčové žily"],
     })
   })
 })
@@ -242,7 +240,7 @@ describe("Herbatica seed promo rebase", () => {
     const product = result.products[0]
     const variant = product?.variants?.[0]
 
-    expect(variant?.prices).toEqual([
+    expect(variant?.prices).toStrictEqual([
       {
         amount: 9.99,
         currency_code: "eur",
@@ -268,17 +266,14 @@ describe("Herbatica seed promo rebase", () => {
     const product = result.products[0]
     const variant = product?.variants?.[0]
 
-    expect(variant?.prices).toEqual([
+    expect(variant?.prices).toStrictEqual([
       {
         amount: 9.99,
         currency_code: "eur",
       },
     ])
-    expect(result.priceLists.sales).toEqual([
+    expect(result.priceLists.sales).toStrictEqual([
       {
-        title: "Herbatica sale - Default pricelist - 2026-04-23_2026-05-23",
-        sourceTitle: "Default pricelist",
-        startsAt: "2026-04-23T00:00:00.000Z",
         endsAt: "2026-05-23T23:59:59.999Z",
         prices: [
           {
@@ -288,6 +283,9 @@ describe("Herbatica seed promo rebase", () => {
             currencyCode: "eur",
           },
         ],
+        sourceTitle: "Default pricelist",
+        startsAt: "2026-04-23T00:00:00.000Z",
+        title: "Herbatica sale - Default pricelist - 2026-04-23_2026-05-23",
       },
     ])
     expect(product?.metadata).toMatchObject({
@@ -346,15 +344,14 @@ describe("Herbatica seed price-list parsing", () => {
 
     const result = buildSeedInputFromXml(xml)
 
-    expect(result.products[0]?.variants?.[0]?.prices).toEqual([
+    expect(result.products[0]?.variants?.[0]?.prices).toStrictEqual([
       {
         amount: 10,
         currency_code: "eur",
       },
     ])
-    expect(result.priceLists.overrides).toEqual([
+    expect(result.priceLists.overrides).toStrictEqual([
       {
-        title: "Partnerský cenník",
         customerGroupName: "Partnerský cenník",
         prices: [
           {
@@ -364,11 +361,12 @@ describe("Herbatica seed price-list parsing", () => {
             currencyCode: "eur",
           },
         ],
+        title: "Partnerský cenník",
       },
       {
-        title: "VIP cenník",
         customerGroupName: "VIP cenník",
         prices: [],
+        title: "VIP cenník",
       },
     ])
   })
@@ -462,12 +460,9 @@ describe("Herbatica seed price-list parsing", () => {
       referenceDate: new Date("2026-05-26T12:00:00.000Z"),
     })
 
-    expect(result.priceLists.sales).toEqual([
+    expect(result.priceLists.sales).toStrictEqual([
       {
-        title: "Herbatica sale - Partneri - 2026-06-01_2026-06-30",
-        sourceTitle: "Partneri",
         customerGroupName: "Partneri",
-        startsAt: "2026-06-01T00:00:00.000Z",
         endsAt: "2026-06-30T23:59:59.999Z",
         prices: [
           {
@@ -483,6 +478,9 @@ describe("Herbatica seed price-list parsing", () => {
             currencyCode: "eur",
           },
         ],
+        sourceTitle: "Partneri",
+        startsAt: "2026-06-01T00:00:00.000Z",
+        title: "Herbatica sale - Partneri - 2026-06-01_2026-06-30",
       },
     ])
   })
@@ -511,24 +509,24 @@ describe("Herbatica seed stock parsing", () => {
     const result = buildSeedInputFromXml(xml)
     const variant = result.products[0]?.variants?.[0]
 
-    expect(result.stockLocations).toEqual([
+    expect(result.stockLocations).toStrictEqual([
       {
-        name: "European Warehouse",
         address: {
+          address_1: "",
           city: "Copenhagen",
           country_code: "DK",
-          address_1: "",
         },
+        name: "European Warehouse",
       },
     ])
-    expect(variant?.quantities).toEqual({
-      quantity: 7,
+    expect(variant?.quantities).toStrictEqual({
       locations: [
         {
           stockLocationName: "European Warehouse",
           quantity: 7,
         },
       ],
+      quantity: 7,
     })
     expect(variant?.metadata).toMatchObject({
       stock: {
@@ -570,33 +568,33 @@ describe("Herbatica seed stock parsing", () => {
     const result = buildSeedInputFromXml(xml)
     const variant = result.products[0]?.variants?.[0]
 
-    expect(result.stockLocations).toEqual([
+    expect(result.stockLocations).toStrictEqual([
       {
-        name: "Default stock",
         address: {
           address_1: "Shoptet Warehouse",
           city: "Unknown",
           country_code: "SK",
         },
+        name: "Default stock",
       },
       {
-        name: "Pobočka Čadca",
         address: {
           address_1: "Čadca branch",
           city: "Unknown",
           country_code: "SK",
         },
+        name: "Pobočka Čadca",
       },
     ])
-    expect(variant?.quantities).toEqual({
+    expect(variant?.quantities).toStrictEqual({
       locations: [
         {
-          stockLocationName: "Default stock",
           quantity: 84,
+          stockLocationName: "Default stock",
         },
         {
-          stockLocationName: "Pobočka Čadca",
           quantity: 2,
+          stockLocationName: "Pobočka Čadca",
         },
       ],
     })
@@ -608,9 +606,9 @@ describe("Herbatica seed stock parsing", () => {
             value: 84,
           },
           {
+            location: "Čadca branch",
             name: "Pobočka Čadca",
             value: 2,
-            location: "Čadca branch",
           },
         ],
       },
@@ -643,17 +641,17 @@ describe("Herbatica seed stock parsing", () => {
     const result = buildSeedInputFromXml(xml)
     const variant = result.products[0]?.variants?.[0]
 
-    expect(result.stockLocations.map((location) => location.name)).toEqual([
-      "Shoptet Warehouse",
-    ])
-    expect(result.warnings).toEqual([
+    expect(
+      result.stockLocations.map((location) => location.name)
+    ).toStrictEqual(["Shoptet Warehouse"])
+    expect(result.warnings).toStrictEqual([
       '1 Shoptet warehouse stock entries had no warehouse name and were mapped to "Shoptet Warehouse".',
     ])
-    expect(variant?.quantities).toEqual({
+    expect(variant?.quantities).toStrictEqual({
       locations: [
         {
-          stockLocationName: "Shoptet Warehouse",
           quantity: 5,
+          stockLocationName: "Shoptet Warehouse",
         },
       ],
     })
@@ -734,15 +732,6 @@ describe("Herbatica seed product references", () => {
     const product = result.products.find((item) => item.handle === "shopitem-1")
 
     expect(product?.metadata).toMatchObject({
-      related_products: ["1", "2", "4", "999"],
-      related_product_handles: ["shopitem-2"],
-      related_product_refs: [
-        {
-          source_shopitem_id: "2",
-          handle: "shopitem-2",
-        },
-      ],
-      alternative_products: ["3"],
       alternative_product_handles: ["shopitem-3"],
       alternative_product_refs: [
         {
@@ -750,6 +739,15 @@ describe("Herbatica seed product references", () => {
           handle: "shopitem-3",
         },
       ],
+      alternative_products: ["3"],
+      related_product_handles: ["shopitem-2"],
+      related_product_refs: [
+        {
+          source_shopitem_id: "2",
+          handle: "shopitem-2",
+        },
+      ],
+      related_products: ["1", "2", "4", "999"],
     })
   })
 })
@@ -928,6 +926,8 @@ describe("Herbatica Shoptet workflow input", () => {
     `)
 
     const input = buildHerbaticaSeedWorkflowInput(parsed, {
+      fulfillmentSetName: "European Warehouse delivery",
+      fulfillmentSetType: "shipping",
       regionsInput: [
         {
           name: "Europe",
@@ -937,8 +937,6 @@ describe("Herbatica Shoptet workflow input", () => {
           isTaxInclusive: true,
         },
       ],
-      fulfillmentSetName: "European Warehouse delivery",
-      fulfillmentSetType: "shipping",
       serviceZoneName: "Europe",
     })
 
@@ -961,35 +959,35 @@ describe("Herbatica committed feed fixtures", () => {
   )
 
   it("keeps committed feed fixtures small and free of assistant markup", () => {
-    const productsXml = readFileSync(productsXmlPath, "utf8")
-    const categoriesXml = readFileSync(categoriesXmlPath, "utf8")
+    const productsXml = readFileSync(productsXmlPath, "utf-8")
+    const categoriesXml = readFileSync(categoriesXmlPath, "utf-8")
 
-    expect(Buffer.byteLength(productsXml, "utf8")).toBeLessThan(50_000)
-    expect(Buffer.byteLength(categoriesXml, "utf8")).toBeLessThan(20_000)
+    expect(Buffer.byteLength(productsXml, "utf-8")).toBeLessThan(50_000)
+    expect(Buffer.byteLength(categoriesXml, "utf-8")).toBeLessThan(20_000)
     expect(productsXml).not.toMatch(DIRTY_FEED_MARKUP_PATTERN)
     expect(categoriesXml).not.toMatch(DIRTY_FEED_MARKUP_PATTERN)
   })
 
   it("preserves parser coverage for metadata, references, hidden products, and duplicate variants", () => {
-    const productsXml = readFileSync(productsXmlPath, "utf8")
+    const productsXml = readFileSync(productsXmlPath, "utf-8")
     const categoryExports = parseHerbaticaCategoriesXmlFile(categoriesXmlPath)
     const result = buildSeedInputFromXml(productsXml, categoryExports, {
       referenceDate: new Date("2026-04-23T12:00:00.000Z"),
     })
 
-    expect(result.stats).toEqual({
-      shopItems: 4,
+    expect(result.stats).toStrictEqual({
       categories: 5,
-      products: 4,
-      variants: 5,
       hiddenProducts: 1,
       overridePriceLists: 0,
-      salePriceLists: 1,
       priceListPrices: 1,
+      products: 4,
+      salePriceLists: 1,
+      shopItems: 4,
       stockLocations: 1,
+      variants: 5,
       warnings: 0,
     })
-    expect(result.categories.map((category) => category.handle)).toEqual(
+    expect(result.categories.map((category) => category.handle)).toStrictEqual(
       expect.arrayContaining([
         "trapi-ma",
         "trapi-ma-srdce-a-cievy",
@@ -1004,18 +1002,14 @@ describe("Herbatica committed feed fixtures", () => {
       (product) => product.handle === "shopitem-fixture-hidden"
     )
 
-    expect(mainProduct?.categories).toEqual([
+    expect(mainProduct?.categories).toStrictEqual([
       {
         handle: "trapi-ma-srdce-a-cievy-krcove-zily",
       },
     ])
     expect(mainProduct?.metadata).toMatchObject({
-      related_products: [
-        "fixture-main",
-        "fixture-related",
-        "fixture-hidden",
-        "missing-product",
-      ],
+      alternative_product_handles: ["shopitem-fixture-alt"],
+      alternative_products: ["fixture-alt"],
       related_product_handles: ["shopitem-fixture-related"],
       related_product_refs: [
         {
@@ -1023,16 +1017,20 @@ describe("Herbatica committed feed fixtures", () => {
           handle: "shopitem-fixture-related",
         },
       ],
-      alternative_products: ["fixture-alt"],
-      alternative_product_handles: ["shopitem-fixture-alt"],
+      related_products: [
+        "fixture-main",
+        "fixture-related",
+        "fixture-hidden",
+        "missing-product",
+      ],
       source_category_ids: ["901"],
       source_default_category_id: "901",
     })
-    expect(mainProduct?.variants?.map((variant) => variant.sku)).toEqual([
+    expect(mainProduct?.variants?.map((variant) => variant.sku)).toStrictEqual([
       "SHOPITEM-FIXTURE-MAIN-VARIANT-VARIANT-DUP",
       "SHOPITEM-FIXTURE-MAIN-VARIANT-VARIANT-DUP-2",
     ])
-    expect(mainProduct?.variants?.map((variant) => variant.ean)).toEqual([
+    expect(mainProduct?.variants?.map((variant) => variant.ean)).toStrictEqual([
       "1234567890123",
       "1234567890123",
     ])

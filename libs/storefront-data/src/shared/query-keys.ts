@@ -1,11 +1,11 @@
 export type QueryKey = readonly unknown[]
 
 export type QueryNamespace = string | readonly string[]
-export type NormalizeQueryKeyParamsOptions = {
+export interface NormalizeQueryKeyParamsOptions {
   omitKeys?: readonly string[]
 }
 
-type WalkValueOptions = {
+interface WalkValueOptions {
   omitKeys?: ReadonlySet<string>
   stripUndefined?: boolean
 }
@@ -86,7 +86,7 @@ export function normalizeQueryKeyParams<
       "QueryKey params must be a plain object. Use a serializer before normalizeQueryKeyParams."
     )
   }
-  const visited = new WeakSet<object>()
+  const visited = new WeakSet()
   const omitKeys = new Set(options?.omitKeys ?? [])
   const normalized = walkValue(params, visited, {
     omitKeys,
@@ -115,7 +115,7 @@ export function normalizeQueryKeyPart(
   if (isPlainObject(value)) {
     return normalizeQueryKeyParams(value, options)
   }
-  return walkValue(value, new WeakSet<object>())
+  return walkValue(value, new WeakSet())
 }
 
 export function createQueryKey(
@@ -123,7 +123,7 @@ export function createQueryKey(
   ...parts: readonly unknown[]
 ): QueryKey {
   const scope = normalizeNamespace(namespace)
-  const visited = new WeakSet<object>()
+  const visited = new WeakSet()
   return [...scope, ...parts.map((part) => walkValue(part, visited))]
 }
 
@@ -131,7 +131,7 @@ export function appendQueryKey(
   base: QueryKey,
   ...parts: readonly unknown[]
 ): QueryKey {
-  const visited = new WeakSet<object>()
+  const visited = new WeakSet()
   return [...base, ...parts.map((part) => walkValue(part, visited))]
 }
 
@@ -145,18 +145,18 @@ export function createDomainQueryKeys<TListParams, TDetailParams>(
 } {
   return {
     all: () => createQueryKey(namespace, domain),
-    list: (params) =>
-      createQueryKey(
-        namespace,
-        domain,
-        "list",
-        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
-      ),
     detail: (params) =>
       createQueryKey(
         namespace,
         domain,
         "detail",
+        normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
+      ),
+    list: (params) =>
+      createQueryKey(
+        namespace,
+        domain,
+        "list",
         normalizeQueryKeyPart(params, { omitKeys: ["enabled"] })
       ),
   }
@@ -165,7 +165,7 @@ export function createDomainQueryKeys<TListParams, TDetailParams>(
 export function createQueryKeyFactory(namespace: QueryNamespace) {
   const scope = normalizeNamespace(namespace)
   return {
-    scope,
     key: (...parts: readonly unknown[]) => createQueryKey(scope, ...parts),
+    scope,
   }
 }

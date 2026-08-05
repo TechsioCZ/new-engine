@@ -57,7 +57,7 @@ const PRIVATE_PAYLOAD_FIELD_NAMES = new Set([
 
 type CachingDependency = Pick<ICachingModuleService, "clear" | "get" | "set">
 
-type InjectedDependencies = {
+interface InjectedDependencies {
   logger: Logger
   [Modules.CACHING]?: CachingDependency
   [key: string]: unknown
@@ -65,11 +65,11 @@ type InjectedDependencies = {
 
 const CACHE_TAGS = {
   ALL: CMS,
-  PAGES: `${CMS}:${PAGES}`,
   ARTICLES: `${CMS}:${ARTICLES}`,
-  PAGE_CATEGORIES: `${CMS}:${PAGE_CATEGORIES}`,
   ARTICLE_CATEGORIES: `${CMS}:${ARTICLE_CATEGORIES}`,
   HERO_CAROUSELS: `${CMS}:${HERO_CAROUSELS}`,
+  PAGES: `${CMS}:${PAGES}`,
+  PAGE_CATEGORIES: `${CMS}:${PAGE_CATEGORIES}`,
 } as const
 
 const DEFAULT_TTLS = {
@@ -97,8 +97,8 @@ export default class PayloadModuleService extends MedusaService({}) {
     this.validateOptions()
     this.baseUrl_ = `${options.serverUrl.replace(TRAILING_SLASH_REGEX, "")}/api`
     this.headers_ = {
-      "Content-Type": "application/json",
       Authorization: `users API-Key ${options.apiKey}`,
+      "Content-Type": "application/json",
     }
     this.logger_ = container.logger
     this.cacheService_ = safeResolve<CachingDependency>(
@@ -144,17 +144,16 @@ export default class PayloadModuleService extends MedusaService({}) {
   ): Promise<T> {
     const url = `${this.baseUrl_}${endpoint}`
     const controller = new AbortController()
-    const timeoutId = setTimeout(
-      () => controller.abort(),
-      this.requestTimeoutMs_
-    )
+    const timeoutId = setTimeout(() => {
+      controller.abort()
+    }, this.requestTimeoutMs_)
     const headers = { ...this.headers_, ...options?.headers }
 
     let response: Response
     try {
       const request: RequestInit = {
-        method,
         headers,
+        method,
         signal: controller.signal,
       }
       if (data !== undefined) {
@@ -173,7 +172,7 @@ export default class PayloadModuleService extends MedusaService({}) {
       clearTimeout(timeoutId)
     }
 
-    const result = (await response.json()) as unknown
+    const result = await response.json()
 
     if (!response.ok) {
       throw new MedusaError(
@@ -288,10 +287,10 @@ export default class PayloadModuleService extends MedusaService({}) {
 
     if (this.cacheService_ && redactedData !== null) {
       await this.cacheService_.set({
-        key,
         data: redactedData as object,
-        ttl,
+        key,
         tags,
+        ttl,
       })
     }
 
@@ -357,26 +356,26 @@ export default class PayloadModuleService extends MedusaService({}) {
     locale?: string
   ): Promise<CmsPageDTO | null> {
     const cacheKey = `${CMS}:${PAGES}:${slug}:${locale ?? DEFAULT_LOCALE}`
-    return this.getCached(
+    return await this.getCached(
       cacheKey,
       async () => {
         const queryString = this.buildQuery({
+          limit: 1,
           where: {
             slug: { equals: slug },
             status: { equals: STATUS_PUBLISHED },
           },
-          limit: 1,
-          ...(locale !== undefined ? { locale } : {}),
+          ...(locale === undefined ? {} : { locale }),
         })
         const result = await this.makeRequest<PayloadBulkResult<CmsPageDTO>>(
           "GET",
           `/${PAGES}${queryString}`,
           undefined,
           {
-            schema: CmsPagesBulkResultSchema,
             headers: {
               [RETURN_HTML_HEADER]: "true",
             },
+            schema: CmsPagesBulkResultSchema,
           }
         )
 
@@ -406,12 +405,12 @@ export default class PayloadModuleService extends MedusaService({}) {
       CACHE_TAGS.PAGE_CATEGORIES,
       options?.locale
     )
-    return this.getCached(
+    return await this.getCached(
       cacheKey,
       async () => {
         const queryString = this.buildParamsQuery({
-          locale: options?.locale,
           categorySlug: options?.categorySlug,
+          locale: options?.locale,
         })
         const result = await this.makeRequest<{
           categories: CmsPageCategoryDTO[]
@@ -433,26 +432,26 @@ export default class PayloadModuleService extends MedusaService({}) {
     locale?: string
   ): Promise<CmsArticleDTO | null> {
     const cacheKey = `${CMS}:${ARTICLES}:${slug}:${locale ?? DEFAULT_LOCALE}`
-    return this.getCached(
+    return await this.getCached(
       cacheKey,
       async () => {
         const queryString = this.buildQuery({
+          limit: 1,
           where: {
             slug: { equals: slug },
             status: { equals: STATUS_PUBLISHED },
           },
-          limit: 1,
-          ...(locale !== undefined ? { locale } : {}),
+          ...(locale === undefined ? {} : { locale }),
         })
         const result = await this.makeRequest<PayloadBulkResult<CmsArticleDTO>>(
           "GET",
           `/${ARTICLES}${queryString}`,
           undefined,
           {
-            schema: CmsArticlesBulkResultSchema,
             headers: {
               [RETURN_HTML_HEADER]: "true",
             },
+            schema: CmsArticlesBulkResultSchema,
           }
         )
 
@@ -482,12 +481,12 @@ export default class PayloadModuleService extends MedusaService({}) {
       options?.locale
     )
 
-    return this.getCached(
+    return await this.getCached(
       cacheKey,
       async () => {
         const queryString = this.buildParamsQuery({
-          locale: options?.locale,
           categorySlug: options?.categorySlug,
+          locale: options?.locale,
         })
         const result = await this.makeRequest<{
           categories: CmsArticleCategoryDTO[]
@@ -512,14 +511,14 @@ export default class PayloadModuleService extends MedusaService({}) {
       CACHE_TAGS.HERO_CAROUSELS,
       options?.locale
     )
-    return this.getCached(
+    return await this.getCached(
       cacheKey,
       async () => {
         const queryString = this.buildQuery({
-          ...(options?.limit !== undefined ? { limit: options?.limit } : {}),
-          ...(options?.page !== undefined ? { page: options?.page } : {}),
-          ...(options?.sort !== undefined ? { sort: options?.sort } : {}),
-          ...(options?.locale !== undefined ? { locale: options?.locale } : {}),
+          ...(options?.limit === undefined ? {} : { limit: options?.limit }),
+          ...(options?.page === undefined ? {} : { page: options?.page }),
+          ...(options?.sort === undefined ? {} : { sort: options?.sort }),
+          ...(options?.locale === undefined ? {} : { locale: options?.locale }),
         })
         const result = await this.makeRequest<
           PayloadBulkResult<CmsHeroCarouselDTO>
@@ -563,32 +562,39 @@ export default class PayloadModuleService extends MedusaService({}) {
     }
 
     switch (collection) {
-      case PAGES:
+      case PAGES: {
         addTags(
           [CACHE_TAGS.PAGES, CACHE_TAGS.PAGE_CATEGORIES],
           CACHE_TAGS.PAGE_CATEGORIES
         )
         break
-      case ARTICLES:
+      }
+      case ARTICLES: {
         addTags(
           [CACHE_TAGS.ARTICLES, CACHE_TAGS.ARTICLE_CATEGORIES],
           CACHE_TAGS.ARTICLE_CATEGORIES
         )
         break
-      case PAGE_CATEGORIES:
+      }
+      case PAGE_CATEGORIES: {
         addTags([CACHE_TAGS.PAGE_CATEGORIES], CACHE_TAGS.PAGE_CATEGORIES)
         break
-      case ARTICLE_CATEGORIES:
+      }
+      case ARTICLE_CATEGORIES: {
         addTags([CACHE_TAGS.ARTICLE_CATEGORIES], CACHE_TAGS.ARTICLE_CATEGORIES)
         break
-      case HERO_CAROUSELS:
+      }
+      case HERO_CAROUSELS: {
         addTags([CACHE_TAGS.HERO_CAROUSELS], CACHE_TAGS.HERO_CAROUSELS)
         break
-      case MEDIA:
+      }
+      case MEDIA: {
         tags.push(CACHE_TAGS.ALL)
         break
-      default:
+      }
+      default: {
         break
+      }
     }
 
     if (tags.length === 0) {

@@ -8,7 +8,7 @@ import type { InvoiceInput } from "./types"
 type Metadata = Record<string, unknown>
 const UNSAFE_FILENAME_CHARS = /[^a-zA-Z0-9._-]+/g
 
-export type InvoiceOrderLookupKeys = {
+export interface InvoiceOrderLookupKeys {
   orderIds: Set<string>
   displayIds: Set<number>
   erpIds: Set<string>
@@ -35,14 +35,14 @@ export class InvoicesBatchClientMapperHelper {
       }
     }
 
-    return { orderIds, displayIds, erpIds }
+    return { displayIds, erpIds, orderIds }
   }
 
   buildOrderIndex(orders: ExistingOrder[]): ExistingOrderIndex {
     const index: ExistingOrderIndex = {
-      byId: new Map(),
       byDisplayId: new Map(),
       byErpId: new Map(),
+      byId: new Map(),
     }
 
     for (const order of orders) {
@@ -85,10 +85,10 @@ export class InvoicesBatchClientMapperHelper {
 
   buildUploadPayload(invoice: InvoiceInput) {
     return {
+      access: "public",
+      content: invoice.data ?? "",
       filename: `${this.sanitizeFilename(invoice.invoice_number)}.pdf`,
       mimeType: "application/pdf",
-      content: invoice.data ?? "",
-      access: "public",
     }
   }
 
@@ -104,26 +104,26 @@ export class InvoicesBatchClientMapperHelper {
   ) {
     const current = this.getExistingInvoices(existingMetadata)
     const nextInvoice = {
-      invoice_number: invoice.invoice_number,
-      invoice_date: invoice.invoice_date,
-      url: invoiceUrl,
       file_id: uploaded?.id,
+      invoice_date: invoice.invoice_date,
+      invoice_number: invoice.invoice_number,
       uploaded_at: new Date().toISOString(),
+      url: invoiceUrl,
     }
     const filtered = current.filter(
       (item) => item.invoice_number !== invoice.invoice_number
     )
     return {
       ...existingMetadata,
-      invoices: [...filtered, nextInvoice],
-      invoice_number: invoice.invoice_number,
       invoice_date: invoice.invoice_date,
+      invoice_number: invoice.invoice_number,
       invoice_url: invoiceUrl,
+      invoices: [...filtered, nextInvoice],
     }
   }
 
   private getExistingInvoices(metadata: Metadata | null | undefined) {
-    const invoices = metadata?.["invoices"]
+    const invoices = metadata?.invoices
     if (!Array.isArray(invoices)) {
       return []
     }

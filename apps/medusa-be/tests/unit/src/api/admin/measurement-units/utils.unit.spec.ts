@@ -9,7 +9,7 @@ const { measurementService, productService } = vi.hoisted(() => ({
   },
 }))
 
-vi.mock("../../../../../../src/utils/measurement-units", () => ({
+vi.mock(import("../../../../../../src/utils/measurement-units"), () => ({
   getMeasurementUnitActiveProductCounts: vi.fn(),
   getMeasurementUnitService: vi.fn(() => measurementService),
   toMeasurementUnitResponse: vi.fn(),
@@ -86,11 +86,11 @@ describe("measurement unit assigned-product queries", () => {
     )
     expect(productService.listAndCountProducts).toHaveBeenCalledWith(
       {
-        id: { $in: ["prod_1", "prod_2"] },
         $or: [
           { title: { $ilike: "%50\\%\\_off%" } },
           { handle: { $ilike: "%50\\%\\_off%" } },
         ],
+        id: { $in: ["prod_1", "prod_2"] },
       },
       {
         order: { updated_at: "DESC" },
@@ -100,7 +100,7 @@ describe("measurement unit assigned-product queries", () => {
         withDeleted: true,
       }
     )
-    expect(result).toEqual({
+    expect(result).toStrictEqual({
       count: 2,
       products: [
         {

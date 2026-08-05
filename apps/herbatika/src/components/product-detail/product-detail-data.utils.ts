@@ -50,13 +50,13 @@ export const resolveVariantItems = (
         Boolean(variant.id)
     )
     .map((variant) => ({
-      value: variant.id,
       label: resolveVariantLabel(variant, optionTitlesById),
+      value: variant.id,
     }))
 
 export const resolveShortDescriptionHtml = (product: Product | null) => {
   const metadata = asRecord(product?.metadata)
-  return asString(metadata?.["short_description"]) ?? ""
+  return asString(metadata?.short_description) ?? ""
 }
 
 export const resolveProductSummaryText = (
@@ -82,12 +82,12 @@ export const resolveProductBreadcrumbItems = (
   const primaryCategoryName = normalizeCategoryName(primaryCategory?.name, "")
 
   return [
-    { label: homeLabel, href: "/", icon: "token-icon-home" },
+    { href: "/", icon: "token-icon-home", label: homeLabel },
     ...(primaryCategory?.handle && primaryCategoryName
       ? [
           {
-            label: primaryCategoryName,
             href: `/c/${primaryCategory.handle}`,
+            label: primaryCategoryName,
           },
         ]
       : []),

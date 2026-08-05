@@ -33,10 +33,10 @@ export const GET = async (
   const employees = company?.employees ?? []
 
   res.json({
-    employees,
     count: metadata?.count,
-    offset: metadata?.skip,
+    employees,
     limit: metadata?.take,
+    offset: metadata?.skip,
   })
 }
 
@@ -51,8 +51,8 @@ export const POST = async (
     req.scope
   ).run({
     input: {
-      employeeData: definedProperties({ ...req.validatedBody, company_id: id }),
       customerId: req.validatedBody.customer_id,
+      employeeData: definedProperties({ ...req.validatedBody, company_id: id }),
     },
   })
 

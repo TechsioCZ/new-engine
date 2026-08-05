@@ -16,20 +16,20 @@ import { tv } from "../utils"
 
 const labelVariants = tv({
   base: ["block", "text-label-fg", "font-label"],
+  defaultVariants: {
+    disabled: false,
+    size: "current",
+  },
   variants: {
-    size: {
-      sm: "text-label-sm",
-      md: "text-label-md",
-      lg: "text-label-lg",
-      current: "",
-    },
     disabled: {
       true: "text-label-fg-disabled",
     },
-  },
-  defaultVariants: {
-    size: "current",
-    disabled: false,
+    size: {
+      current: "",
+      lg: "text-label-lg",
+      md: "text-label-md",
+      sm: "text-label-sm",
+    },
   },
 })
 
@@ -53,9 +53,9 @@ export function Label({
   return (
     <label
       className={labelVariants({
-        size,
-        disabled,
         className,
+        disabled,
+        size,
       })}
       {...props}
       htmlFor={props.htmlFor}

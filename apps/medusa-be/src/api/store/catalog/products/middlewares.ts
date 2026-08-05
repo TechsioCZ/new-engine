@@ -1,9 +1,6 @@
 import { validateAndTransformQuery } from "@medusajs/framework"
-import {
-  applyDefaultFilters,
-  authenticate,
-  type MiddlewareRoute,
-} from "@medusajs/framework/http"
+import { applyDefaultFilters, authenticate } from "@medusajs/framework/http"
+import type { MiddlewareRoute } from "@medusajs/framework/http"
 import { ProductStatus } from "@medusajs/framework/utils"
 import { filterByValidSalesChannels } from "@medusajs/medusa/api/utils/middlewares/products/filter-by-valid-sales-channels"
 import { normalizeDataForContext } from "@medusajs/medusa/api/utils/middlewares/products/normalize-data-for-context"
@@ -18,8 +15,8 @@ import {
 
 export const storeCatalogProductsRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/store/catalog/products",
+    methods: ["GET"],
     middlewares: [
       authenticate("customer", ["session", "bearer"], {
         allowUnauthenticated: true,

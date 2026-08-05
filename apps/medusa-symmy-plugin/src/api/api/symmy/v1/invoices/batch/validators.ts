@@ -6,14 +6,14 @@ const INVOICES_BATCH_MAX = 500
 
 const InvoiceInputSchema = z
   .object({
-    identifier_type: z.enum(["display_id", "order_id", "erp_id"]),
-    display_id: z.string().min(1).optional(),
-    order_id: z.string().min(1).optional(),
-    erp_id: z.string().min(1).optional(),
-    invoice_number: z.string().min(1),
-    invoice_date: z.string().date().optional(),
-    url: z.string().url().optional(),
     data: z.string().min(1).optional(),
+    display_id: z.string().min(1).optional(),
+    erp_id: z.string().min(1).optional(),
+    identifier_type: z.enum(["display_id", "order_id", "erp_id"]),
+    invoice_date: z.string().date().optional(),
+    invoice_number: z.string().min(1),
+    order_id: z.string().min(1).optional(),
+    url: z.string().url().optional(),
   })
   .superRefine((value, ctx) => {
     requireIdentifierField(value, ctx)

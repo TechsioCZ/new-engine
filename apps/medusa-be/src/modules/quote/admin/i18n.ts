@@ -1,4 +1,4 @@
-export type QuoteAdminI18nNamespace = {
+export interface QuoteAdminI18nNamespace {
   actions: Record<
     | "addItems"
     | "cancel"

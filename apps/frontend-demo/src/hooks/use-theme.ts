@@ -22,13 +22,13 @@ export function useTheme() {
   }
 
   return {
-    theme: mounted ? resolvedMode : "light",
-    setTheme: setMode,
-    toggleTheme,
-    mounted,
     brand,
-    setBrand,
     brands,
     canToggleMode: availableModes.length > 1,
+    mounted,
+    setBrand,
+    setTheme: setMode,
+    theme: mounted ? resolvedMode : "light",
+    toggleTheme,
   }
 }

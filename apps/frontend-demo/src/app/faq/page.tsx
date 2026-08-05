@@ -15,17 +15,6 @@ interface FaqItem {
 
 const faqData: FaqItem[] = [
   {
-    id: "faq-1",
-    value: "implementation-time",
-    title: (
-      <FaqItemHeader
-        icon="icon-[mdi--clock-outline]"
-        iconStyle="text-primary text-md bg-primary/10"
-        tag="Implementace"
-        tagStyle="bg-primary/10 text-primary"
-        title="Jak dlouho trvá implementace custom e-commerce řešení?"
-      />
-    ),
     content: (
       <div className="space-y-content-sections pl-faq-primary">
         <div className="rounded-lg border border-border bg-surface p-card-padding">
@@ -120,19 +109,19 @@ const faqData: FaqItem[] = [
         </div>
       </div>
     ),
-  },
-  {
-    id: "faq-2",
-    value: "migration-process",
+    id: "faq-1",
     title: (
       <FaqItemHeader
-        icon="icon-[mdi--database-arrow-right]"
-        iconStyle="text-info text-md bg-info/10"
-        tag="Migrace dat"
-        tagStyle="bg-info/10 text-info"
-        title="Jak probíhá přechod ze současného e-shopu na vaše řešení?"
+        icon="icon-[mdi--clock-outline]"
+        iconStyle="text-primary text-md bg-primary/10"
+        tag="Implementace"
+        tagStyle="bg-primary/10 text-primary"
+        title="Jak dlouho trvá implementace custom e-commerce řešení?"
       />
     ),
+    value: "implementation-time",
+  },
+  {
     content: (
       <div className="space-y-content-sections pl-faq-primary">
         <div className="rounded-lg border border-info/20 bg-info/5 p-card-padding">
@@ -259,19 +248,19 @@ const faqData: FaqItem[] = [
         </div>
       </div>
     ),
-  },
-  {
-    id: "faq-3",
-    value: "modular-development",
+    id: "faq-2",
     title: (
       <FaqItemHeader
-        icon="icon-[mdi--puzzle-outline]"
-        iconStyle="text-success text-md bg-success/10"
-        tag="Modularita"
-        tagStyle="bg-success/10 text-success"
-        title="Můžeme začít s základní verzí a postupně rozšiřovat funkcionalitu?"
+        icon="icon-[mdi--database-arrow-right]"
+        iconStyle="text-info text-md bg-info/10"
+        tag="Migrace dat"
+        tagStyle="bg-info/10 text-info"
+        title="Jak probíhá přechod ze současného e-shopu na vaše řešení?"
       />
     ),
+    value: "migration-process",
+  },
+  {
     content: (
       <div className="space-y-content-sections pl-faq-primary">
         <div className="rounded-lg border border-success/20 bg-success/5 p-card-padding">
@@ -323,19 +312,19 @@ const faqData: FaqItem[] = [
         </div>
       </div>
     ),
-  },
-  {
-    id: "faq-4",
-    value: "b2b-features",
+    id: "faq-3",
     title: (
       <FaqItemHeader
-        icon="icon-[mdi--office-building]"
-        iconStyle="text-tertiary text-md bg-tertiary/10"
-        tag="B2B řešení"
-        tagStyle="bg-tertiary/10 text-tertiary"
-        title="Jak řešíte B2B specifika jako cenové hladiny a individuální ceníky?"
+        icon="icon-[mdi--puzzle-outline]"
+        iconStyle="text-success text-md bg-success/10"
+        tag="Modularita"
+        tagStyle="bg-success/10 text-success"
+        title="Můžeme začít s základní verzí a postupně rozšiřovat funkcionalitu?"
       />
     ),
+    value: "modular-development",
+  },
+  {
     content: (
       <div className="space-y-content-sections pl-faq-primary">
         <div className="rounded-lg border border-tertiary/20 bg-tertiary/5 p-card-padding">
@@ -454,19 +443,19 @@ const faqData: FaqItem[] = [
         </div>
       </div>
     ),
-  },
-  {
-    id: "faq-5",
-    value: "integrations",
+    id: "faq-4",
     title: (
       <FaqItemHeader
-        icon="icon-[mdi--link-variant]"
-        iconStyle="text-secondary text-md bg-secondary/10"
-        tag="Integrace"
-        tagStyle="bg-secondary/10 text-secondary"
-        title="Jak řešíte napojení na externí systémy a API třetích stran?"
+        icon="icon-[mdi--office-building]"
+        iconStyle="text-tertiary text-md bg-tertiary/10"
+        tag="B2B řešení"
+        tagStyle="bg-tertiary/10 text-tertiary"
+        title="Jak řešíte B2B specifika jako cenové hladiny a individuální ceníky?"
       />
     ),
+    value: "b2b-features",
+  },
+  {
     content: (
       <div className="space-y-content-sections pl-faq-primary">
         <div className="rounded-lg border border-border bg-surface p-card-padding">
@@ -584,19 +573,19 @@ const faqData: FaqItem[] = [
         </div>
       </div>
     ),
-  },
-  {
-    id: "faq-6",
-    value: "support",
+    id: "faq-5",
     title: (
       <FaqItemHeader
-        icon="icon-[mdi--support]"
-        iconStyle="text-info text-md bg-info/10"
-        tag="Podpora"
-        tagStyle="bg-info/10 text-info"
-        title="Jak funguje technická podpora po spuštění e-shopu?"
+        icon="icon-[mdi--link-variant]"
+        iconStyle="text-secondary text-md bg-secondary/10"
+        tag="Integrace"
+        tagStyle="bg-secondary/10 text-secondary"
+        title="Jak řešíte napojení na externí systémy a API třetích stran?"
       />
     ),
+    value: "integrations",
+  },
+  {
     content: (
       <div className="space-y-content-sections pl-faq-primary">
         <div className="rounded-lg border border-info/20 bg-info/5 p-card-padding">
@@ -729,6 +718,17 @@ const faqData: FaqItem[] = [
         </div>
       </div>
     ),
+    id: "faq-6",
+    title: (
+      <FaqItemHeader
+        icon="icon-[mdi--support]"
+        iconStyle="text-info text-md bg-info/10"
+        tag="Podpora"
+        tagStyle="bg-info/10 text-info"
+        title="Jak funguje technická podpora po spuštění e-shopu?"
+      />
+    ),
+    value: "support",
   },
 ]
 

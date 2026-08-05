@@ -1,4 +1,4 @@
-type FieldErrorMeta = {
+interface FieldErrorMeta {
   errors: unknown[]
   isBlurred: boolean
   errorMap: {
@@ -10,7 +10,7 @@ type FieldErrorMeta = {
   }
 }
 
-type ResolveVisibleFieldErrorOptions = {
+interface ResolveVisibleFieldErrorOptions {
   hasChangedSinceBlur?: boolean
   meta: FieldErrorMeta
   submissionAttempts: number
@@ -20,12 +20,12 @@ type ResolveVisibleFieldErrorOptions = {
 type FieldValidationSource = keyof FieldErrorMeta["errorMap"]
 type FieldValidateStatus = "default" | "error"
 
-type VisibleFieldFeedback = {
+interface VisibleFieldFeedback {
   errorText: string | undefined
   validateStatus: FieldValidateStatus
 }
 
-type ResolvedFieldValidationResult = {
+interface ResolvedFieldValidationResult {
   errorText: string | undefined
   matchedSource: boolean
 }

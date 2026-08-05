@@ -5,28 +5,26 @@ import {
   createOrderShipmentWorkflow,
 } from "@medusajs/medusa/core-flows"
 
-import {
-  type TrackingOrderLookupKeys,
-  trackingBatchClientMapperHelper,
-} from "./client-mapper-helper"
+import { trackingBatchClientMapperHelper } from "./client-mapper-helper"
+import type { TrackingOrderLookupKeys } from "./client-mapper-helper"
 import type { TrackingItemInput, TrackingShipmentInput } from "./types"
 
 type Metadata = Record<string, unknown>
 
-export type OrderLineItem = {
+export interface OrderLineItem {
   id: string
   quantity: number
   variant_sku?: string | null
 }
 
-export type ExistingOrder = {
+export interface ExistingOrder {
   id: string
   display_id: number
   metadata: Metadata | null
   items: OrderLineItem[]
 }
 
-export type TrackingOrderIndex = {
+export interface TrackingOrderIndex {
   byId: Map<string, ExistingOrder>
   byDisplayId: Map<string, ExistingOrder>
   byErpId: Map<string, ExistingOrder>
@@ -37,7 +35,7 @@ export type ResolvedTrackingItems = {
   quantity: number
 }[]
 
-export type TrackingApplyResult = {
+export interface TrackingApplyResult {
   fulfillmentId: string
   shipmentId: string
   notificationSent: boolean
@@ -77,9 +75,9 @@ export class TrackingBatchClient {
       erpIds
     )
     const [byIdOrders, byDisplayIdOrders, scannedOrders] = await Promise.all([
-      this.queryOrders({ id: Array.from(orderIds) }),
-      this.queryOrders({ display_id: Array.from(displayIds) }),
-      this.queryOrders({ id: Array.from(metadataOrderIds) }),
+      this.queryOrders({ id: [...orderIds] }),
+      this.queryOrders({ display_id: [...displayIds] }),
+      this.queryOrders({ id: [...metadataOrderIds] }),
     ])
 
     return this.mapper.buildOrderIndex([
@@ -121,7 +119,7 @@ export class TrackingBatchClient {
     ).run({
       input: {
         order_id: order.id,
-        ...(createdBy !== undefined ? { created_by: createdBy } : {}),
+        ...(createdBy === undefined ? {} : { created_by: createdBy }),
         items,
         no_notification: noNotification,
         metadata,
@@ -134,14 +132,14 @@ export class TrackingBatchClient {
       input: {
         order_id: order.id,
         fulfillment_id: fulfillmentId,
-        ...(createdBy !== undefined ? { created_by: createdBy } : {}),
+        ...(createdBy === undefined ? {} : { created_by: createdBy }),
         items,
         no_notification: noNotification,
         labels: [
           {
+            label_url: trackingUrl,
             tracking_number: shipment.tracking_number,
             tracking_url: trackingUrl,
-            label_url: trackingUrl,
           },
         ],
         metadata,
@@ -150,8 +148,8 @@ export class TrackingBatchClient {
 
     return {
       fulfillmentId,
-      shipmentId: fulfillmentId,
       notificationSent: !noNotification,
+      shipmentId: fulfillmentId,
     }
   }
 
@@ -163,7 +161,7 @@ export class TrackingBatchClient {
     }
     const { data } = await this.query.graph({
       entity: "order",
-      fields: Array.from(ORDER_FIELDS),
+      fields: [...ORDER_FIELDS],
       filters,
     })
     return (data ?? []) as ExistingOrder[]
@@ -182,7 +180,7 @@ export class TrackingBatchClient {
       fields: ["id"],
       filters: {
         metadata: {
-          [key]: Array.from(values),
+          [key]: [...values],
         },
       },
     })

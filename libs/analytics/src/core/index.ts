@@ -1,5 +1,5 @@
 // Types
-export * from "./types"
+export type * from "./types"
 
 // Shared utilities
 export { createWindowGetter } from "./get-global-function"

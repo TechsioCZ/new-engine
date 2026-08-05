@@ -6,7 +6,7 @@ import {
 
 import { sendNotificationStep } from "./steps/send-notification"
 
-type WorkflowInput = {
+interface WorkflowInput {
   email: string
   reset_url: string
   store_name?: string
@@ -17,13 +17,13 @@ export const sendForgotPasswordWorkflow = createWorkflow(
   (input: WorkflowInput) => {
     const notificationInput = transform({ input }, (data) => [
       {
-        to: data.input.email,
         channel: "email",
-        template: "user-forgotpwd",
         data: {
           reset_url: data.input.reset_url,
           store_name: data.input.store_name,
         },
+        template: "user-forgotpwd",
+        to: data.input.email,
       },
     ])
     const notification = sendNotificationStep(notificationInput)

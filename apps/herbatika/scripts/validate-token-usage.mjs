@@ -160,9 +160,9 @@ function stripVariants(className) {
 
 function resolvePrefixValue(baseClass, prefixes) {
   const normalized = baseClass.startsWith("-") ? baseClass.slice(1) : baseClass
-  const sortedPrefixes = prefixes
-    .slice()
-    .sort((left, right) => right.length - left.length)
+  const sortedPrefixes = [...prefixes].sort(
+    (left, right) => right.length - left.length
+  )
 
   for (const prefix of sortedPrefixes) {
     const prefixWithDash = `${prefix}-`
@@ -171,9 +171,9 @@ function resolvePrefixValue(baseClass, prefixes) {
     }
 
     return {
+      normalized,
       prefix,
       value: normalized.slice(prefixWithDash.length),
-      normalized,
     }
   }
 
@@ -206,9 +206,9 @@ function checkNoArbitraryValues(className, ruleConfig) {
   }
 
   return {
-    rule: "no-arbitrary-values",
     message:
       "Nepoužívej arbitrary utility hodnoty, použij token utility z libs/ui.",
+    rule: "no-arbitrary-values",
   }
 }
 
@@ -227,7 +227,7 @@ function checkNoTailwindPalette(className, ruleConfig) {
   }
 
   const palette = ruleConfig.paletteNames ?? []
-  const value = match.value
+  const { value } = match
   const isPalette = palette.some(
     (colorName) => value === colorName || value.startsWith(`${colorName}-`)
   )
@@ -236,8 +236,8 @@ function checkNoTailwindPalette(className, ruleConfig) {
   }
 
   return {
-    rule: "no-tailwind-palette",
     message: `Nepoužívej Tailwind palette (${value}), použij semantic token (např. text-fg-primary).`,
+    rule: "no-tailwind-palette",
   }
 }
 
@@ -252,7 +252,7 @@ function checkNoTailwindSpacingScale(className, ruleConfig) {
     return null
   }
 
-  const value = match.value
+  const { value } = match
   if (!value || value.includes("/")) {
     return null
   }
@@ -275,8 +275,8 @@ function checkNoTailwindSpacingScale(className, ruleConfig) {
   }
 
   return {
-    rule: "no-tailwind-spacing-scale",
     message: `Nepoužívej Tailwind spacing scale (${match.prefix}-${value}), použij token scale.`,
+    rule: "no-tailwind-spacing-scale",
   }
 }
 
@@ -291,7 +291,7 @@ function checkNoTailwindContainerScale(className, ruleConfig) {
     return null
   }
 
-  const value = match.value
+  const { value } = match
   if (
     !value ||
     value.startsWith("[") ||
@@ -307,8 +307,8 @@ function checkNoTailwindContainerScale(className, ruleConfig) {
   }
 
   return {
-    rule: "no-tailwind-container-scale",
     message: `Nepoužívej default container scale (${match.prefix}-${value}), použij container token (např. max-w-max-w).`,
+    rule: "no-tailwind-container-scale",
   }
 }
 
@@ -334,11 +334,11 @@ function resolveRuleConfigMap(config) {
   const rules = config.rules ?? {}
   return {
     noArbitraryValues: rules.noArbitraryValues ?? { enabled: false },
-    noTailwindPalette: rules.noTailwindPalette ?? { enabled: false },
-    noTailwindSpacingScale: rules.noTailwindSpacingScale ?? { enabled: false },
     noTailwindContainerScale: rules.noTailwindContainerScale ?? {
       enabled: false,
     },
+    noTailwindPalette: rules.noTailwindPalette ?? { enabled: false },
+    noTailwindSpacingScale: rules.noTailwindSpacingScale ?? { enabled: false },
   }
 }
 
@@ -468,7 +468,7 @@ async function main() {
 
   for (const file of sourceFiles) {
     const absoluteFilePath = path.resolve(rootDir, file)
-    const content = fs.readFileSync(absoluteFilePath, "utf8")
+    const content = fs.readFileSync(absoluteFilePath, "utf-8")
     const classEntries = extractClassEntries(content)
 
     for (const entry of classEntries) {
@@ -478,11 +478,11 @@ async function main() {
       }
 
       findings.push({
+        className: entry.className,
         file,
         line: entry.line,
-        className: entry.className,
-        rule: ruleFinding.rule,
         message: ruleFinding.message,
+        rule: ruleFinding.rule,
       })
     }
   }
@@ -491,9 +491,9 @@ async function main() {
     console.log(
       JSON.stringify(
         {
+          findings,
           scannedFiles: sourceFiles.length,
           violationCount: findings.length,
-          findings,
         },
         null,
         2

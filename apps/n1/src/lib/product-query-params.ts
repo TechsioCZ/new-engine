@@ -3,7 +3,7 @@ import { PRODUCT_LIMIT, PRODUCT_LIST_FIELDS } from "./constants"
 /**
  * Product query parameters (no `page` - only `offset` for cache consistency)
  */
-export type ProductQueryParams = {
+export interface ProductQueryParams {
   category_id?: string[]
   region_id?: string
   country_code?: string
@@ -53,7 +53,7 @@ type QueryParamValue =
   | string
   | number
   | boolean
-  | Array<string | number | boolean>
+  | (string | number | boolean)[]
   | null
   | undefined
 

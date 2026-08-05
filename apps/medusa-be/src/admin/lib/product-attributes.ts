@@ -3,7 +3,7 @@ import { sdk } from "./sdk"
 export type ProductAttributeInputType = "select" | "text"
 export type ProductAttributeStatus = "active" | "all" | "deleted"
 
-export type ProductAttributeDefinition = {
+export interface ProductAttributeDefinition {
   created_at?: string
   deleted_at?: string | null
   id: string
@@ -15,7 +15,7 @@ export type ProductAttributeDefinition = {
   usage_count: number
 }
 
-export type ProductAttributeOption = {
+export interface ProductAttributeOption {
   created_at?: string
   definition_id: string
   deleted_at?: string | null
@@ -26,7 +26,7 @@ export type ProductAttributeOption = {
   usage_count: number
 }
 
-export type ProductAttributeAssignedProduct = {
+export interface ProductAttributeAssignedProduct {
   handle?: null | string
   id: string
   status?: null | string
@@ -34,7 +34,7 @@ export type ProductAttributeAssignedProduct = {
   updated_at?: string
 }
 
-export type ProductAttributeDetailItem = {
+export interface ProductAttributeDetailItem {
   assignment: {
     id: string
     option_id: string | null
@@ -44,36 +44,36 @@ export type ProductAttributeDetailItem = {
   selected_option: ProductAttributeOption | null
 }
 
-export type ProductAttributeDefinitionsResponse = {
+export interface ProductAttributeDefinitionsResponse {
   count: number
   definitions: ProductAttributeDefinition[]
   limit: number
   offset: number
 }
 
-export type ProductAttributeDefinitionResponse = {
+export interface ProductAttributeDefinitionResponse {
   definition: ProductAttributeDefinition
 }
 
-export type ProductAttributeOptionsResponse = {
+export interface ProductAttributeOptionsResponse {
   count: number
   limit: number
   offset: number
   options: ProductAttributeOption[]
 }
 
-export type ProductAttributeOptionResponse = {
+export interface ProductAttributeOptionResponse {
   option: ProductAttributeOption
 }
 
-export type ProductAttributeAssignedProductsResponse = {
+export interface ProductAttributeAssignedProductsResponse {
   count: number
   limit: number
   offset: number
   products: ProductAttributeAssignedProduct[]
 }
 
-export type ProductAttributesResponse = {
+export interface ProductAttributesResponse {
   product_attributes: ProductAttributeDetailItem[]
 }
 
@@ -111,15 +111,15 @@ export const productAttributeQueryKeys = {
     ["product-attribute-definitions", params] as const,
   optionLists: (definitionId?: string) =>
     ["product-attribute-options", definitionId] as const,
-  options: (definitionId: string, params: Record<string, unknown>) =>
-    ["product-attribute-options", definitionId, params] as const,
   optionProducts: (optionId: string, params: Record<string, unknown>) =>
     ["product-attribute-option-products", optionId, params] as const,
-  products: () => ["product-attributes"] as const,
+  options: (definitionId: string, params: Record<string, unknown>) =>
+    ["product-attribute-options", definitionId, params] as const,
   product: (productId?: string) => ["product-attributes", productId] as const,
+  products: () => ["product-attributes"] as const,
 }
 
-export const listProductAttributeDefinitions = (params: {
+export const listProductAttributeDefinitions = async (params: {
   input_type?: ProductAttributeInputType
   is_public?: boolean
   limit: number
@@ -132,7 +132,7 @@ export const listProductAttributeDefinitions = (params: {
     `/admin/product-attributes/definitions?${toSearch(params)}`
   )
 
-export const createProductAttributeDefinition = (input: {
+export const createProductAttributeDefinition = async (input: {
   input_type: ProductAttributeInputType
   is_public: boolean
   key: string
@@ -143,7 +143,7 @@ export const createProductAttributeDefinition = (input: {
     { body: input, method: "POST" }
   )
 
-export const updateProductAttributeDefinition = (
+export const updateProductAttributeDefinition = async (
   id: string,
   input: {
     input_type?: ProductAttributeInputType
@@ -156,23 +156,23 @@ export const updateProductAttributeDefinition = (
     { body: input, method: "POST" }
   )
 
-export const deleteProductAttributeDefinition = (id: string) =>
+export const deleteProductAttributeDefinition = async (id: string) =>
   sdk.client.fetch(`/admin/product-attributes/definitions/${id}`, {
     method: "DELETE",
   })
 
-export const permanentlyDeleteProductAttributeDefinition = (id: string) =>
+export const permanentlyDeleteProductAttributeDefinition = async (id: string) =>
   sdk.client.fetch(`/admin/product-attributes/definitions/${id}/permanent`, {
     method: "DELETE",
   })
 
-export const restoreProductAttributeDefinition = (id: string) =>
+export const restoreProductAttributeDefinition = async (id: string) =>
   sdk.client.fetch<ProductAttributeDefinitionResponse>(
     `/admin/product-attributes/definitions/${id}/restore`,
     { method: "POST" }
   )
 
-export const listProductAttributeOptions = (
+export const listProductAttributeOptions = async (
   definitionId: string,
   params: {
     limit: number
@@ -189,7 +189,7 @@ export const listProductAttributeOptions = (
     })}`
   )
 
-export const listProductAttributeOptionAssignedProducts = (
+export const listProductAttributeOptionAssignedProducts = async (
   optionId: string,
   params: {
     limit: number
@@ -202,7 +202,7 @@ export const listProductAttributeOptionAssignedProducts = (
     `/admin/product-attributes/options/${optionId}/products?${toSearch(params)}`
   )
 
-export const createProductAttributeOption = (
+export const createProductAttributeOption = async (
   definitionId: string,
   input: { key: string; label: string }
 ) =>
@@ -211,7 +211,7 @@ export const createProductAttributeOption = (
     { body: input, method: "POST" }
   )
 
-export const updateProductAttributeOption = (
+export const updateProductAttributeOption = async (
   id: string,
   input: { label: string }
 ) =>
@@ -220,28 +220,28 @@ export const updateProductAttributeOption = (
     { body: input, method: "POST" }
   )
 
-export const deleteProductAttributeOption = (id: string) =>
+export const deleteProductAttributeOption = async (id: string) =>
   sdk.client.fetch(`/admin/product-attributes/options/${id}`, {
     method: "DELETE",
   })
 
-export const permanentlyDeleteProductAttributeOption = (id: string) =>
+export const permanentlyDeleteProductAttributeOption = async (id: string) =>
   sdk.client.fetch(`/admin/product-attributes/options/${id}/permanent`, {
     method: "DELETE",
   })
 
-export const restoreProductAttributeOption = (id: string) =>
+export const restoreProductAttributeOption = async (id: string) =>
   sdk.client.fetch<ProductAttributeOptionResponse>(
     `/admin/product-attributes/options/${id}/restore`,
     { method: "POST" }
   )
 
-export const retrieveProductAttributes = (productId: string) =>
+export const retrieveProductAttributes = async (productId: string) =>
   sdk.client.fetch<ProductAttributesResponse>(
     `/admin/products/${productId}/product-attributes`
   )
 
-export const setProductAttributes = (
+export const setProductAttributes = async (
   productId: string,
   operations: SetProductAttributeOperation[]
 ) =>

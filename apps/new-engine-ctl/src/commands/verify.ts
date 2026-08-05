@@ -36,12 +36,12 @@ export function createVerifyCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath
+      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath
+      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
     )
     .option(
       "--dry-run",
@@ -60,28 +60,26 @@ export function createVerifyCommand(): Command {
         options.runtimeProviderOutputsJson
       )
       const input = verifyCommandInputSchema.parse({
-        lane: options.lane,
-        projectSlug:
-          options.projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
-        environmentName: options.environmentName,
-        requestedServicesCsv: options.requestedServicesCsv,
+        apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
+        baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
         deployServicesCsv: options.deployServicesCsv,
-        triggeredServicesCsv: options.triggeredServicesCsv,
-        previewClonedServiceIdsCsv: options.previewClonedServiceIdsCsv,
-        previewExcludedServiceIdsCsv: options.previewExcludedServiceIdsCsv,
-        previewDbName: options.previewDbName,
-        previewDbUser: options.previewDbUser,
-        previewDbPassword: options.previewDbPassword,
-        previewRandomOnceSecrets,
-        runtimeProviderOutputs,
         deployments,
-        outputJson: options.outputJson,
-        baseUrl: options.baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
-        apiToken:
-          options.apiToken ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
         dryRun: Boolean(options.dryRun),
-        stackManifestPath: options.stackManifestPath,
+        environmentName: options.environmentName,
+        lane: options.lane,
+        outputJson: options.outputJson,
+        previewClonedServiceIdsCsv: options.previewClonedServiceIdsCsv,
+        previewDbName: options.previewDbName,
+        previewDbPassword: options.previewDbPassword,
+        previewDbUser: options.previewDbUser,
+        previewExcludedServiceIdsCsv: options.previewExcludedServiceIdsCsv,
+        previewRandomOnceSecrets,
+        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+        requestedServicesCsv: options.requestedServicesCsv,
+        runtimeProviderOutputs,
         stackInputsPath: options.stackInputsPath,
+        stackManifestPath: options.stackManifestPath,
+        triggeredServicesCsv: options.triggeredServicesCsv,
       })
 
       maskGitHubValue(input.previewDbPassword)

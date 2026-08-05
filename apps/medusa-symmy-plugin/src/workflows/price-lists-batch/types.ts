@@ -1,6 +1,6 @@
 export type PriceIdentifierType = "sku" | "ean" | "variant_id"
 
-export type PriceInput = {
+export interface PriceInput {
   identifier_type: PriceIdentifierType
   sku?: string | undefined
   ean?: string | undefined
@@ -10,7 +10,7 @@ export type PriceInput = {
   min_quantity?: number
 }
 
-export type PriceListInput = {
+export interface PriceListInput {
   code: string
   name: string
   description?: string
@@ -22,16 +22,16 @@ export type PriceListInput = {
   prices?: PriceInput[]
 }
 
-export type UpdatePriceListPricesBatchInput = {
+export interface UpdatePriceListPricesBatchInput {
   code: string
   prices: PriceInput[]
 }
 
-export type UpsertPriceListsBatchInput = {
+export interface UpsertPriceListsBatchInput {
   price_lists: PriceListInput[]
 }
 
-export type PriceListPriceResult = {
+export interface PriceListPriceResult {
   identifier_type: PriceIdentifierType
   sku?: string | undefined
   ean?: string | undefined
@@ -40,7 +40,7 @@ export type PriceListPriceResult = {
   error?: string
 }
 
-export type UpdatePriceListPricesBatchOutput = {
+export interface UpdatePriceListPricesBatchOutput {
   success: boolean
   price_list_id?: string
   prices_updated: number
@@ -48,7 +48,7 @@ export type UpdatePriceListPricesBatchOutput = {
   results: PriceListPriceResult[]
 }
 
-export type UpsertPriceListsBatchResult = {
+export interface UpsertPriceListsBatchResult {
   code: string
   status: "created" | "updated" | "failed"
   price_list_id?: string
@@ -56,20 +56,20 @@ export type UpsertPriceListsBatchResult = {
   error?: string
 }
 
-export type UpsertPriceListsBatchOutput = {
+export interface UpsertPriceListsBatchOutput {
   success: boolean
   processed: number
   failed: number
   results: UpsertPriceListsBatchResult[]
 }
 
-export type ListPriceListsInput = {
+export interface ListPriceListsInput {
   code?: string | undefined
   limit: number
   offset: number
 }
 
-export type ListedPriceList = {
+export interface ListedPriceList {
   id: string
   code: string
   name: string
@@ -78,7 +78,7 @@ export type ListedPriceList = {
   ends_at?: string | null
 }
 
-export type ListPriceListsOutput = {
+export interface ListPriceListsOutput {
   price_lists: ListedPriceList[]
   count: number
   offset: number

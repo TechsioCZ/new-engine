@@ -1,12 +1,10 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { StaticImageData } from "next/image"
 
-import {
-  type CategoryImageSlug,
-  categoryImagesBySlug,
-} from "@/assets/categories-images"
+import { categoryImagesBySlug } from "@/assets/categories-images"
+import type { CategoryImageSlug } from "@/assets/categories-images"
 
-export type ResolveCategoryImageInput = {
+export interface ResolveCategoryImageInput {
   categoryById?: ReadonlyMap<string, HttpTypes.StoreProductCategory>
   handle?: string | null
   label?: string | null
@@ -16,10 +14,10 @@ export type ResolveCategoryImageInput = {
 const normalizeCategoryImageKey = (value: string) =>
   value
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[\u0300-\u036F]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/^-+|-+$/g, "")
 
 const CATEGORY_IMAGE_HANDLE_PREFIXES = [
   "trapi-ma-",

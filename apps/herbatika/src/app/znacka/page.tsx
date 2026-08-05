@@ -8,8 +8,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const tCatalog = await getTranslations("catalog")
 
   return {
-    title: tCatalog("brands.metadata.index_title"),
     description: tCatalog("brands.metadata.index_description"),
+    title: tCatalog("brands.metadata.index_title"),
   }
 }
 

@@ -9,7 +9,7 @@ export const getBrandProductsLockKeys = (
 ) => [`brand-products:${brandId}`, ...getProductBrandLockKeys(productIds)]
 
 export const ensureProductsAssignableToBrand = async (
-  scope: { links?: Array<{ brand_id: string; product_id: string }> },
+  scope: { links?: { brand_id: string; product_id: string }[] },
   brandId: string,
   productIds: string[]
 ) => {
@@ -28,7 +28,7 @@ export const ensureProductsAssignableToBrand = async (
 export const createScope = ({
   links = [],
 }: {
-  links?: Array<{ brand_id: string; product_id: string }>
+  links?: { brand_id: string; product_id: string }[]
 }) => ({
   links,
 })

@@ -163,10 +163,10 @@ function Changelog() {
 }
 
 const meta: Meta<typeof Changelog> = {
-  title: "Guide/Changelog",
   component: Changelog,
-  tags: ["autodocs"],
   parameters: { layout: "fullscreen" },
+  tags: ["autodocs"],
+  title: "Guide/Changelog",
 }
 
 export default meta

@@ -6,18 +6,22 @@ import { ORDER_NOTE_MODULE } from "../../../../modules/order-note"
 import type OrderNoteModuleService from "../../../../modules/order-note/service"
 import {
   isActionRequiredOrderBusinessStatusId,
-  type OrderBusinessStatusGroupId,
-  type OrderBusinessStatusId,
   resolveOrderBusinessStatus,
+} from "../../../../utils/order-business-status"
+import type {
+  OrderBusinessStatusGroupId,
+  OrderBusinessStatusId,
 } from "../../../../utils/order-business-status"
 import {
   isOrderExpeditionRawOrder,
   ORDER_EXPEDITION_DEFAULT_LIMIT,
   ORDER_EXPEDITION_ORDER_FIELDS,
-  type OrderExpeditionCarrierKey,
-  type OrderExpeditionRawOrder,
   orderMatchesExpeditionCarrier,
   toOrderExpeditionDto,
+} from "../../../../utils/order-expedition"
+import type {
+  OrderExpeditionCarrierKey,
+  OrderExpeditionRawOrder,
 } from "../../../../utils/order-expedition"
 import {
   fetchOrderExpeditionOrderNotesByOrderIds,
@@ -25,7 +29,7 @@ import {
 } from "../../../../utils/order-expedition-customer-signals"
 import type { GetAdminOrderExpeditionOrdersSchemaType } from "../validators"
 
-type OrderExpeditionOrdersPage = {
+interface OrderExpeditionOrdersPage {
   carrierFilterLimitReached: boolean
   count: number
   countExact: boolean
@@ -33,21 +37,21 @@ type OrderExpeditionOrdersPage = {
   orders: OrderExpeditionRawOrder[]
   scannedCount: number | null
 }
-type OrderExpeditionOrderBatch = {
+interface OrderExpeditionOrderBatch {
   metadataCount: number | null
   orders: OrderExpeditionRawOrder[]
   scannedCount: number
 }
-type CarrierFilterAccumulator = {
+interface CarrierFilterAccumulator {
   matchingCount: number
   matchingOrders: OrderExpeditionRawOrder[]
 }
-type OrderExpeditionOrderFilters = {
+interface OrderExpeditionOrderFilters {
   businessStatusGroup?: OrderBusinessStatusGroupId
   businessStatus?: OrderBusinessStatusId
   carrier?: OrderExpeditionCarrierKey
 }
-type CollectMatchingOrdersInput = {
+interface CollectMatchingOrdersInput {
   accumulator: CarrierFilterAccumulator
   filters: OrderExpeditionOrderFilters
   limit: number
@@ -103,6 +107,15 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   )
 
   res.json({
+    business_status: businessStatus ?? null,
+    business_status_group: businessStatusGroup ?? null,
+    carrier: carrier ?? null,
+    carrier_filter_limit_reached: result.carrierFilterLimitReached,
+    count: result.count,
+    count_exact: result.countExact,
+    has_next: result.hasNext,
+    limit: normalizedLimit,
+    offset: normalizedOffset,
     orders: result.orders.map((order) =>
       toOrderExpeditionDto(
         order,
@@ -110,16 +123,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         notesByOrderId.get(order.id)
       )
     ),
-    count: result.count,
-    has_next: result.hasNext,
-    count_exact: result.countExact,
-    carrier_filter_limit_reached: result.carrierFilterLimitReached,
     scanned_count: result.scannedCount,
-    offset: normalizedOffset,
-    limit: normalizedLimit,
-    carrier: carrier ?? null,
-    business_status_group: businessStatusGroup ?? null,
-    business_status: businessStatus ?? null,
   })
 }
 
@@ -132,11 +136,11 @@ async function fetchOrders(
   const count = batch.metadataCount ?? batch.orders.length
 
   return {
-    orders: batch.orders,
-    count,
-    hasNext: offset + limit < count,
-    countExact: true,
     carrierFilterLimitReached: false,
+    count,
+    countExact: true,
+    hasNext: offset + limit < count,
+    orders: batch.orders,
     scannedCount: null,
   }
 }
@@ -202,11 +206,11 @@ async function fetchFilteredOrders(
   }
 
   return {
+    carrierFilterLimitReached,
     count: accumulator.matchingCount,
+    countExact: scannedAllOrders,
     hasNext: accumulator.matchingOrders.length > limit,
     orders: accumulator.matchingOrders.slice(0, limit),
-    countExact: scannedAllOrders,
-    carrierFilterLimitReached,
     scannedCount,
   }
 }

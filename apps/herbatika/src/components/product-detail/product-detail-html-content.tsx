@@ -1,7 +1,7 @@
 "use client"
 import { sanitizeHtml } from "@/components/product-detail/utils/html-sanitizer"
 
-type ProductDetailHtmlContentProps = {
+interface ProductDetailHtmlContentProps {
   html: string
 }
 

@@ -97,15 +97,15 @@ export default async function seedDemoData({ container }: ExecArgs) {
       input: {
         regions: [
           {
-            name: "Europe",
-            currency_code: "eur",
             countries,
+            currency_code: "eur",
+            name: "Europe",
             payment_providers: ["pp_system_default"],
           },
           {
-            name: "United States",
-            currency_code: "usd",
             countries: ["us"],
+            currency_code: "usd",
+            name: "United States",
             payment_providers: ["pp_system_default"],
           },
         ],
@@ -146,12 +146,12 @@ export default async function seedDemoData({ container }: ExecArgs) {
     input: {
       locations: [
         {
-          name: "European Warehouse",
           address: {
+            address_1: "",
             city: "Copenhagen",
             country_code: "DK",
-            address_1: "",
           },
+          name: "European Warehouse",
         },
       ],
     },
@@ -195,7 +195,6 @@ export default async function seedDemoData({ container }: ExecArgs) {
 
   const fulfillmentSet = await fulfillmentModuleService.createFulfillmentSets({
     name: "European Warehouse delivery",
-    type: "shipping",
     service_zones: [
       {
         name: "Europe",
@@ -231,6 +230,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
         ],
       },
     ],
+    type: "shipping",
   })
 
   await remoteLink.create({
@@ -247,14 +247,6 @@ export default async function seedDemoData({ container }: ExecArgs) {
       {
         name: "Standard Shipping",
         price_type: "flat",
-        provider_id: "manual_manual",
-        service_zone_id: fulfillmentSet.service_zones[0]?.id as string,
-        shipping_profile_id: shippingProfile.id,
-        type: {
-          label: "Standard",
-          description: "Ship in 2-3 days.",
-          code: "standard",
-        },
         prices: [
           {
             currency_code: "usd",
@@ -269,6 +261,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
             amount: 10,
           },
         ],
+        provider_id: "manual_manual",
         rules: [
           {
             attribute: "enabled_in_store",
@@ -281,18 +274,17 @@ export default async function seedDemoData({ container }: ExecArgs) {
             operator: "eq",
           },
         ],
+        service_zone_id: fulfillmentSet.service_zones[0]?.id as string,
+        shipping_profile_id: shippingProfile.id,
+        type: {
+          code: "standard",
+          description: "Ship in 2-3 days.",
+          label: "Standard",
+        },
       },
       {
         name: "Express Shipping",
         price_type: "flat",
-        provider_id: "manual_manual",
-        service_zone_id: fulfillmentSet.service_zones[0]?.id as string,
-        shipping_profile_id: shippingProfile.id,
-        type: {
-          label: "Express",
-          description: "Ship in 24 hours.",
-          code: "express",
-        },
         prices: [
           {
             currency_code: "usd",
@@ -307,6 +299,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
             amount: 10,
           },
         ],
+        provider_id: "manual_manual",
         rules: [
           {
             attribute: "enabled_in_store",
@@ -319,6 +312,13 @@ export default async function seedDemoData({ container }: ExecArgs) {
             operator: "eq",
           },
         ],
+        service_zone_id: fulfillmentSet.service_zones[0]?.id as string,
+        shipping_profile_id: shippingProfile.id,
+        type: {
+          code: "express",
+          description: "Ship in 24 hours.",
+          label: "Express",
+        },
       },
     ],
   })
@@ -326,8 +326,8 @@ export default async function seedDemoData({ container }: ExecArgs) {
 
   await linkSalesChannelsToStockLocationWorkflow(container).run({
     input: {
-      id: stockLocation.id,
       add: [defaultSalesChannel[0]?.id as string],
+      id: stockLocation.id,
     },
   })
   logger.info("Finished seeding stock location data.")
@@ -339,9 +339,9 @@ export default async function seedDemoData({ container }: ExecArgs) {
     input: {
       api_keys: [
         {
+          created_by: "",
           title: "Webshop",
           type: "publishable",
-          created_by: "",
         },
       ],
     },
@@ -356,8 +356,8 @@ export default async function seedDemoData({ container }: ExecArgs) {
 
   await linkSalesChannelsToApiKeyWorkflow(container).run({
     input: {
-      id: publishableApiKey.id,
       add: [defaultSalesChannel[0]?.id as string],
+      id: publishableApiKey.id,
     },
   })
   logger.info("Finished seeding publishable API key data.")
@@ -370,30 +370,30 @@ export default async function seedDemoData({ container }: ExecArgs) {
     input: {
       product_categories: [
         {
+          is_active: true,
           name: "Shirts",
-          is_active: true,
         },
         {
+          is_active: true,
           name: "Sweatshirts",
-          is_active: true,
         },
         {
+          is_active: true,
           name: "Pants",
-          is_active: true,
         },
         {
-          name: "Merch",
           is_active: true,
+          name: "Merch",
         },
       ],
     },
   })
 
   const PRODUCTS = {
-    MedusaTShirt: "Medusa T-Shirt",
-    MedusaSweatshirt: "Medusa Sweatshirt",
-    MedusaSweatpants: "Medusa Sweatpants",
     MedusaShorts: "Medusa Shorts",
+    MedusaSweatpants: "Medusa Sweatpants",
+    MedusaSweatshirt: "Medusa Sweatshirt",
+    MedusaTShirt: "Medusa T-Shirt",
   } as const
 
   async function readLocalUploadFile(
@@ -408,10 +408,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
 
       logger.info(`Successfully read file: ${filename} (${mimeType})`)
       return {
+        access,
+        content: buffer.toString("base64"),
         filename,
         mimeType,
-        content: buffer.toString("base64"),
-        access,
       }
     } catch (error) {
       const errorMessage =
@@ -434,7 +434,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
     )
 
     const files = await Promise.all(
-      filePaths.map((filePath) => readLocalUploadFile(filePath, access))
+      filePaths.map(async (filePath) => readLocalUploadFile(filePath, access))
     )
     const validFiles = files.filter(
       (f): f is NonNullable<typeof f> => f !== null
@@ -610,11 +610,27 @@ export default async function seedDemoData({ container }: ExecArgs) {
           ],
           variants: [
             {
-              title: "S / Black",
+              options: {
+                Color: "Black",
+                Size: "S",
+              },
+              prices: [
+                {
+                  amount: 10,
+                  currency_code: "eur",
+                },
+                {
+                  amount: 15,
+                  currency_code: "usd",
+                },
+              ],
               sku: "SHIRT-S-BLACK",
+              title: "S / Black",
+            },
+            {
               options: {
+                Color: "White",
                 Size: "S",
-                Color: "Black",
               },
               prices: [
                 {
@@ -626,13 +642,13 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
-            },
-            {
-              title: "S / White",
               sku: "SHIRT-S-WHITE",
+              title: "S / White",
+            },
+            {
               options: {
-                Size: "S",
-                Color: "White",
+                Color: "Black",
+                Size: "M",
               },
               prices: [
                 {
@@ -644,13 +660,13 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
-            },
-            {
-              title: "M / Black",
               sku: "SHIRT-M-BLACK",
+              title: "M / Black",
+            },
+            {
               options: {
+                Color: "White",
                 Size: "M",
-                Color: "Black",
               },
               prices: [
                 {
@@ -662,13 +678,13 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
-            },
-            {
-              title: "M / White",
               sku: "SHIRT-M-WHITE",
+              title: "M / White",
+            },
+            {
               options: {
-                Size: "M",
-                Color: "White",
+                Color: "Black",
+                Size: "L",
               },
               prices: [
                 {
@@ -680,13 +696,13 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
-            },
-            {
-              title: "L / Black",
               sku: "SHIRT-L-BLACK",
+              title: "L / Black",
+            },
+            {
               options: {
+                Color: "White",
                 Size: "L",
-                Color: "Black",
               },
               prices: [
                 {
@@ -698,31 +714,13 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
-            },
-            {
-              title: "L / White",
               sku: "SHIRT-L-WHITE",
-              options: {
-                Size: "L",
-                Color: "White",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
+              title: "L / White",
             },
             {
-              title: "XL / Black",
-              sku: "SHIRT-XL-BLACK",
               options: {
-                Size: "XL",
                 Color: "Black",
+                Size: "XL",
               },
               prices: [
                 {
@@ -734,13 +732,13 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SHIRT-XL-BLACK",
+              title: "XL / Black",
             },
             {
-              title: "XL / White",
-              sku: "SHIRT-XL-WHITE",
               options: {
-                Size: "XL",
                 Color: "White",
+                Size: "XL",
               },
               prices: [
                 {
@@ -752,6 +750,8 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SHIRT-XL-WHITE",
+              title: "XL / White",
             },
           ],
           sales_channels: [
@@ -782,8 +782,6 @@ export default async function seedDemoData({ container }: ExecArgs) {
           ],
           variants: [
             {
-              title: "S",
-              sku: "SWEATSHIRT-S",
               options: {
                 Size: "S",
               },
@@ -797,10 +795,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SWEATSHIRT-S",
+              title: "S",
             },
             {
-              title: "M",
-              sku: "SWEATSHIRT-M",
               options: {
                 Size: "M",
               },
@@ -814,10 +812,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SWEATSHIRT-M",
+              title: "M",
             },
             {
-              title: "L",
-              sku: "SWEATSHIRT-L",
               options: {
                 Size: "L",
               },
@@ -831,10 +829,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SWEATSHIRT-L",
+              title: "L",
             },
             {
-              title: "XL",
-              sku: "SWEATSHIRT-XL",
               options: {
                 Size: "XL",
               },
@@ -848,6 +846,8 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SWEATSHIRT-XL",
+              title: "XL",
             },
           ],
           sales_channels: [
@@ -877,8 +877,6 @@ export default async function seedDemoData({ container }: ExecArgs) {
           ],
           variants: [
             {
-              title: "S",
-              sku: "SWEATPANTS-S",
               options: {
                 Size: "S",
               },
@@ -892,10 +890,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SWEATPANTS-S",
+              title: "S",
             },
             {
-              title: "M",
-              sku: "SWEATPANTS-M",
               options: {
                 Size: "M",
               },
@@ -909,10 +907,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SWEATPANTS-M",
+              title: "M",
             },
             {
-              title: "L",
-              sku: "SWEATPANTS-L",
               options: {
                 Size: "L",
               },
@@ -926,10 +924,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SWEATPANTS-L",
+              title: "L",
             },
             {
-              title: "XL",
-              sku: "SWEATPANTS-XL",
               options: {
                 Size: "XL",
               },
@@ -943,6 +941,8 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SWEATPANTS-XL",
+              title: "XL",
             },
           ],
           sales_channels: [
@@ -972,8 +972,6 @@ export default async function seedDemoData({ container }: ExecArgs) {
           ],
           variants: [
             {
-              title: "S",
-              sku: "SHORTS-S",
               options: {
                 Size: "S",
               },
@@ -987,10 +985,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SHORTS-S",
+              title: "S",
             },
             {
-              title: "M",
-              sku: "SHORTS-M",
               options: {
                 Size: "M",
               },
@@ -1004,10 +1002,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SHORTS-M",
+              title: "M",
             },
             {
-              title: "L",
-              sku: "SHORTS-L",
               options: {
                 Size: "L",
               },
@@ -1021,10 +1019,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SHORTS-L",
+              title: "L",
             },
             {
-              title: "XL",
-              sku: "SHORTS-XL",
               options: {
                 Size: "XL",
               },
@@ -1038,6 +1036,8 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SHORTS-XL",
+              title: "XL",
             },
           ],
           sales_channels: [
@@ -1065,9 +1065,9 @@ export default async function seedDemoData({ container }: ExecArgs) {
   }[] = []
   for (const inventoryItem of inventoryItems) {
     const inventoryLevel = {
+      inventory_item_id: inventoryItem.id,
       location_id: stockLocation.id,
       stocked_quantity: 1_000_000,
-      inventory_item_id: inventoryItem.id,
     }
     inventoryLevels.push(inventoryLevel)
   }
@@ -1082,8 +1082,8 @@ export default async function seedDemoData({ container }: ExecArgs) {
 
   logger.info("Create collection")
   const collectionData: CreateProductCollectionDTO = {
-    title: "Latest Drops",
     handle: "latest-drops",
+    title: "Latest Drops",
   }
 
   const { result: collections } = await createCollectionsWorkflow(
@@ -1096,8 +1096,8 @@ export default async function seedDemoData({ container }: ExecArgs) {
 
   await batchLinkProductsToCollectionWorkflow(container).run({
     input: {
-      id: collections[0]?.id as string,
       add: products.map((p) => p.id),
+      id: collections[0]?.id as string,
     },
   })
 

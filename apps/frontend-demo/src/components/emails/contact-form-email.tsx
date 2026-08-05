@@ -52,12 +52,12 @@ export const ContactFormEmail = ({
 }
 
 ContactFormEmail.PreviewProps = {
+  email: "jan.novak@example.com",
   firstName: "Jan",
   lastName: "Novák",
-  email: "jan.novak@example.com",
+  message: "Dobrý den, rád bych se zeptal na dostupnost vašich produktů.",
   phone: "+420 123 456 789",
   subject: "general",
-  message: "Dobrý den, rád bych se zeptal na dostupnost vašich produktů.",
 } satisfies ContactFormEmailProps
 
 function EmailField({
@@ -78,10 +78,10 @@ function EmailField({
 function getSubjectLabel(subject: string): string {
   const subjects: Record<string, string> = {
     general: "Obecný dotaz",
-    support: "Technická podpora",
-    shipping: "Doprava a doručení",
-    returns: "Vrácení zboží",
     other: "Jiné",
+    returns: "Vrácení zboží",
+    shipping: "Doprava a doručení",
+    support: "Technická podpora",
   }
   return subjects[subject] || subject
 }

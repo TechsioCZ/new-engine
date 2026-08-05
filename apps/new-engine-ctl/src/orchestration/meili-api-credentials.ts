@@ -1,14 +1,14 @@
 import {
   getRuntimeProviderOutputPolicy,
   getRuntimeProviderTargetEnvVar,
-  type StackInputs,
 } from "../contracts/stack-inputs.js"
+import type { StackInputs } from "../contracts/stack-inputs.js"
 import {
   provisionMeiliKeys,
   verifyMeiliKeys,
 } from "../providers/meilisearch.js"
 
-export type MainMeiliApiCredentialsResult = {
+export interface MainMeiliApiCredentialsResult {
   backendKey: string
   frontendKey: string
   frontendEnvVar: string
@@ -55,50 +55,50 @@ export async function reconcileMainMeiliApiCredentials(input: {
 
   const provisioned = input.dryRun
     ? {
-        backend_key: "dry-run:main:backend",
-        frontend_key: "dry-run:main:frontend",
-        backend_uid: backendPolicy.uid,
-        frontend_uid: frontendPolicy.uid,
         backend_created: false,
-        frontend_created: true,
-        backend_updated: false,
-        frontend_updated: false,
         backend_env_var: backendEnvVar,
+        backend_key: "dry-run:main:backend",
+        backend_uid: backendPolicy.uid,
+        backend_updated: false,
+        frontend_created: true,
         frontend_env_var: frontendEnvVar,
+        frontend_key: "dry-run:main:frontend",
+        frontend_uid: frontendPolicy.uid,
+        frontend_updated: false,
       }
     : await provisionMeiliKeys({
-        meiliUrl: input.meiliUrl,
         masterKey: input.masterKey,
-        waitSeconds: input.waitSeconds,
-        timeoutSeconds: input.timeoutSeconds,
+        meiliUrl: input.meiliUrl,
+        providerId: input.providerId,
         retryCount: input.retryCount,
         retryDelaySeconds: input.retryDelaySeconds,
         stackInputs: input.stackInputs,
-        providerId: input.providerId,
+        timeoutSeconds: input.timeoutSeconds,
+        waitSeconds: input.waitSeconds,
       })
 
   const verified = input.dryRun
     ? { result: "ok" as const }
     : await verifyMeiliKeys({
-        meiliUrl: input.meiliUrl,
-        masterKey: input.masterKey,
         backendKey: provisioned.backend_key,
         frontendKey: provisioned.frontend_key,
-        waitSeconds: input.waitSeconds,
-        timeoutSeconds: input.timeoutSeconds,
+        masterKey: input.masterKey,
+        meiliUrl: input.meiliUrl,
+        providerId: input.providerId,
         retryCount: input.retryCount,
         retryDelaySeconds: input.retryDelaySeconds,
         stackInputs: input.stackInputs,
-        providerId: input.providerId,
+        timeoutSeconds: input.timeoutSeconds,
+        waitSeconds: input.waitSeconds,
       })
 
   return {
-    backendKey: provisioned.backend_key,
-    frontendKey: provisioned.frontend_key,
-    frontendEnvVar: provisioned.frontend_env_var,
     backendCreated: provisioned.backend_created,
+    backendKey: provisioned.backend_key,
     backendUpdated: provisioned.backend_updated,
     frontendCreated: provisioned.frontend_created,
+    frontendEnvVar: provisioned.frontend_env_var,
+    frontendKey: provisioned.frontend_key,
     frontendUpdated: provisioned.frontend_updated,
     verified: verified.result === "ok",
   }

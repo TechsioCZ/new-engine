@@ -2,7 +2,8 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 import ExcelJS from "exceljs"
-import { getPayload, type PayloadRequest } from "payload"
+import { getPayload } from "payload"
+import type { PayloadRequest } from "payload"
 
 import type { Article } from "../payload-types"
 
@@ -15,7 +16,7 @@ type ImportResult = "imported" | "skipped"
 type PayloadLocale = PayloadRequest["locale"]
 type ResolvedLocale = Exclude<PayloadLocale, undefined>
 type WriteLocale = Exclude<PayloadLocale, "all" | undefined>
-type ImportContext = {
+interface ImportContext {
   dryRun: boolean
   fallbackMediaId: PayloadId
   payload: Payload
@@ -49,7 +50,7 @@ export class ArticleImportError extends Error {
 const HEADER_WHITESPACE_PATTERN = /\s+/g
 const NEWLINE_PATTERN = /\r?\n/
 const TAG_SEPARATOR_PATTERN = /[,;]/
-const IS_DEBUG_IMPORT = process.env["DEBUG_IMPORT_ARTICLES"] === "1"
+const IS_DEBUG_IMPORT = process.env.DEBUG_IMPORT_ARTICLES === "1"
 const TITLE_MAX_LENGTH = 100
 const EXCEL_EPOCH_DAYS = 25_569
 const MS_PER_DAY = 86_400_000
@@ -79,7 +80,7 @@ Aliases:
   featured_image_path: image, image_path, featuredImage, featured_image, post_img_src, post_img
 `
 
-export type ArticleImportOptions = {
+export interface ArticleImportOptions {
   filePath: string
   sheetName?: string
   dryRun?: boolean
@@ -91,7 +92,7 @@ export type ArticleImportOptions = {
   payload?: Payload
 }
 
-export type ArticleImportResult = {
+export interface ArticleImportResult {
   filePath: string
   sheetName: string
   locale: string
@@ -144,17 +145,20 @@ const getArgs = () => {
     }
 
     switch (arg) {
-      case "--dry-run":
+      case "--dry-run": {
         dryRun = true
         break
+      }
 
-      case "--translate":
+      case "--translate": {
         translate = true
         break
+      }
 
-      case "--overwrite":
+      case "--overwrite": {
         overwrite = true
         break
+      }
 
       case "--locale": {
         const value = getValueArg(args, i)
@@ -174,21 +178,22 @@ const getArgs = () => {
         break
       }
 
-      default:
+      default: {
         if (!arg.startsWith("--")) {
           positional.push(arg)
         }
+      }
     }
   }
 
   return {
-    filePath: positional[0],
-    sheetName: positional[1],
     dryRun,
+    filePath: positional[0],
     locale,
+    overwrite,
+    sheetName: positional[1],
     status,
     translate,
-    overwrite,
   }
 }
 
@@ -196,7 +201,7 @@ const normalizeHeader = (value: string) =>
   value
     .trim()
     .replace(HEADER_WHITESPACE_PATTERN, "_")
-    .replace(/-/g, "_")
+    .replaceAll(/-/g, "_")
     .toLowerCase()
 
 const normalizeRow = (row: Row): Row => {
@@ -213,7 +218,7 @@ const serializeCellObject = (value: object): string =>
   JSON.stringify(value) ?? ""
 
 const getCellValue = (cell: ExcelJS.Cell): RowValue => {
-  const value = cell.value
+  const { value } = cell
   if (
     value === null ||
     value === undefined ||
@@ -226,9 +231,9 @@ const getCellValue = (cell: ExcelJS.Cell): RowValue => {
   }
 
   if ("result" in value) {
-    const result = value.result
+    const { result } = value
     return result instanceof Date || typeof result !== "object"
-      ? (result as RowValue)
+      ? result
       : serializeCellObject(result ?? {})
   }
 
@@ -255,7 +260,7 @@ const firstValue = (row: Row, keys: string[]) => {
 }
 
 const toText = (value: RowValue) => String(value ?? "").trim()
-const normalizeText = (value: string) => value.trim().replace(/\s+/g, " ")
+const normalizeText = (value: string) => value.trim().replaceAll(/\s+/g, " ")
 
 const sanitizeTitle = (value: string, rowIndex: number) => {
   const normalized = normalizeText(value)
@@ -277,10 +282,10 @@ const getText = (row: Row, keys: string[]) => toText(firstValue(row, keys))
 const slugifyImportValue = (value: string) =>
   value
     .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
+    .replaceAll(/\p{Diacritic}/gu, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/(^-|-$)/g, "")
 
 const throwIfAborted = (signal?: AbortSignal) => {
   if (signal?.aborted) {
@@ -290,7 +295,7 @@ const throwIfAborted = (signal?: AbortSignal) => {
 
 const getCliPayload = async () => {
   const { default: config } = await import("../payload.config")
-  return getPayload({ config })
+  return await getPayload({ config })
 }
 
 const toRichText = (value: string): ArticleContent => {
@@ -300,12 +305,6 @@ const toRichText = (value: string): ArticleContent => {
     .filter(Boolean)
 
   const paragraphs = (lines.length > 0 ? lines : [" "]).map((line) => ({
-    type: "paragraph",
-    format: "",
-    indent: 0,
-    version: 1,
-    textFormat: 0,
-    textStyle: "",
     children: [
       {
         type: "text",
@@ -317,16 +316,22 @@ const toRichText = (value: string): ArticleContent => {
         version: 1,
       },
     ],
+    format: "",
+    indent: 0,
+    textFormat: 0,
+    textStyle: "",
+    type: "paragraph",
+    version: 1,
   }))
 
   return {
     root: {
-      type: "root",
+      children: paragraphs,
+      direction: "ltr",
       format: "",
       indent: 0,
+      type: "root",
       version: 1,
-      direction: "ltr",
-      children: paragraphs,
     },
   }
 }
@@ -361,8 +366,7 @@ const hasLocaleValue = (
 }
 
 const resolveSupportedLocales = () => {
-  const locales = process.env["PAYLOAD_LOCALES"]
-    ?.split(",")
+  const locales = process.env.PAYLOAD_LOCALES?.split(",")
     .map((locale) => locale.trim().toLowerCase())
     .filter(Boolean)
 
@@ -379,7 +383,7 @@ const resolvePayloadLocale = (
   }
 
   if (normalized === "all") {
-    return normalized as ResolvedLocale
+    return normalized
   }
 
   if (supportedLocales.includes(normalized)) {
@@ -391,7 +395,7 @@ const resolvePayloadLocale = (
   )
 }
 
-type ArticlePayloadData = {
+interface ArticlePayloadData {
   title: string
   slug: string
   excerpt: string
@@ -405,7 +409,7 @@ type ArticlePayloadData = {
   translationSync: boolean
 }
 
-type UpsertArticleParams = {
+interface UpsertArticleParams {
   payload: Payload
   existingArticle:
     | { id?: PayloadId; title?: string | Record<string, string> }
@@ -424,7 +428,7 @@ const resolveWriteLocale = (
 ): WriteLocale =>
   value === "all" || value === undefined
     ? ((supportedLocales[0] ?? DEFAULT_LOCALES[0]) as WriteLocale)
-    : (value as WriteLocale)
+    : value
 
 const upsertArticle = async ({
   payload,
@@ -455,16 +459,16 @@ const upsertArticle = async ({
     if (existingArticle) {
       await payload.update({
         collection: "articles",
+        data,
         id: existingArticle.id as PayloadId,
         locale: writeLocale,
-        data,
         overrideAccess: true,
       })
     } else {
       await payload.create({
         collection: "articles",
-        locale: writeLocale,
         data,
+        locale: writeLocale,
         overrideAccess: true,
       })
     }
@@ -521,21 +525,21 @@ const findExistingBySlug = async (
 ) => {
   const result = await payload.find({
     collection,
+    limit: 1,
     locale,
+    overrideAccess: true,
+    pagination: false,
     where: {
       slug: {
         equals: slug,
       },
     },
-    limit: 1,
-    pagination: false,
-    overrideAccess: true,
   })
 
   return result.docs[0]
 }
 
-type EnsureCategoryParams = {
+interface EnsureCategoryParams {
   payload: Payload
   title: string
   slug: string
@@ -567,7 +571,7 @@ const ensureCategory = async ({
   const existing = await findExistingBySlug(payload, "article-categories", slug)
   if (existing) {
     const writeLocale = resolveWriteLocale(locale, supportedLocales)
-    const id = existing.id as PayloadId
+    const id = existing.id
     if (!overwrite && hasLocaleValue(existing.title, locale)) {
       categoryCache.set(cacheKey, id)
       return id
@@ -576,13 +580,13 @@ const ensureCategory = async ({
     if (!dryRun) {
       await payload.update({
         collection: "article-categories",
-        id: existing.id as PayloadId,
-        locale: writeLocale,
         data: {
-          title,
           slug,
+          title,
           translationSync: translate,
         },
+        id: existing.id,
+        locale: writeLocale,
         overrideAccess: true,
       })
     }
@@ -600,16 +604,16 @@ const ensureCategory = async ({
 
   const category = await payload.create({
     collection: "article-categories",
-    locale: resolveWriteLocale(locale, supportedLocales),
     data: {
-      title,
       slug,
+      title,
       translationSync: translate,
     },
+    locale: resolveWriteLocale(locale, supportedLocales),
     overrideAccess: true,
   })
 
-  const id = category.id as PayloadId
+  const id = category.id
   categoryCache.set(cacheKey, id)
   return id
 }
@@ -618,12 +622,12 @@ const ensureFallbackMedia = async (payload: Payload, dryRun: boolean) => {
   const existing = await payload.find({
     collection: "media",
     limit: 1,
-    pagination: false,
     overrideAccess: true,
+    pagination: false,
   })
 
   if (existing.docs[0]) {
-    return existing.docs[0].id as PayloadId
+    return existing.docs[0].id
   }
 
   if (dryRun) {
@@ -644,7 +648,7 @@ const ensureFallbackMedia = async (payload: Payload, dryRun: boolean) => {
     overrideAccess: true,
   })
 
-  return media.id as PayloadId
+  return media.id
 }
 
 const ensureFeaturedImage = (imagePath: string, fallbackMediaId: PayloadId) => {
@@ -663,14 +667,14 @@ const findAuthor = async (payload: Payload, email: string) => {
 
   const result = await payload.find({
     collection: "users",
+    limit: 1,
+    overrideAccess: true,
+    pagination: false,
     where: {
       email: {
         equals: email,
       },
     },
-    limit: 1,
-    pagination: false,
-    overrideAccess: true,
   })
 
   return result.docs[0]?.id as PayloadId | undefined
@@ -722,8 +726,8 @@ const readRows = async (filePath: string, sheetName?: string) => {
   })
 
   return {
-    selectedSheetName,
     rows: rows.map(normalizeRow),
+    selectedSheetName,
   }
 }
 
@@ -815,15 +819,15 @@ const processArticleRow = async (
     getText(row, ["category_slug", "rubrika_slug", "kategorie_slug"]) ||
     slugifyImportValue(categoryTitle)
   const categoryId = await ensureCategory({
-    payload,
-    title: categoryTitle,
-    slug: categorySlug,
+    categoryCache: context.categoryCache,
     dryRun,
     locale,
-    supportedLocales: context.supportedLocales,
-    translate,
     overwrite,
-    categoryCache: context.categoryCache,
+    payload,
+    slug: categorySlug,
+    supportedLocales: context.supportedLocales,
+    title: categoryTitle,
+    translate,
   })
 
   const featuredImage = ensureFeaturedImage(
@@ -872,15 +876,15 @@ const processArticleRow = async (
 
   const existingArticle = await findExistingBySlug(payload, "articles", slug)
 
-  return upsertArticle({
-    payload,
-    existingArticle,
-    locale,
-    supportedLocales: context.supportedLocales,
-    overwrite,
-    dryRun,
-    index,
+  return await upsertArticle({
     data,
+    dryRun,
+    existingArticle,
+    index,
+    locale,
+    overwrite,
+    payload,
+    supportedLocales: context.supportedLocales,
   })
 }
 
@@ -932,15 +936,15 @@ export const runImportFromFile = async (
   for (const [index, row] of rows.entries()) {
     throwIfAborted(signal)
     const result = await processArticleRow(row, index, {
+      categoryCache,
       dryRun,
       fallbackMediaId,
-      payload,
       locale,
-      supportedLocales,
-      statusOverride,
-      translate,
       overwrite,
-      categoryCache,
+      payload,
+      statusOverride,
+      supportedLocales,
+      translate,
     })
 
     if (result === "imported") {
@@ -953,11 +957,11 @@ export const runImportFromFile = async (
 
   return {
     filePath: resolvedFilePath,
-    sheetName: selectedSheetName,
-    locale,
-    total: rows.length,
     imported,
+    locale,
+    sheetName: selectedSheetName,
     skipped,
+    total: rows.length,
   }
 }
 
@@ -996,7 +1000,7 @@ const runImportFromCli = async () => {
   )
 }
 
-const currentScriptFile = fileURLToPath(import.meta.url)
+const currentScriptFile = import.meta.filename
 if (path.resolve(process.argv[1] ?? "") === path.resolve(currentScriptFile)) {
   runImportFromCli()
     .then(() => process.exit(0))

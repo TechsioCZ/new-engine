@@ -11,22 +11,19 @@
  */
 import * as ratingGroup from "@zag-js/rating-group"
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
-import { type HTMLAttributes, useId } from "react"
+import { useId } from "react"
+import type { HTMLAttributes } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { tv } from "../utils"
 import { Label } from "./label"
 
 const rating = tv({
+  defaultVariants: {
+    size: "md",
+  },
   slots: {
-    root: ["grid items-center"],
     control: ["flex"],
-    itemWrapper: [
-      "flex items-center",
-      "has-focus-visible:outline-(style:--default-ring-style) has-focus-visible:outline-(length:--default-ring-width)",
-      "has-focus-visible:outline-rating-ring",
-      "has-focus-visible:outline-offset-(length:--default-ring-offset)",
-    ],
     item: [
       "cursor-pointer transition-colors duration-200",
       "cursor-pointer transition-colors duration-200 motion-reduce:transition-none",
@@ -37,34 +34,38 @@ const rating = tv({
       "token-icon-rating",
       "data-half:token-icon-rating-half",
     ],
+    itemWrapper: [
+      "flex items-center",
+      "has-focus-visible:outline-(style:--default-ring-style) has-focus-visible:outline-(length:--default-ring-width)",
+      "has-focus-visible:outline-rating-ring",
+      "has-focus-visible:outline-offset-(length:--default-ring-offset)",
+    ],
+    root: ["grid items-center"],
   },
   variants: {
-    size: {
-      sm: {
-        root: "gap-rating-sm",
-        control: "gap-rating-sm",
-        item: "text-rating-sm",
-      },
-      md: {
-        root: "gap-rating-md",
-        control: "gap-rating-md",
-        item: "text-rating-md",
-      },
-      lg: {
-        root: "gap-rating-lg",
-        control: "gap-rating-lg",
-        item: "text-rating-lg",
-      },
-    },
     isInteractive: {
-      true: {},
       false: {
         item: "cursor-default",
       },
+      true: {},
     },
-  },
-  defaultVariants: {
-    size: "md",
+    size: {
+      lg: {
+        control: "gap-rating-lg",
+        item: "text-rating-lg",
+        root: "gap-rating-lg",
+      },
+      md: {
+        control: "gap-rating-md",
+        item: "text-rating-md",
+        root: "gap-rating-md",
+      },
+      sm: {
+        control: "gap-rating-sm",
+        item: "text-rating-sm",
+        root: "gap-rating-sm",
+      },
+    },
   },
 })
 
@@ -128,8 +129,8 @@ export function Rating({
   const api = ratingGroup.connect(service, normalizeProps)
 
   const { root, control, itemWrapper, item } = rating({
-    size,
     isInteractive: !(readOnly || disabled),
+    size,
   })
 
   return (

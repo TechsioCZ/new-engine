@@ -18,9 +18,9 @@ import type { SeedDatabaseWorkflowInput } from "../workflows/seed/workflows/seed
 import { seedShoptetImportWorkflow } from "../workflows/seed/workflows/seed-shoptet-import"
 import {
   excerptPlainText,
-  type HerbaticaCategoryExport,
   parseHerbaticaCategoriesXmlSource,
 } from "./herbatica-category-export"
+import type { HerbaticaCategoryExport } from "./herbatica-category-export"
 import { importHerbaticaReviews } from "./herbatica-reviews-seed"
 import {
   HERBATICA_CATEGORIES_XML_ENV,
@@ -62,10 +62,10 @@ import {
 import {
   buildManufacturersLookup,
   findManufacturerCsvRow,
-  type ManufacturerCsvLookup,
   parseManufacturersCsv,
   readCsvSource,
 } from "./manufacturers-csv"
+import type { ManufacturerCsvLookup } from "./manufacturers-csv"
 
 type ProductSeedInput = SeedDatabaseWorkflowInput["products"][number]
 type BrandSeedInput = NonNullable<ProductSeedInput["brand"]>
@@ -76,30 +76,30 @@ type PriceListsSeedInput = NonNullable<SeedDatabaseWorkflowInput["priceLists"]>
 type PriceListPriceSeedInput =
   PriceListsSeedInput["overrides"][number]["prices"][number]
 
-type ParsedParameter = {
+interface ParsedParameter {
   name: string
   value: string
 }
 
-type ParsedCategoryRef = {
+interface ParsedCategoryRef {
   id?: string | undefined
   path: string
   isDefault: boolean
 }
 
-type ParsedFlag = {
+interface ParsedFlag {
   code?: string | undefined
   active?: boolean | undefined
   validFrom?: string | undefined
   validUntil?: string | undefined
 }
 
-type ParsedSetItem = {
+interface ParsedSetItem {
   code?: string | undefined
   amount?: number | undefined
 }
 
-type ParsedPricelist = {
+interface ParsedPricelist {
   title?: string | undefined
   priceVat?: number | undefined
   vat?: number | undefined
@@ -110,30 +110,30 @@ type ParsedPricelist = {
   purchasePrice?: number | undefined
 }
 
-type ParsedOssTaxRate = {
+interface ParsedOssTaxRate {
   country?: string | undefined
   level?: string | undefined
 }
 
-type ParsedStockWarehouse = {
+interface ParsedStockWarehouse {
   name?: string | undefined
   quantity?: number | undefined
   location?: string | undefined
 }
 
-type ParsedRelatedFile = {
+interface ParsedRelatedFile {
   url?: string | undefined
   title?: string | undefined
   text?: string | undefined
 }
 
-type ParsedRelatedVideo = {
+interface ParsedRelatedVideo {
   youtubeCode?: string | undefined
   url?: string | undefined
   text?: string | undefined
 }
 
-type ParsedOfferData = {
+interface ParsedOfferData {
   variantId?: string | undefined
   code?: string | undefined
   ean?: string | undefined
@@ -184,7 +184,7 @@ type ParsedOfferData = {
   ossTaxRates: ParsedOssTaxRate[]
 }
 
-type ParsedShopItem = {
+interface ParsedShopItem {
   id: string
   importCode?: string | undefined
   name: string
@@ -222,12 +222,12 @@ type ParsedShopItem = {
   variants: ParsedOfferData[]
 }
 
-type ResolvedProductReference = {
+interface ResolvedProductReference {
   source_shopitem_id: string
   handle: string
 }
 
-type ResolvedProductReferences = {
+interface ResolvedProductReferences {
   relatedProductHandles: string[]
   relatedProductRefs: ResolvedProductReference[]
   alternativeProductHandles: string[]
@@ -242,7 +242,7 @@ type ProductContentSectionKey =
   | "other"
 type ProductContentGroups = Record<ProductContentSectionKey, string[]>
 
-type ProductContentSection = {
+interface ProductContentSection {
   key: ProductContentSectionKey
   title: string
   html: string
@@ -251,32 +251,32 @@ type ProductContentSection = {
 type ProductCardCopySource = "description" | "usage" | "short_description"
 type ProductCardCopyMode = "list_items" | "sentences"
 
-type ProductCardCopyConfig = {
+interface ProductCardCopyConfig {
   source: ProductCardCopySource
   mode: ProductCardCopyMode
   skip: number
   take: number
 }
 
-type CategoryNode = {
+interface CategoryNode {
   key: string
   title: string
   parentKey?: string | undefined
   depth: number
 }
 
-type CategoryHandleMaps = {
+interface CategoryHandleMaps {
   keyToHandle: Map<string, string>
   pathToHandle: Map<string, string>
 }
 
-type CategoryBuildResult = {
+interface CategoryBuildResult {
   categories: CategorySeedInput[]
   pathToHandle: Map<string, string>
   categoryIdToHandle: Map<string, string>
 }
 
-type BuildResult = {
+interface BuildResult {
   categories: CategorySeedInput[]
   products: ProductSeedInput[]
   priceLists: NonNullable<SeedDatabaseWorkflowInput["priceLists"]>
@@ -296,30 +296,30 @@ type BuildResult = {
   }
 }
 
-type ResolvedFeedPaths = {
+interface ResolvedFeedPaths {
   productsXmlPath: string
   categoriesXmlPath?: string | undefined
   reviewsXmlPath?: string | undefined
 }
 
-type HerbaticaWorkflowInputOptions = {
+interface HerbaticaWorkflowInputOptions {
   regionsInput: SeedDatabaseWorkflowInput["regions"]
   fulfillmentSetName: string
   fulfillmentSetType: string
   serviceZoneName: string
 }
 
-type SeedBuildOptions = {
+interface SeedBuildOptions {
   referenceDate?: Date | undefined
   promoRebaseDays?: number | undefined
 }
 
-type ResolvedSeedBuildOptions = {
+interface ResolvedSeedBuildOptions {
   referenceDate: Date
   promoRebaseDays?: number | undefined
 }
 
-type BuildProductMetadataOptions = {
+interface BuildProductMetadataOptions {
   item: ParsedShopItem
   topOffer: ParsedOfferData
   categoryPaths: string[]
@@ -328,14 +328,14 @@ type BuildProductMetadataOptions = {
   referenceDate?: Date | undefined
 }
 
-type BuildVariantsForProductOptions = {
+interface BuildVariantsForProductOptions {
   item: ParsedShopItem
   handle: string
   usedSkus: Set<string>
   referenceDate?: Date | undefined
 }
 
-type BuildVariantSeedOptions = {
+interface BuildVariantSeedOptions {
   handle: string
   index: number
   item: ParsedShopItem
@@ -374,26 +374,26 @@ const PRODUCT_CONTENT_SECTION_ORDER: ProductContentSectionKey[] = [
 ]
 const PRODUCT_CONTENT_SECTION_TITLES: Record<ProductContentSectionKey, string> =
   {
-    description: "Popis",
-    usage: "Použitie",
     composition: "Zloženie",
-    warning: "Upozornenie",
+    description: "Popis",
     other: "Ostatné informácie",
+    usage: "Použitie",
+    warning: "Upozornenie",
   }
 type ClassifiedProductContentSectionKey = Exclude<
   ProductContentSectionKey,
   "description"
 >
-type ProductContentLabelRule = {
+interface ProductContentLabelRule {
   key: ClassifiedProductContentSectionKey
   patterns: RegExp[]
 }
-type ProductContentTextLabelDefinition = {
+interface ProductContentTextLabelDefinition {
   key: ClassifiedProductContentSectionKey
   label: string
   pattern: RegExp
 }
-type ProductContentTextAnchor = {
+interface ProductContentTextAnchor {
   end: number
   key: ClassifiedProductContentSectionKey
   label: string
@@ -631,17 +631,17 @@ function stripHtmlTags(value?: string): string | undefined {
   if (!value) {
     return
   }
-  const withoutTags = value.replace(/<[^>]+>/g, " ")
+  const withoutTags = value.replaceAll(/<[^>]+>/g, " ")
   return normalizeInlineText(withoutTags)
 }
 
 function escapeHtml(value: string): string {
   return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;")
+    .replaceAll(/&/g, "&amp;")
+    .replaceAll(/</g, "&lt;")
+    .replaceAll(/>/g, "&gt;")
+    .replaceAll(/"/g, "&quot;")
+    .replaceAll(/'/g, "&#39;")
 }
 
 function hasHtmlTags(value: string): boolean {
@@ -655,7 +655,7 @@ function normalizeComparableText(value?: string): string | undefined {
   }
   return normalized
     .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[\u0300-\u036F]/g, "")
     .toLowerCase()
 }
 
@@ -664,11 +664,11 @@ function trimHtmlFragment(value?: string): string | undefined {
   if (!normalized) {
     return
   }
-  const trimmed = normalized.replace(/^\s+|\s+$/g, "")
+  const trimmed = normalized.replaceAll(/^\s+|\s+$/g, "")
   return trimmed === "" ? undefined : trimmed
 }
 
-function dedupeHtmlFragments(values: Array<string | undefined>): string[] {
+function dedupeHtmlFragments(values: (string | undefined)[]): string[] {
   const result: string[] = []
   const seen = new Set<string>()
 
@@ -679,7 +679,7 @@ function dedupeHtmlFragments(values: Array<string | undefined>): string[] {
     }
 
     const fingerprint =
-      normalizeInlineText(fragment.replace(/>\s+</g, "><")) ?? fragment
+      normalizeInlineText(fragment.replaceAll(/>\s+</g, "><")) ?? fragment
     if (seen.has(fingerprint)) {
       continue
     }
@@ -698,10 +698,10 @@ function normalizeProductContentLabel(value?: string): string | undefined {
   }
 
   const cleaned = normalized
-    .replace(/^[^a-z0-9]+/g, "")
-    .replace(/\bo\s+dporucane\b/g, "odporucane")
-    .replace(/[:-]+$/g, "")
-    .replace(/\s+/g, " ")
+    .replaceAll(/^[^a-z0-9]+/g, "")
+    .replaceAll(/\bo\s+dporucane\b/g, "odporucane")
+    .replaceAll(/[:-]+$/g, "")
+    .replaceAll(/\s+/g, " ")
     .trim()
 
   return cleaned === "" ? undefined : cleaned
@@ -770,7 +770,7 @@ function buildLabeledPlainTextHtmlFragment(
   label: string,
   value?: string
 ): string | undefined {
-  const normalizedLabel = normalizeInlineText(label.replace(/:\s*$/g, ""))
+  const normalizedLabel = normalizeInlineText(label.replaceAll(/:\s*$/g, ""))
   const normalizedValue = normalizeInlineText(value)
   if (!normalizedLabel) {
     return
@@ -827,7 +827,7 @@ function findProductContentTextAnchors(
 
 function splitLabeledTextBlock(blockHtml: string): {
   beforeHtml?: string | undefined
-  sections: Array<{ key: ProductContentSectionKey; html: string }>
+  sections: { key: ProductContentSectionKey; html: string }[]
 } {
   const blockText = stripHtmlTags(blockHtml)
   if (!blockText) {
@@ -853,8 +853,8 @@ function splitLabeledTextBlock(blockHtml: string): {
 
     return [
       {
-        key: anchor.key,
         html,
+        key: anchor.key,
       },
     ]
   })
@@ -867,11 +867,11 @@ function splitLabeledTextBlock(blockHtml: string): {
 
 function createProductContentGroups(): ProductContentGroups {
   return {
-    description: [],
-    usage: [],
     composition: [],
-    warning: [],
+    description: [],
     other: [],
+    usage: [],
+    warning: [],
   }
 }
 
@@ -975,11 +975,11 @@ function buildProductContentSections(
   item: ParsedShopItem
 ): ProductContentSection[] {
   const grouped: Record<ProductContentSectionKey, string[]> = {
-    description: [],
-    usage: [],
     composition: [],
-    warning: [],
+    description: [],
     other: [],
+    usage: [],
+    warning: [],
   }
 
   const shortDescriptionHtml = toHtmlFragment(item.shortDescription)
@@ -1027,9 +1027,9 @@ function buildProductContentSections(
 
     return [
       {
+        html: fragments.join("\n"),
         key: sectionKey,
         title: PRODUCT_CONTENT_SECTION_TITLES[sectionKey],
-        html: fragments.join("\n"),
       },
     ]
   })
@@ -1048,21 +1048,21 @@ function buildProductCardCopyConfig(
   contentSectionsMap: Record<ProductContentSectionKey, string>,
   shortDescription?: string
 ): ProductCardCopyConfig {
-  const candidates: Array<{
+  const candidates: {
     source: ProductCardCopySource
     html?: string | undefined
-  }> = [
+  }[] = [
     {
-      source: "description",
       html: contentSectionsMap.description,
+      source: "description",
     },
     {
-      source: "usage",
       html: contentSectionsMap.usage,
+      source: "usage",
     },
     {
-      source: "short_description",
       html: shortDescription,
+      source: "short_description",
     },
   ]
 
@@ -1070,9 +1070,9 @@ function buildProductCardCopyConfig(
     const liCount = countHtmlListItems(candidate.html)
     if (liCount > 0) {
       return {
-        source: candidate.source,
         mode: "list_items",
         skip: liCount > 1 ? 1 : 0,
+        source: candidate.source,
         take: 3,
       }
     }
@@ -1081,18 +1081,18 @@ function buildProductCardCopyConfig(
   for (const candidate of candidates) {
     if (normalizeText(candidate.html)) {
       return {
-        source: candidate.source,
         mode: "sentences",
         skip: 0,
+        source: candidate.source,
         take: 3,
       }
     }
   }
 
   return {
-    source: "short_description",
     mode: "sentences",
     skip: 0,
+    source: "short_description",
     take: 3,
   }
 }
@@ -1148,7 +1148,7 @@ function formatIsoDate(date: Date): string {
 }
 
 function addUtcDays(date: Date, days: number): Date {
-  const result = new Date(date.getTime())
+  const result = new Date(date)
   result.setUTCDate(result.getUTCDate() + days)
   return result
 }
@@ -1167,10 +1167,10 @@ function resolveSeedBuildOptions(
       : undefined
 
   return {
+    promoRebaseDays,
     referenceDate: Number.isNaN(referenceDate.getTime())
       ? new Date()
       : referenceDate,
-    promoRebaseDays,
   }
 }
 
@@ -1183,7 +1183,7 @@ function parseIsoDate(value?: string, endOfDay = false): Date | undefined {
   const [hours, minutes, seconds, milliseconds] = endOfDay
     ? END_OF_DAY_UTC
     : START_OF_DAY_UTC
-  const dateMatch = normalized.match(ISO_DATE_REGEX)
+  const dateMatch = ISO_DATE_REGEX.exec(normalized)
   if (dateMatch) {
     const [, year, month, day] = dateMatch
     const parsed = new Date(
@@ -1349,7 +1349,7 @@ function priceAmountsEqual(left?: number, right?: number): boolean {
     return left === right
   }
 
-  return Math.abs(left - right) < 0.000_001
+  return Math.abs(left - right) < 0.000001
 }
 
 function isDefaultPricelistTitle(title?: string): boolean {
@@ -1462,8 +1462,8 @@ function normalizeFlags(
     }
 
     flagsByCode.set(code, {
-      code,
       active: resolveFlagActive(rawFlag, hasActiveDiscount, referenceDate),
+      code,
       validFrom: normalizeInlineText(rawFlag.validFrom),
       validUntil: normalizeInlineText(rawFlag.validUntil),
     })
@@ -1471,8 +1471,8 @@ function normalizeFlags(
 
   if (hasActiveDiscount && !flagsByCode.has("action")) {
     flagsByCode.set("action", {
-      code: "action",
       active: true,
+      code: "action",
     })
   }
 
@@ -1488,7 +1488,7 @@ function removeBlocks(source: string, tags: readonly string[]): string {
   return result
 }
 
-function dedupeStrings(values: Array<string | undefined>): string[] {
+function dedupeStrings(values: (string | undefined)[]): string[] {
   const result: string[] = []
   const seen = new Set<string>()
   for (const value of values) {
@@ -1523,9 +1523,9 @@ function dedupeParameters(values: ParsedParameter[]): ParsedParameter[] {
 
 function normalizeCategoryPath(path: string): string {
   return path
-    .replace(/\s*>{2,}\s*/g, " > ")
-    .replace(/\s*>\s*/g, " > ")
-    .replace(/\s+/g, " ")
+    .replaceAll(/\s*>{2,}\s*/g, " > ")
+    .replaceAll(/\s*>\s*/g, " > ")
+    .replaceAll(/\s+/g, " ")
     .trim()
 }
 
@@ -1548,11 +1548,11 @@ function canonicalizeCategoryPath(path: string): string {
 function slugifyHerbaticaHandle(value: string): string {
   const normalized = value
     .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[\u0300-\u036F]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/-+/g, "-")
+    .replaceAll(/^-|-$/g, "")
 
   return normalized
 }
@@ -1595,17 +1595,14 @@ function ensureUnique(
 function sanitizeSku(value: string): string {
   return value
     .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[\u0300-\u036F]/g, "")
     .toUpperCase()
-    .replace(/[^A-Z0-9._-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
+    .replaceAll(/[^A-Z0-9._-]+/g, "-")
+    .replaceAll(/-+/g, "-")
+    .replaceAll(/^-|-$/g, "")
 }
 
-function buildSkuSeed(
-  parts: Array<string | undefined>,
-  fallback: string
-): string {
+function buildSkuSeed(parts: (string | undefined)[], fallback: string): string {
   const normalized = parts
     .map((part) => sanitizeSku(part ?? ""))
     .filter((part) => part !== "")
@@ -1665,20 +1662,20 @@ function buildOfferInventoryQuantities(
   if (offer.stockWarehouses.length === 0) {
     const quantity = normalizeInventoryQuantity(offer.stockAmountRaw)
     return {
-      quantity,
       locations: [
         {
           stockLocationName: DEFAULT_STOCK_LOCATION_NAME,
           quantity,
         },
       ],
+      quantity,
     }
   }
 
   return {
     locations: offer.stockWarehouses.map((warehouse) => ({
-      stockLocationName: resolveWarehouseStockLocationName(warehouse).name,
       quantity: normalizeInventoryQuantity(warehouse.quantity),
+      stockLocationName: resolveWarehouseStockLocationName(warehouse).name,
     })),
   }
 }
@@ -1709,23 +1706,26 @@ function parsePricelists(source: string): ParsedPricelist[] {
   }
 
   return extractElements(pricelistsRaw, "PRICELIST").map((pricelist) => ({
-    title: extractFirstText(pricelist.inner, "TITLE"),
-    priceVat: parseNumber(extractFirstText(pricelist.inner, "PRICE_VAT")),
-    vat: parseNumber(extractFirstText(pricelist.inner, "VAT")),
-    standardPrice: parseNumber(
-      extractFirstText(pricelist.inner, "STANDARD_PRICE")
-    ),
     actionPrice: parseNumber(extractFirstText(pricelist.inner, "ACTION_PRICE")),
     actionPriceFrom: extractFirstText(pricelist.inner, "ACTION_PRICE_FROM"),
     actionPriceUntil: extractFirstText(pricelist.inner, "ACTION_PRICE_UNTIL"),
+    priceVat: parseNumber(extractFirstText(pricelist.inner, "PRICE_VAT")),
     purchasePrice: parseNumber(
       extractFirstText(pricelist.inner, "PURCHASE_PRICE")
     ),
+    standardPrice: parseNumber(
+      extractFirstText(pricelist.inner, "STANDARD_PRICE")
+    ),
+    title: extractFirstText(pricelist.inner, "TITLE"),
+    vat: parseNumber(extractFirstText(pricelist.inner, "VAT")),
   }))
 }
 
 function stripNestedPricelists(source: string): string {
-  return source.replace(/<PRICELISTS(?:\s[^>]*)?>[\s\S]*?<\/PRICELISTS>/g, "")
+  return source.replaceAll(
+    /<PRICELISTS(?:\s[^>]*)?>[\s\S]*?<\/PRICELISTS>/g,
+    ""
+  )
 }
 
 function parseOssTaxRates(source: string): ParsedOssTaxRate[] {
@@ -1747,9 +1747,9 @@ function parseStockWarehouses(stockRaw?: string): ParsedStockWarehouse[] {
   }
 
   return extractElements(warehousesRaw, "WAREHOUSE").map((warehouse) => ({
+    location: extractFirstText(warehouse.inner, "LOCATION"),
     name: extractFirstText(warehouse.inner, "NAME"),
     quantity: parseInteger(extractFirstText(warehouse.inner, "VALUE")),
-    location: extractFirstText(warehouse.inner, "LOCATION"),
   }))
 }
 
@@ -1775,90 +1775,46 @@ function parseOfferData(
   )
 
   return {
-    variantId: attributes?.["id"],
-    code: extractFirstText(scalarSource, "CODE"),
-    ean: extractFirstText(scalarSource, "EAN"),
-    partNumber: extractFirstText(scalarSource, "PART_NUMBER"),
-    productNumber: extractFirstText(scalarSource, "PRODUCT_NUMBER"),
-    plu: extractFirstText(scalarSource, "PLU"),
-    unit: extractFirstText(scalarSource, "UNIT"),
-    currency: extractFirstText(scalarSource, "CURRENCY"),
-    vat: parseNumber(extractFirstText(scalarSource, "VAT")),
-    priceVat: parseNumber(extractFirstText(scalarSource, "PRICE_VAT")),
-    standardPrice: parseNumber(
-      extractFirstText(scalarSource, "STANDARD_PRICE")
-    ),
     actionPrice: parseNumber(extractFirstText(scalarSource, "ACTION_PRICE")),
     actionPriceFrom: extractFirstText(scalarSource, "ACTION_PRICE_FROM"),
     actionPriceUntil: extractFirstText(scalarSource, "ACTION_PRICE_UNTIL"),
-    purchasePrice: parseNumber(
-      extractFirstText(scalarSource, "PURCHASE_PRICE")
-    ),
-    purchaseVat: parseNumber(extractFirstText(scalarSource, "PURCHASE_VAT")),
-    purchasePriceInclVat: parseBoolean(
-      extractFirstText(scalarSource, "PURCHASE_PRICE_INCL_VAT")
-    ),
-    stockAmount,
-    stockAmountRaw: stockAmount,
-    stockLocation: extractFirstText(stockRaw ?? "", "LOCATION"),
-    stockMinimalAmount: parseInteger(
-      extractFirstText(stockRaw ?? "", "MINIMAL_AMOUNT")
-    ),
-    stockMaximalAmount: parseInteger(
-      extractFirstText(stockRaw ?? "", "MAXIMAL_AMOUNT")
-    ),
-    stockMinSupply,
-    stockWarehouses,
-    availabilityOutOfStock: extractFirstText(
-      scalarSource,
-      "AVAILABILITY_OUT_OF_STOCK"
-    ),
-    availabilityInStock: extractFirstText(
-      scalarSource,
-      "AVAILABILITY_IN_STOCK"
-    ),
-    imageRef: extractFirstText(scalarSource, "IMAGE_REF"),
-    visible: parseBoolean(extractFirstText(scalarSource, "VISIBLE"), true),
-    freeShipping: parseBoolean(extractFirstText(scalarSource, "FREE_SHIPPING")),
-    freeBilling: parseBoolean(extractFirstText(scalarSource, "FREE_BILLING")),
-    decimalCount: parseInteger(extractFirstText(scalarSource, "DECIMAL_COUNT")),
-    negativeAmount: parseBoolean(
-      extractFirstText(scalarSource, "NEGATIVE_AMOUNT")
-    ),
-    priceRatio: parseNumber(extractFirstText(scalarSource, "PRICE_RATIO")),
-    minPriceRatio: parseNumber(
-      extractFirstText(scalarSource, "MIN_PRICE_RATIO")
+    applyDiscountCoupon: parseBoolean(
+      extractFirstText(scalarSource, "APPLY_DISCOUNT_COUPON"),
+      true
     ),
     applyLoyaltyDiscount: parseBoolean(
       extractFirstText(scalarSource, "APPLY_LOYALTY_DISCOUNT"),
-      true
-    ),
-    applyVolumeDiscount: parseBoolean(
-      extractFirstText(scalarSource, "APPLY_VOLUME_DISCOUNT"),
       true
     ),
     applyQuantityDiscount: parseBoolean(
       extractFirstText(scalarSource, "APPLY_QUANTITY_DISCOUNT"),
       true
     ),
-    applyDiscountCoupon: parseBoolean(
-      extractFirstText(scalarSource, "APPLY_DISCOUNT_COUPON"),
+    applyVolumeDiscount: parseBoolean(
+      extractFirstText(scalarSource, "APPLY_VOLUME_DISCOUNT"),
       true
-    ),
-    weightKg: parseNumber(extractFirstText(logisticRaw ?? "", "WEIGHT")),
-    atypicalShipping: parseBoolean(
-      extractFirstText(atypicalRaw ?? "", "ATYPICAL_SHIPPING")
     ),
     atypicalBilling: parseBoolean(
       extractFirstText(atypicalRaw ?? "", "ATYPICAL_BILLING")
     ),
-    packageAmount: parseNumber(
-      extractFirstText(unitOfMeasureRaw ?? "", "PACKAGE_AMOUNT")
+    atypicalShipping: parseBoolean(
+      extractFirstText(atypicalRaw ?? "", "ATYPICAL_SHIPPING")
     ),
-    packageAmountUnit: extractFirstText(
-      unitOfMeasureRaw ?? "",
-      "PACKAGE_AMOUNT_UNIT"
+    availabilityInStock: extractFirstText(
+      scalarSource,
+      "AVAILABILITY_IN_STOCK"
     ),
+    availabilityOutOfStock: extractFirstText(
+      scalarSource,
+      "AVAILABILITY_OUT_OF_STOCK"
+    ),
+    code: extractFirstText(scalarSource, "CODE"),
+    currency: extractFirstText(scalarSource, "CURRENCY"),
+    decimalCount: parseInteger(extractFirstText(scalarSource, "DECIMAL_COUNT")),
+    ean: extractFirstText(scalarSource, "EAN"),
+    freeBilling: parseBoolean(extractFirstText(scalarSource, "FREE_BILLING")),
+    freeShipping: parseBoolean(extractFirstText(scalarSource, "FREE_SHIPPING")),
+    imageRef: extractFirstText(scalarSource, "IMAGE_REF"),
     measureAmount: parseNumber(
       extractFirstText(unitOfMeasureRaw ?? "", "MEASURE_AMOUNT")
     ),
@@ -1866,9 +1822,53 @@ function parseOfferData(
       unitOfMeasureRaw ?? "",
       "MEASURE_AMOUNT_UNIT"
     ),
-    parameters: parseParameters(source, "PARAMETERS"),
-    pricelists: parsePricelists(source),
+    minPriceRatio: parseNumber(
+      extractFirstText(scalarSource, "MIN_PRICE_RATIO")
+    ),
+    negativeAmount: parseBoolean(
+      extractFirstText(scalarSource, "NEGATIVE_AMOUNT")
+    ),
     ossTaxRates: parseOssTaxRates(source),
+    packageAmount: parseNumber(
+      extractFirstText(unitOfMeasureRaw ?? "", "PACKAGE_AMOUNT")
+    ),
+    packageAmountUnit: extractFirstText(
+      unitOfMeasureRaw ?? "",
+      "PACKAGE_AMOUNT_UNIT"
+    ),
+    parameters: parseParameters(source, "PARAMETERS"),
+    partNumber: extractFirstText(scalarSource, "PART_NUMBER"),
+    plu: extractFirstText(scalarSource, "PLU"),
+    priceRatio: parseNumber(extractFirstText(scalarSource, "PRICE_RATIO")),
+    priceVat: parseNumber(extractFirstText(scalarSource, "PRICE_VAT")),
+    pricelists: parsePricelists(source),
+    productNumber: extractFirstText(scalarSource, "PRODUCT_NUMBER"),
+    purchasePrice: parseNumber(
+      extractFirstText(scalarSource, "PURCHASE_PRICE")
+    ),
+    purchasePriceInclVat: parseBoolean(
+      extractFirstText(scalarSource, "PURCHASE_PRICE_INCL_VAT")
+    ),
+    purchaseVat: parseNumber(extractFirstText(scalarSource, "PURCHASE_VAT")),
+    standardPrice: parseNumber(
+      extractFirstText(scalarSource, "STANDARD_PRICE")
+    ),
+    stockAmount,
+    stockAmountRaw: stockAmount,
+    stockLocation: extractFirstText(stockRaw ?? "", "LOCATION"),
+    stockMaximalAmount: parseInteger(
+      extractFirstText(stockRaw ?? "", "MAXIMAL_AMOUNT")
+    ),
+    stockMinSupply,
+    stockMinimalAmount: parseInteger(
+      extractFirstText(stockRaw ?? "", "MINIMAL_AMOUNT")
+    ),
+    stockWarehouses,
+    unit: extractFirstText(scalarSource, "UNIT"),
+    variantId: attributes?.["id"],
+    vat: parseNumber(extractFirstText(scalarSource, "VAT")),
+    visible: parseBoolean(extractFirstText(scalarSource, "VISIBLE"), true),
+    weightKg: parseNumber(extractFirstText(logisticRaw ?? "", "WEIGHT")),
   }
 }
 
@@ -1891,9 +1891,9 @@ function parseRelatedFiles(source: string): ParsedRelatedFile[] {
   }
 
   return extractElements(relatedFilesRaw, "RELATED_FILE").map((entry) => ({
-    url: extractFirstText(entry.inner, "URL"),
-    title: extractFirstText(entry.inner, "TITLE"),
     text: extractFirstText(entry.inner, "TEXT"),
+    title: extractFirstText(entry.inner, "TITLE"),
+    url: extractFirstText(entry.inner, "URL"),
   }))
 }
 
@@ -1904,9 +1904,9 @@ function parseRelatedVideos(source: string): ParsedRelatedVideo[] {
   }
 
   return extractElements(relatedVideosRaw, "RELATED_VIDEO").map((entry) => ({
-    youtubeCode: extractFirstText(entry.inner, "YOUTUBE_VIDEO_CODE"),
-    url: extractFirstText(entry.inner, "URL"),
     text: extractFirstText(entry.inner, "TEXT"),
+    url: extractFirstText(entry.inner, "URL"),
+    youtubeCode: extractFirstText(entry.inner, "YOUTUBE_VIDEO_CODE"),
   }))
 }
 
@@ -1917,8 +1917,8 @@ function parseFlags(source: string): ParsedFlag[] {
   }
 
   return extractElements(flagsRaw, "FLAG").map((flag) => ({
-    code: extractFirstText(flag.inner, "CODE"),
     active: parseBoolean(extractFirstText(flag.inner, "ACTIVE")),
+    code: extractFirstText(flag.inner, "CODE"),
     validFrom: extractFirstText(flag.inner, "VALID_FROM"),
     validUntil: extractFirstText(flag.inner, "VALID_UNTIL"),
   }))
@@ -1931,8 +1931,8 @@ function parseSetItems(source: string): ParsedSetItem[] {
   }
 
   return extractElements(setItemsRaw, "SET_ITEM").map((item) => ({
-    code: extractFirstText(item.inner, "CODE"),
     amount: parseInteger(extractFirstText(item.inner, "AMOUNT")),
+    code: extractFirstText(item.inner, "CODE"),
   }))
 }
 
@@ -1977,13 +1977,13 @@ function parseCategoryRefs(source: string): ParsedCategoryRef[] {
   const refs = [
     ...extractElements(categoriesRaw, "CATEGORY").map((category) => ({
       id: normalizeInlineText(category.attributes["id"]),
-      path: canonicalizeCategoryPath(normalizeInlineText(category.inner) ?? ""),
       isDefault: false,
+      path: canonicalizeCategoryPath(normalizeInlineText(category.inner) ?? ""),
     })),
     ...extractElements(categoriesRaw, "DEFAULT_CATEGORY").map((category) => ({
       id: normalizeInlineText(category.attributes["id"]),
-      path: canonicalizeCategoryPath(normalizeInlineText(category.inner) ?? ""),
       isDefault: true,
+      path: canonicalizeCategoryPath(normalizeInlineText(category.inner) ?? ""),
     })),
   ]
 
@@ -2037,53 +2037,53 @@ function parseShopItems(xml: string): ParsedShopItem[] {
     const categoryRefs = parseCategoryRefs(shopItem.inner)
 
     return {
-      id: shopItem.attributes["id"] ?? "",
-      importCode: shopItem.attributes["import-code"],
-      name: extractFirstText(shopItem.inner, "NAME") ?? "",
-      guid: extractFirstText(shopItem.inner, "GUID"),
-      shortDescription: extractFirstText(shopItem.inner, "SHORT_DESCRIPTION"),
-      description: extractFirstText(shopItem.inner, "DESCRIPTION"),
-      warranty: extractFirstText(shopItem.inner, "WARRANTY"),
-      appendix: extractFirstText(shopItem.inner, "APPENDIX"),
-      manufacturer: extractFirstText(shopItem.inner, "MANUFACTURER"),
-      supplier: extractFirstText(shopItem.inner, "SUPPLIER"),
       adult: parseBoolean(extractFirstText(shopItem.inner, "ADULT")),
-      itemType: extractFirstText(shopItem.inner, "ITEM_TYPE"),
-      categoryRefs,
-      categoryPaths: dedupeStrings(
-        categoryRefs.map((category) => category.path)
-      ),
-      images,
-      textProperties: parseTextProperties(shopItem.inner),
-      relatedProducts: parseCodeList(shopItem.inner, "RELATED_PRODUCTS"),
-      alternativeProducts: parseCodeList(
-        shopItem.inner,
-        "ALTERNATIVE_PRODUCTS"
-      ),
-      relatedFiles: parseRelatedFiles(shopItem.inner),
-      relatedVideos: parseRelatedVideos(shopItem.inner),
-      flags: parseFlags(shopItem.inner),
-      visibility: extractFirstText(shopItem.inner, "VISIBILITY"),
-      seoTitle: extractFirstText(shopItem.inner, "SEO_TITLE"),
-      metaDescription: extractFirstText(shopItem.inner, "META_DESCRIPTION"),
       allowsIplatba: parseBoolean(
         extractFirstText(shopItem.inner, "ALLOWS_IPLATBA")
       ),
       allowsPayOnline: parseBoolean(
         extractFirstText(shopItem.inner, "ALLOWS_PAY_ONLINE")
       ),
-      internalNote: extractFirstText(shopItem.inner, "INTERNAL_NOTE"),
+      alternativeProducts: parseCodeList(
+        shopItem.inner,
+        "ALTERNATIVE_PRODUCTS"
+      ),
+      appendix: extractFirstText(shopItem.inner, "APPENDIX"),
+      categoryPaths: dedupeStrings(
+        categoryRefs.map((category) => category.path)
+      ),
+      categoryRefs,
+      description: extractFirstText(shopItem.inner, "DESCRIPTION"),
+      flags: parseFlags(shopItem.inner),
+      glamiCategoryId: extractFirstText(shopItem.inner, "GLAMI_CATEGORY_ID"),
+      googleCategoryId: extractFirstText(shopItem.inner, "GOOGLE_CATEGORY_ID"),
+      guid: extractFirstText(shopItem.inner, "GUID"),
       heurekaCategoryId: extractFirstText(
         shopItem.inner,
         "HEUREKA_CATEGORY_ID"
       ),
-      zboziCategoryId: extractFirstText(shopItem.inner, "ZBOZI_CATEGORY_ID"),
-      googleCategoryId: extractFirstText(shopItem.inner, "GOOGLE_CATEGORY_ID"),
-      glamiCategoryId: extractFirstText(shopItem.inner, "GLAMI_CATEGORY_ID"),
-      xmlFeedName: extractFirstText(shopItem.inner, "XML_FEED_NAME"),
+      id: shopItem.attributes["id"] ?? "",
+      images,
+      importCode: shopItem.attributes["import-code"],
+      internalNote: extractFirstText(shopItem.inner, "INTERNAL_NOTE"),
+      itemType: extractFirstText(shopItem.inner, "ITEM_TYPE"),
+      manufacturer: extractFirstText(shopItem.inner, "MANUFACTURER"),
+      metaDescription: extractFirstText(shopItem.inner, "META_DESCRIPTION"),
+      name: extractFirstText(shopItem.inner, "NAME") ?? "",
+      relatedFiles: parseRelatedFiles(shopItem.inner),
+      relatedProducts: parseCodeList(shopItem.inner, "RELATED_PRODUCTS"),
+      relatedVideos: parseRelatedVideos(shopItem.inner),
+      seoTitle: extractFirstText(shopItem.inner, "SEO_TITLE"),
       setItems: parseSetItems(shopItem.inner),
+      shortDescription: extractFirstText(shopItem.inner, "SHORT_DESCRIPTION"),
+      supplier: extractFirstText(shopItem.inner, "SUPPLIER"),
+      textProperties: parseTextProperties(shopItem.inner),
       topOffer: parseOfferData(topLevelSource, shopItem.attributes),
       variants,
+      visibility: extractFirstText(shopItem.inner, "VISIBILITY"),
+      warranty: extractFirstText(shopItem.inner, "WARRANTY"),
+      xmlFeedName: extractFirstText(shopItem.inner, "XML_FEED_NAME"),
+      zboziCategoryId: extractFirstText(shopItem.inner, "ZBOZI_CATEGORY_ID"),
     }
   })
 }
@@ -2104,10 +2104,10 @@ function addCategoryPathNodes(
       index === 0 ? undefined : segments.slice(0, index).join(" > ")
     if (!nodes.has(key)) {
       nodes.set(key, {
-        key,
-        title,
-        parentKey,
         depth: index + 1,
+        key,
+        parentKey,
+        title,
       })
     }
   }
@@ -2181,8 +2181,8 @@ function buildCategoriesFromProductPaths(
 
   return {
     categories: buildCategorySeedInputs(sortedNodes, keyToHandle),
-    pathToHandle,
     categoryIdToHandle: new Map<string, string>(),
+    pathToHandle,
   }
 }
 
@@ -2233,24 +2233,24 @@ function buildCategoryMetadata(
   path: string
 ): Record<string, unknown> {
   return {
+    access: category.access,
+    bottom_description_html: category.bottomDescriptionHtml,
+    expand_in_menu: category.expandInMenu,
+    is_system: category.isSystem,
+    link_text: category.linkText,
+    meta_description: category.metaDescription,
+    meta_title: category.metaTitle,
+    page_type: category.pageType,
+    priority: category.priority,
+    search_priority: category.searchPriority,
     source: "herbatica-categories-xml",
     source_category_id: category.id,
-    source_parent_category_id: category.parentId,
     source_guid: category.guid,
-    source_url: category.url,
+    source_parent_category_id: category.parentId,
     source_path: path,
-    link_text: category.linkText,
+    source_url: category.url,
     top_description_html: category.topDescriptionHtml,
-    bottom_description_html: category.bottomDescriptionHtml,
-    meta_title: category.metaTitle,
-    meta_description: category.metaDescription,
-    access: category.access,
-    expand_in_menu: category.expandInMenu,
     visible: category.isVisible,
-    priority: category.priority,
-    page_type: category.pageType,
-    search_priority: category.searchPriority,
-    is_system: category.isSystem,
   }
 }
 
@@ -2267,8 +2267,8 @@ function buildCategoriesFromExport(
 
       return {
         category,
-        path,
         depth: splitCategoryPath(path).length,
+        path,
       }
     })
     .sort((a, b) => {
@@ -2318,8 +2318,8 @@ function buildCategoriesFromExport(
 
   return {
     categories,
-    pathToHandle,
     categoryIdToHandle,
+    pathToHandle,
   }
 }
 
@@ -2335,7 +2335,6 @@ function buildBrand(
   const manufacturerRow = findManufacturerCsvRow(manufacturersLookup, title)
 
   return {
-    title,
     attributes: [],
     gpsr_contact_email: manufacturerRow?.gpsr_contact_email,
     gpsr_european_reseller_contact_email:
@@ -2348,6 +2347,7 @@ function buildBrand(
     gpsr_manufacturing_company_name:
       manufacturerRow?.gpsr_manufacturing_company_name,
     gpsr_postal_address: manufacturerRow?.gpsr_postal_address,
+    title,
   }
 }
 
@@ -2400,28 +2400,32 @@ export function resolveHerbaticaProductVisibility(item: {
   }
 
   switch ((item.visibility ?? "visible").trim().toLowerCase()) {
-    case "cashdeskonly":
+    case "cashdeskonly": {
       return {
         salesChannelNames: [HERBATICA_POS_SALES_CHANNEL_NAME],
         status: ProductStatus.PUBLISHED,
         storefrontAccessible: false,
       }
-    case "hidden":
+    }
+    case "hidden": {
       return {
         salesChannelNames: [],
         status: ProductStatus.DRAFT,
         storefrontAccessible: false,
       }
-    case "visible":
+    }
+    case "visible": {
       return {
         salesChannelNames: [HERBATICA_STOREFRONT_SALES_CHANNEL_NAME],
         status: ProductStatus.PUBLISHED,
         storefrontAccessible: true,
       }
-    default:
+    }
+    default: {
       throw new Error(
         `Unsupported Herbatica product visibility "${item.visibility}"`
       )
+    }
   }
 }
 
@@ -2462,8 +2466,8 @@ function resolveProductReference(
   }
 
   return {
-    source_shopitem_id: sourceShopitemId,
     handle,
+    source_shopitem_id: sourceShopitemId,
   }
 }
 
@@ -2516,10 +2520,10 @@ function buildResolvedProductReferences(
   )
 
   return {
-    relatedProductRefs,
-    relatedProductHandles: relatedProductRefs.map((ref) => ref.handle),
-    alternativeProductRefs,
     alternativeProductHandles: alternativeProductRefs.map((ref) => ref.handle),
+    alternativeProductRefs,
+    relatedProductHandles: relatedProductRefs.map((ref) => ref.handle),
+    relatedProductRefs,
   }
 }
 
@@ -2542,63 +2546,63 @@ function buildVariantMetadata(
   const compareAtPrice = hasActiveDiscount ? basePrice : undefined
 
   return {
-    source_variant_id: offer.variantId,
-    variant_id: offer.variantId,
-    code: offer.code,
-    ean: offer.ean,
-    part_number: offer.partNumber,
-    product_number: offer.productNumber,
-    plu: offer.plu,
-    unit: offer.unit,
-    currency: offer.currency,
-    vat: offer.vat,
-    price_vat: offer.priceVat,
-    standard_price: offer.standardPrice,
     action_price: offer.actionPrice,
     action_price_from: offer.actionPriceFrom,
     action_price_until: offer.actionPriceUntil,
-    current_price: currentPrice,
+    apply_discount_coupon: offer.applyDiscountCoupon,
+    apply_loyalty_discount: offer.applyLoyaltyDiscount,
+    apply_quantity_discount: offer.applyQuantityDiscount,
+    apply_volume_discount: offer.applyVolumeDiscount,
+    atypical_billing: offer.atypicalBilling,
+    atypical_shipping: offer.atypicalShipping,
+    availability_in_stock: offer.availabilityInStock,
+    availability_out_of_stock: offer.availabilityOutOfStock,
+    code: offer.code,
     compare_at_price: compareAtPrice,
+    currency: offer.currency,
+    current_price: currentPrice,
+    decimal_count: offer.decimalCount,
+    ean: offer.ean,
+    free_billing: offer.freeBilling,
+    free_shipping: offer.freeShipping,
     has_active_discount: hasActiveDiscount,
+    image_ref: offer.imageRef,
+    measure_amount: offer.measureAmount,
+    measure_amount_unit: offer.measureAmountUnit,
+    min_price_ratio: offer.minPriceRatio,
+    negative_amount: offer.negativeAmount,
+    oss_tax_rates: offer.ossTaxRates,
+    package_amount: offer.packageAmount,
+    package_amount_unit: offer.packageAmountUnit,
+    parameters: offer.parameters,
+    part_number: offer.partNumber,
+    plu: offer.plu,
+    price_ratio: offer.priceRatio,
+    price_vat: offer.priceVat,
+    pricelists: offer.pricelists,
+    product_number: offer.productNumber,
     purchase_price: offer.purchasePrice,
-    purchase_vat: offer.purchaseVat,
     purchase_price_incl_vat: offer.purchasePriceInclVat,
+    purchase_vat: offer.purchaseVat,
+    source_variant_id: offer.variantId,
+    standard_price: offer.standardPrice,
     stock: {
       amount: offer.stockAmountRaw,
       location: offer.stockLocation,
+      maximal_amount: offer.stockMaximalAmount,
+      min_supply: offer.stockMinSupply,
+      minimal_amount: offer.stockMinimalAmount,
       warehouses: offer.stockWarehouses.map((warehouse) => ({
         name: warehouse.name,
         value: warehouse.quantity,
         location: warehouse.location,
       })),
-      minimal_amount: offer.stockMinimalAmount,
-      maximal_amount: offer.stockMaximalAmount,
-      min_supply: offer.stockMinSupply,
     },
-    availability_in_stock: offer.availabilityInStock,
-    availability_out_of_stock: offer.availabilityOutOfStock,
-    image_ref: offer.imageRef,
+    unit: offer.unit,
+    variant_id: offer.variantId,
+    vat: offer.vat,
     visible: offer.visible,
-    free_shipping: offer.freeShipping,
-    free_billing: offer.freeBilling,
-    decimal_count: offer.decimalCount,
-    negative_amount: offer.negativeAmount,
-    price_ratio: offer.priceRatio,
-    min_price_ratio: offer.minPriceRatio,
-    apply_loyalty_discount: offer.applyLoyaltyDiscount,
-    apply_volume_discount: offer.applyVolumeDiscount,
-    apply_quantity_discount: offer.applyQuantityDiscount,
-    apply_discount_coupon: offer.applyDiscountCoupon,
     weight_kg: offer.weightKg,
-    atypical_shipping: offer.atypicalShipping,
-    atypical_billing: offer.atypicalBilling,
-    package_amount: offer.packageAmount,
-    package_amount_unit: offer.packageAmountUnit,
-    measure_amount: offer.measureAmount,
-    measure_amount_unit: offer.measureAmountUnit,
-    parameters: offer.parameters,
-    pricelists: offer.pricelists,
-    oss_tax_rates: offer.ossTaxRates,
   }
 }
 
@@ -2628,9 +2632,9 @@ function buildProductMetadata({
   }
   const completeContentSections = PRODUCT_CONTENT_SECTION_ORDER.map(
     (sectionKey) => ({
+      html: contentSectionsMap[sectionKey],
       key: sectionKey,
       title: PRODUCT_CONTENT_SECTION_TITLES[sectionKey],
-      html: contentSectionsMap[sectionKey],
     })
   )
   const cardCopy = buildProductCardCopyConfig(
@@ -2639,28 +2643,14 @@ function buildProductMetadata({
   )
 
   return {
-    source: "herbatica-products-complete-xml",
-    source_shopitem_id: item.id,
-    source_import_code: item.importCode,
-    source_guid: item.guid,
-    xml_feed_name: item.xmlFeedName,
-    item_type: item.itemType,
     adult: item.adult,
-    seo_title: item.seoTitle,
-    meta_description: item.metaDescription,
-    internal_note: item.internalNote,
     allows_iplatba: item.allowsIplatba,
     allows_pay_online: item.allowsPayOnline,
-    market_category_ids: {
-      heureka: item.heurekaCategoryId,
-      zbozi: item.zboziCategoryId,
-      google: item.googleCategoryId,
-      glami: item.glamiCategoryId,
-    },
-    short_description: item.shortDescription,
+    alternative_product_handles:
+      resolvedProductReferences.alternativeProductHandles,
+    alternative_product_refs: resolvedProductReferences.alternativeProductRefs,
+    alternative_products: item.alternativeProducts,
     appendix: item.appendix,
-    content_sections: completeContentSections,
-    content_sections_map: contentSectionsMap,
     card_copy: cardCopy,
     category_paths: categoryPaths,
     category_refs: categoryRefs.map((categoryRef) => ({
@@ -2668,23 +2658,37 @@ function buildProductMetadata({
       path: categoryRef.path,
       is_default: categoryRef.isDefault,
     })),
+    content_sections: completeContentSections,
+    content_sections_map: contentSectionsMap,
+    flags: normalizedFlags,
+    flags_raw: item.flags,
+    internal_note: item.internalNote,
+    item_type: item.itemType,
+    market_category_ids: {
+      glami: item.glamiCategoryId,
+      google: item.googleCategoryId,
+      heureka: item.heurekaCategoryId,
+      zbozi: item.zboziCategoryId,
+    },
+    meta_description: item.metaDescription,
+    related_files: item.relatedFiles,
+    related_product_handles: resolvedProductReferences.relatedProductHandles,
+    related_product_refs: resolvedProductReferences.relatedProductRefs,
+    related_products: item.relatedProducts,
+    related_videos: item.relatedVideos,
+    seo_title: item.seoTitle,
+    set_items: item.setItems,
+    short_description: item.shortDescription,
+    source: "herbatica-products-complete-xml",
     source_category_ids: sourceCategoryIds,
     source_default_category_id: defaultCategoryRef?.id,
     source_default_category_path: defaultCategoryRef?.path,
-    related_products: item.relatedProducts,
-    related_product_handles: resolvedProductReferences.relatedProductHandles,
-    related_product_refs: resolvedProductReferences.relatedProductRefs,
-    alternative_products: item.alternativeProducts,
-    alternative_product_handles:
-      resolvedProductReferences.alternativeProductHandles,
-    alternative_product_refs: resolvedProductReferences.alternativeProductRefs,
-    related_files: item.relatedFiles,
-    related_videos: item.relatedVideos,
+    source_guid: item.guid,
+    source_import_code: item.importCode,
+    source_shopitem_id: item.id,
     text_properties: item.textProperties,
-    flags: normalizedFlags,
-    flags_raw: item.flags,
-    set_items: item.setItems,
     top_offer: buildVariantMetadata(topOffer, undefined, referenceDate),
+    xml_feed_name: item.xmlFeedName,
   }
 }
 
@@ -2803,7 +2807,7 @@ function buildDefaultVariantForProduct({
   options: ProductOptionSeedInput[]
   variants: VariantSeedInput[]
 } {
-  const topOffer = item.topOffer
+  const { topOffer } = item
   const skuSeed = buildSkuSeed(
     ["SHOPITEM", item.id, topOffer.variantId ?? "DEFAULT"],
     `${handle}-DEFAULT`
@@ -2925,10 +2929,10 @@ function buildVariantsForProduct({
 } {
   if (item.variants.length === 0) {
     return buildDefaultVariantForProduct({
-      item,
       handle,
-      usedSkus,
+      item,
       referenceDate,
+      usedSkus,
     })
   }
 
@@ -3025,9 +3029,9 @@ function buildProducts(params: {
     const handle = ensureUnique(handleSeed, usedHandles, `product-${index + 1}`)
 
     return {
-      item,
-      index,
       handle,
+      index,
+      item,
     }
   })
   const productHandleBySourceId = new Map<string, string>()
@@ -3065,9 +3069,9 @@ function buildProducts(params: {
       item.topOffer.weightKg ??
       item.variants.find((variant) => variant.weightKg !== undefined)?.weightKg
     const weight =
-      primaryWeightKg !== undefined
-        ? Math.max(1, Math.round(primaryWeightKg * 1000))
-        : 1
+      primaryWeightKg === undefined
+        ? 1
+        : Math.max(1, Math.round(primaryWeightKg * 1000))
     const visibility = resolveHerbaticaProductVisibility(item)
     const resolvedProductReferences = buildResolvedProductReferences(
       item,
@@ -3076,10 +3080,10 @@ function buildProducts(params: {
     )
 
     const { options, variants } = buildVariantsForProduct({
-      item,
       handle,
-      usedSkus,
+      item,
       referenceDate: buildOptions.referenceDate,
+      usedSkus,
     })
     const thumbnail = item.images[0] ?? item.topOffer.imageRef
     const imageUrls = dedupeStrings([...item.images, thumbnail])
@@ -3092,12 +3096,12 @@ function buildProducts(params: {
       weight,
       status: visibility.status,
       metadata: buildProductMetadata({
-        item,
-        topOffer: item.topOffer,
         categoryPaths: item.categoryPaths,
         categoryRefs: item.categoryRefs,
-        resolvedProductReferences,
+        item,
         referenceDate: buildOptions.referenceDate,
+        resolvedProductReferences,
+        topOffer: item.topOffer,
       }),
       shippingProfileName: "Default Shipping Profile",
       ...(thumbnail ? { thumbnail } : {}),
@@ -3121,10 +3125,10 @@ function getVariantBasePrice(
   }
 
   return {
-    productHandle: "",
-    variantSku: variant.sku,
     amount: price.amount,
     currencyCode: price.currency_code,
+    productHandle: "",
+    variantSku: variant.sku,
   }
 }
 
@@ -3244,13 +3248,13 @@ function addDefaultSalePriceFromMetadata({
   }
 
   addSalePriceListPrice(salePriceListsByKey, {
-    sourceTitle: DEFAULT_PRICELIST_LABEL,
-    startsAtRaw: actionPriceFrom,
     endsAtRaw: actionPriceUntil,
     price: {
       ...basePrice,
       amount: actionPrice,
     },
+    sourceTitle: DEFAULT_PRICELIST_LABEL,
+    startsAtRaw: actionPriceFrom,
   })
 }
 
@@ -3267,9 +3271,9 @@ function ensureOverridePriceList(
   }
 
   const created = {
-    title,
     customerGroupName: title,
     prices: [],
+    title,
   } satisfies PriceListsSeedInput["overrides"][number]
   overridePriceListsByTitle.set(title, created)
   return created
@@ -3323,14 +3327,14 @@ function addPricelistSalePrice({
   }
 
   addSalePriceListPrice(salePriceListsByKey, {
-    sourceTitle: title,
     customerGroupName: title,
-    startsAtRaw: pricelist.actionPriceFrom,
     endsAtRaw: pricelist.actionPriceUntil,
     price: {
       ...basePrice,
       amount: actionPrice,
     },
+    sourceTitle: title,
+    startsAtRaw: pricelist.actionPriceFrom,
   })
 }
 
@@ -3439,8 +3443,8 @@ function addWarehouseStockLocation(
 
   if (!existingLocation) {
     locationsByName.set(name, {
-      name,
       address,
+      name,
     })
     return usedFallback
   }
@@ -3547,11 +3551,11 @@ export function buildSeedInputFromXml(
     ? buildCategoriesFromExport(categoryExports)
     : buildCategoriesFromProductPaths(items)
   const products = buildProducts({
-    items,
-    pathToHandle,
-    categoryIdToHandle,
-    manufacturersLookup: manufacturersLookup ?? new Map(),
     buildOptions,
+    categoryIdToHandle,
+    items,
+    manufacturersLookup: manufacturersLookup ?? new Map(),
+    pathToHandle,
   })
   enforceUniqueVariantSkus(products)
   const priceLists = buildPriceListsFromProducts(
@@ -3579,22 +3583,22 @@ export function buildSeedInputFromXml(
 
   return {
     categories,
-    products,
     priceLists,
-    stockLocations,
-    warnings,
+    products,
     stats: {
-      shopItems: items.length,
       categories: categories.length,
-      products: products.length,
-      variants,
       hiddenProducts,
       overridePriceLists: priceLists.overrides.length,
-      salePriceLists: priceLists.sales.length,
       priceListPrices,
+      products: products.length,
+      salePriceLists: priceLists.sales.length,
+      shopItems: items.length,
       stockLocations: stockLocations.length,
+      variants,
       warnings: warnings.length,
     },
+    stockLocations,
+    warnings,
   }
 }
 
@@ -3608,24 +3612,10 @@ export function buildHerbaticaSeedWorkflowInput(
   }: HerbaticaWorkflowInputOptions
 ): SeedDatabaseWorkflowInput {
   return {
-    workflowDefaults: HERBATICA_WORKFLOW_DEFAULTS,
-    salesChannels: HERBATICA_SALES_CHANNELS,
     currencies: HERBATICA_CURRENCIES,
-    regions: regionsInput,
-    taxRegions: {
-      countries: [...DEFAULT_COUNTRIES],
-    },
-    taxRates: {
-      countries: HERBATICA_TAX_RATE_COUNTRIES,
-      config: HERBATICA_TAX_RATE_CONFIG,
-    },
-    stockLocations: {
-      locations: parsed.stockLocations,
-    },
     defaultShippingProfile: HERBATICA_DEFAULT_SHIPPING_PROFILE,
     fulfillmentSets: {
       name: fulfillmentSetName,
-      type: fulfillmentSetType,
       serviceZones: [
         {
           name: serviceZoneName,
@@ -3634,14 +3624,28 @@ export function buildHerbaticaSeedWorkflowInput(
           })),
         },
       ],
+      type: fulfillmentSetType,
     },
-    shippingOptions: HERBATICA_SHIPPING_OPTIONS,
-    publishableKey: HERBATICA_PUBLISHABLE_KEY,
+    legacyBrandAttributeNames: ["supplier", "manufacturer", "item_type"],
+    priceListSync: HERBATICA_PRICE_LIST_SYNC_CONFIG,
+    priceLists: parsed.priceLists,
     productCategories: parsed.categories,
     products: parsed.products,
-    legacyBrandAttributeNames: ["supplier", "manufacturer", "item_type"],
-    priceLists: parsed.priceLists,
-    priceListSync: HERBATICA_PRICE_LIST_SYNC_CONFIG,
+    publishableKey: HERBATICA_PUBLISHABLE_KEY,
+    regions: regionsInput,
+    salesChannels: HERBATICA_SALES_CHANNELS,
+    shippingOptions: HERBATICA_SHIPPING_OPTIONS,
+    stockLocations: {
+      locations: parsed.stockLocations,
+    },
+    taxRates: {
+      config: HERBATICA_TAX_RATE_CONFIG,
+      countries: HERBATICA_TAX_RATE_COUNTRIES,
+    },
+    taxRegions: {
+      countries: [...DEFAULT_COUNTRIES],
+    },
+    workflowDefaults: HERBATICA_WORKFLOW_DEFAULTS,
   }
 }
 
@@ -3716,8 +3720,8 @@ function resolveManufacturersCsvSource(args?: string[]): string {
 
 function resolveFeedPaths(args?: string[]): ResolvedFeedPaths {
   return {
-    productsXmlPath: resolveProductsXmlPath(args),
     categoriesXmlPath: resolveCategoriesXmlPath(args),
+    productsXmlPath: resolveProductsXmlPath(args),
     reviewsXmlPath: resolveReviewsXmlPath(args),
   }
 }
@@ -3798,9 +3802,9 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     existingRegions.length === 0
       ? defaultRegions
       : existingRegions.map((region) => ({
-          name: region.name,
           currencyCode: region.currency_code?.toLowerCase() || "eur",
           isTaxInclusive: true,
+          name: region.name,
         }))
 
   if (existingRegions.length > 0) {
@@ -3838,9 +3842,9 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
   }
 
   const input = buildHerbaticaSeedWorkflowInput(parsed, {
-    regionsInput,
     fulfillmentSetName,
     fulfillmentSetType,
+    regionsInput,
     serviceZoneName,
   })
 

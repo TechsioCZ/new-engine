@@ -1,4 +1,4 @@
-export type ReviewRequestOrder = {
+export interface ReviewRequestOrder {
   id: string
   customer_id?: string | null
   custom_display_id?: string | null
@@ -67,7 +67,7 @@ function getEarliestDate(dates: Date[]) {
     }
 
     return earliest
-  }, undefined)
+  })
 }
 
 export function getOrderPaidAt(order: ReviewRequestOrder) {

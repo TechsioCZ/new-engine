@@ -20,11 +20,11 @@ import {
 } from "../../utils"
 import type { AdminGetBrandProductOptionsSchemaType } from "../../validators"
 
-const PRODUCT_ORDER = { title: "ASC" as const, id: "ASC" as const }
+const PRODUCT_ORDER = { id: "ASC" as const, title: "ASC" as const }
 
 type ProductIdGroup = string[] | { $nin?: string[] }
 
-type ProductPageOptions = {
+interface ProductPageOptions {
   limit: number
   offset: number
   q?: string | undefined
@@ -49,7 +49,7 @@ const getProductGroupFilters = (group: ProductIdGroup) => {
   return { id: { $nin: uniqueIds(group.$nin) } }
 }
 
-const listProductGroup = ({
+const listProductGroup = async ({
   group,
   options,
   remainingLimit,

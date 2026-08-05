@@ -9,7 +9,7 @@ export type ProductContentSectionKey =
 
 export type ProductContentSectionHtml = Record<ProductContentSectionKey, string>
 
-export type ProductContentSection = {
+export interface ProductContentSection {
   key: ProductContentSectionKey
 }
 
@@ -73,7 +73,7 @@ const getContentSectionsListHtml = (
     return ""
   }
 
-  const html = section["html"]
+  const { html } = section
 
   return typeof html === "string" ? html : ""
 }
@@ -97,11 +97,11 @@ const getMetadataSectionHtml = (
 
 const createEmptySectionHtml = () => {
   const sectionsHtml: ProductContentSectionHtml = {
-    description: "",
-    usage: "",
     composition: "",
-    warning: "",
+    description: "",
     other: "",
+    usage: "",
+    warning: "",
   }
 
   return sectionsHtml

@@ -12,10 +12,10 @@ import {
 } from "@/components/checkout/checkout-route.utils"
 import { CheckoutStepContent } from "@/components/checkout/checkout-step-content"
 import { canNavigateToCheckoutStep } from "@/components/checkout/checkout-step-navigation"
-import {
-  CHECKOUT_STEPS,
-  type CheckoutStepId,
-  type CheckoutStepSlug,
+import { CHECKOUT_STEPS } from "@/components/checkout/checkout.constants"
+import type {
+  CheckoutStepId,
+  CheckoutStepSlug,
 } from "@/components/checkout/checkout.constants"
 import { CheckoutCompletedOrderSection } from "@/components/checkout/sections/checkout-completed-order-section"
 import { CheckoutEmptyCartSection } from "@/components/checkout/sections/checkout-empty-cart-section"
@@ -24,7 +24,7 @@ import { CheckoutStepsSection } from "@/components/checkout/sections/checkout-st
 import { useCheckoutController } from "@/components/checkout/use-checkout-controller"
 import { appHref } from "@/lib/routing"
 
-type CheckoutFlowProps = {
+interface CheckoutFlowProps {
   activeStep: CheckoutStepSlug
 }
 
@@ -48,16 +48,16 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
   const redirectStep = requiredStep
 
   const canAccessStep = canAccessCheckoutStep({
-    requestedStep: activeStep,
     hasItems: controller.hasItems,
     hasPayment: controller.hasPayment,
     hasShipping: controller.hasShipping,
     hasStoredAddress: controller.hasStoredAddress,
+    requestedStep: activeStep,
   })
 
   const isStepGateLoading =
     controller.cartQuery.isLoading || controller.cartQuery.isFetching
-  const hasResolvedCart = typeof controller.cartQuery.cart !== "undefined"
+  const hasResolvedCart = controller.cartQuery.cart !== undefined
   const shouldRedirectStep =
     hasResolvedCart &&
     !isStepGateLoading &&

@@ -7,9 +7,9 @@ import { useMemo, useRef, useState } from "react"
 
 import {
   CARRIER_PICKUP_FAILURE_KEYS,
-  type CarrierPickupFailureReason,
   resolveCarrierPickupWidgetLanguage,
 } from "@/components/checkout/carrier-pickup.utils"
+import type { CarrierPickupFailureReason } from "@/components/checkout/carrier-pickup.utils"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 
 import { PplAccessPointWidget } from "../ppl-widget"
@@ -19,13 +19,13 @@ import type {
   PplWidgetHandle,
 } from "../ppl-widget.types"
 
-type CheckoutPplPickupSelectorProps = {
+interface CheckoutPplPickupSelectorProps {
   disabled: boolean
   onConfirm: (data: Record<string, unknown>) => void
 }
 
 const PPL_WIDGET_API_KEY =
-  process.env["NEXT_PUBLIC_PPL_WIDGET_API_KEY"]?.trim() ?? ""
+  process.env.NEXT_PUBLIC_PPL_WIDGET_API_KEY?.trim() ?? ""
 
 export function CheckoutPplPickupSelector({
   disabled,
@@ -139,16 +139,16 @@ function buildPplShippingData(
   accessPoint: PplAccessPoint,
   fallbackPointLabel: string
 ) {
-  const address = accessPoint.address
+  const { address } = accessPoint
   const payload: Record<string, unknown> = {
+    access_point_city: address?.city,
+    access_point_country: address?.countryCode ?? address?.country,
     access_point_id: accessPoint.code,
     access_point_name:
       accessPoint.name ?? accessPoint.code ?? fallbackPointLabel,
-    access_point_type: accessPoint.type,
     access_point_street: address?.street,
-    access_point_city: address?.city,
+    access_point_type: accessPoint.type,
     access_point_zip: address?.zipCode,
-    access_point_country: address?.countryCode ?? address?.country,
   }
 
   return Object.fromEntries(
@@ -157,7 +157,7 @@ function buildPplShippingData(
 }
 
 function formatPplAddress(accessPoint: PplAccessPoint) {
-  const address = accessPoint.address
+  const { address } = accessPoint
   const addressParts = [
     address?.street,
     address?.zipCode,

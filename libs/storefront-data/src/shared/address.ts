@@ -4,7 +4,7 @@ export type StorefrontAddressScope =
   | "customer"
   | "root"
 
-export type StorefrontAddressValidationIssue = {
+export interface StorefrontAddressValidationIssue {
   scope: StorefrontAddressScope
   field: string
   code: string
@@ -87,15 +87,15 @@ export const assertStorefrontAddressValidation = (
   }
 }
 
-export type StorefrontCartAddressContext = {
+export interface StorefrontCartAddressContext {
   scope: "shipping" | "billing"
 }
 
-export type StorefrontCartAddressAdapter<
+export interface StorefrontCartAddressAdapter<
   TInput,
   TPayload = TInput,
   TStoredAddress = unknown,
-> = {
+> {
   normalize?: (input: TInput, context: StorefrontCartAddressContext) => TInput
   validate?: (
     input: TInput,
@@ -108,20 +108,20 @@ export type StorefrontCartAddressAdapter<
   ) => TInput
 }
 
-export type StorefrontCustomerCreateAddressContext = {
+export interface StorefrontCustomerCreateAddressContext {
   mode: "create"
 }
 
-export type StorefrontCustomerUpdateAddressContext = {
+export interface StorefrontCustomerUpdateAddressContext {
   mode: "update"
 }
 
-export type StorefrontCustomerAddressAdapter<
+export interface StorefrontCustomerAddressAdapter<
   TCreateInput,
   TCreateParams = TCreateInput,
   TUpdateInput = TCreateInput & { addressId?: string },
   TUpdateParams = TCreateParams,
-> = {
+> {
   normalizeCreate?: (
     input: TCreateInput,
     context: StorefrontCustomerCreateAddressContext

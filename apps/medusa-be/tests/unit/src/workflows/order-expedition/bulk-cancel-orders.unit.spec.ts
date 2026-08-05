@@ -9,9 +9,7 @@ const { mockCancelOrderRun, mockCancelOrderWorkflow } = vi.hoisted(() => {
   }
 })
 
-vi.mock("@medusajs/framework/workflows-sdk", () => ({
-  createStep: vi.fn((_name, invoke) => invoke),
-  createWorkflow: vi.fn((_name, factory) => factory),
+vi.mock(import("@medusajs/framework/workflows-sdk"), () => ({
   StepResponse: class StepResponse {
     payload: unknown
 
@@ -26,9 +24,11 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
       this.payload = payload
     }
   },
+  createStep: vi.fn((_name, invoke) => invoke),
+  createWorkflow: vi.fn((_name, factory) => factory),
 }))
 
-vi.mock("@medusajs/medusa/core-flows", () => ({
+vi.mock(import("@medusajs/medusa/core-flows"), () => ({
   cancelOrderWorkflow: mockCancelOrderWorkflow,
 }))
 
@@ -57,6 +57,6 @@ describe("bulkCancelOrdersWorkflow", () => {
         order_id: "order_2",
       },
     })
-    expect(result).toEqual({ order_ids: ["order_1", "order_2"] })
+    expect(result).toStrictEqual({ order_ids: ["order_1", "order_2"] })
   })
 })

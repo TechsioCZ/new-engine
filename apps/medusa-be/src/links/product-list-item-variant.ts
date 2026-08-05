@@ -5,11 +5,11 @@ import ProductListModule from "../modules/product-list"
 
 export const ProductListItemVariantLink = defineLink(
   {
-    linkable: ProductListModule.linkable.productListItem,
     isList: true,
+    linkable: ProductListModule.linkable.productListItem,
   },
   {
-    linkable: ProductModule.linkable["productVariant"],
     filterable: ["id", "sku", "title"],
+    linkable: ProductModule.linkable["productVariant"],
   }
 )

@@ -1,10 +1,12 @@
 import { isRecord } from "@techsio/std/object"
 import {
-  type MedusaAddressLike,
-  type CheckoutAddressInput,
   createCheckoutCartAddressAdapter,
-  type MedusaCartAddressPayload,
   mapMedusaAddressToCheckoutAddress,
+} from "@techsio/storefront-data/checkout/address"
+import type {
+  MedusaAddressLike,
+  CheckoutAddressInput,
+  MedusaCartAddressPayload,
 } from "@techsio/storefront-data/checkout/address"
 import type { StorefrontCartAddressAdapter } from "@techsio/storefront-data/shared/address"
 
@@ -72,19 +74,19 @@ const readMetadataString = (
 export const buildHerbatikaCheckoutAddressInput = (
   addressForm: CheckoutAddressValues
 ): HerbatikaCheckoutAddressInput => ({
+  city: addressForm.city,
+  company: addressForm.company,
+  companyId: addressForm.companyId,
+  country: addressForm.countryCode,
+  customerNote: addressForm.customerNote,
   firstName: addressForm.firstName,
   lastName: addressForm.lastName,
   phone: addressForm.phone,
-  company: addressForm.company,
-  companyId: addressForm.companyId,
-  taxId: addressForm.taxId,
-  vatId: addressForm.vatId,
+  postalCode: addressForm.postalCode,
   street: addressForm.address1,
   street2: addressForm.address2,
-  city: addressForm.city,
-  postalCode: addressForm.postalCode,
-  country: addressForm.countryCode,
-  customerNote: addressForm.customerNote,
+  taxId: addressForm.taxId,
+  vatId: addressForm.vatId,
 })
 
 export const mapHerbatikaAddressFormStateFromMedusaAddress = (
@@ -95,19 +97,19 @@ export const mapHerbatikaAddressFormStateFromMedusaAddress = (
   const metadata = isRecord(address?.metadata) ? address.metadata : undefined
 
   const values = {
-    firstName: baseAddress.firstName,
-    lastName: baseAddress.lastName,
-    phone: baseAddress.phone,
-    company: baseAddress.company,
-    companyId: readMetadataString(metadata, "company_id"),
-    taxId: readMetadataString(metadata, "tax_id"),
-    vatId: readMetadataString(metadata, "vat_id"),
     address1: baseAddress.street,
     address2: baseAddress.street2,
     city: baseAddress.city,
-    postalCode: baseAddress.postalCode,
+    company: baseAddress.company,
+    companyId: readMetadataString(metadata, "company_id"),
     countryCode: baseAddress.country?.toUpperCase(),
     customerNote: readMetadataString(metadata, "customer_note"),
+    firstName: baseAddress.firstName,
+    lastName: baseAddress.lastName,
+    phone: baseAddress.phone,
+    postalCode: baseAddress.postalCode,
+    taxId: readMetadataString(metadata, "tax_id"),
+    vatId: readMetadataString(metadata, "vat_id"),
   }
 
   return Object.fromEntries(

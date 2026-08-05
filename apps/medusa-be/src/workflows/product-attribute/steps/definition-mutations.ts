@@ -5,10 +5,10 @@ import {
   assertProductAttributeKeyAvailable,
   getProductAttributeService,
   normalizeRequiredProductAttributeKey,
-  type ProductAttributeDefinitionRecord,
   partitionProductAttributeRecordIds,
   toUsageCountMap,
 } from "../../../utils/product-attributes"
+import type { ProductAttributeDefinitionRecord } from "../../../utils/product-attributes"
 import type {
   CreateProductAttributeDefinitionInput,
   ProductAttributeDefinitionIdsInput,
@@ -26,10 +26,10 @@ const retrieveDefinition = async (
   withDeleted = false
 ) => {
   const service = getProductAttributeService(container)
-  const definitions = (await service.listProductAttributeDefinitions(
+  const definitions = await service.listProductAttributeDefinitions(
     { id: input.id },
     { take: 1, withDeleted }
-  )) as ProductAttributeDefinitionRecord[]
+  )
   const definition = definitions[0]
 
   if (!definition) {
@@ -47,22 +47,22 @@ export const createProductAttributeDefinitionStep = createStep(
   async (input: CreateProductAttributeDefinitionInput, { container }) => {
     const service = getProductAttributeService(container)
     const key = normalizeRequiredProductAttributeKey(input.key)
-    const matches = (await service.listProductAttributeDefinitions(
+    const matches = await service.listProductAttributeDefinitions(
       { key },
       { take: 1, withDeleted: true }
-    )) as ProductAttributeDefinitionRecord[]
+    )
     assertProductAttributeKeyAvailable({
       ...(matches[0] === undefined ? {} : { collision: matches[0] }),
       key,
       kind: "definition",
     })
 
-    const created = (await service.createProductAttributeDefinitions({
+    const created = await service.createProductAttributeDefinitions({
       input_type: input.input_type,
       is_public: input.is_public ?? false,
       key,
       label: input.label.trim(),
-    })) as ProductAttributeDefinitionRecord
+    })
 
     return new StepResponse(created, created.id)
   },
@@ -129,10 +129,10 @@ export const deleteProductAttributeDefinitionsStep = createStep(
   "delete-product-attribute-definitions",
   async (input: ProductAttributeDefinitionIdsInput, { container }) => {
     const service = getProductAttributeService(container)
-    const definitions = (await service.listProductAttributeDefinitions(
+    const definitions = await service.listProductAttributeDefinitions(
       { id: { $in: input.ids } },
       { take: Math.max(input.ids.length, 1), withDeleted: true }
-    )) as ProductAttributeDefinitionRecord[]
+    )
     const found = new Set(definitions.map((definition) => definition.id))
     const missing = input.ids.filter((id) => !found.has(id))
 
@@ -175,10 +175,10 @@ export const restoreProductAttributeDefinitionsStep = createStep(
   "restore-product-attribute-definitions",
   async (input: ProductAttributeDefinitionIdsInput, { container }) => {
     const service = getProductAttributeService(container)
-    const definitions = (await service.listProductAttributeDefinitions(
+    const definitions = await service.listProductAttributeDefinitions(
       { id: { $in: input.ids } },
       { take: Math.max(input.ids.length, 1), withDeleted: true }
-    )) as ProductAttributeDefinitionRecord[]
+    )
     const found = new Set(definitions.map((definition) => definition.id))
     const missing = input.ids.filter((id) => !found.has(id))
 

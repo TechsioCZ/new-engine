@@ -9,8 +9,8 @@ export type N1TreeNode = TreeNode & {
 
 export const transformToTree = (nodes: CategoryTreeNode[]): N1TreeNode[] =>
   nodes.map((node) => ({
+    children: node.children ? transformToTree(node.children) : [],
+    handle: node.handle,
     id: node.id,
     name: node.name,
-    handle: node.handle,
-    children: node.children ? transformToTree(node.children) : [],
   }))

@@ -1,24 +1,24 @@
 import { ModuleCompanySpendingLimitResetFrequency } from "../types"
 
-type CompanySpendContext = {
+interface CompanySpendContext {
   spending_limit_reset_frequency: ModuleCompanySpendingLimitResetFrequency
 }
 
-type EmployeeSpendContext = {
+interface EmployeeSpendContext {
   company: CompanySpendContext
   spending_limit: number
 }
 
-type OrderSpendContext = {
+interface OrderSpendContext {
   created_at: Date | string
   total: number
 }
 
-type CartSpendTotal = {
+interface CartSpendTotal {
   total: number
 }
 
-type CustomerSpendContext = {
+interface CustomerSpendContext {
   employee?: EmployeeSpendContext | null
   orders?: Array<OrderSpendContext | null> | null
 }
@@ -28,37 +28,42 @@ function getSpendWindow(company: CompanySpendContext): {
   end: Date
 } {
   if (!company) {
-    return { start: new Date(0), end: new Date() }
+    return { end: new Date(), start: new Date(0) }
   }
 
   const now = new Date()
   const resetFrequency = company.spending_limit_reset_frequency
 
   switch (resetFrequency) {
-    case ModuleCompanySpendingLimitResetFrequency.NEVER:
-      return { start: new Date(0), end: now } // Never resets
-    case ModuleCompanySpendingLimitResetFrequency.DAILY:
-      return { start: new Date(now.setHours(0, 0, 0, 0)), end: now } // Window is the current day up to now
+    case ModuleCompanySpendingLimitResetFrequency.NEVER: {
+      return { start: new Date(0), end: now }
+    } // Never resets
+    case ModuleCompanySpendingLimitResetFrequency.DAILY: {
+      return { start: new Date(now.setHours(0, 0, 0, 0)), end: now }
+    } // Window is the current day up to now
     case ModuleCompanySpendingLimitResetFrequency.WEEKLY: {
       const startOfWeek = new Date(now)
       startOfWeek.setDate(now.getDate() - now.getDay())
       startOfWeek.setHours(0, 0, 0, 0)
-      return { start: startOfWeek, end: now } // Window is the current week up to now, starting on Sunday
+      return { end: now, start: startOfWeek } // Window is the current week up to now, starting on Sunday
     }
-    case ModuleCompanySpendingLimitResetFrequency.MONTHLY:
+    case ModuleCompanySpendingLimitResetFrequency.MONTHLY: {
       return {
         start: new Date(now.getFullYear(), now.getMonth(), 1),
         end: now,
-      } // Window is the current month up to now
-    case ModuleCompanySpendingLimitResetFrequency.YEARLY:
-      return { start: new Date(now.getFullYear(), 0, 1), end: now } // Window is the current year up to now
-    default:
-      return { start: new Date(0), end: now } // Default to never resetting
+      }
+    } // Window is the current month up to now
+    case ModuleCompanySpendingLimitResetFrequency.YEARLY: {
+      return { start: new Date(now.getFullYear(), 0, 1), end: now }
+    } // Window is the current year up to now
+    default: {
+      return { start: new Date(0), end: now }
+    } // Default to never resetting
   }
 }
 
 function getOrderTotalInSpendWindow(
-  orders: Array<OrderSpendContext | null>,
+  orders: (OrderSpendContext | null)[],
   spendWindow: { start: Date; end: Date }
 ): number {
   return (
