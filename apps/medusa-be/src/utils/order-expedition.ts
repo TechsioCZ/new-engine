@@ -7,7 +7,6 @@ import {
 import type {
   ManualOrderBusinessStatusId,
   OrderBusinessStatus,
-  OrderBusinessStatusInput,
 } from "./order-business-status"
 
 export const ORDER_EXPEDITION_MAX_ORDER_IDS = 1000
@@ -72,18 +71,48 @@ interface OrderExpeditionShippingMethod {
   data?: Record<string, unknown> | null
 }
 
+type OrderExpeditionNumericValue = number | string
+
+interface OrderExpeditionQuantityValue {
+  value?: OrderExpeditionNumericValue | null
+}
+
+type OrderExpeditionDateValue = Date | string
+
+type OrderExpeditionNullable<T> = T | null
+
+type OrderExpeditionOptional<T> = T | undefined
+
+type OrderExpeditionMaybe<T> = OrderExpeditionOptional<
+  OrderExpeditionNullable<T>
+>
+
+type OrderExpeditionSummaryCollection =
+  | OrderExpeditionSummary
+  | OrderExpeditionSummary[]
+
+type OrderExpeditionAmountValue =
+  | OrderExpeditionNumericValue
+  | OrderExpeditionAmountLike
+
+type OrderExpeditionAmountInput = OrderExpeditionMaybe<
+  OrderExpeditionAmountValue | OrderExpeditionRawAmount
+>
+
 interface OrderExpeditionLineItem {
   id?: string | null
   title?: string | null
   subtitle?: string | null
   thumbnail?: string | null
-  quantity?: number | string | { value?: number | string | null } | null
+  quantity?: OrderExpeditionNullable<
+    OrderExpeditionNumericValue | OrderExpeditionQuantityValue
+  >
   raw_quantity?: OrderExpeditionRawAmount | null
   detail?: {
-    quantity?: number | string | null
+    quantity?: OrderExpeditionNumericValue | null
     raw_quantity?: OrderExpeditionRawAmount | null
   } | null
-  unit_price?: number | string | OrderExpeditionAmountLike | null
+  unit_price?: OrderExpeditionNullable<OrderExpeditionAmountValue>
   raw_unit_price?: OrderExpeditionRawAmount | null
   variant_id?: string | null
   variant_sku?: string | null
@@ -100,36 +129,36 @@ interface OrderExpeditionPaymentCollection {
 }
 
 interface OrderExpeditionRawAmount {
-  value?: number | string | null
+  value?: OrderExpeditionNumericValue | null
 }
 
 interface OrderExpeditionAmountLike {
-  valueOf(): unknown
+  valueOf: () => unknown
 }
 
 interface OrderExpeditionSummaryTotals {
-  current_order_total?: number | string | null
-  original_order_total?: number | string | null
+  current_order_total?: OrderExpeditionNumericValue | null
+  original_order_total?: OrderExpeditionNumericValue | null
   raw_current_order_total?: OrderExpeditionRawAmount | null
   raw_original_order_total?: OrderExpeditionRawAmount | null
 }
 
 interface OrderExpeditionSummary {
-  current_order_total?: number | string | null
-  original_order_total?: number | string | null
+  current_order_total?: OrderExpeditionNumericValue | null
+  original_order_total?: OrderExpeditionNumericValue | null
   raw_current_order_total?: OrderExpeditionRawAmount | null
   raw_original_order_total?: OrderExpeditionRawAmount | null
   totals?: OrderExpeditionSummaryTotals | null
-  version?: number | string | null
+  version?: OrderExpeditionNumericValue | null
 }
 
 interface OrderExpeditionFulfillment {
   id?: string | null
   canceled_at?: string | null
   data?: Record<string, unknown> | null
-  delivered_at?: Date | string | null
+  delivered_at?: OrderExpeditionDateValue | null
   provider_id?: string | null
-  shipped_at?: Date | string | null
+  shipped_at?: OrderExpeditionDateValue | null
 }
 
 interface OrderExpeditionCustomer {
@@ -142,7 +171,7 @@ interface OrderExpeditionCustomer {
 
 export interface OrderExpeditionRawOrder {
   id: string
-  created_at?: Date | string | null
+  created_at?: OrderExpeditionDateValue | null
   currency_code?: string | null
   display_id?: number | null
   custom_display_id?: string | null
@@ -152,8 +181,8 @@ export interface OrderExpeditionRawOrder {
   fulfillment_status?: string | null
   metadata?: Record<string, unknown> | null
   payment_status?: string | null
-  summary?: OrderExpeditionSummary | OrderExpeditionSummary[] | null
-  total?: number | string | OrderExpeditionAmountLike | null
+  summary?: OrderExpeditionSummaryCollection | null
+  total?: OrderExpeditionNullable<OrderExpeditionAmountValue>
   customer_id?: string | null
   customer?: OrderExpeditionCustomer | null
   shipping_address?: OrderExpeditionAddress | null
@@ -176,7 +205,7 @@ export interface OrderExpeditionItemDto {
   sku?: string | null
   stock_quantity?: number | null
   thumbnail?: string | null
-  unit_price?: number | string | null
+  unit_price?: OrderExpeditionNumericValue | null
   variant?: string | null
   variant_id?: string | null
 }
@@ -204,7 +233,7 @@ export interface OrderExpeditionOrderDto {
   status?: string | null
   manual_status?: ManualOrderBusinessStatusId | null
   packeta_barcode?: string | null
-  total?: number | string | null
+  total?: OrderExpeditionNumericValue | null
   has_active_fulfillment: boolean
   items: OrderExpeditionItemDto[]
   note?: string | null
@@ -307,107 +336,399 @@ const CARRIER_MATCHERS: Record<
 }
 const CARRIER_TOKEN_SEPARATOR_REGEX = /[^a-z0-9]+/u
 
-export function getOrderExpeditionDisplayId(
+export const getOrderExpeditionDisplayId = (
   order: Pick<
     OrderExpeditionRawOrder,
     "custom_display_id" | "display_id" | "id"
   >,
-) {
-  return order.custom_display_id || `#${order.display_id ?? order.id}`
+) => {
+  if (
+    order.custom_display_id !== null &&
+    order.custom_display_id !== undefined &&
+    order.custom_display_id !== ""
+  ) {
+    return order.custom_display_id
+  }
+
+  return `#${order.display_id ?? order.id}`
 }
 
-export function isOrderExpeditionCarrierKey(
+export const isOrderExpeditionCarrierKey = (
   value: string,
-): value is OrderExpeditionCarrierKey {
-  return ORDER_EXPEDITION_CARRIER_KEYS.some((carrier) => carrier === value)
-}
+): value is OrderExpeditionCarrierKey =>
+  ORDER_EXPEDITION_CARRIER_KEYS.some((carrier) => carrier === value)
 
-export function isOrderExpeditionTargetStatus(
+export const isOrderExpeditionTargetStatus = (
   value: string,
-): value is OrderExpeditionTargetStatus {
-  return ORDER_EXPEDITION_TARGET_STATUSES.some((status) => status === value)
-}
+): value is OrderExpeditionTargetStatus =>
+  ORDER_EXPEDITION_TARGET_STATUSES.some((status) => status === value)
 
-export function isOrderExpeditionRawOrder(
+export const isOrderExpeditionRawOrder = (
   value: unknown,
-): value is OrderExpeditionRawOrder {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "id" in value &&
-    typeof value.id === "string"
-  )
-}
+): value is OrderExpeditionRawOrder =>
+  typeof value === "object" &&
+  value !== null &&
+  "id" in value &&
+  typeof value.id === "string"
 
-export function resolveOrderExpeditionCarrier(
-  order: Pick<OrderExpeditionRawOrder, "shipping_methods">,
-): ResolvedOrderExpeditionCarrier {
-  for (const shippingMethod of order.shipping_methods ?? []) {
-    const searchable = normalizeSearchValue([
-      shippingMethod.name,
-      shippingMethod.shipping_option_id,
-      shippingMethod.data,
-    ])
-    const searchableTokens = new Set(
-      searchable.split(CARRIER_TOKEN_SEPARATOR_REGEX).filter(Boolean),
-    )
-
-    for (const key of ["gls", "ppl", "packeta"] as const) {
-      const matcher = CARRIER_MATCHERS[key]
-      if (matcher.tokens.some((token) => searchableTokens.has(token))) {
-        return {
-          label: matcher.label,
-          value: key,
-          ...(shippingMethod.id
-            ? { shipping_method_id: shippingMethod.id }
-            : {}),
-          ...(shippingMethod.name
-            ? { shipping_method_name: shippingMethod.name }
-            : {}),
-          ...(shippingMethod.shipping_option_id
-            ? { shipping_option_id: shippingMethod.shipping_option_id }
-            : {}),
-        }
-      }
-    }
-  }
-
-  return { label: "Other", value: "other" }
-}
-
-export function orderMatchesExpeditionCarrier(
-  order: Pick<OrderExpeditionRawOrder, "shipping_methods">,
-  carrier?: OrderExpeditionCarrierKey,
-) {
-  if (!carrier) {
-    return true
-  }
-
-  return resolveOrderExpeditionCarrier(order).value === carrier
-}
-
-function hasOrderExpeditionActiveFulfillment(
+const hasOrderExpeditionActiveFulfillment = (
   order: Pick<
     OrderExpeditionTransitionOrder,
     "fulfillments" | "has_active_fulfillment"
   >,
-) {
+) => {
   if (typeof order.has_active_fulfillment === "boolean") {
     return order.has_active_fulfillment
   }
 
   return Boolean(
-    order.fulfillments?.some((fulfillment) => !fulfillment.canceled_at),
+    order.fulfillments?.some(
+      (fulfillment) =>
+        fulfillment.canceled_at === null ||
+        fulfillment.canceled_at === undefined,
+    ),
   )
 }
 
-export function getOrderExpeditionTransitionBlockReason(
+export const toOrderExpeditionBlockingOrder = (
+  order: Pick<
+    OrderExpeditionRawOrder,
+    "id" | "custom_display_id" | "display_id"
+  >,
+  reason: string,
+): OrderExpeditionBlockingOrder => ({
+  id: order.id,
+  order_display_id: getOrderExpeditionDisplayId(order),
+  reason,
+})
+
+export const findMissingOrderIds = (
+  requestedOrderIds: string[],
+  orders: Pick<OrderExpeditionRawOrder, "id">[],
+) => {
+  const orderIds = new Set(orders.map((order) => order.id))
+  return requestedOrderIds.filter((orderId) => !orderIds.has(orderId))
+}
+
+export const orderOrdersByRequestedIds = <T extends { id: string }>(
+  requestedOrderIds: string[],
+  orders: T[],
+) => {
+  const ordersById = new Map(orders.map((order) => [order.id, order]))
+  return requestedOrderIds
+    .map((orderId) => ordersById.get(orderId))
+    .filter((order): order is T => Boolean(order))
+}
+
+const fetchOrderExpeditionOrdersByIds = async (
+  query: Query,
+  orderIds: string[],
+) => {
+  const { data } = await query.graph({
+    entity: "order",
+    fields: ORDER_EXPEDITION_ORDER_FIELDS,
+    filters: {
+      id: orderIds,
+    },
+  })
+
+  return Array.isArray(data) ? data.filter(isOrderExpeditionRawOrder) : []
+}
+
+export const fetchOrderedOrderExpeditionOrdersByIds = async (
+  query: Query,
+  orderIds: string[],
+) => {
+  const orders = await fetchOrderExpeditionOrdersByIds(query, orderIds)
+
+  return {
+    missingOrderIds: findMissingOrderIds(orderIds, orders),
+    orders: orderOrdersByRequestedIds(orderIds, orders),
+  }
+}
+
+const getOrderExpeditionPacketaBarcode = (
+  fulfillments?: OrderExpeditionFulfillment[] | null,
+) => {
+  const packetaFulfillment = fulfillments?.find(
+    (fulfillment) =>
+      fulfillment.provider_id?.toLowerCase().includes("packeta") === true &&
+      (fulfillment.canceled_at === null ||
+        fulfillment.canceled_at === undefined),
+  )
+  const barcode = packetaFulfillment?.data?.["barcode"]
+  const barcodeText = packetaFulfillment?.data?.["barcodeText"]
+  const packetId = packetaFulfillment?.data?.["packet_id"]
+
+  if (typeof barcode === "string" && barcode.trim()) {
+    return barcode.trim()
+  }
+
+  if (typeof barcodeText === "string" && barcodeText.trim()) {
+    return barcodeText.trim()
+  }
+
+  if (typeof packetId === "number" || typeof packetId === "string") {
+    return String(packetId)
+  }
+
+  return null
+}
+
+const getOrderExpeditionPaymentMethod = (order: OrderExpeditionRawOrder) => {
+  const providerId = order.payment_collections
+    ?.flatMap((collection) => collection.payments ?? [])
+    .find(
+      (payment) =>
+        payment.provider_id !== null && payment.provider_id !== undefined,
+    )?.provider_id
+
+  return providerId ?? order.payment_status ?? "Unknown"
+}
+
+const getOrderExpeditionSummaryVersion = (summary: OrderExpeditionSummary) => {
+  const version = Number(summary.version ?? 0)
+
+  return Number.isFinite(version) ? version : 0
+}
+
+const normalizeOrderExpeditionAmount = (
+  value: OrderExpeditionAmountInput,
+): OrderExpeditionOptional<OrderExpeditionNumericValue> => {
+  if (typeof value === "object" && value !== null) {
+    if ("value" in value) {
+      return normalizeOrderExpeditionAmount(value.value)
+    }
+
+    const primitive = value.valueOf()
+
+    if (typeof primitive === "number" || typeof primitive === "string") {
+      return normalizeOrderExpeditionAmount(primitive)
+    }
+
+    return undefined
+  }
+
+  const amount = value
+
+  return amount === "" || amount === null || amount === undefined
+    ? undefined
+    : amount
+}
+
+const isNonZeroAmount = (value: number | string | undefined) => {
+  const amount = Number(value)
+
+  return Number.isFinite(amount) && amount !== 0
+}
+
+const getOrderExpeditionSummaryAmount = (
+  amount: OrderExpeditionNumericValue | null | undefined,
+  rawAmount: OrderExpeditionRawAmount | null | undefined,
+) => {
+  const normalizedAmount = normalizeOrderExpeditionAmount(amount)
+  const normalizedRawAmount = normalizeOrderExpeditionAmount(rawAmount)
+
+  if (isNonZeroAmount(normalizedAmount) || normalizedRawAmount === undefined) {
+    return normalizedAmount
+  }
+
+  return normalizedRawAmount
+}
+
+const getLatestOrderExpeditionSummaryTotal = (
+  summary: OrderExpeditionRawOrder["summary"],
+): OrderExpeditionOptional<OrderExpeditionNumericValue> => {
+  let summaryEntries: OrderExpeditionSummary[]
+
+  if (Array.isArray(summary)) {
+    summaryEntries = summary
+  } else if (summary) {
+    summaryEntries = [summary]
+  } else {
+    summaryEntries = []
+  }
+
+  const summaries = summaryEntries.toSorted(
+    (left, right) =>
+      getOrderExpeditionSummaryVersion(right) -
+      getOrderExpeditionSummaryVersion(left),
+  )
+
+  let resolvedAmount: OrderExpeditionOptional<OrderExpeditionNumericValue>
+
+  for (const entry of summaries) {
+    const amount =
+      getOrderExpeditionSummaryAmount(
+        entry.current_order_total,
+        entry.raw_current_order_total,
+      ) ??
+      getOrderExpeditionSummaryAmount(
+        entry.totals?.current_order_total,
+        entry.totals?.raw_current_order_total,
+      ) ??
+      getOrderExpeditionSummaryAmount(
+        entry.original_order_total,
+        entry.raw_original_order_total,
+      ) ??
+      getOrderExpeditionSummaryAmount(
+        entry.totals?.original_order_total,
+        entry.totals?.raw_original_order_total,
+      )
+
+    if (amount !== undefined) {
+      resolvedAmount = amount
+      break
+    }
+  }
+
+  return resolvedAmount
+}
+
+const getOrderExpeditionTotal = (order: OrderExpeditionRawOrder) => {
+  const summaryTotal = getLatestOrderExpeditionSummaryTotal(order.summary)
+  const orderTotal = normalizeOrderExpeditionAmount(order.total)
+
+  if (isNonZeroAmount(orderTotal) || summaryTotal === undefined) {
+    return orderTotal ?? null
+  }
+
+  return summaryTotal
+}
+
+export const getOrderExpeditionNote = (
+  metadata?: Record<string, unknown> | null,
+) => {
+  if (!metadata) {
+    return null
+  }
+
+  for (const key of ["note", "notes", "customer_note", "comment"]) {
+    const value = metadata[key]
+    if (typeof value === "string" && value.trim()) {
+      return value.trim()
+    }
+  }
+
+  return null
+}
+
+const getOrderExpeditionItemQuantity = (
+  quantity: OrderExpeditionLineItem["quantity"],
+) => {
+  const value =
+    typeof quantity === "object" && quantity !== null && "value" in quantity
+      ? quantity.value
+      : quantity
+  const parsed = Number(value ?? 0)
+
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+const toOrderExpeditionItemDto = (
+  item: OrderExpeditionLineItem,
+): OrderExpeditionItemDto => {
+  const quantity = getOrderExpeditionItemQuantity(
+    item.detail?.quantity ??
+      item.detail?.raw_quantity ??
+      item.quantity ??
+      item.raw_quantity,
+  )
+
+  return {
+    ...(item.id === undefined ? {} : { id: item.id }),
+    quantity,
+    sku: item.variant_sku,
+    thumbnail: item.thumbnail,
+    title: item.title ?? item.subtitle ?? item.id ?? "Untitled item",
+    unit_price:
+      normalizeOrderExpeditionAmount(item.unit_price) ??
+      normalizeOrderExpeditionAmount(item.raw_unit_price) ??
+      null,
+    variant: item.variant_title,
+    variant_id: item.variant_id,
+  }
+}
+
+const joinNonEmpty = (values: (string | null | undefined)[]) =>
+  values
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value))
+    .join(" ")
+
+const getOrderExpeditionCustomerName = (order: OrderExpeditionRawOrder) => {
+  const customerName = joinNonEmpty([
+    order.customer?.company_name,
+    order.customer?.first_name,
+    order.customer?.last_name,
+  ])
+
+  if (customerName !== "") {
+    return customerName
+  }
+
+  const shippingName = joinNonEmpty([
+    order.shipping_address?.company,
+    order.shipping_address?.first_name,
+    order.shipping_address?.last_name,
+  ])
+
+  return (
+    [shippingName, order.customer?.email, order.email].find(
+      (value) => value !== null && value !== undefined && value !== "",
+    ) ?? order.id
+  )
+}
+
+const formatOrderExpeditionAddress = (
+  address?: OrderExpeditionAddress | null,
+) => {
+  if (!address) {
+    return []
+  }
+
+  return [
+    joinNonEmpty([address.company]),
+    joinNonEmpty([address.first_name, address.last_name]),
+    joinNonEmpty([address.address_1, address.address_2]),
+    joinNonEmpty([address.postal_code, address.city]),
+    joinNonEmpty([address.province]),
+    joinNonEmpty([address.country_code?.toUpperCase()]),
+    joinNonEmpty([address.phone]),
+  ].filter(Boolean)
+}
+
+const normalizeDate = (value: OrderExpeditionDateValue | null | undefined) => {
+  if (value instanceof Date) {
+    return value.toISOString()
+  }
+
+  return value ?? null
+}
+
+const isOrderExpeditionTransitionSourceStatus = (
+  value: string,
+): value is keyof typeof ORDER_EXPEDITION_ALLOWED_STATUS_TRANSITIONS =>
+  value in ORDER_EXPEDITION_ALLOWED_STATUS_TRANSITIONS
+
+const formatStatusForReason = (status: string) => status.replaceAll("_", " ")
+
+const formatStatusSubject = (status: string) => {
+  const formatted = formatStatusForReason(status)
+  return `${formatted.charAt(0).toUpperCase()}${formatted.slice(1)}`
+}
+
+export const getOrderExpeditionTransitionBlockReason = (
   order: OrderExpeditionTransitionOrder,
   targetStatus: OrderExpeditionTargetStatus,
-) {
+): OrderExpeditionOptional<string> => {
   const currentStatus = order.status
 
-  if (!currentStatus) {
+  if (
+    currentStatus === null ||
+    currentStatus === undefined ||
+    currentStatus === ""
+  ) {
     return "Order status is unknown"
   }
 
@@ -445,390 +766,12 @@ export function getOrderExpeditionTransitionBlockReason(
   const allowedTargetStatuses: readonly OrderExpeditionTargetStatus[] =
     ORDER_EXPEDITION_ALLOWED_STATUS_TRANSITIONS[currentStatus]
 
-  if (!allowedTargetStatuses.includes(targetStatus)) {
-    return `${formatStatusSubject(currentStatus)} orders cannot be changed to ${formatStatusForReason(targetStatus)}`
-  }
-
-  return
-}
-
-export function toOrderExpeditionDto(
-  order: OrderExpeditionRawOrder,
-  signals: OrderExpeditionCustomerSignals = {
-    note: false,
-    returning_customer: false,
-    storn_orders: false,
-  },
-  noteOverride?: string | null,
-): OrderExpeditionOrderDto {
-  return {
-    id: order.id,
-    business_status: resolveOrderBusinessStatus(order),
-    created_at: normalizeDate(order.created_at),
-    ...(order.currency_code === undefined
-      ? {}
-      : { currency_code: order.currency_code }),
-    ...(order.display_id === undefined ? {} : { display_id: order.display_id }),
-    order_display_id: getOrderExpeditionDisplayId(order),
-    customer: getOrderExpeditionCustomerName(order),
-    email: order.email ?? order.customer?.email ?? null,
-    delivery_address: formatOrderExpeditionAddress(order.shipping_address),
-    carrier: resolveOrderExpeditionCarrier(order),
-    payment_method: getOrderExpeditionPaymentMethod(order),
-    ...(order.payment_status === undefined
-      ? {}
-      : { payment_status: order.payment_status }),
-    ...(order.fulfillment_status === undefined
-      ? {}
-      : { fulfillment_status: order.fulfillment_status }),
-    ...(order.status === undefined ? {} : { status: order.status }),
-    manual_status: getManualOrderBusinessStatusId(order) ?? null,
-    packeta_barcode: getOrderExpeditionPacketaBarcode(order.fulfillments),
-    total: getOrderExpeditionTotal(order),
-    has_active_fulfillment: hasOrderExpeditionActiveFulfillment(order),
-    items: (order.items ?? []).map(toOrderExpeditionItemDto),
-    note: noteOverride ?? getOrderExpeditionNote(order.metadata),
-    signals,
-  }
-}
-
-export function toOrderExpeditionBlockingOrder(
-  order: Pick<
-    OrderExpeditionRawOrder,
-    "id" | "custom_display_id" | "display_id"
-  >,
-  reason: string,
-): OrderExpeditionBlockingOrder {
-  return {
-    id: order.id,
-    order_display_id: getOrderExpeditionDisplayId(order),
-    reason,
-  }
-}
-
-export function findMissingOrderIds(
-  requestedOrderIds: string[],
-  orders: Pick<OrderExpeditionRawOrder, "id">[],
-) {
-  const orderIds = new Set(orders.map((order) => order.id))
-  return requestedOrderIds.filter((orderId) => !orderIds.has(orderId))
-}
-
-export function orderOrdersByRequestedIds<T extends { id: string }>(
-  requestedOrderIds: string[],
-  orders: T[],
-) {
-  const ordersById = new Map(orders.map((order) => [order.id, order]))
-  return requestedOrderIds
-    .map((orderId) => ordersById.get(orderId))
-    .filter((order): order is T => Boolean(order))
-}
-
-async function fetchOrderExpeditionOrdersByIds(
-  query: Query,
-  orderIds: string[],
-) {
-  const { data } = await query.graph({
-    entity: "order",
-    fields: ORDER_EXPEDITION_ORDER_FIELDS,
-    filters: {
-      id: orderIds,
-    },
-  })
-
-  return Array.isArray(data) ? data.filter(isOrderExpeditionRawOrder) : []
-}
-
-export async function fetchOrderedOrderExpeditionOrdersByIds(
-  query: Query,
-  orderIds: string[],
-) {
-  const orders = await fetchOrderExpeditionOrdersByIds(query, orderIds)
-
-  return {
-    missingOrderIds: findMissingOrderIds(orderIds, orders),
-    orders: orderOrdersByRequestedIds(orderIds, orders),
-  }
-}
-
-function getOrderExpeditionCustomerName(order: OrderExpeditionRawOrder) {
-  const customerName = joinNonEmpty([
-    order.customer?.company_name,
-    order.customer?.first_name,
-    order.customer?.last_name,
-  ])
-
-  if (customerName) {
-    return customerName
-  }
-
-  const shippingName = joinNonEmpty([
-    order.shipping_address?.company,
-    order.shipping_address?.first_name,
-    order.shipping_address?.last_name,
-  ])
-
-  return shippingName || order.customer?.email || order.email || order.id
-}
-
-function formatOrderExpeditionAddress(address?: OrderExpeditionAddress | null) {
-  if (!address) {
-    return []
-  }
-
-  return [
-    joinNonEmpty([address.company]),
-    joinNonEmpty([address.first_name, address.last_name]),
-    joinNonEmpty([address.address_1, address.address_2]),
-    joinNonEmpty([address.postal_code, address.city]),
-    joinNonEmpty([address.province]),
-    joinNonEmpty([address.country_code?.toUpperCase()]),
-    joinNonEmpty([address.phone]),
-  ].filter(Boolean)
-}
-
-function getOrderExpeditionPacketaBarcode(
-  fulfillments?: OrderExpeditionFulfillment[] | null,
-) {
-  const packetaFulfillment = fulfillments?.find(
-    (fulfillment) =>
-      fulfillment.provider_id?.toLowerCase().includes("packeta") &&
-      !fulfillment.canceled_at,
-  )
-  const barcode = packetaFulfillment?.data?.["barcode"]
-  const barcodeText = packetaFulfillment?.data?.["barcodeText"]
-  const packetId = packetaFulfillment?.data?.["packet_id"]
-
-  if (typeof barcode === "string" && barcode.trim()) {
-    return barcode.trim()
-  }
-
-  if (typeof barcodeText === "string" && barcodeText.trim()) {
-    return barcodeText.trim()
-  }
-
-  if (typeof packetId === "number" || typeof packetId === "string") {
-    return String(packetId)
-  }
-
-  return null
-}
-
-function getOrderExpeditionPaymentMethod(order: OrderExpeditionRawOrder) {
-  const providerId = order.payment_collections
-    ?.flatMap((collection) => collection.payments ?? [])
-    .find((payment) => payment.provider_id)?.provider_id
-
-  return providerId ?? order.payment_status ?? "Unknown"
-}
-
-function getOrderExpeditionTotal(order: OrderExpeditionRawOrder) {
-  const summaryTotal = getLatestOrderExpeditionSummaryTotal(order.summary)
-  const orderTotal = normalizeOrderExpeditionAmount(order.total)
-
-  if (isNonZeroAmount(orderTotal) || summaryTotal === undefined) {
-    return orderTotal ?? null
-  }
-
-  return summaryTotal
-}
-
-function getLatestOrderExpeditionSummaryTotal(
-  summary: OrderExpeditionRawOrder["summary"],
-) {
-  let summaryEntries: OrderExpeditionSummary[]
-
-  if (Array.isArray(summary)) {
-    summaryEntries = summary
-  } else if (summary) {
-    summaryEntries = [summary]
-  } else {
-    summaryEntries = []
-  }
-
-  const summaries = [...summaryEntries].sort(
-    (left, right) =>
-      getOrderExpeditionSummaryVersion(right) -
-      getOrderExpeditionSummaryVersion(left),
-  )
-
-  for (const entry of summaries) {
-    const amount =
-      getOrderExpeditionSummaryAmount(
-        entry.current_order_total,
-        entry.raw_current_order_total,
-      ) ??
-      getOrderExpeditionSummaryAmount(
-        entry.totals?.current_order_total,
-        entry.totals?.raw_current_order_total,
-      ) ??
-      getOrderExpeditionSummaryAmount(
-        entry.original_order_total,
-        entry.raw_original_order_total,
-      ) ??
-      getOrderExpeditionSummaryAmount(
-        entry.totals?.original_order_total,
-        entry.totals?.raw_original_order_total,
-      )
-
-    if (amount !== undefined) {
-      return amount
-    }
-  }
-
-  return
-}
-
-function getOrderExpeditionSummaryAmount(
-  amount: number | string | null | undefined,
-  rawAmount: OrderExpeditionRawAmount | null | undefined,
-) {
-  const normalizedAmount = normalizeOrderExpeditionAmount(amount)
-  const normalizedRawAmount = normalizeOrderExpeditionAmount(rawAmount)
-
-  if (isNonZeroAmount(normalizedAmount) || normalizedRawAmount === undefined) {
-    return normalizedAmount
-  }
-
-  return normalizedRawAmount
-}
-
-function getOrderExpeditionSummaryVersion(summary: OrderExpeditionSummary) {
-  const version = Number(summary.version ?? 0)
-
-  return Number.isFinite(version) ? version : 0
-}
-
-function normalizeOrderExpeditionAmount(
-  value:
-    | OrderExpeditionAmountLike
-    | OrderExpeditionRawAmount
-    | OrderExpeditionRawOrder["total"]
-    | null
-    | undefined,
-): number | string | undefined {
-  if (typeof value === "object" && value !== null) {
-    if ("value" in value) {
-      return normalizeOrderExpeditionAmount(value.value)
-    }
-
-    const primitive = value.valueOf()
-
-    if (typeof primitive === "number" || typeof primitive === "string") {
-      return normalizeOrderExpeditionAmount(primitive)
-    }
-
-    return
-  }
-
-  const amount = value
-
-  return amount === "" || amount === null || amount === undefined
+  return allowedTargetStatuses.includes(targetStatus)
     ? undefined
-    : amount
+    : `${formatStatusSubject(currentStatus)} orders cannot be changed to ${formatStatusForReason(targetStatus)}`
 }
 
-function isNonZeroAmount(value: number | string | undefined) {
-  const amount = Number(value)
-
-  return Number.isFinite(amount) && amount !== 0
-}
-
-function toOrderExpeditionItemDto(
-  item: OrderExpeditionLineItem,
-): OrderExpeditionItemDto {
-  const quantity = getOrderExpeditionItemQuantity(
-    item.detail?.quantity ??
-      item.detail?.raw_quantity ??
-      item.quantity ??
-      item.raw_quantity,
-  )
-
-  return {
-    ...(item.id === undefined ? {} : { id: item.id }),
-    title: item.title || item.subtitle || item.id || "Untitled item",
-    quantity,
-    ...(item.variant_sku === undefined ? {} : { sku: item.variant_sku }),
-    ...(item.thumbnail === undefined ? {} : { thumbnail: item.thumbnail }),
-    unit_price:
-      normalizeOrderExpeditionAmount(item.unit_price) ??
-      normalizeOrderExpeditionAmount(item.raw_unit_price) ??
-      null,
-    ...(item.variant_title === undefined
-      ? {}
-      : { variant: item.variant_title }),
-    ...(item.variant_id === undefined ? {} : { variant_id: item.variant_id }),
-  }
-}
-
-export function getOrderExpeditionNote(
-  metadata?: Record<string, unknown> | null,
-) {
-  if (!metadata) {
-    return null
-  }
-
-  for (const key of ["note", "notes", "customer_note", "comment"]) {
-    const value = metadata[key]
-    if (typeof value === "string" && value.trim()) {
-      return value.trim()
-    }
-  }
-
-  return null
-}
-
-function getOrderExpeditionItemQuantity(
-  quantity: OrderExpeditionLineItem["quantity"],
-) {
-  const value =
-    typeof quantity === "object" && quantity !== null && "value" in quantity
-      ? quantity.value
-      : quantity
-  const parsed = Number(value ?? 0)
-
-  return Number.isFinite(parsed) ? parsed : 0
-}
-
-function joinNonEmpty(values: (string | null | undefined)[]) {
-  return values
-    .map((value) => value?.trim())
-    .filter((value): value is string => Boolean(value))
-    .join(" ")
-}
-
-function normalizeDate(value: Date | string | null | undefined) {
-  if (value instanceof Date) {
-    return value.toISOString()
-  }
-
-  return value ?? null
-}
-
-function isOrderExpeditionTransitionSourceStatus(
-  value: string,
-): value is keyof typeof ORDER_EXPEDITION_ALLOWED_STATUS_TRANSITIONS {
-  return value in ORDER_EXPEDITION_ALLOWED_STATUS_TRANSITIONS
-}
-
-function formatStatusForReason(status: string) {
-  return status.replaceAll("_", " ")
-}
-
-function formatStatusSubject(status: string) {
-  const formatted = formatStatusForReason(status)
-  return `${formatted.charAt(0).toUpperCase()}${formatted.slice(1)}`
-}
-
-function normalizeSearchValue(value: unknown): string {
-  return flattenSearchParts(value)
-    .join(" ")
-    .toLowerCase()
-    .normalize("NFD")
-    .replaceAll(/\p{Diacritic}/gu, "")
-}
-
-function flattenSearchParts(value: unknown): string[] {
+const flattenSearchParts = (value: unknown): string[] => {
   if (value === null || value === undefined) {
     return []
   }
@@ -846,10 +789,109 @@ function flattenSearchParts(value: unknown): string[] {
   }
 
   if (typeof value === "object") {
-    return Object.values(value as Record<string, unknown>).flatMap(
-      flattenSearchParts,
-    )
+    return Object.values(value).flatMap(flattenSearchParts)
   }
 
   return []
 }
+
+const normalizeSearchValue = (value: unknown): string =>
+  flattenSearchParts(value)
+    .join(" ")
+    .toLowerCase()
+    .normalize("NFD")
+    .replaceAll(/\p{Diacritic}/gu, "")
+
+export const resolveOrderExpeditionCarrier = (
+  order: Pick<OrderExpeditionRawOrder, "shipping_methods">,
+): ResolvedOrderExpeditionCarrier => {
+  for (const shippingMethod of order.shipping_methods ?? []) {
+    const searchable = normalizeSearchValue([
+      shippingMethod.name,
+      shippingMethod.shipping_option_id,
+      shippingMethod.data,
+    ])
+    const searchableTokens = new Set(
+      searchable.split(CARRIER_TOKEN_SEPARATOR_REGEX).filter(Boolean),
+    )
+
+    for (const key of ["gls", "ppl", "packeta"] as const) {
+      const matcher = CARRIER_MATCHERS[key]
+      if (matcher.tokens.some((token) => searchableTokens.has(token))) {
+        return {
+          label: matcher.label,
+          value: key,
+          ...(shippingMethod.id === null ||
+          shippingMethod.id === undefined ||
+          shippingMethod.id === ""
+            ? {}
+            : { shipping_method_id: shippingMethod.id }),
+          ...(shippingMethod.name === null ||
+          shippingMethod.name === undefined ||
+          shippingMethod.name === ""
+            ? {}
+            : { shipping_method_name: shippingMethod.name }),
+          ...(shippingMethod.shipping_option_id === null ||
+          shippingMethod.shipping_option_id === undefined ||
+          shippingMethod.shipping_option_id === ""
+            ? {}
+            : { shipping_option_id: shippingMethod.shipping_option_id }),
+        }
+      }
+    }
+  }
+
+  return { label: "Other", value: "other" }
+}
+
+export const orderMatchesExpeditionCarrier = (
+  order: Pick<OrderExpeditionRawOrder, "shipping_methods">,
+  carrier?: OrderExpeditionCarrierKey,
+) => {
+  if (!carrier) {
+    return true
+  }
+
+  return resolveOrderExpeditionCarrier(order).value === carrier
+}
+
+const DEFAULT_ORDER_EXPEDITION_CUSTOMER_SIGNALS: OrderExpeditionCustomerSignals =
+  {
+    note: false,
+    returning_customer: false,
+    storn_orders: false,
+  }
+
+export const toOrderExpeditionDto = (
+  order: OrderExpeditionRawOrder,
+  signals: OrderExpeditionCustomerSignals = DEFAULT_ORDER_EXPEDITION_CUSTOMER_SIGNALS,
+  noteOverride?: string | null,
+): OrderExpeditionOrderDto => ({
+  business_status: resolveOrderBusinessStatus(order),
+  carrier: resolveOrderExpeditionCarrier(order),
+  created_at: normalizeDate(order.created_at),
+  customer: getOrderExpeditionCustomerName(order),
+  delivery_address: formatOrderExpeditionAddress(order.shipping_address),
+  email: order.email ?? order.customer?.email ?? null,
+  has_active_fulfillment: hasOrderExpeditionActiveFulfillment(order),
+  id: order.id,
+  items: (order.items ?? []).map(toOrderExpeditionItemDto),
+  manual_status: getManualOrderBusinessStatusId(order) ?? null,
+  note: noteOverride ?? getOrderExpeditionNote(order.metadata),
+  order_display_id: getOrderExpeditionDisplayId(order),
+  packeta_barcode: getOrderExpeditionPacketaBarcode(order.fulfillments),
+  payment_method: getOrderExpeditionPaymentMethod(order),
+  signals,
+  total: getOrderExpeditionTotal(order),
+  ...(order.currency_code === undefined
+    ? {}
+    : { currency_code: order.currency_code }),
+  ...(order.display_id === undefined ? {} : { display_id: order.display_id }),
+  ...(order.fulfillment_status === undefined
+    ? {}
+    : { fulfillment_status: order.fulfillment_status }),
+  ...(order.payment_status === undefined
+    ? {}
+    : { payment_status: order.payment_status }),
+  ...(order.status === undefined ? {} : { status: order.status }),
+})
