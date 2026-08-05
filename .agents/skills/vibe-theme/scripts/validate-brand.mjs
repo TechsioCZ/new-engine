@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/// <reference types="node" />
 /*
  * Standalone validator for a code-authored ("vibed") brand. NOT wired into the
  * CI-blocking `pnpm validate:tokens` chain — run it by hand while iterating on
@@ -22,21 +23,24 @@
  */
 
 import { existsSync, readFileSync } from "node:fs"
-import { dirname, join, resolve } from "node:path"
-import { fileURLToPath } from "node:url"
+import path from "node:path"
+import process from "node:process"
 
-const __dirname = import.meta.dirname
-const REPO_ROOT = resolve(__dirname, "..", "..", "..", "..")
-const FIGMA_DIR = join(REPO_ROOT, "libs/ui/src/tokens/figma")
+const SCRIPT_DIR = import.meta.dirname
+const REPO_ROOT = path.resolve(SCRIPT_DIR, "..", "..", "..", "..")
+const FIGMA_DIR = path.join(REPO_ROOT, "libs/ui/src/tokens/figma")
 
-const DECL_RE = /^\s*(--[a-z0-9-]+):\s*([^;]+);/gm
+const DECL_RE = /^\s*(?<name>--[a-z0-9-]+):\s*(?<value>[^;]+);/gmu
 
-/*
+/**
  * fg / bg pairs to check for AA contrast, with the minimum ratio. 4.5 is AA for
  * normal-size text (badge/button labels are small, so they use 4.5, not the 3.0
  * large-text threshold). Only pairs whose BOTH tokens exist in the per-mode
  * export can be checked — there is no page-background token in the export, so an
  * "accent text on page" pair is intentionally omitted rather than left dead.
+ *
+ * @typedef {readonly [string, string, string, number]} ContrastPair
+ * @type {readonly ContrastPair[]}
  */
 const CONTRAST_PAIRS = [
   [
@@ -55,47 +59,65 @@ const CONTRAST_PAIRS = [
 
 let errors = 0
 let warns = 0
-const err = (m) => {
+/** @param {string} message - Message to report. */
+const err = (message) => {
   errors += 1
-  console.error(`  ✗ ${m}`)
+  console.error(`  ✗ ${message}`)
 }
-const warn = (m) => {
+/** @param {string} message - Message to report. */
+const warn = (message) => {
   warns += 1
-  console.warn(`  ⚠ ${m}`)
+  console.warn(`  ⚠ ${message}`)
 }
-const ok = (m) => {
-  console.log(`  ✓ ${m}`)
+/** @param {string} message - Message to report. */
+const ok = (message) => {
+  console.log(`  ✓ ${message}`)
 }
 
-function parseDecls(relDir) {
-  const file = join(FIGMA_DIR, relDir, "variables.css")
+/**
+ * @typedef {Map<string, string>} TokenMap
+ * @param {string} relativeDirectory - Directory relative to the Figma token root.
+ * @returns {TokenMap | null} Parsed declarations, or null when the file is absent.
+ */
+const parseDecls = (relativeDirectory) => {
+  const file = path.join(FIGMA_DIR, relativeDirectory, "variables.css")
   if (!existsSync(file)) {
     return null
   }
   const css = readFileSync(file, "utf-8")
-  const out = new Map()
+  /** @type {TokenMap} */
+  const declarations = new Map()
   DECL_RE.lastIndex = 0
-  for (const m of css.matchAll(DECL_RE)) {
-    out.set(m[1], m[2].trim())
+  for (const match of css.matchAll(DECL_RE)) {
+    const name = match.groups?.name
+    const value = match.groups?.value
+    if (name !== undefined && value !== undefined) {
+      declarations.set(name, value.trim())
+    }
   }
-  return out
+  return declarations
 }
 
-function checkParity(label, brandMap, baseMap) {
+/**
+ * @param {string} label - Human-readable validation label.
+ * @param {TokenMap} brandMap - Brand declarations to validate.
+ * @param {TokenMap} baseMap - Reference declarations to compare against.
+ */
+const checkParity = (label, brandMap, baseMap) => {
   const brandNames = new Set(brandMap.keys())
   const baseNames = new Set(baseMap.keys())
-  const missing = [...baseNames].filter((n) => !brandNames.has(n))
-  const extra = [...brandNames].filter((n) => !baseNames.has(n))
+  const missing = [...baseNames].filter((name) => !brandNames.has(name))
+  const extra = [...brandNames].filter((name) => !baseNames.has(name))
   if (missing.length === 0 && extra.length === 0) {
     ok(`${label}: name parity with base (${brandNames.size} tokens)`)
     return
   }
-  if (missing.length) {
+  if (missing.length > 0) {
     err(
       `${label}: missing ${missing.length} base tokens, e.g. ${missing.slice(0, 5).join(", ")}`,
     )
   }
-  if (extra.length) {
+  if (extra.length > 0) {
     err(
       `${label}: ${extra.length} tokens not in base, e.g. ${extra.slice(0, 5).join(", ")}`,
     )
@@ -104,21 +126,26 @@ function checkParity(label, brandMap, baseMap) {
 
 // Primitive scale names may legitimately hold raw literals.
 const PRIMITIVE_RE =
-  /^--color-(primary|secondary|tertiary|neutral|gray|grey)-(alpha-)?\d+$/
+  /^--color-(?:primary|secondary|tertiary|neutral|gray|grey)-(?:alpha-)?\d+$/u
 
-function checkAliasDowngrade(label, brandMap, baseMap) {
+/**
+ * @param {string} label - Human-readable validation label.
+ * @param {TokenMap} brandMap - Brand declarations to validate.
+ * @param {TokenMap} baseMap - Reference declarations to compare against.
+ */
+const checkAliasDowngrade = (label, brandMap, baseMap) => {
   let count = 0
-  for (const [name, baseVal] of baseMap) {
-    const brandVal = brandMap.get(name)
-    if (brandVal === undefined) {
+  for (const [name, baseValue] of baseMap) {
+    const brandValue = brandMap.get(name)
+    if (brandValue === undefined) {
       continue
     }
-    const baseAliases = baseVal.startsWith("var(")
-    const brandLiteral = !brandVal.startsWith("var(")
+    const baseAliases = baseValue.startsWith("var(")
+    const brandLiteral = !brandValue.startsWith("var(")
     if (baseAliases && brandLiteral && !PRIMITIVE_RE.test(name)) {
       count += 1
       if (count <= 8) {
-        err(`${label}: ${name} downgraded alias→literal (was ${baseVal})`)
+        err(`${label}: ${name} downgraded alias→literal (was ${baseValue})`)
       }
     }
   }
@@ -131,108 +158,159 @@ function checkAliasDowngrade(label, brandMap, baseMap) {
 
 /* ---------- color resolution + WCAG contrast (best-effort) ---------- */
 
-function resolveVar(name, map, seen = new Set()) {
+/**
+ * @param {string} name - Token name to resolve.
+ * @param {TokenMap} map - Token declarations containing aliases.
+ * @param {Set<string>} [seen] - Names already visited during recursion.
+ * @returns {string | null} Resolved token value, or null for cycles and missing names.
+ */
+const resolveVar = (name, map, seen = new Set()) => {
   if (seen.has(name)) {
     return null
   }
   seen.add(name)
-  const val = map.get(name)
-  if (val === undefined) {
+  const value = map.get(name)
+  if (value === undefined) {
     return null
   }
-  const m = val.match(/^var\((--[a-z0-9-]+)\)$/)
-  if (m) {
-    return resolveVar(m[1], map, seen)
+  const match = /^var\((?<name>--[a-z0-9-]+)\)$/u.exec(value)
+  const referencedName = match?.groups?.name
+  if (referencedName !== undefined) {
+    return resolveVar(referencedName, map, seen)
   }
-  return val
+  return value
 }
 
-function srgbToLinear(c) {
-  return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
-}
+/** @param {number} component - Normalized sRGB component. */
+const srgbToLinear = (component) =>
+  component <= 0.03928
+    ? component / 12.92
+    : ((component + 0.055) / 1.055) ** 2.4
 
-function hexToLinear(hex) {
-  let h = hex.replace("#", "")
-  if (h.length === 3) {
-    h = [...h].map((x) => x + x).join("")
+/**
+ * @typedef {[number, number, number]} LinearRgb
+ * @param {string} hex - Hex color string.
+ * @returns {LinearRgb | null} Linear RGB components, or null for invalid input.
+ */
+const hexToLinear = (hex) => {
+  let normalized = hex.replace("#", "")
+  if (normalized.length === 3) {
+    normalized = normalized.replaceAll(/./gu, "$&$&")
   }
-  if (h.length !== 6) {
+  if (normalized.length !== 6) {
     return null
   }
-  const r = Number.parseInt(h.slice(0, 2), 16) / 255
-  const g = Number.parseInt(h.slice(2, 4), 16) / 255
-  const b = Number.parseInt(h.slice(4, 6), 16) / 255
-  return [srgbToLinear(r), srgbToLinear(g), srgbToLinear(b)]
+  const red = Number.parseInt(normalized.slice(0, 2), 16) / 255
+  const green = Number.parseInt(normalized.slice(2, 4), 16) / 255
+  const blue = Number.parseInt(normalized.slice(4, 6), 16) / 255
+  return [srgbToLinear(red), srgbToLinear(green), srgbToLinear(blue)]
 }
 
-function oklchToLinear(str) {
-  const m = str.match(
-    /^oklch\(\s*([\d.]+%?)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*[\d.]+)?\s*\)$/,
-  )
-  if (!m) {
+/**
+ * @param {string} value - OKLCH color string.
+ * @returns {LinearRgb | null} Linear RGB components, or null for invalid input.
+ */
+const oklchToLinear = (value) => {
+  const match =
+    /^oklch\(\s*(?<lightness>[\d.]+%?)\s+(?<chroma>[\d.]+)\s+(?<hue>[\d.]+)(?:\s*\/\s*[\d.]+)?\s*\)$/u.exec(
+      value,
+    )
+  const lightnessText = match?.groups?.lightness
+  const chromaText = match?.groups?.chroma
+  const hueText = match?.groups?.hue
+  if (
+    lightnessText === undefined ||
+    chromaText === undefined ||
+    hueText === undefined
+  ) {
     return null
   }
-  let L = Number.parseFloat(m[1])
-  if (m[1].endsWith("%")) {
-    L /= 100
+  let lightness = Number(lightnessText)
+  if (lightnessText.endsWith("%")) {
+    lightness /= 100
   }
-  const C = Number.parseFloat(m[2])
-  const H = (Number.parseFloat(m[3]) * Math.PI) / 180
-  const a = C * Math.cos(H)
-  const b = C * Math.sin(H)
-  const l_ = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
-  const m_ = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
-  const s_ = (L - 0.0894841775 * a - 1.291485548 * b) ** 3
+  const chroma = Number(chromaText)
+  const hue = (Number(hueText) * Math.PI) / 180
+  const a = chroma * Math.cos(hue)
+  const b = chroma * Math.sin(hue)
+  const lPrime = (lightness + 0.3963377774 * a + 0.2158037573 * b) ** 3
+  const mPrime = (lightness - 0.1055613458 * a - 0.0638541728 * b) ** 3
+  const sPrime = (lightness - 0.0894841775 * a - 1.291485548 * b) ** 3
   return [
-    4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_,
-    -1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_,
-    -0.0041960863 * l_ - 0.7034186147 * m_ + 1.707614701 * s_,
+    4.0767416621 * lPrime - 3.3077115913 * mPrime + 0.2309699292 * sPrime,
+    -1.2684380046 * lPrime + 2.6097574011 * mPrime - 0.3413193965 * sPrime,
+    -0.0041960863 * lPrime - 0.7034186147 * mPrime + 1.707614701 * sPrime,
   ]
 }
 
-const NAMED = { black: "#000000", white: "#ffffff" }
+const NAMED_COLORS = new Map([
+  ["black", "#000000"],
+  ["white", "#ffffff"],
+])
 
-function toLinear(value) {
-  if (!value) {
+/**
+ * @param {string | null} value - Concrete color value to convert.
+ * @returns {LinearRgb | null} Linear RGB components, or null for unsupported input.
+ */
+const toLinear = (value) => {
+  if (value === null || value.length === 0) {
     return null
   }
-  const v = value.trim()
-  if (NAMED[v]) {
-    return hexToLinear(NAMED[v])
+  const normalized = value.trim()
+  const namedColor = NAMED_COLORS.get(normalized)
+  if (namedColor !== undefined) {
+    return hexToLinear(namedColor)
   }
-  if (v.startsWith("#")) {
-    return hexToLinear(v)
+  if (normalized.startsWith("#")) {
+    return hexToLinear(normalized)
   }
-  if (v.startsWith("oklch(")) {
-    return oklchToLinear(v)
+  if (normalized.startsWith("oklch(")) {
+    return oklchToLinear(normalized)
   }
   return null
 }
 
-function luminance(lin) {
-  const [r, g, b] = lin.map((c) => Math.min(Math.max(c, 0), 1))
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+/** @param {LinearRgb} linear - Linear RGB components. */
+const luminance = (linear) => {
+  const [red, green, blue] = linear.map((component) =>
+    Math.min(Math.max(component, 0), 1),
+  )
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue
 }
 
-function contrast(a, b) {
-  const la = luminance(a)
-  const lb = luminance(b)
-  const hi = Math.max(la, lb)
-  const lo = Math.min(la, lb)
-  return (hi + 0.05) / (lo + 0.05)
+/**
+ * @param {LinearRgb} first - First linear RGB color.
+ * @param {LinearRgb} second - Second linear RGB color.
+ */
+const contrast = (first, second) => {
+  const firstLuminance = luminance(first)
+  const secondLuminance = luminance(second)
+  const high = Math.max(firstLuminance, secondLuminance)
+  const low = Math.min(firstLuminance, secondLuminance)
+  return (high + 0.05) / (low + 0.05)
 }
 
-function checkContrast(label, brandMap) {
-  for (const [fgName, bgName, pairLabel, min] of CONTRAST_PAIRS) {
-    const fg = toLinear(resolveVar(fgName, brandMap))
-    const bg = toLinear(resolveVar(bgName, brandMap))
-    if (!(fg && bg)) {
-      continue // unresolved (e.g. gradient / unknown color form) — skip
+/**
+ * @param {string} label - Human-readable validation label.
+ * @param {TokenMap} brandMap - Brand declarations to check.
+ */
+const checkContrast = (label, brandMap) => {
+  for (const [
+    foregroundName,
+    backgroundName,
+    pairLabel,
+    minimum,
+  ] of CONTRAST_PAIRS) {
+    const foreground = toLinear(resolveVar(foregroundName, brandMap))
+    const background = toLinear(resolveVar(backgroundName, brandMap))
+    if (foreground === null || background === null) {
+      // Skip unresolved gradients and unknown color forms.
+      continue
     }
-    const ratio = contrast(fg, bg)
-    if (ratio < min) {
+    const ratio = contrast(foreground, background)
+    if (ratio < minimum) {
       warn(
-        `${label}: ${pairLabel} contrast ${ratio.toFixed(2)}:1 < ${min}:1 (${fgName} on ${bgName})`,
+        `${label}: ${pairLabel} contrast ${ratio.toFixed(2)}:1 < ${minimum}:1 (${foregroundName} on ${backgroundName})`,
       )
     } else {
       ok(`${label}: ${pairLabel} contrast ${ratio.toFixed(2)}:1`)
@@ -240,9 +318,9 @@ function checkContrast(label, brandMap) {
   }
 }
 
-function main() {
-  const brand = process.argv[2]
-  if (!brand) {
+const main = () => {
+  const brand = process.argv.at(2)
+  if (brand === undefined || brand.length === 0) {
     console.error("usage: validate-brand.mjs <brand>")
     process.exit(1)
   }
@@ -254,13 +332,24 @@ function main() {
 
   console.log(`Validating brand "${brand}"\n`)
 
-  if (!brandLight) {
+  if (baseLight === null) {
+    err("figma/light/variables.css not found")
+  }
+  if (baseDark === null) {
+    err("figma/dark/variables.css not found")
+  }
+  if (brandLight === null) {
     err(`figma/${brand}/variables.css not found`)
   }
-  if (!brandDark) {
+  if (brandDark === null) {
     err(`figma/${brand}-dark/variables.css not found`)
   }
-  if (!(brandLight && brandDark)) {
+  if (
+    baseLight === null ||
+    baseDark === null ||
+    brandLight === null ||
+    brandDark === null
+  ) {
     console.log(`\n${errors} error(s).`)
     process.exit(1)
   }
