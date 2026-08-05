@@ -1,10 +1,12 @@
 import type {
+  CreateProductDTO,
   ExecArgs,
   IOrderModuleService,
   IProductModuleService,
   IRegionModuleService,
   ISalesChannelModuleService,
   Logger,
+  OrderStatus,
   ProductCategoryDTO,
 } from "@medusajs/framework/types"
 import {
@@ -25,17 +27,6 @@ interface DemoVariant {
   } | null
 }
 
-interface DemoRegion {
-  id: string
-  name?: string | null
-  currency_code?: string | null
-}
-
-interface DemoSalesChannel {
-  id: string
-  name?: string | null
-}
-
 interface DemoOrder {
   carrierName: string
   carrierData: Record<string, unknown>
@@ -46,18 +37,10 @@ interface DemoOrder {
   firstName: string
   lastName: string
   postalCode: string
-  status:
-    | "pending"
-    | "completed"
-    | "draft"
-    | "archived"
-    | "canceled"
-    | "requires_action"
+  status: OrderStatus
 }
 
-type DemoProductInput = {
-  handle: string
-} & Record<string, unknown>
+type DemoProductInput = CreateProductDTO & { handle: string }
 
 interface QueryService {
   graph: (input: {
@@ -74,7 +57,7 @@ interface ExistingDemoOrder {
   id: string
   display_id?: number | null
   email?: string | null
-  metadata?: Record<string, unknown> | null
+  metadata: Record<string, unknown>
 }
 
 const PRODUCT_IMAGE_URLS = [
@@ -98,7 +81,8 @@ const PRODUCT_GROUPS = [
 const SIZES = ["S", "M", "L"] as const
 const COLORS = ["Black", "Olive", "Natural", "Navy"] as const
 const DEMO_ORDER_COUNT = 36
-const DEMO_ORDER_EMAIL_REGEX = /^expedition\.demo\.(\d+)@example\.test$/u
+const DEMO_ORDER_EMAIL_REGEX =
+  /^expedition\.demo\.(?<orderIndex>\d+)@example\.test$/u
 const DEMO_ORDER_DATE_OFFSETS = [
   { daysAgo: 0, hour: 8, minute: 10 },
   { daysAgo: 0, hour: 10, minute: 45 },
@@ -138,7 +122,524 @@ const DEMO_ORDER_DATE_OFFSETS = [
   { daysAgo: 360, hour: 11, minute: 10 },
 ] as const
 
-export default async function seedOrderExpeditionDemo({ container }: ExecArgs) {
+const pickCircular = <T>(items: readonly T[], index: number): T => {
+  const item = items[index % items.length]
+
+  if (item === undefined) {
+    throw new Error("Cannot pick from an empty demo seed collection")
+  }
+
+  return item
+}
+
+const buildDemoProductHandles = () =>
+  Array.from({ length: 24 }, (_, index) => `order-expedition-demo-${index + 1}`)
+
+const getDemoOrderCreatedAt = (index: number, now: Date) => {
+  const offset = pickCircular(DEMO_ORDER_DATE_OFFSETS, index)
+  const createdAt = new Date(now)
+
+  createdAt.setHours(offset.hour, offset.minute, 0, 0)
+  createdAt.setDate(createdAt.getDate() - offset.daysAgo)
+
+  return createdAt
+}
+
+const buildDemoProducts = (
+  categories: Map<string, ProductCategoryDTO>,
+): DemoProductInput[] =>
+  Array.from({ length: 24 }, (_, index) => {
+    const group = pickCircular(PRODUCT_GROUPS, index)
+    const category = categories.get(group.handle)
+    const color = pickCircular(COLORS, index)
+    const productNumber = index + 1
+
+    return {
+      ...(category === undefined ? {} : { category_ids: [category.id] }),
+      description: `Demo product ${productNumber} for order expedition testing.`,
+      handle: `order-expedition-demo-${productNumber}`,
+      images: [{ url: pickCircular(PRODUCT_IMAGE_URLS, index) }],
+      metadata: {
+        order_expedition_demo: true,
+      },
+      options: [
+        {
+          title: "Size",
+          values: [...SIZES],
+        },
+        {
+          title: "Color",
+          values: [color],
+        },
+      ],
+      status: ProductStatus.PUBLISHED,
+      title: `${group.title} ${productNumber}`,
+      variants: SIZES.map((size) => ({
+        allow_backorder: true,
+        manage_inventory: false,
+        options: {
+          Color: color,
+          Size: size,
+        },
+        sku: `EXP-${String(productNumber).padStart(2, "0")}-${size}`,
+        title: `${size} / ${color}`,
+      })),
+      weight: 400,
+    }
+  })
+
+const buildDemoOrders = (now = new Date()): DemoOrder[] => {
+  const names = [
+    ["Jana", "Novakova", "Praha"],
+    ["Petr", "Svoboda", "Brno"],
+    ["Eva", "Dvorakova", "Ostrava"],
+    ["Tomas", "Prochazka", "Plzen"],
+    ["Lucie", "Cerna", "Liberec"],
+    ["Martin", "Vesely", "Olomouc"],
+    ["Katerina", "Kralova", "Hradec Kralove"],
+    ["Marek", "Fiala", "Zlin"],
+    ["Barbora", "Kucerova", "Pardubice"],
+    ["David", "Marek", "Ceske Budejovice"],
+  ] as const
+  const carriers = [
+    {
+      carrierData: { provider: "ppl", service: "parcelshop" },
+      carrierName: "PPL ParcelShop",
+    },
+    {
+      carrierData: { provider: "ppl", service: "home" },
+      carrierName: "PPL Home Delivery",
+    },
+    {
+      carrierData: { pickupPoint: "Z-123", provider: "Packeta" },
+      carrierName: "Packeta Z-Point",
+    },
+    {
+      carrierData: { provider: "Zasilkovna", service: "home" },
+      carrierName: "Packeta Home Delivery",
+    },
+    {
+      carrierData: { provider: "manual", service: "courier" },
+      carrierName: "Courier Pickup",
+    },
+  ] as const
+  const statuses: OrderStatus[] = [
+    "pending",
+    "pending",
+    "requires_action",
+    "draft",
+    "completed",
+    "archived",
+    "canceled",
+  ]
+
+  return Array.from({ length: DEMO_ORDER_COUNT }, (_, index) => {
+    const [firstName, lastName, city] = pickCircular(names, index)
+    const carrier = pickCircular(carriers, index)
+
+    return {
+      ...carrier,
+      city,
+      ...(index % 7 === 0 ? { company: `Demo Company ${index + 1}` } : {}),
+      createdAt: getDemoOrderCreatedAt(index, now),
+      email: `expedition.demo.${index + 1}@example.test`,
+      firstName,
+      lastName,
+      postalCode: `${11_000 + index}`,
+      status: pickCircular(statuses, index),
+    }
+  })
+}
+
+const getDemoOrderEmailIndex = (email?: string | null) => {
+  const orderIndex = email?.match(DEMO_ORDER_EMAIL_REGEX)?.groups?.[
+    "orderIndex"
+  ]
+  const index = orderIndex === undefined ? null : Number(orderIndex) - 1
+
+  return index !== null && Number.isFinite(index) ? index : null
+}
+
+const getExistingDemoOrderSortIndex = (
+  order: ExistingDemoOrder,
+  fallbackIndex: number,
+) => {
+  const metadataIndex = order.metadata["order_expedition_demo_index"]
+  if (typeof metadataIndex === "number" && Number.isFinite(metadataIndex)) {
+    return metadataIndex
+  }
+
+  if (typeof metadataIndex === "string") {
+    const parsedIndex = Number(metadataIndex)
+    if (Number.isFinite(parsedIndex)) {
+      return parsedIndex
+    }
+  }
+
+  const emailIndex = getDemoOrderEmailIndex(order.email)
+  if (emailIndex !== null) {
+    return emailIndex
+  }
+
+  return order.display_id ?? fallbackIndex
+}
+
+const sortExistingDemoOrders = (orders: ExistingDemoOrder[]) =>
+  orders
+    .map((order, index) => ({
+      order,
+      sortIndex: getExistingDemoOrderSortIndex(order, index),
+    }))
+    .toSorted((left, right) => {
+      if (left.sortIndex !== right.sortIndex) {
+        return left.sortIndex - right.sortIndex
+      }
+
+      return left.order.id.localeCompare(right.order.id)
+    })
+    .map(({ order }) => order)
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
+const isOptionalNullableString = (
+  value: unknown,
+): value is string | null | undefined =>
+  value === undefined || value === null || typeof value === "string"
+
+const isOptionalNullableNumber = (
+  value: unknown,
+): value is number | null | undefined =>
+  value === undefined || value === null || typeof value === "number"
+
+const isExistingDemoOrder = (value: unknown): value is ExistingDemoOrder => {
+  if (!isRecord(value) || typeof value["id"] !== "string") {
+    return false
+  }
+
+  const { metadata } = value
+  if (!isRecord(metadata) || metadata["order_expedition_demo"] !== true) {
+    return false
+  }
+
+  return (
+    isOptionalNullableNumber(value["display_id"]) &&
+    isOptionalNullableString(value["email"])
+  )
+}
+
+const isDemoProduct = (
+  value: unknown,
+): value is NonNullable<DemoVariant["product"]> =>
+  isRecord(value) &&
+  isOptionalNullableString(value["id"]) &&
+  isOptionalNullableString(value["title"]) &&
+  isOptionalNullableString(value["handle"])
+
+const isDemoVariant = (value: unknown): value is DemoVariant => {
+  if (!isRecord(value) || typeof value["id"] !== "string") {
+    return false
+  }
+
+  const { product } = value
+  if (product !== undefined && product !== null && !isDemoProduct(product)) {
+    return false
+  }
+
+  return (
+    isOptionalNullableString(value["sku"]) &&
+    isOptionalNullableString(value["title"])
+  )
+}
+
+const fetchExistingDemoOrders = async (query: QueryService) => {
+  const { data } = await query.graph({
+    entity: "order",
+    fields: ["id", "display_id", "email", "metadata"],
+  })
+  const orders = Array.isArray(data) ? data.filter(isExistingDemoOrder) : []
+
+  return sortExistingDemoOrders(orders)
+}
+
+const fetchVariants = async (query: QueryService) => {
+  const { data } = await query.graph({
+    entity: "variant",
+    fields: [
+      "id",
+      "sku",
+      "title",
+      "product.id",
+      "product.title",
+      "product.handle",
+    ],
+  })
+  const demoHandles = new Set(buildDemoProductHandles())
+  const variants = Array.isArray(data) ? data.filter(isDemoVariant) : []
+
+  return variants.filter((variant) =>
+    demoHandles.has(variant.product?.handle ?? ""),
+  )
+}
+
+const updateOrderCreatedAt = async (
+  pgConnection: DatabaseConnection,
+  orderId: string,
+  createdAt: Date,
+) =>
+  await pgConnection.raw('update "order" set "created_at" = ? where "id" = ?', [
+    createdAt,
+    orderId,
+  ])
+
+const normalizeExistingDemoOrderDates = async (
+  pgConnection: DatabaseConnection,
+  existingDemoOrders: ExistingDemoOrder[],
+  logger: Logger,
+) => {
+  if (existingDemoOrders.length === 0) {
+    return
+  }
+
+  const now = new Date()
+  await Promise.all(
+    existingDemoOrders.map(
+      async (order, index) =>
+        await updateOrderCreatedAt(
+          pgConnection,
+          order.id,
+          getDemoOrderCreatedAt(index, now),
+        ),
+    ),
+  )
+
+  logger.info(
+    `Normalized created_at dates for ${existingDemoOrders.length} existing order expedition demo orders.`,
+  )
+}
+
+const ensureRegion = async (container: ExecArgs["container"]) => {
+  const regionService = container.resolve<IRegionModuleService>(Modules.REGION)
+  const existing = await regionService.listRegions({ name: "Czechia" })
+  const [region] = existing
+
+  if (region !== undefined) {
+    return region
+  }
+
+  return await regionService.createRegions({
+    countries: ["cz"],
+    currency_code: "czk",
+    name: "Czechia",
+  })
+}
+
+const ensureSalesChannel = async (container: ExecArgs["container"]) => {
+  const salesChannelService = container.resolve<ISalesChannelModuleService>(
+    Modules.SALES_CHANNEL,
+  )
+  const existing = await salesChannelService.listSalesChannels({
+    name: "Default Sales Channel",
+  })
+  const [salesChannel] = existing
+
+  if (salesChannel !== undefined) {
+    return salesChannel
+  }
+
+  return await salesChannelService.createSalesChannels({
+    name: "Default Sales Channel",
+  })
+}
+
+const ensureCategories = async (productService: IProductModuleService) => {
+  const existing = await productService.listProductCategories(
+    {},
+    {
+      select: ["id", "handle", "name"],
+    },
+  )
+  const demoHandles = new Set<string>(
+    PRODUCT_GROUPS.map((group) => group.handle),
+  )
+  const existingHandles = new Set(existing.map((category) => category.handle))
+  const missing = PRODUCT_GROUPS.filter(
+    (group) => !existingHandles.has(group.handle),
+  )
+
+  if (missing.length > 0) {
+    await productService.createProductCategories(
+      missing.map((group) => ({
+        handle: group.handle,
+        is_active: true,
+        name: group.category,
+      })),
+    )
+  }
+
+  const categories = await productService.listProductCategories(
+    {},
+    {
+      select: ["id", "handle", "name"],
+    },
+  )
+
+  return new Map(
+    categories
+      .filter((category) => demoHandles.has(category.handle))
+      .map((category) => [category.handle, category]),
+  )
+}
+
+const ensureProducts = async (
+  container: ExecArgs["container"],
+  logger: Logger,
+) => {
+  const productService = container.resolve<IProductModuleService>(
+    Modules.PRODUCT,
+  )
+  const categories = await ensureCategories(productService)
+  const existingProducts = await productService.listProducts(
+    {},
+    {
+      select: ["handle"],
+    },
+  )
+  const demoHandles = new Set(buildDemoProductHandles())
+  const existingHandles = new Set(
+    existingProducts
+      .map((product) => product.handle)
+      .filter(
+        (handle): handle is string =>
+          handle !== null && demoHandles.has(handle),
+      ),
+  )
+  const missingProducts = buildDemoProducts(categories).filter(
+    (product) => !existingHandles.has(product.handle),
+  )
+
+  if (missingProducts.length === 0) {
+    logger.info("Order expedition demo products already exist.")
+    return
+  }
+
+  await productService.createProducts(missingProducts)
+  logger.info(
+    `Created ${missingProducts.length} order expedition demo products.`,
+  )
+}
+
+const hasText = (value: string | null | undefined): value is string =>
+  typeof value === "string" && value.length > 0
+
+const createDemoOrders = async ({
+  container,
+  existingOrderCount,
+  orderService,
+  orders,
+  pgConnection,
+  region,
+  salesChannelId,
+  variants,
+}: {
+  container: ExecArgs["container"]
+  existingOrderCount: number
+  orderService: IOrderModuleService
+  orders: DemoOrder[]
+  pgConnection: DatabaseConnection
+  region: { currency_code?: string | null; id: string }
+  salesChannelId: string
+  variants: DemoVariant[]
+}) => {
+  const createOrder = async (order: DemoOrder, index: number) => {
+    const absoluteIndex = existingOrderCount + index
+    const orderVariants = [
+      variants[absoluteIndex % variants.length],
+      variants[(absoluteIndex + 7) % variants.length],
+      variants[(absoluteIndex + 13) % variants.length],
+    ].filter((variant): variant is DemoVariant => variant !== undefined)
+
+    const { result } = await createOrderWorkflow(container).run({
+      input: {
+        currency_code: region.currency_code ?? "czk",
+        email: order.email,
+        items: orderVariants.map((variant, itemIndex) => ({
+          ...(hasText(variant.product?.handle)
+            ? { product_handle: variant.product.handle }
+            : {}),
+          ...(hasText(variant.product?.id)
+            ? { product_id: variant.product.id }
+            : {}),
+          product_title: variant.product?.title ?? "Demo product",
+          quantity: itemIndex === 0 ? 2 : 1,
+          title: variant.product?.title ?? variant.title ?? "Demo item",
+          unit_price: 250 + itemIndex * 75,
+          variant_id: variant.id,
+          ...(hasText(variant.sku) ? { variant_sku: variant.sku } : {}),
+          ...(hasText(variant.title) ? { variant_title: variant.title } : {}),
+        })),
+        metadata: {
+          order_expedition_demo: true,
+          order_expedition_demo_index: absoluteIndex,
+        },
+        no_notification: true,
+        region_id: region.id,
+        sales_channel_id: salesChannelId,
+        shipping_address: {
+          address_1: `${100 + absoluteIndex} Demo street`,
+          city: order.city,
+          ...(hasText(order.company) ? { company: order.company } : {}),
+          country_code: "cz",
+          first_name: order.firstName,
+          last_name: order.lastName,
+          phone: `+420777${String(100_000 + absoluteIndex).slice(-6)}`,
+          postal_code: order.postalCode,
+        },
+        shipping_methods: [
+          {
+            amount: 99,
+            data: order.carrierData,
+            name: order.carrierName,
+          },
+        ],
+        status: order.status,
+        transactions: [
+          {
+            amount: 1099 + absoluteIndex * 10,
+            currency_code: region.currency_code ?? "czk",
+            reference: absoluteIndex % 3 === 0 ? "cod" : "card",
+            reference_id: `order-expedition-demo-${absoluteIndex + 1}`,
+          },
+        ],
+      },
+    })
+
+    await updateOrderCreatedAt(pgConnection, result.id, order.createdAt)
+
+    if (order.status === "draft") {
+      await orderService.updateOrders([
+        {
+          id: result.id,
+          is_draft_order: true,
+        },
+      ])
+    }
+  }
+
+  const createNextOrder = async (index: number): Promise<void> => {
+    const order = orders[index]
+    if (order === undefined) {
+      return
+    }
+
+    await createOrder(order, index)
+    await createNextOrder(index + 1)
+  }
+
+  await createNextOrder(0)
+}
+
+const seedOrderExpeditionDemo = async ({ container }: ExecArgs) => {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve<QueryService>(ContainerRegistrationKeys.QUERY)
   const orderService = container.resolve<IOrderModuleService>(Modules.ORDER)
@@ -177,79 +678,16 @@ export default async function seedOrderExpeditionDemo({ container }: ExecArgs) {
   }
 
   const ordersToCreate = buildDemoOrders().slice(existingDemoOrders.length)
-
-  for (const [index, order] of ordersToCreate.entries()) {
-    const absoluteIndex = existingDemoOrders.length + index
-    const orderVariants = [
-      variants[absoluteIndex % variants.length],
-      variants[(absoluteIndex + 7) % variants.length],
-      variants[(absoluteIndex + 13) % variants.length],
-    ].filter((variant): variant is DemoVariant => Boolean(variant))
-
-    const { result } = await createOrderWorkflow(container).run({
-      input: {
-        currency_code: region.currency_code ?? "czk",
-        email: order.email,
-        items: orderVariants.map((variant, itemIndex) => ({
-          ...(variant.product?.handle
-            ? { product_handle: variant.product.handle }
-            : {}),
-          ...(variant.product?.id ? { product_id: variant.product.id } : {}),
-          product_title: variant.product?.title ?? "Demo product",
-          quantity: itemIndex === 0 ? 2 : 1,
-          title: variant.product?.title ?? variant.title ?? "Demo item",
-          unit_price: 250 + itemIndex * 75,
-          variant_id: variant.id,
-          ...(variant.sku ? { variant_sku: variant.sku } : {}),
-          ...(variant.title ? { variant_title: variant.title } : {}),
-        })),
-        metadata: {
-          order_expedition_demo: true,
-          order_expedition_demo_index: absoluteIndex,
-        },
-        no_notification: true,
-        region_id: region.id,
-        sales_channel_id: salesChannel.id,
-        shipping_address: {
-          address_1: `${100 + absoluteIndex} Demo street`,
-          city: order.city,
-          ...(order.company ? { company: order.company } : {}),
-          country_code: "cz",
-          first_name: order.firstName,
-          last_name: order.lastName,
-          phone: `+420777${String(100_000 + absoluteIndex).slice(-6)}`,
-          postal_code: order.postalCode,
-        },
-        shipping_methods: [
-          {
-            amount: 99,
-            data: order.carrierData,
-            name: order.carrierName,
-          },
-        ],
-        status: order.status,
-        transactions: [
-          {
-            amount: 1099 + absoluteIndex * 10,
-            currency_code: region.currency_code ?? "czk",
-            reference: absoluteIndex % 3 === 0 ? "cod" : "card",
-            reference_id: `order-expedition-demo-${absoluteIndex + 1}`,
-          },
-        ],
-      },
-    })
-
-    await updateOrderCreatedAt(pgConnection, result.id, order.createdAt)
-
-    if (order.status === "draft") {
-      await orderService.updateOrders([
-        {
-          id: result.id,
-          is_draft_order: true,
-        },
-      ])
-    }
-  }
+  await createDemoOrders({
+    container,
+    existingOrderCount: existingDemoOrders.length,
+    orderService,
+    orders: ordersToCreate,
+    pgConnection,
+    region,
+    salesChannelId: salesChannel.id,
+    variants,
+  })
 
   logger.info(
     `Created ${ordersToCreate.length} order expedition demo orders. Total demo orders: ${
@@ -258,370 +696,4 @@ export default async function seedOrderExpeditionDemo({ container }: ExecArgs) {
   )
 }
 
-async function ensureRegion(container: ExecArgs["container"]) {
-  const regionService = container.resolve<IRegionModuleService>(Modules.REGION)
-  const existing = await regionService.listRegions({ name: "Czechia" })
-  const region = existing[0]
-
-  if (region) {
-    return region as DemoRegion
-  }
-
-  return (await regionService.createRegions({
-    countries: ["cz"],
-    currency_code: "czk",
-    name: "Czechia",
-  })) as DemoRegion
-}
-
-async function ensureSalesChannel(container: ExecArgs["container"]) {
-  const salesChannelService = container.resolve<ISalesChannelModuleService>(
-    Modules.SALES_CHANNEL,
-  )
-  const existing = await salesChannelService.listSalesChannels({
-    name: "Default Sales Channel",
-  })
-  const salesChannel = existing[0]
-
-  if (salesChannel) {
-    return salesChannel as DemoSalesChannel
-  }
-
-  return (await salesChannelService.createSalesChannels({
-    name: "Default Sales Channel",
-  })) as DemoSalesChannel
-}
-
-async function ensureProducts(
-  container: ExecArgs["container"],
-  logger: Logger,
-) {
-  const productService = container.resolve<IProductModuleService>(
-    Modules.PRODUCT,
-  )
-  const categories = await ensureCategories(productService)
-  const existingProducts = await productService.listProducts(
-    {},
-    {
-      select: ["handle"],
-    },
-  )
-  const demoHandles = new Set(buildDemoProductHandles())
-  const existingHandles = new Set(
-    existingProducts
-      .map((product) => product.handle)
-      .filter((handle): handle is string => demoHandles.has(handle ?? "")),
-  )
-  const missingProducts = buildDemoProducts(categories).filter(
-    (product) => !existingHandles.has(product.handle),
-  )
-
-  if (!missingProducts.length) {
-    logger.info("Order expedition demo products already exist.")
-    return
-  }
-
-  await productService.createProducts(missingProducts as never)
-  logger.info(
-    `Created ${missingProducts.length} order expedition demo products.`,
-  )
-}
-
-async function ensureCategories(productService: IProductModuleService) {
-  const existing = await productService.listProductCategories(
-    {},
-    {
-      select: ["id", "handle", "name"],
-    },
-  )
-  const demoHandles = new Set<string>(
-    PRODUCT_GROUPS.map((group) => group.handle),
-  )
-  const existingHandles = new Set(existing.map((category) => category.handle))
-  const missing = PRODUCT_GROUPS.filter(
-    (group) => !existingHandles.has(group.handle),
-  )
-
-  if (missing.length) {
-    await productService.createProductCategories(
-      missing.map((group) => ({
-        handle: group.handle,
-        is_active: true,
-        name: group.category,
-      })),
-    )
-  }
-
-  const categories = await productService.listProductCategories(
-    {},
-    {
-      select: ["id", "handle", "name"],
-    },
-  )
-
-  return new Map(
-    categories
-      .filter((category) => demoHandles.has(category.handle))
-      .map((category) => [category.handle, category]),
-  )
-}
-
-function buildDemoProducts(
-  categories: Map<string, ProductCategoryDTO>,
-): DemoProductInput[] {
-  return Array.from({ length: 24 }, (_, index) => {
-    const group = pickCircular(PRODUCT_GROUPS, index)
-    const category = categories.get(group.handle)
-    const color = pickCircular(COLORS, index)
-    const productNumber = index + 1
-
-    return {
-      category_ids: category ? [category.id] : undefined,
-      description: `Demo product ${productNumber} for order expedition testing.`,
-      handle: `order-expedition-demo-${productNumber}`,
-      images: [{ url: pickCircular(PRODUCT_IMAGE_URLS, index) }],
-      metadata: {
-        order_expedition_demo: true,
-      },
-      options: [
-        {
-          title: "Size",
-          values: [...SIZES],
-        },
-        {
-          title: "Color",
-          values: [color],
-        },
-      ],
-      status: ProductStatus.PUBLISHED,
-      title: `${group.title} ${productNumber}`,
-      variants: SIZES.map((size) => ({
-        allow_backorder: true,
-        manage_inventory: false,
-        options: {
-          Color: color,
-          Size: size,
-        },
-        sku: `EXP-${String(productNumber).padStart(2, "0")}-${size}`,
-        title: `${size} / ${color}`,
-      })),
-      weight: 400,
-    }
-  })
-}
-
-function buildDemoProductHandles() {
-  return Array.from(
-    { length: 24 },
-    (_, index) => `order-expedition-demo-${index + 1}`,
-  )
-}
-
-function buildDemoOrders(now = new Date()): DemoOrder[] {
-  const names = [
-    ["Jana", "Novakova", "Praha"],
-    ["Petr", "Svoboda", "Brno"],
-    ["Eva", "Dvorakova", "Ostrava"],
-    ["Tomas", "Prochazka", "Plzen"],
-    ["Lucie", "Cerna", "Liberec"],
-    ["Martin", "Vesely", "Olomouc"],
-    ["Katerina", "Kralova", "Hradec Kralove"],
-    ["Marek", "Fiala", "Zlin"],
-    ["Barbora", "Kucerova", "Pardubice"],
-    ["David", "Marek", "Ceske Budejovice"],
-  ] as const
-  const carriers = [
-    {
-      carrierData: { provider: "ppl", service: "parcelshop" },
-      carrierName: "PPL ParcelShop",
-    },
-    {
-      carrierData: { provider: "ppl", service: "home" },
-      carrierName: "PPL Home Delivery",
-    },
-    {
-      carrierData: { pickupPoint: "Z-123", provider: "Packeta" },
-      carrierName: "Packeta Z-Point",
-    },
-    {
-      carrierData: { provider: "Zasilkovna", service: "home" },
-      carrierName: "Packeta Home Delivery",
-    },
-    {
-      carrierData: { provider: "manual", service: "courier" },
-      carrierName: "Courier Pickup",
-    },
-  ] as const
-  const statuses: DemoOrder["status"][] = [
-    "pending",
-    "pending",
-    "requires_action",
-    "draft",
-    "completed",
-    "archived",
-    "canceled",
-  ]
-
-  return Array.from({ length: DEMO_ORDER_COUNT }, (_, index) => {
-    const [firstName, lastName, city] = pickCircular(names, index)
-    const carrier = pickCircular(carriers, index)
-
-    return {
-      ...carrier,
-      city,
-      ...(index % 7 === 0 ? { company: `Demo Company ${index + 1}` } : {}),
-      createdAt: getDemoOrderCreatedAt(index, now),
-      email: `expedition.demo.${index + 1}@example.test`,
-      firstName,
-      lastName,
-      postalCode: `${11_000 + index}`,
-      status: pickCircular(statuses, index),
-    }
-  })
-}
-
-function pickCircular<T>(items: readonly T[], index: number): T {
-  const item = items[index % items.length]
-
-  if (item === undefined) {
-    throw new Error("Cannot pick from an empty demo seed collection")
-  }
-
-  return item
-}
-
-async function fetchExistingDemoOrders(query: QueryService) {
-  const { data } = await query.graph({
-    entity: "order",
-    fields: ["id", "display_id", "email", "metadata"],
-  })
-
-  const orders = Array.isArray(data)
-    ? data.filter(
-        (order): order is ExistingDemoOrder =>
-          typeof order === "object" &&
-          order !== null &&
-          "id" in order &&
-          typeof order.id === "string" &&
-          "metadata" in order &&
-          (order as { metadata?: Record<string, unknown> }).metadata?.[
-            "order_expedition_demo"
-          ] === true,
-      )
-    : []
-
-  return sortExistingDemoOrders(orders)
-}
-
-async function fetchVariants(query: QueryService) {
-  const { data } = await query.graph({
-    entity: "variant",
-    fields: [
-      "id",
-      "sku",
-      "title",
-      "product.id",
-      "product.title",
-      "product.handle",
-    ],
-  })
-  const demoHandles = new Set(buildDemoProductHandles())
-
-  return Array.isArray(data)
-    ? (data as DemoVariant[]).filter((variant) =>
-        demoHandles.has(variant.product?.handle ?? ""),
-      )
-    : []
-}
-
-async function normalizeExistingDemoOrderDates(
-  pgConnection: DatabaseConnection,
-  existingDemoOrders: ExistingDemoOrder[],
-  logger: Logger,
-) {
-  if (!existingDemoOrders.length) {
-    return
-  }
-
-  const now = new Date()
-
-  for (const [index, order] of existingDemoOrders.entries()) {
-    await updateOrderCreatedAt(
-      pgConnection,
-      order.id,
-      getDemoOrderCreatedAt(index, now),
-    )
-  }
-
-  logger.info(
-    `Normalized created_at dates for ${existingDemoOrders.length} existing order expedition demo orders.`,
-  )
-}
-
-async function updateOrderCreatedAt(
-  pgConnection: DatabaseConnection,
-  orderId: string,
-  createdAt: Date,
-) {
-  await pgConnection.raw('update "order" set "created_at" = ? where "id" = ?', [
-    createdAt,
-    orderId,
-  ])
-}
-
-function getDemoOrderCreatedAt(index: number, now: Date) {
-  const offset = pickCircular(DEMO_ORDER_DATE_OFFSETS, index)
-  const createdAt = new Date(now)
-
-  createdAt.setHours(offset.hour, offset.minute, 0, 0)
-  createdAt.setDate(createdAt.getDate() - offset.daysAgo)
-
-  return createdAt
-}
-
-function sortExistingDemoOrders(orders: ExistingDemoOrder[]) {
-  return orders
-    .map((order, index) => ({
-      order,
-      sortIndex: getExistingDemoOrderSortIndex(order, index),
-    }))
-    .toSorted((left, right) => {
-      if (left.sortIndex !== right.sortIndex) {
-        return left.sortIndex - right.sortIndex
-      }
-
-      return left.order.id.localeCompare(right.order.id)
-    })
-    .map(({ order }) => order)
-}
-
-function getExistingDemoOrderSortIndex(
-  order: ExistingDemoOrder,
-  fallbackIndex: number,
-) {
-  const metadataIndex = order.metadata?.["order_expedition_demo_index"]
-  if (typeof metadataIndex === "number" && Number.isFinite(metadataIndex)) {
-    return metadataIndex
-  }
-
-  if (typeof metadataIndex === "string") {
-    const parsedIndex = Number(metadataIndex)
-    if (Number.isFinite(parsedIndex)) {
-      return parsedIndex
-    }
-  }
-
-  const emailIndex = getDemoOrderEmailIndex(order.email)
-  if (emailIndex !== null) {
-    return emailIndex
-  }
-
-  return order.display_id ?? fallbackIndex
-}
-
-function getDemoOrderEmailIndex(email?: string | null) {
-  const match = email?.match(DEMO_ORDER_EMAIL_REGEX)
-  const index = match?.[1] ? Number(match[1]) - 1 : null
-
-  return index !== null && Number.isFinite(index) ? index : null
-}
+export default seedOrderExpeditionDemo
