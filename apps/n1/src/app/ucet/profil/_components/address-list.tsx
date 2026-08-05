@@ -13,7 +13,7 @@ import { formatPostalCode } from "@/utils/format/format-postal-code"
 
 import { useAccountContext } from "../../context/account-context"
 
-export function AddressList() {
+export const AddressList = () => {
   const { customer } = useAccountContext()
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -107,13 +107,13 @@ export function AddressList() {
   )
 }
 
-function AddressCard({
+const AddressCard = ({
   address,
   onEdit,
 }: {
   address: StoreCustomerAddress
   onEdit: () => void
-}) {
+}) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const deleteAddress = useDeleteAddress()
   const toaster = useToast()
@@ -140,7 +140,7 @@ function AddressCard({
         <div>{address.address_1}</div>
         {address.address_2 && <div>{address.address_2}</div>}
         <div>
-          {formatPostalCode(address.postal_code || "")} {address.city}
+          {formatPostalCode(address.postal_code ?? "")} {address.city}
         </div>
         {address.country_code &&
           address.country_code.toLowerCase() !== "cz" && (

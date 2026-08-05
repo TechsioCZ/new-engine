@@ -183,7 +183,7 @@ const defaultNormalizeShippingData = (
   }
 
   const entries = Object.entries(data).filter(
-    ([, value]) => value != null && value !== "",
+    ([, value]) => value !== null && value !== "",
   )
 
   if (entries.length === 0) {
@@ -196,8 +196,8 @@ const defaultNormalizeShippingData = (
 const toComparableShippingData = (data?: Record<string, unknown>): string =>
   JSON.stringify(
     Object.entries(data ?? {})
-      .filter(([, value]) => value != null && value !== "")
-      .sort(([left], [right]) => left.localeCompare(right)),
+      .filter(([, value]) => value !== null && value !== "")
+      .toSorted(([left], [right]) => left.localeCompare(right)),
   )
 
 const isSameShippingSelection = ({
@@ -281,9 +281,9 @@ const ensureCheckoutPaymentCollection = async ({
     paymentProviderId,
   )
   if (existingPaymentCollection) {
-    return Promise.resolve(existingPaymentCollection)
+    return existingPaymentCollection
   }
-  return initiatePaymentAsync(paymentProviderId)
+  return await initiatePaymentAsync(paymentProviderId)
 }
 
 const completeCheckoutOrder = async ({
@@ -464,7 +464,7 @@ export function createMedusaCheckoutFlow({
       }),
       resolvePaymentProviderId,
     )
-    if (initialSelection.paymentProviderId != null) {
+    if (initialSelection.paymentProviderId !== null) {
       return initialSelection.paymentProviderId
     }
     if (initialSelection.wasExplicit || !effectiveRegionId) {
@@ -519,7 +519,7 @@ export function createMedusaCheckoutFlow({
       mutationFn: async (request) => {
         const { resolvedCartId: mutationCartId, normalizedCart: mutationCart } =
           resolveCheckoutCartInput(
-            omitUndefined({ cartId: input.cartId, cart: input.cart }),
+            omitUndefined({ cart: input.cart, cartId: input.cartId }),
           )
         if (!mutationCartId) {
           throw createErrorWithStage<MedusaCompleteCheckoutStage>(
@@ -530,8 +530,8 @@ export function createMedusaCheckoutFlow({
 
         const effectiveCart = resolveCheckoutEffectiveCart(
           omitUndefined({
-            cartId: mutationCartId,
             cart: mutationCart,
+            cartId: mutationCartId,
             getCachedCart: (effectiveCartId: string) =>
               getCachedCartById<HttpTypes.StoreCart>(
                 queryClient,
@@ -550,10 +550,10 @@ export function createMedusaCheckoutFlow({
             omitUndefined({
               effectiveCart,
               effectiveRegionId,
-              requestedPaymentProviderId: request?.paymentProviderId,
               paymentProviders,
-              resolvePaymentProviderId,
               queryClient,
+              requestedPaymentProviderId: request?.paymentProviderId,
+              resolvePaymentProviderId,
             }),
           )
         } catch (error) {
@@ -568,8 +568,8 @@ export function createMedusaCheckoutFlow({
         try {
           paymentCollection = await ensureCheckoutPaymentCollection({
             effectiveCart,
-            paymentProviderId,
             initiatePaymentAsync,
+            paymentProviderId,
           })
         } catch (error) {
           throw createErrorWithStage<MedusaCompleteCheckoutStage>(

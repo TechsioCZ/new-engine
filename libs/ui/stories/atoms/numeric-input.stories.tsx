@@ -76,7 +76,7 @@ export const Playground: Story = {
     invalid: false,
     label: "Quantity",
     locale: "en-US",
-    max: 10000,
+    max: 10_000,
     min: 0,
     precision: 1,
     showControls: true,

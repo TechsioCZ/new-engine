@@ -46,9 +46,9 @@ export const bootstrapInspectServiceDetailsSchema = z.looseObject({
   command: z.string().nullable().optional(),
   dockerfile_builder_options: z
     .looseObject({
-      dockerfile_path: z.string().nullable().optional(),
       build_context_dir: z.string().nullable().optional(),
       build_stage_target: z.string().nullable().optional(),
+      dockerfile_path: z.string().nullable().optional(),
     })
     .nullable()
     .optional(),
@@ -70,8 +70,8 @@ export const bootstrapInspectServiceDetailsSchema = z.looseObject({
   unapplied_changes: z
     .array(
       z.looseObject({
-        id: z.string().min(1),
         field: z.string().optional(),
+        id: z.string().min(1),
       }),
     )
     .default([]),

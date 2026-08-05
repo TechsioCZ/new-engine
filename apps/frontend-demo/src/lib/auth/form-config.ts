@@ -10,17 +10,17 @@ type FormInputProps = ComponentProps<typeof FormInput>
  */
 export const authFormFields = {
   confirmPassword: (props?: Partial<FormInputProps>): FormInputProps => ({
-    id: props?.id || "confirmPassword",
+    autoComplete: "new-password",
+    id: props?.id ?? "confirmPassword",
     label: "Potvrdit heslo",
-    type: "password",
     placeholder: AUTH_FORM_CONFIG.PASSWORD_PLACEHOLDER,
     required: true,
-    autoComplete: "new-password",
+    type: "password",
     ...props,
   }),
 
   email: (props?: Partial<FormInputProps>): FormInputProps => ({
-    id: props?.id || "email",
+    id: props?.id ?? "email",
     label: "E-mail",
     type: "email",
     placeholder: AUTH_FORM_CONFIG.EMAIL_PLACEHOLDER,
@@ -31,23 +31,23 @@ export const authFormFields = {
   }),
 
   firstName: (props?: Partial<FormInputProps>): FormInputProps => ({
-    id: props?.id || "firstName",
+    id: props?.id ?? "firstName",
     label: "Jméno",
-    type: "text",
     placeholder: "Jan",
+    type: "text",
     ...props,
   }),
 
   lastName: (props?: Partial<FormInputProps>): FormInputProps => ({
-    id: props?.id || "lastName",
+    id: props?.id ?? "lastName",
     label: "Příjmení",
-    type: "text",
     placeholder: "Novák",
+    type: "text",
     ...props,
   }),
 
   newPassword: (props?: Partial<FormInputProps>): FormInputProps => ({
-    id: props?.id || "password",
+    id: props?.id ?? "password",
     label: "Heslo",
     type: "password",
     placeholder: AUTH_FORM_CONFIG.PASSWORD_PLACEHOLDER,
@@ -58,12 +58,12 @@ export const authFormFields = {
   }),
 
   password: (props?: Partial<FormInputProps>): FormInputProps => ({
-    id: props?.id || "password",
+    autoComplete: "current-password",
+    id: props?.id ?? "password",
     label: "Heslo",
-    type: "password",
     placeholder: AUTH_FORM_CONFIG.PASSWORD_PLACEHOLDER,
     required: true,
-    autoComplete: "current-password",
+    type: "password",
     ...props,
   }),
 }

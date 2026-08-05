@@ -379,7 +379,7 @@ export default class PayloadModuleService extends MedusaService({}) {
           },
         )
 
-        const page = result.docs[0] || null
+        const page = result.docs[0] ?? null
         if (!page) {
           return null
         }
@@ -455,7 +455,7 @@ export default class PayloadModuleService extends MedusaService({}) {
           },
         )
 
-        const post = result.docs[0] || null
+        const post = result.docs[0] ?? null
         if (!post) {
           return null
         }

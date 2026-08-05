@@ -66,66 +66,66 @@ export const ABOUT_PAGE_SUPPORTING = {
   } satisfies AboutTextBlock,
   milestones: [
     {
-      year: "2015",
       description: [
         "Založenie Herbatica a ",
         aboutLink("spustenie e-shopu pre Slovensko", "/"),
         ".",
       ],
+      year: "2015",
     },
     {
-      year: "2017",
       description: [
         "Rozšírenie ",
         aboutLink("predaja do Českej republiky", "https://www.herbatica.cz"),
         ".",
       ],
+      year: "2017",
     },
     {
-      year: "2018",
       description:
         "Otvorenie samostatnej predajne v Piešťanoch s rozlohou 100 m².",
+      year: "2018",
     },
     {
-      year: "2018",
       description: [
         "Vstup na ",
         aboutLink("maďarský trh", "https://www.herbatica.hu"),
         ".",
       ],
+      year: "2018",
     },
     {
-      year: "2022",
       description: [
         "Spustenie ",
         aboutLink("predaja v Rumunsku", "https://www.herbatica.ro"),
         ".",
       ],
+      year: "2022",
     },
     {
-      year: "2024",
       description: [
         "Pod našou vlastnou ",
         aboutLink("značkou Herbatica", "/znacka/herbatica/"),
         " ponúkame viac ako 50 rôznych produktov.",
       ],
+      year: "2024",
     },
   ] satisfies readonly AboutMilestone[],
   principles: [
     {
-      title: "Objavujeme",
       description:
         "Svet okolo nás je plný krás. Nikdy nás neprestane baviť svet naplno vidieť, cítiť a počuť. Nemôžeme čakať a prizerať sa. Musíme objavovať! Neustále objavujeme ľudí a možnosti, ktoré sú okolo nás. Sú nevyčerpateľné...",
+      title: "Objavujeme",
     },
     {
-      title: "Vyberáme",
       description:
         "Len takých výrobcov, ktorí sú autentickí, majú konkrétnu tvár, príbeh a svoju blízku komunitu. Majú svoje remeslo, svoju česť. Idú s kožou na trh. Život nás naučil spolupráce si starostlivo vyberať.",
+      title: "Vyberáme",
     },
     {
-      title: "Komunikujeme",
       description:
         "Všetko, čo sa o udržateľnosti života naučíme, zdieľame s ostatnými. Chceme mať istotu, že každý produkt, ktorý je od nás expedovaný a zabalený s láskou, si nájde toho pravého príjemcu. Príjemcu, ktorý je dostatočne bdelý na to, aby z prostredia prijímal len to, čo naozaj potrebuje.",
+      title: "Komunikujeme",
     },
   ] satisfies readonly AboutPrinciple[],
   reviews: {

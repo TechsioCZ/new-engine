@@ -38,7 +38,7 @@ export async function createAddress(
     return newAddress
   } catch (error) {
     logError("CustomerService.createAddress", error)
-    throw new Error("Nepodařilo se vytvořit adresu", { cause: err })
+    throw new Error("Nepodařilo se vytvořit adresu", { cause: error })
   }
 }
 
@@ -64,7 +64,7 @@ export async function updateAddress(
     return updatedAddress
   } catch (error) {
     logError("CustomerService.updateAddress", error)
-    throw new Error("Nepodařilo se aktualizovat adresu", { cause: err })
+    throw new Error("Nepodařilo se aktualizovat adresu", { cause: error })
   }
 }
 
@@ -73,7 +73,7 @@ export async function deleteAddress(addressId: string): Promise<void> {
     await sdk.store.customer.deleteAddress(addressId)
   } catch (error) {
     logError("CustomerService.deleteAddress", error)
-    throw new Error("Nepodařilo se smazat adresu", { cause: err })
+    throw new Error("Nepodařilo se smazat adresu", { cause: error })
   }
 }
 
@@ -93,6 +93,6 @@ export async function updateCustomer(
     return response.customer
   } catch (error) {
     logError("CustomerService.updateCustomer", error)
-    throw new Error("Nepodařilo se aktualizovat profil", { cause: err })
+    throw new Error("Nepodařilo se aktualizovat profil", { cause: error })
   }
 }

@@ -100,7 +100,5 @@ export class SymmyCustomerGroupCodeModuleService extends MedusaService({
         )
       )[0] as SymmyCustomerGroupCodeDTO | undefined
     }
-
-    return
   }
 }

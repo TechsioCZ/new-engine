@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react"
 import { useSearchProducts } from "@/hooks/use-search-products"
 import type { Product } from "@/types/product"
 
-export function HeaderSearch() {
+export const HeaderSearch = () => {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedValue, setSelectedValue] = useState<string[]>([])

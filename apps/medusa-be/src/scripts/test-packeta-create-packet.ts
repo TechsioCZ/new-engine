@@ -30,7 +30,7 @@ export default async function testPacketaCreatePacket({ container }: ExecArgs) {
   if (!addressIdRaw) {
     throw new Error("Set PACKETA_ADDRESS_ID env var")
   }
-  const addressId = Number.parseInt(addressIdRaw, 10)
+  const addressId = Math.trunc(Number(addressIdRaw))
   if (!Number.isFinite(addressId)) {
     throw new TypeError(
       `PACKETA_ADDRESS_ID must be a number, got: ${addressIdRaw}`,
@@ -55,8 +55,8 @@ export default async function testPacketaCreatePacket({ container }: ExecArgs) {
   }
 
   const orderRef = `TEST-${Date.now()}`
-  const value = Number.parseFloat(process.env["PACKETA_TEST_VALUE"] ?? "100")
-  const weight = Number.parseFloat(process.env["PACKETA_TEST_WEIGHT"] ?? "0.5")
+  const value = Number(process.env["PACKETA_TEST_VALUE"] ?? "100")
+  const weight = Number(process.env["PACKETA_TEST_WEIGHT"] ?? "0.5")
 
   process.stdout.write(
     `Creating Packeta test packet '${orderRef}' (env: ${JSON.stringify(packetaService.getEnvironment())})...\n`,

@@ -10,9 +10,9 @@ interface CheckoutInlineProductsSectionProps {
   cartItems: HttpTypes.StoreCartLineItem[]
 }
 
-export function CheckoutInlineProductsSection({
+export const CheckoutInlineProductsSection = ({
   cartItems,
-}: CheckoutInlineProductsSectionProps) {
+}: CheckoutInlineProductsSectionProps) => {
   const tCheckout = useTranslations("checkout")
   const { isLoading, products } = useCheckoutInlineProducts(cartItems)
 

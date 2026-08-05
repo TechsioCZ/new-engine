@@ -20,26 +20,24 @@ const checkedClassName =
 const uncheckedClassName =
   "bg-primary/5 font-normal text-primary hover:bg-primary/10 active:bg-primary/15"
 
-export function AsideFilterButton({
+export const AsideFilterButton = ({
   checked,
   count,
   disabled,
   label,
   onClick,
-}: AsideFilterButtonProps) {
-  return (
-    <Button
-      aria-pressed={checked}
-      className={`${baseClassName} ${
-        checked ? checkedClassName : uncheckedClassName
-      }`}
-      disabled={disabled}
-      onClick={onClick}
-      size="current"
-      theme="unstyled"
-      type="button"
-    >
-      {`${label} (${count})`}
-    </Button>
-  )
-}
+}: AsideFilterButtonProps) => (
+  <Button
+    aria-pressed={checked}
+    className={`${baseClassName} ${
+      checked ? checkedClassName : uncheckedClassName
+    }`}
+    disabled={disabled}
+    onClick={onClick}
+    size="current"
+    theme="unstyled"
+    type="button"
+  >
+    {`${label} (${count})`}
+  </Button>
+)

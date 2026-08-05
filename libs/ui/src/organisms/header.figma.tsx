@@ -29,9 +29,9 @@ figma.connect(
     imports: ['import { Header } from "@libs/ui/organisms/header"'],
     props: {
       size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
         lg: "lg",
+        md: "md",
+        sm: "sm",
       }),
     },
   },

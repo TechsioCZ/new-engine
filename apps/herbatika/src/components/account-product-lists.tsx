@@ -13,11 +13,11 @@ import { RemoveListDialog } from "@/components/product-lists/remove-list-dialog"
 import { useAccountProductLists } from "@/components/product-lists/use-account-product-lists"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
-function ProductListsEmptyState({
+const ProductListsEmptyState = ({
   onCreateList,
 }: {
   onCreateList: () => void
-}) {
+}) => {
   const tAuth = useTranslations("auth")
 
   return (
@@ -43,7 +43,7 @@ function ProductListsEmptyState({
   )
 }
 
-export function AccountProductLists() {
+export const AccountProductLists = () => {
   const tAuth = useTranslations("auth")
   const accountLists = useAccountProductLists()
 

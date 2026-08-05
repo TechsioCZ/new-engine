@@ -338,7 +338,7 @@ export type RadioCardProps = VariantProps<typeof radioCardVariants> &
     onValueChange?: ((value: string | null) => void) | undefined
   }
 
-export function RadioCard({
+export const RadioCard = ({
   "aria-describedby": ariaDescribedByProp,
   id: providedId,
   disabled = false,
@@ -355,9 +355,9 @@ export function RadioCard({
   className,
   ref,
   ...machineProps
-}: RadioCardProps) {
+}: RadioCardProps) => {
   const generatedId = useId()
-  const id = providedId || generatedId
+  const id = providedId ?? generatedId
   const invalid = validateStatus === "error"
 
   const service = useMachine(machine, {

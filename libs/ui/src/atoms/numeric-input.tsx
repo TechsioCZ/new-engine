@@ -138,7 +138,7 @@ export type NumericInputProps = Omit<
     locale?: string | undefined
   }
 
-export function NumericInput({
+export const NumericInput = ({
   id,
   name,
   size,
@@ -167,9 +167,9 @@ export function NumericInput({
   className,
   locale = "cs-CZ",
   ...props
-}: NumericInputProps) {
+}: NumericInputProps) => {
   const generatedId = useId()
-  const uniqueId = id || generatedId
+  const uniqueId = id ?? generatedId
   const resolvedFormatOptions = precision
     ? { ...formatOptions, maximumFractionDigits: precision }
     : formatOptions
@@ -254,7 +254,7 @@ NumericInput.Control = function NumericInputControl({
       className={styles.container({ className })}
       ref={ref}
       {...mergeProps(api.getControlProps(), props)}
-      data-invalid={invalid || undefined}
+      data-invalid={invalid ?? undefined}
     >
       {children}
     </div>

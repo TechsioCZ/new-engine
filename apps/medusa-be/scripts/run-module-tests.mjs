@@ -8,18 +8,18 @@ import process from "node:process"
 import { medusaBeDir, repoRoot } from "./hash-safe-workdir.mjs"
 
 const dbEnv = {
-  DB_HOST: process.env.DB_HOST || "127.0.0.1",
-  DB_PASSWORD: process.env.DB_PASSWORD || "root",
-  DB_PORT: process.env.DB_PORT || "5432",
-  DB_TEMP_NAME: process.env.DB_TEMP_NAME || "medusa_test",
-  DB_USERNAME: process.env.DB_USERNAME || "root",
+  DB_HOST: process.env.DB_HOST ?? "127.0.0.1",
+  DB_PASSWORD: process.env.DB_PASSWORD ?? "root",
+  DB_PORT: process.env.DB_PORT ?? "5432",
+  DB_TEMP_NAME: process.env.DB_TEMP_NAME ?? "medusa_test",
+  DB_USERNAME: process.env.DB_USERNAME ?? "root",
 }
 
 const dbUser = encodeURIComponent(dbEnv.DB_USERNAME)
 const dbPassword = encodeURIComponent(dbEnv.DB_PASSWORD)
 const dbName = encodeURIComponent(dbEnv.DB_TEMP_NAME)
 dbEnv.DATABASE_URL =
-  process.env.DATABASE_URL ||
+  process.env.DATABASE_URL ??
   `postgres://${dbUser}:${dbPassword}@${dbEnv.DB_HOST}:${dbEnv.DB_PORT}/${dbName}`
 
 const nodeOptions = [
@@ -40,11 +40,11 @@ const testEnv = {
 }
 
 async function run(command, args, options = {}) {
-  return new Promise((resolve, reject) => {
+  return await new Promise((resolve, reject) => {
     const child = spawn(command, args, {
-      cwd: options.cwd || repoRoot,
-      env: options.env || process.env,
-      stdio: options.stdio || "inherit",
+      cwd: options.cwd ?? repoRoot,
+      env: options.env ?? process.env,
+      stdio: options.stdio ?? "inherit",
     })
 
     child.on("error", reject)
@@ -65,7 +65,7 @@ async function run(command, args, options = {}) {
 }
 
 async function canConnect(host, port, timeoutMs = 1000) {
-  return new Promise((resolve) => {
+  return await new Promise((resolve) => {
     const socket = net.connect({ host, port }, () => {
       socket.end()
       resolve(true)
@@ -82,7 +82,7 @@ async function canConnect(host, port, timeoutMs = 1000) {
 }
 
 async function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+  return await new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 async function waitUntil(attempts, check) {
@@ -98,7 +98,7 @@ async function waitUntil(attempts, check) {
 }
 
 async function waitForTcp(host, port, attempts = 30) {
-  return await waitUntil(attempts, async () => canConnect(host, port))
+  return await waitUntil(attempts, async () => await canConnect(host, port))
 }
 
 async function waitForDockerPostgres(containerName, attempts = 60) {
@@ -143,8 +143,8 @@ function canBindDockerPostgres() {
 function dockerContainerName() {
   const raw = [
     "new-engine-medusa-module-test-pg",
-    process.env.GITHUB_RUN_ID || "local",
-    process.env.GITHUB_RUN_ATTEMPT || process.pid,
+    process.env.GITHUB_RUN_ID ?? "local",
+    process.env.GITHUB_RUN_ATTEMPT ?? process.pid,
   ].join("-")
 
   return raw.replaceAll(/[^a-zA-Z0-9_.-]/g, "-")

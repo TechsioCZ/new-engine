@@ -79,7 +79,7 @@ export function createProductReviewQueryOptionsFactory<
 
       return {
         queryFn: async ({ signal }) =>
-          service.listProductReviews(listParams, signal),
+          await service.listProductReviews(listParams, signal),
         queryKey: resolvedQueryKeys.productList(listParams),
         ...resolvedCacheConfig[cacheStrategy],
         ...options?.queryOptions,

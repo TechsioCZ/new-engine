@@ -155,7 +155,7 @@ export type BreadcrumbRootProps = ComponentPropsWithoutRef<"nav"> &
     ref?: Ref<HTMLElement> | undefined
   }
 
-export function Breadcrumb({
+export const Breadcrumb = ({
   children,
   className,
   ref,
@@ -163,7 +163,7 @@ export function Breadcrumb({
   variant,
   "aria-label": ariaLabel = "breadcrumb",
   ...props
-}: BreadcrumbRootProps) {
+}: BreadcrumbRootProps) => {
   const styles = BreadcrumbVariants({ size, variant })
 
   return (

@@ -4,7 +4,6 @@ import type {
 } from "@medusajs/framework/http"
 
 import { getProductAttributeService } from "../../../../utils/product-attributes"
-import type { ProductAttributeOptionRecord } from "../../../../utils/product-attributes"
 import {
   applyProductAttributeStatusFilter,
   escapeProductAttributeLikePattern,

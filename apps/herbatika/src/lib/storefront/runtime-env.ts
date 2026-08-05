@@ -3,7 +3,7 @@ const DEFAULT_MEDUSA_BACKEND_URL = "http://localhost:9000"
 const trimEnv = (value: string | undefined) => {
   const trimmed = value?.trim()
 
-  return trimmed ? trimmed : null
+  return trimmed ?? null
 }
 
 const isServerRuntime = () => typeof window === "undefined"

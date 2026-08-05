@@ -87,38 +87,38 @@ export function createBootstrapCommand(): Command {
     )
     .action(async (options) => {
       const projectSlug =
-        options.projectSlug || process.env.ZANE_PROJECT_SLUG || ""
+        options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? ""
       const result = await executeBootstrapZaneProjectPlan(
         bootstrapZaneProjectPlanCommandInputSchema.parse({
-          adminCorsOverride: options.adminCors || undefined,
-          authCorsOverride: options.authCors || undefined,
-          branchName: options.branch || undefined,
+          adminCorsOverride: options.adminCors ?? undefined,
+          authCorsOverride: options.authCors ?? undefined,
+          branchName: options.branch ?? undefined,
           environmentName: options.environmentName,
-          gitAppId: options.gitAppId || undefined,
+          gitAppId: options.gitAppId ?? undefined,
           inspectJsonPath: options.inspectJson,
-          minioFileUrlOverride: options.minioFileUrl || undefined,
+          minioFileUrlOverride: options.minioFileUrl ?? undefined,
           operatorUpstreamZaneBaseUrl:
-            options.operatorUpstreamZaneBaseUrl || undefined,
+            options.operatorUpstreamZaneBaseUrl ?? undefined,
           operatorUpstreamZaneConnectBaseUrl:
-            options.operatorUpstreamZaneConnectBaseUrl || undefined,
+            options.operatorUpstreamZaneConnectBaseUrl ?? undefined,
           operatorUpstreamZaneConnectHostHeader:
-            options.operatorUpstreamZaneConnectHostHeader || undefined,
+            options.operatorUpstreamZaneConnectHostHeader ?? undefined,
           operatorUpstreamZanePassword:
-            options.operatorUpstreamZanePassword || undefined,
+            options.operatorUpstreamZanePassword ?? undefined,
           operatorUpstreamZaneUsername:
-            options.operatorUpstreamZaneUsername || undefined,
+            options.operatorUpstreamZaneUsername ?? undefined,
           phase: options.phase,
           projectDescription:
-            options.projectDescription ||
-            process.env.ZANE_PROJECT_DESCRIPTION ||
+            options.projectDescription ??
+            process.env.ZANE_PROJECT_DESCRIPTION ??
             `${projectSlug} local bootstrap`,
           projectSlug,
-          publicDomain: options.publicDomain || undefined,
+          publicDomain: options.publicDomain ?? undefined,
           publicUrlAffix: options.publicUrlAffix,
-          repositoryUrl: options.repositoryUrl || undefined,
+          repositoryUrl: options.repositoryUrl ?? undefined,
           stackInputsPath: options.stackInputsPath,
           stackManifestPath: options.stackManifestPath,
-          storeCorsOverride: options.storeCors || undefined,
+          storeCorsOverride: options.storeCors ?? undefined,
         }),
       )
       process.stdout.write(`${JSON.stringify(result)}\n`)
@@ -172,18 +172,18 @@ export function createBootstrapCommand(): Command {
     .option("--include-secrets", "", false)
     .action(async (options) => {
       const projectSlug =
-        options.projectSlug || process.env.ZANE_PROJECT_SLUG || ""
+        options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? ""
       const result = await executeBootstrapPreviewTemplateDbPlan(
         bootstrapPreviewTemplateDbPlanCommandInputSchema.parse({
-          dbAdminName: options.dbAdminName || undefined,
-          dbHost: options.dbHost || undefined,
-          dbPassword: options.dbPassword || undefined,
-          dbPort: options.dbPort || undefined,
+          dbAdminName: options.dbAdminName ?? undefined,
+          dbHost: options.dbHost ?? undefined,
+          dbPassword: options.dbPassword ?? undefined,
+          dbPort: options.dbPort ?? undefined,
           dbServiceSlug: options.dbServiceSlug,
-          dbSslmode: options.dbSslmode || undefined,
-          dbUser: options.dbUser || undefined,
+          dbSslmode: options.dbSslmode ?? undefined,
+          dbUser: options.dbUser ?? undefined,
           dockerNetwork: options.dockerNetwork,
-          dumpFile: options.dumpFile || undefined,
+          dumpFile: options.dumpFile ?? undefined,
           environmentName: options.environmentName,
           includeSecrets: Boolean(options.includeSecrets),
           inspectJsonPath: options.inspectJson,
@@ -191,9 +191,9 @@ export function createBootstrapCommand(): Command {
           postgresClientImage: options.postgresClientImage,
           projectSlug,
           sourceDbName: options.sourceDbName,
-          stagingDbName: options.stagingDbName || undefined,
-          templateDbName: options.templateDbName || undefined,
-          templateOwner: options.templateOwner || undefined,
+          stagingDbName: options.stagingDbName ?? undefined,
+          templateDbName: options.templateDbName ?? undefined,
+          templateOwner: options.templateOwner ?? undefined,
         }),
       )
       process.stdout.write(`${JSON.stringify(result)}\n`)

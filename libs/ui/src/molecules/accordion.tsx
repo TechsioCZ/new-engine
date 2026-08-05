@@ -23,11 +23,11 @@ import { tv } from "../utils"
 const accordionVariants = tv({
   compoundVariants: [
     {
-      variant: "child",
-      size: ["sm", "md", "lg"],
       className: {
         content: "bg-inherit py-0 text-inherit",
       },
+      size: ["sm", "md", "lg"],
+      variant: "child",
     },
   ],
   defaultVariants: {
@@ -156,7 +156,7 @@ export interface AccordionProps
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-export function Accordion({
+export const Accordion = ({
   id,
   defaultValue,
   value,
@@ -172,9 +172,9 @@ export function Accordion({
   className,
   variant,
   ...props
-}: AccordionProps) {
+}: AccordionProps) => {
   const generatedId = useId()
-  const uniqueId = id || generatedId
+  const uniqueId = id ?? generatedId
 
   const service = useMachine(accordion.machine, {
     collapsible,

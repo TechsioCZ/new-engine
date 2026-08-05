@@ -94,15 +94,22 @@ export const syncMeilisearchBrandsStep = createStep(
     })
 
     await Promise.all(
-      brandIndexes.map(async (index) =>
-        meilisearchService.addDocuments(index, transformedBrands, BRANDS, {
-          container,
-        }),
+      brandIndexes.map(
+        async (index) =>
+          await meilisearchService.addDocuments(
+            index,
+            transformedBrands,
+            BRANDS,
+            {
+              container,
+            },
+          ),
       ),
     )
     await Promise.all(
-      brandIndexes.map(async (index) =>
-        meilisearchService.deleteDocuments(index, brandsToDelete),
+      brandIndexes.map(
+        async (index) =>
+          await meilisearchService.deleteDocuments(index, brandsToDelete),
       ),
     )
 

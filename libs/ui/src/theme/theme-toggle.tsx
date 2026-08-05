@@ -28,7 +28,7 @@ const MODE_LABELS: Record<ModeSetting, string> = {
   system: "System",
 }
 
-export function ThemeToggle({ className }: { className?: string }) {
+export const ThemeToggle = ({ className }: { className?: string }) => {
   const { brand, brands, setBrand, mode, setMode, availableModes, mounted } =
     useAppTheme()
   const showModes = availableModes.length > 1

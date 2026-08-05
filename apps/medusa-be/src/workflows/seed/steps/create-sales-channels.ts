@@ -41,7 +41,7 @@ export const createSalesChannelsStep = createStep(
       })
 
     const missingSalesChannels = salesChannels
-      .filter((i) => !existingSalesChannels.find((j) => j.name === i))
+      .filter((i) => !existingSalesChannels.some((j) => j.name === i))
       .map((i) => ({ name: i }))
 
     let createdSalesChannels: SalesChannelDTO[] = []

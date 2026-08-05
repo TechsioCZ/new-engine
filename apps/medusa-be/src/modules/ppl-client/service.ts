@@ -529,11 +529,14 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
         // Lock timeout - fall through to local fallback for this request
         if (error instanceof RateLimitLockTimeoutError) {
           // Abandon the lock wait; the provider backstop timeout settles it.
-          lockExecution.catch(() => {})
+          lockExecution.catch(() => {
+            /* empty */
+          })
           this.logger_.warn(
             "PPL: Rate limit lock timed out, using local fallback",
           )
-          return this.acquireLocalRateLimitSlot()
+          await this.acquireLocalRateLimitSlot()
+          return
         }
         throw error
       } finally {
@@ -550,7 +553,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     }
 
     // Fallback: Local-only mode (Redis/locking unavailable)
-    return await this.acquireLocalRateLimitSlot()
+    await this.acquireLocalRateLimitSlot()
   }
 
   private async acquireLocalRateLimitSlot(): Promise<void> {
@@ -591,7 +594,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
   }
 
   private async sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms))
+    await new Promise((resolve) => setTimeout(resolve, ms))
   }
 
   // ============================================

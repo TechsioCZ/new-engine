@@ -34,7 +34,7 @@ function isExternalHref(href: string) {
   )
 }
 
-function FaqLinkItem({ href, label }: FaqLink) {
+const FaqLinkItem = ({ href, label }: FaqLink) => {
   if (isExternalHref(href)) {
     return (
       <a
@@ -55,7 +55,7 @@ function FaqLinkItem({ href, label }: FaqLink) {
   )
 }
 
-function FaqAnswerBlockContent({ block }: { block: FaqAnswerBlockData }) {
+const FaqAnswerBlockContent = ({ block }: { block: FaqAnswerBlockData }) => {
   if (block.type === "heading") {
     return (
       <h3 className="pt-100 font-bold text-fg-primary text-lg leading-snug">
@@ -96,7 +96,7 @@ function FaqAnswerBlockContent({ block }: { block: FaqAnswerBlockData }) {
   )
 }
 
-export function FaqAccordion({ defaultValue, items }: FaqAccordionProps) {
+export const FaqAccordion = ({ defaultValue, items }: FaqAccordionProps) => {
   const [openValue, setOpenValue] = useState<string[]>(defaultValue ?? [])
   const setAnimatedContentRef = useCallback((node: HTMLDivElement | null) => {
     node?.style.setProperty("display", "grid", "important")

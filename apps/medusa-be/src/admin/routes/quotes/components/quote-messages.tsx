@@ -26,9 +26,9 @@ export const CreateQuoteMessageForm = z.object({
 
 type CreateQuoteMessageFormValues = z.infer<typeof CreateQuoteMessageForm>
 
-const createQuoteMessageResolver: Resolver<
-  CreateQuoteMessageFormValues
-> = async (values) => {
+const createQuoteMessageResolver: Resolver<CreateQuoteMessageFormValues> = (
+  values,
+) => {
   const result = CreateQuoteMessageForm.safeParse(values)
 
   if (result.success) {
@@ -55,13 +55,13 @@ const createQuoteMessageResolver: Resolver<
   }
 }
 
-export function QuoteMessages({
+export const QuoteMessages = ({
   quote,
   preview,
 }: {
   quote: QueryQuote
   preview: AdminOrderPreview
-}) {
+}) => {
   const { t } = useTranslation("quotes")
   const { quoteId } = useParams()
 
@@ -73,11 +73,10 @@ export function QuoteMessages({
    * FORM
    */
   const form = useForm<CreateQuoteMessageFormValues>({
-    defaultValues: async () =>
-      Promise.resolve({
-        item_id: null,
-        text: "",
-      }),
+    defaultValues: () => ({
+      item_id: null,
+      text: "",
+    }),
     resolver: createQuoteMessageResolver,
   })
 

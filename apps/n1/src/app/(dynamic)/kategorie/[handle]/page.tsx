@@ -134,7 +134,7 @@ export default function CategoryPage() {
 
   const breadcrumbItems: BreadcrumbTemplateItem[] = [
     { href: "/", icon: "icon-[mdi--home]", label: "Home" },
-    { href: `/kategorie/${handle}`, label: rootCategory?.handle || handle },
+    { href: `/kategorie/${handle}`, label: rootCategory?.handle ?? handle },
   ]
 
   return (
@@ -147,7 +147,7 @@ export default function CategoryPage() {
         />
       </header>
       <N1Aside
-        categories={rootCategoryTree?.children || []}
+        categories={rootCategoryTree?.children ?? []}
         categoryMap={categoryMap}
         currentCategory={currentCategory}
         label={rootCategory?.handle}

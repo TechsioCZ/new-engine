@@ -117,7 +117,7 @@ export function createCheckoutHooks<
 
   const getPaymentProvidersQueryOptions = (regionId: string) => ({
     queryFn: async ({ signal }: { signal?: AbortSignal }) =>
-      service.listPaymentProviders(regionId, signal),
+      await service.listPaymentProviders(regionId, signal),
     queryKey: resolvedQueryKeys.paymentProviders(regionId),
     ...resolvedCacheConfig.semiStatic,
   })
@@ -127,7 +127,7 @@ export function createCheckoutHooks<
     regionId: string,
   ) {
     const queryOptions = getPaymentProvidersQueryOptions(regionId)
-    return queryClient.fetchQuery({
+    return await queryClient.fetchQuery({
       queryFn: queryOptions.queryFn,
       queryKey: queryOptions.queryKey,
       ...getPrefetchCacheOptions(resolvedCacheConfig, "semiStatic"),
@@ -203,7 +203,7 @@ export function createCheckoutHooks<
         if (!cartId) {
           throw new Error("Cart id is required")
         }
-        return service.addShippingMethod(cartId, optionId, data)
+        return await service.addShippingMethod(cartId, optionId, data)
       },
       ...(onMutate
         ? { onMutate: async (variables) => await onMutate(variables) }
@@ -235,7 +235,7 @@ export function createCheckoutHooks<
         if (!cartId) {
           throw new Error("Cart id is required")
         }
-        return service.initiatePaymentSession(cartId, providerId)
+        return await service.initiatePaymentSession(cartId, providerId)
       },
       ...(onMutate
         ? { onMutate: async (variables) => await onMutate(variables) }
@@ -334,7 +334,7 @@ export function createCheckoutHooks<
       isFetching,
     } = useQuery({
       enabled,
-      queryFn: ({ signal }) => {
+      queryFn: async ({ signal }) => {
         if (!cartId) {
           return []
         }
@@ -365,7 +365,7 @@ export function createCheckoutHooks<
             return {
               enabled,
               queryFn: async ({ signal }: { signal?: AbortSignal }) =>
-                calculateShippingOption(
+                await calculateShippingOption(
                   option.id,
                   omitUndefined({ cart_id: cartIdValue, data }),
                   signal,
@@ -373,8 +373,8 @@ export function createCheckoutHooks<
               queryKey: resolvedQueryKeys.shippingOptionPrice(
                 omitUndefined({
                   cartId: cartIdValue,
-                  optionId: option.id,
                   data,
+                  optionId: option.id,
                 }),
               ),
               ...resolvedCacheConfig.realtime,
@@ -405,7 +405,7 @@ export function createCheckoutHooks<
     const setShippingMethodAsync = async (
       optionId: string,
       data?: Record<string, unknown>,
-    ) => mutateShippingMethodAsync(omitUndefined({ data, optionId }))
+    ) => await mutateShippingMethodAsync(omitUndefined({ data, optionId }))
 
     const selectedShippingMethodId =
       effectiveCart?.shipping_methods?.[0]?.shipping_option_id
@@ -448,7 +448,7 @@ export function createCheckoutHooks<
 
     const { data: shippingOptions, isFetching } = useSuspenseQuery({
       queryFn: async ({ signal }) =>
-        service.listShippingOptions(cartId, signal),
+        await service.listShippingOptions(cartId, signal),
       queryKey: resolvedQueryKeys.shippingOptions(cartId, cacheKey),
       ...resolvedCacheConfig.realtime,
     })
@@ -467,13 +467,13 @@ export function createCheckoutHooks<
             const data = input.buildShippingData?.(option)
             return {
               queryFn: async ({ signal }: { signal?: AbortSignal }) =>
-                calculateShippingOption(
+                await calculateShippingOption(
                   option.id,
                   omitUndefined({ cart_id: cartId, data }),
                   signal,
                 ),
               queryKey: resolvedQueryKeys.shippingOptionPrice(
-                omitUndefined({ cartId, optionId: option.id, data }),
+                omitUndefined({ cartId, data, optionId: option.id }),
               ),
               ...resolvedCacheConfig.realtime,
             }
@@ -503,7 +503,7 @@ export function createCheckoutHooks<
     const setShippingMethodAsync = async (
       optionId: string,
       data?: Record<string, unknown>,
-    ) => mutateShippingMethodAsync(omitUndefined({ data, optionId }))
+    ) => await mutateShippingMethodAsync(omitUndefined({ data, optionId }))
 
     const selectedShippingMethodId =
       effectiveCart?.shipping_methods?.[0]?.shipping_option_id
@@ -545,7 +545,7 @@ export function createCheckoutHooks<
     const paymentProvidersQueryOptions = regionId
       ? getPaymentProvidersQueryOptions(regionId)
       : {
-          queryFn: async () => [] as TPaymentProvider[],
+          queryFn: () => [] as TPaymentProvider[],
           queryKey: resolvedQueryKeys.paymentProviders("unknown"),
           ...resolvedCacheConfig.semiStatic,
         }
@@ -598,7 +598,7 @@ export function createCheckoutHooks<
     const paymentProvidersQueryOptions = regionId
       ? getPaymentProvidersQueryOptions(regionId)
       : {
-          queryFn: async () => [] as TPaymentProvider[],
+          queryFn: () => [] as TPaymentProvider[],
           queryKey: resolvedQueryKeys.paymentProviders("unknown"),
           ...resolvedCacheConfig.semiStatic,
         }

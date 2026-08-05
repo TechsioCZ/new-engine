@@ -47,9 +47,7 @@ interface FormItemContextValue {
   id: string
 }
 
-const FormItemContext = createContext<FormItemContextValue>(
-  {} as FormItemContextValue,
-)
+const FormItemContext = createContext<FormItemContextValue>({})
 
 const useFormField = () => {
   const fieldContext = useContext(FormFieldContext)

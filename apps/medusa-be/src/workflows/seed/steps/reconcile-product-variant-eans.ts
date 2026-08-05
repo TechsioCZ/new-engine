@@ -91,7 +91,7 @@ function metadataString(
 
 function normalizedEan(value: null | string | undefined): string | null {
   const normalized = value?.trim()
-  return normalized || null
+  return normalized ?? null
 }
 
 function sourceIdentity(params: {
@@ -391,8 +391,8 @@ export function resolveProductVariantEanClaims(params: {
   const transfers: ProductVariantEanTransferSnapshot[] = []
   const summary = emptySummary()
 
-  for (const ean of [...claimsByEan.keys()].sort()) {
-    const claims = claimsByEan.get(ean)?.sort(compareIncomingVariants) ?? []
+  for (const ean of [...claimsByEan.keys()].toSorted()) {
+    const claims = claimsByEan.get(ean)?.toSorted(compareIncomingVariants) ?? []
     const persistedOwner = persistedOwnerByEan.get(ean)
     const resolution = resolveClaimGroup({
       claims,
@@ -450,7 +450,7 @@ function collectDistinctIncomingEans(products: ProductInput[]): string[] {
         }),
       ),
     ),
-  ].sort()
+  ].toSorted()
 }
 
 export const reconcileProductVariantEansStep = createStep(

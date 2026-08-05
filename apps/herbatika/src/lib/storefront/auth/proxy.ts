@@ -13,9 +13,9 @@ const parseProxyError = async (response: Response) => {
   return `Autentifikačná požiadavka zlyhala so stavom ${response.status}`
 }
 
-export const requestAuthProxy = async <TBody extends Record<string, unknown>>(
+export const requestAuthProxy = async (
   path: "login" | "register",
-  body: TBody,
+  body: Record<string, unknown>,
 ): Promise<AuthProxyResponse> => {
   const response = await fetch(`/api/storefront-auth/${path}`, {
     body: JSON.stringify(body),

@@ -134,7 +134,7 @@ const createGraphMock = ({
   productLinks?: Record<string, unknown>[]
   variantLinks?: Record<string, unknown>[]
 } = {}) =>
-  vi.fn(async ({ entity }: { entity: string }) => {
+  vi.fn(({ entity }: { entity: string }) => {
     if (entity === "customer_product_list") {
       return { data: customerLinks }
     }

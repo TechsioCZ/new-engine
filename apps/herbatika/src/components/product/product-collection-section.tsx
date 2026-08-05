@@ -46,7 +46,9 @@ type ProductCollectionSectionProps =
   | ProductCollectionSectionGridProps
   | ProductCollectionSectionCarouselProps
 
-export function ProductCollectionSection(props: ProductCollectionSectionProps) {
+export const ProductCollectionSection = (
+  props: ProductCollectionSectionProps,
+) => {
   const tCatalog = useTranslations("catalog")
   const {
     title,

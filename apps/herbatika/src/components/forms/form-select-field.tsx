@@ -20,7 +20,7 @@ interface FormSelectFieldProps {
   onValueChange?: (value: string) => void
 }
 
-export function FormSelectField({
+export const FormSelectField = ({
   disabled = false,
   id,
   items,
@@ -31,7 +31,7 @@ export function FormSelectField({
   required = false,
   size = "md",
   validationMode = "blur",
-}: FormSelectFieldProps) {
+}: FormSelectFieldProps) => {
   const field = useFieldContext<string>()
   const value = typeof field.state.value === "string" ? field.state.value : ""
   const fieldFeedback = resolveVisibleFieldFeedback({
