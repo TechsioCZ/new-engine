@@ -1,5 +1,4 @@
 import path from "node:path"
-import { fileURLToPath } from "node:url"
 
 import ExcelJS from "exceljs"
 import { getPayload } from "payload"
@@ -8,7 +7,6 @@ import type { PayloadRequest } from "payload"
 import type { Article } from "../payload-types"
 
 type Payload = Awaited<ReturnType<typeof getPayload>>
-type PayloadId = number
 type ArticleContent = Article["content"]
 type RowValue = string | number | boolean | Date | null | undefined
 type Row = Record<string, RowValue>
@@ -18,14 +16,14 @@ type ResolvedLocale = Exclude<PayloadLocale, undefined>
 type WriteLocale = Exclude<PayloadLocale, "all" | undefined>
 interface ImportContext {
   dryRun: boolean
-  fallbackMediaId: PayloadId
+  fallbackMediaId: number
   payload: Payload
   locale: PayloadLocale
   supportedLocales: string[]
   statusOverride: ImportStatus | undefined
   translate: boolean
   overwrite: boolean
-  categoryCache: Map<string, PayloadId>
+  categoryCache: Map<string, number>
 }
 
 const REQUIRED_COLUMNS = ["title", "content"]
@@ -47,14 +45,17 @@ export class ArticleImportError extends Error {
     this.code = code
   }
 }
-const HEADER_WHITESPACE_PATTERN = /\s+/g
-const NEWLINE_PATTERN = /\r?\n/
-const TAG_SEPARATOR_PATTERN = /[,;]/
-const IS_DEBUG_IMPORT = process.env.DEBUG_IMPORT_ARTICLES === "1"
+const HEADER_WHITESPACE_PATTERN = /\s+/gu
+const NEWLINE_PATTERN = /\r?\n/u
+const TAG_SEPARATOR_PATTERN = /[,;]/u
+const { DEBUG_IMPORT_ARTICLES: debugImportArticles } = process.env
+const IS_DEBUG_IMPORT = debugImportArticles === "1"
 const TITLE_MAX_LENGTH = 100
 const EXCEL_EPOCH_DAYS = 25_569
 const MS_PER_DAY = 86_400_000
-const DEFAULT_LOCALES = ["en"]
+const DEFAULT_LOCALE: WriteLocale = "en"
+const DEFAULT_LOCALES: string[] = [DEFAULT_LOCALE]
+const ARTICLE_CATEGORIES_COLLECTION = "article-categories" as const
 
 const debugLog = (...args: unknown[]) => {
   if (IS_DEBUG_IMPORT) {
@@ -102,31 +103,34 @@ export interface ArticleImportResult {
 }
 
 const hasFlag = (flag: string) => process.argv.includes(flag)
-const getValueArg = (args: string[], index: number) => {
+const getValueArg = (args: string[], index: number): string | undefined => {
   const value = args[index + 1]
-  if (!value || value.startsWith("--")) {
-    return
+  if (value === undefined || value === "" || value.startsWith("--")) {
+    return undefined
   }
 
   return value
 }
 
+const isImportStatus = (value: string): value is ImportStatus =>
+  STATUS_VALUES.some((status) => status === value)
+
 const parseStatusArg = (
   value: string | undefined,
 ): ImportStatus | undefined => {
-  if (!value) {
-    return
+  if (value === undefined || value === "") {
+    return undefined
   }
 
   const normalized = value.toLowerCase().trim()
-  if (STATUS_VALUES.includes(normalized as ImportStatus)) {
-    return normalized as ImportStatus
+  if (isImportStatus(normalized)) {
+    return normalized
   }
 
   console.warn(
     `Invalid --status value: ${value}. Allowed: ${STATUS_VALUES.join(", ")}`,
   )
-  return
+  return undefined
 }
 
 const getArgs = () => {
@@ -138,7 +142,7 @@ const getArgs = () => {
   let overwrite = false
   const args = process.argv.slice(2)
 
-  for (let i = 0; i < args.length; i++) {
+  for (let i = 0; i < args.length; i += 1) {
     const arg = args[i]
     if (!arg) {
       continue
@@ -162,7 +166,7 @@ const getArgs = () => {
 
       case "--locale": {
         const value = getValueArg(args, i)
-        if (value) {
+        if (value !== undefined && value !== "") {
           locale = value.toLowerCase()
           i += 1
         }
@@ -171,7 +175,7 @@ const getArgs = () => {
 
       case "--status": {
         const value = getValueArg(args, i)
-        if (value) {
+        if (value !== undefined && value !== "") {
           status = parseStatusArg(value)
           i += 1
         }
@@ -217,24 +221,29 @@ const normalizeRow = (row: Row): Row => {
 const serializeCellObject = (value: object): string =>
   JSON.stringify(value) ?? ""
 
+const isPrimitiveCellValue = (value: ExcelJS.CellValue): value is RowValue => {
+  if (value === null || typeof value === "string") {
+    return true
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return true
+  }
+  return value instanceof Date
+}
+
 const getCellValue = (cell: ExcelJS.Cell): RowValue => {
   const { value } = cell
-  if (
-    value === null ||
-    value === undefined ||
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean" ||
-    value instanceof Date
-  ) {
+  if (isPrimitiveCellValue(value)) {
     return value
   }
 
   if ("result" in value) {
     const { result } = value
-    return result instanceof Date || typeof result !== "object"
-      ? result
-      : serializeCellObject(result ?? {})
+    if (result instanceof Date || typeof result !== "object") {
+      return result
+    }
+
+    return serializeCellObject(result ?? {})
   }
 
   if ("text" in value && typeof value.text === "string") {
@@ -248,7 +257,7 @@ const getCellValue = (cell: ExcelJS.Cell): RowValue => {
   return serializeCellObject(value)
 }
 
-const firstValue = (row: Row, keys: string[]) => {
+const firstValue = (row: Row, keys: string[]): RowValue => {
   for (const key of keys) {
     const value = row[key]
     if (value !== undefined && value !== null && String(value).trim() !== "") {
@@ -256,11 +265,11 @@ const firstValue = (row: Row, keys: string[]) => {
     }
   }
 
-  return
+  return undefined
 }
 
 const toText = (value: RowValue) => String(value ?? "").trim()
-const normalizeText = (value: string) => value.trim().replaceAll(/\s+/g, " ")
+const normalizeText = (value: string) => value.trim().replaceAll(/\s+/gu, " ")
 
 const sanitizeTitle = (value: string, rowIndex: number) => {
   const normalized = normalizeText(value)
@@ -284,11 +293,11 @@ const slugifyImportValue = (value: string) =>
     .normalize("NFD")
     .replaceAll(/\p{Diacritic}/gu, "")
     .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/g, "-")
-    .replaceAll(/(^-|-$)/g, "")
+    .replaceAll(/[^a-z0-9]+/gu, "-")
+    .replaceAll(/^(?<leading>-)|(?<trailing>-)$/gu, "")
 
 const throwIfAborted = (signal?: AbortSignal) => {
-  if (signal?.aborted) {
+  if (signal?.aborted === true) {
     throw new ArticleImportError("ABORTED", "Article import aborted")
   }
 }
@@ -346,11 +355,11 @@ const hasLocaleValue = (
   value: string | Record<string, string> | undefined,
   locale: PayloadLocale,
 ) => {
-  if (!locale) {
+  if (locale === undefined) {
     return false
   }
 
-  if (!value) {
+  if (value === undefined || value === "") {
     return false
   }
 
@@ -366,11 +375,26 @@ const hasLocaleValue = (
 }
 
 const resolveSupportedLocales = () => {
-  const locales = process.env.PAYLOAD_LOCALES?.split(",")
+  const { PAYLOAD_LOCALES: payloadLocales } = process.env
+  const locales = payloadLocales
+    ?.split(",")
     .map((locale) => locale.trim().toLowerCase())
-    .filter(Boolean)
+    .filter((locale) => locale !== "")
 
-  return locales?.length ? locales : DEFAULT_LOCALES
+  return locales !== undefined && locales.length > 0 ? locales : DEFAULT_LOCALES
+}
+
+const toWriteLocale = (locale: string): WriteLocale | undefined => {
+  if (locale === "all" || locale === "") {
+    return undefined
+  }
+  if (locale === "en") {
+    return "en"
+  }
+  if (locale === "cs") {
+    return "cs"
+  }
+  return locale === "sk" ? "sk" : undefined
 }
 
 const resolvePayloadLocale = (
@@ -378,8 +402,10 @@ const resolvePayloadLocale = (
   supportedLocales: string[],
 ): ResolvedLocale => {
   const normalized = locale?.trim().toLowerCase()
-  if (!normalized) {
-    return (supportedLocales[0] ?? DEFAULT_LOCALES[0]) as WriteLocale
+  if (normalized === undefined || normalized === "") {
+    return (
+      toWriteLocale(supportedLocales[0] ?? DEFAULT_LOCALE) ?? DEFAULT_LOCALE
+    )
   }
 
   if (normalized === "all") {
@@ -387,7 +413,7 @@ const resolvePayloadLocale = (
   }
 
   if (supportedLocales.includes(normalized)) {
-    return normalized as WriteLocale
+    return toWriteLocale(normalized) ?? DEFAULT_LOCALE
   }
 
   throw new Error(
@@ -400,10 +426,10 @@ interface ArticlePayloadData {
   slug: string
   excerpt: string
   content: ArticleContent
-  featuredImage: PayloadId
-  category: PayloadId
+  featuredImage: number
+  category: number
   tags: string[]
-  author?: PayloadId
+  author?: number
   publishedDate: string
   status: ImportStatus
   translationSync: boolean
@@ -412,7 +438,7 @@ interface ArticlePayloadData {
 interface UpsertArticleParams {
   payload: Payload
   existingArticle:
-    | { id?: PayloadId; title?: string | Record<string, string> }
+    | { id: number; title?: string | Record<string, string> }
     | undefined
   locale: PayloadLocale
   supportedLocales: string[]
@@ -425,10 +451,13 @@ interface UpsertArticleParams {
 const resolveWriteLocale = (
   value: PayloadLocale,
   supportedLocales: string[],
-): WriteLocale =>
-  value === "all" || value === undefined
-    ? ((supportedLocales[0] ?? DEFAULT_LOCALES[0]) as WriteLocale)
-    : value
+): WriteLocale => {
+  if (value !== "all" && value !== undefined) {
+    return value
+  }
+
+  return toWriteLocale(supportedLocales[0] ?? DEFAULT_LOCALE) ?? DEFAULT_LOCALE
+}
 
 const upsertArticle = async ({
   payload,
@@ -456,22 +485,21 @@ const upsertArticle = async ({
   }
 
   try {
-    if (existingArticle) {
-      await payload.update({
-        collection: "articles",
-        data,
-        id: existingArticle.id as PayloadId,
-        locale: writeLocale,
-        overrideAccess: true,
-      })
-    } else {
-      await payload.create({
-        collection: "articles",
-        data,
-        locale: writeLocale,
-        overrideAccess: true,
-      })
-    }
+    const writePromise = existingArticle
+      ? payload.update({
+          collection: "articles",
+          data,
+          id: existingArticle.id,
+          locale: writeLocale,
+          overrideAccess: true,
+        })
+      : payload.create({
+          collection: "articles",
+          data,
+          locale: writeLocale,
+          overrideAccess: true,
+        })
+    await writePromise
   } catch (error) {
     console.error(`Failed import row ${index + 2} (${data.slug})`)
     console.error(error)
@@ -482,13 +510,13 @@ const upsertArticle = async ({
   return "imported"
 }
 
-const parseStatus = (value: string) => {
+const parseStatus = (value: string): ImportStatus => {
   const status = value.toLowerCase()
-  if (STATUS_VALUES.includes(status as (typeof STATUS_VALUES)[number])) {
-    return status as (typeof STATUS_VALUES)[number]
+  if (isImportStatus(status)) {
+    return status
   }
 
-  if (value) {
+  if (value !== "") {
     console.warn(
       `Unknown status value "${value}", defaulting to "draft". Allowed: ${STATUS_VALUES.join(", ")}`,
     )
@@ -519,7 +547,7 @@ const parseDate = (value: RowValue) => {
 
 const findExistingBySlug = async (
   payload: Payload,
-  collection: "articles" | "article-categories",
+  collection: "articles" | typeof ARTICLE_CATEGORIES_COLLECTION,
   slug: string,
   locale: PayloadLocale = "all",
 ) => {
@@ -548,7 +576,7 @@ interface EnsureCategoryParams {
   supportedLocales: string[]
   translate: boolean
   overwrite: boolean
-  categoryCache: Map<string, PayloadId>
+  categoryCache: Map<string, number>
 }
 
 const ensureCategory = async ({
@@ -568,8 +596,12 @@ const ensureCategory = async ({
     return cachedId
   }
 
-  const existing = await findExistingBySlug(payload, "article-categories", slug)
-  if (existing) {
+  const existing = await findExistingBySlug(
+    payload,
+    ARTICLE_CATEGORIES_COLLECTION,
+    slug,
+  )
+  if (existing !== undefined) {
     const writeLocale = resolveWriteLocale(locale, supportedLocales)
     const { id } = existing
     if (!overwrite && hasLocaleValue(existing.title, locale)) {
@@ -579,7 +611,7 @@ const ensureCategory = async ({
 
     if (!dryRun) {
       await payload.update({
-        collection: "article-categories",
+        collection: ARTICLE_CATEGORIES_COLLECTION,
         data: {
           slug,
           title,
@@ -603,7 +635,7 @@ const ensureCategory = async ({
   }
 
   const category = await payload.create({
-    collection: "article-categories",
+    collection: ARTICLE_CATEGORIES_COLLECTION,
     data: {
       slug,
       title,
@@ -626,8 +658,9 @@ const ensureFallbackMedia = async (payload: Payload, dryRun: boolean) => {
     pagination: false,
   })
 
-  if (existing.docs[0]) {
-    return existing.docs[0].id
+  const [existingMedia] = existing.docs
+  if (existingMedia !== undefined) {
+    return existingMedia.id
   }
 
   if (dryRun) {
@@ -651,7 +684,7 @@ const ensureFallbackMedia = async (payload: Payload, dryRun: boolean) => {
   return media.id
 }
 
-const ensureFeaturedImage = (imagePath: string, fallbackMediaId: PayloadId) => {
+const ensureFeaturedImage = (imagePath: string, fallbackMediaId: number) => {
   if (!imagePath) {
     return fallbackMediaId
   }
@@ -660,9 +693,12 @@ const ensureFeaturedImage = (imagePath: string, fallbackMediaId: PayloadId) => {
   return fallbackMediaId
 }
 
-const findAuthor = async (payload: Payload, email: string) => {
-  if (!email) {
-    return
+const findAuthor = async (
+  payload: Payload,
+  email: string,
+): Promise<number | undefined> => {
+  if (email === "") {
+    return undefined
   }
 
   const result = await payload.find({
@@ -677,7 +713,7 @@ const findAuthor = async (payload: Payload, email: string) => {
     },
   })
 
-  return result.docs[0]?.id as PayloadId | undefined
+  return result.docs[0]?.id
 }
 
 const readRows = async (filePath: string, sheetName?: string) => {
@@ -701,7 +737,6 @@ const readRows = async (filePath: string, sheetName?: string) => {
   }
 
   const headerRow = worksheet.getRow(1)
-  const headers = headerRow.values as ExcelJS.CellValue[]
   const rows: Row[] = []
 
   worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
@@ -710,15 +745,13 @@ const readRows = async (filePath: string, sheetName?: string) => {
     }
 
     const data: Row = {}
-    for (let columnIndex = 1; columnIndex < headers.length; columnIndex += 1) {
-      const headerValue = headers[columnIndex]
-      const header =
-        headerValue === null || headerValue === undefined
-          ? ""
-          : (typeof headerValue === "object"
-            ? serializeCellObject(headerValue)
-            : String(headerValue).trim())
-      if (header) {
+    for (
+      let columnIndex = 1;
+      columnIndex <= headerRow.cellCount;
+      columnIndex += 1
+    ) {
+      const header = toText(getCellValue(headerRow.getCell(columnIndex)))
+      if (header !== "") {
         data[header] = getCellValue(row.getCell(columnIndex))
       }
     }
@@ -732,8 +765,8 @@ const readRows = async (filePath: string, sheetName?: string) => {
 }
 
 const assertRequiredColumns = (rows: Row[]) => {
-  const firstRow = rows[0]
-  if (!firstRow) {
+  const [firstRow] = rows
+  if (firstRow === undefined) {
     throw new ArticleImportError("NO_ROWS", "No rows found in XLSX file")
   }
 
@@ -859,18 +892,18 @@ const processArticleRow = async (
   const slug = rawSlug ? slugifyImportValue(rawSlug) : slugifyImportValue(title)
 
   const data: ArticlePayloadData = {
-    title,
-    slug,
-    excerpt,
-    content: toRichText(content),
-    featuredImage,
+    ...(author === undefined ? {} : { author }),
     category: categoryId,
-    tags,
-    ...(author ? { author } : {}),
+    content: toRichText(content),
+    excerpt,
+    featuredImage,
     publishedDate: parseDate(
       firstValue(row, ["publishedDate", "published_date", "date", "datum"]),
     ),
+    slug,
     status,
+    tags,
+    title,
     translationSync: translate,
   }
 
@@ -886,6 +919,41 @@ const processArticleRow = async (
     payload,
     supportedLocales: context.supportedLocales,
   })
+}
+
+interface ProcessRowsParams {
+  context: ImportContext
+  rows: Row[]
+  signal?: AbortSignal
+}
+
+const processRows = async ({
+  context,
+  rows,
+  signal,
+}: ProcessRowsParams): Promise<{ imported: number; skipped: number }> => {
+  let imported = 0
+  let skipped = 0
+
+  const processAtIndex = async (index: number): Promise<void> => {
+    const row = rows[index]
+    if (row === undefined) {
+      return
+    }
+
+    throwIfAborted(signal)
+    const result = await processArticleRow(row, index, context)
+    if (result === "imported") {
+      imported += 1
+    } else {
+      skipped += 1
+    }
+    throwIfAborted(signal)
+    await processAtIndex(index + 1)
+  }
+
+  await processAtIndex(0)
+  return { imported, skipped }
 }
 
 export const runImportFromFile = async (
@@ -925,17 +993,14 @@ export const runImportFromFile = async (
   const fallbackMediaId = await ensureFallbackMedia(payload, dryRun)
   debugLog(`Fallback media id: ${fallbackMediaId}`)
 
-  let imported = 0
-  let skipped = 0
-  const categoryCache = new Map<string, PayloadId>()
+  const categoryCache = new Map<string, number>()
 
   console.log(
     `${dryRun ? "Dry-run import" : "Importing"} ${rows.length} rows from ${resolvedFilePath} (${selectedSheetName})`,
   )
 
-  for (const [index, row] of rows.entries()) {
-    throwIfAborted(signal)
-    const result = await processArticleRow(row, index, {
+  const { imported, skipped } = await processRows({
+    context: {
       categoryCache,
       dryRun,
       fallbackMediaId,
@@ -945,15 +1010,10 @@ export const runImportFromFile = async (
       statusOverride,
       supportedLocales,
       translate,
-    })
-
-    if (result === "imported") {
-      imported += 1
-    } else {
-      skipped += 1
-    }
-    throwIfAborted(signal)
-  }
+    },
+    rows,
+    ...(signal === undefined ? {} : { signal }),
+  })
 
   return {
     filePath: resolvedFilePath,
@@ -986,13 +1046,13 @@ const runImportFromCli = async () => {
   }
 
   const result = await runImportFromFile({
-    filePath,
-    ...(sheetName ? { sheetName } : {}),
     dryRun,
+    filePath,
     locale,
-    ...(statusOverride ? { status: statusOverride } : {}),
-    translate,
     overwrite,
+    ...(sheetName === undefined ? {} : { sheetName }),
+    ...(statusOverride === undefined ? {} : { status: statusOverride }),
+    translate,
   })
 
   console.log(
@@ -1000,12 +1060,16 @@ const runImportFromCli = async () => {
   )
 }
 
+const runCliEntryPoint = async (): Promise<void> => {
+  try {
+    await runImportFromCli()
+  } catch (error: unknown) {
+    console.error(error)
+    process.exitCode = 1
+  }
+}
+
 const currentScriptFile = import.meta.filename
 if (path.resolve(process.argv[1] ?? "") === path.resolve(currentScriptFile)) {
-  runImportFromCli()
-    .then(() => process.exit(0))
-    .catch((error) => {
-      console.error(error)
-      process.exit(1)
-    })
+  await runCliEntryPoint()
 }
