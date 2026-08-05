@@ -15,6 +15,7 @@ export const ORDER_EXPEDITION_DEFAULT_LIMIT = 50
 export const ORDER_EXPEDITION_MAX_LIMIT = 100
 
 export const ORDER_EXPEDITION_CARRIER_KEYS = [
+  "gls",
   "ppl",
   "packeta",
   "other",
@@ -224,6 +225,7 @@ interface OrderExpeditionTransitionOrder {
 
 export const ORDER_EXPEDITION_CARRIER_OPTIONS: OrderExpeditionCarrierOption[] =
   [
+    { label: "GLS", value: "gls" },
     { label: "PPL", value: "ppl" },
     { label: "Packeta", value: "packeta" },
     { label: "Other", value: "other" },
@@ -290,6 +292,10 @@ const CARRIER_MATCHERS: Record<
   Exclude<OrderExpeditionCarrierKey, "other">,
   { label: string; tokens: string[] }
 > = {
+  gls: {
+    label: "GLS",
+    tokens: ["gls"],
+  },
   packeta: {
     label: "Packeta",
     tokens: ["packeta", "zasilkovna", "zasielkovna"],
@@ -305,25 +311,25 @@ export function getOrderExpeditionDisplayId(
   order: Pick<
     OrderExpeditionRawOrder,
     "custom_display_id" | "display_id" | "id"
-  >
+  >,
 ) {
   return order.custom_display_id || `#${order.display_id ?? order.id}`
 }
 
 export function isOrderExpeditionCarrierKey(
-  value: string
+  value: string,
 ): value is OrderExpeditionCarrierKey {
   return ORDER_EXPEDITION_CARRIER_KEYS.some((carrier) => carrier === value)
 }
 
 export function isOrderExpeditionTargetStatus(
-  value: string
+  value: string,
 ): value is OrderExpeditionTargetStatus {
   return ORDER_EXPEDITION_TARGET_STATUSES.some((status) => status === value)
 }
 
 export function isOrderExpeditionRawOrder(
-  value: unknown
+  value: unknown,
 ): value is OrderExpeditionRawOrder {
   return (
     typeof value === "object" &&
@@ -334,7 +340,7 @@ export function isOrderExpeditionRawOrder(
 }
 
 export function resolveOrderExpeditionCarrier(
-  order: Pick<OrderExpeditionRawOrder, "shipping_methods">
+  order: Pick<OrderExpeditionRawOrder, "shipping_methods">,
 ): ResolvedOrderExpeditionCarrier {
   for (const shippingMethod of order.shipping_methods ?? []) {
     const searchable = normalizeSearchValue([
@@ -343,10 +349,10 @@ export function resolveOrderExpeditionCarrier(
       shippingMethod.data,
     ])
     const searchableTokens = new Set(
-      searchable.split(CARRIER_TOKEN_SEPARATOR_REGEX).filter(Boolean)
+      searchable.split(CARRIER_TOKEN_SEPARATOR_REGEX).filter(Boolean),
     )
 
-    for (const key of ["ppl", "packeta"] as const) {
+    for (const key of ["gls", "ppl", "packeta"] as const) {
       const matcher = CARRIER_MATCHERS[key]
       if (matcher.tokens.some((token) => searchableTokens.has(token))) {
         return {
@@ -371,7 +377,7 @@ export function resolveOrderExpeditionCarrier(
 
 export function orderMatchesExpeditionCarrier(
   order: Pick<OrderExpeditionRawOrder, "shipping_methods">,
-  carrier?: OrderExpeditionCarrierKey
+  carrier?: OrderExpeditionCarrierKey,
 ) {
   if (!carrier) {
     return true
@@ -384,20 +390,20 @@ function hasOrderExpeditionActiveFulfillment(
   order: Pick<
     OrderExpeditionTransitionOrder,
     "fulfillments" | "has_active_fulfillment"
-  >
+  >,
 ) {
   if (typeof order.has_active_fulfillment === "boolean") {
     return order.has_active_fulfillment
   }
 
   return Boolean(
-    order.fulfillments?.some((fulfillment) => !fulfillment.canceled_at)
+    order.fulfillments?.some((fulfillment) => !fulfillment.canceled_at),
   )
 }
 
 export function getOrderExpeditionTransitionBlockReason(
   order: OrderExpeditionTransitionOrder,
-  targetStatus: OrderExpeditionTargetStatus
+  targetStatus: OrderExpeditionTargetStatus,
 ) {
   const currentStatus = order.status
 
@@ -453,7 +459,7 @@ export function toOrderExpeditionDto(
     returning_customer: false,
     storn_orders: false,
   },
-  noteOverride?: string | null
+  noteOverride?: string | null,
 ): OrderExpeditionOrderDto {
   return {
     id: order.id,
@@ -491,7 +497,7 @@ export function toOrderExpeditionBlockingOrder(
     OrderExpeditionRawOrder,
     "id" | "custom_display_id" | "display_id"
   >,
-  reason: string
+  reason: string,
 ): OrderExpeditionBlockingOrder {
   return {
     id: order.id,
@@ -502,7 +508,7 @@ export function toOrderExpeditionBlockingOrder(
 
 export function findMissingOrderIds(
   requestedOrderIds: string[],
-  orders: Pick<OrderExpeditionRawOrder, "id">[]
+  orders: Pick<OrderExpeditionRawOrder, "id">[],
 ) {
   const orderIds = new Set(orders.map((order) => order.id))
   return requestedOrderIds.filter((orderId) => !orderIds.has(orderId))
@@ -510,7 +516,7 @@ export function findMissingOrderIds(
 
 export function orderOrdersByRequestedIds<T extends { id: string }>(
   requestedOrderIds: string[],
-  orders: T[]
+  orders: T[],
 ) {
   const ordersById = new Map(orders.map((order) => [order.id, order]))
   return requestedOrderIds
@@ -520,7 +526,7 @@ export function orderOrdersByRequestedIds<T extends { id: string }>(
 
 async function fetchOrderExpeditionOrdersByIds(
   query: Query,
-  orderIds: string[]
+  orderIds: string[],
 ) {
   const { data } = await query.graph({
     entity: "order",
@@ -535,7 +541,7 @@ async function fetchOrderExpeditionOrdersByIds(
 
 export async function fetchOrderedOrderExpeditionOrdersByIds(
   query: Query,
-  orderIds: string[]
+  orderIds: string[],
 ) {
   const orders = await fetchOrderExpeditionOrdersByIds(query, orderIds)
 
@@ -582,12 +588,12 @@ function formatOrderExpeditionAddress(address?: OrderExpeditionAddress | null) {
 }
 
 function getOrderExpeditionPacketaBarcode(
-  fulfillments?: OrderExpeditionFulfillment[] | null
+  fulfillments?: OrderExpeditionFulfillment[] | null,
 ) {
   const packetaFulfillment = fulfillments?.find(
     (fulfillment) =>
       fulfillment.provider_id?.toLowerCase().includes("packeta") &&
-      !fulfillment.canceled_at
+      !fulfillment.canceled_at,
   )
   const barcode = packetaFulfillment?.data?.["barcode"]
   const barcodeText = packetaFulfillment?.data?.["barcodeText"]
@@ -628,7 +634,7 @@ function getOrderExpeditionTotal(order: OrderExpeditionRawOrder) {
 }
 
 function getLatestOrderExpeditionSummaryTotal(
-  summary: OrderExpeditionRawOrder["summary"]
+  summary: OrderExpeditionRawOrder["summary"],
 ) {
   let summaryEntries: OrderExpeditionSummary[]
 
@@ -643,26 +649,26 @@ function getLatestOrderExpeditionSummaryTotal(
   const summaries = [...summaryEntries].sort(
     (left, right) =>
       getOrderExpeditionSummaryVersion(right) -
-      getOrderExpeditionSummaryVersion(left)
+      getOrderExpeditionSummaryVersion(left),
   )
 
   for (const entry of summaries) {
     const amount =
       getOrderExpeditionSummaryAmount(
         entry.current_order_total,
-        entry.raw_current_order_total
+        entry.raw_current_order_total,
       ) ??
       getOrderExpeditionSummaryAmount(
         entry.totals?.current_order_total,
-        entry.totals?.raw_current_order_total
+        entry.totals?.raw_current_order_total,
       ) ??
       getOrderExpeditionSummaryAmount(
         entry.original_order_total,
-        entry.raw_original_order_total
+        entry.raw_original_order_total,
       ) ??
       getOrderExpeditionSummaryAmount(
         entry.totals?.original_order_total,
-        entry.totals?.raw_original_order_total
+        entry.totals?.raw_original_order_total,
       )
 
     if (amount !== undefined) {
@@ -675,7 +681,7 @@ function getLatestOrderExpeditionSummaryTotal(
 
 function getOrderExpeditionSummaryAmount(
   amount: number | string | null | undefined,
-  rawAmount: OrderExpeditionRawAmount | null | undefined
+  rawAmount: OrderExpeditionRawAmount | null | undefined,
 ) {
   const normalizedAmount = normalizeOrderExpeditionAmount(amount)
   const normalizedRawAmount = normalizeOrderExpeditionAmount(rawAmount)
@@ -699,7 +705,7 @@ function normalizeOrderExpeditionAmount(
     | OrderExpeditionRawAmount
     | OrderExpeditionRawOrder["total"]
     | null
-    | undefined
+    | undefined,
 ): number | string | undefined {
   if (typeof value === "object" && value !== null) {
     if ("value" in value) {
@@ -729,13 +735,13 @@ function isNonZeroAmount(value: number | string | undefined) {
 }
 
 function toOrderExpeditionItemDto(
-  item: OrderExpeditionLineItem
+  item: OrderExpeditionLineItem,
 ): OrderExpeditionItemDto {
   const quantity = getOrderExpeditionItemQuantity(
     item.detail?.quantity ??
       item.detail?.raw_quantity ??
       item.quantity ??
-      item.raw_quantity
+      item.raw_quantity,
   )
 
   return {
@@ -756,7 +762,7 @@ function toOrderExpeditionItemDto(
 }
 
 export function getOrderExpeditionNote(
-  metadata?: Record<string, unknown> | null
+  metadata?: Record<string, unknown> | null,
 ) {
   if (!metadata) {
     return null
@@ -773,7 +779,7 @@ export function getOrderExpeditionNote(
 }
 
 function getOrderExpeditionItemQuantity(
-  quantity: OrderExpeditionLineItem["quantity"]
+  quantity: OrderExpeditionLineItem["quantity"],
 ) {
   const value =
     typeof quantity === "object" && quantity !== null && "value" in quantity
@@ -800,13 +806,13 @@ function normalizeDate(value: Date | string | null | undefined) {
 }
 
 function isOrderExpeditionTransitionSourceStatus(
-  value: string
+  value: string,
 ): value is keyof typeof ORDER_EXPEDITION_ALLOWED_STATUS_TRANSITIONS {
   return value in ORDER_EXPEDITION_ALLOWED_STATUS_TRANSITIONS
 }
 
 function formatStatusForReason(status: string) {
-  return status.replaceAll(/_/g, " ")
+  return status.replaceAll('_', " ")
 }
 
 function formatStatusSubject(status: string) {
@@ -841,7 +847,7 @@ function flattenSearchParts(value: unknown): string[] {
 
   if (typeof value === "object") {
     return Object.values(value as Record<string, unknown>).flatMap(
-      flattenSearchParts
+      flattenSearchParts,
     )
   }
 

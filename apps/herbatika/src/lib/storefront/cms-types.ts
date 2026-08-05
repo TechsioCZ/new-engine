@@ -45,6 +45,7 @@ export interface CmsPage {
   id: number | string
   meta?: {
     description?: string | null
+    image?: CmsMedia | string | null
     title?: string | null
   } | null
   publishedDate?: string | null

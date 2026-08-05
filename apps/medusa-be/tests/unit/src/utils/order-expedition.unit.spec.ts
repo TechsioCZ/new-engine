@@ -28,7 +28,7 @@ describe("order expedition helpers", () => {
     expect(
       resolveOrderExpeditionCarrier({
         shipping_methods: [{ name: "PPL ParcelShop" }],
-      })
+      }),
     ).toMatchObject({ label: "PPL", value: "ppl" })
 
     expect(
@@ -41,15 +41,21 @@ describe("order expedition helpers", () => {
             },
           },
         ],
-      })
+      }),
     ).toMatchObject({ label: "Packeta", value: "packeta" })
+
+    expect(
+      resolveOrderExpeditionCarrier({
+        shipping_methods: [{ name: "GLS ParcelShop" }],
+      }),
+    ).toMatchObject({ label: "GLS", value: "gls" })
   })
 
   it("does not resolve carrier tokens from unrelated word substrings", () => {
     expect(
       resolveOrderExpeditionCarrier({
         shipping_methods: [{ name: "Supplied courier data" }],
-      })
+      }),
     ).toMatchObject({ label: "Other", value: "other" })
   })
 
@@ -222,14 +228,14 @@ describe("order expedition helpers", () => {
     expect(
       getOrderExpeditionTransitionBlockReason(
         { fulfillments: [], status: "pending" },
-        "archived"
-      )
+        "archived",
+      ),
     ).toBe("Pending orders cannot be changed to archived")
     expect(
       getOrderExpeditionTransitionBlockReason(
         { fulfillments: [], status: "canceled" },
-        "archived"
-      )
+        "archived",
+      ),
     ).toBeUndefined()
     expect(
       getOrderExpeditionTransitionBlockReason(
@@ -237,8 +243,8 @@ describe("order expedition helpers", () => {
           fulfillments: [{ canceled_at: null, id: "ful_1" }],
           status: "pending",
         },
-        "canceled"
-      )
+        "canceled",
+      ),
     ).toBe("Orders with active fulfillments cannot be canceled")
   })
 
@@ -246,7 +252,7 @@ describe("order expedition helpers", () => {
     const orders = [{ id: "order_2" }, { id: "order_1" }]
 
     expect(
-      orderOrdersByRequestedIds(["order_1", "order_2"], orders)
+      orderOrdersByRequestedIds(["order_1", "order_2"], orders),
     ).toStrictEqual([{ id: "order_1" }, { id: "order_2" }])
     expect(findMissingOrderIds(["order_1", "order_3"], orders)).toStrictEqual([
       "order_3",
@@ -255,14 +261,14 @@ describe("order expedition helpers", () => {
 
   it("falls back to stable display IDs", () => {
     expect(
-      getOrderExpeditionDisplayId({ display_id: 1001, id: "order_1" })
+      getOrderExpeditionDisplayId({ display_id: 1001, id: "order_1" }),
     ).toBe("#1001")
     expect(
       getOrderExpeditionDisplayId({
         custom_display_id: "CZ-1001",
         display_id: 1001,
         id: "order_1",
-      })
+      }),
     ).toBe("CZ-1001")
   })
 })

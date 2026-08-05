@@ -81,7 +81,7 @@ const PAYMENT_DISPLAY_TEXT_KEYS = {
 >
 
 const resolvePaymentProviderKind = (
-  providerId: string
+  providerId: string,
 ): PaymentProviderKind => {
   if (!providerId) {
     return "unknown"
@@ -116,7 +116,7 @@ const resolvePaymentProviderKind = (
 }
 
 export const resolvePaymentDisplayTextKeys = (
-  providerId: string
+  providerId: string,
 ): PaymentDisplayTextKeys => {
   const providerKind = resolvePaymentProviderKind(providerId)
   return providerKind === "other" ? {} : PAYMENT_DISPLAY_TEXT_KEYS[providerKind]
@@ -164,6 +164,7 @@ export const resolveShippingIcon = (option: {
     `${option.name ?? ""} ${option.id ?? ""}`.toLowerCase()
 
   if (
+    normalizedValue.includes("gls") ||
     normalizedValue.includes("packeta") ||
     normalizedValue.includes("box") ||
     normalizedValue.includes("pickup") ||

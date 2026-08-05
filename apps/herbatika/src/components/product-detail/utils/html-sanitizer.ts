@@ -1,6 +1,4 @@
-import DOMPurify from "isomorphic-dompurify"
-
-const ALLOWED_HTML_TAGS = [
+const ALLOWED_HTML_TAGS = new Set([
   "a",
   "b",
   "blockquote",
@@ -24,10 +22,11 @@ const ALLOWED_HTML_TAGS = [
   "tr",
   "u",
   "ul",
-]
+])
 
-const ALLOWED_GLOBAL_ATTRIBUTES: ReadonlySet<string> = new Set(["title"])
-const ALLOWED_TAG_ATTRIBUTES: Record<string, ReadonlySet<string>> = {
+const ALLOWED_GLOBAL_ATTRIBUTES = new Set(["title"])
+
+const ALLOWED_TAG_ATTRIBUTES: Record<string, Set<string>> = {
   a: new Set(["href", "target", "rel", "title"]),
   img: new Set([
     "src",
@@ -41,113 +40,312 @@ const ALLOWED_TAG_ATTRIBUTES: Record<string, ReadonlySet<string>> = {
   td: new Set(["colspan", "rowspan", "title"]),
   th: new Set(["colspan", "rowspan", "title"]),
 }
-const ALLOWED_ATTRIBUTE_NAMES = [
-  "href",
-  "target",
-  "rel",
-  "title",
-  "src",
-  "alt",
-  "width",
-  "height",
-  "loading",
-  "decoding",
-  "colspan",
-  "rowspan",
-]
+
+type AllowedAttributeValues = Readonly<
+  Record<string, Readonly<Record<string, ReadonlySet<string>>>>
+>
+
+export interface SanitizeHtmlOptions {
+  additionalAllowedAttributeValues?: AllowedAttributeValues
+  additionalAllowedTagAttributes?: Readonly<Record<string, ReadonlySet<string>>>
+  additionalAllowedTags?: ReadonlySet<string>
+}
 
 const SAFE_ANCHOR_HREF_REGEX = /^(https?:|mailto:|tel:|\/|#)/i
 const SAFE_IMAGE_SRC_REGEX = /^(https?:|\/)/i
 const HTTP_URL_REGEX = /^https?:/i
+const SELF_CLOSING_TAG_SUFFIX_REGEX = /\/\s*$/
 const RENDERABLE_IMAGE_TAG_REGEX = /<\s*img\b/i
-const IMAGE_LOADING_VALUES: ReadonlySet<string> = new Set(["lazy", "eager"])
-const IMAGE_DECODING_VALUES: ReadonlySet<string> = new Set([
-  "async",
-  "sync",
-  "auto",
-])
 
-const enforceAllowedAttributes = (element: Element, tag: string): void => {
-  const allowedForTag = ALLOWED_TAG_ATTRIBUTES[tag]
-  // Snapshot: removeAttribute mutates the live NamedNodeMap mid-iteration.
-  for (const attribute of [...element.attributes]) {
-    const name = attribute.name.toLowerCase()
-    const isAllowed =
-      ALLOWED_GLOBAL_ATTRIBUTES.has(name) || allowedForTag?.has(name)
-    if (!isAllowed || attribute.value.trim() === "") {
-      element.removeAttribute(attribute.name)
+const isSafeAnchorHref = (value: string): boolean =>
+  SAFE_ANCHOR_HREF_REGEX.test(value)
+
+const isSafeImageSrc = (value: string): boolean =>
+  SAFE_IMAGE_SRC_REGEX.test(value)
+
+const isAllowedImageLoading = (value: string): boolean =>
+  value === "lazy" || value === "eager"
+
+const isAllowedImageDecoding = (value: string): boolean =>
+  value === "async" || value === "sync" || value === "auto"
+
+const escapeHtmlAttribute = (value: string): string =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+
+const parseTagAttributes = (rawAttributes: string) => {
+  const attributes: { name: string; value: string }[] = []
+  const attributePattern =
+    /([a-zA-Z0-9:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g
+
+  let match = attributePattern.exec(rawAttributes)
+  while (match) {
+    const name = match[1]?.toLowerCase()
+    const value = (match[2] ?? match[3] ?? match[4] ?? "").trim()
+
+    if (name) {
+      attributes.push({ name, value })
     }
+
+    match = attributePattern.exec(rawAttributes)
   }
+
+  return attributes
 }
 
-const enforceAnchorPolicy = (element: Element): void => {
-  const href = element.getAttribute("href")?.trim() ?? ""
-  if (!href || !SAFE_ANCHOR_HREF_REGEX.test(href)) {
-    element.removeAttribute("href")
-    return
+const isAttributeAllowed = (
+  tag: string,
+  name: string,
+  value: string,
+  allowedAttributesForTag: Set<string>,
+  options: SanitizeHtmlOptions,
+) => {
+  if (
+    ALLOWED_GLOBAL_ATTRIBUTES.has(name) ||
+    allowedAttributesForTag.has(name)
+  ) {
+    return true
   }
-  if (HTTP_URL_REGEX.test(href)) {
-    element.setAttribute("target", "_blank")
-    element.setAttribute("rel", "noopener noreferrer")
-  }
+
+  return Boolean(
+    options.additionalAllowedTagAttributes?.[tag]?.has(name) &&
+    options.additionalAllowedAttributeValues?.[tag]?.[name]?.has(value),
+  )
 }
 
-const enforceImagePolicy = (element: Element): void => {
-  const src = element.getAttribute("src")?.trim() ?? ""
-  if (!src || !SAFE_IMAGE_SRC_REGEX.test(src)) {
-    element.remove()
-    return
-  }
-  const loading = element.getAttribute("loading") ?? ""
-  if (!IMAGE_LOADING_VALUES.has(loading)) {
-    element.setAttribute("loading", "lazy")
-  }
-  const decoding = element.getAttribute("decoding") ?? ""
-  if (!IMAGE_DECODING_VALUES.has(decoding)) {
-    element.setAttribute("decoding", "async")
-  }
+interface SanitizedAttributeState {
+  attributes: string[]
+  href: string | null
+  imageSrc: string | null
+  hasImageLoading: boolean
+  hasImageDecoding: boolean
+  target: string | null
+  rel: string | null
 }
 
-DOMPurify.addHook("afterSanitizeAttributes", (node) => {
-  if (typeof node.tagName !== "string") {
-    return
-  }
-  const tag = node.tagName.toLowerCase()
-  enforceAllowedAttributes(node, tag)
-  if (tag === "a") {
-    enforceAnchorPolicy(node)
-  } else if (tag === "img") {
-    enforceImagePolicy(node)
-  }
+const createAttributeState = (): SanitizedAttributeState => ({
+  attributes: [],
+  hasImageDecoding: false,
+  hasImageLoading: false,
+  href: null,
+  imageSrc: null,
+  rel: null,
+  target: null,
 })
 
-// Href/src protocol policy is enforced in the afterSanitizeAttributes hook
-// (SAFE_ANCHOR_HREF_REGEX / SAFE_IMAGE_SRC_REGEX); DOMPurify's
-// ALLOWED_URI_REGEXP is unsuitable because it is applied to every attribute
-// value, not just URI attributes.
-const SANITIZE_CONFIG = {
-  ALLOWED_ATTR: ALLOWED_ATTRIBUTE_NAMES,
-  ALLOWED_TAGS: ALLOWED_HTML_TAGS,
-} as const
+const applyAnchorAttribute = (
+  state: SanitizedAttributeState,
+  name: string,
+  value: string,
+) => {
+  if (name === "href") {
+    if (isSafeAnchorHref(value)) {
+      state.href = value
+    }
+    return true
+  }
 
-export const sanitizeHtml = (html: string): string => {
+  if (name === "target") {
+    state.target = value
+    return true
+  }
+
+  if (name === "rel") {
+    state.rel = value
+    return true
+  }
+
+  return false
+}
+
+const applyImageAttribute = (
+  state: SanitizedAttributeState,
+  name: string,
+  value: string,
+) => {
+  if (name === "src") {
+    if (isSafeImageSrc(value)) {
+      state.imageSrc = value
+    }
+    return true
+  }
+
+  if (name === "loading") {
+    state.hasImageLoading = isAllowedImageLoading(value)
+    return true
+  }
+
+  if (name === "decoding") {
+    state.hasImageDecoding = isAllowedImageDecoding(value)
+    return true
+  }
+
+  return false
+}
+
+const applySanitizedAttribute = (
+  state: SanitizedAttributeState,
+  tag: string,
+  name: string,
+  value: string,
+) => {
+  if (tag === "a" && applyAnchorAttribute(state, name, value)) {
+    return
+  }
+
+  if (tag === "img" && applyImageAttribute(state, name, value)) {
+    return
+  }
+
+  if (value) {
+    state.attributes.push(`${name}="${escapeHtmlAttribute(value)}"`)
+  }
+}
+
+const appendAnchorAttributes = (state: SanitizedAttributeState) => {
+  if (!state.href) {
+    return
+  }
+
+  state.attributes.push(`href="${escapeHtmlAttribute(state.href)}"`)
+
+  if (HTTP_URL_REGEX.test(state.href)) {
+    state.attributes.push('target="_blank"', 'rel="noopener noreferrer"')
+    return
+  }
+
+  if (state.target) {
+    state.attributes.push(`target="${escapeHtmlAttribute(state.target)}"`)
+  }
+
+  if (state.rel) {
+    state.attributes.push(`rel="${escapeHtmlAttribute(state.rel)}"`)
+  }
+}
+
+const appendImageAttributes = (state: SanitizedAttributeState) => {
+  if (!state.imageSrc) {
+    return false
+  }
+
+  state.attributes.push(`src="${escapeHtmlAttribute(state.imageSrc)}"`)
+
+  if (!state.hasImageLoading) {
+    state.attributes.push('loading="lazy"')
+  }
+
+  if (!state.hasImageDecoding) {
+    state.attributes.push('decoding="async"')
+  }
+
+  return true
+}
+
+const sanitizeOpeningTag = (
+  tag: string,
+  rawAttributes: string,
+  options: SanitizeHtmlOptions,
+) => {
+  const allowedAttributesForTag =
+    ALLOWED_TAG_ATTRIBUTES[tag] ?? new Set<string>()
+  const state = createAttributeState()
+
+  for (const attribute of parseTagAttributes(rawAttributes ?? "")) {
+    const { name, value } = attribute
+
+    if (
+      !isAttributeAllowed(tag, name, value, allowedAttributesForTag, options)
+    ) {
+      continue
+    }
+
+    applySanitizedAttribute(state, tag, name, value)
+  }
+
+  if (tag === "a") {
+    appendAnchorAttributes(state)
+  }
+
+  if (tag === "img" && !appendImageAttributes(state)) {
+    return ""
+  }
+
+  const attributesString =
+    state.attributes.length > 0 ? ` ${state.attributes.join(" ")}` : ""
+
+  if (tag === "br" || tag === "hr" || tag === "img") {
+    return `<${tag}${attributesString}>`
+  }
+
+  return SELF_CLOSING_TAG_SUFFIX_REGEX.test(rawAttributes ?? "")
+    ? `<${tag}${attributesString} />`
+    : `<${tag}${attributesString}>`
+}
+
+const sanitizeHtmlTag = (
+  closingSlash: string,
+  rawTag: string,
+  rawAttributes: string,
+  options: SanitizeHtmlOptions,
+) => {
+  const tag = rawTag.toLowerCase()
+
+  if (
+    !(ALLOWED_HTML_TAGS.has(tag) || options.additionalAllowedTags?.has(tag))
+  ) {
+    return ""
+  }
+
+  if (closingSlash === "/") {
+    return tag === "br" || tag === "hr" || tag === "img" ? "" : `</${tag}>`
+  }
+
+  return sanitizeOpeningTag(tag, rawAttributes, options)
+}
+
+export const sanitizeHtml = (
+  html: string,
+  options: SanitizeHtmlOptions = {},
+): string => {
   if (!html) {
     return ""
   }
-  return DOMPurify.sanitize(html, SANITIZE_CONFIG).trim()
+
+  const cleanedHtml = html
+    .replaceAll(/<!--[\s\S]*?-->/g, "")
+    .replaceAll(/<script[\s\S]*?<\/script>/gi, "")
+    .replaceAll(/<style[\s\S]*?<\/style>/gi, "")
+    .replaceAll(/<iframe[\s\S]*?<\/iframe>/gi, "")
+    .replaceAll(/<object[\s\S]*?<\/object>/gi, "")
+    .replaceAll(/<embed[\s\S]*?<\/embed>/gi, "")
+
+  const sanitized = cleanedHtml.replaceAll(
+    /<\s*(\/?)\s*([a-zA-Z0-9]+)([^>]*)>/g,
+    (_, closingSlash: string, rawTag: string, rawAttributes: string) =>
+      sanitizeHtmlTag(closingSlash, rawTag, rawAttributes, options),
+  )
+
+  return sanitized.trim()
 }
 
 export const hasRenderableHtmlContent = (
-  value: string | null | undefined
+  value: string | null | undefined,
 ): boolean => {
   if (!value) {
     return false
   }
+
   const sanitizedHtml = sanitizeHtml(value)
-  return Boolean(
-    sanitizedHtml &&
-    (stripHtml(sanitizedHtml).length > 0 ||
-      RENDERABLE_IMAGE_TAG_REGEX.test(sanitizedHtml))
+  if (!sanitizedHtml) {
+    return false
+  }
+
+  return (
+    stripHtml(sanitizedHtml).length > 0 ||
+    RENDERABLE_IMAGE_TAG_REGEX.test(sanitizedHtml)
   )
 }
 
@@ -155,6 +353,7 @@ export const stripHtml = (value: string | null | undefined): string => {
   if (!value) {
     return ""
   }
+
   return value
     .replaceAll(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
     .replaceAll(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")

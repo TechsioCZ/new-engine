@@ -1,6 +1,7 @@
 "use client"
 
 import type { CarrierPickupRequirement } from "../carrier-pickup.utils"
+import { CheckoutGlsPickupSelector } from "./checkout-gls-pickup-selector"
 import { CheckoutPacketaPickupSelector } from "./checkout-packeta-pickup-selector"
 import { CheckoutPplPickupSelector } from "./checkout-ppl-pickup-selector"
 
@@ -15,6 +16,12 @@ export function CheckoutCarrierPickupDetails({
   requirement,
   onConfirm,
 }: CheckoutCarrierPickupDetailsProps) {
+  if (requirement.carrier === "gls") {
+    return (
+      <CheckoutGlsPickupSelector disabled={disabled} onConfirm={onConfirm} />
+    )
+  }
+
   return requirement.carrier === "ppl" ? (
     <CheckoutPplPickupSelector disabled={disabled} onConfirm={onConfirm} />
   ) : (

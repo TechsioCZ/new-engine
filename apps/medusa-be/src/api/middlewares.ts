@@ -10,6 +10,8 @@ import { captureException } from "@sentry/node"
 import { normalizeError, shouldCaptureException } from "../utils/errors"
 import { serveAdminAppStatic } from "./admin-app-static"
 import { adminBrandRoutesMiddlewares } from "./admin/brands/middlewares"
+import { adminGLSConfigRoutesMiddlewares } from "./admin/gls-config/middlewares"
+import { adminGLSLabelsRoutesMiddlewares } from "./admin/gls-labels/middlewares"
 import { adminMeasurementUnitRoutesMiddlewares } from "./admin/measurement-units/middlewares"
 import { adminMiddlewares } from "./admin/middlewares"
 import { adminOrderBusinessStatusesRoutesMiddlewares } from "./admin/order-business-statuses/middlewares"
@@ -44,7 +46,7 @@ export default defineMiddlewares({
     error: unknown,
     req: MedusaRequest,
     res: MedusaResponse,
-    next: MedusaNextFunction
+    next: MedusaNextFunction,
   ) => {
     const normalizedError = normalizeError(error)
     if (shouldCaptureException(error)) {
@@ -70,6 +72,8 @@ export default defineMiddlewares({
     ...adminOrderEmailRoutesMiddlewares,
     ...adminPayloadSsoRoutesMiddlewares,
     ...adminMeasurementUnitRoutesMiddlewares,
+    ...adminGLSConfigRoutesMiddlewares,
+    ...adminGLSLabelsRoutesMiddlewares,
     ...adminPacketaConfigRoutesMiddlewares,
     ...adminPacketaLabelsRoutesMiddlewares,
     ...adminPplConfigRoutesMiddlewares,

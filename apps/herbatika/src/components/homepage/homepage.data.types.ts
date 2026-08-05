@@ -36,3 +36,10 @@ export interface ProductSectionDefinition {
   titleKey: HomepageProductSectionTitleKey
   viewAllHref: string
 }
+
+export interface HomepagePromoContent {
+  contentHtml: string
+  heading: string
+  imageAlt?: string
+  imageSrc?: string
+}

@@ -52,7 +52,7 @@ const imageRemotePatterns: ImageRemotePattern[] = [
 ]
 
 const shouldDisableImageOptimization = imageRemotePatterns.some(
-  ({ hostname }) => LOOPBACK_IMAGE_HOSTNAMES.has(hostname)
+  ({ hostname }) => LOOPBACK_IMAGE_HOSTNAMES.has(hostname),
 )
 
 const nextConfig: NextConfig = {
@@ -101,6 +101,15 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: join(__dirname, "../../"),
   reactCompiler: true,
   reactStrictMode: true,
+  async redirects() {
+    return [
+      {
+        destination: "/#homepage-promo",
+        permanent: false,
+        source: "/homepage-promo",
+      },
+    ]
+  },
   transpilePackages: [
     "@techsio/ui-kit",
     "@techsio/storefront-data",

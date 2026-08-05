@@ -15,6 +15,7 @@ export interface MedusaConfigEnv {
   databaseSchema: string
   databaseUrl: string | undefined
   eventBusProvider: "local" | "redis"
+  featureGlsEnabled: boolean
   featurePacketaEnabled: boolean
   featurePayloadEnabled: boolean
   featurePaymentQrEnabled: boolean
@@ -34,6 +35,7 @@ export interface MedusaConfigEnv {
   minioRegion: string | undefined
   minioSecretKey: string | undefined
   notificationProvider: "local" | "resend"
+  glsEnvironment: string
   packetaEnvironment: string
   payloadApiKey: string | undefined
   payloadBaseUrl: string | undefined
@@ -50,7 +52,7 @@ export interface MedusaConfigEnv {
 
 function isDbGenerateCommand(
   env: NodeJS.ProcessEnv,
-  argv: string[] = process.argv
+  argv: string[] = process.argv,
 ): boolean {
   if (env["MEDUSA_SCHEMA_AGNOSTIC_MIGRATION_GENERATION"] === "1") {
     return true
@@ -62,7 +64,7 @@ function isDbGenerateCommand(
 function configureSchemaAgnosticMigrationGeneration(
   env: NodeJS.ProcessEnv,
   databaseSchema: string,
-  argv: string[] = process.argv
+  argv: string[] = process.argv,
 ): void {
   if (!isDbGenerateCommand(env, argv)) {
     return
@@ -96,7 +98,7 @@ function readRequiredEnv(env: NodeJS.ProcessEnv, name: string): string {
 function readEnumEnv<const AllowedValues extends readonly string[]>(
   env: NodeJS.ProcessEnv,
   name: string,
-  allowedValues: AllowedValues
+  allowedValues: AllowedValues,
 ): AllowedValues[number] {
   const value = env[name]?.trim()
 
@@ -104,7 +106,7 @@ function readEnumEnv<const AllowedValues extends readonly string[]>(
     throw new Error(
       `${name} must be one of: ${allowedValues.join(", ")}${
         value ? `. Received: ${value}` : ""
-      }`
+      }`,
     )
   }
 
@@ -116,7 +118,7 @@ function readBooleanFlagEnv(env: NodeJS.ProcessEnv, name: string): boolean {
 }
 
 function readCookieOptions(
-  env: NodeJS.ProcessEnv
+  env: NodeJS.ProcessEnv,
 ): MedusaConfigEnv["cookieOptions"] {
   const secure = env["MEDUSA_COOKIE_SECURE"]
   const sameSite = env["MEDUSA_COOKIE_SAME_SITE"]
@@ -140,7 +142,7 @@ function readCookieOptions(
 }
 
 function readAdminAllowedHosts(
-  env: NodeJS.ProcessEnv
+  env: NodeJS.ProcessEnv,
 ): MedusaConfigEnv["adminAllowedHosts"] {
   const backendUrl = env["MEDUSA_BACKEND_URL"]?.trim()
 
@@ -162,7 +164,7 @@ function readAdminAllowedHosts(
 export function requireRedisUrl(env: MedusaConfigEnv): string {
   if (!env.redisUrl) {
     throw new Error(
-      "REDIS_URL is required when a Redis-backed provider is enabled"
+      "REDIS_URL is required when a Redis-backed provider is enabled",
     )
   }
 
@@ -171,7 +173,7 @@ export function requireRedisUrl(env: MedusaConfigEnv): string {
 
 export function readMedusaConfigEnv(
   env: NodeJS.ProcessEnv = process.env,
-  argv: string[] = process.argv
+  argv: string[] = process.argv,
 ): MedusaConfigEnv {
   const databaseSchema =
     env["MEDUSA_DATABASE_SCHEMA"] ?? env["DATABASE_SCHEMA"] ?? "public"
@@ -220,6 +222,8 @@ export function readMedusaConfigEnv(
     databaseSchema,
     databaseUrl: env["DATABASE_URL"],
     eventBusProvider,
+    featureGlsEnabled:
+      env["FEATURE_GLS_ENABLED"] === FEATURE_FLAG_ENABLED_VALUE,
     featurePacketaEnabled:
       env["FEATURE_PACKETA_ENABLED"] === FEATURE_FLAG_ENABLED_VALUE,
     featurePayloadEnabled:
@@ -233,6 +237,7 @@ export function readMedusaConfigEnv(
         ? readRequiredEnv(env, "FILE_LOCAL_UPLOAD_DIR")
         : undefined,
     fileProvider,
+    glsEnvironment: env["GLS_ENVIRONMENT"] ?? "testing",
     jwtSecret: env["JWT_SECRET"],
     lockingProvider,
     medusaAdminDisabledForBackendBuild:
@@ -258,7 +263,7 @@ export function readMedusaConfigEnv(
     payloadContentCacheTtl: Number.parseInt(env["CMS_CACHE_TTL"] ?? "3600", 10),
     payloadListCacheTtl: Number.parseInt(
       env["CMS_LIST_CACHE_TTL"] ?? "600",
-      10
+      10,
     ),
     pplEnvironment: env["PPL_ENVIRONMENT"] || "testing",
     redisSessionsEnabled,

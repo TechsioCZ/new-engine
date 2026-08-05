@@ -1,6 +1,6 @@
 import type { HerbatikaLocale } from "@/lib/storefront/market-context"
 
-type CarrierPickupType = "packeta" | "ppl"
+export type CarrierPickupType = "gls" | "packeta" | "ppl"
 
 export type CarrierPickupFailureReason =
   | "point_unavailable"
@@ -20,6 +20,7 @@ export interface ShippingOptionWithPickupData {
   provider_id?: string | null
 }
 
+const GLS_CODES = new Set(["parcelshop", "parcelshop_cod"])
 const PACKETA_CODES = new Set(["z_point", "z_point_cod"])
 const PPL_PICKUP_PRODUCTS = new Set(["smad", "smar"])
 const CARRIER_PICKUP_WIDGET_LANGUAGES = {
@@ -36,7 +37,7 @@ export const CARRIER_PICKUP_FAILURE_KEYS = {
 } as const satisfies Record<CarrierPickupFailureReason, string>
 
 export function resolveCarrierPickupRequirement(
-  option: ShippingOptionWithPickupData
+  option: ShippingOptionWithPickupData,
 ): CarrierPickupRequirement | null {
   const optionData = option.data ?? {}
   const optionCode = normalizeIdentifier(optionData.code)
@@ -46,10 +47,18 @@ export function resolveCarrierPickupRequirement(
   const looksLikePickupOption =
     optionName.includes("pickup") ||
     optionName.includes("parcel") ||
+    optionName.includes("parcelshop") ||
     optionName.includes("výdaj") ||
     optionName.includes("vyzdvih") ||
     optionName.includes("z-point") ||
     optionName.includes("zásielkov")
+
+  if (
+    providerId.includes("gls") &&
+    (GLS_CODES.has(optionCode) || looksLikePickupOption)
+  ) {
+    return { carrier: "gls" }
+  }
 
   if (
     PACKETA_CODES.has(optionCode) ||
@@ -67,6 +76,16 @@ export function resolveCarrierPickupRequirement(
   }
 
   return null
+}
+
+export function resolveCarrierPickupHint(
+  requirement: CarrierPickupRequirement,
+) {
+  if (requirement.carrier === "gls") {
+    return "GLS výdaj"
+  }
+
+  return requirement.carrier === "packeta" ? "Packeta výdaj" : "PPL výdaj"
 }
 
 export const resolveCarrierPickupWidgetLanguage = (locale: HerbatikaLocale) =>
