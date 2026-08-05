@@ -1,10 +1,10 @@
 import type { Brand } from "@/types/product"
 import type { BrandEntity, ParsedBrandInfo } from "@/types/product-page"
 
-const TAX_ID_REGEX = /TAX ID:\s*/i
-const PHONE_PREFIX_REGEX = /Tel:\s*/i
-const MANUFACTURER_PREFIX_REGEX = /^.*Výrobce:\s*/
-const DISTRIBUTOR_PREFIX_REGEX = /^.*Distributor do ČR:\s*/i
+const TAX_ID_REGEX = /TAX ID:\s*/iu
+const PHONE_PREFIX_REGEX = /Tel:\s*/iu
+const MANUFACTURER_PREFIX_REGEX = /^.*Výrobce:\s*/u
+const DISTRIBUTOR_PREFIX_REGEX = /^.*Distributor do ČR:\s*/iu
 
 const getSectionEndIndex = (
   primaryIndex: number,
@@ -20,6 +20,92 @@ const getSectionEndIndex = (
   return total
 }
 
+const findTaxId = (paragraphs: Element[]): string | undefined =>
+  paragraphs
+    .find((paragraph) => paragraph.textContent?.includes("TAX ID:"))
+    ?.textContent?.replace(TAX_ID_REGEX, "")
+    .trim()
+
+const findEmail = (paragraphs: Element[]): string | undefined => {
+  const linkedEmail = paragraphs
+    .find((paragraph) => paragraph.querySelector("a"))
+    ?.querySelector("a")
+    ?.textContent?.trim()
+  if (linkedEmail !== undefined && linkedEmail !== "") {
+    return linkedEmail
+  }
+  return paragraphs
+    .find((paragraph) => paragraph.textContent?.includes("@"))
+    ?.textContent?.trim()
+}
+
+const findPhone = (paragraphs: Element[]): string | undefined =>
+  paragraphs
+    .find((paragraph) => paragraph.textContent?.includes("Tel:"))
+    ?.textContent?.replace(PHONE_PREFIX_REGEX, "")
+    .trim()
+
+const parseManufacturerSection = (
+  paragraphs: Element[],
+): BrandEntity | undefined => {
+  if (paragraphs.length === 0) {
+    return undefined
+  }
+
+  const name =
+    paragraphs[0]?.textContent?.replace(MANUFACTURER_PREFIX_REGEX, "").trim() ??
+    ""
+
+  if (name === "") {
+    return undefined
+  }
+
+  const addressParts = [
+    paragraphs[1]?.textContent?.trim(),
+    paragraphs[2]?.textContent?.trim(),
+  ].filter(Boolean)
+
+  return {
+    address: addressParts.join(", "),
+    email: findEmail(paragraphs),
+    name,
+    phone: findPhone(paragraphs),
+    taxId: findTaxId(paragraphs),
+  }
+}
+
+const parseResponsibleSection = (
+  paragraphs: Element[],
+): BrandEntity | undefined => {
+  if (paragraphs.length < 2) {
+    return undefined
+  }
+
+  const name = paragraphs[1]?.textContent?.trim() ?? ""
+
+  if (name === "") {
+    return undefined
+  }
+
+  return {
+    address: paragraphs[2]?.textContent?.trim() ?? "",
+    email: findEmail(paragraphs),
+    name,
+    phone: findPhone(paragraphs),
+    taxId: findTaxId(paragraphs),
+  }
+}
+
+const extractDistributor = (paragraph: Element): string | undefined => {
+  const text = paragraph.textContent?.trim()
+  if (!text) {
+    return undefined
+  }
+
+  const distributor = text.replace(DISTRIBUTOR_PREFIX_REGEX, "").trim()
+  return distributor === "" ? undefined : distributor
+}
+
 const parseSection = (
   paragraphs: Element[],
   startIndex: number,
@@ -27,7 +113,7 @@ const parseSection = (
   parser: (sectionParagraphs: Element[]) => BrandEntity | undefined,
 ): BrandEntity | undefined => {
   if (startIndex < 0) {
-    return
+    return undefined
   }
   return parser(paragraphs.slice(startIndex, endIndex))
 }
@@ -37,7 +123,7 @@ const extractDistributorAtIndex = (
   index: number,
 ): string | undefined => {
   if (index < 0) {
-    return
+    return undefined
   }
   const distributorParagraph = paragraphs[index]
   return distributorParagraph
@@ -56,7 +142,7 @@ export const parseBrandData = (
     (attr) => attr.attributeType?.name === "sizing_info",
   )
 
-  if (!sizingAttr?.value) {
+  if (sizingAttr?.value === undefined || sizingAttr.value === "") {
     return null
   }
 
@@ -64,7 +150,6 @@ export const parseBrandData = (
     const parser = new DOMParser()
     const doc = parser.parseFromString(sizingAttr.value, "text/html")
 
-    // Check for parsing errors
     const parserError = doc.querySelector("parsererror")
     if (parserError) {
       console.error("[parseBrandData] HTML parsing failed")
@@ -72,48 +157,33 @@ export const parseBrandData = (
     }
 
     const firstLink = doc.querySelector("a")
-    const sizingGuideUrl = firstLink?.href || undefined
+    const sizingGuideUrl = firstLink?.href === "" ? undefined : firstLink?.href
     const paragraphs = [...doc.querySelectorAll("p")]
-    const manufacturerIndex = paragraphs.findIndex((p) =>
-      p.textContent?.includes("Výrobce:"),
+    const manufacturerIndex = paragraphs.findIndex((paragraph) =>
+      paragraph.textContent?.includes("Výrobce:"),
+    )
+    const responsibleIndex = paragraphs.findIndex((paragraph) =>
+      paragraph.textContent?.includes("Osoba zodpovědná"),
+    )
+    const distributorIndex = paragraphs.findIndex((paragraph) =>
+      paragraph.textContent?.includes("Distributor do ČR:"),
     )
 
-    const responsibleIndex = paragraphs.findIndex((p) =>
-      p.textContent?.includes("Osoba zodpovědná"),
-    )
-
-    const distributorIndex = paragraphs.findIndex((p) =>
-      p.textContent?.includes("Distributor do ČR:"),
-    )
-
-    const manufacturerEndIndex = getSectionEndIndex(
-      responsibleIndex,
-      distributorIndex,
-      paragraphs.length,
-    )
     const manufacturer = parseSection(
       paragraphs,
       manufacturerIndex,
-      manufacturerEndIndex,
+      getSectionEndIndex(responsibleIndex, distributorIndex, paragraphs.length),
       parseManufacturerSection,
-    )
-
-    const responsibleEndIndex = getSectionEndIndex(
-      distributorIndex,
-      -1,
-      paragraphs.length,
     )
     const responsiblePerson = parseSection(
       paragraphs,
       responsibleIndex,
-      responsibleEndIndex,
+      getSectionEndIndex(distributorIndex, -1, paragraphs.length),
       parseResponsibleSection,
     )
 
-    const distributor = extractDistributorAtIndex(paragraphs, distributorIndex)
-
     return {
-      distributor,
+      distributor: extractDistributorAtIndex(paragraphs, distributorIndex),
       manufacturer,
       responsiblePerson,
       sizingGuideUrl,
@@ -122,99 +192,4 @@ export const parseBrandData = (
     console.error("[parseBrandData] Unexpected error:", error)
     return null
   }
-}
-
-function findTaxId(paragraphs: Element[]): string | undefined {
-  return paragraphs
-    .find((p) => p.textContent?.includes("TAX ID:"))
-    ?.textContent?.replace(TAX_ID_REGEX, "")
-    .trim()
-}
-
-function findEmail(paragraphs: Element[]): string | undefined {
-  const emailElement = paragraphs.find((p) => p.querySelector("a"))
-  return (
-    emailElement?.querySelector("a")?.textContent?.trim() ||
-    paragraphs.find((p) => p.textContent?.includes("@"))?.textContent?.trim()
-  )
-}
-
-function findPhone(paragraphs: Element[]): string | undefined {
-  return paragraphs
-    .find((p) => p.textContent?.includes("Tel:"))
-    ?.textContent?.replace(PHONE_PREFIX_REGEX, "")
-    .trim()
-}
-
-function parseManufacturerSection(
-  paragraphs: Element[],
-): BrandEntity | undefined {
-  if (paragraphs.length === 0) {
-    return
-  }
-
-  const name =
-    paragraphs[0]?.textContent?.replace(MANUFACTURER_PREFIX_REGEX, "").trim() ||
-    ""
-
-  if (!name) {
-    return
-  }
-
-  const addressParts = [
-    paragraphs[1]?.textContent?.trim(),
-    paragraphs[2]?.textContent?.trim(),
-  ].filter(Boolean)
-
-  const address = addressParts.join(", ")
-
-  const taxId = findTaxId(paragraphs)
-  const email = findEmail(paragraphs)
-  const phone = findPhone(paragraphs)
-
-  return {
-    address,
-    email,
-    name,
-    phone,
-    taxId,
-  }
-}
-
-function parseResponsibleSection(
-  paragraphs: Element[],
-): BrandEntity | undefined {
-  if (paragraphs.length < 2) {
-    return
-  }
-
-  const name = paragraphs[1]?.textContent?.trim() || ""
-
-  if (!name) {
-    return
-  }
-
-  const address = paragraphs[2]?.textContent?.trim() || ""
-
-  // Use helper functions to extract contact details
-  const taxId = findTaxId(paragraphs)
-  const email = findEmail(paragraphs)
-  const phone = findPhone(paragraphs)
-
-  return {
-    address,
-    email,
-    name,
-    phone,
-    taxId,
-  }
-}
-
-function extractDistributor(paragraph: Element): string | undefined {
-  const text = paragraph.textContent?.trim()
-  if (!text) {
-    return
-  }
-
-  return text.replace(DISTRIBUTOR_PREFIX_REGEX, "").trim() || undefined
 }
