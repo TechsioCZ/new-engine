@@ -50,10 +50,10 @@ export interface MedusaConfigEnv {
   workflowEngineProvider: "inmemory" | "redis"
 }
 
-function isDbGenerateCommand(
+const isDbGenerateCommand = (
   env: NodeJS.ProcessEnv,
   argv: string[] = process.argv,
-): boolean {
+): boolean => {
   if (env["MEDUSA_SCHEMA_AGNOSTIC_MIGRATION_GENERATION"] === "1") {
     return true
   }
@@ -61,11 +61,11 @@ function isDbGenerateCommand(
   return argv.some((arg) => arg === "db:generate")
 }
 
-function configureSchemaAgnosticMigrationGeneration(
+const configureSchemaAgnosticMigrationGeneration = (
   env: NodeJS.ProcessEnv,
   databaseSchema: string,
   argv: string[] = process.argv,
-): void {
+): void => {
   if (!isDbGenerateCommand(env, argv)) {
     return
   }
@@ -73,8 +73,8 @@ function configureSchemaAgnosticMigrationGeneration(
   // MikroORM v6 emits schema-agnostic migration SQL when the ORM schema is
   // public, but the migration bookkeeping table must still live in the app
   // schema because this project does not grant writes to public.
-  // TODO: When Medusa upgrades to MikroORM >=7.1.0 and exposes/passes the
-  // native migrator config, replace this env override with runtime schema
+  // Once Medusa upgrades to MikroORM >=7.1.0 and exposes/passes the native
+  // migrator config, replace this env override with runtime schema
   // context: generate with unqualified DDL, then apply via migrations.schema
   // (and includeWildcardSchema only if entities use schema: "*").
   // Docs: https://mikro-orm.io/docs/migrations#runtime-schema-context
@@ -85,41 +85,40 @@ function configureSchemaAgnosticMigrationGeneration(
     `${databaseSchema}.mikro_orm_migrations`
 }
 
-function readRequiredEnv(env: NodeJS.ProcessEnv, name: string): string {
+const readRequiredEnv = (env: NodeJS.ProcessEnv, name: string): string => {
   const value = env[name]?.trim()
 
-  if (!value) {
+  if (value === undefined || value.length === 0) {
     throw new Error(`${name} is required`)
   }
 
   return value
 }
 
-function readEnumEnv<const AllowedValues extends readonly string[]>(
+const readEnumEnv = <const AllowedValues extends readonly string[]>(
   env: NodeJS.ProcessEnv,
   name: string,
   allowedValues: AllowedValues,
-): AllowedValues[number] {
+): AllowedValues[number] => {
   const value = env[name]?.trim()
+  const hasValue = value !== undefined && value.length > 0
 
-  if (!(value && (allowedValues as readonly string[]).includes(value))) {
+  if (!(hasValue && allowedValues.includes(value))) {
+    const receivedValue = hasValue ? `. Received: ${value}` : ""
     throw new Error(
-      `${name} must be one of: ${allowedValues.join(", ")}${
-        value ? `. Received: ${value}` : ""
-      }`,
+      `${name} must be one of: ${allowedValues.join(", ")}${receivedValue}`,
     )
   }
 
   return value
 }
 
-function readBooleanFlagEnv(env: NodeJS.ProcessEnv, name: string): boolean {
-  return readEnumEnv(env, name, ["0", "1"] as const) === "1"
-}
+const readBooleanFlagEnv = (env: NodeJS.ProcessEnv, name: string): boolean =>
+  readEnumEnv(env, name, ["0", "1"] as const) === "1"
 
-function readCookieOptions(
+const readCookieOptions = (
   env: NodeJS.ProcessEnv,
-): MedusaConfigEnv["cookieOptions"] {
+): MedusaConfigEnv["cookieOptions"] => {
   const secure = env["MEDUSA_COOKIE_SECURE"]
   const sameSite = env["MEDUSA_COOKIE_SAME_SITE"]
   const parsedSameSite: MedusaCookieSameSite | undefined =
@@ -141,17 +140,17 @@ function readCookieOptions(
   }
 }
 
-function readAdminAllowedHosts(
+const readAdminAllowedHosts = (
   env: NodeJS.ProcessEnv,
-): MedusaConfigEnv["adminAllowedHosts"] {
+): MedusaConfigEnv["adminAllowedHosts"] => {
   const backendUrl = env["MEDUSA_BACKEND_URL"]?.trim()
 
   if (env["NODE_ENV"] === "development") {
     return true
   }
 
-  if (!backendUrl) {
-    return
+  if (backendUrl === undefined || backendUrl.length === 0) {
+    return undefined
   }
 
   const normalizedBackendUrl = backendUrl.includes("://")
@@ -161,8 +160,8 @@ function readAdminAllowedHosts(
   return [new URL(normalizedBackendUrl).hostname]
 }
 
-export function requireRedisUrl(env: MedusaConfigEnv): string {
-  if (!env.redisUrl) {
+export const requireRedisUrl = (env: MedusaConfigEnv): string => {
+  if (env.redisUrl === undefined || env.redisUrl.length === 0) {
     throw new Error(
       "REDIS_URL is required when a Redis-backed provider is enabled",
     )
@@ -171,10 +170,10 @@ export function requireRedisUrl(env: MedusaConfigEnv): string {
   return env.redisUrl
 }
 
-export function readMedusaConfigEnv(
+export const readMedusaConfigEnv = (
   env: NodeJS.ProcessEnv = process.env,
   argv: string[] = process.argv,
-): MedusaConfigEnv {
+): MedusaConfigEnv => {
   const databaseSchema =
     env["MEDUSA_DATABASE_SCHEMA"] ?? env["DATABASE_SCHEMA"] ?? "public"
 
@@ -203,12 +202,14 @@ export function readMedusaConfigEnv(
     "s3",
   ] as const)
 
+  const usesRedisProvider = [
+    cacheProvider,
+    eventBusProvider,
+    workflowEngineProvider,
+    lockingProvider,
+  ].includes("redis")
   const redisUrl =
-    redisSessionsEnabled ||
-    cacheProvider === "redis" ||
-    eventBusProvider === "redis" ||
-    workflowEngineProvider === "redis" ||
-    lockingProvider === "redis"
+    redisSessionsEnabled || usesRedisProvider
       ? readRequiredEnv(env, "REDIS_URL")
       : undefined
 
@@ -260,12 +261,13 @@ export function readMedusaConfigEnv(
     packetaEnvironment: env["PACKETA_ENVIRONMENT"] ?? "testing",
     payloadApiKey: env["PAYLOAD_API_KEY"],
     payloadBaseUrl: env["PAYLOAD_BASE_URL"],
-    payloadContentCacheTtl: Number.parseInt(env["CMS_CACHE_TTL"] ?? "3600", 10),
-    payloadListCacheTtl: Number.parseInt(
-      env["CMS_LIST_CACHE_TTL"] ?? "600",
-      10,
-    ),
-    pplEnvironment: env["PPL_ENVIRONMENT"] || "testing",
+    payloadContentCacheTtl: Math.trunc(Number(env["CMS_CACHE_TTL"] ?? "3600")),
+    payloadListCacheTtl: Math.trunc(Number(env["CMS_LIST_CACHE_TTL"] ?? "600")),
+    pplEnvironment:
+      env["PPL_ENVIRONMENT"] === undefined ||
+      env["PPL_ENVIRONMENT"]?.length === 0
+        ? "testing"
+        : env["PPL_ENVIRONMENT"],
     redisSessionsEnabled,
     redisUrl,
     resendApiKey: env["RESEND_API_KEY"],
