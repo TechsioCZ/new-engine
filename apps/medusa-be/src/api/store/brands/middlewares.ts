@@ -17,8 +17,8 @@ export const storeBrandsRoutesMiddlewares: MiddlewareRoute[] = [
     methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(StoreBrandsSchema, {
-        defaults: ["id", "title", "handle"],
         allowed: ["id", "title", "handle"],
+        defaults: ["id", "title", "handle"],
         isList: true,
       }),
     ],
@@ -28,14 +28,14 @@ export const storeBrandsRoutesMiddlewares: MiddlewareRoute[] = [
     methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(StoreBrandsDetailSchema, {
-        defaults: [
+        allowed: [
           "id",
           "title",
           "handle",
           "attributes.attributeType.name",
           "attributes.value",
         ],
-        allowed: [
+        defaults: [
           "id",
           "title",
           "handle",
@@ -54,8 +54,8 @@ export const storeBrandsRoutesMiddlewares: MiddlewareRoute[] = [
         allowUnauthenticated: true,
       }),
       validateAndTransformQuery(StoreBrandsDetailProductsSchema, {
-        defaults: ["id", "title", "handle", "thumbnail"],
         allowed: listProductQueryConfig.defaults,
+        defaults: ["id", "title", "handle", "thumbnail"],
         isList: true,
       }),
       filterByValidSalesChannels(),

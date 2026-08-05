@@ -54,10 +54,11 @@ export const usePrefetchCategories = (
       ]
         ? []
         : never
-    ) =>
-      prefetch.prefetchCategories(
+    ) => {
+      await prefetch.prefetchCategories(
         toCategoryListParams(buildCategoryListParams(input)),
         ...prefetchArgs,
-      ),
+      )
+    },
   }
 }

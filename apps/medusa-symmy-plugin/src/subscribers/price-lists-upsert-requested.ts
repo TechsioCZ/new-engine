@@ -16,8 +16,8 @@ export default async function priceListsUpsertRequestedHandler({
   await runImportJob<UpsertPriceListsBatchInput, UpsertPriceListsBatchOutput>({
     container,
     getCompletionStats: (output) => ({
-      processed: output.processed,
       failed: output.failed,
+      processed: output.processed,
     }),
     jobId: data.job_id,
     jobLabel: "Price lists upsert",
