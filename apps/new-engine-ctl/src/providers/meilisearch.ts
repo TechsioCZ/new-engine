@@ -14,7 +14,7 @@ import {
 } from "../contracts/stack-inputs.js"
 import type { StackInputs } from "../contracts/stack-inputs.js"
 
-const trailingSlashesPattern = /\/+$/
+const trailingSlashesPattern = /\/+$/u
 
 interface RequestOptions {
   meiliUrl: string
@@ -47,15 +47,14 @@ interface RequestJsonOptions<T> {
   retryDelaySeconds: number
 }
 
-function normalizeBaseUrl(url: string): string {
-  return url.replace(trailingSlashesPattern, "")
-}
+const normalizeBaseUrl = (url: string): string =>
+  url.replace(trailingSlashesPattern, "")
 
-async function fetchWithTimeout(
+const fetchWithTimeout = async (
   url: string,
   init: RequestInit,
   timeoutSeconds: number,
-): Promise<Response> {
+): Promise<Response> => {
   const timeoutController = new AbortController()
   const controller = new AbortController()
   const requestSignal = init.signal
@@ -66,7 +65,7 @@ async function fetchWithTimeout(
     controller.abort()
   }
 
-  if (requestSignal?.aborted) {
+  if (requestSignal?.aborted === true) {
     controller.abort()
   } else {
     requestSignal?.addEventListener("abort", abortFromRequestSignal, {
@@ -107,37 +106,35 @@ async function fetchWithTimeout(
   }
 }
 
-function resolveMeiliApiCredentialPolicies(
+const resolveMeiliApiCredentialPolicies = (
   stackInputs: StackInputs,
   providerId: string,
-): MeiliApiCredentialPolicies {
-  return {
-    backendEnvVar: getRuntimeProviderTargetEnvVar(
-      stackInputs,
-      providerId,
-      "backend_key",
-      "medusa-be",
-    ),
-    backendPolicy: getRuntimeProviderMeiliKeyPolicy(
-      stackInputs,
-      providerId,
-      "backend_key",
-    ),
-    frontendEnvVar: getRuntimeProviderTargetEnvVar(
-      stackInputs,
-      providerId,
-      "frontend_key",
-      "n1",
-    ),
-    frontendPolicy: getRuntimeProviderMeiliKeyPolicy(
-      stackInputs,
-      providerId,
-      "frontend_key",
-    ),
-  }
-}
+): MeiliApiCredentialPolicies => ({
+  backendEnvVar: getRuntimeProviderTargetEnvVar(
+    stackInputs,
+    providerId,
+    "backend_key",
+    "medusa-be",
+  ),
+  backendPolicy: getRuntimeProviderMeiliKeyPolicy(
+    stackInputs,
+    providerId,
+    "backend_key",
+  ),
+  frontendEnvVar: getRuntimeProviderTargetEnvVar(
+    stackInputs,
+    providerId,
+    "frontend_key",
+    "n1",
+  ),
+  frontendPolicy: getRuntimeProviderMeiliKeyPolicy(
+    stackInputs,
+    providerId,
+    "frontend_key",
+  ),
+})
 
-function parseResponseBody(text: string, status: number): unknown {
+const parseResponseBody = (text: string, status: number): unknown => {
   if (!text.trim()) {
     return null
   }
@@ -149,29 +146,32 @@ function parseResponseBody(text: string, status: number): unknown {
   }
 }
 
-function parseErrorMessage(payload: unknown, fallback: string): string {
-  if (!payload || typeof payload !== "object") {
+const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const isPlainRecord = (value: unknown): value is Record<string, unknown> =>
+  isNonNullObject(value) && !Array.isArray(value)
+
+const parseErrorMessage = (payload: unknown, fallback: string): string => {
+  if (!isNonNullObject(payload)) {
     return fallback
   }
 
-  const object = payload as Record<string, unknown>
-  if (typeof object.detail === "string" && object.detail.trim()) {
-    return object.detail
+  if (typeof payload.detail === "string" && payload.detail.trim()) {
+    return payload.detail
   }
-  if (typeof object.message === "string" && object.message.trim()) {
-    return object.message
+  if (typeof payload.message === "string" && payload.message.trim()) {
+    return payload.message
   }
-  if (typeof object.code === "string" && object.code.trim()) {
-    return `${fallback} (${object.code})`
+  if (typeof payload.code === "string" && payload.code.trim()) {
+    return `${fallback} (${payload.code})`
   }
 
   return fallback
 }
 
-async function requestJson<T>(options: RequestJsonOptions<T>): Promise<T> {
-  let attempt = 0
-
-  while (true) {
+const requestJson = async <T>(options: RequestJsonOptions<T>): Promise<T> => {
+  const attempt = async (attemptNumber: number): Promise<T> => {
     try {
       const response = await fetchWithTimeout(
         options.url,
@@ -196,21 +196,23 @@ async function requestJson<T>(options: RequestJsonOptions<T>): Promise<T> {
 
       return options.parse(body)
     } catch (error) {
-      if (attempt >= options.retryCount) {
+      if (attemptNumber >= options.retryCount) {
         throw error
       }
 
-      attempt += 1
       await sleep(options.retryDelaySeconds * 1000)
+      return await attempt(attemptNumber + 1)
     }
   }
+
+  return await attempt(0)
 }
 
-async function waitForHealth(input: RequestOptions): Promise<void> {
+const waitForHealth = async (input: RequestOptions): Promise<void> => {
   const startedAt = Date.now()
   const baseUrl = normalizeBaseUrl(input.meiliUrl)
 
-  while (true) {
+  const poll = async (): Promise<void> => {
     try {
       const response = await fetchWithTimeout(
         `${baseUrl}/health`,
@@ -231,69 +233,70 @@ async function waitForHealth(input: RequestOptions): Promise<void> {
     }
 
     await sleep(2000)
+    await poll()
   }
+
+  await poll()
 }
 
-function readString(value: unknown, fallback: string): string {
-  return typeof value === "string" ? value : fallback
-}
+const readString = (value: unknown, fallback: string): string =>
+  typeof value === "string" ? value : fallback
 
-function readStringArray(
+const readStringArray = (
   object: Record<string, unknown>,
   key: string,
-): string[] {
+): string[] => {
   const value = object[key]
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string")
     : []
 }
 
-function matchesPermissions(
+const matchesPermissions = (
   keyObject: unknown,
   policy: PolicyDefinition,
-): boolean {
-  if (!keyObject || typeof keyObject !== "object") {
+): boolean => {
+  if (!isNonNullObject(keyObject)) {
     return false
   }
 
-  const candidate = keyObject as Record<string, unknown>
-  const candidateActions = readStringArray(candidate, "actions")
-  const candidateIndexes = readStringArray(candidate, "indexes")
+  const candidateActions = readStringArray(keyObject, "actions")
+  const candidateIndexes = readStringArray(keyObject, "indexes")
 
   return (
-    [...candidateActions].sort().join(",") ===
-      [...policy.actions].sort().join(",") &&
-    [...candidateIndexes].sort().join(",") ===
-      [...policy.indexes].sort().join(",")
+    candidateActions.toSorted().join(",") ===
+      policy.actions.toSorted().join(",") &&
+    candidateIndexes.toSorted().join(",") ===
+      policy.indexes.toSorted().join(",")
   )
 }
 
-function matchesPolicy(keyObject: unknown, policy: PolicyDefinition): boolean {
-  if (!keyObject || typeof keyObject !== "object") {
+const matchesPolicy = (
+  keyObject: unknown,
+  policy: PolicyDefinition,
+): boolean => {
+  if (!isNonNullObject(keyObject)) {
     return false
   }
 
-  const candidate = keyObject as Record<string, unknown>
   return (
-    candidate.uid === policy.uid &&
+    keyObject.uid === policy.uid &&
     matchesPermissions(keyObject, policy) &&
-    candidate.description === policy.description
+    keyObject.description === policy.description
   )
 }
 
-function matchesDescription(
+const matchesDescription = (
   keyObject: Record<string, unknown>,
   policy: PolicyDefinition,
-): boolean {
-  return keyObject.description === policy.description
-}
+): boolean => keyObject.description === policy.description
 
-async function getKeyByUid(
+const getKeyByUid = async (
   input: RequestOptions & {
     masterKey: string
     uid: string
   },
-): Promise<Record<string, unknown> | null> {
+): Promise<Record<string, unknown> | null> => {
   const result = await requestJson({
     init: {
       headers: {
@@ -306,11 +309,11 @@ async function getKeyByUid(
         return null
       }
 
-      if (!value || typeof value !== "object" || Array.isArray(value)) {
+      if (!isPlainRecord(value)) {
         throw new Error(`Failed to read key uid=${input.uid}.`)
       }
 
-      return value as Record<string, unknown>
+      return value
     },
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
@@ -333,17 +336,17 @@ interface ReconcileKeyInput {
   retryDelaySeconds: number
 }
 
-async function createKey(
+const createKey = async (
   input: ReconcileKeyInput,
-): Promise<Record<string, unknown>> {
-  return await requestJson({
+): Promise<Record<string, unknown>> =>
+  await requestJson({
     init: {
       body: JSON.stringify({
-        uid: input.uid,
-        description: input.description,
         actions: input.actions,
-        indexes: input.indexes,
+        description: input.description,
         expiresAt: null,
+        indexes: input.indexes,
+        uid: input.uid,
       }),
       headers: {
         Authorization: `Bearer ${input.masterKey}`,
@@ -352,23 +355,22 @@ async function createKey(
       method: "POST",
     },
     parse: (value) => {
-      if (!value || typeof value !== "object" || Array.isArray(value)) {
+      if (!isPlainRecord(value)) {
         throw new Error(`Failed to create key uid=${input.uid}.`)
       }
 
-      return value as Record<string, unknown>
+      return value
     },
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
     timeoutSeconds: input.timeoutSeconds,
     url: `${normalizeBaseUrl(input.meiliUrl)}/keys`,
   })
-}
 
-async function updateKeyDescription(
+const updateKeyDescription = async (
   input: ReconcileKeyInput,
-): Promise<Record<string, unknown>> {
-  return await requestJson({
+): Promise<Record<string, unknown>> =>
+  await requestJson({
     init: {
       body: JSON.stringify({
         description: input.description,
@@ -380,20 +382,19 @@ async function updateKeyDescription(
       method: "PATCH",
     },
     parse: (value) => {
-      if (!value || typeof value !== "object" || Array.isArray(value)) {
+      if (!isPlainRecord(value)) {
         throw new Error(`Failed to update key uid=${input.uid}.`)
       }
 
-      return value as Record<string, unknown>
+      return value
     },
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
     timeoutSeconds: input.timeoutSeconds,
     url: `${normalizeBaseUrl(input.meiliUrl)}/keys/${input.uid}`,
   })
-}
 
-async function deleteKey(input: ReconcileKeyInput): Promise<void> {
+const deleteKey = async (input: ReconcileKeyInput): Promise<void> => {
   await requestJson({
     init: {
       headers: {
@@ -409,11 +410,13 @@ async function deleteKey(input: ReconcileKeyInput): Promise<void> {
   })
 }
 
-async function createOrUpdateKey(input: ReconcileKeyInput): Promise<{
+const createOrUpdateKey = async (
+  input: ReconcileKeyInput,
+): Promise<{
   keyObject: Record<string, unknown>
   created: boolean
   updated: boolean
-}> {
+}> => {
   const policy: PolicyDefinition = {
     actions: input.actions,
     description: input.description,
@@ -469,7 +472,7 @@ async function createOrUpdateKey(input: ReconcileKeyInput): Promise<{
   }
 }
 
-export async function provisionMeiliKeys(input: {
+export const provisionMeiliKeys = async (input: {
   meiliUrl: string
   masterKey: string
   waitSeconds: number
@@ -478,7 +481,7 @@ export async function provisionMeiliKeys(input: {
   retryDelaySeconds: number
   stackInputs: StackInputs
   providerId: string
-}): Promise<MeiliProvisionResponse> {
+}): Promise<MeiliProvisionResponse> => {
   const { backendPolicy, frontendPolicy, backendEnvVar, frontendEnvVar } =
     resolveMeiliApiCredentialPolicies(input.stackInputs, input.providerId)
 
@@ -490,28 +493,30 @@ export async function provisionMeiliKeys(input: {
     waitSeconds: input.waitSeconds,
   })
 
-  const backend = await createOrUpdateKey({
-    actions: backendPolicy.actions,
-    description: backendPolicy.description,
-    indexes: backendPolicy.indexes,
-    masterKey: input.masterKey,
-    meiliUrl: input.meiliUrl,
-    retryCount: input.retryCount,
-    retryDelaySeconds: input.retryDelaySeconds,
-    timeoutSeconds: input.timeoutSeconds,
-    uid: backendPolicy.uid,
-  })
-  const frontend = await createOrUpdateKey({
-    actions: frontendPolicy.actions,
-    description: frontendPolicy.description,
-    indexes: frontendPolicy.indexes,
-    masterKey: input.masterKey,
-    meiliUrl: input.meiliUrl,
-    retryCount: input.retryCount,
-    retryDelaySeconds: input.retryDelaySeconds,
-    timeoutSeconds: input.timeoutSeconds,
-    uid: frontendPolicy.uid,
-  })
+  const [backend, frontend] = await Promise.all([
+    createOrUpdateKey({
+      actions: backendPolicy.actions,
+      description: backendPolicy.description,
+      indexes: backendPolicy.indexes,
+      masterKey: input.masterKey,
+      meiliUrl: input.meiliUrl,
+      retryCount: input.retryCount,
+      retryDelaySeconds: input.retryDelaySeconds,
+      timeoutSeconds: input.timeoutSeconds,
+      uid: backendPolicy.uid,
+    }),
+    createOrUpdateKey({
+      actions: frontendPolicy.actions,
+      description: frontendPolicy.description,
+      indexes: frontendPolicy.indexes,
+      masterKey: input.masterKey,
+      meiliUrl: input.meiliUrl,
+      retryCount: input.retryCount,
+      retryDelaySeconds: input.retryDelaySeconds,
+      timeoutSeconds: input.timeoutSeconds,
+      uid: frontendPolicy.uid,
+    }),
+  ])
 
   return meiliProvisionResponseSchema.parse({
     backend_created: backend.created,
@@ -528,7 +533,7 @@ export async function provisionMeiliKeys(input: {
   })
 }
 
-export async function verifyMeiliKeys(input: {
+export const verifyMeiliKeys = async (input: {
   meiliUrl: string
   masterKey: string
   backendKey: string
@@ -539,7 +544,7 @@ export async function verifyMeiliKeys(input: {
   retryDelaySeconds: number
   stackInputs: StackInputs
   providerId: string
-}): Promise<MeiliVerifyResponse> {
+}): Promise<MeiliVerifyResponse> => {
   const { backendPolicy, frontendPolicy } = resolveMeiliApiCredentialPolicies(
     input.stackInputs,
     input.providerId,
@@ -571,24 +576,26 @@ export async function verifyMeiliKeys(input: {
     waitSeconds: input.waitSeconds,
   })
 
-  const backend = await getKeyByUid({
-    masterKey: input.masterKey,
-    meiliUrl: input.meiliUrl,
-    retryCount: input.retryCount,
-    retryDelaySeconds: input.retryDelaySeconds,
-    timeoutSeconds: input.timeoutSeconds,
-    uid: backendPolicy.uid,
-    waitSeconds: input.waitSeconds,
-  })
-  const frontend = await getKeyByUid({
-    masterKey: input.masterKey,
-    meiliUrl: input.meiliUrl,
-    retryCount: input.retryCount,
-    retryDelaySeconds: input.retryDelaySeconds,
-    timeoutSeconds: input.timeoutSeconds,
-    uid: frontendPolicy.uid,
-    waitSeconds: input.waitSeconds,
-  })
+  const [backend, frontend] = await Promise.all([
+    getKeyByUid({
+      masterKey: input.masterKey,
+      meiliUrl: input.meiliUrl,
+      retryCount: input.retryCount,
+      retryDelaySeconds: input.retryDelaySeconds,
+      timeoutSeconds: input.timeoutSeconds,
+      uid: backendPolicy.uid,
+      waitSeconds: input.waitSeconds,
+    }),
+    getKeyByUid({
+      masterKey: input.masterKey,
+      meiliUrl: input.meiliUrl,
+      retryCount: input.retryCount,
+      retryDelaySeconds: input.retryDelaySeconds,
+      timeoutSeconds: input.timeoutSeconds,
+      uid: frontendPolicy.uid,
+      waitSeconds: input.waitSeconds,
+    }),
+  ])
 
   if (!backend) {
     throw new Error(
