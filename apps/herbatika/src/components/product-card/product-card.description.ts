@@ -2,26 +2,26 @@ import type { HttpTypes } from "@medusajs/types"
 
 import { asRecord } from "./product-card.parsers"
 
-const SENTENCE_BOUNDARY_PATTERN = /(?<=[.!?])\s+/
-const SENTENCE_TRAILING_PUNCTUATION_PATTERN = /[.!?]+$/
+const SENTENCE_BOUNDARY_PATTERN = /(?<=[.!?])\s+/u
+const SENTENCE_TRAILING_PUNCTUATION_PATTERN = /[.!?]+$/u
 
 const decodeHtmlEntities = (value: string): string =>
   value
-    .replaceAll(/&nbsp;/gi, " ")
-    .replaceAll(/&amp;/gi, "&")
-    .replaceAll(/&lt;/gi, "<")
-    .replaceAll(/&gt;/gi, ">")
-    .replaceAll(/&quot;/gi, '"')
-    .replaceAll(/&#39;/gi, "'")
+    .replaceAll(/&nbsp;/giu, " ")
+    .replaceAll(/&amp;/giu, "&")
+    .replaceAll(/&lt;/giu, "<")
+    .replaceAll(/&gt;/giu, ">")
+    .replaceAll(/&quot;/giu, '"')
+    .replaceAll(/&#39;/giu, "'")
 
 const stripHtml = (value: string): string =>
   decodeHtmlEntities(value)
-    .replaceAll(/<br\s*\/?>/gi, "\n")
-    .replaceAll(/<\/(p|div|li|ul|ol|h[1-6])>/gi, "\n")
-    .replaceAll(/<[^>]*>/g, "")
-    .replaceAll(/[ \t]+\n/g, "\n")
-    .replaceAll(/\n{2,}/g, "\n")
-    .replaceAll(/[ \t]{2,}/g, " ")
+    .replaceAll(/<br\s*\/?>/giu, "\n")
+    .replaceAll(/<\/(?:p|div|li|ul|ol|h[1-6])>/giu, "\n")
+    .replaceAll(/<[^>]*>/gu, "")
+    .replaceAll(/[ \t]+\n/gu, "\n")
+    .replaceAll(/\n{2,}/gu, "\n")
+    .replaceAll(/[ \t]{2,}/gu, " ")
     .trim()
 
 const toBulletLines = (value: string): string | null => {
@@ -43,12 +43,17 @@ const toBulletLines = (value: string): string | null => {
 }
 
 const extractListItems = (value: string): string[] => {
-  const listMatches = [...value.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)]
+  const listMatches = [
+    ...value.matchAll(/<li[^>]*>(?<content>[\s\S]*?)<\/li>/giu),
+  ]
   if (listMatches.length === 0) {
     return []
   }
 
-  return listMatches.map((item) => stripHtml(item[1] || "")).filter(Boolean)
+  return listMatches.flatMap((item) => {
+    const content = stripHtml(item.groups?.content ?? "")
+    return content.length > 0 ? [content] : []
+  })
 }
 
 export const resolveDescription = (
@@ -92,15 +97,17 @@ export const resolveDescription = (
       .join("\n")
   }
 
-  const textSource = htmlCandidates.find((candidate) => stripHtml(candidate))
-  if (!textSource) {
+  const textSource = htmlCandidates.find(
+    (candidate) => stripHtml(candidate).length > 0,
+  )
+  if (textSource === undefined) {
     return null
   }
 
   const text = stripHtml(textSource)
-  if (!text) {
+  if (text.length === 0) {
     return null
   }
 
-  return toBulletLines(text) || text
+  return toBulletLines(text) ?? text
 }
