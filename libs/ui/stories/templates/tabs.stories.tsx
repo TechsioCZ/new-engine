@@ -152,10 +152,10 @@ export const Playground: Story = {
     items: [
       ...defaultItems,
       {
-        value: "tab4",
-        label: "Disabled",
         content: <div className="p-400">This tab is disabled</div>,
         disabled: true,
+        label: "Disabled",
+        value: "tab4",
       },
     ],
     justify: "start",

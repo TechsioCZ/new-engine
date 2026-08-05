@@ -293,8 +293,8 @@ export class ZaneUpstreamClient {
 
     const loginResponse = await fetch(`${this.#baseUrl}/api/auth/login/`, {
       body: JSON.stringify({
-        username: this.#username,
         password: this.#password,
+        username: this.#username,
       }),
       headers: this.buildHeaders(session, "POST"),
       method: "POST",

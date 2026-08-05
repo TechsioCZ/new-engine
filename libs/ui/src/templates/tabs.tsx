@@ -28,7 +28,7 @@ export interface TabsTemplateProps extends Omit<TabsProps, "children" | "ref"> {
   ref?: Ref<HTMLDivElement> | undefined
 }
 
-export function TabsTemplate({
+export const TabsTemplate = ({
   items,
   showIndicator = false,
   variant = "default",
@@ -42,7 +42,7 @@ export function TabsTemplate({
   ref,
   className,
   ...tabsProps
-}: TabsTemplateProps) {
+}: TabsTemplateProps) => {
   return (
     <Tabs
       className={className}

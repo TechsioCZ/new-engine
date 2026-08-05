@@ -168,29 +168,29 @@ export const HERBATICA_SHIPPING_OPTIONS = [
     name: "Standard Shipping",
     prices: [
       {
+        amount: 10,
         currencyCode: "usd",
-        amount: 10,
       },
       {
+        amount: 10,
         currencyCode: "eur",
-        amount: 10,
       },
       {
-        currencyCode: "czk",
         amount: 250,
+        currencyCode: "czk",
       },
     ],
     providerId: HERBATICA_WORKFLOW_DEFAULTS.fulfillmentProviderId,
     rules: [
       {
         attribute: "enabled_in_store",
-        value: "true",
         operator: "eq",
+        value: "true",
       },
       {
         attribute: "is_return",
-        value: "false",
         operator: "eq",
+        value: "false",
       },
     ],
     type: {
@@ -203,29 +203,29 @@ export const HERBATICA_SHIPPING_OPTIONS = [
     name: "Express Shipping",
     prices: [
       {
+        amount: 10,
         currencyCode: "usd",
-        amount: 10,
       },
       {
+        amount: 10,
         currencyCode: "eur",
-        amount: 10,
       },
       {
-        currencyCode: "czk",
         amount: 250,
+        currencyCode: "czk",
       },
     ],
     providerId: HERBATICA_WORKFLOW_DEFAULTS.fulfillmentProviderId,
     rules: [
       {
         attribute: "enabled_in_store",
-        value: "true",
         operator: "eq",
+        value: "true",
       },
       {
         attribute: "is_return",
-        value: "false",
         operator: "eq",
+        value: "false",
       },
     ],
     type: {

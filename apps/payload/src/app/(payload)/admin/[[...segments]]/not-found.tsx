@@ -10,9 +10,7 @@ interface Args {
   params: Promise<{
     segments: string[]
   }>
-  searchParams: Promise<{
-    [key: string]: string | string[]
-  }>
+  searchParams: Promise<Record<string, string | string[]>>
 }
 
 export const generateMetadata =  async ({

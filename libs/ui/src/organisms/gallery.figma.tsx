@@ -9,9 +9,9 @@ figma.connect(
     example: ({ orientation }) => (
       <Gallery
         items={[
-          { id: "1", src: "/product-1.jpg", alt: "Product front" },
-          { id: "2", src: "/product-2.jpg", alt: "Product side" },
-          { id: "3", src: "/product-3.jpg", alt: "Product detail" },
+          { alt: "Product front", id: "1", src: "/product-1.jpg" },
+          { alt: "Product side", id: "2", src: "/product-2.jpg" },
+          { alt: "Product detail", id: "3", src: "/product-3.jpg" },
         ]}
         orientation={orientation}
       />
@@ -19,8 +19,8 @@ figma.connect(
     imports: ['import { Gallery } from "@libs/ui/organisms/gallery"'],
     props: {
       orientation: figma.enum("orientation", {
-        vertical: "vertical",
         horizontal: "horizontal",
+        vertical: "vertical",
       }),
     },
   },

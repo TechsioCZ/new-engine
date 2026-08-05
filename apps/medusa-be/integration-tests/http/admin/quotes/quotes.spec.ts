@@ -42,17 +42,17 @@ medusaIntegrationTestRunner({
       const res = await createStoreUser({ api, storeHeaders })
       customerToken = res.token
       storeHeaders.headers.Authorization = `Bearer ${customerToken}`
-      region = await regionSeeder({ api, adminHeaders, data: {} })
+      region = await regionSeeder({ adminHeaders, api, data: {} })
 
       salesChannel = await salesChannelSeeder({
-        api,
         adminHeaders,
+        api,
         data: {},
       })
 
       product = await productSeeder({
-        api,
         adminHeaders,
+        api,
         data: {
           sales_channels: [{ id: salesChannel.id }],
         },
@@ -66,12 +66,12 @@ medusaIntegrationTestRunner({
 
       cart = await cartSeeder({
         api,
-        storeHeaders,
         data: {
+          items: [{ quantity: 1, variant_id: product.variants[0].id }],
           region_id: region.id,
           sales_channel_id: salesChannel.id,
-          items: [{ quantity: 1, variant_id: product.variants[0].id }],
         },
+        storeHeaders,
       })
     })
 
@@ -92,21 +92,21 @@ medusaIntegrationTestRunner({
         } = await api.post(
           `/admin/quotes/${quote1.id}/messages`,
           {
-            text: "test message",
             item_id: cart.items[0].id,
+            text: "test message",
           },
           adminHeaders,
         )
 
-        expect(quote).toEqual(
+        expect(quote).toStrictEqual(
           expect.objectContaining({
             id: quote1.id,
             messages: [
               expect.objectContaining({
-                text: "test message",
-                item_id: cart.items[0].id,
                 admin_id: expect.any(String),
                 customer_id: null,
+                item_id: cart.items[0].id,
+                text: "test message",
               }),
             ],
           }),

@@ -49,7 +49,7 @@ export function FilterSection<T>({
           </Button>
         )}
       </div>
-      <div className={className || ""}>
+      <div className={className ?? ""}>
         {hasItems
           ? visibleItems.map((item, index) => renderItem(item, index))
           : children}

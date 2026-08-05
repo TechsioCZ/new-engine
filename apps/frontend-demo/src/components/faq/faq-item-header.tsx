@@ -9,13 +9,13 @@ interface FaqItemHeaderProps {
   tag: string
   tagStyle?: string
 }
-export function FaqItemHeader({
+export const FaqItemHeader = ({
   icon,
   iconStyle,
   title,
   tag,
   tagStyle,
-}: FaqItemHeaderProps) {
+}: FaqItemHeaderProps) => {
   return (
     <div className="flex items-center gap-300">
       <div

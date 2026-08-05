@@ -105,7 +105,7 @@ export const ProductGrid = ({
                 />
                 <div className="flex flex-col items-center gap-300 self-start">
                   <ProductCard.Actions>
-                    <VariantsBox variants={product.variants || []} />
+                    <VariantsBox variants={product.variants ?? []} />
                   </ProductCard.Actions>
                 </div>
                 <ProductCard.Stock

@@ -116,7 +116,7 @@ export const WithoutButton: Story = {
   ),
 }
 
-function ControlledExample() {
+const ControlledExample = () => {
   const [value, setValue] = useState("")
 
   return (
@@ -217,7 +217,7 @@ export const ButtonThemes: Story = {
   ),
 }
 
-function SubmitExample() {
+const SubmitExample = () => {
   const [submitted, setSubmitted] = useState<string | null>(null)
 
   return (
@@ -245,7 +245,7 @@ export const FormSubmission: Story = {
   render: () => <SubmitExample />,
 }
 
-function FormDataExample() {
+const FormDataExample = () => {
   const [result, setResult] = useState<string | null>(null)
 
   return (

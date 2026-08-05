@@ -41,10 +41,10 @@ interface DeleteEmployeesCompensation {
   employee_link_delete_input: DeleteEntityInput
   employee_ids: string[]
   provider_identity_ids: string[]
-  removed_customer_groups: Array<{
+  removed_customer_groups: {
     customer_group_id: string
     customer_id: string
-  }>
+  }[]
 }
 
 const normalizeInput = (input: DeleteEmployeesStepInput) =>

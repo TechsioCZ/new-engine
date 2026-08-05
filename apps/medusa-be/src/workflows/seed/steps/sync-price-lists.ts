@@ -247,8 +247,8 @@ function buildPriceListEntries(
     ...priceLists.overrides.map((priceList) => ({
       customerGroupName: priceList.customerGroupName,
       description: formatTemplate(config.descriptions.override, {
-        title: priceList.title,
         sourceTitle: priceList.title,
+        title: priceList.title,
       }),
       metadata: buildPriceListMetadata(
         config,
@@ -262,8 +262,8 @@ function buildPriceListEntries(
     ...priceLists.sales.map((priceList) => ({
       customerGroupName: priceList.customerGroupName,
       description: formatTemplate(config.descriptions.sale, {
-        title: priceList.title,
         sourceTitle: priceList.sourceTitle,
+        title: priceList.title,
       }),
       endsAt: priceList.endsAt,
       metadata: buildPriceListMetadata(

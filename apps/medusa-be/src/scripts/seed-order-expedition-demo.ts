@@ -585,7 +585,7 @@ function sortExistingDemoOrders(orders: ExistingDemoOrder[]) {
       order,
       sortIndex: getExistingDemoOrderSortIndex(order, index),
     }))
-    .sort((left, right) => {
+    .toSorted((left, right) => {
       if (left.sortIndex !== right.sortIndex) {
         return left.sortIndex - right.sortIndex
       }

@@ -43,13 +43,13 @@ function AboutRichText({ content }: { content: AboutParagraph }) {
   })
 }
 
-export function AboutParagraphText({
+export const AboutParagraphText = ({
   className = aboutParagraphClassName,
   paragraph,
 }: {
   className?: string
   paragraph: AboutParagraph
-}) {
+}) => {
   return (
     <p className={className}>
       <AboutRichText content={paragraph} />
@@ -57,13 +57,13 @@ export function AboutParagraphText({
   )
 }
 
-export function AboutImageFrame({
+export const AboutImageFrame = ({
   image,
   priority = false,
 }: {
   image: AboutImage
   priority?: boolean
-}) {
+}) => {
   return (
     <figure className="overflow-hidden rounded-lg border border-border-secondary bg-surface">
       <NextImage
@@ -84,7 +84,7 @@ export function AboutImageFrame({
   )
 }
 
-export function SectionHeader({
+export const SectionHeader = ({
   eyebrow,
   title,
   text,
@@ -92,7 +92,7 @@ export function SectionHeader({
   eyebrow?: string
   text?: string
   title: string
-}) {
+}) => {
   return (
     <header className="max-w-about-copy space-y-200">
       {eyebrow ? (

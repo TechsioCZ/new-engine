@@ -19,11 +19,14 @@ import {
   createStoreShippingOptionWithServiceZone,
 } from "./medusa-fixtures"
 
-const createWrapper =
-  (client: QueryClient) =>
-  ({ children }: { children: ReactNode }) => (
-    <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
-  )
+const createWrapper = (client: QueryClient) =>
+  function ({ children }: { children: ReactNode }) {
+    return (
+      <StorefrontDataProvider client={client}>
+        {children}
+      </StorefrontDataProvider>
+    )
+  }
 
 const resolveTestRelativePath = (relativePath: string): string => {
   const resolvedUrl = new URL(relativePath, import.meta.url)
@@ -276,9 +279,9 @@ describe("phase 2 regressions", () => {
       listShippingOptions: async () =>
         [
           {
+            amount: 500,
             id: "opt_fixed",
             price_type: "flat",
-            amount: 500,
           },
         ] as ShippingOption[],
     }

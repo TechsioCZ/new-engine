@@ -13,7 +13,7 @@ const PREFETCH_DELAY = 200
  * Prefetches all root categories on non-category pages
  * Category pages use usePrefetchRootCategories hook instead
  */
-export function PrefetchManager() {
+export const PrefetchManager = () => {
   const { prefetchRootCategories } = usePrefetchProducts()
   const { regionId } = useRegion()
   const pathname = usePathname()

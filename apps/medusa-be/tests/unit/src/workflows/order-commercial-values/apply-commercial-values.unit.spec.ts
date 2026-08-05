@@ -85,7 +85,9 @@ const query = {
 }
 
 const lockingModule = {
-  execute: vi.fn(async (_key: string, fn: () => Promise<unknown>) => fn()),
+  execute: vi.fn(
+    async (_key: string, fn: () => Promise<unknown>) => await fn(),
+  ),
 }
 
 let container: MedusaContainer
@@ -130,7 +132,7 @@ describe(applyOrderCommercialValues, () => {
     query.graph.mockReset()
     lockingModule.execute.mockReset()
     lockingModule.execute.mockImplementation(
-      async (_key: string, fn: () => Promise<unknown>) => fn(),
+      async (_key: string, fn: () => Promise<unknown>) => await fn(),
     )
     mockBeginRun.mockResolvedValue({ result: { id: "oc_1", version: 1 } })
     mockCancelRun.mockResolvedValue({ result: null })

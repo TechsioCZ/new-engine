@@ -111,5 +111,5 @@ export function getSalesRegionRows(
         locale,
       ),
     }))
-    .sort(sortSalesRegionRows)
+    .toSorted(sortSalesRegionRows)
 }

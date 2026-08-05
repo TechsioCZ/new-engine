@@ -1037,14 +1037,14 @@ export class ZaneClient {
             service.env.map(async (envVar) => [
               envVar.env_var,
               await this.resolvePreviewRuntimeValueSource({
-                session,
-                projectSlug: input.projectSlug,
-                environmentName: input.environmentName,
-                environment,
                 envByKey,
-                source: envVar.source,
+                environment,
+                environmentName: input.environmentName,
                 label: `${service.service_slug}.${envVar.env_var}`,
+                projectSlug: input.projectSlug,
                 serviceDetailsByRef,
+                session,
+                source: envVar.source,
               }),
             ]),
           ),
@@ -1189,22 +1189,22 @@ export class ZaneClient {
             ...(backendOutput
               ? [
                   {
-                    output_id: "backend_key",
-                    env_var: result.backend_env_var,
-                    value: result.backend_key,
                     created: result.backend_created,
+                    env_var: result.backend_env_var,
+                    output_id: "backend_key",
                     updated: result.backend_updated,
+                    value: result.backend_key,
                   },
                 ]
               : []),
             ...(frontendOutput
               ? [
                   {
-                    output_id: "frontend_key",
-                    env_var: result.frontend_env_var,
-                    value: result.frontend_key,
                     created: result.frontend_created,
+                    env_var: result.frontend_env_var,
+                    output_id: "frontend_key",
                     updated: result.frontend_updated,
+                    value: result.frontend_key,
                   },
                 ]
               : []),
@@ -1241,11 +1241,11 @@ export class ZaneClient {
           environment_name: result.environment_name,
           outputs: [
             {
-              output_id: "frontend_key",
-              env_var: result.frontend_env_var,
-              value: result.frontend_key,
               created: result.frontend_created,
+              env_var: result.frontend_env_var,
+              output_id: "frontend_key",
               updated: result.frontend_updated,
+              value: result.frontend_key,
             },
           ],
           project_slug: result.project_slug,

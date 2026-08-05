@@ -13,7 +13,8 @@ export function useLogin(options?: UseLoginOptions) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (credentials: LoginCredentials) => login(credentials),
+    mutationFn: async (credentials: LoginCredentials) =>
+      await login(credentials),
     onError: (error: Error) => {
       options?.onError?.(error)
     },

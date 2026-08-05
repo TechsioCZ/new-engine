@@ -16,7 +16,7 @@ interface HomepagePromoSectionProps {
   promo?: HomepagePromoContent | null
 }
 
-export function HomepagePromoSection({ promo }: HomepagePromoSectionProps) {
+export const HomepagePromoSection = ({ promo }: HomepagePromoSectionProps) => {
   const sectionRef = useRef<HTMLElement>(null)
   const imageAlt = promo?.imageAlt || DEFAULT_IMAGE.alt
   const imageSrc = promo?.imageSrc || DEFAULT_IMAGE.src

@@ -73,10 +73,10 @@ interface BrandContextValue {
 
 const BrandContext = createContext<BrandContextValue | null>(null)
 
-function BrandProvider({
+const BrandProvider = ({
   defaultBrand,
   children,
-}: PropsWithChildren<{ defaultBrand: BrandKey }>) {
+}: PropsWithChildren<{ defaultBrand: BrandKey }>) => {
   const { setTheme } = useTheme()
   // Lazy-init from storage so the first client render already matches what the
   // pre-hydration BrandThemeScript wrote to <html> — the apply effect below
@@ -113,11 +113,11 @@ type AppThemeProviderProps = PropsWithChildren<{
   defaultMode?: ModeSetting | undefined
 }>
 
-export function AppThemeProvider({
+export const AppThemeProvider = ({
   defaultBrand = DEFAULT_BRAND,
   defaultMode = DEFAULT_MODE,
   children,
-}: AppThemeProviderProps) {
+}: AppThemeProviderProps) => {
   return (
     <BetterThemesProvider
       attribute="class"
@@ -187,11 +187,11 @@ export function useAppTheme(): UseAppThemeResult {
  * `<body>`, where it still runs synchronously before any body content renders.
  * better-themes injects its own equivalent script for the mode axis.
  */
-export function BrandThemeScript({
+export const BrandThemeScript = ({
   defaultBrand = DEFAULT_BRAND,
 }: {
   defaultBrand?: BrandKey | undefined
-}) {
+}) => {
   const attrByBrand: Record<string, string | undefined> = {}
   for (const key of brandKeys()) {
     attrByBrand[key] = brandAttr(key)

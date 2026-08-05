@@ -190,7 +190,7 @@ export const selectRecommendedProductRepresentatives = (
   })
 
   return [...familyCandidates.values()]
-    .sort((left, right) => left.firstSeenIndex - right.firstSeenIndex)
+    .toSorted((left, right) => left.firstSeenIndex - right.firstSeenIndex)
     .slice(0, resolvedLimit)
     .map((candidate) => candidate.product)
 }

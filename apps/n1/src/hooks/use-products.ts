@@ -87,7 +87,7 @@ export function useProducts({
     })
   }
 
-  const totalCount = data?.count || 0
+  const totalCount = data?.count ?? 0
   const totalPages = Math.ceil(totalCount / limit)
   let errorMessage: string | null = null
   if (error instanceof Error) {
@@ -104,7 +104,7 @@ export function useProducts({
     isFetching,
     isLoading,
     isSuccess,
-    products: data?.products || [],
+    products: data?.products ?? [],
     totalCount,
     totalPages,
   }
@@ -157,7 +157,7 @@ export function useSuspenseProducts({
     })
   }
 
-  const totalCount = data?.count || 0
+  const totalCount = data?.count ?? 0
   const totalPages = Math.ceil(totalCount / limit)
 
   return {
@@ -165,7 +165,7 @@ export function useSuspenseProducts({
     hasNextPage: page < totalPages,
     hasPrevPage: page > 1,
     isFetching,
-    products: data?.products || [],
+    products: data?.products ?? [],
     totalCount,
     totalPages,
   }

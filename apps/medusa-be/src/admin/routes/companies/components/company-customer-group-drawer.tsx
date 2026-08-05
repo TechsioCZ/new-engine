@@ -26,7 +26,7 @@ const PAGE_SIZE = 20
 const getActiveEmployeeCount = (company: QueryCompany) =>
   company.employees?.filter((employee) => !employee.deleted_at).length ?? 0
 
-export function CompanyCustomerGroupDrawer({
+export const CompanyCustomerGroupDrawer = ({
   company,
   open,
   setOpen,
@@ -34,7 +34,7 @@ export function CompanyCustomerGroupDrawer({
   company: QueryCompany
   open: boolean
   setOpen: (open: boolean) => void
-}) {
+}) => {
   const { t } = useTranslation("companies")
   const [pageIndex, setPageIndex] = useState(0)
   const [q, setQ] = useState("")
@@ -137,7 +137,7 @@ export function CompanyCustomerGroupDrawer({
       return (
         <Button
           isLoading={removeLoading}
-          onClick={async () => handleRemove(group.id)}
+          onClick={async () => await handleRemove(group.id)}
           variant="danger"
         >
           {t("customerGroup.remove")}
@@ -150,7 +150,7 @@ export function CompanyCustomerGroupDrawer({
       <Button
         disabled={addDisabled}
         isLoading={addLoading}
-        onClick={async () => handleAdd(group.id)}
+        onClick={async () => await handleAdd(group.id)}
       >
         {t("customerGroup.set")}
       </Button>
@@ -171,8 +171,7 @@ export function CompanyCustomerGroupDrawer({
       return (
         <Table.Row>
           <Table.Cell className="text-ui-fg-error">
-            {customerGroupsError?.message ||
-              ownersError?.message ||
+            {(customerGroupsError?.message ?? ownersError?.message) ||
               t("errors.loadCustomerGroupsFailed")}
           </Table.Cell>
           <Table.Cell />

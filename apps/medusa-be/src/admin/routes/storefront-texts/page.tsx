@@ -197,7 +197,7 @@ const StorefrontTextEditDrawer = ({
         throw new Error(t("errors.missingText"))
       }
 
-      return updateStorefrontText(storefrontText.id, input)
+      return await updateStorefrontText(storefrontText.id, input)
     },
     onError: (error) => {
       toast.error(
@@ -387,7 +387,7 @@ const StorefrontTextsPage = () => {
     ...(status === undefined ? {} : { status }),
   }
   const { data, isLoading } = useQuery({
-    queryFn: async () => listStorefrontTexts(params),
+    queryFn: async () => await listStorefrontTexts(params),
     queryKey: storefrontTextQueryKeys.list(params),
   })
   const syncMutation = useMutation({

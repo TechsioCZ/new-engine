@@ -39,17 +39,17 @@ medusaIntegrationTestRunner({
       const res = await createStoreUser({ api, storeHeaders })
       customerToken = res.token
       storeHeaders.headers.Authorization = `Bearer ${customerToken}`
-      region = await regionSeeder({ api, adminHeaders, data: {} })
+      region = await regionSeeder({ adminHeaders, api, data: {} })
 
       salesChannel = await salesChannelSeeder({
-        api,
         adminHeaders,
+        api,
         data: {},
       })
 
       product = await productSeeder({
-        api,
         adminHeaders,
+        api,
         data: {
           sales_channels: [{ id: salesChannel.id }],
         },
@@ -63,12 +63,12 @@ medusaIntegrationTestRunner({
 
       await cartSeeder({
         api,
-        storeHeaders,
         data: {
+          items: [{ quantity: 1, variant_id: product.variants[0].id }],
           region_id: region.id,
           sales_channel_id: salesChannel.id,
-          items: [{ quantity: 1, variant_id: product.variants[0].id }],
         },
+        storeHeaders,
       })
     })
 
@@ -77,34 +77,34 @@ medusaIntegrationTestRunner({
         const response = await api.post(
           "/store/companies",
           {
-            name: "Test Company",
-            email: "test@company.com",
-            phone: "1234567890",
             address: "123 Test St",
             city: "Test City",
+            country: "Test Country",
+            currency_code: "USD",
+            email: "test@company.com",
+            logo_url: "http://test.com/logo.png",
+            name: "Test Company",
+            phone: "1234567890",
+            spending_limit_reset_frequency: "monthly",
             state: "Test State",
             zip: "12345",
-            country: "Test Country",
-            logo_url: "http://test.com/logo.png",
-            currency_code: "USD",
-            spending_limit_reset_frequency: "monthly",
           },
           storeHeaders,
         )
 
-        expect(response.status).toEqual(200)
+        expect(response.status).toStrictEqual(200)
         expect(response.data.companies[0]).toMatchObject({
-          id: expect.any(String),
-          name: "Test Company",
-          email: "test@company.com",
-          phone: "1234567890",
           address: "123 Test St",
           city: "Test City",
+          country: "Test Country",
+          currency_code: "USD",
+          email: "test@company.com",
+          id: expect.any(String),
+          logo_url: "http://test.com/logo.png",
+          name: "Test Company",
+          phone: "1234567890",
           state: "Test State",
           zip: "12345",
-          country: "Test Country",
-          logo_url: "http://test.com/logo.png",
-          currency_code: "USD",
         })
       })
     })
@@ -114,17 +114,17 @@ medusaIntegrationTestRunner({
         const response1 = await api.post(
           "/store/companies",
           {
-            name: "Test Company",
-            email: "test@company.com",
-            phone: "1234567890",
             address: "123 Test St",
             city: "Test City",
+            country: "Test Country",
+            currency_code: "USD",
+            email: "test@company.com",
+            logo_url: "http://test.com/logo.png",
+            name: "Test Company",
+            phone: "1234567890",
+            spending_limit_reset_frequency: "monthly",
             state: "Test State",
             zip: "12345",
-            country: "Test Country",
-            logo_url: "http://test.com/logo.png",
-            currency_code: "USD",
-            spending_limit_reset_frequency: "monthly",
           },
           storeHeaders,
         )
@@ -135,17 +135,17 @@ medusaIntegrationTestRunner({
         )
 
         expect(response2.data.company).toMatchObject({
-          id: expect.any(String),
-          name: "Test Company",
-          email: "test@company.com",
-          phone: "1234567890",
           address: "123 Test St",
           city: "Test City",
+          country: "Test Country",
+          currency_code: "USD",
+          email: "test@company.com",
+          id: expect.any(String),
+          logo_url: "http://test.com/logo.png",
+          name: "Test Company",
+          phone: "1234567890",
           state: "Test State",
           zip: "12345",
-          country: "Test Country",
-          logo_url: "http://test.com/logo.png",
-          currency_code: "USD",
         })
       })
 
@@ -167,17 +167,17 @@ medusaIntegrationTestRunner({
         const response = await api.post(
           "/store/companies",
           {
-            name: "Test Company",
-            email: "test@company.com",
-            phone: "1234567890",
             address: "123 Test St",
             city: "Test City",
+            country: "Test Country",
+            currency_code: "USD",
+            email: "test@company.com",
+            logo_url: "http://test.com/logo.png",
+            name: "Test Company",
+            phone: "1234567890",
+            spending_limit_reset_frequency: "monthly",
             state: "Test State",
             zip: "12345",
-            country: "Test Country",
-            logo_url: "http://test.com/logo.png",
-            currency_code: "USD",
-            spending_limit_reset_frequency: "monthly",
           },
           storeHeaders,
         )
@@ -189,33 +189,33 @@ medusaIntegrationTestRunner({
         const response = await api.post(
           `/store/companies/${company1.id}`,
           {
-            name: "Updated Company",
-            email: "updated@company.com",
-            phone: "0987654321",
             address: "456 Updated Ave",
             city: "Updated City",
+            country: "Updated Country",
+            currency_code: "EUR",
+            email: "updated@company.com",
+            logo_url: "http://updated.com/logo.png",
+            name: "Updated Company",
+            phone: "0987654321",
+            spending_limit_reset_frequency: "yearly",
             state: "Updated State",
             zip: "54321",
-            country: "Updated Country",
-            logo_url: "http://updated.com/logo.png",
-            currency_code: "EUR",
-            spending_limit_reset_frequency: "yearly",
           },
           storeHeaders,
         )
 
         expect(response.data.company).toMatchObject({
-          id: company1.id,
-          name: "Updated Company",
-          email: "updated@company.com",
-          phone: "0987654321",
           address: "456 Updated Ave",
           city: "Updated City",
+          country: "Updated Country",
+          currency_code: "EUR",
+          email: "updated@company.com",
+          id: company1.id,
+          logo_url: "http://updated.com/logo.png",
+          name: "Updated Company",
+          phone: "0987654321",
           state: "Updated State",
           zip: "54321",
-          country: "Updated Country",
-          logo_url: "http://updated.com/logo.png",
-          currency_code: "EUR",
         })
       })
 
@@ -241,17 +241,17 @@ medusaIntegrationTestRunner({
         const response = await api.post(
           "/store/companies",
           {
-            name: "Test Company",
-            email: "test@company.com",
-            phone: "1234567890",
             address: "123 Test St",
             city: "Test City",
+            country: "Test Country",
+            currency_code: "USD",
+            email: "test@company.com",
+            logo_url: "http://test.com/logo.png",
+            name: "Test Company",
+            phone: "1234567890",
+            spending_limit_reset_frequency: "monthly",
             state: "Test State",
             zip: "12345",
-            country: "Test Country",
-            logo_url: "http://test.com/logo.png",
-            currency_code: "USD",
-            spending_limit_reset_frequency: "monthly",
           },
           storeHeaders,
         )
@@ -265,7 +265,7 @@ medusaIntegrationTestRunner({
           storeHeaders,
         )
 
-        expect(response.status).toEqual(204)
+        expect(response.status).toStrictEqual(204)
       })
 
       it("should throw an error when company does not exist", async () => {
@@ -273,7 +273,7 @@ medusaIntegrationTestRunner({
           .delete("/store/companies/does-not-exist", storeHeaders)
           .catch(getHttpError)
 
-        expect(response.status).toEqual(204)
+        expect(response.status).toStrictEqual(204)
       })
     })
   },

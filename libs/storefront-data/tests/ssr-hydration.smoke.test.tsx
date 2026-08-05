@@ -75,15 +75,15 @@ describe("storefront-data SSR hydration smoke", () => {
       getProducts: async (params) => {
         fetchCount += 1
         return {
+          count: 1,
+          limit: params.limit,
+          offset: params.offset,
           products: [
             {
               id: `prod_${params.region_id ?? "default"}`,
               title: "Hydrated Product",
             },
           ],
-          count: 1,
-          limit: params.limit,
-          offset: params.offset,
         }
       },
     }
@@ -120,7 +120,7 @@ describe("storefront-data SSR hydration smoke", () => {
 
     const serverQueryClient = trackClient(getServerQueryClient())
     await serverQueryClient.prefetchQuery({
-      queryFn: async () => service.getProducts(listParams),
+      queryFn: async () => await service.getProducts(listParams),
       queryKey: queryKeys.list(listParams),
     })
 

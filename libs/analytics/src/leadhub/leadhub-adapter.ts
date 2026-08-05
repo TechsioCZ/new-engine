@@ -110,10 +110,10 @@ export function useLeadhubAdapter(
           currency: params.currency,
           order_id: params.orderId,
           products: params.products.map((p) => ({
+            currency: p.currency,
             product_id: p.id,
             quantity: p.quantity ?? 1,
             value: p.price,
-            currency: p.currency,
           })),
           value: params.value,
         })

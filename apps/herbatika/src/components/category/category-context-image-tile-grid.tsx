@@ -92,9 +92,9 @@ export const buildCategoryContextImageTiles = ({
   return tiles
 }
 
-export function CategoryContextImageTileGrid({
+export const CategoryContextImageTileGrid = ({
   tiles,
-}: CategoryContextImageTileGridProps) {
+}: CategoryContextImageTileGridProps) => {
   if (tiles.length === 0) {
     return null
   }

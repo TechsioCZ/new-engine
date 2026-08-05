@@ -1,6 +1,6 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 
-export function OrdersError() {
+export const OrdersError = () => {
   return (
     <div className="rounded border border-danger bg-base p-400 text-center">
       <p className="mb-200 font-medium text-danger">

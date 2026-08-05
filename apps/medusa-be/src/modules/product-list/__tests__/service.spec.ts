@@ -17,14 +17,14 @@ moduleIntegrationTestRunner<ProductListModuleService>({
         const result = await service.createFavoriteProductList()
         const stored = await service.retrieveProductList(result.id)
 
-        expect(stored).toEqual(
+        expect(stored).toStrictEqual(
           expect.objectContaining({
-            title: "Favorites",
-            handle: "favorites",
-            type: "favorite",
             access_type: "private",
             description: null,
+            handle: "favorites",
             metadata: null,
+            title: "Favorites",
+            type: "favorite",
           }),
         )
       })
@@ -36,43 +36,43 @@ moduleIntegrationTestRunner<ProductListModuleService>({
           title: "  Summer Picks  ",
         })
 
-        expect(result).toEqual(
+        expect(result).toStrictEqual(
           expect.objectContaining({
-            title: "Summer Picks",
-            handle: "summer-picks",
-            type: "custom",
             access_type: "private",
             description: null,
+            handle: "summer-picks",
             metadata: null,
+            title: "Summer Picks",
+            type: "custom",
           }),
         )
       })
 
       it("normalizes custom handles and preserves explicit public access", async () => {
         const result = await service.createCustomProductList({
-          title: "Public Shelf",
-          handle: "  Featured Products  ",
           access_type: "public",
           description: "Visible product list",
+          handle: "  Featured Products  ",
           metadata: { source: "test" },
+          title: "Public Shelf",
         })
 
-        expect(result).toEqual(
+        expect(result).toStrictEqual(
           expect.objectContaining({
-            title: "Public Shelf",
-            handle: "featured-products",
-            type: "custom",
             access_type: "public",
             description: "Visible product list",
+            handle: "featured-products",
             metadata: { source: "test" },
+            title: "Public Shelf",
+            type: "custom",
           }),
         )
       })
 
       it("preserves explicit private access", async () => {
         const result = await service.createCustomProductList({
-          title: "Private Shelf",
           access_type: "private",
+          title: "Private Shelf",
         })
 
         expect(result.access_type).toBe("private")
@@ -81,12 +81,12 @@ moduleIntegrationTestRunner<ProductListModuleService>({
       it("rejects invalid access values", async () => {
         await expect(
           service.createCustomProductList({
-            title: "Shared Shelf",
             access_type: "shared" as never,
+            title: "Shared Shelf",
           }),
         ).rejects.toMatchObject({
-          type: MedusaError.Types.INVALID_DATA,
           message: "Unsupported product list access type: shared",
+          type: MedusaError.Types.INVALID_DATA,
         })
       })
     })
@@ -98,19 +98,19 @@ moduleIntegrationTestRunner<ProductListModuleService>({
         const item = await service.createProductListItemForList({
           list_id: list.id,
           list_type: "favorite",
+          metadata: { source: "favorite-test" },
+          note: "Already owned",
           quantity: 9,
           sort_order: 3,
-          note: "Already owned",
-          metadata: { source: "favorite-test" },
         })
 
-        expect(item).toEqual(
+        expect(item).toStrictEqual(
           expect.objectContaining({
             list_id: list.id,
+            metadata: { source: "favorite-test" },
+            note: "Already owned",
             quantity: 9,
             sort_order: 3,
-            note: "Already owned",
-            metadata: { source: "favorite-test" },
           }),
         )
       })
@@ -123,19 +123,19 @@ moduleIntegrationTestRunner<ProductListModuleService>({
         const item = await service.createProductListItemForList({
           list_id: list.id,
           list_type: "custom",
+          metadata: { source: "custom-test" },
+          note: "Compare later",
           quantity: 2,
           sort_order: 4,
-          note: "Compare later",
-          metadata: { source: "custom-test" },
         })
 
-        expect(item).toEqual(
+        expect(item).toStrictEqual(
           expect.objectContaining({
             list_id: list.id,
+            metadata: { source: "custom-test" },
+            note: "Compare later",
             quantity: 2,
             sort_order: 4,
-            note: "Compare later",
-            metadata: { source: "custom-test" },
           }),
         )
 
@@ -159,13 +159,13 @@ moduleIntegrationTestRunner<ProductListModuleService>({
           list_type: "custom",
         })
 
-        expect(item).toEqual(
+        expect(item).toStrictEqual(
           expect.objectContaining({
             list_id: list.id,
+            metadata: null,
+            note: null,
             quantity: 1,
             sort_order: 0,
-            note: null,
-            metadata: null,
           }),
         )
       })
@@ -182,8 +182,8 @@ moduleIntegrationTestRunner<ProductListModuleService>({
             quantity: 0,
           }),
         ).rejects.toMatchObject({
-          type: MedusaError.Types.INVALID_DATA,
           message: "quantity must be a positive integer",
+          type: MedusaError.Types.INVALID_DATA,
         })
       })
 
@@ -200,8 +200,8 @@ moduleIntegrationTestRunner<ProductListModuleService>({
             sort_order: -1,
           }),
         ).rejects.toMatchObject({
-          type: MedusaError.Types.INVALID_DATA,
           message: "sort_order must be a non-negative integer",
+          type: MedusaError.Types.INVALID_DATA,
         })
       })
     })

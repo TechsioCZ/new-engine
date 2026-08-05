@@ -15,11 +15,11 @@ interface RegisterAccountTypeFieldProps {
   validators: RegisterFormValidators["account_type"]
 }
 
-export function RegisterAccountTypeField({
+export const RegisterAccountTypeField = ({
   form,
   onValueChange,
   validators,
-}: RegisterAccountTypeFieldProps) {
+}: RegisterAccountTypeFieldProps) => {
   const tAuth = useTranslations("auth")
   const accountTypeItems = [
     {

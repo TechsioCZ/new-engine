@@ -17,11 +17,11 @@ const TYPE_ICON: Record<
   category: "token-icon-box",
 }
 
-export function SearchAutocompleteMedia({
+export const SearchAutocompleteMedia = ({
   item,
 }: {
   item: SearchAutocompleteSuggestion
-}) {
+}) => {
   if (item.type === "product") {
     return (
       <span className="flex h-800 w-800 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border-secondary bg-base">

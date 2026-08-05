@@ -29,14 +29,14 @@ type FormTextareaFieldProps = {
   | "value"
 >
 
-export function FormTextareaField({
+export const FormTextareaField = ({
   id,
   label,
   onValueChange,
   required = false,
   validationMode = "blur",
   ...props
-}: FormTextareaFieldProps) {
+}: FormTextareaFieldProps) => {
   const field = useFieldContext<string>()
   const [hasChangedSinceBlur, setHasChangedSinceBlur] = useState(false)
   const value = typeof field.state.value === "string" ? field.state.value : ""

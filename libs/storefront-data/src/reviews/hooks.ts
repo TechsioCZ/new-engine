@@ -215,7 +215,7 @@ export function createProductReviewHooks<
 
       await queryClient.prefetchQuery({
         queryFn: async ({ signal }) =>
-          service.listProductReviews(listParams, signal),
+          await service.listProductReviews(listParams, signal),
         queryKey,
         ...prefetchCacheOptions,
       })
@@ -230,7 +230,7 @@ export function createProductReviewHooks<
       const queryKey = resolvedQueryKeys.productList(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
       return schedulePrefetch(
-        async () => prefetchProductReviews(input),
+        async () => await prefetchProductReviews(input),
         id,
         delay,
       )

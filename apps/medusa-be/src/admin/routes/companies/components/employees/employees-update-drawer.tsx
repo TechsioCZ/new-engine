@@ -11,7 +11,7 @@ import type {
 } from "../../../../../types"
 import { useUpdateEmployee } from "../../../../hooks/api"
 
-export function EmployeesUpdateDrawer({
+export const EmployeesUpdateDrawer = ({
   company,
   employee,
   open,
@@ -23,7 +23,7 @@ export function EmployeesUpdateDrawer({
   open: boolean
   setOpen: (open: boolean) => void
   toast: typeof toastType
-}) {
+}) => {
   const { t } = useTranslation("companies")
   const { mutateAsync, isPending } = useUpdateEmployee(
     employee.company_id,
